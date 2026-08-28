@@ -277,3 +277,90 @@ VALUES
     'SCHEME',
     '{"state": "Andhra Pradesh", "category": "Education"}'
 );
+   
+
+
+
+
+
+-- ============================================
+-- ADDITIONAL SAMPLE DATA FOR FULL POLICYGPT DATABASE
+-- ============================================
+
+-- ROLES
+INSERT INTO roles (role_name, description)
+VALUES
+('ADMIN', 'System administrator with full access'),
+('CITIZEN', 'Citizen using the PolicyGPT platform'),
+('GOVERNMENT_OFFICIAL', 'Government official managing policies and schemes');
+
+-- USER PROFILES
+INSERT INTO user_profiles
+(user_id, age, gender, income, occupation, education, state, district, social_category, disability_status)
+VALUES
+(1, 30, 'Male', 750000.00, 'Government Officer', 'Postgraduate', 'Andhra Pradesh', 'Amaravati', 'General', FALSE),
+(2, 28, 'Female', 650000.00, 'Policy Analyst', 'Postgraduate', 'Telangana', 'Hyderabad', 'General', FALSE),
+(3, 21, 'Female', 300000.00, 'Student', 'Undergraduate', 'Andhra Pradesh', 'Kadapa', 'General', FALSE);
+
+-- POLICY CATEGORIES
+INSERT INTO policy_categories (category_name, description)
+VALUES
+('Education', 'Policies related to education and student welfare'),
+('Healthcare', 'Policies related to public healthcare'),
+('Employment', 'Policies related to employment and skill development');
+
+-- SCHEME CATEGORIES
+INSERT INTO scheme_categories (category_name, description)
+VALUES
+('Education', 'Education support and scholarship schemes'),
+('Healthcare', 'Healthcare assistance schemes'),
+('Employment', 'Employment and skill development schemes');
+
+-- POLICY DOCUMENTS
+INSERT INTO policy_documents
+(policy_id, document_name, document_type, document_url, uploaded_by)
+VALUES
+(1, 'National Education Support Policy Guidelines', 'PDF', 'https://example.gov.in/policies/education-guidelines.pdf', 1),
+(2, 'Public Healthcare Policy Guidelines', 'PDF', 'https://example.gov.in/policies/healthcare-guidelines.pdf', 1),
+(3, 'Employment Policy Guidelines', 'PDF', 'https://example.gov.in/policies/employment-guidelines.pdf', 2);
+
+-- SCHEME DOCUMENTS
+INSERT INTO scheme_documents
+(scheme_id, document_name, document_type, document_url, uploaded_by)
+VALUES
+(1, 'Student Education Support Scheme Guidelines', 'PDF', 'https://example.gov.in/schemes/student-support.pdf', 1),
+(2, 'Healthcare Assistance Scheme Guidelines', 'PDF', 'https://example.gov.in/schemes/healthcare-assistance.pdf', 1),
+(3, 'Youth Employment Scheme Guidelines', 'PDF', 'https://example.gov.in/schemes/youth-employment.pdf', 2);
+
+-- SCHEME APPLICATIONS
+INSERT INTO scheme_applications
+(user_id, scheme_id, application_status, reference_number, remarks)
+VALUES
+(3, 1, 'SUBMITTED', 'APP-2026-001', 'Application submitted successfully');
+
+-- SAVED POLICIES
+INSERT INTO saved_policies (user_id, policy_id)
+VALUES
+(3, 1);
+
+-- SAVED SCHEMES
+INSERT INTO saved_schemes (user_id, scheme_id)
+VALUES
+(3, 1);
+
+-- NOTIFICATION PREFERENCES
+INSERT INTO notification_preferences
+(user_id, email_enabled, sms_enabled, in_app_enabled, policy_alerts, scheme_updates, deadline_reminders)
+VALUES
+(3, TRUE, FALSE, TRUE, TRUE, TRUE, TRUE);
+
+-- SUPPORT QUERIES
+INSERT INTO support_queries
+(user_id, subject, description, priority, status, assigned_to)
+VALUES
+(3,
+'Unable to understand scheme eligibility',
+'I need help understanding whether I am eligible for the Student Education Support Scheme.',
+'MEDIUM',
+'OPEN',
+1);

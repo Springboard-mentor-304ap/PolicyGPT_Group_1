@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: policygpt_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: policygpt_db
+      POSTGRES_USER: policygpt_user
+      POSTGRES_PASSWORD: policygpt_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ../database/sample_data.sql:/docker-entrypoint-initdb.d/02-sample-data.sql
+
+volumes:
+  postgres_data:

@@ -6,7 +6,7 @@
 -- ============================================
 
 INSERT INTO users
-(full_name, email, password_hash, role, phone, state, organization)
+(full_name, email, password_hash, role, phone, state, organization, date_of_birth, district, occupation)
 VALUES
 (
     'Admin User',
@@ -15,7 +15,10 @@ VALUES
     'ADMIN',
     '9000000001',
     'Andhra Pradesh',
-    'PolicyGPT'
+    'PolicyGPT',
+    '1990-01-15',
+    'Visakhapatnam',
+    'System Administrator'
 ),
 (
     'Government Official',
@@ -24,7 +27,10 @@ VALUES
     'GOVERNMENT_OFFICIAL',
     '9000000002',
     'Andhra Pradesh',
-    'Government Department'
+    'Government Department',
+    '1985-06-20',
+    'Vijayawada',
+    'Government Officer'
 ),
 (
     'Test Citizen',
@@ -33,7 +39,25 @@ VALUES
     'CITIZEN',
     '9000000003',
     'Andhra Pradesh',
-    NULL
+    NULL,
+    '1998-11-10',
+    'Guntur',
+    'Software Engineer'
+);
+
+-- ============================================
+-- PASSWORD RESET TOKENS
+-- ============================================
+
+CREATE TABLE password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL
+        REFERENCES users(user_id)
+        ON DELETE CASCADE,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 

@@ -12,12 +12,16 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(30) NOT NULL,
-    phone VARCHAR(20),
+    phone VARCHAR(20) UNIQUE,
+    date_of_birth DATE,
     state VARCHAR(100),
+    district VARCHAR(100),
+    occupation VARCHAR(150),
     organization VARCHAR(200),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    token_version INTEGER NOT NULL DEFAULT 0
 );
 
 

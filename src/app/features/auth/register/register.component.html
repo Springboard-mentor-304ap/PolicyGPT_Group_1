@@ -1,0 +1,252 @@
+<div class="login-page">
+  <!-- LEFT: brand / hero panel -->
+  <aside class="login-hero">
+    <div class="login-hero__bg"></div>
+
+    <div class="login-hero__content">
+      <div class="login-hero__brand">
+        <img src="/images/logo.png" alt="PolicyGPT logo" class="login-hero__logo-img" />
+        <div>
+          <h1 class="login-hero__title">PolicyGPT</h1>
+          <p class="login-hero__tagline">Government Information. Simplified.</p>
+        </div>
+      </div>
+
+      <h2 class="login-hero__headline">
+        Join <span class="login-hero__headline-accent">PolicyGPT</span><br />
+        Empower. Access. Benefit.
+      </h2>
+      <p class="login-hero__subtext">
+        Create your account and unlock access to government policies, public
+        schemes, eligibility checks and much more.
+      </p>
+
+      <ul class="login-features">
+        <li class="login-feature">
+          <span class="login-feature__icon login-feature__icon--blue">
+            <span class="material-icons">person</span>
+          </span>
+          <div>
+            <p class="login-feature__title">Personalized Experience</p>
+            <p class="login-feature__desc">Get scheme recommendations and policies relevant to your profile.</p>
+          </div>
+        </li>
+        <li class="login-feature">
+          <span class="login-feature__icon login-feature__icon--green">
+            <span class="material-icons">fact_check</span>
+          </span>
+          <div>
+            <p class="login-feature__title">Check Eligibility</p>
+            <p class="login-feature__desc">Find schemes you are eligible for in just a few steps.</p>
+          </div>
+        </li>
+        <li class="login-feature">
+          <span class="login-feature__icon login-feature__icon--orange">
+            <span class="material-icons">bookmark</span>
+          </span>
+          <div>
+            <p class="login-feature__title">Save & Track</p>
+            <p class="login-feature__desc">Save important policies, schemes and track application status.</p>
+          </div>
+        </li>
+        <li class="login-feature">
+          <span class="login-feature__icon login-feature__icon--purple">
+            <span class="material-icons">notifications</span>
+          </span>
+          <div>
+            <p class="login-feature__title">Stay Updated</p>
+            <p class="login-feature__desc">Receive notifications about new policies, schemes and deadlines.</p>
+          </div>
+        </li>
+      </ul>
+
+            <blockquote class="login-hero__quote">
+        Your one-stop platform to discover government policies and schemes
+        that matter to you.
+      </blockquote>
+    </div>
+  </aside>
+
+  <!-- RIGHT: register form -->
+  <main class="login-form-panel">
+    <div class="login-form-panel__top">
+      <span>Already have an account?</span>
+      <a routerLink="/auth/login" class="login-form-panel__cta">Login</a>
+    </div>
+
+    <div class="login-card">
+      <h2 class="login-card__title">Create Your Account</h2>
+      <p class="login-card__subtitle">Fill in your details to get started with PolicyGPT</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <label class="login-field-label" for="name">Full Name</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">person</span>
+          <input id="name" class="login-input" type="text" formControlName="name"
+                 placeholder="Enter your full name" autocomplete="name" />
+        </div>
+        @if (form.get('name')?.hasError('required') && form.get('name')?.touched) {
+          <p class="login-error">Name is required</p>
+        }
+
+        <label class="login-field-label" for="email">Email Address</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">mail</span>
+          <input id="email" class="login-input" type="email" formControlName="email"
+                 placeholder="Enter your email address" autocomplete="email" />
+        </div>
+        @if (form.get('email')?.hasError('required') && form.get('email')?.touched) {
+          <p class="login-error">Email is required</p>
+        }
+        @if (form.get('email')?.hasError('email') && form.get('email')?.touched) {
+          <p class="login-error">Enter a valid email</p>
+        }
+
+        <div class="login-row">
+          <div class="login-col">
+            <label class="login-field-label" for="phone">Phone Number</label>
+            <div class="login-input-wrap">
+              <span class="material-icons login-input-icon" aria-hidden="true">call</span>
+              <input id="phone" class="login-input" type="tel" formControlName="phone"
+                     placeholder="Enter your phone number" autocomplete="tel" />
+            </div>
+            @if (form.get('phone')?.hasError('required') && form.get('phone')?.touched) {
+              <p class="login-error">Phone number is required</p>
+            }
+            @if (form.get('phone')?.hasError('pattern') && form.get('phone')?.touched) {
+              <p class="login-error">Enter a valid 10-digit phone number</p>
+            }
+          </div>
+          <div class="login-col">
+            <label class="login-field-label" for="dob">Date Of Birth</label>
+            <div class="login-input-wrap">
+              <span class="material-icons login-input-icon" aria-hidden="true">calendar_today</span>
+              <input id="dob" class="login-input" type="date" formControlName="dob" />
+            </div>
+            @if (form.get('dob')?.hasError('required') && form.get('dob')?.touched) {
+              <p class="login-error">Date of birth is required</p>
+            }
+          </div>
+        </div>
+
+        <div class="login-row">
+          <div class="login-col">
+            <label class="login-field-label" for="state">State</label>
+            <div class="login-select-wrap">
+              <select id="state" class="login-select" formControlName="state">
+                <option value="" disabled selected>Select your state</option>
+                @for (s of states; track s) {
+                  <option [value]="s">{{ s }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="login-col">
+            <label class="login-field-label" for="district">District</label>
+            <div class="login-select-wrap">
+              <select id="district" class="login-select" formControlName="district">
+                <option value="" disabled selected>Select your district</option>
+                @for (d of districts; track d) {
+                  <option [value]="d">{{ d }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="login-row">
+          <div class="login-col">
+            <label class="login-field-label" for="occupation">Occupation</label>
+            <div class="login-input-wrap login-input-wrap--no-icon">
+              <input id="occupation" class="login-input login-input--no-icon" type="text" formControlName="occupation"
+                     placeholder="Enter your occupation" />
+            </div>
+          </div>
+          <div class="login-col">
+            <label class="login-field-label" for="organization">Organization</label>
+            <div class="login-input-wrap login-input-wrap--no-icon">
+              <input id="organization" class="login-input login-input--no-icon" type="text" formControlName="organization"
+                     placeholder="Enter your organization" />
+            </div>
+          </div>
+        </div>
+
+        <label class="login-field-label" for="password">Password</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">lock</span>
+          <input id="password" class="login-input" [type]="hidePassword ? 'password' : 'text'"
+                 formControlName="password" placeholder="Create a password" autocomplete="new-password" />
+          <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword"
+                  [attr.aria-label]="'Toggle password visibility'">
+            <span class="material-icons" aria-hidden="true">{{ hidePassword ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
+          <p class="login-error">Password is required</p>
+        }
+        @if (form.get('password')?.hasError('minlength') && form.get('password')?.touched) {
+          <p class="login-error">Password must be at least 8 characters</p>
+        }
+        <p class="login-hint">Min. 8 characters with letters, numbers &amp; symbols</p>
+
+        <label class="login-field-label" for="confirmPassword">Confirm Password</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">lock</span>
+          <input id="confirmPassword" class="login-input" [type]="hideConfirmPassword ? 'password' : 'text'"
+                 formControlName="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" />
+          <button type="button" class="login-input-suffix" (click)="hideConfirmPassword = !hideConfirmPassword"
+                  [attr.aria-label]="'Toggle confirm password visibility'">
+            <span class="material-icons" aria-hidden="true">{{ hideConfirmPassword ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        @if (form.get('confirmPassword')?.hasError('required') && form.get('confirmPassword')?.touched) {
+          <p class="login-error">Please confirm your password</p>
+        }
+        @if (form.hasError('passwordMismatch') && form.get('confirmPassword')?.touched) {
+          <p class="login-error">Passwords do not match</p>
+        }
+
+               <label class="login-field-label" for="role">I want to register as</label>
+        <div class="login-select-wrap">
+          <select id="role" class="login-select" formControlName="role">
+            <option value="" disabled selected>Select your role</option>
+            @for (r of roles; track r.value) {
+              <option [value]="r.value">{{ r.label }}</option>
+            }
+          </select>
+        </div>
+        @if (form.get('role')?.hasError('required') && form.get('role')?.touched) {
+          <p class="login-error">Please select a role</p>
+        }
+
+        <label class="login-checkbox">
+          <input type="checkbox" formControlName="agreeTerms" />
+          <span>
+            I agree to the <a routerLink="/terms">Terms &amp; Conditions</a> and
+            <a routerLink="/privacy">Privacy Policy</a>
+          </span>
+        </label>
+        @if (form.get('agreeTerms')?.hasError('required') && form.get('agreeTerms')?.touched) {
+          <p class="login-error">You must agree to continue</p>
+        }
+
+        @if (errorMessage) {
+          <p class="login-error login-error--form" role="alert">{{ errorMessage }}</p>
+        }
+
+        <button type="submit" class="login-submit" [disabled]="loading">
+          @if (loading) {
+            <span class="login-spinner" aria-hidden="true"></span>
+          } @else {
+            <span class="material-icons" aria-hidden="true">person_add</span>
+            <span>Create Account</span>
+          }
+        </button>
+      </form>
+    </div>
+
+    <p class="login-support">
+      Having trouble signing up? <a routerLink="/feedback">Contact Support</a>
+    </p>
+  </main>
+</div>

@@ -1,0 +1,122 @@
+<div class="login-page">
+  <!-- LEFT: brand / hero panel -->
+  <aside class="login-hero">
+    <div class="login-hero__bg"></div>
+
+    <div class="login-hero__content">
+      <div class="login-hero__brand">
+        <img src="/images/logo.png" alt="PolicyGPT logo" class="login-hero__logo-img" />
+        <div>
+          <h1 class="login-hero__title">PolicyGPT</h1>
+          <p class="login-hero__tagline">Government Information. Simplified.</p>
+        </div>
+      </div>
+
+      <h2 class="login-hero__headline">
+        Access. Understand.<br />
+        <span class="login-hero__headline-accent">Empower.</span>
+      </h2>
+      <p class="login-hero__subtext">
+        PolicyGPT brings government policies and public schemes closer to you.
+        Secure. Reliable. Intelligent.
+      </p>
+
+      <ul class="login-hero__features">
+        @for (f of features; track f.title) {
+          <li class="login-hero__feature">
+            <span class="login-hero__feature-icon" [class]="'login-hero__feature-icon--' + f.color">
+              <span class="material-icons" aria-hidden="true">{{ f.icon }}</span>
+            </span>
+            <span>
+              <strong>{{ f.title }}</strong>
+              <p>{{ f.desc }}</p>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <blockquote class="login-hero__quote">
+        "Information is power."<br />
+        PolicyGPT is here to empower every citizen.
+      </blockquote>
+    </div>
+  </aside>
+
+  <!-- RIGHT: login form -->
+  <main class="login-form-panel">
+    <div class="login-form-panel__top">
+      <span>New here?</span>
+      <a routerLink="/auth/register" class="login-form-panel__cta">Create Account</a>
+    </div>
+
+    <div class="login-card">
+      <h2 class="login-card__title">Welcome Back!</h2>
+      <p class="login-card__subtitle">Login to your PolicyGPT account</p>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <label class="login-field-label" for="phone">Phone Number</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">call</span>
+          <input id="phone" class="login-input" type="tel" formControlName="phone"
+                 placeholder="Enter your phone number" autocomplete="tel" />
+        </div>
+        @if (form.get('phone')?.hasError('required') && form.get('phone')?.touched) {
+          <p class="login-error">Phone number is required</p>
+        }
+        @if (form.get('phone')?.hasError('pattern') && form.get('phone')?.touched) {
+          <p class="login-error">Enter a valid 10-digit phone number</p>
+        }
+
+        <label class="login-field-label" for="password">Password</label>
+        <div class="login-input-wrap">
+          <span class="material-icons login-input-icon" aria-hidden="true">lock</span>
+          <input id="password" class="login-input" [type]="hidePassword ? 'password' : 'text'"
+                 formControlName="password" placeholder="Enter your password" autocomplete="current-password" />
+          <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword"
+                  [attr.aria-label]="'Toggle password visibility'">
+            <span class="material-icons" aria-hidden="true">{{ hidePassword ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
+          <p class="login-error">Password is required</p>
+        }
+
+        <div class="login-row">
+          <label class="login-checkbox">
+            <input type="checkbox" formControlName="rememberMe" />
+            <span>Remember Me</span>
+          </label>
+          <a routerLink="/auth/password-reset" class="login-forgot-link">Forgot password?</a>
+        </div>
+
+        @if (errorMessage) {
+          <p class="login-error login-error--form" role="alert">{{ errorMessage }}</p>
+        }
+
+        <button type="submit" class="login-submit" [disabled]="loading">
+          @if (loading) {
+            <span class="login-spinner" aria-hidden="true"></span>
+          } @else {
+            <span class="material-icons" aria-hidden="true">login</span>
+            <span>Login</span>
+          }
+        </button>
+
+        <div class="login-divider"><span>or continue with</span></div>
+
+        <div class="login-oauth-row">
+          <button type="button" class="login-oauth-btn" (click)="loginWithGoogle()">
+            <span class="login-oauth-btn__icon">G</span> Google
+          </button>
+          <button type="button" class="login-oauth-btn" (click)="loginWithMail()">
+            <span class="material-icons" aria-hidden="true">mail</span> Mail ID
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <p class="login-support">
+      Having trouble logging in? <a routerLink="/feedback">Contact Support</a>
+    </p>
+  </main>
+</div>

@@ -102,25 +102,80 @@ export class RegisterComponent {
     return pass === confirm ? null : { passwordMismatch: true };
   }
 
+  //changed
   submit() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    this.loading = true;
-    this.errorMessage = '';
+if (this.form.invalid) {
+this.form.markAllAsTouched();
+return;
+}
 
-    const { name, email, phone, password } = this.form.value;
+this.loading = true;
+this.errorMessage = '';
 
-    this.authService.register({ name, email, phone, password }).subscribe({
-      next: () => {
-        this.loading = false;
-        this.router.navigate(['/auth/login']);
-      },
-      error: (err: any) => {
-        this.loading = false;
-        this.errorMessage = err?.error?.message || 'Registration failed. Please try again.';
-      }
-    });
-  }
+const {
+name,
+email,
+phone,
+dob,
+state,
+district,
+occupation,
+organization,
+password,
+confirmPassword,
+role
+} = this.form.getRawValue();
+
+this.authService.register({
+name,
+email,
+phone,
+password,
+confirmPassword,
+dob,
+state,
+district,
+occupation,
+organization,
+role
+}).subscribe({
+next: () => {
+this.loading = false;
+this.router.navigate(['/auth/login']);
+},
+error: (err: any) => {
+this.loading = false;
+
+  console.error('Registration error:', err);
+
+  this.errorMessage =
+    err?.error?.detail ||
+    err?.error?.message ||
+    'Registration failed. Please try again.';
+}
+
+});
+}
+
+  // submit() {
+  //   if (this.form.invalid) {
+  //     this.form.markAllAsTouched();
+  //     return;
+  //   }
+  //   this.loading = true;
+  //   this.errorMessage = '';
+
+  //   const { name, email, phone, password } = this.form.value;
+
+  //   this.authService.register({ name, email, phone, password }).subscribe({
+  //     next: () => {
+  //       this.loading = false;
+  //       this.router.navigate(['/auth/login']);
+  //     },
+  //     error: (err: any) => {
+  //       this.loading = false;
+  //       this.errorMessage = err?.error?.message || 'Registration failed. Please try again.';
+  //     }
+  //   });
+  // }
 }

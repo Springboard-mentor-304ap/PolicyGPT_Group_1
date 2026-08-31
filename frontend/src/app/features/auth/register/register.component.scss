@@ -15,20 +15,29 @@ $login-bg: #f5f7fb;
   box-sizing: border-box;
 }
 
+/* =========================================
+   MAIN PAGE LAYOUT
+   Desktop:
+   - Left hero stays fixed
+   - Right form scrolls independently
+========================================= */
+
 .login-page {
-  min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 40% 60%;
   font-family: 'Inter', 'Roboto', sans-serif;
   background: $login-bg;
-
-  @media (max-width: 960px) {
-    grid-template-columns: 1fr;
-  }
+  overflow: hidden;
 }
+
+/* =========================================
+   LEFT HERO SECTION
+========================================= */
 
 .login-hero {
   position: relative;
+  height: 100vh;
   overflow: hidden;
   color: #fff;
   padding: 40px 48px;
@@ -39,9 +48,19 @@ $login-bg: #f5f7fb;
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(180deg, rgba($login-navy-deep, 0.55) 0%, rgba($login-navy, 0.75) 55%, $login-navy-deep 100%),
-      radial-gradient(circle at 20% 15%, rgba(#3a5ba0, 0.4), transparent 55%),
+      linear-gradient(
+        180deg,
+        rgba($login-navy-deep, 0.55) 0%,
+        rgba($login-navy, 0.75) 55%,
+        $login-navy-deep 100%
+      ),
+      radial-gradient(
+        circle at 20% 15%,
+        rgba(#3a5ba0, 0.4),
+        transparent 55%
+      ),
       url('/images/parliament.png');
+
     background-size: cover;
     background-position: center bottom;
     background-repeat: no-repeat;
@@ -120,11 +139,11 @@ $login-bg: #f5f7fb;
     color: rgba(#fff, 0.85);
     line-height: 1.5;
   }
-
-  @media (max-width: 960px) {
-    padding: 28px;
-  }
 }
+
+/* =========================================
+   HERO FEATURES
+========================================= */
 
 .login-features {
   list-style: none;
@@ -150,12 +169,25 @@ $login-bg: #f5f7fb;
     justify-content: center;
     color: #fff;
 
-    .material-icons { font-size: 18px; }
+    .material-icons {
+      font-size: 18px;
+    }
 
-    &--blue { background: $login-blue; }
-    &--green { background: $login-green; }
-    &--orange { background: $login-orange; }
-    &--purple { background: $login-purple; }
+    &--blue {
+      background: $login-blue;
+    }
+
+    &--green {
+      background: $login-green;
+    }
+
+    &--orange {
+      background: $login-orange;
+    }
+
+    &--purple {
+      background: $login-purple;
+    }
   }
 
   &__title {
@@ -174,12 +206,21 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   RIGHT FORM PANEL
+   ONLY THIS SECTION SCROLLS ON DESKTOP
+========================================= */
+
 .login-form-panel {
+  height: 100vh;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 32px 32px 48px;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 
   &__top {
     width: 100%;
@@ -191,6 +232,7 @@ $login-bg: #f5f7fb;
     font-size: 13.5px;
     color: $login-muted;
     margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   &__cta {
@@ -208,6 +250,10 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   REGISTER CARD
+========================================= */
+
 .login-card {
   width: 100%;
   max-width: 520px;
@@ -215,6 +261,7 @@ $login-bg: #f5f7fb;
   border-radius: 16px;
   padding: 36px 40px 32px;
   box-shadow: 0 12px 32px rgba($login-navy, 0.08);
+  flex-shrink: 0;
 
   &__title {
     margin: 0 0 4px;
@@ -232,10 +279,18 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   FORM ROWS
+========================================= */
+
 .login-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+
+.login-col {
+  min-width: 0;
 }
 
 .login-field-label {
@@ -273,7 +328,9 @@ $login-bg: #f5f7fb;
   align-items: center;
   padding: 4px;
 
-  .material-icons { font-size: 18px; }
+  .material-icons {
+    font-size: 18px;
+  }
 }
 
 .login-input,
@@ -296,20 +353,26 @@ $login-bg: #f5f7fb;
   &::placeholder {
     color: #9aa1ac;
   }
+}
 
-  &--no-icon {
-    padding: 0 14px;
-  }
+.login-input--no-icon {
+  padding: 0 14px;
 }
 
 .login-select {
   appearance: none;
+  padding-left: 14px;
   padding-right: 36px;
+
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+
   background-repeat: no-repeat;
   background-position: right 14px center;
-  padding-left: 14px;
 }
+
+/* =========================================
+   HINTS AND ERRORS
+========================================= */
 
 .login-hint {
   margin: 6px 0 0;
@@ -328,6 +391,10 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   TERMS CHECKBOX
+========================================= */
+
 .login-checkbox {
   display: flex;
   align-items: flex-start;
@@ -340,6 +407,7 @@ $login-bg: #f5f7fb;
 
   input {
     margin-top: 2px;
+    flex-shrink: 0;
   }
 
   a {
@@ -353,12 +421,20 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   SUBMIT BUTTON
+========================================= */
+
 .login-submit {
   width: 100%;
   height: 50px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(180deg, $login-blue, $login-blue-dark);
+  background: linear-gradient(
+    180deg,
+    $login-blue,
+    $login-blue-dark
+  );
   color: #fff;
   font-weight: 700;
   font-size: 15px;
@@ -380,6 +456,10 @@ $login-bg: #f5f7fb;
   }
 }
 
+/* =========================================
+   LOADING SPINNER
+========================================= */
+
 .login-spinner {
   width: 18px;
   height: 18px;
@@ -390,13 +470,21 @@ $login-bg: #f5f7fb;
 }
 
 @keyframes login-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
+
+/* =========================================
+   SUPPORT TEXT
+========================================= */
 
 .login-support {
   margin-top: 24px;
+  margin-bottom: 8px;
   font-size: 13px;
   color: $login-muted;
+  flex-shrink: 0;
 
   a {
     color: $login-blue;
@@ -406,5 +494,112 @@ $login-bg: #f5f7fb;
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+/* =========================================
+   TABLET RESPONSIVE
+========================================= */
+
+@media (max-width: 960px) {
+  .login-page {
+    height: auto;
+    min-height: 100vh;
+    display: block;
+    overflow: visible;
+  }
+
+  .login-hero {
+    height: auto;
+    min-height: 400px;
+    padding: 32px 40px;
+  }
+
+  .login-form-panel {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    padding: 32px 24px 48px;
+  }
+}
+
+/* =========================================
+   MOBILE RESPONSIVE
+========================================= */
+
+@media (max-width: 600px) {
+  .login-hero {
+    min-height: auto;
+    padding: 28px 22px;
+  }
+
+  .login-hero__brand {
+    margin-bottom: 22px;
+  }
+
+  .login-hero__logo-img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .login-hero__headline {
+    font-size: 26px;
+  }
+
+  .login-hero__subtext {
+    font-size: 13px;
+  }
+
+  .login-features {
+    gap: 8px;
+    margin: 20px 0;
+  }
+
+  .login-feature__title {
+    font-size: 14px;
+  }
+
+  .login-feature__desc {
+    font-size: 12px;
+    max-width: 100%;
+  }
+
+  .login-hero__quote {
+    margin-top: 24px;
+  }
+
+  .login-form-panel {
+    padding: 24px 14px 40px;
+  }
+
+  .login-form-panel__top {
+    justify-content: center;
+    flex-wrap: wrap;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .login-card {
+    padding: 28px 18px;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .login-card__title {
+    font-size: 23px;
+  }
+
+  .login-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .login-input,
+  .login-select {
+    font-size: 16px;
+  }
+
+  .login-support {
+    text-align: center;
   }
 }

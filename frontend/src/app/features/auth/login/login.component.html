@@ -9,6 +9,7 @@
 
       <!-- Logo -->
       <div class="login-hero__brand">
+
         <img
           src="/images/logo.png"
           alt="PolicyGPT logo"
@@ -24,7 +25,9 @@
             Government Information. Simplified.
           </p>
         </div>
+
       </div>
+
 
       <!-- Heading -->
       <h2 class="login-hero__headline">
@@ -32,15 +35,18 @@
         <span>Empower.</span>
       </h2>
 
+
       <p class="login-hero__subtext">
         PolicyGPT brings government policies and public schemes closer to you.
         Secure. Reliable. Intelligent.
       </p>
 
+
       <!-- Features -->
       <ul class="login-features">
 
         <li class="login-feature">
+
           <div class="login-feature__icon login-feature__icon--blue">
             <span class="material-icons">search</span>
           </div>
@@ -49,9 +55,12 @@
             <h3>Smart Search</h3>
             <p>Find policies and schemes quickly with advanced filters.</p>
           </div>
+
         </li>
 
+
         <li class="login-feature">
+
           <div class="login-feature__icon login-feature__icon--green">
             <span class="material-icons">verified_user</span>
           </div>
@@ -60,9 +69,12 @@
             <h3>Check Eligibility</h3>
             <p>Discover if you are eligible in just a few steps.</p>
           </div>
+
         </li>
 
+
         <li class="login-feature">
+
           <div class="login-feature__icon login-feature__icon--orange">
             <span class="material-icons">bookmark</span>
           </div>
@@ -71,9 +83,12 @@
             <h3>Save &amp; Track</h3>
             <p>Save important policies and track updates in real time.</p>
           </div>
+
         </li>
 
+
         <li class="login-feature">
+
           <div class="login-feature__icon login-feature__icon--purple">
             <span class="material-icons">notifications</span>
           </div>
@@ -82,25 +97,35 @@
             <h3>Stay Updated</h3>
             <p>Get notified about new policies, schemes and deadlines.</p>
           </div>
+
         </li>
 
       </ul>
 
+
       <!-- Quote -->
       <div class="login-hero__quote">
+
         <p>"Information is power."</p>
-        <p>PolicyGPT is here to empower every citizen.</p>
+
+        <p>
+          PolicyGPT is here to empower every citizen.
+        </p>
+
       </div>
 
     </div>
+
   </aside>
 
 
   <!-- ================= RIGHT SIDE ================= -->
   <main class="login-form-panel">
 
+
     <!-- Create Account -->
     <div class="login-form-panel__top">
+
       <span>New here?</span>
 
       <a
@@ -109,6 +134,7 @@
       >
         Create Account
       </a>
+
     </div>
 
 
@@ -118,6 +144,7 @@
       <h2 class="login-card__title">
         Welcome Back!
       </h2>
+
 
       <p class="login-card__subtitle">
         Login to your PolicyGPT account
@@ -130,60 +157,135 @@
         novalidate
       >
 
-        <!-- EMAIL -->
-        <label
-          class="login-field-label"
-          for="email"
-        >
-          Email Address
-        </label>
 
-        <div class="login-input-wrap">
+        <!-- ================= EMAIL LOGIN ================= -->
+        @if (loginMode === 'email') {
 
-          <span
-            class="material-icons login-input-icon"
-            aria-hidden="true"
+          <label
+            class="login-field-label"
+            for="email"
           >
-            mail_outline
-          </span>
+            Email Address
+          </label>
 
-          <input
-            id="email"
-            type="email"
-            class="login-input"
-            formControlName="email"
-            placeholder="Enter your email address"
-            autocomplete="email"
-          />
 
-        </div>
+          <div class="login-input-wrap">
 
-        @if (
-          form.get('email')?.hasError('required') &&
-          form.get('email')?.touched
-        ) {
-          <p class="login-error">
-            Email is required
-          </p>
+            <span
+              class="material-icons login-input-icon"
+              aria-hidden="true"
+            >
+              mail_outline
+            </span>
+
+
+            <input
+              id="email"
+              type="email"
+              class="login-input"
+              formControlName="email"
+              placeholder="Enter your email address"
+              autocomplete="email"
+            />
+
+          </div>
+
+
+          @if (
+            form.get('email')?.hasError('required') &&
+            form.get('email')?.touched
+          ) {
+
+            <p class="login-error">
+              Email is required
+            </p>
+
+          }
+
+
+          @if (
+            form.get('email')?.hasError('email') &&
+            form.get('email')?.touched
+          ) {
+
+            <p class="login-error">
+              Enter a valid email address
+            </p>
+
+          }
+
         }
 
-        @if (
-          form.get('email')?.hasError('email') &&
-          form.get('email')?.touched
-        ) {
-          <p class="login-error">
-            Enter a valid email address
-          </p>
+
+        <!-- ================= PHONE LOGIN ================= -->
+        @else {
+
+          <label
+            class="login-field-label"
+            for="phone"
+          >
+            Phone Number
+          </label>
+
+
+          <div class="login-input-wrap">
+
+            <span
+              class="material-icons login-input-icon"
+              aria-hidden="true"
+            >
+              phone
+            </span>
+
+
+            <input
+              id="phone"
+              type="tel"
+              class="login-input"
+              formControlName="phone"
+              placeholder="Enter your 10-digit phone number"
+              autocomplete="tel"
+              inputmode="numeric"
+              maxlength="10"
+            />
+
+          </div>
+
+
+          @if (
+            form.get('phone')?.hasError('required') &&
+            form.get('phone')?.touched
+          ) {
+
+            <p class="login-error">
+              Phone number is required
+            </p>
+
+          }
+
+
+          @if (
+            form.get('phone')?.hasError('pattern') &&
+            form.get('phone')?.touched
+          ) {
+
+            <p class="login-error">
+              Enter a valid 10-digit phone number
+            </p>
+
+          }
+
         }
 
 
-        <!-- PASSWORD -->
+        <!-- ================= PASSWORD ================= -->
         <label
           class="login-field-label"
           for="password"
         >
           Password
         </label>
+
 
         <div class="login-input-wrap">
 
@@ -194,6 +296,7 @@
             lock_outline
           </span>
 
+
           <input
             id="password"
             [type]="hidePassword ? 'password' : 'text'"
@@ -203,30 +306,42 @@
             autocomplete="current-password"
           />
 
+
           <button
             type="button"
             class="login-input-suffix"
             (click)="hidePassword = !hidePassword"
             aria-label="Toggle password visibility"
           >
+
             <span class="material-icons">
-              {{ hidePassword ? 'visibility_off' : 'visibility' }}
+
+              {{
+                hidePassword
+                  ? 'visibility_off'
+                  : 'visibility'
+              }}
+
             </span>
+
           </button>
 
         </div>
+
 
         @if (
           form.get('password')?.hasError('required') &&
           form.get('password')?.touched
         ) {
+
           <p class="login-error">
             Password is required
           </p>
+
         }
 
 
-        <!-- REMEMBER ME / FORGOT PASSWORD -->
+        <!-- ================= REMEMBER / FORGOT ================= -->
         <div class="login-options">
 
           <label class="login-remember">
@@ -240,6 +355,7 @@
 
           </label>
 
+
           <a
             routerLink="/auth/forgot-password"
             class="login-forgot"
@@ -252,12 +368,14 @@
 
         <!-- ERROR MESSAGE -->
         @if (errorMessage) {
+
           <p
             class="login-error login-error--form"
             role="alert"
           >
             {{ errorMessage }}
           </p>
+
         }
 
 
@@ -292,7 +410,7 @@
       </form>
 
 
-      <!-- DIVIDER -->
+      <!-- ================= DIVIDER ================= -->
       <div class="login-divider">
 
         <span></span>
@@ -304,28 +422,52 @@
       </div>
 
 
-      <!-- SOCIAL BUTTONS -->
+      <!-- ================= SOCIAL BUTTONS ================= -->
       <div class="login-social">
 
+
+        <!-- GOOGLE -->
         <button
           type="button"
           class="login-social__button"
           (click)="loginWithGoogle()"
         >
+
           <span class="google-icon">G</span>
+
           <span>Google</span>
+
         </button>
 
 
+        <!-- PHONE / EMAIL TOGGLE -->
         <button
           type="button"
           class="login-social__button"
+          (click)="toggleLoginMode()"
         >
+
           <span class="material-icons phone-icon">
-            phone
+
+            {{
+              loginMode === 'email'
+                ? 'phone'
+                : 'mail_outline'
+            }}
+
           </span>
 
-          <span>Phone Number</span>
+
+          <span>
+
+            {{
+              loginMode === 'email'
+                ? 'Phone Number'
+                : 'Email Address'
+            }}
+
+          </span>
+
         </button>
 
       </div>
@@ -335,11 +477,13 @@
 
     <!-- SUPPORT -->
     <p class="login-support">
+
       Having trouble logging in?
 
       <a routerLink="/feedback">
         Contact Support
       </a>
+
     </p>
 
   </main>

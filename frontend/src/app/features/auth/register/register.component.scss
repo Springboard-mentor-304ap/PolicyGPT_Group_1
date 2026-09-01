@@ -523,83 +523,165 @@ $login-bg: #f5f7fb;
   }
 }
 
+
 /* =========================================
-   MOBILE RESPONSIVE
+   TABLET RESPONSIVE
 ========================================= */
 
-@media (max-width: 600px) {
+@media (max-width: 960px) {
+
+  .login-page {
+    height: auto;
+    min-height: 100vh;
+
+    display: block;
+
+    overflow: visible;
+  }
+
   .login-hero {
-    min-height: auto;
-    padding: 28px 22px;
-  }
+    height: auto;
+    min-height: 400px;
 
-  .login-hero__brand {
-    margin-bottom: 22px;
-  }
-
-  .login-hero__logo-img {
-    width: 42px;
-    height: 42px;
-  }
-
-  .login-hero__headline {
-    font-size: 26px;
-  }
-
-  .login-hero__subtext {
-    font-size: 13px;
-  }
-
-  .login-features {
-    gap: 8px;
-    margin: 20px 0;
-  }
-
-  .login-feature__title {
-    font-size: 14px;
-  }
-
-  .login-feature__desc {
-    font-size: 12px;
-    max-width: 100%;
-  }
-
-  .login-hero__quote {
-    margin-top: 24px;
+    padding: 32px 40px;
   }
 
   .login-form-panel {
-    padding: 24px 14px 40px;
+    height: auto;
+    min-height: auto;
+
+    overflow: visible;
+
+    padding: 32px 24px 48px;
   }
+
+}
+
+
+/* =========================================
+   MOBILE RESPONSIVE
+   Same behavior as Login page
+========================================= */
+
+@media (max-width: 700px) {
+
+  .login-page {
+    display: block;
+
+    height: auto;
+    min-height: 100vh;
+
+    overflow: visible;
+  }
+
+
+  /* Hide hero exactly like Login page */
+  .login-hero {
+    display: none;
+  }
+
+
+  .login-form-panel {
+    height: auto;
+    min-height: 100vh;
+
+    padding: 90px 18px 40px;
+
+    overflow: visible;
+  }
+
 
   .login-form-panel__top {
-    justify-content: center;
-    flex-wrap: wrap;
-    text-align: center;
-    margin-bottom: 16px;
+    width: 100%;
+
+    justify-content: flex-end;
+
+    align-items: center;
+
+    gap: 10px;
+
+    flex-wrap: nowrap;
+
+    text-align: left;
+
+    margin-bottom: 18px;
+
+    font-size: 11px;
   }
 
-  .login-card {
-    padding: 28px 18px;
-    border-radius: 12px;
-    box-shadow: none;
+
+  .login-form-panel__cta {
+    padding: 8px 14px;
+
+    font-size: 11px;
   }
+
+
+  .login-card {
+    width: 100%;
+
+    max-width: 520px;
+
+    padding: 28px 22px;
+
+    border-radius: 14px;
+
+    box-shadow:
+      0 10px 28px rgba($login-navy, 0.08);
+  }
+
 
   .login-card__title {
     font-size: 23px;
   }
 
+
+  .login-card__subtitle {
+    margin-bottom: 18px;
+
+    font-size: 11.5px;
+  }
+
+
+  /* Make all paired fields one below another */
   .login-row {
     grid-template-columns: 1fr;
+
     gap: 0;
   }
 
+
+  .login-field-label {
+    margin-top: 12px;
+  }
+
+
   .login-input,
   .login-select {
+    height: 44px;
+
     font-size: 16px;
   }
 
+
+  .login-checkbox {
+    font-size: 11.5px;
+  }
+
+
+  .login-submit {
+    height: 46px;
+
+    font-size: 13px;
+  }
+
+
   .login-support {
     text-align: center;
+
+    margin-top: 24px;
+
+    font-size: 11px;
   }
+
 }

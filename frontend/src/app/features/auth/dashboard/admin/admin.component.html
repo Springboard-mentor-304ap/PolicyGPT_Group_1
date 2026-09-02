@@ -1,0 +1,167 @@
+<div class="dash-layout">
+  <!-- SIDEBAR WITH INDIAN PARLIAMENT BACKGROUND -->
+  <aside class="dash-sidebar">
+    <div class="dash-sidebar__brand">
+      <button class="dash-sidebar__toggle" type="button">
+        <span class="material-icons">menu</span>
+      </button>
+      <div class="dash-sidebar__brand-logo">
+        <span class="material-icons">account_balance</span>
+      </div>
+      <div class="dash-sidebar__brand-text">
+        <span class="dash-sidebar__title">PolicyGPT</span>
+        <span class="dash-sidebar__tagline">Government Information. Simplified.</span>
+      </div>
+    </div>
+
+    <nav class="dash-nav">
+      @for (item of navItems; track item.label) {
+        <a [routerLink]="item.route" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+          <span class="material-icons">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+          @if (item.hasSubmenu) {
+            <span class="material-icons dash-nav__chevron">chevron_right</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="dash-sidebar__footer">
+      <a routerLink="/admin/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+        <span class="material-icons">account_circle</span>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/admin/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+        <span class="material-icons">settings</span>
+        <span>Settings</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div class="dash-main-container">
+    <!-- TOPBAR -->
+    <header class="dash-topbar">
+      <div class="dash-search">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Search policies / schemes" />
+      </div>
+
+      <div class="dash-user">
+        <div class="dash-user__avatar">
+          <span class="material-icons">account_circle</span>
+        </div>
+        <div class="dash-user__info">
+          <p class="dash-user__name">{{ userName | uppercase }}</p>
+          <p class="dash-user__role">{{ userRole }}</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="dash-main">
+      <div class="dash-content">
+        <!-- WELCOME BANNER -->
+        <section class="dash-welcome">
+          <div class="dash-welcome__text">
+            <h1 class="dash-welcome__title">Welcome back, {{ userName }}!</h1>
+          </div>
+          
+          <svg class="dash-welcome__illustration" viewBox="0 0 600 200" preserveAspectRatio="xMaxYMax meet" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 380 40 Q 386 32 392 40 Q 398 32 404 40" stroke="#a0b3f2" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M 430 30 Q 435 23 440 30 Q 445 23 450 30" stroke="#a0b3f2" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <g fill="#cfdafc">
+              <rect x="440" y="80" width="80" height="120" />
+              <path d="M 440 80 Q 480 20 520 80 Z" />
+              <rect x="477" y="5" width="6" height="20" fill="#a0b3f2" />
+              <circle cx="480" cy="5" r="4" fill="#a0b3f2" />
+              <rect x="360" y="100" width="80" height="100" />
+              <rect x="390" y="70" width="12" height="130" />
+              <circle cx="396" cy="65" r="5" />
+              <rect x="520" y="100" width="80" height="100" />
+              <rect x="558" y="70" width="12" height="130" />
+              <circle cx="564" cy="65" r="5" />
+            </g>
+          </svg>
+        </section>
+
+        <!-- STAT CARDS -->
+        <section class="dash-stats">
+          @for (card of statCards; track card.label) {
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + card.color">
+                <span class="material-icons">{{ card.icon }}</span>
+              </div>
+              <div class="dash-stat-card__content">
+                <p class="dash-stat-card__value">{{ card.value }}</p>
+                <p class="dash-stat-card__label">{{ card.label }}</p>
+                <p class="dash-stat-card__sub">{{ card.sublabel }}</p>
+              </div>
+            </div>
+          }
+        </section>
+
+        <!-- PANELS GRID -->
+        <section class="dash-panels">
+          <!-- Schemes Panel -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Schemes</h2>
+              <a routerLink="/admin/schemes" class="dash-panel__link">View All</a>
+            </div>
+
+            <ul class="dash-list">
+              @for (scheme of schemes; track scheme.id) {
+                <li class="dash-list__item">
+                  <div class="dash-list__icon-wrap" [ngClass]="'dash-list__icon-wrap--' + scheme.iconClass">
+                    <span class="material-icons">{{ scheme.icon }}</span>
+                  </div>
+                  <div class="dash-list__details">
+                    <p class="dash-list__title">{{ scheme.title }}</p>
+                    <p class="dash-list__meta">{{ scheme.ministry }}</p>
+                  </div>
+                  <a [routerLink]="['/admin/schemes', scheme.id]" class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+
+            <a routerLink="/admin/schemes" class="dash-panel__footer-link">See More Schemes &rarr;</a>
+          </div>
+
+          <!-- Policies Panel -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Policies</h2>
+              <a routerLink="/admin/policies" class="dash-panel__link">View All</a>
+            </div>
+
+            <ul class="dash-list">
+              @for (policy of policies; track policy.id) {
+                <li class="dash-list__item">
+                  <div class="dash-list__details dash-list__details--no-icon">
+                    <p class="dash-list__title">{{ policy.title }}</p>
+                    <p class="dash-list__meta">{{ policy.ministry }}</p>
+                  </div>
+                  <a [routerLink]="['/admin/policies', policy.id]" class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+
+            <a routerLink="/admin/policies" class="dash-panel__footer-link">See More Policies &rarr;</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="dash-footer">
+      <p class="dash-footer__copy">&copy; 2026 PolicyGPT. All rights reserved.</p>
+      <div class="dash-footer__links">
+        <a routerLink="/privacy">Privacy</a>
+        <span class="dash-footer__dot">&bull;</span>
+        <a routerLink="/terms">Terms</a>
+        <span class="dash-footer__dot">&bull;</span>
+        <a routerLink="/help">Help</a>
+      </div>
+    </footer>
+  </div>
+</div>

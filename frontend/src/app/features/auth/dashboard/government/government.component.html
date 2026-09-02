@@ -1,0 +1,224 @@
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="dash-sidebar__brand">
+      <img src="/images/logo.png" alt="PolicyGPT logo" class="dash-sidebar__logo" />
+      <div>
+        <p class="dash-sidebar__title">PolicyGPT</p>
+        <p class="dash-sidebar__tagline">Government Information Simplified</p>
+      </div>
+    </div>
+
+    <nav class="dash-nav">
+      @for (item of navItems; track item.label) {
+        <a [routerLink]="item.route" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+          <span class="material-icons">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="dash-sidebar__footer">
+      <a routerLink="/profile" class="dash-nav__item">
+        <span class="material-icons">person</span>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/settings" class="dash-nav__item">
+        <span class="material-icons">settings</span>
+        <span>Settings</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="dash-main">
+    <header class="dash-topbar">
+      <div class="dash-search">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Search policies / schemes" />
+      </div>
+
+      <div class="dash-user">
+        <span class="material-icons dash-user__bell">notifications</span>
+        <div class="dash-user__avatar">
+          <span class="material-icons">account_circle</span>
+        </div>
+        <div class="dash-user__info">
+          <p class="dash-user__name">{{ userName }}</p>
+          <p class="dash-user__role">{{ userRole }}</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="dash-content">
+      <!-- WELCOME BANNER -->
+      <section class="dash-welcome">
+        <svg class="dash-welcome__illustration" viewBox="0 0 600 180" preserveAspectRatio="xMaxYMax slice" xmlns="http://www.w3.org/2000/svg">
+          <path d="M420 25 q6 -8 12 0 q6 -8 12 0" stroke="#a5b4fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M470 15 q5 -7 10 0 q5 -7 10 0" stroke="#a5b4fc" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <rect x="300" y="90" width="24" height="90" fill="#c7d2fe"/>
+          <rect x="330" y="70" width="20" height="110" fill="#c7d2fe"/>
+          <rect x="520" y="100" width="26" height="80" fill="#c7d2fe"/>
+          <rect x="360" y="60" width="8" height="120" fill="#b4c1f7"/>
+          <circle cx="364" cy="58" r="6" fill="#b4c1f7"/>
+          <rect x="390" y="110" width="70" height="70" fill="#9fb0f5"/>
+          <path d="M390 110 a35 35 0 0 1 70 0 z" fill="#9fb0f5"/>
+          <rect x="200" y="130" width="30" height="50" fill="#dbe3fe"/>
+          <rect x="580" y="120" width="20" height="60" fill="#dbe3fe"/>
+        </svg>
+        <h1 class="dash-welcome__title">Welcome back, {{ userName }}!</h1>
+        <p class="dash-welcome__subtitle">Manage policies, schemes, and monitor citizen applications from one place.</p>
+      </section>
+
+      <!-- STAT CARDS -->
+      <section class="dash-stats">
+        @for (stat of statCards; track stat.label) {
+          <div class="dash-stat-card">
+            <span class="dash-stat-card__icon" [class]="'dash-stat-card__icon--' + stat.color">
+              <span class="material-icons">{{ stat.icon }}</span>
+            </span>
+            <div>
+              @if (loadingStats) {
+                <div class="dash-skeleton dash-skeleton--num"></div>
+              } @else {
+                <p class="dash-stat-card__value">{{ stat.value }}</p>
+              }
+              <p class="dash-stat-card__label">{{ stat.label }}</p>
+              @if (stat.sub && !loadingStats) {
+                <p class="dash-stat-card__sub">{{ stat.sub }}</p>
+              }
+            </div>
+          </div>
+        }
+      </section>
+
+      <!-- PANELS GRID -->
+      <section class="dash-panels">
+        <!-- Upcoming Schemes -->
+        <div class="dash-panel">
+          <div class="dash-panel__header">
+            <h2>Upcoming Schemes</h2>
+            <a routerLink="/government/schemes">View All</a>
+          </div>
+          @if (loadingUpcoming) {
+            <div class="dash-empty">
+              <span class="dash-spinner"></span>
+              <p>Loading schemes...</p>
+            </div>
+          } @else if (upcomingSchemes.length === 0) {
+            <div class="dash-empty">
+              <span class="material-icons dash-empty__icon">account_balance</span>
+              <p>No upcoming schemes</p>
+            </div>
+          } @else {
+            <ul class="dash-list">
+              @for (scheme of upcomingSchemes; track scheme.name) {
+                <li class="dash-list__item">
+                  <div>
+                    <p class="dash-list__title">{{ scheme.name }}</p>
+                    <p class="dash-list__meta">{{ scheme.ministry }}</p>
+                  </div>
+                  <a class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Uploaded Policies -->
+        <div class="dash-panel">
+          <div class="dash-panel__header">
+            <h2>Uploaded Policies</h2>
+            <a routerLink="/government/policies">View All</a>
+          </div>
+          @if (loadingUploaded) {
+            <div class="dash-empty">
+              <span class="dash-spinner"></span>
+              <p>Loading policies...</p>
+            </div>
+          } @else if (uploadedPolicies.length === 0) {
+            <div class="dash-empty">
+              <span class="material-icons dash-empty__icon">bookmark</span>
+              <p>No policies uploaded yet</p>
+            </div>
+          } @else {
+            <ul class="dash-list">
+              @for (policy of uploadedPolicies; track policy.name) {
+                <li class="dash-list__item">
+                  <div>
+                    <p class="dash-list__title">{{ policy.name }}</p>
+                    <p class="dash-list__meta">{{ policy.ministry }}</p>
+                    <p class="dash-list__meta dash-list__meta--muted">Uploaded on {{ policy.savedOn }}</p>
+                  </div>
+                  <a class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Search History -->
+        <div class="dash-panel">
+          <div class="dash-panel__header">
+            <h2>Search History</h2>
+            <a routerLink="/history">View All</a>
+          </div>
+          @if (loadingHistory) {
+            <div class="dash-empty">
+              <span class="dash-spinner"></span>
+              <p>Loading history...</p>
+            </div>
+          } @else if (searchHistory.length === 0) {
+            <div class="dash-empty">
+              <span class="material-icons dash-empty__icon">history</span>
+              <p>No search history yet</p>
+            </div>
+          } @else {
+            <ul class="dash-list">
+              @for (item of searchHistory; track item.name) {
+                <li class="dash-list__item">
+                  <div>
+                    <p class="dash-list__title">{{ item.name }}</p>
+                    <p class="dash-list__meta">{{ item.filters }}</p>
+                  </div>
+                  <a class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+
+        <!-- Application Status -->
+        <div class="dash-panel">
+          <div class="dash-panel__header">
+            <h2>Application Status</h2>
+            <a routerLink="/government/applications">View All</a>
+          </div>
+          @if (loadingApplications) {
+            <div class="dash-empty">
+              <span class="dash-spinner"></span>
+              <p>Loading applications...</p>
+            </div>
+          } @else if (applications.length === 0) {
+            <div class="dash-empty">
+              <span class="material-icons dash-empty__icon">description</span>
+              <p>No applications yet</p>
+            </div>
+          } @else {
+            <ul class="dash-list">
+              @for (app of applications; track app.appId) {
+                <li class="dash-list__item">
+                  <div>
+                    <p class="dash-list__title">{{ app.name }}</p>
+                    <p class="dash-list__meta">Application ID: {{ app.appId }}</p>
+                  </div>
+                  <a class="dash-list__action">View Details</a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

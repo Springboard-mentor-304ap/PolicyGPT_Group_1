@@ -1,0 +1,257 @@
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="dash-sidebar">
+    <div class="dash-sidebar__brand">
+      <button class="dash-sidebar__toggle" type="button">
+        <span class="material-icons">menu</span>
+      </button>
+      <div class="dash-sidebar__brand-logo">
+        <span class="material-icons">account_balance</span>
+      </div>
+      <div class="dash-sidebar__brand-text">
+        <span class="dash-sidebar__title">PolicyGPT</span>
+        <span class="dash-sidebar__tagline">Government Information. Simplified.</span>
+      </div>
+    </div>
+
+    <nav class="dash-nav">
+      @for (item of navItems; track item.label) {
+        <a [routerLink]="item.route" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+          <span class="material-icons">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+          @if (item.children?.length) {
+            <span class="material-icons dash-nav__chevron">chevron_right</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="dash-sidebar__footer">
+      <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+        <span class="material-icons">account_circle</span>
+        <span>Profile</span>
+      </a>
+      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item">
+        <span class="material-icons">settings</span>
+        <span>Settings</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div class="dash-main-container">
+    <!-- TOPBAR -->
+    <header class="dash-topbar">
+      <div class="dash-search">
+        <span class="material-icons">search</span>
+        <input type="text" placeholder="Search policies / schemes" />
+      </div>
+
+      <div class="dash-user">
+        <button class="dash-user__icon-btn" type="button">
+          <span class="material-icons">notifications</span>
+        </button>
+        <div class="dash-user__avatar">
+          <span class="material-icons">account_circle</span>
+        </div>
+        <div class="dash-user__info">
+          <p class="dash-user__name">{{ userName }}</p>
+          <p class="dash-user__role">{{ userRole }}</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="dash-main">
+      <div class="dash-content">
+        <!-- WELCOME BANNER -->
+        <section class="dash-welcome">
+          <div class="dash-welcome__text">
+            <h1 class="dash-welcome__title">Welcome back, {{ userName }}!</h1>
+            <p class="dash-welcome__sub">Find the right policies and schemes that match your profile and needs.</p>
+          </div>
+          
+          <svg class="dash-welcome__illustration" viewBox="0 0 600 200" preserveAspectRatio="xMaxYMax meet" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 380 40 Q 386 32 392 40 Q 398 32 404 40" stroke="#a0b3f2" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <path d="M 430 30 Q 435 23 440 30 Q 445 23 450 30" stroke="#a0b3f2" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <g fill="#cfdafc">
+              <rect x="440" y="80" width="80" height="120" />
+              <path d="M 440 80 Q 480 20 520 80 Z" />
+              <rect x="477" y="5" width="6" height="20" fill="#a0b3f2" />
+              <circle cx="480" cy="5" r="4" fill="#a0b3f2" />
+              <rect x="360" y="100" width="80" height="100" />
+              <rect x="390" y="70" width="12" height="130" />
+              <circle cx="396" cy="65" r="5" />
+              <rect x="520" y="100" width="80" height="100" />
+              <rect x="558" y="70" width="12" height="130" />
+              <circle cx="564" cy="65" r="5" />
+            </g>
+          </svg>
+        </section>
+
+        <!-- STAT CARDS -->
+        <section class="dash-stats">
+          @for (card of statCards; track card.label) {
+            <div class="dash-stat-card">
+              <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + card.color">
+                <span class="material-icons">{{ card.icon }}</span>
+              </div>
+              <div class="dash-stat-card__content">
+                @if (loadingStats) {
+                  <div class="skeleton skeleton--stat-num"></div>
+                } @else {
+                  <p class="dash-stat-card__value">{{ card.value }}</p>
+                }
+                <p class="dash-stat-card__label">{{ card.label }}</p>
+                @if (!loadingStats && card.sub) {
+                  <p class="dash-stat-card__sub">{{ card.sub }}</p>
+                }
+              </div>
+            </div>
+          }
+        </section>
+
+        <!-- ROW 1 PANELS -->
+        <section class="dash-panels">
+          <!-- Eligible Schemes for You -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Eligible Schemes for You</h2>
+              <a routerLink="/schemes" class="dash-panel__link">View All</a>
+            </div>
+
+            @if (loadingSchemes) {
+              <div class="dash-loader">
+                <div class="dash-spinner"></div>
+                <span>Loading schemes...</span>
+              </div>
+            } @else {
+              <ul class="dash-list">
+                @for (scheme of eligibleSchemes; track scheme.name) {
+                  <li class="dash-list__item">
+                    <div class="dash-list__icon-wrap dash-list__icon-wrap--health">
+                      <span class="material-icons">account_balance</span>
+                    </div>
+                    <div class="dash-list__details">
+                      <p class="dash-list__title">{{ scheme.name }}</p>
+                      <p class="dash-list__meta">{{ scheme.ministry }}</p>
+                    </div>
+                    <a routerLink="/schemes" class="dash-list__action">View Details</a>
+                  </li>
+                }
+              </ul>
+            }
+
+            <a routerLink="/eligibility" class="dash-panel__footer-link">Check Eligibility for More Schemes &rarr;</a>
+          </div>
+
+          <!-- Saved Policies -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Saved Policies</h2>
+              <a routerLink="/saved" class="dash-panel__link">View All</a>
+            </div>
+
+            @if (loadingPolicies) {
+              <div class="dash-loader">
+                <div class="dash-spinner"></div>
+                <span>Loading policies...</span>
+              </div>
+            } @else {
+              <ul class="dash-list">
+                @for (policy of savedPolicies; track policy.name) {
+                  <li class="dash-list__item">
+                    <div class="dash-list__details dash-list__details--no-icon">
+                      <p class="dash-list__title">{{ policy.name }}</p>
+                      <p class="dash-list__meta">{{ policy.ministry }}</p>
+                      <p class="dash-list__submeta">Saved on {{ policy.savedOn }}</p>
+                    </div>
+                    <a routerLink="/policies" class="dash-list__action">View Details</a>
+                  </li>
+                }
+              </ul>
+            }
+
+            <a routerLink="/policies" class="dash-panel__footer-link">See More Policies &rarr;</a>
+          </div>
+        </section>
+
+        <!-- ROW 2 PANELS -->
+        <section class="dash-panels dash-panels--bottom">
+          <!-- Search History -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Search History</h2>
+              <a routerLink="/history" class="dash-panel__link">View All</a>
+            </div>
+
+            @if (loadingHistory) {
+              <div class="dash-loader">
+                <div class="dash-spinner"></div>
+                <span>Loading history...</span>
+              </div>
+            } @else {
+              <ul class="dash-list">
+                @for (history of searchHistory; track history.name) {
+                  <li class="dash-list__item">
+                    <div class="dash-list__icon-wrap dash-list__icon-wrap--neutral">
+                      <span class="material-icons">history</span>
+                    </div>
+                    <div class="dash-list__details">
+                      <p class="dash-list__title">{{ history.name }}</p>
+                      <p class="dash-list__meta">Filters: {{ history.filters }}</p>
+                    </div>
+                    <a routerLink="/schemes" [queryParams]="{q: history.name}" class="dash-list__action">View Details</a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+
+          <!-- Application Status -->
+          <div class="dash-panel">
+            <div class="dash-panel__header">
+              <h2>Application Status</h2>
+              <a routerLink="/reports" class="dash-panel__link">View All</a>
+            </div>
+
+            @if (loadingApplications) {
+              <div class="dash-loader">
+                <div class="dash-spinner"></div>
+                <span>Loading applications...</span>
+              </div>
+            } @else {
+              <ul class="dash-list">
+                @for (app of applications; track app.appId) {
+                  <li class="dash-list__item">
+                    <div class="dash-list__icon-wrap dash-list__icon-wrap--neutral">
+                      <span class="material-icons">insert_chart_outlined</span>
+                    </div>
+                    <div class="dash-list__details">
+                      <p class="dash-list__title">{{ app.name }}</p>
+                      <p class="dash-list__meta">Application ID: {{ app.appId }}</p>
+                    </div>
+                    <a routerLink="/reports" class="dash-list__action">View Details</a>
+                  </li>
+                }
+              </ul>
+            }
+
+            <a routerLink="/reports" class="dash-panel__footer-link">View All &rarr;</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="dash-footer">
+      <p class="dash-footer__copy">&copy; 2026 PolicyGPT. All rights reserved.</p>
+      <div class="dash-footer__links">
+        <a routerLink="/privacy">Privacy</a>
+        <span class="dash-footer__dot">&bull;</span>
+        <a routerLink="/terms">Terms</a>
+        <span class="dash-footer__dot">&bull;</span>
+        <a routerLink="/help">Help</a>
+      </div>
+    </footer>
+  </div>
+</div>

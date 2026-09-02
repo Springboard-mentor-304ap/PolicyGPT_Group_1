@@ -513,6 +513,26 @@ def forgot_password(
     return generic_response
 
 
+# delete api
+
+@router.delete("/users/{email}")
+def delete_user(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    db.delete(user)
+    db.commit()
+
+    return {
+        "message": "User deleted successfully",
+        "email": email
+    }
+
 # =========================================================
 # RESET PASSWORD
 # =========================================================

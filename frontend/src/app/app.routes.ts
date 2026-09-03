@@ -1,5 +1,7 @@
 import { Routes } from "@angular/router";
 
+import { authGuard } from "./core/guards/auth.guard";
+
 export const routes: Routes = [
   // =========================================================
   // DEFAULT ROUTE
@@ -23,11 +25,13 @@ export const routes: Routes = [
   },
 
   // =========================================================
-  // DASHBOARD ROUTES
+  // PROTECTED DASHBOARD ROUTES
   // =========================================================
 
   {
     path: "dashboard",
+
+    canActivate: [authGuard],
 
     loadChildren: () =>
       import("./features/auth/dashboard/dashboard.routes").then(

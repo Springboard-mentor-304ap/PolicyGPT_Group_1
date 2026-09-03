@@ -29,7 +29,9 @@ export interface AuthResponse {
 })
 export class Auth {
   private readonly apiUrl = "http://localhost:8000/auth";
+
   private readonly tokenKey = "policygpt_token";
+  private readonly userKey = "policygpt_user";
 
   constructor(private http: HttpClient) {}
 
@@ -47,6 +49,10 @@ export class Auth {
       tap((response: AuthResponse) => {
         if (response?.access_token) {
           this.setToken(response.access_token);
+        }
+
+        if (response?.user) {
+          this.setUser(response.user);
         }
       }),
     );
@@ -90,16 +96,60 @@ export class Auth {
           if (response?.access_token) {
             this.setToken(response.access_token);
           }
+
+          if (response?.user) {
+            this.setUser(response.user);
+          }
         }),
       );
   }
 
   // =========================================================
-  // GET LOGGED-IN USER
+  // GET CURRENT LOGGED-IN USER
   // =========================================================
 
   getCurrentUser(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.apiUrl}/me`);
+    return this.http.get<AuthUser>(`${this.apiUrl}/me`).pipe(
+      tap((user: AuthUser) => {
+        if (user) {
+          this.setUser(user);
+        }
+      }),
+    );
+  }
+
+  // =========================================================
+  // GET CACHED USER
+  // =========================================================
+
+  getStoredUser(): AuthUser | null {
+    const storedUser = localStorage.getItem(this.userKey);
+
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser) as AuthUser;
+    } catch (error) {
+      console.error("Unable to read stored user:", error);
+
+      localStorage.removeItem(this.userKey);
+
+      return null;
+    }
+  }
+
+  // =========================================================
+  // STORE USER
+  // =========================================================
+
+  private setUser(user: AuthUser): void {
+    if (!user) {
+      return;
+    }
+
+    localStorage.setItem(this.userKey, JSON.stringify(user));
   }
 
   // =========================================================
@@ -116,19 +166,27 @@ export class Auth {
   }
 
   // =========================================================
-  // TOKEN
+  // GET TOKEN
   // =========================================================
 
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
 
+  // =========================================================
+  // SET TOKEN
+  // =========================================================
+
   private setToken(token: string): void {
+    if (!token) {
+      return;
+    }
+
     localStorage.setItem(this.tokenKey, token);
   }
 
   // =========================================================
-  // LOGIN STATUS
+  // CHECK LOGIN
   // =========================================================
 
   isLoggedIn(): boolean {
@@ -141,5 +199,7 @@ export class Auth {
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
+
+    localStorage.removeItem(this.userKey);
   }
 }

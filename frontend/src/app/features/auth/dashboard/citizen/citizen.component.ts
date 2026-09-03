@@ -1,4 +1,9 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import {
+  ChangeDetectorRef,
+  Component,
+  HostListener,
+  OnInit,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 
@@ -8,9 +13,9 @@ import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
 
-/* =========================================================
-   NAVIGATION ITEM
-   ========================================================= */
+// =========================================================
+// NAVIGATION ITEM
+// =========================================================
 
 export interface NavItem {
   icon: string;
@@ -25,9 +30,9 @@ export interface NavItem {
   expanded?: boolean;
 }
 
-/* =========================================================
-   STAT CARD
-   ========================================================= */
+// =========================================================
+// STAT CARD
+// =========================================================
 
 export interface StatCard {
   icon: string;
@@ -41,18 +46,18 @@ export interface StatCard {
   sub?: string;
 }
 
-/* =========================================================
-   SCHEME ITEM
-   ========================================================= */
+// =========================================================
+// SCHEME
+// =========================================================
 
 export interface SchemeItem {
   name: string;
   ministry: string;
 }
 
-/* =========================================================
-   POLICY ITEM
-   ========================================================= */
+// =========================================================
+// POLICY
+// =========================================================
 
 export interface PolicyItem {
   name: string;
@@ -60,27 +65,27 @@ export interface PolicyItem {
   savedOn: string;
 }
 
-/* =========================================================
-   SEARCH HISTORY
-   ========================================================= */
+// =========================================================
+// SEARCH HISTORY
+// =========================================================
 
 export interface HistoryItem {
   name: string;
   filters: string;
 }
 
-/* =========================================================
-   APPLICATION ITEM
-   ========================================================= */
+// =========================================================
+// APPLICATION
+// =========================================================
 
 export interface ApplicationItem {
   name: string;
   appId: string;
 }
 
-/* =========================================================
-   CITIZEN COMPONENT
-   ========================================================= */
+// =========================================================
+// CITIZEN COMPONENT
+// =========================================================
 
 @Component({
   selector: "app-citizen",
@@ -94,44 +99,47 @@ export interface ApplicationItem {
   styleUrl: "./citizen.component.scss",
 })
 export class CitizenComponent implements OnInit {
-  /* =========================================================
-     USER INFORMATION
-     ========================================================= */
+  // =======================================================
+  // USER INFORMATION
+  // =======================================================
+
+  user: AuthUser | null = null;
 
   userName = "User Name";
 
   userRole = "Citizen";
 
-  /* =========================================================
-     SIDEBAR
-     ========================================================= */
+  userEmail = "";
 
-  /**
-   * Desktop:
-   * false = expanded
-   * true  = collapsed
-   */
+  userPhone = "";
+
+  userState = "";
+
+  userDistrict = "";
+
+  userOccupation = "";
+
+  userOrganization = "";
+
+  loadingUser = true;
+
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
+
   sidebarCollapsed = false;
 
-  /**
-   * Mobile:
-   * false = closed
-   * true  = open
-   */
   mobileMenuOpen = false;
 
-  /* =========================================================
-     SEARCH
-     ========================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   searchText = "";
 
-  /* =========================================================
-     LOADING STATES
-     
-     Dashboard is currently using static/demo data.
-     These are kept for future backend integration.
-     ========================================================= */
+  // =======================================================
+  // LOADING STATES
+  // =======================================================
 
   loadingStats = false;
 
@@ -143,9 +151,9 @@ export class CitizenComponent implements OnInit {
 
   loadingApplications = false;
 
-  /* =========================================================
-     NAVIGATION
-     ========================================================= */
+  // =======================================================
+  // NAVIGATION
+  // =======================================================
 
   navItems: NavItem[] = [
     {
@@ -209,9 +217,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     STATISTICS
-     ========================================================= */
+  // =======================================================
+  // STATISTICS
+  // =======================================================
 
   statCards: StatCard[] = [
     {
@@ -247,9 +255,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     ELIGIBLE SCHEMES
-     ========================================================= */
+  // =======================================================
+  // ELIGIBLE SCHEMES
+  // =======================================================
 
   eligibleSchemes: SchemeItem[] = [
     {
@@ -273,9 +281,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     SAVED POLICIES
-     ========================================================= */
+  // =======================================================
+  // SAVED POLICIES
+  // =======================================================
 
   savedPolicies: PolicyItem[] = [
     {
@@ -297,9 +305,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     SEARCH HISTORY
-     ========================================================= */
+  // =======================================================
+  // SEARCH HISTORY
+  // =======================================================
 
   searchHistory: HistoryItem[] = [
     {
@@ -323,9 +331,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     APPLICATIONS
-     ========================================================= */
+  // =======================================================
+  // APPLICATIONS
+  // =======================================================
 
   applications: ApplicationItem[] = [
     {
@@ -344,80 +352,143 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  /* =========================================================
-     CONSTRUCTOR
-     ========================================================= */
+  // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
 
   constructor(
     private router: Router,
+
     private authService: Auth,
+
+    private cdr: ChangeDetectorRef,
   ) {}
 
-  /* =========================================================
-     ON INIT
-     ========================================================= */
+  // =======================================================
+  // INIT
+  // =======================================================
 
   ngOnInit(): void {
-    /*
-     * Dashboard data is currently static.
-     *
-     * We only try to load the logged-in user's
-     * name and role.
-     *
-     * If /auth/me is unavailable, the dashboard
-     * still works with the default values.
-     */
-
-    this.loadUser();
+    this.loadCurrentUser();
   }
 
-  /* =========================================================
-     LOAD CURRENT USER
-     ========================================================= */
+  // =======================================================
+  // LOAD CURRENT USER
+  // =======================================================
 
-  private loadUser(): void {
-    /*
-     * Do not show a loading screen while fetching
-     * the user. The dashboard should remain visible.
-     */
+  private loadCurrentUser(): void {
+    this.loadingUser = true;
+
+    // =====================================================
+    // FIRST: LOAD CACHED USER
+    // =====================================================
+
+    const cachedUser = this.authService.getStoredUser();
+
+    if (cachedUser) {
+      this.setUserDetails(cachedUser);
+
+      this.loadingUser = false;
+
+      this.cdr.detectChanges();
+    }
+
+    // =====================================================
+    // CHECK TOKEN
+    // =====================================================
+
+    const token = this.authService.getToken();
+
+    if (!token) {
+      this.authService.logout();
+
+      this.router.navigate(["/auth/login"], {
+        replaceUrl: true,
+      });
+
+      return;
+    }
+
+    // =====================================================
+    // GET FRESH USER FROM BACKEND
+    // =====================================================
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
         if (!user) {
+          this.loadingUser = false;
+
           return;
         }
 
-        /* USER NAME */
+        // Save complete user
+        this.user = user;
 
-        if (typeof user.full_name === "string" && user.full_name.trim()) {
-          this.userName = user.full_name.trim();
-        }
+        // Update UI
+        this.setUserDetails(user);
 
-        /* USER ROLE */
+        this.loadingUser = false;
 
-        if (typeof user.role === "string" && user.role.trim()) {
-          this.userRole = this.formatRole(user.role);
-        }
+        this.cdr.detectChanges();
+
+        console.log("CURRENT LOGGED-IN USER:", user);
       },
 
-      error: (error: unknown) => {
-        /*
-         * IMPORTANT:
-         *
-         * Failure of /auth/me must NOT break
-         * the dashboard.
-         *
-         * Static dashboard data remains visible.
-         */
+      error: (error: any) => {
+        this.loadingUser = false;
 
-        console.warn("Unable to load current user:", error);
+        console.error("GET CURRENT USER ERROR:", error);
+
+        // =================================================
+        // TOKEN INVALID / EXPIRED
+        // =================================================
+
+        if (error?.status === 401 || error?.status === 403) {
+          this.authService.logout();
+
+          this.router.navigate(["/auth/login"], {
+            replaceUrl: true,
+          });
+
+          return;
+        }
+
+        // =================================================
+        // TEMPORARY SERVER ERROR
+        // =================================================
+
+        this.cdr.detectChanges();
       },
     });
   }
 
-  /* =========================================================
-     FORMAT USER ROLE
-     ========================================================= */
+  // =======================================================
+  // SET USER DETAILS
+  // =======================================================
+
+  private setUserDetails(user: AuthUser): void {
+    this.user = user;
+
+    this.userName = user.full_name?.trim() || "User Name";
+
+    this.userRole = this.formatRole(user.role);
+
+    this.userEmail = user.email || "";
+
+    this.userPhone = user.phone || "";
+
+    this.userState = user.state || "";
+
+    this.userDistrict = user.district || "";
+
+    this.userOccupation = user.occupation || "";
+
+    this.userOrganization = user.organization || "";
+  }
+
+  // =======================================================
+  // FORMAT ROLE
+  // =======================================================
 
   private formatRole(role: string): string {
     if (!role) {
@@ -431,87 +502,53 @@ export class CitizenComponent implements OnInit {
       .replace(/\b\w/g, (character: string) => character.toUpperCase());
   }
 
-  /* =========================================================
-     SIDEBAR TOGGLE
-     ========================================================= */
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
 
   toggleSidebar(): void {
-    /*
-     * On mobile, the sidebar should open/close
-     * as an overlay.
-     */
-
     if (window.innerWidth <= 767) {
       this.mobileMenuOpen = !this.mobileMenuOpen;
 
       return;
     }
 
-    /*
-     * Desktop/tablet:
-     *
-     * Toggle between:
-     *
-     * Expanded = 262px
-     * Collapsed = 76px
-     */
-
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  /* =========================================================
-     OPEN MOBILE MENU
-     ========================================================= */
+  // =======================================================
+  // MOBILE MENU
+  // =======================================================
 
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
   }
 
-  /* =========================================================
-     CLOSE MOBILE MENU
-     ========================================================= */
-
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  /* =========================================================
-     WINDOW RESIZE
-     ========================================================= */
+  // =======================================================
+  // RESIZE
+  // =======================================================
 
   @HostListener("window:resize")
   onWindowResize(): void {
-    /*
-     * When moving from mobile to desktop,
-     * close the mobile overlay.
-     */
-
     if (window.innerWidth > 767) {
       this.mobileMenuOpen = false;
     }
   }
 
-  /* =========================================================
-     SEARCH
-     ========================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
 
-    /*
-     * Do nothing if search box is empty.
-     */
-
     if (!query) {
       return;
     }
-
-    console.log("Searching for:", query);
-
-    /*
-     * Navigate to schemes page with
-     * search query.
-     */
 
     this.router.navigate(["/schemes"], {
       queryParams: {
@@ -520,41 +557,51 @@ export class CitizenComponent implements OnInit {
     });
   }
 
-  /* =========================================================
-     CLEAR SEARCH
-     ========================================================= */
+  // =======================================================
+  // CLEAR SEARCH
+  // =======================================================
 
   clearSearch(): void {
     this.searchText = "";
   }
 
-  /* =========================================================
-     LOGOUT
-     ========================================================= */
+  // =======================================================
+  // LOGOUT
+  // =======================================================
 
   logout(): void {
-    /*
-     * Remove authentication token.
-     */
+    console.log("LOGGING OUT:", this.userName);
 
+    // Remove token + cached user
     this.authService.logout();
 
-    /*
-     * Close mobile menu.
-     */
+    // Clear current user
+    this.user = null;
+
+    this.userName = "User Name";
+
+    this.userRole = "Citizen";
+
+    this.userEmail = "";
+
+    this.userPhone = "";
+
+    this.userState = "";
+
+    this.userDistrict = "";
+
+    this.userOccupation = "";
+
+    this.userOrganization = "";
+
+    // Reset UI
+    this.sidebarCollapsed = false;
 
     this.mobileMenuOpen = false;
 
-    /*
-     * Reset sidebar state.
-     */
-
-    this.sidebarCollapsed = false;
-
-    /*
-     * Go to login page.
-     */
-
-    this.router.navigate(["/auth/login"]);
+    // Go to login
+    this.router.navigate(["/auth/login"], {
+      replaceUrl: true,
+    });
   }
 }

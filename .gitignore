@@ -111,3 +111,7 @@ docker-compose.override.yml
 *.temp
 *.cache
 *.pid.DS_Store
+
+
+# Angular cache
+.angular/

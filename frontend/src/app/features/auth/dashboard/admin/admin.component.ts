@@ -1,14 +1,26 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, HostListener, OnInit } from "@angular/core";
+
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { Router, RouterLink, RouterLinkActive } from "@angular/router";
+
+import { Auth, AuthUser } from "../../../../core/services/auth";
+
+/* =========================================================
+   STAT CARD
+   ========================================================= */
 
 export interface StatCard {
   label: string;
   value: number;
   sublabel: string;
   icon: string;
-  color: 'blue' | 'orange' | 'green' | 'purple';
+  color: "blue" | "orange" | "green" | "purple";
 }
+
+/* =========================================================
+   NAV ITEM
+   ========================================================= */
 
 export interface NavItem {
   label: string;
@@ -16,6 +28,10 @@ export interface NavItem {
   icon: string;
   hasSubmenu?: boolean;
 }
+
+/* =========================================================
+   LIST ITEM
+   ========================================================= */
 
 export interface ListItem {
   id: number;
@@ -25,82 +41,449 @@ export interface ListItem {
   iconClass?: string;
 }
 
+/* =========================================================
+   ADMIN COMPONENT
+   ========================================================= */
+
 @Component({
-  selector: 'app-admin-dashboard',
+  selector: "app-admin-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
-  templateUrl: './admin.component.html',
-  styleUrls: ['./admin.component.scss']
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  templateUrl: "./admin.component.html",
+  styleUrls: ["./admin.component.scss"],
 })
 export class AdminComponent implements OnInit {
-  userName: string = 'UserName';
-  userRole: string = 'Admin';
+  /* =======================================================
+     LOGGED-IN USER
+     ======================================================= */
+
+  userName = "User";
+  userRole = "Admin";
+
+  /* =======================================================
+     SIDEBAR
+     ======================================================= */
+
+  sidebarCollapsed = false;
+
+  /*
+   * Used for mobile sidebar.
+   *
+   * false = sidebar closed
+   * true  = sidebar open
+   */
+  mobileMenuOpen = false;
+
+  /* =======================================================
+     SEARCH
+     ======================================================= */
+
+  searchText = "";
+
+  /* =======================================================
+     ADMIN NAVIGATION
+     
+     DO NOT CHANGE THESE OPTIONS
+     ======================================================= */
 
   navItems: NavItem[] = [
-    { label: 'Dashboard', route: '/dashboard/admin', icon: 'home' },
-    { label: 'Policies', route: '/admin/policies', icon: 'policy', hasSubmenu: true },
-    { label: 'Scheme', route: '/admin/schemes', icon: 'article', hasSubmenu: true },
-    { label: 'Notifications', route: '/admin/notifications', icon: 'notifications_none' },
-    { label: 'Users', route: '/admin/users', icon: 'group' },
-    { label: 'Reports', route: '/admin/reports', icon: 'assessment' },
-    { label: 'Audit Logs', route: '/admin/audit-logs', icon: 'history' }
+    {
+      label: "Dashboard",
+      route: "/dashboard/admin",
+      icon: "home",
+    },
+
+    {
+      label: "Policies",
+      route: "/admin/policies",
+      icon: "policy",
+      hasSubmenu: true,
+    },
+
+    {
+      label: "Scheme",
+      route: "/admin/schemes",
+      icon: "article",
+      hasSubmenu: true,
+    },
+
+    {
+      label: "Notifications",
+      route: "/admin/notifications",
+      icon: "notifications_none",
+    },
+
+    {
+      label: "Users",
+      route: "/admin/users",
+      icon: "group",
+    },
+
+    {
+      label: "Reports",
+      route: "/admin/reports",
+      icon: "assessment",
+    },
+
+    {
+      label: "Audit Logs",
+      route: "/admin/audit-logs",
+      icon: "history",
+    },
   ];
 
+  /* =======================================================
+     STAT CARDS
+     ======================================================= */
+
   statCards: StatCard[] = [
-    { label: 'Total Policies', value: 1242, sublabel: '+32 this week', icon: 'policy', color: 'blue' },
-    { label: 'Total Schemes', value: 897, sublabel: '+18 this week', icon: 'article', color: 'orange' },
-    { label: 'Total Users', value: 432, sublabel: '+2,154 this week', icon: 'person_outline', color: 'green' },
-    { label: 'Applications', value: 321, sublabel: '+61 this week', icon: 'assignment', color: 'purple' }
+    {
+      label: "Total Policies",
+      value: 1242,
+      sublabel: "+32 this week",
+      icon: "policy",
+      color: "blue",
+    },
+
+    {
+      label: "Total Schemes",
+      value: 897,
+      sublabel: "+18 this week",
+      icon: "article",
+      color: "orange",
+    },
+
+    {
+      label: "Total Users",
+      value: 432,
+      sublabel: "+2,154 this week",
+      icon: "person_outline",
+      color: "green",
+    },
+
+    {
+      label: "Applications",
+      value: 321,
+      sublabel: "+61 this week",
+      icon: "assignment",
+      color: "purple",
+    },
   ];
+
+  /* =======================================================
+     SCHEMES
+     ======================================================= */
 
   schemes: ListItem[] = [
     {
       id: 1,
-      title: 'PM Surya Ghar Muft Bijli Yojana',
-      ministry: 'Ministry of New & Renewable Energy',
-      icon: 'wb_sunny',
-      iconClass: 'sun'
+      title: "PM Surya Ghar Muft Bijli Yojana",
+      ministry: "Ministry of New & Renewable Energy",
+      icon: "wb_sunny",
+      iconClass: "sun",
     },
+
     {
       id: 2,
-      title: 'Pradhan Mantri Jan Arogya Yojana (PM-JAY)',
-      ministry: 'Ministry of Health & Family Welfare',
-      icon: 'health_and_safety',
-      iconClass: 'health'
+      title: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+      ministry: "Ministry of Health & Family Welfare",
+      icon: "health_and_safety",
+      iconClass: "health",
     },
+
     {
       id: 3,
-      title: 'PM Vishwakarma Yojana',
-      ministry: 'Ministry of Micro, Small & Medium Enterprises',
-      icon: 'engineering',
-      iconClass: 'work'
+      title: "PM Vishwakarma Yojana",
+      ministry: "Ministry of Micro, Small & Medium Enterprises",
+      icon: "engineering",
+      iconClass: "work",
     },
+
     {
       id: 4,
-      title: 'Post Matric Scholarship Scheme',
-      ministry: 'Ministry of Health & Family Welfare',
-      icon: 'school',
-      iconClass: 'edu'
-    }
+      title: "Post Matric Scholarship Scheme",
+      ministry: "Ministry of Health & Family Welfare",
+      icon: "school",
+      iconClass: "edu",
+    },
   ];
+
+  /* =======================================================
+     POLICIES
+     ======================================================= */
 
   policies: ListItem[] = [
     {
       id: 1,
-      title: 'National Education Policy 2020',
-      ministry: 'Ministry of Education'
+      title: "National Education Policy 2020",
+      ministry: "Ministry of Education",
     },
+
     {
       id: 2,
-      title: 'Ayushman Bharat Policy',
-      ministry: 'Ministry of Health & Family Welfare'
+      title: "Ayushman Bharat Policy",
+      ministry: "Ministry of Health & Family Welfare",
     },
+
     {
       id: 3,
-      title: 'Electricity Act, 2003',
-      ministry: 'Ministry of Power'
-    }
+      title: "Electricity Act, 2003",
+      ministry: "Ministry of Power",
+    },
   ];
 
-  ngOnInit(): void {}
+  /* =======================================================
+     CONSTRUCTOR
+     ======================================================= */
+
+  constructor(
+    private authService: Auth,
+    private router: Router,
+  ) {}
+
+  /* =======================================================
+     INIT
+     ======================================================= */
+
+  ngOnInit(): void {
+    this.loadCurrentUser();
+  }
+
+  /* =======================================================
+     LOAD LOGGED-IN USER
+     ======================================================= */
+
+  private loadCurrentUser(): void {
+    /*
+     * STEP 1:
+     * Load the cached user first.
+     *
+     * This allows the admin name and role
+     * to appear immediately after refresh.
+     */
+
+    const storedUser = this.authService.getStoredUser();
+
+    if (storedUser) {
+      this.setUserDetails(storedUser);
+    }
+
+    /*
+     * STEP 2:
+     * Make sure a token exists.
+     */
+
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(["/auth/login"]);
+      return;
+    }
+
+    /*
+     * STEP 3:
+     * Get the latest user information
+     * from the backend.
+     */
+
+    this.authService.getCurrentUser().subscribe({
+      next: (user: AuthUser) => {
+        this.setUserDetails(user);
+      },
+
+      error: (error: unknown) => {
+        console.error("Unable to load logged-in admin:", error);
+
+        /*
+         * If the JWT is invalid or expired,
+         * remove authentication and return
+         * to the login page.
+         */
+
+        const status = (error as { status?: number })?.status;
+
+        if (status === 401 || status === 403) {
+          this.authService.logout();
+
+          this.router.navigate(["/auth/login"], {
+            replaceUrl: true,
+          });
+        }
+
+        /*
+         * For other errors, keep the cached
+         * user information and dashboard visible.
+         */
+      },
+    });
+  }
+
+  /* =======================================================
+     SET USER DETAILS
+     ======================================================= */
+
+  private setUserDetails(user: AuthUser): void {
+    if (!user) {
+      return;
+    }
+
+    /*
+     * Full name
+     */
+
+    if (typeof user.full_name === "string" && user.full_name.trim()) {
+      this.userName = user.full_name.trim();
+    }
+
+    /*
+     * Role
+     */
+
+    this.userRole = this.formatRole(user.role);
+  }
+
+  /* =======================================================
+     FORMAT ROLE
+     ======================================================= */
+
+  private formatRole(role: string | null | undefined): string {
+    if (!role) {
+      return "Admin";
+    }
+
+    const normalizedRole = role.trim().toUpperCase();
+
+    switch (normalizedRole) {
+      case "ADMIN":
+        return "Admin";
+
+      case "ADMINISTRATOR":
+        return "Administrator";
+
+      case "GOVERNMENT_OFFICIAL":
+        return "Government Official";
+
+      case "CITIZEN":
+        return "Citizen";
+
+      case "RESEARCHER":
+        return "Researcher";
+
+      case "ORGANIZATION":
+        return "Organization";
+
+      default:
+        return role
+          .trim()
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char: string) => char.toUpperCase());
+    }
+  }
+
+  /* =======================================================
+     SIDEBAR TOGGLE
+     ======================================================= */
+
+  toggleSidebar(): void {
+    /*
+     * On mobile:
+     * open/close the sidebar as an overlay.
+     */
+
+    if (window.innerWidth <= 767) {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+
+      return;
+    }
+
+    /*
+     * On desktop:
+     * collapse/expand sidebar.
+     */
+
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  /* =======================================================
+     OPEN MOBILE MENU
+     ======================================================= */
+
+  openMobileMenu(): void {
+    this.mobileMenuOpen = true;
+  }
+
+  /* =======================================================
+     CLOSE MOBILE MENU
+     ======================================================= */
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
+  }
+
+  /* =======================================================
+     WINDOW RESIZE
+     ======================================================= */
+
+  @HostListener("window:resize")
+  onWindowResize(): void {
+    /*
+     * Close mobile overlay when
+     * switching back to desktop.
+     */
+
+    if (window.innerWidth > 767) {
+      this.mobileMenuOpen = false;
+    }
+  }
+
+  /* =======================================================
+     SEARCH
+     ======================================================= */
+
+  performSearch(): void {
+    const query = this.searchText.trim();
+
+    /*
+     * Don't navigate if search is empty.
+     */
+
+    if (!query) {
+      return;
+    }
+
+    console.log("Admin searching for:", query);
+
+    this.router.navigate(["/schemes"], {
+      queryParams: {
+        q: query,
+      },
+    });
+  }
+
+  /* =======================================================
+     CLEAR SEARCH
+     ======================================================= */
+
+  clearSearch(): void {
+    this.searchText = "";
+  }
+
+  /* =======================================================
+     LOGOUT
+     ======================================================= */
+
+  logout(): void {
+    /*
+     * Remove token + cached user.
+     */
+
+    this.authService.logout();
+
+    /*
+     * Return to login.
+     */
+
+    this.router.navigate(["/auth/login"], {
+      replaceUrl: true,
+    });
+  }
 }

@@ -3,7 +3,7 @@
 
   <!-- =========================================================
        MOBILE OVERLAY
-       ========================================================= -->
+  ========================================================== -->
 
   @if (mobileMenuOpen) {
   <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
@@ -11,12 +11,12 @@
 
 
   <!-- =========================================================
-       FIXED FULL-WIDTH TOP NAVBAR
-       ========================================================= -->
+       TOP NAVBAR
+  ========================================================== -->
 
   <header class="dash-topbar" role="banner">
 
-    <!-- NAVBAR BRAND -->
+    <!-- BRAND -->
     <div class="dash-topbar__brand">
 
       <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
@@ -24,10 +24,8 @@
         <span class="material-icons">menu</span>
       </button>
 
-      <a routerLink="/dashboard/citizen" class="dash-topbar__logo-link">
-
+      <a routerLink="/dashboard/user-dashboard" class="dash-topbar__logo-link">
         <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-
       </a>
 
       <div class="dash-topbar__brand-text">
@@ -64,7 +62,7 @@
       <!-- NOTIFICATIONS -->
       <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
         title="Notifications">
-        <span class="material-icons" aria-hidden="true">
+        <span class="material-icons">
           notifications_none
         </span>
       </button>
@@ -95,20 +93,40 @@
 
   </header>
 
+
   <!-- =========================================================
        SIDEBAR
-       ========================================================= -->
+  ========================================================== -->
 
   <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
     [class.dash-sidebar--mobile-open]="mobileMenuOpen">
 
     <!-- =======================================================
          MAIN NAVIGATION
-         ======================================================= -->
+    ======================================================== -->
 
     <nav class="dash-nav" aria-label="Main navigation">
 
+      <!-- DASHBOARD -->
+      <a routerLink="/dashboard/user-dashboard" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
+
+        <span class="material-icons dash-nav__icon" aria-hidden="true">
+          dashboard
+        </span>
+
+        <span class="dash-nav__label">
+          Dashboard
+        </span>
+
+      </a>
+
+
+      <!-- OTHER NAVIGATION ITEMS -->
       @for (item of navItems; track item.label) {
+
+      @if (item.label !== 'Dashboard') {
 
       <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
@@ -139,18 +157,21 @@
 
       }
 
+      }
+
     </nav>
 
 
     <!-- =======================================================
          SIDEBAR FOOTER
-         ======================================================= -->
+    ======================================================== -->
 
     <div class="dash-sidebar__footer">
 
       <!-- PROFILE -->
-      <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Profile' : null">
+      <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Profile' : null">
 
         <span class="material-icons dash-nav__icon" aria-hidden="true">
           account_circle
@@ -164,8 +185,9 @@
 
 
       <!-- SETTINGS -->
-      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
+      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Settings' : null">
 
         <span class="material-icons dash-nav__icon" aria-hidden="true">
           settings
@@ -199,20 +221,14 @@
 
   <!-- =========================================================
        MAIN CONTAINER
-       ========================================================= -->
+  ========================================================== -->
 
   <div class="dash-main-container">
 
 
     <!-- =======================================================
-         TOPBAR
-         ======================================================= -->
-
-
-
-    <!-- =======================================================
          MAIN CONTENT
-         ======================================================= -->
+    ======================================================== -->
 
     <main class="dash-main">
 
@@ -221,14 +237,14 @@
 
         <!-- =====================================================
              WELCOME SECTION
-             ===================================================== -->
+        ====================================================== -->
 
         <section class="dash-welcome">
 
           <div class="dash-welcome__text">
 
             <p class="dash-welcome__eyebrow">
-              CITIZEN DASHBOARD
+              {{ dashboardTitle }}
             </p>
 
             <h1 class="dash-welcome__title">
@@ -243,7 +259,7 @@
           </div>
 
 
-          <!-- DECORATIVE GOVERNMENT BUILDING -->
+          <!-- GOVERNMENT BUILDING -->
           <div class="dash-welcome__illustration" aria-hidden="true">
 
             <div class="welcome-building welcome-building--large">
@@ -291,7 +307,7 @@
 
         <!-- =====================================================
              STATISTICS
-             ===================================================== -->
+        ====================================================== -->
 
         <section class="dash-stats" aria-label="Dashboard statistics">
 
@@ -328,7 +344,6 @@
                 {{ card.label }}
               </p>
 
-
               @if (!loadingStats && card.sub) {
 
               <p class="dash-stat-card__sub">
@@ -348,14 +363,14 @@
 
         <!-- =====================================================
              FIRST ROW
-             ===================================================== -->
+        ====================================================== -->
 
         <section class="dash-panels">
 
 
           <!-- ===================================================
                ELIGIBLE SCHEMES
-               =================================================== -->
+          ==================================================== -->
 
           <article class="dash-panel">
 
@@ -372,7 +387,6 @@
             </div>
 
 
-            <!-- LOADING -->
             @if (loadingSchemes) {
 
             <div class="dash-loader">
@@ -385,11 +399,28 @@
 
             </div>
 
-            }
+            } @else {
 
+            @if (eligibleSchemes.length === 0) {
 
-            <!-- DATA -->
-            @else {
+            <div class="dash-empty">
+
+              <span class="material-icons dash-empty__icon">
+                account_balance
+              </span>
+
+              <p>
+                No eligible schemes found
+              </p>
+
+              <p class="dash-empty__hint">
+                Complete your profile to find schemes
+                matching your eligibility.
+              </p>
+
+            </div>
+
+            } @else {
 
             <ul class="dash-list">
 
@@ -437,6 +468,8 @@
 
             }
 
+            }
+
 
             <!-- FOOTER -->
             <a routerLink="/eligibility" class="dash-panel__footer-link">
@@ -454,7 +487,7 @@
 
           <!-- ===================================================
                SAVED POLICIES
-               =================================================== -->
+          ==================================================== -->
 
           <article class="dash-panel">
 
@@ -471,7 +504,6 @@
             </div>
 
 
-            <!-- LOADING -->
             @if (loadingPolicies) {
 
             <div class="dash-loader">
@@ -479,16 +511,33 @@
               <div class="dash-spinner"></div>
 
               <span>
-                Loading policies...
+                Loading saved policies...
               </span>
 
             </div>
 
-            }
+            } @else {
 
+            @if (savedPolicies.length === 0) {
 
-            <!-- DATA -->
-            @else {
+            <div class="dash-empty">
+
+              <span class="material-icons dash-empty__icon">
+                bookmark_border
+              </span>
+
+              <p>
+                No saved policies yet
+              </p>
+
+              <p class="dash-empty__hint">
+                Save policies and schemes to access them
+                quickly later.
+              </p>
+
+            </div>
+
+            } @else {
 
             <ul class="dash-list">
 
@@ -528,6 +577,8 @@
 
             }
 
+            }
+
 
             <!-- FOOTER -->
             <a routerLink="/policies" class="dash-panel__footer-link">
@@ -547,14 +598,14 @@
 
         <!-- =====================================================
              SECOND ROW
-             ===================================================== -->
+        ====================================================== -->
 
         <section class="dash-panels dash-panels--bottom">
 
 
           <!-- ===================================================
                SEARCH HISTORY
-               =================================================== -->
+          ==================================================== -->
 
           <article class="dash-panel">
 
@@ -571,7 +622,6 @@
             </div>
 
 
-            <!-- LOADING -->
             @if (loadingHistory) {
 
             <div class="dash-loader">
@@ -584,11 +634,23 @@
 
             </div>
 
-            }
+            } @else {
 
+            @if (searchHistory.length === 0) {
 
-            <!-- DATA -->
-            @else {
+            <div class="dash-empty">
+
+              <span class="material-icons dash-empty__icon">
+                history
+              </span>
+
+              <p>
+                No search history yet
+              </p>
+
+            </div>
+
+            } @else {
 
             <ul class="dash-list">
 
@@ -636,12 +698,14 @@
 
             }
 
+            }
+
           </article>
 
 
           <!-- ===================================================
                APPLICATION STATUS
-               =================================================== -->
+          ==================================================== -->
 
           <article class="dash-panel">
 
@@ -658,7 +722,6 @@
             </div>
 
 
-            <!-- LOADING -->
             @if (loadingApplications) {
 
             <div class="dash-loader">
@@ -671,11 +734,27 @@
 
             </div>
 
-            }
+            } @else {
 
+            @if (applications.length === 0) {
 
-            <!-- DATA -->
-            @else {
+            <div class="dash-empty">
+
+              <span class="material-icons dash-empty__icon">
+                description
+              </span>
+
+              <p>
+                No applications yet
+              </p>
+
+              <p class="dash-empty__hint">
+                Your submitted applications will appear here.
+              </p>
+
+            </div>
+
+            } @else {
 
             <ul class="dash-list">
 
@@ -724,6 +803,8 @@
 
             }
 
+            }
+
 
             <!-- FOOTER -->
             <a routerLink="/reports" class="dash-panel__footer-link">
@@ -745,16 +826,15 @@
     </main>
 
 
-    <!-- =======================================================
+    <!-- =========================================================
          FOOTER
-         ======================================================= -->
+    ========================================================== -->
 
     <footer class="dash-footer">
 
       <p class="dash-footer__copy">
         © 2026 PolicyGPT. All rights reserved.
       </p>
-
 
       <div class="dash-footer__links">
 

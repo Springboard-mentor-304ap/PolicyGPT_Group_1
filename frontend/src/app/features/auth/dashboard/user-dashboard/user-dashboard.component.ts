@@ -6,9 +6,7 @@ import {
 } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-
 import { FormsModule } from "@angular/forms";
-
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
@@ -36,13 +34,9 @@ export interface NavItem {
 
 export interface StatCard {
   icon: string;
-
   color: "blue" | "orange" | "green" | "purple";
-
   value: number;
-
   label: string;
-
   sub?: string;
 }
 
@@ -84,7 +78,7 @@ export interface ApplicationItem {
 }
 
 // =========================================================
-// CITIZEN COMPONENT
+// USER DASHBOARD COMPONENT
 // =========================================================
 
 @Component({
@@ -107,7 +101,17 @@ export class UserDashboardComponent implements OnInit {
 
   userName = "User Name";
 
-  userRole = "Citizen";
+  /*
+   * IMPORTANT:
+   * Keep the ORIGINAL backend role here.
+   *
+   * Example:
+   * RESEARCHER
+   * ORGANIZATION
+   * GUEST
+   * CITIZEN
+   */
+  userRole = "GUEST";
 
   userEmail = "";
 
@@ -156,12 +160,6 @@ export class UserDashboardComponent implements OnInit {
   // =======================================================
 
   navItems: NavItem[] = [
-    {
-      icon: "home",
-      label: "Dashboard",
-      route: "/dashboard/citizen",
-    },
-
     {
       icon: "manage_search",
       label: "Search Policies",
@@ -358,9 +356,7 @@ export class UserDashboardComponent implements OnInit {
 
   constructor(
     private router: Router,
-
     private authService: Auth,
-
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -370,6 +366,74 @@ export class UserDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
+  }
+
+  // =======================================================
+  // DASHBOARD TITLE
+  // =======================================================
+
+  get dashboardTitle(): string {
+    const role = (this.userRole || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+
+    switch (role) {
+      // -----------------------------------------------
+      // RESEARCHER
+      // -----------------------------------------------
+
+      case "RESEARCHER":
+        return "RESEARCHER DASHBOARD";
+
+      // -----------------------------------------------
+      // ORGANIZATION
+      // -----------------------------------------------
+
+      case "ORGANIZATION":
+      case "ORGANISATION":
+        return "ORGANIZATION DASHBOARD";
+
+      // -----------------------------------------------
+      // GUEST
+      // -----------------------------------------------
+
+      case "GUEST":
+      case "GUEST_USER":
+      case "GUESTUSER":
+        return "GUEST USER";
+
+      // -----------------------------------------------
+      // CITIZEN
+      // -----------------------------------------------
+
+      case "CITIZEN":
+        return "CITIZEN DASHBOARD";
+
+      // -----------------------------------------------
+      // GOVERNMENT
+      // -----------------------------------------------
+
+      case "GOVERNMENT_OFFICIAL":
+      case "GOVERNMENT_OFFICER":
+      case "GOVERNMENT":
+        return "GOVERNMENT DASHBOARD";
+
+      // -----------------------------------------------
+      // ADMIN
+      // -----------------------------------------------
+
+      case "ADMIN":
+      case "ADMINISTRATOR":
+        return "ADMIN DASHBOARD";
+
+      // -----------------------------------------------
+      // DEFAULT
+      // -----------------------------------------------
+
+      default:
+        return "USER DASHBOARD";
+    }
   }
 
   // =======================================================
@@ -432,6 +496,10 @@ export class UserDashboardComponent implements OnInit {
         this.cdr.detectChanges();
 
         console.log("CURRENT LOGGED-IN USER:", user);
+
+        console.log("CURRENT USER ROLE:", this.userRole);
+
+        console.log("DASHBOARD TITLE:", this.dashboardTitle);
       },
 
       error: (error: any) => {
@@ -469,9 +537,22 @@ export class UserDashboardComponent implements OnInit {
   private setUserDetails(user: AuthUser): void {
     this.user = user;
 
+    // User name
     this.userName = user.full_name?.trim() || "User Name";
 
-    this.userRole = this.formatRole(user.role);
+    /*
+     * VERY IMPORTANT
+     *
+     * Do NOT use formatRole() here.
+     *
+     * We need the original role:
+     *
+     * RESEARCHER
+     * ORGANIZATION
+     * GUEST
+     * CITIZEN
+     */
+    this.userRole = user.role?.trim().toUpperCase() || "GUEST";
 
     this.userEmail = user.email || "";
 
@@ -487,19 +568,37 @@ export class UserDashboardComponent implements OnInit {
   }
 
   // =======================================================
-  // FORMAT ROLE
+  // DISPLAY ROLE
   // =======================================================
 
-  private formatRole(role: string): string {
-    if (!role) {
-      return "Citizen";
-    }
+  get displayRole(): string {
+    switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
+      case "RESEARCHER":
+        return "Researcher";
 
-    return role
-      .trim()
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (character: string) => character.toUpperCase());
+      case "ORGANIZATION":
+      case "ORGANISATION":
+        return "Organization";
+
+      case "GUEST":
+      case "GUEST_USER":
+        return "Guest User";
+
+      case "CITIZEN":
+        return "Citizen";
+
+      case "GOVERNMENT_OFFICIAL":
+      case "GOVERNMENT_OFFICER":
+      case "GOVERNMENT":
+        return "Government Official";
+
+      case "ADMIN":
+      case "ADMINISTRATOR":
+        return "Administrator";
+
+      default:
+        return "Guest User";
+    }
   }
 
   // =======================================================
@@ -572,15 +671,13 @@ export class UserDashboardComponent implements OnInit {
   logout(): void {
     console.log("LOGGING OUT:", this.userName);
 
-    // Remove token + cached user
     this.authService.logout();
 
-    // Clear current user
     this.user = null;
 
     this.userName = "User Name";
 
-    this.userRole = "Citizen";
+    this.userRole = "GUEST";
 
     this.userEmail = "";
 
@@ -594,12 +691,10 @@ export class UserDashboardComponent implements OnInit {
 
     this.userOrganization = "";
 
-    // Reset UI
     this.sidebarCollapsed = false;
 
     this.mobileMenuOpen = false;
 
-    // Go to login
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });

@@ -536,5 +536,11 @@
         <a routerLink="/help">Help</a>
       </div>
     </footer>
+
+    @if (showLogoutModal) {
+
+    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+
+    }
   </div>
 </div>

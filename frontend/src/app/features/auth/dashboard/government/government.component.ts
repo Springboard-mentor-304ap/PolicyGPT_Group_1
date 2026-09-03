@@ -1,13 +1,18 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
+
 import { FormsModule } from "@angular/forms";
 
-import { RouterLink, RouterLinkActive } from "@angular/router";
+import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
-/* =========================================================
-   NAVIGATION ITEM
-   ========================================================= */
+import { Auth } from "../../../../core/services/auth";
+
+import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
+
+// =========================================================
+// NAVIGATION ITEM
+// =========================================================
 
 export interface NavItem {
   icon: string;
@@ -16,9 +21,9 @@ export interface NavItem {
   children?: NavItem[];
 }
 
-/* =========================================================
-   STAT CARD
-   ========================================================= */
+// =========================================================
+// STAT CARD
+// =========================================================
 
 export interface StatCard {
   icon: string;
@@ -28,18 +33,18 @@ export interface StatCard {
   sub?: string;
 }
 
-/* =========================================================
-   SCHEME ITEM
-   ========================================================= */
+// =========================================================
+// SCHEME ITEM
+// =========================================================
 
 export interface SchemeItem {
   name: string;
   ministry: string;
 }
 
-/* =========================================================
-   POLICY ITEM
-   ========================================================= */
+// =========================================================
+// POLICY ITEM
+// =========================================================
 
 export interface PolicyItem {
   name: string;
@@ -47,71 +52,81 @@ export interface PolicyItem {
   savedOn: string;
 }
 
-/* =========================================================
-   SEARCH HISTORY
-   ========================================================= */
+// =========================================================
+// SEARCH HISTORY
+// =========================================================
 
 export interface HistoryItem {
   name: string;
   filters: string;
 }
 
-/* =========================================================
-   APPLICATION
-   ========================================================= */
+// =========================================================
+// APPLICATION
+// =========================================================
 
 export interface ApplicationItem {
   name: string;
   appId: string;
 }
 
-/* =========================================================
-   GOVERNMENT COMPONENT
-   ========================================================= */
+// =========================================================
+// GOVERNMENT COMPONENT
+// =========================================================
 
 @Component({
   selector: "app-government",
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+    LogoutConfirmComponent,
+  ],
 
   templateUrl: "./government.component.html",
 
   styleUrl: "./government.component.scss",
 })
 export class GovernmentComponent implements OnInit {
-  /* =======================================================
-     CHANGE DETECTOR
-     ======================================================= */
+  // =======================================================
+  // SERVICES
+  // =======================================================
 
   private cdr = inject(ChangeDetectorRef);
 
-  /* =======================================================
-     USER
-     ======================================================= */
+  private router = inject(Router);
+
+  private authService = inject(Auth);
+
+  // =======================================================
+  // USER
+  // =======================================================
 
   userName = "Government Official";
 
   userRole = "GOVERNMENT OFFICIAL";
 
-  /* =======================================================
-     SIDEBAR
-     ======================================================= */
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
 
   sidebarCollapsed = false;
 
   mobileMenuOpen = false;
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   searchText = "";
 
-  /* =======================================================
-     LOADING STATES
-     ======================================================= */
+  // =======================================================
+  // LOADING STATES
+  // =======================================================
 
   loadingStats = true;
 
@@ -123,9 +138,15 @@ export class GovernmentComponent implements OnInit {
 
   loadingApplications = true;
 
-  /* =======================================================
-     NAVIGATION
-     ======================================================= */
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
+
+  showLogoutModal = false;
+
+  // =======================================================
+  // NAVIGATION
+  // =======================================================
 
   navItems: NavItem[] = [
     {
@@ -171,9 +192,9 @@ export class GovernmentComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     STATISTICS
-     ======================================================= */
+  // =======================================================
+  // STATISTICS
+  // =======================================================
 
   statCards: StatCard[] = [
     {
@@ -205,9 +226,9 @@ export class GovernmentComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     DASHBOARD DATA
-     ======================================================= */
+  // =======================================================
+  // DASHBOARD DATA
+  // =======================================================
 
   upcomingSchemes: SchemeItem[] = [];
 
@@ -217,14 +238,20 @@ export class GovernmentComponent implements OnInit {
 
   applications: ApplicationItem[] = [];
 
-  /* =======================================================
-     INITIALIZATION
-     ======================================================= */
+  // =======================================================
+  // INITIALIZATION
+  // =======================================================
 
   ngOnInit(): void {
-    /* =====================================================
-       STATISTICS
-       ===================================================== */
+    // =====================================================
+    // LOAD USER
+    // =====================================================
+
+    this.loadUser();
+
+    // =====================================================
+    // STATISTICS
+    // =====================================================
 
     setTimeout(() => {
       this.statCards = [
@@ -266,9 +293,9 @@ export class GovernmentComponent implements OnInit {
       this.cdr.detectChanges();
     }, 700);
 
-    /* =====================================================
-       UPCOMING SCHEMES
-       ===================================================== */
+    // =====================================================
+    // UPCOMING SCHEMES
+    // =====================================================
 
     setTimeout(() => {
       this.upcomingSchemes = [
@@ -293,27 +320,33 @@ export class GovernmentComponent implements OnInit {
       this.cdr.detectChanges();
     }, 900);
 
-    /* =====================================================
-       UPLOADED POLICIES
-       ===================================================== */
+    // =====================================================
+    // UPLOADED POLICIES
+    // =====================================================
 
     setTimeout(() => {
       this.uploadedPolicies = [
         {
           name: "National Education Policy 2020",
+
           ministry: "Ministry of Education",
+
           savedOn: "20 May 2026",
         },
 
         {
           name: "Ayushman Bharat Policy",
+
           ministry: "Ministry of Health & Family Welfare",
+
           savedOn: "18 May 2026",
         },
 
         {
           name: "Electricity Act, 2003",
+
           ministry: "Ministry of Power",
+
           savedOn: "15 May 2025",
         },
       ];
@@ -323,9 +356,9 @@ export class GovernmentComponent implements OnInit {
       this.cdr.detectChanges();
     }, 900);
 
-    /* =====================================================
-       SEARCH HISTORY
-       ===================================================== */
+    // =====================================================
+    // SEARCH HISTORY
+    // =====================================================
 
     setTimeout(() => {
       this.searchHistory = [
@@ -336,11 +369,13 @@ export class GovernmentComponent implements OnInit {
 
         {
           name: "Scholarship for students",
+
           filters: "Scheme • Education • Central",
         },
 
         {
           name: "Solar energy scheme",
+
           filters: "Scheme • Renewable Energy",
         },
       ];
@@ -350,24 +385,27 @@ export class GovernmentComponent implements OnInit {
       this.cdr.detectChanges();
     }, 1100);
 
-    /* =====================================================
-       APPLICATIONS
-       ===================================================== */
+    // =====================================================
+    // APPLICATIONS
+    // =====================================================
 
     setTimeout(() => {
       this.applications = [
         {
           name: "PM Kisan Samman Nidhi",
+
           appId: "APP1234567890",
         },
 
         {
           name: "Post Matric Scholarship Scheme",
+
           appId: "APP1234567889",
         },
 
         {
           name: "PM Awas Yojana (Gramin)",
+
           appId: "APP1234567888",
         },
       ];
@@ -378,9 +416,75 @@ export class GovernmentComponent implements OnInit {
     }, 1100);
   }
 
-  /* =========================================================
-     SIDEBAR TOGGLE
-     ========================================================= */
+  // =======================================================
+  // LOAD USER
+  // =======================================================
+
+  private loadUser(): void {
+    const storedUser = this.authService.getStoredUser();
+
+    // =====================================================
+    // USE STORED USER
+    // =====================================================
+
+    if (storedUser) {
+      this.userName = storedUser.full_name || "Government Official";
+
+      this.userRole = storedUser.role || "GOVERNMENT OFFICIAL";
+    }
+
+    // =====================================================
+    // CHECK TOKEN
+    // =====================================================
+
+    const token = this.authService.getToken();
+
+    if (!token) {
+      this.router.navigate(["/auth/login"], {
+        replaceUrl: true,
+      });
+
+      return;
+    }
+
+    // =====================================================
+    // GET CURRENT USER FROM BACKEND
+    // =====================================================
+
+    this.authService.getCurrentUser().subscribe({
+      next: (user) => {
+        if (!user) {
+          return;
+        }
+
+        this.userName = user.full_name || "Government Official";
+
+        this.userRole = user.role || "GOVERNMENT OFFICIAL";
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error("Unable to load current user:", error);
+
+        // -----------------------------------------------
+        // INVALID / EXPIRED TOKEN
+        // -----------------------------------------------
+
+        if (error?.status === 401 || error?.status === 403) {
+          this.authService.logout();
+
+          this.router.navigate(["/auth/login"], {
+            replaceUrl: true,
+          });
+        }
+      },
+    });
+  }
+
+  // =======================================================
+  // SIDEBAR TOGGLE
+  // =======================================================
 
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
@@ -392,17 +496,17 @@ export class GovernmentComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  /* =========================================================
-     CLOSE MOBILE MENU
-     ========================================================= */
+  // =======================================================
+  // CLOSE MOBILE MENU
+  // =======================================================
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  /* =========================================================
-     SEARCH
-     ========================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -412,21 +516,79 @@ export class GovernmentComponent implements OnInit {
     }
 
     console.log("Government dashboard search:", query);
+
+    this.router.navigate(["/schemes"], {
+      queryParams: {
+        q: query,
+      },
+    });
   }
 
-  /* =========================================================
-     LOGOUT
-     ========================================================= */
+  // =======================================================
+  // LOGOUT
+  // =======================================================
 
   logout(): void {
-    localStorage.removeItem("token");
+    // -----------------------------------------------
+    // OPEN CONFIRMATION POPUP
+    // -----------------------------------------------
 
-    localStorage.removeItem("access_token");
+    this.showLogoutModal = true;
 
-    localStorage.removeItem("user");
+    this.cdr.detectChanges();
+  }
+
+  // =======================================================
+  // CONFIRM LOGOUT
+  // YES BUTTON
+  // =======================================================
+
+  confirmLogout(): void {
+    console.log("Government user confirmed logout");
+
+    // -----------------------------------------------
+    // CLOSE POPUP
+    // -----------------------------------------------
+
+    this.showLogoutModal = false;
+
+    // -----------------------------------------------
+    // LOGOUT USING AUTH SERVICE
+    // -----------------------------------------------
+
+    this.authService.logout();
+
+    // -----------------------------------------------
+    // RESET SIDEBAR
+    // -----------------------------------------------
 
     this.mobileMenuOpen = false;
 
-    window.location.href = "/login";
+    this.sidebarCollapsed = false;
+
+    // -----------------------------------------------
+    // REDIRECT TO LOGIN
+    // -----------------------------------------------
+
+    this.router.navigate(["/auth/login"], {
+      replaceUrl: true,
+    });
+  }
+
+  // =======================================================
+  // CANCEL LOGOUT
+  // NO BUTTON
+  // =======================================================
+
+  cancelLogout(): void {
+    console.log("Government user cancelled logout");
+
+    // -----------------------------------------------
+    // CLOSE POPUP
+    // -----------------------------------------------
+
+    this.showLogoutModal = false;
+
+    this.cdr.detectChanges();
   }
 }

@@ -1,0 +1,48 @@
+<div class="logout-modal-backdrop" (click)="onBackdropClick($event)" role="presentation">
+
+    <div class="logout-modal" role="dialog" aria-modal="true" aria-labelledby="logout-title"
+        aria-describedby="logout-message">
+
+        <!-- ICON -->
+
+        <div class="logout-modal__icon">
+
+            <span class="material-icons">
+                logout
+            </span>
+
+        </div>
+
+
+        <!-- CONTENT -->
+
+        <div class="logout-modal__content">
+
+            <h2 id="logout-title">
+                Logout
+            </h2>
+
+            <p id="logout-message">
+                Are you sure you want to logout?
+            </p>
+
+        </div>
+
+
+        <!-- BUTTONS -->
+
+        <div class="logout-modal__actions">
+
+            <button type="button" class="logout-modal__button logout-modal__button--no" (click)="onCancel()">
+                No
+            </button>
+
+            <button type="button" class="logout-modal__button logout-modal__button--yes" (click)="onConfirm()">
+                Yes
+            </button>
+
+        </div>
+
+    </div>
+
+</div>

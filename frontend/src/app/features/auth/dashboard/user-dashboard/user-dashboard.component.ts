@@ -11,6 +11,8 @@ import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
 
+import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
+
 // =========================================================
 // NAVIGATION ITEM
 // =========================================================
@@ -86,7 +88,15 @@ export interface ApplicationItem {
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+
+    // Logout confirmation popup
+    LogoutConfirmComponent,
+  ],
 
   templateUrl: "./user-dashboard.component.html",
 
@@ -102,15 +112,17 @@ export class UserDashboardComponent implements OnInit {
   userName = "User Name";
 
   /*
-   * IMPORTANT:
    * Keep the ORIGINAL backend role here.
    *
-   * Example:
+   * Examples:
    * RESEARCHER
    * ORGANIZATION
    * GUEST
    * CITIZEN
+   * GOVERNMENT_OFFICIAL
+   * ADMINISTRATOR
    */
+
   userRole = "GUEST";
 
   userEmail = "";
@@ -154,6 +166,12 @@ export class UserDashboardComponent implements OnInit {
   loadingHistory = false;
 
   loadingApplications = false;
+
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
+
+  showLogoutModal = false;
 
   // =======================================================
   // NAVIGATION
@@ -486,9 +504,11 @@ export class UserDashboardComponent implements OnInit {
         }
 
         // Save complete user
+
         this.user = user;
 
         // Update UI
+
         this.setUserDetails(user);
 
         this.loadingUser = false;
@@ -507,9 +527,9 @@ export class UserDashboardComponent implements OnInit {
 
         console.error("GET CURRENT USER ERROR:", error);
 
-        // =================================================
+        // ===============================================
         // TOKEN INVALID / EXPIRED
-        // =================================================
+        // ===============================================
 
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();
@@ -521,9 +541,9 @@ export class UserDashboardComponent implements OnInit {
           return;
         }
 
-        // =================================================
+        // ===============================================
         // TEMPORARY SERVER ERROR
-        // =================================================
+        // ===============================================
 
         this.cdr.detectChanges();
       },
@@ -538,20 +558,13 @@ export class UserDashboardComponent implements OnInit {
     this.user = user;
 
     // User name
+
     this.userName = user.full_name?.trim() || "User Name";
 
     /*
-     * VERY IMPORTANT
-     *
-     * Do NOT use formatRole() here.
-     *
-     * We need the original role:
-     *
-     * RESEARCHER
-     * ORGANIZATION
-     * GUEST
-     * CITIZEN
+     * Keep the original backend role.
      */
+
     this.userRole = user.role?.trim().toUpperCase() || "GUEST";
 
     this.userEmail = user.email || "";
@@ -665,13 +678,33 @@ export class UserDashboardComponent implements OnInit {
   }
 
   // =======================================================
-  // LOGOUT
+  // LOGOUT - OPEN CONFIRMATION
   // =======================================================
 
   logout(): void {
+    console.log("Logout confirmation opened for:", this.userName);
+
+    this.showLogoutModal = true;
+
+    this.cdr.detectChanges();
+  }
+
+  // =======================================================
+  // CONFIRM LOGOUT - YES
+  // =======================================================
+
+  confirmLogout(): void {
     console.log("LOGGING OUT:", this.userName);
 
+    // Close popup
+
+    this.showLogoutModal = false;
+
+    // Clear authentication
+
     this.authService.logout();
+
+    // Clear user information
 
     this.user = null;
 
@@ -691,12 +724,28 @@ export class UserDashboardComponent implements OnInit {
 
     this.userOrganization = "";
 
+    // Reset sidebar
+
     this.sidebarCollapsed = false;
 
     this.mobileMenuOpen = false;
 
+    // Go to login
+
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
+  }
+
+  // =======================================================
+  // CANCEL LOGOUT - NO
+  // =======================================================
+
+  cancelLogout(): void {
+    console.log("Logout cancelled");
+
+    this.showLogoutModal = false;
+
+    this.cdr.detectChanges();
   }
 }

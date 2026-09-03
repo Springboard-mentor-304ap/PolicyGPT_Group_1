@@ -1,14 +1,18 @@
 import { Component, HostListener, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
+
 import { FormsModule } from "@angular/forms";
+
 import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
 
-/* =========================================================
-   STAT CARD
-   ========================================================= */
+import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
+
+// =========================================================
+// STAT CARD
+// =========================================================
 
 export interface StatCard {
   label: string;
@@ -18,9 +22,9 @@ export interface StatCard {
   color: "blue" | "orange" | "green" | "purple";
 }
 
-/* =========================================================
-   NAV ITEM
-   ========================================================= */
+// =========================================================
+// NAV ITEM
+// =========================================================
 
 export interface NavItem {
   label: string;
@@ -29,9 +33,9 @@ export interface NavItem {
   hasSubmenu?: boolean;
 }
 
-/* =========================================================
-   LIST ITEM
-   ========================================================= */
+// =========================================================
+// LIST ITEM
+// =========================================================
 
 export interface ListItem {
   id: number;
@@ -41,28 +45,41 @@ export interface ListItem {
   iconClass?: string;
 }
 
-/* =========================================================
-   ADMIN COMPONENT
-   ========================================================= */
+// =========================================================
+// ADMIN COMPONENT
+// =========================================================
 
 @Component({
   selector: "app-admin-dashboard",
+
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+
+    // Logout confirmation popup
+    LogoutConfirmComponent,
+  ],
+
   templateUrl: "./admin.component.html",
+
   styleUrls: ["./admin.component.scss"],
 })
 export class AdminComponent implements OnInit {
-  /* =======================================================
-     LOGGED-IN USER
-     ======================================================= */
+  // =======================================================
+  // LOGGED-IN USER
+  // =======================================================
 
   userName = "User";
+
   userRole = "Admin";
 
-  /* =======================================================
-     SIDEBAR
-     ======================================================= */
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
 
   sidebarCollapsed = false;
 
@@ -72,19 +89,26 @@ export class AdminComponent implements OnInit {
    * false = sidebar closed
    * true  = sidebar open
    */
+
   mobileMenuOpen = false;
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   searchText = "";
 
-  /* =======================================================
-     ADMIN NAVIGATION
-     
-     DO NOT CHANGE THESE OPTIONS
-     ======================================================= */
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
+
+  showLogoutModal = false;
+
+  // =======================================================
+  // ADMIN NAVIGATION
+  //
+  // DO NOT CHANGE THESE OPTIONS
+  // =======================================================
 
   navItems: NavItem[] = [
     {
@@ -132,9 +156,9 @@ export class AdminComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     STAT CARDS
-     ======================================================= */
+  // =======================================================
+  // STAT CARDS
+  // =======================================================
 
   statCards: StatCard[] = [
     {
@@ -170,9 +194,9 @@ export class AdminComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     SCHEMES
-     ======================================================= */
+  // =======================================================
+  // SCHEMES
+  // =======================================================
 
   schemes: ListItem[] = [
     {
@@ -208,9 +232,9 @@ export class AdminComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     POLICIES
-     ======================================================= */
+  // =======================================================
+  // POLICIES
+  // =======================================================
 
   policies: ListItem[] = [
     {
@@ -232,26 +256,26 @@ export class AdminComponent implements OnInit {
     },
   ];
 
-  /* =======================================================
-     CONSTRUCTOR
-     ======================================================= */
+  // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
 
   constructor(
     private authService: Auth,
     private router: Router,
   ) {}
 
-  /* =======================================================
-     INIT
-     ======================================================= */
+  // =======================================================
+  // INIT
+  // =======================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  /* =======================================================
-     LOAD LOGGED-IN USER
-     ======================================================= */
+  // =======================================================
+  // LOAD LOGGED-IN USER
+  // =======================================================
 
   private loadCurrentUser(): void {
     /*
@@ -274,7 +298,10 @@ export class AdminComponent implements OnInit {
      */
 
     if (!this.authService.isLoggedIn()) {
-      this.router.navigate(["/auth/login"]);
+      this.router.navigate(["/auth/login"], {
+        replaceUrl: true,
+      });
+
       return;
     }
 
@@ -298,7 +325,11 @@ export class AdminComponent implements OnInit {
          * to the login page.
          */
 
-        const status = (error as { status?: number })?.status;
+        const status = (
+          error as {
+            status?: number;
+          }
+        )?.status;
 
         if (status === 401 || status === 403) {
           this.authService.logout();
@@ -316,9 +347,9 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  /* =======================================================
-     SET USER DETAILS
-     ======================================================= */
+  // =======================================================
+  // SET USER DETAILS
+  // =======================================================
 
   private setUserDetails(user: AuthUser): void {
     if (!user) {
@@ -340,9 +371,9 @@ export class AdminComponent implements OnInit {
     this.userRole = this.formatRole(user.role);
   }
 
-  /* =======================================================
-     FORMAT ROLE
-     ======================================================= */
+  // =======================================================
+  // FORMAT ROLE
+  // =======================================================
 
   private formatRole(role: string | null | undefined): string {
     if (!role) {
@@ -379,9 +410,9 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  /* =======================================================
-     SIDEBAR TOGGLE
-     ======================================================= */
+  // =======================================================
+  // SIDEBAR TOGGLE
+  // =======================================================
 
   toggleSidebar(): void {
     /*
@@ -403,25 +434,25 @@ export class AdminComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  /* =======================================================
-     OPEN MOBILE MENU
-     ======================================================= */
+  // =======================================================
+  // OPEN MOBILE MENU
+  // =======================================================
 
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
   }
 
-  /* =======================================================
-     CLOSE MOBILE MENU
-     ======================================================= */
+  // =======================================================
+  // CLOSE MOBILE MENU
+  // =======================================================
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  /* =======================================================
-     WINDOW RESIZE
-     ======================================================= */
+  // =======================================================
+  // WINDOW RESIZE
+  // =======================================================
 
   @HostListener("window:resize")
   onWindowResize(): void {
@@ -435,9 +466,9 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -459,31 +490,90 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  /* =======================================================
-     CLEAR SEARCH
-     ======================================================= */
+  // =======================================================
+  // CLEAR SEARCH
+  // =======================================================
 
   clearSearch(): void {
     this.searchText = "";
   }
 
-  /* =======================================================
-     LOGOUT
-     ======================================================= */
+  // =======================================================
+  // LOGOUT
+  // SHOW CONFIRMATION POPUP
+  // =======================================================
 
   logout(): void {
+    console.log("Logout confirmation opened");
+
     /*
-     * Remove token + cached user.
+     * Do NOT logout here.
+     *
+     * Just open the confirmation popup.
+     */
+
+    this.showLogoutModal = true;
+  }
+
+  // =======================================================
+  // CONFIRM LOGOUT
+  // YES BUTTON
+  // =======================================================
+
+  confirmLogout(): void {
+    console.log("Admin confirmed logout");
+
+    /*
+     * Close popup
+     */
+
+    this.showLogoutModal = false;
+
+    /*
+     * Remove token + cached user
      */
 
     this.authService.logout();
 
     /*
-     * Return to login.
+     * Reset user information
+     */
+
+    this.userName = "User";
+
+    this.userRole = "Admin";
+
+    /*
+     * Reset sidebar
+     */
+
+    this.sidebarCollapsed = false;
+
+    this.mobileMenuOpen = false;
+
+    /*
+     * Go to login page
      */
 
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
+  }
+
+  // =======================================================
+  // CANCEL LOGOUT
+  // NO BUTTON
+  // =======================================================
+
+  cancelLogout(): void {
+    console.log("Admin cancelled logout");
+
+    /*
+     * Simply close the popup.
+     *
+     * User remains logged in.
+     */
+
+    this.showLogoutModal = false;
   }
 }

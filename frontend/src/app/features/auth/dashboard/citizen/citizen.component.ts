@@ -13,6 +13,8 @@ import { Router, RouterLink, RouterLinkActive } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
 
+import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
+
 // =========================================================
 // NAVIGATION ITEM
 // =========================================================
@@ -39,7 +41,7 @@ export interface StatCard {
 
   color: "blue" | "orange" | "green" | "purple";
 
-  value: number;
+  value: number | null;
 
   label: string;
 
@@ -47,7 +49,7 @@ export interface StatCard {
 }
 
 // =========================================================
-// SCHEME
+// SCHEME ITEM
 // =========================================================
 
 export interface SchemeItem {
@@ -56,7 +58,7 @@ export interface SchemeItem {
 }
 
 // =========================================================
-// POLICY
+// POLICY ITEM
 // =========================================================
 
 export interface PolicyItem {
@@ -92,7 +94,15 @@ export interface ApplicationItem {
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+
+    // Logout confirmation popup
+    LogoutConfirmComponent,
+  ],
 
   templateUrl: "./citizen.component.html",
 
@@ -150,6 +160,12 @@ export class CitizenComponent implements OnInit {
   loadingHistory = false;
 
   loadingApplications = false;
+
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
+
+  showLogoutModal = false;
 
   // =======================================================
   // NAVIGATION
@@ -410,7 +426,7 @@ export class CitizenComponent implements OnInit {
     }
 
     // =====================================================
-    // GET FRESH USER FROM BACKEND
+    // GET FRESH USER
     // =====================================================
 
     this.authService.getCurrentUser().subscribe({
@@ -421,10 +437,8 @@ export class CitizenComponent implements OnInit {
           return;
         }
 
-        // Save complete user
         this.user = user;
 
-        // Update UI
         this.setUserDetails(user);
 
         this.loadingUser = false;
@@ -439,9 +453,9 @@ export class CitizenComponent implements OnInit {
 
         console.error("GET CURRENT USER ERROR:", error);
 
-        // =================================================
-        // TOKEN INVALID / EXPIRED
-        // =================================================
+        // ===============================================
+        // INVALID TOKEN
+        // ===============================================
 
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();
@@ -452,10 +466,6 @@ export class CitizenComponent implements OnInit {
 
           return;
         }
-
-        // =================================================
-        // TEMPORARY SERVER ERROR
-        // =================================================
 
         this.cdr.detectChanges();
       },
@@ -503,7 +513,7 @@ export class CitizenComponent implements OnInit {
   }
 
   // =======================================================
-  // SIDEBAR
+  // SIDEBAR TOGGLE
   // =======================================================
 
   toggleSidebar(): void {
@@ -529,7 +539,7 @@ export class CitizenComponent implements OnInit {
   }
 
   // =======================================================
-  // RESIZE
+  // WINDOW RESIZE
   // =======================================================
 
   @HostListener("window:resize")
@@ -567,15 +577,41 @@ export class CitizenComponent implements OnInit {
 
   // =======================================================
   // LOGOUT
+  // OPEN CONFIRMATION POPUP
   // =======================================================
 
   logout(): void {
-    console.log("LOGGING OUT:", this.userName);
+    console.log("Logout confirmation opened");
 
-    // Remove token + cached user
+    this.showLogoutModal = true;
+
+    this.cdr.detectChanges();
+  }
+
+  // =======================================================
+  // CONFIRM LOGOUT
+  // YES BUTTON
+  // =======================================================
+
+  confirmLogout(): void {
+    console.log("User confirmed logout");
+
+    // -----------------------------------------------------
+    // CLOSE POPUP
+    // -----------------------------------------------------
+
+    this.showLogoutModal = false;
+
+    // -----------------------------------------------------
+    // CLEAR AUTHENTICATION
+    // -----------------------------------------------------
+
     this.authService.logout();
 
-    // Clear current user
+    // -----------------------------------------------------
+    // CLEAR USER DATA
+    // -----------------------------------------------------
+
     this.user = null;
 
     this.userName = "User Name";
@@ -594,14 +630,33 @@ export class CitizenComponent implements OnInit {
 
     this.userOrganization = "";
 
-    // Reset UI
+    // -----------------------------------------------------
+    // RESET SIDEBAR
+    // -----------------------------------------------------
+
     this.sidebarCollapsed = false;
 
     this.mobileMenuOpen = false;
 
-    // Go to login
+    // -----------------------------------------------------
+    // GO TO LOGIN
+    // -----------------------------------------------------
+
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
+  }
+
+  // =======================================================
+  // CANCEL LOGOUT
+  // NO BUTTON
+  // =======================================================
+
+  cancelLogout(): void {
+    console.log("Logout cancelled");
+
+    this.showLogoutModal = false;
+
+    this.cdr.detectChanges();
   }
 }

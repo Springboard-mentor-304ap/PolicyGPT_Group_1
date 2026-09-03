@@ -119,7 +119,7 @@ export class Auth {
   }
 
   // =========================================================
-  // GET CACHED USER
+  // GET STORED USER
   // =========================================================
 
   getStoredUser(): AuthUser | null {
@@ -138,6 +138,20 @@ export class Auth {
 
       return null;
     }
+  }
+
+  // =========================================================
+  // GET STORED ROLE
+  // =========================================================
+
+  getUserRole(): string | null {
+    const user = this.getStoredUser();
+
+    if (!user?.role) {
+      return null;
+    }
+
+    return user.role.toUpperCase().trim();
   }
 
   // =========================================================
@@ -199,7 +213,6 @@ export class Auth {
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
-
     localStorage.removeItem(this.userKey);
   }
 }

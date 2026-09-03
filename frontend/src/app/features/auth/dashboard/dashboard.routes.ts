@@ -1,12 +1,28 @@
 import { Routes } from "@angular/router";
 
+import { authGuard } from "../../../core/guards/auth.guard";
+import { roleGuard } from "../../../core/guards/role.guard";
+
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
   // USER DASHBOARD
+  // Researcher / Organization / Guest User
   // =========================================================
 
   {
     path: "user-dashboard",
+
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: [
+        "RESEARCHER",
+        "ORGANIZATION",
+        "ORGANISATION",
+        "GUEST",
+        "GUEST_USER",
+      ],
+    },
 
     loadComponent: () =>
       import("./user-dashboard/user-dashboard.component").then(
@@ -21,6 +37,12 @@ export const DASHBOARD_ROUTES: Routes = [
   {
     path: "citizen",
 
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: ["CITIZEN"],
+    },
+
     loadComponent: () =>
       import("./citizen/citizen.component").then((m) => m.CitizenComponent),
   },
@@ -31,6 +53,12 @@ export const DASHBOARD_ROUTES: Routes = [
 
   {
     path: "government",
+
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: ["GOVERNMENT_OFFICIAL"],
+    },
 
     loadComponent: () =>
       import("./government/government.component").then(
@@ -45,17 +73,25 @@ export const DASHBOARD_ROUTES: Routes = [
   {
     path: "admin",
 
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: ["ADMINISTRATOR"],
+    },
+
     loadComponent: () =>
       import("./admin/admin.component").then((m) => m.AdminComponent),
   },
 
   // =========================================================
-  // DEFAULT DASHBOARD
+  // DEFAULT
   // =========================================================
 
   {
     path: "",
-    redirectTo: "citizen",
+
+    redirectTo: "user-dashboard",
+
     pathMatch: "full",
   },
 ];

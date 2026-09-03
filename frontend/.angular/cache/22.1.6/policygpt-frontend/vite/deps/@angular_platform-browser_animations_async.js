@@ -1,6 +1,6 @@
 import { n as __toESM } from "./rolldown-runtime-FDOR9p9I.js";
-import { Dc as Injector, Ec as InjectionToken, Ei as performanceMarkFeature, El as ɵɵdefineInjectable, Fc as NgZone, Fn as Injectable, Jo as ɵɵinvalidFactory, Uc as RuntimeError, Wi as setClassMetadata, ar as RendererFactory2, lc as ANIMATION_MODULE_TYPE, mc as DOCUMENT, pc as ChangeDetectionScheduler, pl as makeEnvironmentProviders, sl as inject } from "./core-DlrEykkq.js";
-import { r as DomRendererFactory2 } from "./_dom_renderer-chunk-CZYB2skv.js";
+import { Dc as Injector, Ec as InjectionToken, Ei as performanceMarkFeature, El as ɵɵdefineInjectable, Fc as NgZone, Fn as Injectable, Jo as ɵɵinvalidFactory, Uc as RuntimeError, Wi as setClassMetadata, ar as RendererFactory2, lc as ANIMATION_MODULE_TYPE, mc as DOCUMENT, pc as ChangeDetectionScheduler, pl as makeEnvironmentProviders, sl as inject } from "./core-B3Z81ZDD.js";
+import { r as DomRendererFactory2 } from "./_dom_renderer-chunk-D_6NmVGq.js";
 //#region node_modules/@angular/platform-browser/fesm2022/animations-async.mjs
 /**
 * @license Angular v22.1.4

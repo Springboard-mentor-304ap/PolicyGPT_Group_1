@@ -1,0 +1,113 @@
+# ==========================================
+# OS / SYSTEM FILES
+# ==========================================
+
+.DS_Store
+.DS_Store?
+Thumbs.db
+Desktop.ini
+
+
+# ==========================================
+# IDE / EDITOR
+# ==========================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+
+
+# ==========================================
+# PYTHON / BACKEND
+# ==========================================
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python build/package files
+build/
+dist/
+*.egg-info/
+
+
+# ==========================================
+# ENVIRONMENT VARIABLES / SECRETS
+# ==========================================
+
+.env
+.env.local
+.env.*.local
+
+# Keep example environment files
+!.env.example
+
+
+# ==========================================
+# LOGS
+# ==========================================
+
+*.log
+
+
+# ==========================================
+# NODE / ANGULAR / FRONTEND
+# ==========================================
+
+# Node dependencies
+node_modules/
+
+# Angular generated files
+.angular/
+
+# Frontend build output
+dist/
+
+# Test coverage
+coverage/
+
+# NPM logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ==========================================
+# DATABASE LOCAL FILES
+# ==========================================
+
+*.sqlite
+*.sqlite3
+*.db
+
+
+# ==========================================
+# DOCKER
+# ==========================================
+
+# Local Docker Compose overrides
+docker-compose.override.yml
+
+
+# ==========================================
+# TEMPORARY FILES
+# ==========================================
+
+*.tmp
+*.temp
+*.cache
+*.pid

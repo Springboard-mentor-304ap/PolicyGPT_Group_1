@@ -1,39 +1,32 @@
 /* =========================================================
    POLICYGPT CITIZEN DASHBOARD
-   COMPLETE RESPONSIVE SCSS
    ========================================================= */
 
 /* =========================================================
    VARIABLES
    ========================================================= */
 
-$dash-navy: #08265c;
-$dash-navy-dark: #061b42;
-$dash-navy-light: #123f82;
+$admin-navy: #062b63;
+$admin-navy-dark: #061f4a;
+$admin-navy-light: #19539a;
 
-$dash-bg: #f4f7fb;
+$admin-bg: #f4f7fb;
+$admin-white: #ffffff;
+$admin-heading: #111827;
+$admin-text: #1e293b;
+$admin-muted: #64748b;
+$admin-border: #e4e9f1;
 
-$dash-heading: #101828;
-$dash-text: #1e293b;
-$dash-muted: #64748b;
+$admin-blue: #0879ed;
+$admin-blue-dark: #075dcc;
+$admin-orange: #ff861c;
+$admin-green: #078944;
+$admin-purple: #8b00e8;
 
-$dash-border: #e4e9f1;
-
-$dash-blue: #0876e8;
-$dash-blue-dark: #075dcc;
-
-$dash-orange: #ff8a1f;
-$dash-green: #0c8a47;
-$dash-purple: #8b00e8;
-
-$white: #ffffff;
-
-$sidebar-width: 262px;
-$sidebar-width-tablet: 230px;
-$sidebar-width-small: 225px;
-
-$topbar-height: 71px;
-$mobile-topbar-height: 65px;
+$sidebar-width: 295px;
+$sidebar-collapsed-width: 76px;
+$topbar-height: 80px;
+$mobile-topbar-height: 64px;
 
 /* =========================================================
    GLOBAL
@@ -45,11 +38,10 @@ $mobile-topbar-height: 65px;
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-
   width: 100%;
   min-height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
@@ -61,15 +53,18 @@ input {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
   -webkit-tap-highlight-color: transparent;
 }
 
-button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Prevent browser-default spacing from affecting dashboard sizing */
 h1,
 h2,
 h3,
@@ -86,14 +81,6 @@ img {
   max-width: 100%;
 }
 
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
 /* =========================================================
    MAIN LAYOUT
    ========================================================= */
@@ -104,8 +91,8 @@ button:disabled {
 
   display: flex;
 
-  background: $dash-bg;
-  color: $dash-text;
+  background: $admin-bg;
+  color: $admin-text;
 
   font-family:
     "Inter",
@@ -128,10 +115,6 @@ button:disabled {
   display: none;
 }
 
-/* =========================================================
-   MOBILE OVERLAY
-   ========================================================= */
-
 @media (max-width: 767px) {
   .dash-overlay {
     position: fixed;
@@ -152,7 +135,6 @@ button:disabled {
     z-index: 1150;
   }
 
-  .dash-overlay--visible,
   .dash-layout--mobile-menu-open .dash-overlay {
     opacity: 1;
     visibility: visible;
@@ -166,62 +148,39 @@ button:disabled {
 
 .dash-sidebar {
   position: fixed;
-
   top: $topbar-height;
   left: 0;
   bottom: 0;
 
   width: $sidebar-width;
 
-  flex: 0 0 $sidebar-width;
-
   display: flex;
   flex-direction: column;
 
-  color: $white;
+  color: $admin-white;
 
-  /*
-   * Fallback color.
-   */
   background-color: #082f68;
 
   /*
-   * IMPORTANT
-   * Your file is:
-   *
-   * public/images/parliament.png
-   *
-   * Therefore Angular serves it as:
-   *
-   * /images/parliament.png
-   */
+    Keep the parliament/flag background behind the menu.
+    If your file is named parliament.png, replace flag.png
+    below with parliament.png.
+  */
   background-image:
     linear-gradient(
       180deg,
-      rgba(2, 20, 48, 0.96) 0%,
-      rgba(3, 29, 65, 0.93) 35%,
-      rgba(4, 35, 72, 0.88) 60%,
-      rgba(2, 20, 48, 0.78) 100%
+      rgba(3, 31, 72, 0.94) 0%,
+      rgba(4, 43, 88, 0.89) 48%,
+      rgba(2, 22, 51, 0.84) 100%
     ),
     url("/images/flag.png");
 
-  /*
-   * Keep the parliament visible toward
-   * the lower portion of the sidebar.
-   */
   background-position:
     center,
     center bottom;
 
   background-size: cover, cover;
-
   background-repeat: no-repeat, no-repeat;
-
-  /*
-   * Keeps the image visible behind the
-   * navigation instead of hiding it.
-   */
-  background-attachment: scroll, scroll;
 
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
 
@@ -234,159 +193,30 @@ button:disabled {
     transform 0.25s ease;
 }
 
-/*
- * Extra transparent layer.
- * This makes the parliament image visible
- * without making the menu text difficult to read.
- */
 .dash-sidebar::before {
   content: "";
 
   position: absolute;
-
   inset: 0;
 
   background: linear-gradient(
     180deg,
     rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 45%,
-    rgba(3, 30, 70, 0.02) 72%,
-    rgba(3, 25, 60, 0.08) 100%
+    rgba(3, 30, 70, 0.08) 55%,
+    rgba(3, 25, 60, 0.12) 100%
   );
 
   pointer-events: none;
-
   z-index: 0;
 }
 
-/*
- * Keep all sidebar content above
- * the background image.
- */
 .dash-sidebar > * {
   position: relative;
   z-index: 2;
 }
 
 /* =========================================================
-   SIDEBAR BRAND
-   ========================================================= */
-
-.dash-sidebar__brand {
-  min-height: 82px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  padding: 13px 17px;
-
-  flex-shrink: 0;
-}
-
-/* Hamburger */
-
-.dash-sidebar__toggle {
-  width: 30px;
-  height: 30px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: $white;
-
-  cursor: pointer;
-
-  border-radius: 6px;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-sidebar__toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-sidebar__toggle:active {
-  transform: scale(0.96);
-}
-
-.dash-sidebar__toggle:focus-visible {
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
-}
-
-.dash-sidebar__toggle .material-icons {
-  font-size: 25px;
-}
-
-/* Logo */
-
-.dash-sidebar__logo-link {
-  display: flex;
-  align-items: center;
-
-  flex-shrink: 0;
-
-  text-decoration: none;
-}
-
-.dash-sidebar__logo {
-  width: 48px;
-  height: 48px;
-
-  object-fit: contain;
-
-  display: block;
-}
-
-/* Brand text */
-
-.dash-sidebar__brand-text {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dash-sidebar__title {
-  color: $white;
-
-  font-size: 19px;
-  line-height: 1;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.dash-sidebar__title span {
-  color: #ff821b;
-}
-
-.dash-sidebar__tagline {
-  color: rgba(255, 255, 255, 0.75);
-
-  font-size: 7.5px;
-
-  font-weight: 500;
-
-  white-space: nowrap;
-}
-
-/* =========================================================
-   NAVIGATION
+   SIDEBAR NAVIGATION
    ========================================================= */
 
 .dash-nav {
@@ -395,43 +225,34 @@ button:disabled {
   display: flex;
   flex-direction: column;
 
-  gap: 3px;
+  gap: 4px;
 
-  padding: 13px 14px;
-
-  position: relative;
-  z-index: 2;
+  padding: 43px 16px 12px;
 }
 
 .dash-nav__item {
-  min-height: 42px;
-
   width: 100%;
+  min-height: 41px;
 
   display: flex;
   align-items: center;
 
   gap: 13px;
 
-  padding: 9px 13px;
+  padding: 9px 14px;
 
   border: 1px solid transparent;
+  border-radius: 9px;
 
-  border-radius: 8px;
-
-  color: rgba(255, 255, 255, 0.92);
-
+  color: rgba(255, 255, 255, 0.94);
   background: transparent;
 
   text-decoration: none;
 
-  font-size: 13.5px;
-
+  font-size: 14px;
   font-weight: 600;
 
   white-space: nowrap;
-
-  cursor: pointer;
 
   transition:
     background 0.2s ease,
@@ -441,8 +262,7 @@ button:disabled {
 }
 
 .dash-nav__item:hover {
-  color: $white;
-
+  color: $admin-white;
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -451,37 +271,36 @@ button:disabled {
 }
 
 .dash-nav__item--active {
-  color: $white !important;
-
+  color: $admin-white !important;
   background: #19539a;
-
   border-color: rgba(255, 255, 255, 0.08);
-
   box-shadow: inset 3px 0 0 #4b91ff;
 }
 
 .dash-nav__icon {
-  width: 21px;
+  width: 22px;
+  min-width: 22px;
 
   flex-shrink: 0;
 
-  font-size: 20px !important;
-
   text-align: center;
+
+  font-size: 21px !important;
 }
 
 .dash-nav__label {
-  overflow: hidden;
+  min-width: 0;
 
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .dash-nav__chevron {
   margin-left: auto;
 
-  opacity: 0.55;
+  opacity: 0.75;
 
-  font-size: 17px !important;
+  font-size: 19px !important;
 }
 
 /* =========================================================
@@ -491,19 +310,19 @@ button:disabled {
 .dash-sidebar__footer {
   margin-top: auto;
 
-  padding: 10px 14px 18px;
+  padding: 12px 16px 18px;
 
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-
-  position: relative;
-
-  z-index: 2;
 }
 
 .dash-nav__logout {
   appearance: none;
 
+  border: 1px solid transparent;
+
   text-align: left;
+
+  font-family: inherit;
 }
 
 /* =========================================================
@@ -511,26 +330,7 @@ button:disabled {
    ========================================================= */
 
 .dash-layout--sidebar-collapsed .dash-sidebar {
-  width: 76px;
-
-  flex-basis: 76px;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__brand {
-  justify-content: center;
-
-  padding-left: 10px;
-  padding-right: 10px;
-
-  gap: 0;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__logo-link {
-  display: none;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__brand-text {
-  display: none;
+  width: $sidebar-collapsed-width;
 }
 
 .dash-layout--sidebar-collapsed .dash-nav {
@@ -560,67 +360,60 @@ button:disabled {
 }
 
 /* =========================================================
-   COLLAPSED MAIN LAYOUT
-   ========================================================= */
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - 76px);
-  margin-left: 76px;
-}
-
-.dash-layout--sidebar-collapsed .dash-topbar__brand {
-  width: 262px;
-  min-width: 262px;
-}
-
-/* =========================================================
    MAIN CONTAINER
    ========================================================= */
 
 .dash-main-container {
-  width: calc(100% - 262px);
+  width: calc(100% - #{$sidebar-width});
   min-width: 0;
   min-height: 100vh;
 
-  margin-left: 262px;
+  margin-left: $sidebar-width;
 
   display: flex;
   flex-direction: column;
 
-  padding-top: 71px;
+  padding-top: $topbar-height;
 
   transition:
     margin-left 0.25s ease,
     width 0.25s ease;
 }
 
+.dash-layout--sidebar-collapsed .dash-main-container {
+  width: calc(100% - #{$sidebar-collapsed-width});
+  margin-left: $sidebar-collapsed-width;
+}
+
 /* =========================================================
-   FIXED TOP NAVBAR
+   TOP NAVBAR
    ========================================================= */
 
 .dash-topbar {
   position: fixed;
 
   top: 0;
-  left: 262px;
+  left: 0;
   right: 0;
 
-  width: auto;
-  height: 71px;
-  min-height: 71px;
+  width: 100%;
+  height: $topbar-height;
+  min-height: $topbar-height;
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
 
-  gap: 25px;
+  gap: 24px;
 
-  padding: 12px 30px;
+  padding: 10px 28px;
 
-  background: #062b63;
-  box-shadow: none;
+  background: $admin-navy;
+
+  color: $admin-white;
 
   z-index: 2000;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* =========================================================
@@ -630,12 +423,13 @@ button:disabled {
 .dash-topbar__brand {
   width: $sidebar-width;
   min-width: $sidebar-width;
+
   height: 100%;
 
   display: flex;
   align-items: center;
 
-  gap: 10px;
+  gap: 9px;
 }
 
 .dash-topbar__toggle {
@@ -649,13 +443,12 @@ button:disabled {
   flex: 0 0 38px;
 
   padding: 0;
+
   border: 0;
-  border-radius: 6px;
+  border-radius: 7px;
 
   background: transparent;
-  color: $white;
-
-  cursor: pointer;
+  color: $admin-white;
 
   transition:
     background 0.2s ease,
@@ -668,11 +461,6 @@ button:disabled {
 
 .dash-topbar__toggle:active {
   transform: scale(0.96);
-}
-
-.dash-topbar__toggle:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.9);
-  outline-offset: 2px;
 }
 
 .dash-topbar__toggle .material-icons {
@@ -693,6 +481,7 @@ button:disabled {
   height: 48px;
 
   object-fit: contain;
+
   display: block;
 }
 
@@ -706,7 +495,7 @@ button:disabled {
 }
 
 .dash-topbar__title {
-  color: $white;
+  color: $admin-white;
 
   font-size: 19px;
   line-height: 1;
@@ -721,7 +510,7 @@ button:disabled {
 }
 
 .dash-topbar__tagline {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.76);
 
   font-size: 7.5px;
   font-weight: 500;
@@ -730,14 +519,12 @@ button:disabled {
 }
 
 /* =========================================================
-   SEARCH BAR
+   SEARCH
    ========================================================= */
 
 .dash-search {
-  width: 550px;
-  max-width: 55%;
-
-  height: 44px;
+  width: min(615px, 52vw);
+  height: 48px;
 
   margin: 0 auto;
 
@@ -748,39 +535,50 @@ button:disabled {
 
   padding: 0 15px;
 
-  border: 2px solid #ffffff;
+  border: 3px solid $admin-white;
+  border-radius: 26px;
 
-  border-radius: 24px;
-
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.03);
 
   flex-shrink: 1;
+
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-search:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
 .dash-search__icon {
   flex-shrink: 0;
 
-  color: #ffffff;
+  color: $admin-white;
 
-  font-size: 24px;
+  font-size: 25px;
 }
 
 .dash-search input {
   width: 100%;
   min-width: 0;
 
-  border: none;
-  outline: none;
+  padding: 0;
+
+  border: 0;
+  outline: 0;
 
   background: transparent;
 
-  color: #ffffff;
+  color: $admin-white;
 
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .dash-search input::placeholder {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.74);
 }
 
 /* =========================================================
@@ -788,7 +586,7 @@ button:disabled {
    ========================================================= */
 
 .dash-user {
-  min-width: 180px;
+  min-width: 190px;
 
   display: flex;
   align-items: center;
@@ -796,7 +594,7 @@ button:disabled {
 
   gap: 10px;
 
-  color: #ffffff;
+  color: $admin-white;
 }
 
 .dash-user__icon-btn {
@@ -807,14 +605,15 @@ button:disabled {
   align-items: center;
   justify-content: center;
 
+  flex-shrink: 0;
+
   border: 0;
   border-radius: 50%;
 
   background: transparent;
+  color: $admin-white;
 
-  color: #ffffff;
-
-  cursor: pointer;
+  text-decoration: none;
 }
 
 .dash-user__icon-btn:hover {
@@ -826,38 +625,41 @@ button:disabled {
 }
 
 .dash-user__avatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
   flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #dcecff;
 }
 
 .dash-user__avatar .material-icons {
-  color: #e8f0ff;
-
-  font-size: 40px;
+  color: #5d7795;
+  font-size: 38px;
 }
 
 .dash-user__info {
   min-width: 90px;
+  max-width: 135px;
 }
 
 .dash-user__name {
   margin: 0;
 
-  color: #ffffff;
+  color: $admin-white;
 
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
 
   line-height: 1.2;
 
   white-space: nowrap;
-
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -865,9 +667,10 @@ button:disabled {
 .dash-user__role {
   margin: 2px 0 0;
 
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.78);
 
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* =========================================================
@@ -881,17 +684,12 @@ button:disabled {
   flex: 1;
 }
 
-/* =========================================================
-   CONTENT
-   ========================================================= */
-
 .dash-content {
   width: 100%;
-  max-width: none;
 
   margin: 0;
 
-  padding: 32px 34px 38px;
+  padding: 50px 60px 40px;
 }
 
 /* =========================================================
@@ -901,22 +699,22 @@ button:disabled {
 .dash-welcome {
   position: relative;
 
-  min-height: 155px;
+  min-height: 233px;
 
-  margin-bottom: 26px;
+  margin-bottom: 36px;
 
   display: flex;
   align-items: center;
 
   overflow: hidden;
 
-  padding: 28px 37px;
+  padding: 34px 43px;
 
-  border-radius: 17px;
+  border-radius: 20px;
 
   background: linear-gradient(110deg, #f1f5ff 0%, #e9efff 55%, #e0e9ff 100%);
 
-  box-shadow: 0 2px 10px rgba(24, 51, 100, 0.03);
+  box-shadow: 0 2px 10px rgba(24, 51, 100, 0.04);
 }
 
 .dash-welcome__text {
@@ -928,15 +726,14 @@ button:disabled {
 }
 
 .dash-welcome__eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
 
   color: #5073b7;
 
-  font-size: 9px;
-
+  font-size: 10px;
   font-weight: 800;
 
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
 }
 
 .dash-welcome__title {
@@ -944,8 +741,7 @@ button:disabled {
 
   color: #111111;
 
-  font-size: clamp(25px, 2vw, 31px);
-
+  font-size: clamp(30px, 2.4vw, 38px);
   font-weight: 800;
 
   line-height: 1.15;
@@ -954,15 +750,14 @@ button:disabled {
 .dash-welcome__sub {
   max-width: 620px;
 
-  margin: 7px 0 0;
+  margin: 10px 0 0;
 
-  color: #1f2937;
+  color: #344054;
 
   font-size: 14px;
+  font-weight: 500;
 
-  font-weight: 600;
-
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* =========================================================
@@ -985,8 +780,6 @@ button:disabled {
   opacity: 0.72;
 }
 
-/* Building */
-
 .welcome-building {
   position: absolute;
 
@@ -996,22 +789,22 @@ button:disabled {
 }
 
 .welcome-building--large {
-  right: 6%;
+  right: 5%;
 
-  width: 235px;
-  height: 91px;
+  width: 260px;
+  height: 105px;
 
-  border-radius: 3px 3px 0 0;
+  border-radius: 4px 4px 0 0;
 }
 
 .welcome-building__dome {
   position: absolute;
 
-  width: 94px;
-  height: 47px;
+  width: 104px;
+  height: 54px;
 
   left: 50%;
-  top: -40px;
+  top: -45px;
 
   transform: translateX(-50%);
 
@@ -1024,10 +817,10 @@ button:disabled {
   position: absolute;
 
   left: 50%;
-  top: -7px;
+  top: -8px;
 
-  width: 130px;
-  height: 8px;
+  width: 145px;
+  height: 9px;
 
   transform: translateX(-50%);
 
@@ -1039,19 +832,18 @@ button:disabled {
 .welcome-building__columns {
   position: absolute;
 
-  left: 24px;
-  right: 24px;
+  left: 25px;
+  right: 25px;
   bottom: 0;
 
-  height: 68px;
+  height: 78px;
 
   display: flex;
-
   justify-content: space-between;
 }
 
 .welcome-building__columns span {
-  width: 14px;
+  width: 15px;
 
   background: #b9c9f2;
 
@@ -1061,24 +853,24 @@ button:disabled {
 .welcome-building--small {
   right: 39%;
 
-  width: 77px;
-  height: 75px;
+  width: 82px;
+  height: 82px;
 }
 
 .welcome-building__tower {
   position: absolute;
 
   left: 50%;
-  top: -32px;
+  top: -36px;
 
-  width: 19px;
-  height: 37px;
+  width: 21px;
+  height: 42px;
 
   transform: translateX(-50%);
 
   background: #c0cff5;
 
-  border-radius: 10px 10px 0 0;
+  border-radius: 11px 11px 0 0;
 }
 
 .welcome-building__body {
@@ -1093,27 +885,24 @@ button:disabled {
 
   color: #a7bbef;
 
-  font-size: 25px;
-
+  font-size: 27px;
   font-weight: 700;
 }
 
 .welcome-bird--one {
-  right: 43%;
-
-  top: 29px;
+  right: 44%;
+  top: 42px;
 }
 
 .welcome-bird--two {
   right: 27%;
+  top: 65px;
 
-  top: 48px;
-
-  font-size: 20px;
+  font-size: 21px;
 }
 
 /* =========================================================
-   STAT CARDS
+   STATISTICS
    ========================================================= */
 
 .dash-stats {
@@ -1121,15 +910,14 @@ button:disabled {
 
   grid-template-columns: repeat(4, minmax(0, 1fr));
 
-  gap: 18px;
+  gap: 28px;
 
-  margin-bottom: 22px;
+  margin-bottom: 26px;
 }
 
 .dash-stat-card {
   min-width: 0;
-
-  min-height: 82px;
+  min-height: 84px;
 
   display: flex;
   align-items: center;
@@ -1138,9 +926,9 @@ button:disabled {
 
   padding: 15px 17px;
 
-  border-radius: 15px;
+  border-radius: 17px;
 
-  background: $white;
+  background: $admin-white;
 
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.06);
 
@@ -1156,8 +944,8 @@ button:disabled {
 }
 
 .dash-stat-card__icon {
-  width: 45px;
-  height: 45px;
+  width: 47px;
+  height: 47px;
 
   display: flex;
   align-items: center;
@@ -1169,30 +957,28 @@ button:disabled {
 }
 
 .dash-stat-card__icon .material-icons {
-  color: $white;
-
-  font-size: 23px;
+  color: $admin-white;
+  font-size: 24px;
 }
 
 .dash-stat-card__icon--blue {
-  background: #0879ed;
+  background: $admin-blue;
 }
 
 .dash-stat-card__icon--orange {
-  background: #ff861c;
+  background: $admin-orange;
 }
 
 .dash-stat-card__icon--green {
-  background: #078944;
+  background: $admin-green;
 }
 
 .dash-stat-card__icon--purple {
-  background: #9b00e8;
+  background: $admin-purple;
 }
 
 .dash-stat-card__content {
   min-width: 0;
-
   flex: 1;
 }
 
@@ -1201,20 +987,18 @@ button:disabled {
 
   color: #111827;
 
-  font-size: 19px;
-
+  font-size: 20px;
   font-weight: 800;
 
   line-height: 1;
 }
 
 .dash-stat-card__label {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
 
   color: #172033;
 
   font-size: 12px;
-
   font-weight: 700;
 
   line-height: 1.25;
@@ -1223,48 +1007,14 @@ button:disabled {
 .dash-stat-card__sub {
   margin: 3px 0 0;
 
-  color: #64748b;
+  color: $admin-muted;
 
   font-size: 9.5px;
-
   font-weight: 500;
 
   white-space: nowrap;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
-}
-
-/* =========================================================
-   SKELETON
-   ========================================================= */
-
-.skeleton {
-  background: linear-gradient(90deg, #e8edf4 25%, #f6f8fb 50%, #e8edf4 75%);
-
-  background-size: 200% 100%;
-
-  animation: skeleton-loading 1.4s ease infinite;
-
-  border-radius: 5px;
-}
-
-.skeleton--stat-num {
-  width: 35px;
-  height: 19px;
-
-  margin-bottom: 5px;
-}
-
-@keyframes skeleton-loading {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
 }
 
 /* =========================================================
@@ -1276,26 +1026,22 @@ button:disabled {
 
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  gap: 22px;
-}
-
-.dash-panels--bottom {
-  margin-top: 22px;
+  gap: 42px;
+  margin-bottom: 42px;
 }
 
 .dash-panel {
   min-width: 0;
-
-  min-height: 307px;
+  min-height: 370px;
 
   display: flex;
   flex-direction: column;
 
-  padding: 25px 25px 19px;
+  padding: 25px 26px 18px;
 
-  border-radius: 17px;
+  border-radius: 19px;
 
-  background: $white;
+  background: $admin-white;
 
   box-shadow: 0 4px 17px rgba(15, 40, 82, 0.055);
 }
@@ -1317,7 +1063,6 @@ button:disabled {
   color: #16223d;
 
   font-size: 14px;
-
   font-weight: 800;
 
   line-height: 1.3;
@@ -1329,7 +1074,6 @@ button:disabled {
   color: #075ee8;
 
   font-size: 11px;
-
   font-weight: 700;
 
   text-decoration: none;
@@ -1353,7 +1097,6 @@ button:disabled {
   color: #075ee8;
 
   font-size: 10.5px;
-
   font-weight: 700;
 
   text-decoration: none;
@@ -1368,48 +1111,7 @@ button:disabled {
 }
 
 /* =========================================================
-   LOADER
-   ========================================================= */
-
-.dash-loader {
-  flex: 1;
-
-  display: flex;
-  flex-direction: column;
-
-  align-items: center;
-  justify-content: center;
-
-  gap: 10px;
-
-  color: $dash-blue;
-
-  font-size: 11px;
-
-  font-weight: 600;
-}
-
-.dash-spinner {
-  width: 25px;
-  height: 25px;
-
-  border: 3px solid #dbeafe;
-
-  border-top-color: $dash-blue;
-
-  border-radius: 50%;
-
-  animation: dash-spin 0.75s linear infinite;
-}
-
-@keyframes dash-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* =========================================================
-   LIST
+   LISTS
    ========================================================= */
 
 .dash-list {
@@ -1427,9 +1129,9 @@ button:disabled {
 
   gap: 12px;
 
-  padding: 12px 0;
+  padding: 13px 0;
 
-  border-bottom: 1px solid $dash-border;
+  border-bottom: 1px solid $admin-border;
 }
 
 .dash-list__item:last-child {
@@ -1437,8 +1139,8 @@ button:disabled {
 }
 
 .dash-list__icon-wrap {
-  width: 32px;
-  height: 32px;
+  width: 35px;
+  height: 35px;
 
   display: flex;
   align-items: center;
@@ -1450,18 +1152,16 @@ button:disabled {
 }
 
 .dash-list__icon-wrap .material-icons {
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .dash-list__icon-wrap--health {
   background: #e9f8ef;
-
   color: #079348;
 }
 
 .dash-list__icon-wrap--neutral {
   background: #f0f2f5;
-
   color: #657184;
 }
 
@@ -1481,7 +1181,6 @@ button:disabled {
   color: #18202f;
 
   font-size: 11.5px;
-
   font-weight: 750;
 
   line-height: 1.35;
@@ -1493,20 +1192,9 @@ button:disabled {
   color: #526071;
 
   font-size: 9.5px;
-
   font-weight: 500;
 
   line-height: 1.35;
-}
-
-.dash-list__submeta {
-  margin: 2px 0 0;
-
-  color: #8b98a8;
-
-  font-size: 8.8px;
-
-  font-weight: 500;
 }
 
 .dash-list__action {
@@ -1515,7 +1203,6 @@ button:disabled {
   color: #075ee8;
 
   font-size: 9px;
-
   font-weight: 700;
 
   text-decoration: none;
@@ -1532,27 +1219,25 @@ button:disabled {
    ========================================================= */
 
 .dash-footer {
-  min-height: 58px;
+  min-height: 61px;
 
   display: flex;
   align-items: center;
-
   justify-content: space-between;
 
   gap: 20px;
 
-  padding: 13px 34px;
+  padding: 13px 60px;
 
-  background: #021834;
+  background: #173a70;
 
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .dash-footer__copy {
   margin: 0;
 
   font-size: 11px;
-
   font-weight: 500;
 }
 
@@ -1564,10 +1249,9 @@ button:disabled {
 }
 
 .dash-footer__links a {
-  color: $white;
+  color: $admin-white;
 
   font-size: 10.5px;
-
   font-weight: 500;
 
   text-decoration: none;
@@ -1582,47 +1266,38 @@ button:disabled {
 }
 
 /* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.dash-nav__item:focus-visible,
+.dash-panel__link:focus-visible,
+.dash-panel__footer-link:focus-visible,
+.dash-footer__links a:focus-visible,
+.dash-user__icon-btn:focus-visible,
+.dash-topbar__toggle:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.dash-search input:focus-visible {
+  outline: none;
+}
+
+/* =========================================================
    LARGE DESKTOP
-   1440px+
    ========================================================= */
 
 @media (min-width: 1440px) {
-  .dash-sidebar {
-    width: 262px;
-
-    flex-basis: 262px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 262px);
-
-    margin-left: 262px;
-
-    padding-top: 71px;
-  }
-
-  .dash-topbar {
-    left: 262px;
-
-    padding-left: 34px;
-    padding-right: 34px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: 76px;
-  }
-
   .dash-content {
-    padding-left: 40px;
-    padding-right: 40px;
+    padding: 51px 60px 40px;
   }
 
   .dash-welcome {
-    min-height: 170px;
+    min-height: 233px;
   }
 
   .dash-panel {
-    min-height: 315px;
+    min-height: 370px;
   }
 }
 
@@ -1633,7 +1308,7 @@ button:disabled {
 
 @media (max-width: 1439px) {
   .dash-content {
-    padding: 28px 27px 32px;
+    padding: 38px 34px 35px;
   }
 
   .dash-topbar {
@@ -1641,14 +1316,36 @@ button:disabled {
     padding-right: 24px;
   }
 
-  .dash-welcome {
-    padding-left: 31px;
-    padding-right: 31px;
+  .dash-topbar__brand {
+    width: 255px;
+    min-width: 255px;
   }
 
-  .dash-panel {
-    padding-left: 21px;
-    padding-right: 21px;
+  .dash-search {
+    width: min(550px, 48vw);
+  }
+
+  .dash-user {
+    min-width: 175px;
+  }
+
+  .dash-welcome {
+    min-height: 190px;
+    padding-left: 35px;
+    padding-right: 35px;
+  }
+
+  .dash-stats {
+    gap: 18px;
+  }
+
+  .dash-panels {
+    gap: 25px;
+  }
+
+  .dash-footer {
+    padding-left: 34px;
+    padding-right: 34px;
   }
 }
 
@@ -1659,54 +1356,50 @@ button:disabled {
 
 @media (max-width: 1199px) {
   .dash-sidebar {
-    width: $sidebar-width-tablet;
-
-    flex-basis: $sidebar-width-tablet;
+    width: 240px;
   }
 
   .dash-main-container {
-    width: calc(100% - #{$sidebar-width-tablet});
-
-    margin-left: $sidebar-width-tablet;
-
-    padding-top: $topbar-height;
-  }
-
-  .dash-topbar {
-    left: $sidebar-width-tablet;
-  }
-
-  /*
-   * Collapsed sidebar
-   */
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: 70px;
-
-    flex-basis: 70px;
+    width: calc(100% - 240px);
+    margin-left: 240px;
   }
 
   .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 70px);
-
-    margin-left: 70px;
-
-    padding-top: $topbar-height;
+    width: calc(100% - #{$sidebar-collapsed-width});
+    margin-left: $sidebar-collapsed-width;
   }
 
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: 70px;
-  }
-
-  .dash-content {
-    padding: 24px 20px 30px;
-  }
-
-  .dash-topbar {
-    padding: 11px 20px;
+  .dash-topbar__brand {
+    width: 225px;
+    min-width: 225px;
   }
 
   .dash-search {
-    width: min(440px, 50%);
+    width: 43%;
+  }
+
+  .dash-user {
+    min-width: 145px;
+  }
+
+  .dash-user__info {
+    max-width: 100px;
+  }
+
+  .dash-content {
+    padding: 28px 22px 32px;
+  }
+
+  .dash-welcome {
+    min-height: 160px;
+  }
+
+  .dash-welcome__title {
+    font-size: 28px;
+  }
+
+  .dash-welcome__sub {
+    font-size: 12px;
   }
 
   .dash-stats {
@@ -1714,31 +1407,35 @@ button:disabled {
   }
 
   .dash-stat-card {
-    gap: 10px;
-
-    padding-left: 13px;
-    padding-right: 13px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
 
   .dash-stat-card__icon {
-    width: 40px;
-    height: 40px;
+    width: 41px;
+    height: 41px;
+  }
+
+  .dash-stat-card__value {
+    font-size: 18px;
   }
 
   .dash-stat-card__label {
     font-size: 11px;
   }
 
-  .dash-welcome {
-    min-height: 140px;
+  .dash-panels {
+    gap: 18px;
   }
 
-  .dash-welcome__title {
-    font-size: 25px;
+  .dash-panel {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
-  .dash-welcome__sub {
-    font-size: 12px;
+  .dash-footer {
+    padding-left: 22px;
+    padding-right: 22px;
   }
 }
 
@@ -1749,84 +1446,43 @@ button:disabled {
 
 @media (max-width: 991px) {
   .dash-sidebar {
-    width: $sidebar-width-small;
-
-    flex-basis: $sidebar-width-small;
+    width: 225px;
   }
 
-  .dash-main-container,
+  .dash-main-container {
+    width: calc(100% - 225px);
+    margin-left: 225px;
+  }
+
   .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - #{$sidebar-width-small});
-
-    margin-left: $sidebar-width-small;
-
-    padding-top: $topbar-height;
+    width: calc(100% - 225px);
+    margin-left: 225px;
   }
 
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: $sidebar-width-small;
-  }
-
-  /*
-   * Keep sidebar expanded on tablet.
-   */
   .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: $sidebar-width-small;
-
-    flex-basis: $sidebar-width-small;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar__logo-link,
-  .dash-layout--sidebar-collapsed .dash-sidebar__brand-text,
-  .dash-layout--sidebar-collapsed .dash-nav__label,
-  .dash-layout--sidebar-collapsed .dash-nav__chevron {
-    display: flex;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar__brand {
-    justify-content: flex-start;
-
-    padding-left: 17px;
-    padding-right: 17px;
-
-    gap: 9px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-nav {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-nav__item {
-    justify-content: flex-start;
-
-    padding-left: 13px;
-    padding-right: 13px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar__footer {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
-  .dash-content {
-    padding: 22px 18px 28px;
+    width: 225px;
   }
 
   .dash-topbar {
-    gap: 15px;
+    gap: 12px;
+  }
 
-    padding-left: 17px;
-    padding-right: 17px;
+  .dash-topbar__brand {
+    width: 205px;
+    min-width: 205px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
   }
 
   .dash-search {
     width: 48%;
+    max-width: none;
   }
 
   .dash-user {
-    min-width: 145px;
+    min-width: 125px;
   }
 
   .dash-user__info {
@@ -1835,26 +1491,25 @@ button:disabled {
 
   .dash-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-
     gap: 14px;
   }
 
   .dash-panels {
     grid-template-columns: 1fr;
-
     gap: 16px;
   }
 
-  .dash-panels--bottom {
-    margin-top: 16px;
-  }
-
   .dash-panel {
-    min-height: 270px;
+    min-height: 300px;
   }
 
   .dash-welcome__illustration {
-    width: 42%;
+    width: 45%;
+  }
+
+  .dash-footer {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 
@@ -1866,18 +1521,18 @@ button:disabled {
 @media (max-width: 767px) {
   .dash-layout {
     display: block;
-
     min-height: 100vh;
   }
 
   /* ---------------------------------------------------------
-     MOBILE SIDEBAR
+     SIDEBAR
      --------------------------------------------------------- */
 
   .dash-sidebar {
-    width: 270px;
+    top: $mobile-topbar-height;
+    bottom: 0;
 
-    flex-basis: 270px;
+    width: min(280px, 86vw);
 
     transform: translateX(-100%);
 
@@ -1886,20 +1541,19 @@ button:disabled {
     z-index: 1200;
   }
 
-  .dash-sidebar--mobile-open {
+  .dash-layout--sidebar-collapsed .dash-sidebar {
+    width: min(280px, 86vw);
+
+    transform: translateX(-100%);
+  }
+
+  .dash-sidebar--mobile-open,
+  .dash-layout--mobile-menu-open .dash-sidebar {
     transform: translateX(0);
   }
 
-  /*
-   * Keep parliament background visible
-   * on mobile sidebar as well.
-   */
-  .dash-sidebar {
-    background-position:
-      center,
-      center bottom;
-
-    background-size: cover, cover;
+  .dash-nav {
+    padding-top: 25px;
   }
 
   /* ---------------------------------------------------------
@@ -1909,20 +1563,18 @@ button:disabled {
   .dash-main-container,
   .dash-layout--sidebar-collapsed .dash-main-container {
     width: 100%;
-
     margin-left: 0;
 
     padding-top: $mobile-topbar-height;
   }
 
   /* ---------------------------------------------------------
-     FIXED MOBILE NAVBAR
+     MOBILE TOPBAR
      --------------------------------------------------------- */
 
   .dash-topbar,
   .dash-layout--sidebar-collapsed .dash-topbar {
     top: 0;
-
     left: 0;
     right: 0;
 
@@ -1931,24 +1583,39 @@ button:disabled {
     height: $mobile-topbar-height;
     min-height: $mobile-topbar-height;
 
-    padding: 10px 14px;
+    gap: 8px;
 
-    gap: 10px;
-
-    z-index: 1100;
+    padding: 8px 11px;
   }
 
-  /* ---------------------------------------------------------
-     MOBILE MENU BUTTON
-     --------------------------------------------------------- */
+  .dash-topbar__brand,
+  .dash-layout--sidebar-collapsed .dash-topbar__brand {
+    width: auto;
+    min-width: 0;
 
-  .dash-mobile-menu {
-    display: flex;
+    flex: 0 0 auto;
 
-    align-items: center;
-    justify-content: center;
+    gap: 6px;
+  }
 
-    flex-shrink: 0;
+  .dash-topbar__toggle {
+    width: 34px;
+    height: 34px;
+
+    flex-basis: 34px;
+  }
+
+  .dash-topbar__toggle .material-icons {
+    font-size: 24px;
+  }
+
+  .dash-topbar__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
   }
 
   /* ---------------------------------------------------------
@@ -1956,24 +1623,28 @@ button:disabled {
      --------------------------------------------------------- */
 
   .dash-search {
-    flex: 1;
-
     width: auto;
+    max-width: none;
+
+    flex: 1 1 auto;
 
     margin: 0;
 
-    height: 40px;
+    height: 39px;
 
-    padding-left: 12px;
-    padding-right: 12px;
-  }
+    padding: 0 10px;
 
-  .dash-search input {
-    font-size: 13px;
+    border-width: 2px;
+
+    gap: 7px;
   }
 
   .dash-search__icon {
-    font-size: 21px;
+    font-size: 20px;
+  }
+
+  .dash-search input {
+    font-size: 12px;
   }
 
   /* ---------------------------------------------------------
@@ -1982,14 +1653,10 @@ button:disabled {
 
   .dash-user {
     min-width: auto;
-
-    flex-shrink: 0;
+    flex: 0 0 auto;
   }
 
-  .dash-user__icon-btn {
-    display: none;
-  }
-
+  .dash-user__icon-btn,
   .dash-user__avatar {
     display: none;
   }
@@ -1998,16 +1665,16 @@ button:disabled {
     display: block;
 
     min-width: 0;
+    max-width: 78px;
   }
 
   .dash-user__name {
-    max-width: 85px;
-
-    font-size: 11px;
+    max-width: 78px;
+    font-size: 10px;
   }
 
   .dash-user__role {
-    font-size: 9.5px;
+    font-size: 8.5px;
   }
 
   /* ---------------------------------------------------------
@@ -2023,11 +1690,11 @@ button:disabled {
      --------------------------------------------------------- */
 
   .dash-welcome {
-    min-height: 150px;
+    min-height: 155px;
 
     margin-bottom: 17px;
 
-    padding: 23px 20px;
+    padding: 22px 20px;
 
     border-radius: 14px;
   }
@@ -2037,19 +1704,39 @@ button:disabled {
   }
 
   .dash-welcome__title {
-    max-width: 75%;
+    max-width: 74%;
 
     font-size: 22px;
   }
 
   .dash-welcome__sub {
-    max-width: 72%;
+    max-width: 70%;
 
-    font-size: 11px;
+    margin-top: 7px;
+
+    font-size: 10.5px;
   }
 
   .dash-welcome__illustration {
-    width: 48%;
+    width: 50%;
+  }
+
+  .welcome-building--large {
+    width: 180px;
+    height: 72px;
+  }
+
+  .welcome-building__columns {
+    height: 55px;
+  }
+
+  .welcome-building__columns span {
+    width: 10px;
+  }
+
+  .welcome-building--small {
+    width: 60px;
+    height: 60px;
   }
 
   /* ---------------------------------------------------------
@@ -2067,32 +1754,32 @@ button:disabled {
   .dash-stat-card {
     min-height: 75px;
 
-    padding: 11px;
+    padding: 10px;
 
-    gap: 9px;
+    gap: 8px;
 
     border-radius: 12px;
   }
 
   .dash-stat-card__icon {
-    width: 36px;
-    height: 36px;
+    width: 35px;
+    height: 35px;
   }
 
   .dash-stat-card__icon .material-icons {
-    font-size: 19px;
+    font-size: 18px;
   }
 
   .dash-stat-card__value {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .dash-stat-card__label {
-    font-size: 10px;
+    font-size: 9.5px;
   }
 
   .dash-stat-card__sub {
-    font-size: 8px;
+    font-size: 7.5px;
   }
 
   /* ---------------------------------------------------------
@@ -2105,12 +1792,8 @@ button:disabled {
     gap: 13px;
   }
 
-  .dash-panels--bottom {
-    margin-top: 13px;
-  }
-
   .dash-panel {
-    min-height: 260px;
+    min-height: 270px;
 
     padding: 18px 17px 15px;
 
@@ -2122,29 +1805,33 @@ button:disabled {
   }
 
   /* ---------------------------------------------------------
-     LIST
+     LISTS
      --------------------------------------------------------- */
 
   .dash-list__item {
     gap: 9px;
-
     padding: 10px 0;
   }
 
+  .dash-list__icon-wrap {
+    width: 30px;
+    height: 30px;
+  }
+
+  .dash-list__icon-wrap .material-icons {
+    font-size: 15px;
+  }
+
   .dash-list__title {
-    font-size: 10.5px;
+    font-size: 10px;
   }
 
   .dash-list__meta {
-    font-size: 8.7px;
-  }
-
-  .dash-list__submeta {
     font-size: 8px;
   }
 
   .dash-list__action {
-    font-size: 8px;
+    font-size: 7.5px;
   }
 
   /* ---------------------------------------------------------
@@ -2170,17 +1857,19 @@ button:disabled {
    ========================================================= */
 
 @media (max-width: 480px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
+  .dash-topbar {
     height: 62px;
     min-height: 62px;
 
-    padding: 9px 11px;
+    padding: 8px 10px;
   }
 
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
+  .dash-main-container {
     padding-top: 62px;
+  }
+
+  .dash-sidebar {
+    top: 62px;
   }
 
   .dash-user__info {
@@ -2188,18 +1877,15 @@ button:disabled {
   }
 
   .dash-search {
-    height: 38px;
-
-    padding-left: 11px;
-    padding-right: 11px;
-  }
-
-  .dash-search__icon {
-    font-size: 20px;
+    height: 37px;
   }
 
   .dash-search input {
-    font-size: 11px;
+    font-size: 10.5px;
+  }
+
+  .dash-search__icon {
+    font-size: 19px;
   }
 
   .dash-content {
@@ -2214,19 +1900,16 @@ button:disabled {
 
   .dash-welcome__title {
     max-width: 90%;
-
     font-size: 20px;
   }
 
   .dash-welcome__sub {
     max-width: 87%;
-
-    font-size: 10px;
+    font-size: 9.5px;
   }
 
   .dash-welcome__illustration {
-    opacity: 0.5;
-
+    opacity: 0.48;
     width: 55%;
   }
 
@@ -2236,7 +1919,6 @@ button:disabled {
 
   .dash-stat-card {
     padding: 9px;
-
     gap: 7px;
   }
 
@@ -2246,7 +1928,7 @@ button:disabled {
   }
 
   .dash-stat-card__icon .material-icons {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .dash-stat-card__value {
@@ -2254,7 +1936,7 @@ button:disabled {
   }
 
   .dash-stat-card__label {
-    font-size: 9px;
+    font-size: 8.5px;
   }
 
   .dash-stat-card__sub {
@@ -2266,12 +1948,8 @@ button:disabled {
   }
 
   .dash-list__icon-wrap {
-    width: 29px;
-    height: 29px;
-  }
-
-  .dash-list__icon-wrap .material-icons {
-    font-size: 15px;
+    width: 28px;
+    height: 28px;
   }
 
   .dash-list__action {
@@ -2280,7 +1958,6 @@ button:disabled {
 
   .dash-footer__links {
     flex-wrap: wrap;
-
     justify-content: center;
   }
 }
@@ -2308,12 +1985,12 @@ button:disabled {
   }
 
   .dash-welcome__sub {
-    font-size: 9.5px;
+    font-size: 9px;
   }
 }
 
 /* =========================================================
-   VERY SMALL WIDTH
+   EXTRA SMALL
    <= 320px
    ========================================================= */
 
@@ -2322,20 +1999,16 @@ button:disabled {
     width: 250px;
   }
 
-  .dash-mobile-menu {
-    width: 32px;
-  }
-
   .dash-search {
-    height: 36px;
+    height: 35px;
   }
 
   .dash-search input {
-    font-size: 10px;
+    font-size: 9.5px;
   }
 
   .dash-search__icon {
-    font-size: 18px;
+    font-size: 17px;
   }
 
   .dash-content {
@@ -2354,44 +2027,6 @@ button:disabled {
 }
 
 /* =========================================================
-   ACCESSIBILITY
-   ========================================================= */
-
-.dash-nav__item:focus-visible,
-.dash-panel__link:focus-visible,
-.dash-panel__footer-link:focus-visible,
-.dash-footer__links a:focus-visible,
-.dash-user__icon-btn:focus-visible,
-.dash-mobile-menu:focus-visible {
-  outline: 2px solid #60a5fa;
-
-  outline-offset: 2px;
-}
-
-/* =========================================================
-   FORM / INTERACTION ACCESSIBILITY
-   ========================================================= */
-
-.dash-search input:focus-visible {
-  outline: none;
-}
-
-.dash-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
-}
-
-.dash-nav__item:focus-visible,
-.dash-user__icon-btn:focus-visible,
-.dash-mobile-menu:focus-visible,
-.dash-panel__link:focus-visible,
-.dash-panel__footer-link:focus-visible,
-.dash-footer__links a:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
-}
-
-/* =========================================================
    REDUCED MOTION
    ========================================================= */
 
@@ -2400,710 +2035,8 @@ button:disabled {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
-
     animation-iteration-count: 1 !important;
-
     transition-duration: 0.01ms !important;
-
     scroll-behavior: auto !important;
   }
-}
-
-/* =========================================================
-   FINAL NAVBAR / SIDEBAR LAYOUT OVERRIDES
-   ========================================================= */
-@media (max-width: 767px) {
-  .dash-sidebar {
-    top: $mobile-topbar-height;
-    width: min(280px, 86vw);
-    transform: translateX(-100%);
-  }
-
-  .dash-layout--mobile-menu-open .dash-sidebar,
-  .dash-sidebar--mobile-open {
-    transform: translateX(0);
-  }
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100%;
-    margin-left: 0;
-    padding-top: $mobile-topbar-height;
-  }
-
-  .dash-topbar {
-    left: 0;
-    right: 0;
-    width: 100%;
-    height: $mobile-topbar-height;
-    min-height: $mobile-topbar-height;
-
-    gap: 10px;
-    padding: 8px 12px;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    width: auto;
-    min-width: 0;
-    flex: 0 0 auto;
-    gap: 7px;
-  }
-
-  .dash-topbar__toggle {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
-  }
-
-  .dash-topbar__toggle .material-icons {
-    font-size: 24px;
-  }
-
-  .dash-topbar__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  .dash-search {
-    width: auto;
-    max-width: none;
-    flex: 1 1 auto;
-    margin: 0;
-    height: 40px;
-  }
-
-  .dash-user {
-    min-width: auto;
-    flex: 0 0 auto;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-}
-
-/* =========================================================
-   FINAL COLLAPSED DESKTOP / TABLET OVERRIDES
-   ========================================================= */
-
-@media (min-width: 768px) {
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    top: $topbar-height;
-    width: 76px;
-    flex-basis: 76px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 76px);
-    margin-left: 76px;
-  }
-
-  .dash-topbar {
-    left: 0;
-    right: 0;
-    width: 100%;
-  }
-}
-
-/* =========================================================
-   FINAL NAVBAR + SIDEBAR FIX
-   =========================================================
-   Navbar is full width.
-   Sidebar starts below navbar.
-   Sidebar background and navbar use the same navy family.
-   Clicking the sidebar toggle collapses only the sidebar.
-   ========================================================= */
-
-.dash-topbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-
-  width: 100% !important;
-  height: $topbar-height !important;
-  min-height: $topbar-height !important;
-
-  background: #062b63 !important;
-  border: 0 !important;
-  box-shadow: none !important;
-
-  z-index: 2000 !important;
-}
-
-.dash-sidebar {
-  position: fixed !important;
-
-  top: $topbar-height !important;
-  left: 0 !important;
-  bottom: 0 !important;
-
-  width: $sidebar-width !important;
-  flex: 0 0 $sidebar-width !important;
-
-  background-color: #062b63 !important;
-
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(2, 18, 42, 0.97) 0%,
-      rgba(3, 27, 60, 0.95) 38%,
-      rgba(3, 32, 68, 0.92) 68%,
-      rgba(2, 18, 42, 0.88) 100%
-    ),
-    url("/images/flag.png") !important;
-
-  background-position: center, center !important;
-  background-size: cover, cover !important;
-  background-repeat: no-repeat, no-repeat !important;
-}
-
-/* Main content follows the expanded sidebar */
-.dash-main-container {
-  width: calc(100% - #{$sidebar-width}) !important;
-  margin-left: $sidebar-width !important;
-  padding-top: $topbar-height !important;
-}
-
-/* Collapsed desktop sidebar */
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  width: 76px !important;
-  flex-basis: 76px !important;
-}
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - 76px) !important;
-  margin-left: 76px !important;
-}
-
-/*
- * IMPORTANT:
- * The navbar never moves when the sidebar collapses.
- */
-.dash-layout--sidebar-collapsed .dash-topbar {
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-}
-
-/* Expanded sidebar navigation */
-.dash-sidebar__brand {
-  min-height: 82px;
-}
-
-.dash-nav__item {
-  min-height: 42px;
-}
-
-/* Collapsed sidebar */
-.dash-layout--sidebar-collapsed .dash-sidebar__brand {
-  justify-content: center;
-  padding-left: 10px;
-  padding-right: 10px;
-  gap: 0;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__logo-link,
-.dash-layout--sidebar-collapsed .dash-sidebar__brand-text {
-  display: none;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__item {
-  justify-content: center;
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__label,
-.dash-layout--sidebar-collapsed .dash-nav__chevron {
-  display: none;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__icon {
-  margin: 0;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__footer {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-/* Navbar brand */
-.dash-topbar__brand {
-  flex: 0 0 $sidebar-width;
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-}
-
-.dash-layout--sidebar-collapsed .dash-topbar__brand {
-  flex: 0 0 $sidebar-width;
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-}
-
-/* Search remains centered between brand and user area */
-.dash-search {
-  flex: 0 1 550px;
-}
-
-/* =========================================================
-   TABLET
-   ========================================================= */
-
-@media (max-width: 1199px) and (min-width: 992px) {
-  .dash-sidebar {
-    width: $sidebar-width-tablet !important;
-    flex-basis: $sidebar-width-tablet !important;
-  }
-
-  .dash-main-container {
-    width: calc(100% - #{$sidebar-width-tablet}) !important;
-    margin-left: $sidebar-width-tablet !important;
-  }
-
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: 70px !important;
-    flex-basis: 70px !important;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 70px) !important;
-    margin-left: 70px !important;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    flex-basis: $sidebar-width-tablet;
-    width: $sidebar-width-tablet;
-    min-width: $sidebar-width-tablet;
-  }
-}
-
-/* =========================================================
-   TABLET / SMALL DESKTOP
-   ========================================================= */
-
-@media (max-width: 991px) and (min-width: 768px) {
-  .dash-sidebar {
-    width: $sidebar-width-small !important;
-    flex-basis: $sidebar-width-small !important;
-  }
-
-  .dash-main-container {
-    width: calc(100% - #{$sidebar-width-small}) !important;
-    margin-left: $sidebar-width-small !important;
-  }
-
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Keep sidebar expanded on tablet */
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: $sidebar-width-small !important;
-    flex-basis: $sidebar-width-small !important;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - #{$sidebar-width-small}) !important;
-    margin-left: $sidebar-width-small !important;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    flex-basis: $sidebar-width-small;
-    width: $sidebar-width-small;
-    min-width: $sidebar-width-small;
-  }
-}
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 767px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-
-    width: 100% !important;
-
-    height: $mobile-topbar-height !important;
-    min-height: $mobile-topbar-height !important;
-
-    padding: 8px 12px !important;
-
-    background: #062b63 !important;
-  }
-
-  .dash-sidebar {
-    top: $mobile-topbar-height !important;
-    bottom: 0 !important;
-
-    width: min(280px, 86vw) !important;
-    flex-basis: min(280px, 86vw) !important;
-
-    transform: translateX(-100%);
-  }
-
-  .dash-sidebar--mobile-open {
-    transform: translateX(0);
-  }
-
-  .dash-layout--mobile-menu-open .dash-sidebar {
-    transform: translateX(0);
-  }
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100% !important;
-    margin-left: 0 !important;
-    padding-top: $mobile-topbar-height !important;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 0;
-    gap: 7px;
-  }
-
-  .dash-topbar__toggle {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
-  }
-
-  .dash-topbar__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  .dash-search {
-    width: auto;
-    max-width: none;
-    flex: 1 1 auto;
-    margin: 0;
-    height: 40px;
-  }
-
-  .dash-user {
-    min-width: auto;
-    flex: 0 0 auto;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-}
-
-/* =========================================================
-   VERY SMALL MOBILE
-   ========================================================= */
-
-@media (max-width: 480px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    height: 62px !important;
-    min-height: 62px !important;
-  }
-
-  .dash-sidebar {
-    top: 62px !important;
-  }
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    padding-top: 62px !important;
-  }
-}
-
-/* =========================================================
-   FINAL MATCHED NAVBAR + SIDEBAR
-   ========================================================= */
-
-/*
- * The navbar and the upper part of the sidebar are intentionally
- * the SAME solid navy. The Indian flag starts becoming visible
- * only in the lower sidebar, matching the reference design.
- */
-
-.dash-topbar {
-  top: 0;
-  left: 0 !important;
-  right: 0 !important;
-
-  width: 100% !important;
-  height: $topbar-height;
-  min-height: $topbar-height;
-
-  background: #021834 !important;
-
-  border: 0;
-  box-shadow: none !important;
-}
-
-/*
- * Sidebar begins directly underneath the navbar.
- */
-
-.dash-sidebar {
-  top: $topbar-height !important;
-  left: 0;
-  bottom: 0;
-
-  width: $sidebar-width;
-  flex-basis: $sidebar-width;
-
-  background-color: #062b63 !important;
-
-  /*
-   * Solid navy at the top = seamless continuation of navbar.
-   * Flag becomes visible gradually in the lower portion.
-   */
-  background-image:
-    linear-gradient(
-      180deg,
-      #062b63 0%,
-      #062b63 30%,
-      rgba(6, 43, 99, 0.98) 40%,
-      rgba(4, 31, 70, 0.9) 52%,
-      rgba(3, 24, 55, 0.72) 68%,
-      rgba(2, 18, 42, 0.48) 84%,
-      rgba(2, 18, 42, 0.34) 100%
-    ),
-    url("/images/flag.png");
-
-  background-position:
-    center,
-    center bottom;
-
-  background-size: cover, cover;
-
-  background-repeat: no-repeat, no-repeat;
-
-  background-attachment: scroll, scroll;
-
-  box-shadow: none !important;
-}
-
-/*
- * Do not add another overlay over the flag.
- * The gradient above already controls darkness.
- */
-
-.dash-sidebar::before {
-  background: transparent !important;
-}
-
-/*
- * Keep navbar brand aligned like the reference:
- * hamburger -> logo -> PolicyGPT.
- */
-
-.dash-topbar__brand {
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-
-  height: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 10px;
-}
-
-/*
- * Expanded desktop layout.
- */
-
-.dash-main-container {
-  width: calc(100% - #{$sidebar-width});
-  margin-left: $sidebar-width;
-
-  padding-top: $topbar-height;
-}
-
-/*
- * Collapsed desktop sidebar.
- * Navbar remains full width and DOES NOT move.
- */
-
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  top: $topbar-height !important;
-  width: 76px;
-  flex-basis: 76px;
-}
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - 76px);
-  margin-left: 76px;
-}
-
-.dash-layout--sidebar-collapsed .dash-topbar {
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-}
-
-/*
- * Keep the same navy when the sidebar is collapsed.
- */
-
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  background-color: #062b63 !important;
-}
-
-/* =========================================================
-   DESKTOP / LAPTOP
-   ========================================================= */
-
-@media (min-width: 768px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-  }
-
-  .dash-main-container {
-    width: calc(100% - #{$sidebar-width});
-    margin-left: $sidebar-width;
-    padding-top: $topbar-height;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 76px);
-    margin-left: 76px;
-  }
-}
-
-/* =========================================================
-   TABLET
-   ========================================================= */
-
-@media (max-width: 1199px) and (min-width: 992px) {
-  .dash-sidebar {
-    top: $topbar-height !important;
-    width: $sidebar-width-tablet;
-    flex-basis: $sidebar-width-tablet;
-  }
-
-  .dash-main-container {
-    width: calc(100% - #{$sidebar-width-tablet});
-    margin-left: $sidebar-width-tablet;
-  }
-
-  .dash-topbar {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-  }
-}
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 767px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-
-    width: 100% !important;
-
-    height: $mobile-topbar-height;
-    min-height: $mobile-topbar-height;
-
-    background: #062b63 !important;
-
-    box-shadow: none !important;
-  }
-
-  .dash-sidebar {
-    top: $mobile-topbar-height !important;
-
-    width: min(280px, 86vw);
-    flex-basis: auto;
-
-    transform: translateX(-100%);
-  }
-
-  .dash-layout--mobile-menu-open .dash-sidebar,
-  .dash-sidebar--mobile-open {
-    transform: translateX(0);
-  }
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100%;
-    margin-left: 0;
-
-    padding-top: $mobile-topbar-height;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    width: auto;
-    min-width: 0;
-  }
-}
-
-/* =========================================================
-   SMALL MOBILE
-   ========================================================= */
-
-@media (max-width: 480px) {
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    height: 62px;
-    min-height: 62px;
-  }
-
-  .dash-sidebar {
-    top: 62px !important;
-  }
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    padding-top: 62px;
-  }
-}
-
-/* =========================================================
-   FINAL FOOTER COLOR
-   ========================================================= */
-
-.dash-footer {
-  background: #021834 !important;
 }

@@ -110,4 +110,4 @@ docker-compose.override.yml
 *.tmp
 *.temp
 *.cache
-*.pid
+*.pid.DS_Store

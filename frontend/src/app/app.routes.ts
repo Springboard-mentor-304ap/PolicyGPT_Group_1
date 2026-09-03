@@ -1,10 +1,46 @@
-import { Routes } from '@angular/router';
+import { Routes } from "@angular/router";
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
+  // =========================================================
+  // DEFAULT ROUTE
+  // =========================================================
+
   {
-    path: 'auth',
-    loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES),
+    path: "",
+    redirectTo: "auth/login",
+    pathMatch: "full",
   },
-  { path: '**', redirectTo: 'auth/login' },
+
+  // =========================================================
+  // AUTH ROUTES
+  // =========================================================
+
+  {
+    path: "auth",
+
+    loadChildren: () =>
+      import("./features/auth/auth.routes").then((m) => m.AUTH_ROUTES),
+  },
+
+  // =========================================================
+  // DASHBOARD ROUTES
+  // =========================================================
+
+  {
+    path: "dashboard",
+
+    loadChildren: () =>
+      import("./features/auth/dashboard/dashboard.routes").then(
+        (m) => m.DASHBOARD_ROUTES,
+      ),
+  },
+
+  // =========================================================
+  // FALLBACK
+  // =========================================================
+
+  {
+    path: "**",
+    redirectTo: "auth/login",
+  },
 ];

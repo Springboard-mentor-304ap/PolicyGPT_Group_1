@@ -1,33 +1,61 @@
-import { Routes } from '@angular/router';
+import { Routes } from "@angular/router";
 
 export const DASHBOARD_ROUTES: Routes = [
+  // =========================================================
+  // USER DASHBOARD
+  // =========================================================
+
   {
-    path: 'user',
+    path: "user-dashboard",
+
     loadComponent: () =>
-      import('./user-dashboard/user-dashboard.component').then(
-        (m) => m.UserDashboardComponent
+      import("./user-dashboard/user-dashboard.component").then(
+        (m) => m.UserDashboardComponent,
       ),
   },
+
+  // =========================================================
+  // CITIZEN DASHBOARD
+  // =========================================================
+
   {
-    path: 'citizen',
+    path: "citizen",
+
     loadComponent: () =>
-      import('./citizen/citizen.component').then(
-        (m) => m.CitizenComponent
+      import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+  },
+
+  // =========================================================
+  // GOVERNMENT DASHBOARD
+  // =========================================================
+
+  {
+    path: "government",
+
+    loadComponent: () =>
+      import("./government/government.component").then(
+        (m) => m.GovernmentComponent,
       ),
   },
+
+  // =========================================================
+  // ADMIN DASHBOARD
+  // =========================================================
+
   {
-    path: 'government',
+    path: "admin",
+
     loadComponent: () =>
-      import('./government/government.component').then(
-        (m) => m.GovernmentComponent
-      ),
+      import("./admin/admin.component").then((m) => m.AdminComponent),
   },
+
+  // =========================================================
+  // DEFAULT DASHBOARD
+  // =========================================================
+
   {
-    path: 'admin',
-    loadComponent: () =>
-      import('./admin/admin.component').then(
-        (m) => m.AdminComponent
-      ),
+    path: "",
+    redirectTo: "citizen",
+    pathMatch: "full",
   },
-  { path: '', redirectTo: 'citizen', pathMatch: 'full' },
 ];

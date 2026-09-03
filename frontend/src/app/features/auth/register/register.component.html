@@ -1,6 +1,8 @@
 <div class="login-page">
 
-  <!-- LEFT HERO -->
+  <!-- ==========================================
+       LEFT HERO
+       ========================================== -->
 
   <aside class="login-hero">
 
@@ -9,19 +11,14 @@
     <div class="login-hero__content">
 
       <!-- BRAND -->
-
       <div class="login-hero__brand">
 
-        <img
-          src="/images/logo.png"
-          alt="PolicyGPT logo"
-          class="login-hero__logo-img"
-        />
+        <img src="/images/logo.png" alt="PolicyGPT logo" class="login-hero__logo-img" />
 
-        <div>
+        <div class="login-hero__brand-text">
 
           <h1 class="login-hero__title">
-            PolicyGPT
+            Policy<span>GPT</span>
           </h1>
 
           <p class="login-hero__tagline">
@@ -34,7 +31,6 @@
 
 
       <!-- HEADLINE -->
-
       <h2 class="login-hero__headline">
 
         Join
@@ -49,6 +45,7 @@
       </h2>
 
 
+      <!-- SUBTEXT -->
       <p class="login-hero__subtext">
 
         Create your account and unlock access to
@@ -59,22 +56,16 @@
 
 
       <!-- FEATURES -->
-
       <ul class="login-features">
 
-
+        <!-- FEATURE 1 -->
         <li class="login-feature">
 
-          <span
-            class="login-feature__icon
-                   login-feature__icon--blue">
-
+          <span class="login-feature__icon login-feature__icon--blue">
             <span class="material-icons">
               person
             </span>
-
           </span>
-
 
           <div>
 
@@ -83,10 +74,8 @@
             </p>
 
             <p class="login-feature__desc">
-
               Get scheme recommendations and policies
               relevant to your profile.
-
             </p>
 
           </div>
@@ -94,19 +83,14 @@
         </li>
 
 
-
+        <!-- FEATURE 2 -->
         <li class="login-feature">
 
-          <span
-            class="login-feature__icon
-                   login-feature__icon--green">
-
+          <span class="login-feature__icon login-feature__icon--green">
             <span class="material-icons">
               fact_check
             </span>
-
           </span>
-
 
           <div>
 
@@ -115,10 +99,8 @@
             </p>
 
             <p class="login-feature__desc">
-
               Find schemes you are eligible for
               in just a few steps.
-
             </p>
 
           </div>
@@ -126,19 +108,14 @@
         </li>
 
 
-
+        <!-- FEATURE 3 -->
         <li class="login-feature">
 
-          <span
-            class="login-feature__icon
-                   login-feature__icon--orange">
-
+          <span class="login-feature__icon login-feature__icon--orange">
             <span class="material-icons">
               bookmark
             </span>
-
           </span>
-
 
           <div>
 
@@ -147,10 +124,8 @@
             </p>
 
             <p class="login-feature__desc">
-
               Save important policies and schemes
               and track application status.
-
             </p>
 
           </div>
@@ -158,19 +133,14 @@
         </li>
 
 
-
+        <!-- FEATURE 4 -->
         <li class="login-feature">
 
-          <span
-            class="login-feature__icon
-                   login-feature__icon--purple">
-
+          <span class="login-feature__icon login-feature__icon--purple">
             <span class="material-icons">
               notifications
             </span>
-
           </span>
-
 
           <div>
 
@@ -179,348 +149,266 @@
             </p>
 
             <p class="login-feature__desc">
-
               Receive notifications about new policies,
               schemes and deadlines.
-
             </p>
 
           </div>
 
         </li>
 
-
       </ul>
 
 
       <!-- QUOTE -->
+      <div class="login-hero__quote">
 
-      <blockquote class="login-hero__quote">
+        <div class="login-hero__quote-mark">
+          “
+        </div>
 
-        Your one-stop platform to discover government
-        policies and schemes that matter to you.
+        <p>
+          Information is power.
+        </p>
 
-      </blockquote>
+        <p>
+          PolicyGPT is here to empower every citizen.
+        </p>
 
+      </div>
 
     </div>
 
   </aside>
 
 
-
-  <!-- RIGHT REGISTER PANEL -->
+  <!-- ==========================================
+       RIGHT REGISTER PANEL
+       ========================================== -->
 
   <main class="login-form-panel">
 
 
     <!-- LOGIN LINK -->
-
     <div class="login-form-panel__top">
 
       <span>
         Already have an account?
       </span>
 
-      <a
-        routerLink="/auth/login"
-        class="login-form-panel__cta">
-
+      <a routerLink="/auth/login" class="login-form-panel__cta">
         Login
-
       </a>
 
     </div>
 
 
-
-    <!-- REGISTER CARD -->
+    <!-- ==========================================
+         REGISTER CARD
+         ========================================== -->
 
     <div class="login-card">
 
-
       <h2 class="login-card__title">
-
         Create Your Account
-
       </h2>
 
-
       <p class="login-card__subtitle">
-
         Fill in your details to get started
         with PolicyGPT
-
       </p>
 
 
+      <!-- ==========================================
+           FORM
+           ========================================== -->
 
-      <!-- FORM -->
-
-      <form
-        [formGroup]="form"
-        (ngSubmit)="submit()"
-        novalidate>
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
 
 
-        <!-- FULL NAME -->
+        <!-- ======================================
+             FULL NAME
+             ====================================== -->
 
-        <label
-          class="login-field-label"
-          for="name">
-
+        <label class="login-field-label" for="name">
           Full Name
-
         </label>
-
 
         <div class="login-input-wrap">
 
-          <span
-            class="material-icons login-input-icon">
-
+          <span class="material-icons login-input-icon">
             person
-
           </span>
 
-
-          <input
-            id="name"
-            class="login-input"
-            type="text"
-            formControlName="name"
-            placeholder="Enter your full name"
-            autocomplete="name"
-          />
+          <input id="name" class="login-input" type="text" formControlName="name" placeholder="Enter your full name"
+            autocomplete="name" />
 
         </div>
 
-
         @if (
-          form.get('name')?.hasError('required') &&
-          form.get('name')?.touched
+        form.get('name')?.hasError('required') &&
+        form.get('name')?.touched
         ) {
 
-          <p class="login-error">
-            Name is required
-          </p>
+        <p class="login-error">
+          Name is required
+        </p>
 
         }
 
 
+        <!-- ======================================
+             EMAIL
+             ====================================== -->
 
-        <!-- EMAIL -->
-
-        <label
-          class="login-field-label"
-          for="email">
-
+        <label class="login-field-label" for="email">
           Email Address
-
         </label>
-
 
         <div class="login-input-wrap">
 
-          <span
-            class="material-icons login-input-icon">
-
+          <span class="material-icons login-input-icon">
             mail
-
           </span>
 
-
-          <input
-            id="email"
-            class="login-input"
-            type="email"
-            formControlName="email"
-            placeholder="Enter your email address"
-            autocomplete="email"
-          />
+          <input id="email" class="login-input" type="email" formControlName="email"
+            placeholder="Enter your email address" autocomplete="email" />
 
         </div>
 
-
         @if (
-          form.get('email')?.hasError('required') &&
-          form.get('email')?.touched
+        form.get('email')?.hasError('required') &&
+        form.get('email')?.touched
         ) {
 
-          <p class="login-error">
-            Email is required
-          </p>
+        <p class="login-error">
+          Email is required
+        </p>
+
+        }
+
+        @if (
+        form.get('email')?.hasError('email') &&
+        form.get('email')?.touched
+        ) {
+
+        <p class="login-error">
+          Enter a valid email
+        </p>
 
         }
 
 
-        @if (
-          form.get('email')?.hasError('email') &&
-          form.get('email')?.touched
-        ) {
-
-          <p class="login-error">
-            Enter a valid email
-          </p>
-
-        }
-
-
-
-        <!-- PHONE + DOB -->
+        <!-- ======================================
+             PHONE + DOB
+             ====================================== -->
 
         <div class="login-row">
 
 
+          <!-- PHONE -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="phone">
-
+            <label class="login-field-label" for="phone">
               Phone Number
-
             </label>
-
 
             <div class="login-input-wrap">
 
-              <span
-                class="material-icons login-input-icon">
-
+              <span class="material-icons login-input-icon">
                 call
-
               </span>
 
-
-              <input
-                id="phone"
-                class="login-input"
-                type="tel"
-                formControlName="phone"
-                placeholder="10-digit number"
-                autocomplete="tel"
-              />
+              <input id="phone" class="login-input" type="tel" formControlName="phone" placeholder="10-digit number"
+                autocomplete="tel" />
 
             </div>
 
-
             @if (
-              form.get('phone')?.hasError('required') &&
-              form.get('phone')?.touched
+            form.get('phone')?.hasError('required') &&
+            form.get('phone')?.touched
             ) {
 
-              <p class="login-error">
-                Phone number is required
-              </p>
+            <p class="login-error">
+              Phone number is required
+            </p>
 
             }
 
-
             @if (
-              form.get('phone')?.hasError('pattern') &&
-              form.get('phone')?.touched
+            form.get('phone')?.hasError('pattern') &&
+            form.get('phone')?.touched
             ) {
 
-              <p class="login-error">
-                Enter a valid 10-digit phone number
-              </p>
+            <p class="login-error">
+              Enter a valid 10-digit phone number
+            </p>
 
             }
-
 
           </div>
 
 
-
+          <!-- DATE OF BIRTH -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="dob">
-
+            <label class="login-field-label" for="dob">
               Date of Birth
-
             </label>
-
 
             <div class="login-input-wrap">
 
-              <span
-                class="material-icons login-input-icon">
-
+              <span class="material-icons login-input-icon">
                 calendar_today
-
               </span>
 
-
-              <input
-                id="dob"
-                class="login-input"
-                type="date"
-                formControlName="dob"
-              />
+              <input id="dob" class="login-input" type="date" formControlName="dob" />
 
             </div>
 
-
             @if (
-              form.get('dob')?.hasError('required') &&
-              form.get('dob')?.touched
+            form.get('dob')?.hasError('required') &&
+            form.get('dob')?.touched
             ) {
 
-              <p class="login-error">
-                Date of birth is required
-              </p>
+            <p class="login-error">
+              Date of birth is required
+            </p>
 
             }
 
-
           </div>
-
 
         </div>
 
 
-
-        <!-- STATE + DISTRICT -->
+        <!-- ======================================
+             STATE + DISTRICT
+             ====================================== -->
 
         <div class="login-row">
 
 
+          <!-- STATE -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="state">
-
+            <label class="login-field-label" for="state">
               State
-
             </label>
-
 
             <div class="login-select-wrap">
 
-              <select
-                id="state"
-                class="login-select"
-                formControlName="state">
+              <select id="state" class="login-select" formControlName="state">
 
                 <option value="">
                   Select your state
                 </option>
 
-
                 @for (s of states; track s) {
 
-                  <option [value]="s">
-
-                    {{ s }}
-
-                  </option>
+                <option [value]="s">
+                  {{ s }}
+                </option>
 
                 }
 
@@ -528,56 +416,40 @@
 
             </div>
 
-
             @if (
-              form.get('state')?.hasError('required') &&
-              form.get('state')?.touched
+            form.get('state')?.hasError('required') &&
+            form.get('state')?.touched
             ) {
 
-              <p class="login-error">
-                Please select a state
-              </p>
+            <p class="login-error">
+              Please select a state
+            </p>
 
             }
-
 
           </div>
 
 
-
+          <!-- DISTRICT -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="district">
-
+            <label class="login-field-label" for="district">
               District
-
             </label>
-
 
             <div class="login-select-wrap">
 
-              <select
-                id="district"
-                class="login-select"
-                formControlName="district">
+              <select id="district" class="login-select" formControlName="district">
 
                 <option value="">
-
                   Select your district
-
                 </option>
-
 
                 @for (d of districts; track d) {
 
-                  <option [value]="d">
-
-                    {{ d }}
-
-                  </option>
+                <option [value]="d">
+                  {{ d }}
+                </option>
 
                 }
 
@@ -585,431 +457,336 @@
 
             </div>
 
-
             @if (
-              form.get('district')?.hasError('required') &&
-              form.get('district')?.touched
+            form.get('district')?.hasError('required') &&
+            form.get('district')?.touched
             ) {
 
-              <p class="login-error">
-                Please select a district
-              </p>
+            <p class="login-error">
+              Please select a district
+            </p>
 
             }
 
-
           </div>
-
 
         </div>
 
 
-
-        <!-- OCCUPATION + ORGANIZATION -->
+        <!-- ======================================
+             OCCUPATION + ORGANIZATION
+             ====================================== -->
 
         <div class="login-row">
 
 
+          <!-- OCCUPATION -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="occupation">
-
+            <label class="login-field-label" for="occupation">
               Occupation
-
             </label>
 
-
-            <input
-              id="occupation"
-              class="login-input login-input--no-icon"
-              type="text"
-              formControlName="occupation"
-              placeholder="Enter your occupation"
-            />
-
+            <input id="occupation" class="login-input login-input--no-icon" type="text" formControlName="occupation"
+              placeholder="Enter your occupation" />
 
           </div>
 
 
-
+          <!-- ORGANIZATION -->
           <div class="login-col">
 
-
-            <label
-              class="login-field-label"
-              for="organization">
-
+            <label class="login-field-label" for="organization">
               Organization
-
             </label>
 
-
-            <input
-              id="organization"
-              class="login-input login-input--no-icon"
-              type="text"
-              formControlName="organization"
-              placeholder="Enter your organization"
-            />
-
+            <input id="organization" class="login-input login-input--no-icon" type="text" formControlName="organization"
+              placeholder="Enter your organization" />
 
           </div>
-
 
         </div>
 
 
+        <!-- ======================================
+             PASSWORD
+             ====================================== -->
 
-        <!-- PASSWORD -->
-
-        <label
-          class="login-field-label"
-          for="password">
-
+        <label class="login-field-label" for="password">
           Password
-
         </label>
-
 
         <div class="login-input-wrap">
 
-
-          <span
-            class="material-icons login-input-icon">
-
+          <span class="material-icons login-input-icon">
             lock
-
           </span>
 
+          <input id="password" class="login-input" [type]="hidePassword ? 'password' : 'text'"
+            formControlName="password" placeholder="Create a password" autocomplete="new-password" />
 
-          <input
-            id="password"
-            class="login-input"
-            [type]="hidePassword ? 'password' : 'text'"
-            formControlName="password"
-            placeholder="Create a password"
-            autocomplete="new-password"
-          />
-
-
-          <button
-            type="button"
-            class="login-input-suffix"
-            (click)="hidePassword = !hidePassword">
+          <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword"
+            aria-label="Toggle password visibility">
 
             <span class="material-icons">
 
               {{
-                hidePassword
-                  ? 'visibility_off'
-                  : 'visibility'
+              hidePassword
+              ? 'visibility_off'
+              : 'visibility'
               }}
 
             </span>
 
           </button>
 
-
         </div>
 
 
+        <!-- REQUIRED ERROR -->
         @if (
-          form.get('password')?.hasError('required') &&
-          form.get('password')?.touched
+        form.get('password')?.hasError('required') &&
+        form.get('password')?.touched
         ) {
 
-          <p class="login-error">
-            Password is required
-          </p>
+        <p class="login-error">
+          Password is required
+        </p>
 
         }
 
 
+        <!-- MINIMUM LENGTH ERROR -->
         @if (
-          form.get('password')?.hasError('minlength') &&
-          form.get('password')?.touched
+        form.get('password')?.hasError('minlength') &&
+        form.get('password')?.touched
         ) {
 
-          <p class="login-error">
-            Password must be at least 8 characters
-          </p>
+        <p class="login-error">
+          Password must be at least 8 characters
+        </p>
 
         }
 
 
+        <!-- PASSWORD STRENGTH ERROR -->
+        @if (
+        form.get('password')?.hasError('passwordStrength') &&
+        form.get('password')?.touched &&
+        !form.get('password')?.hasError('minlength')
+        ) {
+
+        <p class="login-error">
+          Password must contain at least 3 of:
+          uppercase, lowercase, number, or special character
+        </p>
+
+        }
+
+
+        <!-- PASSWORD HINT -->
         <p class="login-hint">
-
-          Minimum 8 characters
-
+          Minimum 8 characters • Use any 3 of:
+          uppercase, lowercase, number, special character
         </p>
 
 
+        <!-- ======================================
+             CONFIRM PASSWORD
+             ====================================== -->
 
-        <!-- CONFIRM PASSWORD -->
-
-        <label
-          class="login-field-label"
-          for="confirmPassword">
-
+        <label class="login-field-label" for="confirmPassword">
           Confirm Password
-
         </label>
-
 
         <div class="login-input-wrap">
 
-
-          <span
-            class="material-icons login-input-icon">
-
+          <span class="material-icons login-input-icon">
             lock
-
           </span>
 
+          <input id="confirmPassword" class="login-input" [type]="hideConfirmPassword ? 'password' : 'text'"
+            formControlName="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" />
 
-          <input
-            id="confirmPassword"
-            class="login-input"
-            [type]="hideConfirmPassword ? 'password' : 'text'"
-            formControlName="confirmPassword"
-            placeholder="Re-enter your password"
-            autocomplete="new-password"
-          />
-
-
-          <button
-            type="button"
-            class="login-input-suffix"
-            (click)="hideConfirmPassword = !hideConfirmPassword">
+          <button type="button" class="login-input-suffix" (click)="hideConfirmPassword = !hideConfirmPassword"
+            aria-label="Toggle confirm password visibility">
 
             <span class="material-icons">
 
               {{
-                hideConfirmPassword
-                  ? 'visibility_off'
-                  : 'visibility'
+              hideConfirmPassword
+              ? 'visibility_off'
+              : 'visibility'
               }}
 
             </span>
 
           </button>
 
-
         </div>
 
 
+        <!-- REQUIRED ERROR -->
         @if (
-          form.get('confirmPassword')?.hasError('required') &&
-          form.get('confirmPassword')?.touched
+        form.get('confirmPassword')?.hasError('required') &&
+        form.get('confirmPassword')?.touched
         ) {
 
-          <p class="login-error">
-
-            Please confirm your password
-
-          </p>
+        <p class="login-error">
+          Please confirm your password
+        </p>
 
         }
 
 
+        <!-- PASSWORD MATCH ERROR -->
         @if (
-          form.hasError('passwordMismatch') &&
-          form.get('confirmPassword')?.touched
+        form.hasError('passwordMismatch') &&
+        form.get('confirmPassword')?.touched
         ) {
 
-          <p class="login-error">
-
-            Passwords do not match
-
-          </p>
+        <p class="login-error">
+          Passwords do not match
+        </p>
 
         }
 
 
+        <!-- ======================================
+             ROLE
+             ====================================== -->
 
-        <!-- ROLE -->
-
-        <label
-          class="login-field-label"
-          for="role">
-
+        <label class="login-field-label" for="role">
           I want to register as
-
         </label>
-
 
         <div class="login-select-wrap">
 
-
-          <select
-            id="role"
-            class="login-select"
-            formControlName="role">
-
+          <select id="role" class="login-select" formControlName="role">
 
             <option value="">
-
               Select your role
-
             </option>
-
 
             @for (r of roles; track r.value) {
 
-              <option [value]="r.value">
-
-                {{ r.label }}
-
-              </option>
+            <option [value]="r.value">
+              {{ r.label }}
+            </option>
 
             }
 
-
           </select>
-
 
         </div>
 
-
         @if (
-          form.get('role')?.hasError('required') &&
-          form.get('role')?.touched
+        form.get('role')?.hasError('required') &&
+        form.get('role')?.touched
         ) {
 
-          <p class="login-error">
-
-            Please select a role
-
-          </p>
+        <p class="login-error">
+          Please select a role
+        </p>
 
         }
 
 
-
-        <!-- TERMS -->
+        <!-- ======================================
+             TERMS
+             ====================================== -->
 
         <label class="login-checkbox">
 
-
-          <input
-            type="checkbox"
-            formControlName="agreeTerms"
-          />
-
+          <input type="checkbox" formControlName="agreeTerms" />
 
           <span>
 
             I agree to the
 
             <a routerLink="/terms">
-
               Terms & Conditions
-
             </a>
 
             and
 
             <a routerLink="/privacy">
-
               Privacy Policy
-
             </a>
 
           </span>
-
 
         </label>
 
 
         @if (
-          form.get('agreeTerms')?.hasError('required') &&
-          form.get('agreeTerms')?.touched
+        form.get('agreeTerms')?.hasError('required') &&
+        form.get('agreeTerms')?.touched
         ) {
 
-          <p class="login-error">
-
-            You must agree to continue
-
-          </p>
+        <p class="login-error">
+          You must agree to continue
+        </p>
 
         }
 
 
-
-        <!-- SERVER ERROR -->
+        <!-- ======================================
+             SERVER ERROR
+             ====================================== -->
 
         @if (errorMessage) {
 
-          <p
-            class="login-error login-error--form"
-            role="alert">
-
-            {{ errorMessage }}
-
-          </p>
+        <p class="login-error login-error--form" role="alert">
+          {{ errorMessage }}
+        </p>
 
         }
 
 
+        <!-- ======================================
+             SUBMIT
+             ====================================== -->
 
-        <!-- SUBMIT -->
-
-        <button
-          type="submit"
-          class="login-submit"
-          [disabled]="loading">
-
+        <button type="submit" class="login-submit" [disabled]="loading">
 
           @if (loading) {
 
-            <span
-              class="login-spinner">
+          <span class="login-spinner">
+          </span>
 
-            </span>
-
-            Creating Account...
-
+          Creating Account...
 
           } @else {
 
-            <span class="material-icons">
+          <span class="material-icons">
+            person_add
+          </span>
 
-              person_add
-
-            </span>
-
-            <span>
-
-              Create Account
-
-            </span>
+          <span>
+            Create Account
+          </span>
 
           }
-
 
         </button>
 
 
       </form>
 
-
     </div>
 
 
-
-    <!-- SUPPORT -->
+    <!-- ==========================================
+         SUPPORT
+         ========================================== -->
 
     <p class="login-support">
 
       Having trouble signing up?
 
       <a routerLink="/feedback">
-
         Contact Support
-
       </a>
 
     </p>

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
+import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,9 +16,12 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+
 from app.db.database import get_db
+
 from app.models.password_reset import PasswordResetToken
 from app.models.user import User
+
 from app.schemas.auth import (
     AuthResponse,
     ChangePasswordRequest,
@@ -30,17 +34,25 @@ from app.schemas.auth import (
 )
 
 
+# =========================================================
+# ROUTER
+# =========================================================
+
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
 
 
+# =========================================================
+# SECURITY
+# =========================================================
+
 security = HTTPBearer()
 
 
 # =========================================================
-# HELPERS
+# GET CURRENT USER
 # =========================================================
 
 def get_current_user(
@@ -52,12 +64,22 @@ def get_current_user(
 
     payload = decode_access_token(token)
 
+    # -----------------------------------------------------
+    # INVALID OR EXPIRED TOKEN
+    # -----------------------------------------------------
+
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
+
+    # -----------------------------------------------------
+    # GET USER ID AND TOKEN VERSION
+    # -----------------------------------------------------
 
     user_id = payload.get("sub")
     token_version = payload.get("ver")
@@ -66,28 +88,51 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
+
+    # -----------------------------------------------------
+    # CONVERT USER ID TO INTEGER
+    # -----------------------------------------------------
 
     try:
         user_id = int(user_id)
+
     except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
 
     user = db.query(User).filter(
         User.user_id == user_id
     ).first()
 
+    # -----------------------------------------------------
+    # USER DOES NOT EXIST
+    # -----------------------------------------------------
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User no longer exists",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
+
+    # -----------------------------------------------------
+    # ACCOUNT INACTIVE
+    # -----------------------------------------------------
 
     if not user.is_active:
         raise HTTPException(
@@ -95,15 +140,25 @@ def get_current_user(
             detail="Account is inactive"
         )
 
+    # -----------------------------------------------------
+    # TOKEN VERSION CHECK
+    # -----------------------------------------------------
+
     if token_version != user.token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
     return user
 
+
+# =========================================================
+# ROLE CHECK
+# =========================================================
 
 def require_roles(*allowed_roles: str):
 
@@ -122,6 +177,10 @@ def require_roles(*allowed_roles: str):
     return role_checker
 
 
+# =========================================================
+# CREATE USER TOKEN
+# =========================================================
+
 def create_user_token(user: User) -> str:
 
     return create_access_token(
@@ -130,6 +189,10 @@ def create_user_token(user: User) -> str:
         token_version=user.token_version
     )
 
+
+# =========================================================
+# HASH RESET TOKEN
+# =========================================================
 
 def hash_reset_token(token: str) -> str:
 
@@ -152,7 +215,17 @@ def register(
     db: Session = Depends(get_db)
 ):
 
-    email = str(data.email).lower().strip()
+    # -----------------------------------------------------
+    # CLEAN EMAIL
+    # -----------------------------------------------------
+
+    email = str(
+        data.email
+    ).lower().strip()
+
+    # -----------------------------------------------------
+    # CHECK EMAIL
+    # -----------------------------------------------------
 
     existing_email = db.query(User).filter(
         User.email == email
@@ -164,10 +237,20 @@ def register(
             detail="Email is already registered"
         )
 
+    # -----------------------------------------------------
+    # CHECK PHONE
+    # -----------------------------------------------------
+
     if data.phone:
 
+        normalized_registration_phone = re.sub(
+            r"\D",
+            "",
+            data.phone
+        )
+
         existing_phone = db.query(User).filter(
-            User.phone == data.phone
+            User.phone == normalized_registration_phone
         ).first()
 
         if existing_phone:
@@ -176,20 +259,38 @@ def register(
                 detail="Phone number is already registered"
             )
 
+    # -----------------------------------------------------
+    # CHECK PASSWORD
+    # -----------------------------------------------------
+
     if data.password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Passwords do not match"
         )
 
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    # -----------------------------------------------------
+    # CURRENT TIME
+    # -----------------------------------------------------
+
+    now = datetime.now(
+        timezone.utc
+    ).replace(
+        tzinfo=None
+    )
+
+    # -----------------------------------------------------
+    # CREATE USER
+    # -----------------------------------------------------
 
     user = User(
         full_name=data.full_name,
         email=email,
-        password_hash=hash_password(data.password),
+        password_hash=hash_password(
+            data.password
+        ),
         role=data.role,
-        phone=data.phone,
+        phone=(re.sub(r"\D", "", data.phone) if data.phone else None),
         date_of_birth=data.date_of_birth,
         state=data.state,
         district=data.district,
@@ -200,6 +301,10 @@ def register(
         created_at=now,
         updated_at=now
     )
+
+    # -----------------------------------------------------
+    # SAVE USER
+    # -----------------------------------------------------
 
     try:
 
@@ -216,7 +321,15 @@ def register(
             detail="Email or phone number is already registered"
         )
 
+    # -----------------------------------------------------
+    # CREATE TOKEN
+    # -----------------------------------------------------
+
     token = create_user_token(user)
+
+    # -----------------------------------------------------
+    # RESPONSE
+    # -----------------------------------------------------
 
     return AuthResponse(
         access_token=token,
@@ -224,6 +337,10 @@ def register(
         user=user
     )
 
+
+# =========================================================
+# LOGIN
+# =========================================================
 
 # =========================================================
 # LOGIN
@@ -238,33 +355,80 @@ def login(
     db: Session = Depends(get_db)
 ):
 
+    # -----------------------------------------------------
+    # CLEAN IDENTIFIER
+    # -----------------------------------------------------
+
     identifier = data.identifier.strip()
+
+    # -----------------------------------------------------
+    # NORMALIZE EMAIL / PHONE
+    # -----------------------------------------------------
+
+    normalized_email = identifier.casefold()
+
+    normalized_phone = re.sub(
+        r"\D",
+        "",
+        identifier
+    )
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
 
     user = db.query(User).filter(
         or_(
-            User.email == identifier.lower(),
-            User.phone == identifier
+            func.lower(
+                func.trim(User.email)
+            ) == normalized_email,
+
+            User.phone == identifier,
+
+            User.phone == normalized_phone
         )
     ).first()
+
+    # -----------------------------------------------------
+    # ACCOUNT DOES NOT EXIST
+    # -----------------------------------------------------
 
     if not user:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email/phone or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="INVALID_CREDENTIAL",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            }
         )
 
-    if not verify_password(
+    # -----------------------------------------------------
+    # CHECK PASSWORD
+    # -----------------------------------------------------
+
+    password_valid = verify_password(
         data.password,
         user.password_hash
-    ):
+    )
+
+    # -----------------------------------------------------
+    # PASSWORD IS WRONG
+    # -----------------------------------------------------
+
+    if not password_valid:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email/phone or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="INVALID_PASSWORD",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            }
         )
+
+    # -----------------------------------------------------
+    # CHECK ACCOUNT STATUS
+    # -----------------------------------------------------
 
     if not user.is_active:
 
@@ -273,7 +437,15 @@ def login(
             detail="Account is inactive"
         )
 
+    # -----------------------------------------------------
+    # CREATE ACCESS TOKEN
+    # -----------------------------------------------------
+
     token = create_user_token(user)
+
+    # -----------------------------------------------------
+    # RETURN LOGIN RESPONSE
+    # -----------------------------------------------------
 
     return AuthResponse(
         access_token=token,
@@ -315,10 +487,13 @@ def update_profile(
         exclude_unset=True
     )
 
+    # -----------------------------------------------------
+    # PHONE VALIDATION
+    # -----------------------------------------------------
+
     if "phone" in updates and updates["phone"]:
 
         if not updates["phone"].isdigit():
-
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Phone number must contain only digits"
@@ -330,11 +505,14 @@ def update_profile(
         ).first()
 
         if existing_phone:
-
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Phone number is already registered"
             )
+
+    # -----------------------------------------------------
+    # APPLY UPDATES
+    # -----------------------------------------------------
 
     for field, value in updates.items():
 
@@ -344,10 +522,21 @@ def update_profile(
             value
         )
 
+    # -----------------------------------------------------
+    # UPDATE TIMESTAMP
+    # -----------------------------------------------------
+
     current_user.updated_at = (
-        datetime.now(timezone.utc)
-        .replace(tzinfo=None)
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
     )
+
+    # -----------------------------------------------------
+    # SAVE
+    # -----------------------------------------------------
 
     try:
 
@@ -379,41 +568,68 @@ def change_password(
     db: Session = Depends(get_db)
 ):
 
+    # -----------------------------------------------------
+    # CHECK CURRENT PASSWORD
+    # -----------------------------------------------------
+
     if not verify_password(
         data.current_password,
         current_user.password_hash
     ):
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect"
         )
 
-    if data.new_password != data.confirm_password:
+    # -----------------------------------------------------
+    # CHECK PASSWORD MATCH
+    # -----------------------------------------------------
 
+    if data.new_password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Passwords do not match"
         )
 
-    if data.current_password == data.new_password:
+    # -----------------------------------------------------
+    # NEW PASSWORD MUST BE DIFFERENT
+    # -----------------------------------------------------
 
+    if data.current_password == data.new_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different from current password"
         )
 
+    # -----------------------------------------------------
+    # HASH NEW PASSWORD
+    # -----------------------------------------------------
+
     current_user.password_hash = hash_password(
         data.new_password
     )
 
-    # Revoke all existing JWTs
+    # -----------------------------------------------------
+    # REVOKE OLD TOKENS
+    # -----------------------------------------------------
+
     current_user.token_version += 1
 
+    # -----------------------------------------------------
+    # UPDATE TIME
+    # -----------------------------------------------------
+
     current_user.updated_at = (
-        datetime.now(timezone.utc)
-        .replace(tzinfo=None)
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
     )
+
+    # -----------------------------------------------------
+    # SAVE
+    # -----------------------------------------------------
 
     db.commit()
 
@@ -434,12 +650,18 @@ def logout(
     db: Session = Depends(get_db)
 ):
 
-    # Incrementing this invalidates existing tokens.
+    # -----------------------------------------------------
+    # INVALIDATE EXISTING TOKENS
+    # -----------------------------------------------------
+
     current_user.token_version += 1
 
     current_user.updated_at = (
-        datetime.now(timezone.utc)
-        .replace(tzinfo=None)
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
     )
 
     db.commit()
@@ -461,50 +683,94 @@ def forgot_password(
     db: Session = Depends(get_db)
 ):
 
-    email = str(data.email).lower().strip()
+    # -----------------------------------------------------
+    # CLEAN EMAIL
+    # -----------------------------------------------------
+
+    email = str(
+        data.email
+    ).lower().strip()
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
 
     user = db.query(User).filter(
         User.email == email
     ).first()
 
-    # Do not reveal whether email exists.
+    # -----------------------------------------------------
+    # GENERIC RESPONSE
+    # -----------------------------------------------------
+
     generic_response = {
-        "message": "If an account exists with this email, a password reset link has been generated."
+        "message": "If account exists, password reset link generated."
     }
 
     if not user:
         return generic_response
 
-    # Invalidate previous unused tokens.
-    db.query(PasswordResetToken).filter(
+    # -----------------------------------------------------
+    # INVALIDATE OLD RESET TOKENS
+    # -----------------------------------------------------
+
+    db.query(
+        PasswordResetToken
+    ).filter(
         PasswordResetToken.user_id == user.user_id,
-        PasswordResetToken.used == False
+        PasswordResetToken.used.is_(False)
     ).update({
         "used": True
     })
 
+    # -----------------------------------------------------
+    # CREATE RESET TOKEN
+    # -----------------------------------------------------
+
     raw_token = secrets.token_urlsafe(32)
 
-    token_hash = hash_reset_token(raw_token)
-
-    now = datetime.now(timezone.utc).replace(
-        tzinfo=None
+    token_hash = hash_reset_token(
+        raw_token
     )
+
+    # -----------------------------------------------------
+    # CURRENT TIME
+    # -----------------------------------------------------
+
+    now = (
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
+    )
+
+    # -----------------------------------------------------
+    # CREATE RESET RECORD
+    # -----------------------------------------------------
 
     reset_token = PasswordResetToken(
         user_id=user.user_id,
         token_hash=token_hash,
-        expires_at=now + timedelta(minutes=15),
+        expires_at=now + timedelta(
+            minutes=15
+        ),
         used=False,
         created_at=now
     )
 
+    # -----------------------------------------------------
+    # SAVE
+    # -----------------------------------------------------
+
     db.add(reset_token)
     db.commit()
 
-    # DEVELOPMENT ONLY
-    if settings.DEBUG:
+    # -----------------------------------------------------
+    # DEVELOPMENT TOKEN
+    # -----------------------------------------------------
 
+    if settings.DEBUG:
         return {
             **generic_response,
             "development_reset_token": raw_token
@@ -513,17 +779,36 @@ def forgot_password(
     return generic_response
 
 
-# delete api
+# =========================================================
+# DELETE USER BY EMAIL
+# =========================================================
 
-@router.delete("/users/{email}")
-def delete_user(email: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == email).first()
+@router.delete(
+    "/users/email/{email}"
+)
+def delete_user(
+    email: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
+
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
 
     if not user:
         raise HTTPException(
             status_code=404,
             detail="User not found"
         )
+
+    # -----------------------------------------------------
+    # DELETE
+    # -----------------------------------------------------
 
     db.delete(user)
     db.commit()
@@ -532,6 +817,47 @@ def delete_user(email: str, db: Session = Depends(get_db)):
         "message": "User deleted successfully",
         "email": email
     }
+
+
+# =========================================================
+# DELETE USER BY PHONE
+# =========================================================
+
+@router.delete(
+    "/users/phone/{phone}"
+)
+def delete_user_by_phone(
+    phone: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
+
+    user = db.query(User).filter(
+        User.phone == phone
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # -----------------------------------------------------
+    # DELETE
+    # -----------------------------------------------------
+
+    db.delete(user)
+    db.commit()
+
+    return {
+        "message": "User deleted successfully",
+        "phone": phone
+    }
+
 
 # =========================================================
 # RESET PASSWORD
@@ -545,34 +871,56 @@ def reset_password(
     db: Session = Depends(get_db)
 ):
 
-    if data.new_password != data.confirm_password:
+    # -----------------------------------------------------
+    # CHECK PASSWORD MATCH
+    # -----------------------------------------------------
 
+    if data.new_password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Passwords do not match"
         )
 
+    # -----------------------------------------------------
+    # HASH TOKEN
+    # -----------------------------------------------------
+
     token_hash = hash_reset_token(
         data.token
     )
+
+    # -----------------------------------------------------
+    # FIND RESET TOKEN
+    # -----------------------------------------------------
 
     reset_record = db.query(
         PasswordResetToken
     ).filter(
         PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used == False
+        PasswordResetToken.used.is_(False)
     ).first()
 
     if not reset_record:
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or already used reset token"
         )
 
-    now = datetime.now(timezone.utc).replace(
-        tzinfo=None
+    # -----------------------------------------------------
+    # CURRENT TIME
+    # -----------------------------------------------------
+
+    now = (
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
     )
+
+    # -----------------------------------------------------
+    # CHECK EXPIRATION
+    # -----------------------------------------------------
 
     if reset_record.expires_at < now:
 
@@ -585,6 +933,10 @@ def reset_password(
             detail="Reset token has expired"
         )
 
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
+
     user = db.query(User).filter(
         User.user_id == reset_record.user_id
     ).first()
@@ -592,6 +944,7 @@ def reset_password(
     if not user:
 
         reset_record.used = True
+
         db.commit()
 
         raise HTTPException(
@@ -599,16 +952,31 @@ def reset_password(
             detail="Invalid reset request"
         )
 
+    # -----------------------------------------------------
+    # UPDATE PASSWORD
+    # -----------------------------------------------------
+
     user.password_hash = hash_password(
         data.new_password
     )
 
-    # Invalidate all existing JWTs.
+    # -----------------------------------------------------
+    # INVALIDATE OLD TOKENS
+    # -----------------------------------------------------
+
     user.token_version += 1
 
     user.updated_at = now
 
+    # -----------------------------------------------------
+    # MARK TOKEN USED
+    # -----------------------------------------------------
+
     reset_record.used = True
+
+    # -----------------------------------------------------
+    # SAVE
+    # -----------------------------------------------------
 
     db.commit()
 
@@ -618,7 +986,7 @@ def reset_password(
 
 
 # =========================================================
-# ROLE PROTECTED TEST ENDPOINTS
+# ADMIN TEST
 # =========================================================
 
 @router.get(
@@ -626,7 +994,9 @@ def reset_password(
 )
 def admin_test(
     current_user: User = Depends(
-        require_roles("ADMINISTRATOR")
+        require_roles(
+            "ADMINISTRATOR"
+        )
     )
 ):
 
@@ -636,6 +1006,10 @@ def admin_test(
         "role": current_user.role
     }
 
+
+# =========================================================
+# GOVERNMENT TEST
+# =========================================================
 
 @router.get(
     "/government-test"
@@ -656,6 +1030,10 @@ def government_test(
     }
 
 
+# =========================================================
+# RESEARCHER TEST
+# =========================================================
+
 @router.get(
     "/researcher-test"
 )
@@ -675,6 +1053,10 @@ def researcher_test(
     }
 
 
+# =========================================================
+# CITIZEN TEST
+# =========================================================
+
 @router.get(
     "/citizen-test"
 )
@@ -693,6 +1075,10 @@ def citizen_test(
         "role": current_user.role
     }
 
+
+# =========================================================
+# ORGANIZATION TEST
+# =========================================================
 
 @router.get(
     "/organization-test"

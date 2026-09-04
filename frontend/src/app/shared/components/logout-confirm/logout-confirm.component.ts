@@ -7,35 +7,27 @@ import { Component, EventEmitter, Output } from "@angular/core";
   styleUrl: "./logout-confirm.component.scss",
 })
 export class LogoutConfirmComponent {
-  @Output()
-  confirmed = new EventEmitter<void>();
+  @Output() confirm = new EventEmitter<void>();
 
-  @Output()
-  cancelled = new EventEmitter<void>();
+  @Output() cancel = new EventEmitter<void>();
 
-  // =======================================================
-  // YES
-  // =======================================================
+  // =====================================================
+  // YES BUTTON
+  // =====================================================
 
   onConfirm(): void {
-    this.confirmed.emit();
+    console.log("YES button clicked");
+
+    this.confirm.emit();
   }
 
-  // =======================================================
-  // NO
-  // =======================================================
+  // =====================================================
+  // NO BUTTON
+  // =====================================================
 
   onCancel(): void {
-    this.cancelled.emit();
-  }
+    console.log("NO button clicked");
 
-  // =======================================================
-  // CLOSE WHEN CLICKING OUTSIDE
-  // =======================================================
-
-  onBackdropClick(event: MouseEvent): void {
-    if (event.target === event.currentTarget) {
-      this.onCancel();
-    }
+    this.cancel.emit();
   }
 }

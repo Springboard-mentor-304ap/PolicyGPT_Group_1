@@ -1,0 +1,388 @@
+import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
+import { HttpErrorResponse } from "@angular/common/http";
+import {
+  AdminUsersService,
+  AdminUserApi,
+} from "../../../../../core/services/admin-user.service";
+export type UserRole =
+  | "CITIZEN"
+  | "RESEARCHER"
+  | "ORGANIZATION"
+  | "GOVERNMENT_OFFICIAL"
+  | "ADMINISTRATOR";
+
+export interface AdminUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  state: string;
+  district: string;
+  occupation: string;
+  organization: string;
+  status: "Active" | "Inactive";
+  joinedDate: string;
+}
+
+@Component({
+  selector: "app-view-users",
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: "./view-users.component.html",
+  styleUrls: ["./view-users.component.scss"],
+})
+export class ViewUsersComponent implements OnInit {
+  searchText = "";
+  selectedRole = "ALL";
+  selectedStatus = "ALL";
+
+  currentPage = 1;
+  pageSize = 6;
+
+  users: AdminUser[] = [];
+
+  isLoading = true;
+  loadError = "";
+
+  constructor(
+    private router: Router,
+    private adminUsersService: AdminUsersService,
+    private cdr: ChangeDetectorRef,
+  ) {}
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  // =======================================================
+  // LOAD USERS FROM BACKEND
+  // =======================================================
+
+  loadUsers(): void {
+    this.isLoading = true;
+    this.loadError = "";
+
+    this.adminUsersService.getUsers().subscribe({
+      next: (backendUsers: AdminUserApi[]) => {
+        console.log("PolicyGPT users received from backend:", backendUsers);
+
+        this.users = Array.isArray(backendUsers)
+          ? backendUsers.map((user: AdminUserApi) => this.mapBackendUser(user))
+          : [];
+
+        this.currentPage = 1;
+        this.isLoading = false;
+        this.loadError = "";
+
+        // Ensure the UI updates immediately after the HTTP response.
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.error("Unable to load users:", error);
+
+        this.users = [];
+        this.isLoading = false;
+
+        if (error?.status === 401) {
+          this.loadError = "Your session has expired. Please login again.";
+          return;
+        }
+
+        if (error?.status === 403) {
+          this.loadError = "Only an administrator can view users.";
+          return;
+        }
+
+        this.loadError =
+          error?.error?.detail || "Unable to load users from the server.";
+
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  // =======================================================
+  // MAP BACKEND USER TO TABLE USER
+  // =======================================================
+
+  private mapBackendUser(user: AdminUserApi): AdminUser {
+    const role = this.normalizeRole(user.role);
+
+    return {
+      id: user.user_id,
+      fullName: user.full_name || "Unknown User",
+      email: user.email || "-",
+      phone: user.phone || "-",
+      role,
+      state: user.state || "-",
+      district: user.district || "-",
+      occupation: user.occupation || "-",
+      organization: user.organization || "-",
+      status: user.is_active ? "Active" : "Inactive",
+      joinedDate: this.formatDate(user.created_at),
+    };
+  }
+
+  private normalizeRole(role: string): UserRole {
+    const normalized = (role || "").trim().toUpperCase();
+
+    switch (normalized) {
+      case "CITIZEN":
+        return "CITIZEN";
+      case "RESEARCHER":
+        return "RESEARCHER";
+      case "ORGANIZATION":
+      case "ORGANISATION":
+        return "ORGANIZATION";
+      case "GOVERNMENT_OFFICIAL":
+      case "GOVERNMENT OFFICER":
+        return "GOVERNMENT_OFFICIAL";
+      case "ADMINISTRATOR":
+      case "ADMIN":
+        return "ADMINISTRATOR";
+      default:
+        return "CITIZEN";
+    }
+  }
+
+  private formatDate(value: string): string {
+    if (!value) {
+      return "-";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  }
+
+  // =======================================================
+  // FILTERED USERS
+  // =======================================================
+
+  get filteredUsers(): AdminUser[] {
+    const query = this.searchText.trim().toLowerCase();
+
+    return this.users.filter((user) => {
+      const matchesSearch =
+        !query ||
+        user.fullName.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        user.phone.toLowerCase().includes(query) ||
+        user.role.toLowerCase().includes(query) ||
+        this.getRoleLabel(user.role).toLowerCase().includes(query) ||
+        user.state.toLowerCase().includes(query) ||
+        user.district.toLowerCase().includes(query) ||
+        user.organization.toLowerCase().includes(query) ||
+        user.occupation.toLowerCase().includes(query);
+
+      const matchesRole =
+        this.selectedRole === "ALL" || user.role === this.selectedRole;
+
+      const matchesStatus =
+        this.selectedStatus === "ALL" || user.status === this.selectedStatus;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }
+
+  // =======================================================
+  // PAGINATED USERS
+  // =======================================================
+
+  get paginatedUsers(): AdminUser[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+
+    return this.filteredUsers.slice(start, end);
+  }
+
+  // =======================================================
+  // TOTAL PAGES
+  // =======================================================
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize));
+  }
+
+  // =======================================================
+  // DISPLAY END
+  // =======================================================
+
+  get displayEnd(): number {
+    return Math.min(
+      this.currentPage * this.pageSize,
+      this.filteredUsers.length,
+    );
+  }
+
+  // =======================================================
+  // PAGE NUMBERS
+  // =======================================================
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+  }
+
+  // =======================================================
+  // USER COUNTS
+  // =======================================================
+
+  get activeUsers(): number {
+    return this.users.filter((user) => user.status === "Active").length;
+  }
+
+  get inactiveUsers(): number {
+    return this.users.filter((user) => user.status === "Inactive").length;
+  }
+
+  get citizenUsers(): number {
+    return this.users.filter((user) => user.role === "CITIZEN").length;
+  }
+
+  get researcherUsers(): number {
+    return this.users.filter((user) => user.role === "RESEARCHER").length;
+  }
+
+  get organizationUsers(): number {
+    return this.users.filter((user) => user.role === "ORGANIZATION").length;
+  }
+
+  get governmentUsers(): number {
+    return this.users.filter((user) => user.role === "GOVERNMENT_OFFICIAL")
+      .length;
+  }
+
+  get administratorUsers(): number {
+    return this.users.filter((user) => user.role === "ADMINISTRATOR").length;
+  }
+
+  // =======================================================
+  // SEARCH / FILTER CHANGE
+  // =======================================================
+
+  applyFilters(): void {
+    this.currentPage = 1;
+  }
+
+  // =======================================================
+  // CLEAR FILTERS
+  // =======================================================
+
+  clearFilters(): void {
+    this.searchText = "";
+    this.selectedRole = "ALL";
+    this.selectedStatus = "ALL";
+    this.currentPage = 1;
+  }
+
+  // =======================================================
+  // PAGE NAVIGATION
+  // =======================================================
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) {
+      return;
+    }
+
+    this.currentPage = page;
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage - 1);
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage + 1);
+  }
+
+  // =======================================================
+  // ROLE LABEL
+  // =======================================================
+
+  getRoleLabel(role: AdminUser["role"]): string {
+    switch (role) {
+      case "CITIZEN":
+        return "Citizen";
+      case "RESEARCHER":
+        return "Researcher";
+      case "ORGANIZATION":
+        return "Organization";
+      case "GOVERNMENT_OFFICIAL":
+        return "Government Official";
+      case "ADMINISTRATOR":
+        return "Administrator";
+      default:
+        return role;
+    }
+  }
+
+  // =======================================================
+  // ROLE ICON
+  // =======================================================
+
+  getRoleIcon(role: AdminUser["role"]): string {
+    switch (role) {
+      case "CITIZEN":
+        return "person";
+      case "RESEARCHER":
+        return "science";
+      case "ORGANIZATION":
+        return "business";
+      case "GOVERNMENT_OFFICIAL":
+        return "account_balance";
+      case "ADMINISTRATOR":
+        return "admin_panel_settings";
+      default:
+        return "person";
+    }
+  }
+
+  // =======================================================
+  // ROLE CSS CLASS
+  // =======================================================
+
+  getRoleClass(role: AdminUser["role"]): string {
+    switch (role) {
+      case "CITIZEN":
+        return "users-role--citizen";
+      case "RESEARCHER":
+        return "users-role--researcher";
+      case "ORGANIZATION":
+        return "users-role--organization";
+      case "GOVERNMENT_OFFICIAL":
+        return "users-role--government";
+      case "ADMINISTRATOR":
+        return "users-role--administrator";
+      default:
+        return "";
+    }
+  }
+
+  // =======================================================
+  // VIEW USER
+  // =======================================================
+
+  viewUser(user: AdminUser): void {
+    console.log("View user:", user);
+  }
+
+  // =======================================================
+  // ADMIN DASHBOARD
+  // =======================================================
+
+  goToDashboard(): void {
+    this.router.navigate(["/dashboard/admin"]);
+  }
+}

@@ -1,9 +1,4 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  HostListener,
-  OnInit,
-} from "@angular/core";
+import { Component, HostListener, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -18,7 +13,12 @@ import {
 import { Auth, AuthUser } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
+
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+
+// =========================================================
+// NAVIGATION ITEM
+// =========================================================
 
 export interface UserNavItem {
   icon: string;
@@ -26,9 +26,14 @@ export interface UserNavItem {
   route: string;
 }
 
+// =========================================================
+// USER LAYOUT
+// =========================================================
+
 @Component({
   selector: "app-user-layout",
   standalone: true,
+
   imports: [
     CommonModule,
     FormsModule,
@@ -38,19 +43,42 @@ export interface UserNavItem {
     FooterComponent,
     LogoutConfirmComponent,
   ],
+
   templateUrl: "./user-layout.component.html",
   styleUrl: "./user-layout.component.scss",
 })
 export class UserLayoutComponent implements OnInit {
+  // =======================================================
+  // USER
+  // =======================================================
+
+  user: AuthUser | null = null;
+
   userName = "User Name";
   userRole = "GUEST";
+
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
 
+  // =======================================================
+  // SEARCH
+  // =======================================================
+
   searchText = "";
 
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
+
   showLogoutModal = false;
+
+  // =======================================================
+  // NAVIGATION
+  // =======================================================
 
   navItems: UserNavItem[] = [
     {
@@ -58,41 +86,49 @@ export class UserLayoutComponent implements OnInit {
       label: "Search Policies",
       route: "/policies",
     },
+
     {
       icon: "account_balance",
       label: "Search Schemes",
       route: "/schemes",
     },
+
     {
       icon: "fact_check",
       label: "Eligibility Checker",
       route: "/eligibility",
     },
+
     {
       icon: "compare_arrows",
       label: "Compare",
       route: "/compare",
     },
+
     {
       icon: "bookmark_border",
       label: "Saved Items",
       route: "/saved",
     },
+
     {
       icon: "notifications_none",
       label: "Notifications",
       route: "/notifications",
     },
+
     {
       icon: "history",
       label: "Search History",
       route: "/history",
     },
+
     {
       icon: "insert_chart_outlined",
       label: "Application Status",
       route: "/status",
     },
+
     {
       icon: "support_agent",
       label: "Support",
@@ -100,32 +136,57 @@ export class UserLayoutComponent implements OnInit {
     },
   ];
 
+  // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
+
   constructor(
-    private authService: Auth,
-    private router: Router,
-    private cdr: ChangeDetectorRef,
+    private readonly authService: Auth,
+    private readonly router: Router,
   ) {}
+
+  // =======================================================
+  // INIT
+  // =======================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
+  // =======================================================
+  // LOAD CURRENT USER
+  // =======================================================
+
   private loadCurrentUser(): void {
+    // -----------------------------------------------------
+    // GET STORED USER
+    // -----------------------------------------------------
+
     const storedUser: AuthUser | null = this.authService.getStoredUser();
 
     if (storedUser) {
       this.setUserDetails(storedUser);
     }
 
+    // -----------------------------------------------------
+    // CHECK TOKEN
+    // -----------------------------------------------------
+
     const token = this.authService.getToken();
 
     if (!token) {
+      this.authService.logout();
+
       this.router.navigate(["/auth/login"], {
         replaceUrl: true,
       });
 
       return;
     }
+
+    // -----------------------------------------------------
+    // GET CURRENT USER FROM BACKEND
+    // -----------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -134,14 +195,18 @@ export class UserLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
-
-        this.cdr.detectChanges();
       },
 
-      error: (error) => {
+      error: (error: unknown) => {
         console.error("Unable to load current user:", error);
 
-        if (error?.status === 401 || error?.status === 403) {
+        const status = (
+          error as {
+            status?: number;
+          }
+        )?.status;
+
+        if (status === 401 || status === 403) {
           this.authService.logout();
 
           this.router.navigate(["/auth/login"], {
@@ -152,11 +217,21 @@ export class UserLayoutComponent implements OnInit {
     });
   }
 
+  // =======================================================
+  // SET USER
+  // =======================================================
+
   private setUserDetails(user: AuthUser): void {
+    this.user = user;
+
     this.userName = user.full_name?.trim() || "User Name";
 
     this.userRole = user.role?.trim().toUpperCase() || "GUEST";
   }
+
+  // =======================================================
+  // DISPLAY ROLE
+  // =======================================================
 
   get displayRole(): string {
     switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
@@ -188,14 +263,23 @@ export class UserLayoutComponent implements OnInit {
     }
   }
 
+  // =======================================================
+  // SIDEBAR TOGGLE
+  // =======================================================
+
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
       this.mobileMenuOpen = !this.mobileMenuOpen;
+
       return;
     }
 
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
+
+  // =======================================================
+  // MOBILE MENU
+  // =======================================================
 
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
@@ -205,12 +289,20 @@ export class UserLayoutComponent implements OnInit {
     this.mobileMenuOpen = false;
   }
 
+  // =======================================================
+  // WINDOW RESIZE
+  // =======================================================
+
   @HostListener("window:resize")
   onWindowResize(): void {
     if (window.innerWidth > 767) {
       this.mobileMenuOpen = false;
     }
   }
+
+  // =======================================================
+  // SEARCH
+  // =======================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -228,30 +320,56 @@ export class UserLayoutComponent implements OnInit {
     this.closeMobileMenu();
   }
 
+  // =======================================================
+  // CLEAR SEARCH
+  // =======================================================
+
   clearSearch(): void {
     this.searchText = "";
   }
 
+  // =======================================================
+  // OPEN LOGOUT MODAL
+  // =======================================================
+
   logout(): void {
     this.showLogoutModal = true;
-    this.cdr.detectChanges();
   }
 
+  // =======================================================
+  // CONFIRM LOGOUT - YES
+  // =======================================================
+
   confirmLogout(): void {
+    // Close modal
     this.showLogoutModal = false;
 
+    // Remove authentication
     this.authService.logout();
 
+    // Reset user information
+    this.user = null;
+    this.userName = "User Name";
+    this.userRole = "GUEST";
+
+    // Reset layout
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
 
+    // Redirect to login
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
   }
 
+  // =======================================================
+  // CANCEL LOGOUT - NO
+  // =======================================================
+
   cancelLogout(): void {
+    // Do NOT logout.
+    // Simply close the confirmation popup.
+
     this.showLogoutModal = false;
-    this.cdr.detectChanges();
   }
 }

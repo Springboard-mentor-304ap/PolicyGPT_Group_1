@@ -1,0 +1,637 @@
+<div class="users-page">
+
+    <!-- =====================================================
+       MAIN CONTENT
+       ===================================================== -->
+
+    <main class="users-content">
+
+        <!-- =====================================================
+         BREADCRUMB
+         ===================================================== -->
+
+        <div class="users-breadcrumb">
+
+            <button type="button" (click)="goToDashboard()">
+                Admin Dashboard
+            </button>
+
+            <span class="material-icons">
+                chevron_right
+            </span>
+
+            <span>
+                Users
+            </span>
+
+            <span class="material-icons">
+                chevron_right
+            </span>
+
+            <strong>
+                View Users
+            </strong>
+
+        </div>
+
+
+        <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+        <section class="users-page-header">
+
+            <div>
+
+                <p class="users-page-header__eyebrow">
+                    USER MANAGEMENT
+                </p>
+
+                <h1>
+                    View Users
+                </h1>
+
+                <p>
+                    View and manage all registered PolicyGPT users.
+                </p>
+
+            </div>
+
+
+            <!-- USER COUNT -->
+
+            <div class="users-page-header__count">
+
+                <span class="material-icons">
+                    groups
+                </span>
+
+                <div>
+
+                    <strong>
+                        {{ filteredUsers.length }}
+                    </strong>
+
+                    <span>
+                        Users Found
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================================================
+         SUMMARY CARDS
+         ===================================================== -->
+
+        <section class="users-summary">
+
+            <!-- TOTAL USERS -->
+
+            <article class="users-summary__card">
+
+                <div class="users-summary__icon users-summary__icon--blue">
+
+                    <span class="material-icons">
+                        groups
+                    </span>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ users.length }}
+                    </strong>
+
+                    <span>
+                        Total Users
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <!-- ACTIVE USERS -->
+
+            <article class="users-summary__card">
+
+                <div class="users-summary__icon users-summary__icon--green">
+
+                    <span class="material-icons">
+                        check_circle
+                    </span>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ activeUsers }}
+                    </strong>
+
+                    <span>
+                        Active Users
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <!-- CITIZENS -->
+
+            <article class="users-summary__card">
+
+                <div class="users-summary__icon users-summary__icon--orange">
+
+                    <span class="material-icons">
+                        person
+                    </span>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ citizenUsers }}
+                    </strong>
+
+                    <span>
+                        Citizens
+                    </span>
+
+                </div>
+
+            </article>
+
+
+            <!-- RESEARCHERS -->
+
+            <article class="users-summary__card">
+
+                <div class="users-summary__icon users-summary__icon--purple">
+
+                    <span class="material-icons">
+                        science
+                    </span>
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ researcherUsers }}
+                    </strong>
+
+                    <span>
+                        Researchers
+                    </span>
+
+                </div>
+
+            </article>
+
+        </section>
+
+
+        @if (isLoading) {
+        <section class="users-loading">
+            <span class="material-icons">sync</span>
+            <p>Loading users from server...</p>
+        </section>
+        }
+
+        @if (!isLoading && loadError) {
+        <section class="users-load-error">
+            <span class="material-icons">error_outline</span>
+            <div>
+                <strong>Unable to load users</strong>
+                <p>{{ loadError }}</p>
+                <button type="button" (click)="loadUsers()">Retry</button>
+            </div>
+        </section>
+        }
+
+        @if (!isLoading && !loadError) {
+        <!-- =====================================================
+         USERS PANEL
+         ===================================================== -->
+
+        <section class="users-panel">
+
+
+            <!-- PANEL HEADER -->
+
+            <div class="users-panel__header">
+
+                <div>
+
+                    <h2>
+                        Registered Users
+                    </h2>
+
+                    <p>
+                        Manage users registered on PolicyGPT.
+                    </p>
+
+                </div>
+
+
+                <!-- RESET -->
+
+                <button type="button" class="users-clear-button" (click)="clearFilters()">
+
+                    <span class="material-icons">
+                        refresh
+                    </span>
+
+                    Reset
+
+                </button>
+
+            </div>
+
+
+            <!-- =====================================================
+           FILTERS
+           ===================================================== -->
+
+            <div class="users-filters">
+
+                <!-- SEARCH -->
+
+                <div class="users-filter users-filter--search">
+
+                    <span class="material-icons">
+                        search
+                    </span>
+
+                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                        placeholder="Search users..." aria-label="Search users" />
+
+                </div>
+
+
+                <!-- ROLE -->
+
+                <div class="users-filter">
+
+                    <label for="roleFilter">
+                        Role
+                    </label>
+
+                    <select id="roleFilter" [(ngModel)]="selectedRole" (ngModelChange)="applyFilters()">
+
+                        <option value="ALL">
+                            All Roles
+                        </option>
+
+                        <option value="CITIZEN">
+                            Citizen
+                        </option>
+
+                        <option value="RESEARCHER">
+                            Researcher
+                        </option>
+
+                        <option value="ORGANIZATION">
+                            Organization
+                        </option>
+
+                        <option value="GOVERNMENT_OFFICIAL">
+                            Government Official
+                        </option>
+
+                        <option value="ADMINISTRATOR">
+                            Administrator
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="users-filter">
+
+                    <label for="statusFilter">
+                        Status
+                    </label>
+
+                    <select id="statusFilter" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+
+                        <option value="ALL">
+                            All Status
+                        </option>
+
+                        <option value="Active">
+                            Active
+                        </option>
+
+                        <option value="Inactive">
+                            Inactive
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- =====================================================
+           USERS TABLE
+           ===================================================== -->
+
+            <div class="users-table-wrap">
+
+                @if (paginatedUsers.length > 0) {
+
+                <table class="users-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                User
+                            </th>
+
+                            <th>
+                                Role
+                            </th>
+
+                            <th>
+                                Location
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Joined
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @for (user of paginatedUsers; track user.id) {
+
+                        <tr>
+
+                            <!-- USER -->
+
+                            <td>
+
+                                <div class="users-table__user">
+
+                                    <div class="users-table__avatar">
+
+                                        <span class="material-icons">
+                                            {{ getRoleIcon(user.role) }}
+                                        </span>
+
+                                    </div>
+
+                                    <div class="users-table__identity">
+
+                                        <strong>
+                                            {{ user.fullName }}
+                                        </strong>
+
+                                        <span>
+                                            {{ user.email }}
+                                        </span>
+
+                                        <small>
+                                            {{ user.phone }}
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- ROLE -->
+
+                            <td>
+
+                                <span class="users-role" [class.users-role--citizen]="user.role === 'CITIZEN'"
+                                    [class.users-role--researcher]="user.role === 'RESEARCHER'"
+                                    [class.users-role--organization]="user.role === 'ORGANIZATION'"
+                                    [class.users-role--government]="user.role === 'GOVERNMENT_OFFICIAL'"
+                                    [class.users-role--administrator]="user.role === 'ADMINISTRATOR'">
+
+                                    <span class="material-icons">
+                                        {{ getRoleIcon(user.role) }}
+                                    </span>
+
+                                    {{ getRoleLabel(user.role) }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- LOCATION -->
+
+                            <td>
+
+                                <div class="users-location">
+
+                                    <strong>
+                                        {{ user.district }}
+                                    </strong>
+
+                                    <span>
+                                        {{ user.state }}
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- STATUS -->
+
+                            <td>
+
+                                <span class="users-status" [class.users-status--active]="user.status === 'Active'"
+                                    [class.users-status--inactive]="user.status === 'Inactive'">
+
+                                    <span></span>
+
+                                    {{ user.status }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- JOINED -->
+
+                            <td>
+
+                                <span class="users-date">
+                                    {{ user.joinedDate }}
+                                </span>
+
+                            </td>
+
+
+                            <!-- ACTION -->
+
+                            <td>
+
+                                <button type="button" class="users-view-button" (click)="viewUser(user)">
+
+                                    <span class="material-icons">
+                                        visibility
+                                    </span>
+
+                                    View
+
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        }
+
+                    </tbody>
+
+                </table>
+
+                } @else {
+
+                <!-- EMPTY STATE -->
+
+                <div class="users-empty">
+
+                    <div class="users-empty__icon">
+
+                        <span class="material-icons">
+                            person_off
+                        </span>
+
+                    </div>
+
+                    <h3>
+                        No users found
+                    </h3>
+
+                    <p>
+                        Try changing your search or filter options.
+                    </p>
+
+                    <button type="button" (click)="clearFilters()">
+                        Clear Filters
+                    </button>
+
+                </div>
+
+                }
+
+            </div>
+
+
+            <!-- =====================================================
+           PAGINATION
+           ===================================================== -->
+
+            @if (filteredUsers.length > 0) {
+
+            <div class="users-pagination">
+
+                <span class="users-pagination__info">
+
+                    Showing
+
+                    <strong>
+                        {{ ((currentPage - 1) * pageSize) + 1 }}
+                    </strong>
+
+                    -
+
+                    <strong>
+                        {{ displayEnd }}
+                    </strong>
+
+                    of
+
+                    <strong>
+                        {{ filteredUsers.length }}
+                    </strong>
+
+                    users
+
+                </span>
+
+
+                <div class="users-pagination__controls">
+
+                    <!-- PREVIOUS -->
+
+                    <button type="button" class="users-pagination__arrow" [disabled]="currentPage === 1"
+                        (click)="previousPage()" aria-label="Previous page">
+
+                        <span class="material-icons">
+                            chevron_left
+                        </span>
+
+                    </button>
+
+
+                    <!-- PAGE NUMBERS -->
+
+                    @for (page of pageNumbers; track page) {
+
+                    <button type="button" class="users-pagination__page"
+                        [class.users-pagination__page--active]="currentPage === page" (click)="goToPage(page)">
+                        {{ page }}
+                    </button>
+
+                    }
+
+
+                    <!-- NEXT -->
+
+                    <button type="button" class="users-pagination__arrow" [disabled]="currentPage === totalPages"
+                        (click)="nextPage()" aria-label="Next page">
+
+                        <span class="material-icons">
+                            chevron_right
+                        </span>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+            }
+
+        </section>
+        }
+
+    </main>
+
+</div>

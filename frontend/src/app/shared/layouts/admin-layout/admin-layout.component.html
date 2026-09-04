@@ -1,7 +1,6 @@
 <div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
     [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
 
-
     <!-- =====================================================
        MOBILE OVERLAY
   ====================================================== -->
@@ -21,7 +20,6 @@
         [class.dash-sidebar--mobile-open]="mobileMenuOpen">
 
         <nav class="dash-nav" aria-label="Admin navigation">
-
 
             <!-- =================================================
            DASHBOARD
@@ -113,9 +111,8 @@
 
             <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
           usersMenuOpen || isUsersRouteActive()
-        " (click)="toggleUsersMenu()" [attr.title]="
-          sidebarCollapsed ? 'Users' : null
-        " [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
+        " (click)="toggleUsersMenu()" [attr.title]="sidebarCollapsed ? 'Users' : null"
+                [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
 
                 <span class="material-icons dash-nav__icon" aria-hidden="true">
                     groups
@@ -141,12 +138,11 @@
 
             <div id="admin-users-submenu" class="dash-nav__submenu" aria-label="Users management">
 
-
                 <!-- VIEW USERS -->
 
-                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'view' }"
-                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
-                    (click)="closeMobileMenu()">
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users"
+                    [queryParams]="{ section: 'view' }" routerLinkActive="dash-nav__submenu-item--active"
+                    [routerLinkActiveOptions]="{ exact: false }" (click)="closeMobileMenu()">
 
                     <span class="material-icons">
                         person_search
@@ -161,8 +157,8 @@
 
                 <!-- ADD USER -->
 
-                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'add' }"
-                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
                     (click)="closeMobileMenu()">
 
                     <span class="material-icons">
@@ -178,9 +174,9 @@
 
                 <!-- REMOVE USER -->
 
-                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'remove' }"
-                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
-                    (click)="closeMobileMenu()">
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users"
+                    [queryParams]="{ section: 'remove' }" routerLinkActive="dash-nav__submenu-item--active"
+                    [routerLinkActiveOptions]="{ exact: false }" (click)="closeMobileMenu()">
 
                     <span class="material-icons">
                         person_remove
@@ -273,9 +269,12 @@
             </a>
 
 
+            <!-- =================================================
+           LOGOUT
+      ================================================== -->
+
             <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
                 [attr.title]="sidebarCollapsed ? 'Logout' : null">
-
                 <span class="material-icons dash-nav__icon">
                     logout
                 </span>
@@ -283,9 +282,7 @@
                 <span class="dash-nav__label">
                     Logout
                 </span>
-
             </button>
-
         </div>
 
     </aside>
@@ -297,13 +294,11 @@
 
     <div class="dash-main-container">
 
-
         <!-- ===================================================
          TOPBAR
     ==================================================== -->
 
         <header class="dash-topbar">
-
 
             <!-- BRAND -->
 
@@ -419,13 +414,13 @@
     </div>
 
 
-    <!-- =========================================
-       LOGOUT MODAL
-       ========================================= -->
+    <!-- =====================================================
+       LOGOUT CONFIRMATION MODAL
+  ====================================================== -->
 
     @if (showLogoutModal) {
 
-    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+    <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>
 
     }
 

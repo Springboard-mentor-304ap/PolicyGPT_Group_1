@@ -4,23 +4,37 @@ import { Observable, tap } from "rxjs";
 
 export interface AuthUser {
   user_id: number;
+
   full_name: string;
+
   email: string;
+
   role: string;
+
   phone: string | null;
+
   date_of_birth: string | null;
+
   state: string | null;
+
   district: string | null;
+
   occupation: string | null;
+
   organization: string | null;
+
   is_active: boolean;
+
   created_at: string;
+
   updated_at: string;
 }
 
 export interface AuthResponse {
   access_token: string;
+
   token_type: string;
+
   user: AuthUser;
 }
 
@@ -31,6 +45,7 @@ export class Auth {
   private readonly apiUrl = "http://localhost:8000/auth";
 
   private readonly tokenKey = "policygpt_token";
+
   private readonly userKey = "policygpt_user";
 
   constructor(private http: HttpClient) {}
@@ -42,6 +57,7 @@ export class Auth {
   login(identifier: string, password: string): Observable<AuthResponse> {
     const loginData = {
       identifier: identifier.trim(),
+
       password: password,
     };
 
@@ -62,30 +78,43 @@ export class Auth {
   // REGISTER
   // =========================================================
 
-  register(payload: {
-    name: string;
-    email: string;
-    phone: string;
-    password: string;
-    confirmPassword: string;
-    dob: string;
-    state: string;
-    district: string;
-    occupation: string;
-    organization: string;
-    role: string;
-  }): Observable<AuthResponse> {
+  register(
+    payload: {
+      name: string;
+      email: string;
+      phone: string;
+      password: string;
+      confirmPassword: string;
+      dob: string;
+      state: string;
+      district: string;
+      occupation: string;
+      organization: string;
+      role: string;
+    },
+    storeSession = true,
+  ): Observable<AuthResponse> {
     const registerData = {
       full_name: payload.name.trim(),
+
       email: payload.email.trim().toLowerCase(),
+
       phone: payload.phone.trim(),
+
       password: payload.password,
+
       confirm_password: payload.confirmPassword,
+
       date_of_birth: payload.dob,
+
       state: payload.state,
+
       district: payload.district,
+
       occupation: payload.occupation || null,
+
       organization: payload.organization || null,
+
       role: payload.role,
     };
 
@@ -93,6 +122,26 @@ export class Auth {
       .post<AuthResponse>(`${this.apiUrl}/register`, registerData)
       .pipe(
         tap((response: AuthResponse) => {
+          // ------------------------------------------------
+          // PUBLIC REGISTRATION
+          // ------------------------------------------------
+          // Normal registration stores the new user's
+          // token and user.
+          //
+          // ADMIN ADD USER
+          // ------------------------------------------------
+          // AddUserComponent calls:
+          //
+          // register(payload, false)
+          //
+          // Therefore the administrator's existing
+          // session remains untouched.
+          // ------------------------------------------------
+
+          if (!storeSession) {
+            return;
+          }
+
           if (response?.access_token) {
             this.setToken(response.access_token);
           }
@@ -171,12 +220,11 @@ export class Auth {
   // =========================================================
 
   requestPasswordReset(email: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(
-      `${this.apiUrl}/forgot-password`,
-      {
-        email: email.trim().toLowerCase(),
-      },
-    );
+    return this.http.post<{
+      message: string;
+    }>(`${this.apiUrl}/forgot-password`, {
+      email: email.trim().toLowerCase(),
+    });
   }
 
   // =========================================================
@@ -213,6 +261,7 @@ export class Auth {
 
   logout(): void {
     localStorage.removeItem(this.tokenKey);
+
     localStorage.removeItem(this.userKey);
   }
 }

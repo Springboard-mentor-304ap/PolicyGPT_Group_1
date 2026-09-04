@@ -248,11 +248,6 @@ class RegisterRequest(BaseModel):
                 "Invalid role"
             )
 
-        if value not in PUBLIC_REGISTRATION_ROLES:
-            raise ValueError(
-                "This role cannot be selected during public registration"
-            )
-
         return value
 
     # =====================================================

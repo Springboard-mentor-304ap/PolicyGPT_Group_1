@@ -6,12 +6,13 @@ import { roleGuard } from "../../../core/guards/role.guard";
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
   // USER DASHBOARD
-  // Researcher / Organization / Guest User
   // =========================================================
 
   {
     path: "user-dashboard",
+
     canActivate: [authGuard, roleGuard],
+
     data: {
       roles: [
         "RESEARCHER",
@@ -30,6 +31,7 @@ export const DASHBOARD_ROUTES: Routes = [
     children: [
       {
         path: "",
+
         loadComponent: () =>
           import("./user-dashboard/user-dashboard.component").then(
             (m) => m.UserDashboardComponent,
@@ -40,7 +42,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // CITIZEN DASHBOARD
-  // CitizenLayout is the PARENT
   // =========================================================
 
   {
@@ -58,7 +59,6 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // Citizen Dashboard
       {
         path: "",
 
@@ -70,7 +70,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // GOVERNMENT DASHBOARD
-  // GovernmentLayout is the PARENT
   // =========================================================
 
   {
@@ -88,7 +87,6 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // Government Dashboard
       {
         path: "",
 
@@ -99,11 +97,6 @@ export const DASHBOARD_ROUTES: Routes = [
       },
     ],
   },
-
-  // =========================================================
-  // ADMIN DASHBOARD
-  // AdminLayout is the PARENT
-  // =========================================================
 
   {
     path: "admin",
@@ -120,12 +113,44 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // Admin Dashboard
+      // =====================================================
+      // ADMIN DASHBOARD
+      // /dashboard/admin
+      // =====================================================
+
       {
         path: "",
 
         loadComponent: () =>
           import("./admin/admin.component").then((m) => m.AdminComponent),
+      },
+
+      // =====================================================
+      // VIEW USERS
+      // /dashboard/admin/users
+      // =====================================================
+
+      {
+        path: "users",
+
+        loadComponent: () =>
+          import("./admin/users/view-users.component").then(
+            (m) => m.ViewUsersComponent,
+          ),
+      },
+
+      // =====================================================
+      // ADD USER
+      // /dashboard/admin/users/add
+      // =====================================================
+
+      {
+        path: "users/add",
+
+        loadComponent: () =>
+          import("./admin/users/add-user.component").then(
+            (m) => m.AddUserComponent,
+          ),
       },
     ],
   },

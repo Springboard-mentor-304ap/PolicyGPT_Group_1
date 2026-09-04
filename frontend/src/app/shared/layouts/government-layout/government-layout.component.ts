@@ -1,12 +1,6 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  HostListener,
-  OnInit,
-} from "@angular/core";
+import { Component, HostListener, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-
 import { FormsModule } from "@angular/forms";
 
 import {
@@ -38,7 +32,6 @@ export interface GovernmentNavItem {
 
 @Component({
   selector: "app-government-layout",
-
   standalone: true,
 
   imports: [
@@ -52,7 +45,6 @@ export interface GovernmentNavItem {
   ],
 
   templateUrl: "./government-layout.component.html",
-
   styleUrl: "./government-layout.component.scss",
 })
 export class GovernmentLayoutComponent implements OnInit {
@@ -61,15 +53,13 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   userName = "Government Official";
-
-  userRole = "GOVERNMENT OFFICIAL";
+  userRole = "Government Official";
 
   // =======================================================
   // SIDEBAR
   // =======================================================
 
   sidebarCollapsed = false;
-
   mobileMenuOpen = false;
 
   // =======================================================
@@ -79,20 +69,10 @@ export class GovernmentLayoutComponent implements OnInit {
   searchText = "";
 
   // =======================================================
-  // LOGOUT
+  // LOGOUT MODAL
   // =======================================================
 
   showLogoutModal = false;
-
-  // =======================================================
-  // SERVICES
-  // =======================================================
-
-  constructor(
-    private authService: Auth,
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
 
   // =======================================================
   // NAVIGATION
@@ -143,6 +123,15 @@ export class GovernmentLayoutComponent implements OnInit {
   ];
 
   // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
+
+  constructor(
+    private authService: Auth,
+    private router: Router,
+  ) {}
+
+  // =======================================================
   // INITIALIZATION
   // =======================================================
 
@@ -158,7 +147,7 @@ export class GovernmentLayoutComponent implements OnInit {
     const storedUser: AuthUser | null = this.authService.getStoredUser();
 
     // -----------------------------------------------------
-    // USE STORED USER
+    // USE STORED USER FIRST
     // -----------------------------------------------------
 
     if (storedUser) {
@@ -180,7 +169,7 @@ export class GovernmentLayoutComponent implements OnInit {
     }
 
     // -----------------------------------------------------
-    // GET USER FROM BACKEND
+    // GET CURRENT USER FROM BACKEND
     // -----------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
@@ -190,18 +179,18 @@ export class GovernmentLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
-
-        this.cdr.detectChanges();
       },
 
-      error: (error) => {
+      error: (error: unknown) => {
         console.error("Unable to load current user:", error);
 
-        // -----------------------------------------------
-        // INVALID TOKEN
-        // -----------------------------------------------
+        const status = (
+          error as {
+            status?: number;
+          }
+        )?.status;
 
-        if (error?.status === 401 || error?.status === 403) {
+        if (status === 401 || status === 403) {
           this.authService.logout();
 
           this.router.navigate(["/auth/login"], {
@@ -217,6 +206,10 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   private setUserDetails(user: AuthUser): void {
+    if (!user) {
+      return;
+    }
+
     this.userName = user.full_name || "Government Official";
 
     this.userRole = this.formatRole(user.role || "GOVERNMENT_OFFICIAL");
@@ -230,7 +223,7 @@ export class GovernmentLayoutComponent implements OnInit {
     return role
       .replace(/_/g, " ")
       .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+      .replace(/\b\w/g, (char: string) => char.toUpperCase());
   }
 
   // =======================================================
@@ -301,40 +294,45 @@ export class GovernmentLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // LOGOUT
+  // OPEN LOGOUT MODAL
   // =======================================================
 
   logout(): void {
     this.showLogoutModal = true;
-
-    this.cdr.detectChanges();
   }
 
   // =======================================================
-  // CONFIRM LOGOUT
+  // CONFIRM LOGOUT - YES
   // =======================================================
 
   confirmLogout(): void {
     this.showLogoutModal = false;
 
+    // Clear authentication
     this.authService.logout();
 
-    this.mobileMenuOpen = false;
+    // Reset layout
+    this.userName = "Government Official";
+    this.userRole = "Government Official";
 
+    this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
 
+    // Redirect to login
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
   }
 
   // =======================================================
-  // CANCEL LOGOUT
+  // CANCEL LOGOUT - NO
   // =======================================================
 
   cancelLogout(): void {
-    this.showLogoutModal = false;
+    // IMPORTANT:
+    // Do not logout here.
+    // Only close the popup.
 
-    this.cdr.detectChanges();
+    this.showLogoutModal = false;
   }
 }

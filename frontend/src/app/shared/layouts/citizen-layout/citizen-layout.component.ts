@@ -1,9 +1,4 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  HostListener,
-  OnInit,
-} from "@angular/core";
+import { Component, HostListener, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -21,67 +16,61 @@ import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 
+// =========================================================
+// COMPONENT
+// =========================================================
+
 @Component({
   selector: "app-citizen-layout",
-
   standalone: true,
 
   imports: [
     CommonModule,
     FormsModule,
-
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
-
-    // =========================================
-    // SHARED COMPONENTS
-    // =========================================
-
     FooterComponent,
     LogoutConfirmComponent,
   ],
 
   templateUrl: "./citizen-layout.component.html",
-
   styleUrl: "./citizen-layout.component.scss",
 })
 export class CitizenLayoutComponent implements OnInit {
-  // =========================================
+  // =======================================================
   // USER
-  // =========================================
+  // =======================================================
 
   user: AuthUser | null = null;
 
   userName = "User Name";
-
   userRole = "Citizen";
 
   loadingUser = true;
 
-  // =========================================
+  // =======================================================
   // SIDEBAR
-  // =========================================
+  // =======================================================
 
   sidebarCollapsed = false;
-
   mobileMenuOpen = false;
 
-  // =========================================
+  // =======================================================
   // SEARCH
-  // =========================================
+  // =======================================================
 
   searchText = "";
 
-  // =========================================
-  // LOGOUT
-  // =========================================
+  // =======================================================
+  // LOGOUT MODAL
+  // =======================================================
 
   showLogoutModal = false;
 
-  // =========================================
+  // =======================================================
   // NAVIGATION
-  // =========================================
+  // =======================================================
 
   navItems = [
     {
@@ -145,28 +134,33 @@ export class CitizenLayoutComponent implements OnInit {
     },
   ];
 
+  // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
+
   constructor(
     private readonly router: Router,
-
     private readonly authService: Auth,
-
-    private readonly cdr: ChangeDetectorRef,
   ) {}
 
-  // =========================================
+  // =======================================================
   // INIT
-  // =========================================
+  // =======================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  // =========================================
-  // LOAD USER
-  // =========================================
+  // =======================================================
+  // LOAD CURRENT USER
+  // =======================================================
 
   private loadCurrentUser(): void {
     this.loadingUser = true;
+
+    // -----------------------------------------------------
+    // GET STORED USER
+    // -----------------------------------------------------
 
     const cachedUser = this.authService.getStoredUser();
 
@@ -175,6 +169,10 @@ export class CitizenLayoutComponent implements OnInit {
 
       this.loadingUser = false;
     }
+
+    // -----------------------------------------------------
+    // CHECK TOKEN
+    // -----------------------------------------------------
 
     const token = this.authService.getToken();
 
@@ -188,6 +186,10 @@ export class CitizenLayoutComponent implements OnInit {
       return;
     }
 
+    // -----------------------------------------------------
+    // GET CURRENT USER FROM BACKEND
+    // -----------------------------------------------------
+
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
         if (!user) {
@@ -199,16 +201,20 @@ export class CitizenLayoutComponent implements OnInit {
         this.setUserDetails(user);
 
         this.loadingUser = false;
-
-        this.cdr.detectChanges();
       },
 
-      error: (error: any) => {
+      error: (error: unknown) => {
         console.error("Unable to load current user:", error);
 
         this.loadingUser = false;
 
-        if (error?.status === 401 || error?.status === 403) {
+        const status = (
+          error as {
+            status?: number;
+          }
+        )?.status;
+
+        if (status === 401 || status === 403) {
           this.authService.logout();
 
           this.router.navigate(["/auth/login"], {
@@ -219,9 +225,9 @@ export class CitizenLayoutComponent implements OnInit {
     });
   }
 
-  // =========================================
+  // =======================================================
   // SET USER
-  // =========================================
+  // =======================================================
 
   private setUserDetails(user: AuthUser): void {
     this.user = user;
@@ -231,9 +237,9 @@ export class CitizenLayoutComponent implements OnInit {
     this.userRole = this.formatRole(user.role);
   }
 
-  // =========================================
+  // =======================================================
   // FORMAT ROLE
-  // =========================================
+  // =======================================================
 
   private formatRole(role: string | null | undefined): string {
     if (!role) {
@@ -247,9 +253,9 @@ export class CitizenLayoutComponent implements OnInit {
       .replace(/\b\w/g, (character: string) => character.toUpperCase());
   }
 
-  // =========================================
+  // =======================================================
   // SIDEBAR TOGGLE
-  // =========================================
+  // =======================================================
 
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
@@ -261,17 +267,17 @@ export class CitizenLayoutComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  // =========================================
+  // =======================================================
   // MOBILE MENU
-  // =========================================
+  // =======================================================
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  // =========================================
+  // =======================================================
   // WINDOW RESIZE
-  // =========================================
+  // =======================================================
 
   @HostListener("window:resize")
   onWindowResize(): void {
@@ -280,9 +286,9 @@ export class CitizenLayoutComponent implements OnInit {
     }
   }
 
-  // =========================================
+  // =======================================================
   // SEARCH
-  // =========================================
+  // =======================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -298,33 +304,46 @@ export class CitizenLayoutComponent implements OnInit {
     });
   }
 
-  // =========================================
-  // LOGOUT
-  // =========================================
+  // =======================================================
+  // LOGOUT - OPEN MODAL
+  // =======================================================
 
   logout(): void {
     this.showLogoutModal = true;
   }
 
-  // =========================================
-  // CONFIRM LOGOUT
-  // =========================================
+  // =======================================================
+  // LOGOUT - YES
+  // =======================================================
 
   confirmLogout(): void {
+    // Close modal
     this.showLogoutModal = false;
 
+    // Clear authentication
     this.authService.logout();
 
+    // Reset UI
+    this.user = null;
+    this.userName = "User Name";
+    this.userRole = "Citizen";
+
+    this.mobileMenuOpen = false;
+    this.sidebarCollapsed = false;
+
+    // Redirect to login
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
   }
 
-  // =========================================
-  // CANCEL LOGOUT
-  // =========================================
+  // =======================================================
+  // LOGOUT - NO
+  // =======================================================
 
   cancelLogout(): void {
+    // Only close the modal.
+    // User remains logged in.
     this.showLogoutModal = false;
   }
 }

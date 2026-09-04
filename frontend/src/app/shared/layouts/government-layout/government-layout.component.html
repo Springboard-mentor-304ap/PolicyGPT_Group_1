@@ -1,10 +1,9 @@
 <div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
     [class.dash-layout--mobile-open]="mobileMenuOpen">
 
-
     <!-- =====================================================
        MOBILE OVERLAY
-       ===================================================== -->
+  ====================================================== -->
 
     @if (mobileMenuOpen) {
 
@@ -15,23 +14,20 @@
 
     <!-- =====================================================
        TOPBAR
-       ===================================================== -->
+  ====================================================== -->
 
     <header class="dash-topbar">
 
-
         <!-- ===================================================
          BRAND
-         =================================================== -->
+    ==================================================== -->
 
         <div class="dash-topbar__brand">
 
-
             <!-- MENU BUTTON -->
 
-            <button type="button" class="dash-topbar__toggle" aria-label="Toggle sidebar" [attr.aria-expanded]="
-          !sidebarCollapsed
-        " (click)="toggleSidebar()">
+            <button type="button" class="dash-topbar__toggle" aria-label="Toggle sidebar"
+                [attr.aria-expanded]="!sidebarCollapsed" (click)="toggleSidebar()">
 
                 <span class="material-icons">
                     menu
@@ -68,7 +64,7 @@
 
         <!-- ===================================================
          SEARCH
-         =================================================== -->
+    ==================================================== -->
 
         <form class="dash-search" (submit)="performSearch(); $event.preventDefault()">
 
@@ -98,10 +94,9 @@
 
         <!-- ===================================================
          USER AREA
-         =================================================== -->
+    ==================================================== -->
 
         <div class="dash-user">
-
 
             <!-- NOTIFICATIONS -->
 
@@ -146,14 +141,13 @@
 
     <!-- =====================================================
        SIDEBAR
-       ===================================================== -->
+  ====================================================== -->
 
     <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed">
 
-
         <!-- ===================================================
          NAVIGATION
-         =================================================== -->
+    ==================================================== -->
 
         <nav class="dash-nav" aria-label="Government navigation">
 
@@ -175,6 +169,7 @@
                     {{ item.icon }}
                 </span>
 
+
                 <span class="dash-nav__label">
                     {{ item.label }}
                 </span>
@@ -188,10 +183,9 @@
 
         <!-- ===================================================
          SIDEBAR FOOTER
-         =================================================== -->
+    ==================================================== -->
 
         <div class="dash-sidebar__footer">
-
 
             <!-- PROFILE -->
 
@@ -232,7 +226,9 @@
             </a>
 
 
-            <!-- LOGOUT -->
+            <!-- =================================================
+           LOGOUT
+      ================================================== -->
 
             <button type="button" class="dash-nav__item dash-nav__logout" [attr.title]="
           sidebarCollapsed
@@ -257,14 +253,13 @@
 
     <!-- =====================================================
        MAIN CONTAINER
-       ===================================================== -->
+  ====================================================== -->
 
     <div class="dash-main-container">
 
-
         <!-- ===================================================
          PAGE CONTENT
-         =================================================== -->
+    ==================================================== -->
 
         <main class="dash-main">
 
@@ -275,7 +270,7 @@
 
         <!-- ===================================================
          SHARED FOOTER
-         =================================================== -->
+    ==================================================== -->
 
         <app-footer></app-footer>
 
@@ -283,12 +278,12 @@
 
 
     <!-- =====================================================
-       LOGOUT MODAL
-       ===================================================== -->
+       LOGOUT CONFIRMATION MODAL
+  ====================================================== -->
 
     @if (showLogoutModal) {
 
-    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+    <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>
 
     }
 

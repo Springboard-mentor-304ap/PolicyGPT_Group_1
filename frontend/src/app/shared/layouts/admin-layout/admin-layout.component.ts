@@ -27,9 +27,12 @@ export interface AdminNavItem {
   hasSubmenu?: boolean;
 }
 
+// =========================================================
+// COMPONENT
+// =========================================================
+
 @Component({
   selector: "app-admin-layout",
-
   standalone: true,
 
   imports: [
@@ -43,7 +46,6 @@ export interface AdminNavItem {
   ],
 
   templateUrl: "./admin-layout.component.html",
-
   styleUrl: "./admin-layout.component.scss",
 })
 export class AdminLayoutComponent implements OnInit {
@@ -51,16 +53,14 @@ export class AdminLayoutComponent implements OnInit {
   // USER
   // =======================================================
 
-  userName = "User";
-
-  userRole = "Admin";
+  userName = "Admin User";
+  userRole = "Administrator";
 
   // =======================================================
   // SIDEBAR
   // =======================================================
 
   sidebarCollapsed = false;
-
   mobileMenuOpen = false;
 
   // =======================================================
@@ -76,7 +76,7 @@ export class AdminLayoutComponent implements OnInit {
   searchText = "";
 
   // =======================================================
-  // LOGOUT
+  // LOGOUT MODAL
   // =======================================================
 
   showLogoutModal = false;
@@ -153,13 +153,9 @@ export class AdminLayoutComponent implements OnInit {
   private loadCurrentUser(): void {
     const storedUser: AuthUser | null = this.authService.getStoredUser();
 
-    // Show cached user immediately
-
     if (storedUser) {
       this.setUserDetails(storedUser);
     }
-
-    // Check authentication
 
     if (!this.authService.isLoggedIn()) {
       this.router.navigate(["/auth/login"], {
@@ -169,10 +165,12 @@ export class AdminLayoutComponent implements OnInit {
       return;
     }
 
-    // Get latest user from backend
-
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
+        if (!user) {
+          return;
+        }
+
         this.setUserDetails(user);
       },
 
@@ -218,7 +216,7 @@ export class AdminLayoutComponent implements OnInit {
 
   private formatRole(role: string | null | undefined): string {
     if (!role) {
-      return "Admin";
+      return "Administrator";
     }
 
     const normalizedRole = role.trim().toUpperCase();
@@ -266,6 +264,10 @@ export class AdminLayoutComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
+  // =======================================================
+  // MOBILE MENU
+  // =======================================================
+
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
   }
@@ -302,7 +304,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // ACTIVE DASHBOARD
+  // DASHBOARD ACTIVE
   // =======================================================
 
   isDashboardRouteActive(): boolean {
@@ -310,11 +312,11 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // ACTIVE USERS
+  // USERS ACTIVE
   // =======================================================
 
   isUsersRouteActive(): boolean {
-    return this.router.url.startsWith("/admin/users");
+    return this.router.url.startsWith("/dashboard/admin/users");
   }
 
   // =======================================================
@@ -333,41 +335,63 @@ export class AdminLayoutComponent implements OnInit {
         q: query,
       },
     });
+
+    this.closeMobileMenu();
   }
+
+  // =======================================================
+  // CLEAR SEARCH
+  // =======================================================
 
   clearSearch(): void {
     this.searchText = "";
   }
 
   // =======================================================
-  // LOGOUT
+  // OPEN LOGOUT MODAL
   // =======================================================
 
   logout(): void {
+    console.log("Opening logout modal");
+
     this.showLogoutModal = true;
   }
 
+  // =======================================================
+  // CONFIRM LOGOUT - YES
+  // =======================================================
+
   confirmLogout(): void {
+    console.log("Admin logout confirmed");
+
     this.showLogoutModal = false;
 
+    // Clear authentication
     this.authService.logout();
 
-    this.userName = "User";
-
-    this.userRole = "Admin";
-
-    this.sidebarCollapsed = false;
+    // Reset UI
+    this.userName = "Admin User";
+    this.userRole = "Administrator";
 
     this.mobileMenuOpen = false;
-
+    this.sidebarCollapsed = false;
     this.usersMenuOpen = false;
 
+    // Go to login
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
   }
 
+  // =======================================================
+  // CANCEL LOGOUT - NO
+  // =======================================================
+
   cancelLogout(): void {
+    console.log("Admin logout cancelled");
+
+    // Do NOT logout.
+    // Only close the modal.
     this.showLogoutModal = false;
   }
 }

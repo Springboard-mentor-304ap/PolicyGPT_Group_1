@@ -3,7 +3,7 @@
 
     <!-- =========================================
        MOBILE OVERLAY
-       ========================================= -->
+  ========================================== -->
 
     @if (mobileMenuOpen) {
 
@@ -14,11 +14,13 @@
 
     <!-- =========================================
        TOPBAR
-       ========================================= -->
+  ========================================== -->
 
     <header class="dash-topbar" role="banner">
 
         <div class="dash-topbar__brand">
+
+            <!-- MENU BUTTON -->
 
             <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
                 [attr.aria-expanded]="!sidebarCollapsed">
@@ -30,12 +32,16 @@
             </button>
 
 
+            <!-- LOGO -->
+
             <a routerLink="/dashboard/citizen" class="dash-topbar__logo-link">
 
                 <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
 
             </a>
 
+
+            <!-- BRAND TEXT -->
 
             <div class="dash-topbar__brand-text">
 
@@ -60,6 +66,7 @@
                 search
             </span>
 
+
             <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
                 placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
 
@@ -69,6 +76,8 @@
         <!-- USER -->
 
         <div class="dash-user">
+
+            <!-- NOTIFICATIONS -->
 
             <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
                 title="Notifications">
@@ -80,6 +89,8 @@
             </button>
 
 
+            <!-- AVATAR -->
+
             <div class="dash-user__avatar" aria-hidden="true">
 
                 <span class="material-icons">
@@ -88,6 +99,8 @@
 
             </div>
 
+
+            <!-- USER DETAILS -->
 
             <div class="dash-user__info">
 
@@ -108,7 +121,7 @@
 
     <!-- =========================================
        SIDEBAR
-       ========================================= -->
+  ========================================== -->
 
     <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
         [class.dash-sidebar--mobile-open]="mobileMenuOpen">
@@ -144,9 +157,13 @@
         </nav>
 
 
-        <!-- SIDEBAR FOOTER -->
+        <!-- =========================================
+         SIDEBAR FOOTER
+    ========================================== -->
 
         <div class="dash-sidebar__footer">
+
+            <!-- PROFILE -->
 
             <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
                 (click)="closeMobileMenu()" [attr.title]="
@@ -166,6 +183,8 @@
             </a>
 
 
+            <!-- SETTINGS -->
+
             <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
                 (click)="closeMobileMenu()" [attr.title]="
           sidebarCollapsed
@@ -183,6 +202,8 @@
 
             </a>
 
+
+            <!-- LOGOUT -->
 
             <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()" [attr.title]="
           sidebarCollapsed
@@ -207,24 +228,20 @@
 
     <!-- =========================================
        MAIN
-       ========================================= -->
+  ========================================== -->
 
     <div class="dash-main-container">
 
         <main class="dash-main">
-
-            <!-- =====================================
-           CITIZEN PAGE LOADS HERE
-           ===================================== -->
 
             <router-outlet></router-outlet>
 
         </main>
 
 
-        <!-- =========================================
+        <!-- =======================================
          SHARED FOOTER
-         ========================================= -->
+    ======================================== -->
 
         <app-footer></app-footer>
 
@@ -233,11 +250,11 @@
 
     <!-- =========================================
        LOGOUT MODAL
-       ========================================= -->
+  ========================================== -->
 
     @if (showLogoutModal) {
 
-    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+    <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>
 
     }
 

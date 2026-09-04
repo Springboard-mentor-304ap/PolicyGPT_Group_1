@@ -595,4 +595,16 @@ export class LoginComponent {
 
     this.cdr.detectChanges();
   }
+
+  /* =========================================================
+     FORGOT PASSWORD
+     ========================================================= */
+
+  goToPasswordReset(): void {
+    console.log("Opening password reset page...");
+
+    this.router.navigate(["/auth/password-reset"]).then((success) => {
+      console.log("Password reset navigation:", success);
+    });
+  }
 }

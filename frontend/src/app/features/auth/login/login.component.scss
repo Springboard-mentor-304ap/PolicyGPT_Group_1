@@ -791,18 +791,35 @@ $login-error: #dc3545;
 /* FORGOT PASSWORD */
 
 .login-forgot {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
   color: $blue-dark;
+
+  font-family: inherit;
 
   font-size: 12px;
   line-height: 1.2;
 
   font-weight: 700;
 
+  cursor: pointer;
+
   text-decoration: none;
 }
 
 .login-forgot:hover {
   text-decoration: underline;
+}
+
+.login-forgot:focus-visible {
+  outline: 2px solid $blue-dark;
+  outline-offset: 3px;
+
+  border-radius: 3px;
 }
 
 /* =========================================================

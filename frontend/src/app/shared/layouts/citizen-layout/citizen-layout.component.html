@@ -1,48 +1,41 @@
 <div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
     [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
 
-    <!-- =========================================
+    <!-- =========================================================
        MOBILE OVERLAY
-  ========================================== -->
+       ========================================================= -->
 
     @if (mobileMenuOpen) {
-
     <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
-
     }
 
 
-    <!-- =========================================
+    <!-- =========================================================
        TOPBAR
-  ========================================== -->
+       ========================================================= -->
 
     <header class="dash-topbar" role="banner">
 
+        <!-- BRAND -->
         <div class="dash-topbar__brand">
 
             <!-- MENU BUTTON -->
-
             <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
                 [attr.aria-expanded]="!sidebarCollapsed">
-
                 <span class="material-icons">
                     menu
                 </span>
-
             </button>
 
 
             <!-- LOGO -->
-
-            <a routerLink="/dashboard/citizen" class="dash-topbar__logo-link">
-
+            <a routerLink="/dashboard/citizen" class="dash-topbar__logo-link" aria-label="PolicyGPT Citizen Dashboard"
+                (click)="closeMobileMenu()">
                 <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-
             </a>
 
 
             <!-- BRAND TEXT -->
-
             <div class="dash-topbar__brand-text">
 
                 <span class="dash-topbar__title">
@@ -58,7 +51,9 @@
         </div>
 
 
-        <!-- SEARCH -->
+        <!-- =======================================================
+         SEARCH
+         ======================================================= -->
 
         <div class="dash-search">
 
@@ -66,42 +61,36 @@
                 search
             </span>
 
-
             <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
                 placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
 
         </div>
 
 
-        <!-- USER -->
+        <!-- =======================================================
+         USER
+         ======================================================= -->
 
         <div class="dash-user">
 
             <!-- NOTIFICATIONS -->
-
             <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
                 title="Notifications">
-
                 <span class="material-icons">
                     notifications_none
                 </span>
-
             </button>
 
 
             <!-- AVATAR -->
-
             <div class="dash-user__avatar" aria-hidden="true">
-
                 <span class="material-icons">
                     account_circle
                 </span>
-
             </div>
 
 
             <!-- USER DETAILS -->
-
             <div class="dash-user__info">
 
                 <p class="dash-user__name">
@@ -119,12 +108,17 @@
     </header>
 
 
-    <!-- =========================================
+
+    <!-- =========================================================
        SIDEBAR
-  ========================================== -->
+       ========================================================= -->
 
     <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
         [class.dash-sidebar--mobile-open]="mobileMenuOpen">
+
+        <!-- =======================================================
+         MAIN NAVIGATION
+         ======================================================= -->
 
         <nav class="dash-nav" aria-label="Main navigation">
 
@@ -135,12 +129,8 @@
 
             <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{
-            exact: true
-          }" (click)="closeMobileMenu()" [attr.title]="
-            sidebarCollapsed
-              ? item.label
-              : null
-          ">
+            exact: item.route === '/dashboard/citizen'
+          }" (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? item.label : null">
 
                 <span class="material-icons dash-nav__icon" aria-hidden="true">
                     {{ item.icon }}
@@ -157,20 +147,21 @@
         </nav>
 
 
-        <!-- =========================================
+
+        <!-- =========================================================
          SIDEBAR FOOTER
-    ========================================== -->
+         ========================================================= -->
 
         <div class="dash-sidebar__footer">
 
-            <!-- PROFILE -->
 
-            <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-                (click)="closeMobileMenu()" [attr.title]="
-          sidebarCollapsed
-            ? 'Profile'
-            : null
-        ">
+            <!-- =======================================================
+           PROFILE
+           ======================================================= -->
+
+            <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Profile' : null">
 
                 <span class="material-icons dash-nav__icon">
                     account_circle
@@ -183,14 +174,13 @@
             </a>
 
 
-            <!-- SETTINGS -->
+
+            <!-- =======================================================
+           SETTINGS
+           ======================================================= -->
 
             <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-                (click)="closeMobileMenu()" [attr.title]="
-          sidebarCollapsed
-            ? 'Settings'
-            : null
-        ">
+                (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
 
                 <span class="material-icons dash-nav__icon">
                     settings
@@ -203,13 +193,13 @@
             </a>
 
 
-            <!-- LOGOUT -->
 
-            <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()" [attr.title]="
-          sidebarCollapsed
-            ? 'Logout'
-            : null
-        ">
+            <!-- =======================================================
+           LOGOUT
+           ======================================================= -->
+
+            <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
+                [attr.title]="sidebarCollapsed ? 'Logout' : null">
 
                 <span class="material-icons dash-nav__icon">
                     logout
@@ -226,31 +216,45 @@
     </aside>
 
 
-    <!-- =========================================
-       MAIN
-  ========================================== -->
+
+    <!-- =========================================================
+       MAIN CONTAINER
+       ========================================================= -->
 
     <div class="dash-main-container">
 
         <main class="dash-main">
 
-            <router-outlet></router-outlet>
+            <div class="dash-content">
+
+                <!-- ===================================================
+             CHILD ROUTES APPEAR HERE
+             
+             /user/profile
+             /user/profile/edit
+             =================================================== -->
+
+                <router-outlet></router-outlet>
+
+            </div>
 
         </main>
 
 
-        <!-- =======================================
+
+        <!-- =======================================================
          SHARED FOOTER
-    ======================================== -->
+         ======================================================= -->
 
         <app-footer></app-footer>
 
     </div>
 
 
-    <!-- =========================================
+
+    <!-- =========================================================
        LOGOUT MODAL
-  ========================================== -->
+       ========================================================= -->
 
     @if (showLogoutModal) {
 

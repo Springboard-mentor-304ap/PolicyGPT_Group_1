@@ -1,648 +1,1358 @@
+// =========================================================
+// PROFILE PAGE
+// =========================================================
+
 :host {
   display: block;
   width: 100%;
-  height: 100vh;
-  background-color: #f4f6f9;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.app-layout {
+// =========================================================
+// MAIN PAGE
+// =========================================================
+
+.profile-page {
+  width: 100%;
+  max-width: 1200px;
+
+  margin: 0 auto;
+  padding: 0;
+  margin-top: 20px;
+  box-sizing: border-box;
+}
+
+// =========================================================
+// PAGE HEADER
+// =========================================================
+
+.profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  width: 100%;
+
+  margin-bottom: 34px;
+
+  gap: 24px;
+}
+
+// =========================================================
+// TITLE GROUP
+// =========================================================
+
+.title-group {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  position: relative;
+
+  min-width: 0;
+
+  h1 {
+    margin: 0 0 6px;
+
+    color: #17233d;
+
+    font-size: 32px;
+    font-weight: 800;
+
+    line-height: 1.2;
+    letter-spacing: -0.7px;
+  }
+
+  .subtitle {
+    margin: 0;
+
+    color: #71829d;
+
+    font-size: 15px;
+    font-weight: 400;
+
+    line-height: 1.5;
+  }
 }
 
-/* Top Dark Header Navigation */
-.top-navbar {
-  height: 64px;
-  min-height: 64px;
-  background-color: #071838;
+// =========================================================
+// HEADER ACTIONS
+// =========================================================
+
+.header-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 1.75rem;
+
+  gap: 12px;
+
+  flex-shrink: 0;
+}
+
+// =========================================================
+// BACK BUTTON
+// =========================================================
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 88px;
+  height: 44px;
+
+  padding: 0 18px;
+
+  border: 1px solid #d7dfe9;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #475569;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #b9c5d4;
+    color: #1e293b;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// =========================================================
+// EDIT PROFILE BUTTON
+// =========================================================
+
+.btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 158px;
+  height: 44px;
+
+  padding: 0 24px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #3b82f6;
   color: #ffffff;
-  box-sizing: border-box;
-  z-index: 10;
 
-  .nav-left {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
 
-    .menu-icon {
-      color: #ffffff;
-      font-size: 28px;
-      cursor: pointer;
-    }
+  cursor: pointer;
 
-    .brand-container {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+  box-shadow: 0 5px 14px rgba(59, 130, 246, 0.24);
 
-      .logo-emblem {
-        width: 46px;
-        height: 46px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
 
-        .brand-logo-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-        }
-      }
+  &:hover {
+    background: #2563eb;
 
-      .brand-text {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        .brand-name {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: #ffffff;
-          letter-spacing: -0.4px;
-          line-height: 1;
-
-          .highlight {
-            color: #f59e0b;
-            font-weight: 800;
-          }
-        }
-
-        .brand-tagline {
-          font-size: 0.6rem;
-          font-weight: 600;
-          color: #e2e8f0;
-          white-space: nowrap;
-          margin-top: 3px;
-          letter-spacing: 0.2px;
-        }
-      }
-    }
+    box-shadow: 0 7px 18px rgba(59, 130, 246, 0.3);
   }
 
-  .search-bar {
-    position: relative;
-    width: 480px;
-
-    .search-icon {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 0.55rem 1rem 0.55rem 2.8rem;
-      background-color: transparent;
-      border: 1.5px solid #ffffff;
-      border-radius: 24px;
-      color: #ffffff;
-      font-size: 0.9rem;
-      outline: none;
-      box-sizing: border-box;
-
-      &::placeholder {
-        color: #cbd5e1;
-      }
-    }
-  }
-
-  .user-profile-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-
-    .badge-avatar {
-      width: 38px;
-      height: 38px;
-      background-color: #dbeafe;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      span {
-        color: #2563eb;
-        font-size: 24px;
-      }
-    }
-
-    .badge-info {
-      display: flex;
-      flex-direction: column;
-
-      .user-name {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: #ffffff;
-      }
-
-      .user-role {
-        font-size: 0.75rem;
-        color: #cbd5e1;
-      }
-    }
+  &:active {
+    transform: scale(0.98);
   }
 }
 
-.body-container {
+// =========================================================
+// PROFILE CARD
+// =========================================================
+
+.profile-card {
   display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+  align-items: center;
 
-/* Sidebar Styling */
-.sidebar {
-  position: relative;
-  width: 250px;
-  min-width: 250px;
-  height: 100%;
-  background-image: url('https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&q=80&w=1000');
-  background-size: cover;
-  background-position: bottom center;
+  width: 100%;
+
+  min-height: 334px;
+
+  padding: 44px 48px;
+
+  margin-bottom: 38px;
+
   box-sizing: border-box;
 
-  .sidebar-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(7, 24, 56, 0.96) 0%, rgba(10, 31, 68, 0.92) 50%, rgba(5, 18, 42, 0.88) 100%);
-    z-index: 1;
-  }
+  background: #ffffff;
 
-  .sidebar-content {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    padding: 1rem 0.75rem;
-    box-sizing: border-box;
-  }
+  border: 1px solid #edf1f5;
 
-  .sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
+  border-radius: 22px;
 
-  .sidebar-bottom {
-    margin-top: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    padding-bottom: 0.5rem;
-  }
+  box-shadow: 0 10px 35px rgba(15, 23, 42, 0.045);
 
-  .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    padding: 0.65rem 1rem;
-    color: #e2e8f0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background 0.2s, color 0.2s;
-
-    span {
-      font-size: 20px;
-      font-weight: 600;
-      color: #ffffff;
-    }
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-
-    &.active {
-      background-color: #0f4c92;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(15, 76, 146, 0.4);
-    }
-  }
+  gap: 42px;
 }
 
-/* Main Section Wrapper */
-.main-wrapper {
-  flex: 1;
+// =========================================================
+// LEFT PROFILE SECTION
+// =========================================================
+
+.left-section {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
+  align-items: center;
+
+  flex: 0 0 270px;
+
+  min-width: 0;
+
+  text-align: center;
 }
 
-/* Scrollable Main Content Area */
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 2.5rem 4rem;
+// =========================================================
+// AVATAR
+// =========================================================
+
+.avatar-wrapper {
+  width: 124px;
+  height: 124px;
+
+  margin-bottom: 18px;
+
+  overflow: hidden;
+
   box-sizing: border-box;
 
-  .profile-header,
-  .profile-card,
-  .action-buttons-row {
-    max-width: 1100px;
+  border: 4px solid #e8f4fd;
+
+  border-radius: 50%;
+
+  background: #c0dbea;
+
+  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.08);
+}
+
+.avatar-svg {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+}
+
+// =========================================================
+// USER NAME
+// =========================================================
+
+.user-name {
+  width: 100%;
+
+  margin: 0 0 6px;
+
+  overflow: hidden;
+
+  color: #17233d;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// =========================================================
+// USER EMAIL
+// =========================================================
+
+.user-email {
+  width: 100%;
+  max-width: 230px;
+
+  margin: 0 0 16px;
+
+  overflow: hidden;
+
+  color: #71829d;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// =========================================================
+// ROLE BADGE
+// =========================================================
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 94px;
+  height: 34px;
+
+  padding: 0 18px;
+
+  box-sizing: border-box;
+
+  border-radius: 8px;
+
+  background: #dbeafe;
+  color: #3b82f6;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  line-height: 1;
+}
+
+// =========================================================
+// DIVIDER
+// =========================================================
+
+.divider {
+  width: 1px;
+  height: 200px;
+
+  flex: 0 0 1px;
+
+  background: #e2e8f0;
+}
+
+// =========================================================
+// RIGHT INFORMATION SECTION
+// =========================================================
+
+.right-section {
+  flex: 1;
+
+  min-width: 0;
+}
+
+// =========================================================
+// INFORMATION GRID
+// =========================================================
+
+.info-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  column-gap: 58px;
+
+  row-gap: 34px;
+
+  width: 100%;
+}
+
+// =========================================================
+// INFORMATION ITEM
+// =========================================================
+
+.info-item {
+  min-width: 0;
+
+  label {
+    display: block;
+
+    margin: 0 0 7px;
+
+    color: #1e293b;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    line-height: 1.3;
+  }
+
+  p {
     width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-  }
 
-  .profile-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 2rem;
+    margin: 0;
 
-    .title-group {
-      display: flex;
-      flex-direction: column;
+    overflow: hidden;
 
-      h1 {
-        font-size: 2.4rem;
-        font-weight: 800;
-        color: #0b1528;
-        margin: 0 0 0.4rem 0;
-        line-height: 1.2;
-        letter-spacing: -0.5px;
-      }
+    color: #71829d;
 
-      .subtitle {
-        font-size: 1rem;
-        color: #64748b;
-        margin: 0;
-        line-height: 1.4;
-      }
-    }
-
-    .header-actions {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 1rem;
-
-      .btn-back {
-        background: #ffffff;
-        border: 1px solid #cbd5e1;
-        padding: 0.4rem 1rem;
-        border-radius: 6px;
-        color: #475569;
-        font-size: 0.85rem;
-        cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-      }
-
-      .btn-edit {
-        background-color: #3b82f6;
-        color: #ffffff;
-        border: none;
-        padding: 0.85rem 2.5rem;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 1rem;
-        cursor: pointer;
-        box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
-      }
-    }
-  }
-
-  .profile-card {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 3rem 3rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
-    display: flex;
-    gap: 3.5rem;
-    align-items: center;
-    margin-bottom: 2.5rem;
-    box-sizing: border-box;
-
-    .left-section {
-      flex: 0 0 240px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-
-      .avatar-wrapper {
-        width: 130px;
-        height: 130px;
-        margin-bottom: 1.25rem;
-
-        .avatar-svg {
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-        }
-      }
-
-      .user-name {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #0f172a;
-        margin: 0 0 0.3rem 0;
-      }
-
-      .user-email {
-        font-size: 0.95rem;
-        color: #64748b;
-        margin: 0 0 1.1rem 0;
-      }
-
-      .role-badge {
-        background-color: #e0e7ff;
-        color: #3b82f6;
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding: 0.5rem 1.6rem;
-        border-radius: 8px;
-        letter-spacing: 0.5px;
-      }
-    }
-
-    .divider {
-      width: 1px;
-      height: 200px;
-      background-color: #e2e8f0;
-    }
-
-    .right-section {
-      flex: 1;
-
-      .info-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 2.5rem 2.2rem;
-
-        .info-item {
-          label {
-            display: block;
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 0.4rem;
-          }
-
-          p {
-            font-size: 1rem;
-            color: #94a3b8;
-            margin: 0;
-          }
-        }
-      }
-    }
-  }
-
-  .action-buttons-row {
-    display: flex;
-    justify-content: center;
-    gap: 2.5rem;
-    margin-bottom: 2rem;
-
-    button {
-      width: 260px;
-      padding: 0.95rem 0;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 1rem;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-change-password {
-      background-color: #dbeafe;
-      color: #2563eb;
-    }
-
-    .btn-delete-account {
-      background-color: #ffe4e6;
-      color: #e11d48;
-    }
-  }
-}
-
-/* Bottom Dark Footer Bar */
-.bottom-footer {
-  height: 48px;
-  min-height: 48px;
-  background-color: #071838;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 3rem;
-  color: #ffffff;
-  font-size: 0.85rem;
-  box-sizing: border-box;
-
-  .copyright {
-    color: #ffffff;
+    font-size: 14px;
     font-weight: 500;
-  }
 
-  .footer-links {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    line-height: 1.5;
 
-    a {
-      color: #ffffff;
-      text-decoration: none;
-      font-weight: 500;
-      cursor: pointer;
-
-      &:hover {
-        text-decoration: underline;
-      }
-    }
-
-    .bullet {
-      color: #cbd5e1;
-      font-size: 0.75rem;
-    }
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
-/* Modal Popup Overlay (Shared Backdrop) */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+// =========================================================
+// ACTION BUTTONS
+// =========================================================
+
+.action-buttons-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+
+  width: 100%;
+
+  gap: 30px;
+
+  margin-bottom: 30px;
+}
+
+.action-buttons-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 248px;
+  height: 47px;
+
+  padding: 0 20px;
+
+  border: none;
+  border-radius: 11px;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// =========================================================
+// CHANGE PASSWORD
+// =========================================================
+
+.btn-change-password {
+  background: #dbeafe;
+  color: #2563eb;
+
+  &:hover {
+    background: #c9e0fb;
+
+    box-shadow: 0 5px 14px rgba(37, 99, 235, 0.12);
+  }
+}
+
+// =========================================================
+// DELETE ACCOUNT
+// =========================================================
+
+.btn-delete-account {
+  background: #ffe4e8;
+  color: #e11d48;
+
+  &:hover {
+    background: #ffd1d8;
+
+    box-shadow: 0 5px 14px rgba(225, 29, 72, 0.12);
+  }
+}
+
+// =========================================================
+// MODAL BACKDROP
+// =========================================================
+
+.modal-backdrop {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+
+  background: rgba(15, 23, 42, 0.48);
+
   animation: fadeIn 0.2s ease-out;
+}
 
-  /* Step 1: Confirmation Card */
-  .delete-modal-card {
-    background: #ffffff;
-    width: 480px;
-    padding: 2.5rem 2rem;
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    text-align: center;
-    box-sizing: border-box;
+// =========================================================
+// DELETE ACCOUNT MODAL
+// =========================================================
 
-    .modal-title {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #000000;
-      margin: 0 0 2rem 0;
-    }
+.delete-modal-card {
+  width: min(460px, calc(100vw - 40px));
 
-    .modal-actions {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
+  padding: 36px 32px;
 
-      button {
-        width: 150px;
-        padding: 0.8rem 0;
-        border-radius: 16px;
-        font-size: 1.05rem;
-        font-weight: 800;
-        border: none;
-        cursor: pointer;
-        transition: transform 0.1s ease, opacity 0.2s ease;
+  box-sizing: border-box;
 
-        &:active {
-          transform: scale(0.97);
-        }
-      }
+  background: #ffffff;
 
-      .btn-yes {
-        background-color: #d8ebd3;
-        color: #16a34a;
+  border-radius: 20px;
 
-        &:hover {
-          background-color: #c9e4c3;
-        }
-      }
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
 
-      .btn-no {
-        background-color: #ffd6d6;
-        color: #dc2626;
+  text-align: center;
 
-        &:hover {
-          background-color: #fcc2c2;
-        }
-      }
+  animation: modalScale 0.2s ease-out;
+}
+
+// =========================================================
+// MODAL TITLE
+// =========================================================
+
+.modal-title {
+  margin: 0 0 28px;
+
+  color: #17233d;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  line-height: 1.4;
+}
+
+// =========================================================
+// MODAL ACTIONS
+// =========================================================
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 20px;
+}
+
+// =========================================================
+// DELETE MODAL BUTTONS
+// =========================================================
+
+.delete-modal-card {
+  .modal-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 135px;
+    height: 43px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 10px;
+
+    font-family: inherit;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+      background-color 0.2s ease,
+      transform 0.15s ease;
+
+    &:active {
+      transform: scale(0.97);
     }
   }
 
-  /* Step 2: Password Confirmation Card */
-  .password-modal-card {
-    background: #ffffff;
-    width: 480px;
-    padding: 2.5rem 2.5rem;
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-    text-align: center;
-    box-sizing: border-box;
+  .btn-yes {
+    background: #d8ebd3;
+    color: #16a34a;
 
-    .modal-title {
-      font-size: 1.35rem;
-      font-weight: 700;
-      color: #000000;
-      margin: 0 0 1.75rem 0;
+    &:hover {
+      background: #c9e4c3;
     }
+  }
 
-    .password-input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 2rem;
+  .btn-no {
+    background: #ffd6d6;
+    color: #dc2626;
 
-      .icon-left {
-        position: absolute;
-        left: 16px;
-        color: #94a3b8;
-        font-size: 22px;
-        pointer-events: none;
-      }
-
-      .icon-eye {
-        position: absolute;
-        right: 16px;
-        color: #94a3b8;
-        font-size: 22px;
-        cursor: pointer;
-        user-select: none;
-
-        &:hover {
-          color: #64748b;
-        }
-      }
-
-      input {
-        width: 100%;
-        padding: 0.85rem 3rem 0.85rem 3rem;
-        border: 1.5px solid #d1d5db;
-        border-radius: 16px;
-        font-size: 1.05rem;
-        color: #1e293b;
-        outline: none;
-        box-sizing: border-box;
-        transition: border-color 0.2s ease;
-
-        &::placeholder {
-          color: #a0aec0;
-          font-weight: 500;
-        }
-
-        &:focus {
-          border-color: #3b82f6;
-        }
-      }
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: center;
-
-      .btn-confirm {
-        width: 160px;
-        padding: 0.8rem 0;
-        border-radius: 16px;
-        font-size: 1.05rem;
-        font-weight: 800;
-        border: none;
-        cursor: pointer;
-        background-color: #e2f1e1;
-        color: #16a34a;
-        transition: transform 0.1s ease, background-color 0.2s ease;
-
-        &:hover {
-          background-color: #d4e9d2;
-        }
-
-        &:active {
-          transform: scale(0.97);
-        }
-      }
+    &:hover {
+      background: #fcc2c2;
     }
   }
 }
+
+// =========================================================
+// PASSWORD CONFIRMATION MODAL
+// =========================================================
+
+.password-modal-card {
+  width: min(458px, calc(100vw - 40px));
+
+  padding: 38px 38px 36px;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border-radius: 21px;
+
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+
+  text-align: center;
+
+  animation: modalScale 0.2s ease-out;
+}
+
+// =========================================================
+// PASSWORD MODAL TITLE
+// =========================================================
+
+.password-modal-card .modal-title {
+  margin: 0 0 26px;
+
+  color: #17233d;
+
+  font-size: 20px;
+  font-weight: 800;
+
+  line-height: 1.35;
+
+  text-align: center;
+}
+
+// =========================================================
+// PASSWORD INPUT WRAPPER
+// =========================================================
+
+.password-input-wrapper {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+
+  height: 48px;
+
+  margin: 0 0 28px;
+}
+
+// =========================================================
+// PASSWORD INPUT
+// =========================================================
+
+.password-input-wrapper input {
+  display: block;
+
+  width: 100%;
+  height: 48px;
+
+  padding: 0 48px 0 46px;
+
+  box-sizing: border-box;
+
+  border: 1.5px solid #cbd5e1;
+
+  border-radius: 15px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #1e293b;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &::placeholder {
+    color: #9aabc1;
+
+    opacity: 1;
+
+    font-size: 14px;
+  }
+
+  &:hover {
+    border-color: #b7c3d2;
+  }
+
+  &:focus {
+    border-color: #3b82f6;
+
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  }
+}
+
+// =========================================================
+// LOCK ICON
+// =========================================================
+//
+// Do NOT rely on Material Symbols here.
+// The HTML contains the text "lock", which was appearing
+// inside the input. We hide that text and draw a CSS lock.
+//
+
+.password-input-wrapper .icon-left {
+  position: absolute;
+
+  left: 15px;
+
+  z-index: 3;
+
+  display: block;
+
+  width: 17px;
+  height: 14px;
+
+  padding: 0;
+
+  margin: 0;
+
+  box-sizing: border-box;
+
+  border: 2px solid #94a3b8;
+
+  border-radius: 3px;
+
+  background: transparent;
+
+  font-size: 0;
+
+  line-height: 0;
+
+  pointer-events: none;
+}
+
+// =========================================================
+// LOCK SHACKLE
+// =========================================================
+
+.password-input-wrapper .icon-left::before {
+  content: "";
+
+  position: absolute;
+
+  left: 2px;
+  top: -9px;
+
+  width: 9px;
+  height: 9px;
+
+  box-sizing: border-box;
+
+  border: 2px solid #94a3b8;
+
+  border-bottom: none;
+
+  border-radius: 7px 7px 0 0;
+
+  background: transparent;
+}
+
+// =========================================================
+// LOCK KEYHOLE
+// =========================================================
+
+.password-input-wrapper .icon-left::after {
+  content: "";
+
+  position: absolute;
+
+  left: 5px;
+  top: 5px;
+
+  width: 3px;
+  height: 5px;
+
+  border-radius: 2px;
+
+  background: #94a3b8;
+}
+
+// =========================================================
+// EYE BUTTON
+// =========================================================
+
+.password-input-wrapper .icon-eye {
+  position: absolute;
+
+  top: 50%;
+  right: 7px;
+
+  z-index: 3;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  padding: 0;
+
+  transform: translateY(-50%);
+
+  border: none;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #94a3b8;
+
+  font-size: 0;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+
+    color: #64748b;
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+}
+
+// =========================================================
+// HIDE MATERIAL SYMBOL TEXT
+// =========================================================
+
+.password-input-wrapper .icon-eye .material-symbols-outlined {
+  position: relative;
+
+  display: block;
+
+  width: 19px;
+  height: 13px;
+
+  font-size: 0;
+
+  line-height: 0;
+}
+
+// =========================================================
+// CSS EYE ICON
+// =========================================================
+
+.password-input-wrapper .icon-eye .material-symbols-outlined::before {
+  content: "";
+
+  position: absolute;
+
+  left: 0;
+  top: 1px;
+
+  width: 19px;
+  height: 12px;
+
+  box-sizing: border-box;
+
+  border: 2px solid #94a3b8;
+
+  border-radius: 80% 15%;
+
+  transform: rotate(-45deg);
+
+  transition: border-color 0.2s ease;
+}
+
+// =========================================================
+// CSS EYE PUPIL
+// =========================================================
+
+.password-input-wrapper .icon-eye .material-symbols-outlined::after {
+  content: "";
+
+  position: absolute;
+
+  left: 7px;
+  top: 5px;
+
+  width: 5px;
+  height: 5px;
+
+  border-radius: 50%;
+
+  background: #94a3b8;
+
+  transition: background-color 0.2s ease;
+}
+
+// =========================================================
+// EYE HOVER
+// =========================================================
+
+.password-input-wrapper .icon-eye:hover .material-symbols-outlined::before {
+  border-color: #64748b;
+}
+
+.password-input-wrapper .icon-eye:hover .material-symbols-outlined::after {
+  background: #64748b;
+}
+
+// =========================================================
+// PASSWORD MODAL ACTIONS
+// =========================================================
+
+.password-modal-card .modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+}
+
+// =========================================================
+// CONFIRM BUTTON
+// =========================================================
+
+.password-modal-card .btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 153px;
+  height: 43px;
+
+  padding: 0;
+
+  border: none;
+
+  border-radius: 13px;
+
+  background: #dff1dc;
+
+  color: #16a34a;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: #d0eacc;
+
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+// =========================================================
+// LOADING
+// =========================================================
+
+.loading {
+  opacity: 0.65;
+
+  pointer-events: none;
+}
+
+// =========================================================
+// ANIMATIONS
+// =========================================================
 
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
+  }
+}
+
+@keyframes modalScale {
+  from {
+    opacity: 0;
+
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: scale(1);
+  }
+}
+
+// =========================================================
+// TABLET - 1100px
+// =========================================================
+
+@media (max-width: 1100px) {
+  .profile-card {
+    padding: 38px;
+
+    gap: 32px;
+  }
+
+  .left-section {
+    flex-basis: 230px;
+  }
+
+  .info-grid {
+    column-gap: 30px;
+  }
+}
+
+// =========================================================
+// TABLET - 900px
+// =========================================================
+
+@media (max-width: 900px) {
+  .profile-card {
+    padding: 30px;
+
+    gap: 28px;
+  }
+
+  .left-section {
+    flex-basis: 200px;
+  }
+
+  .divider {
+    height: 190px;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    column-gap: 28px;
+
+    row-gap: 28px;
+  }
+}
+
+// =========================================================
+// TABLET / MOBILE - 768px
+// =========================================================
+
+@media (max-width: 768px) {
+  .profile-page {
+    padding: 0;
+  }
+
+  .profile-header {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 16px;
+
+    margin-bottom: 24px;
+  }
+
+  .title-group {
+    h1 {
+      font-size: 28px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+    }
+  }
+
+  .header-actions {
+    width: 100%;
+
+    justify-content: flex-start;
+  }
+
+  .profile-card {
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 25px;
+
+    padding: 30px 24px;
+
+    border-radius: 18px;
+  }
+
+  .left-section {
+    flex: none;
+
+    width: 100%;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+  }
+
+  .right-section {
+    width: 100%;
+  }
+
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    column-gap: 25px;
+
+    row-gap: 25px;
+  }
+
+  .action-buttons-row {
+    flex-direction: column;
+
+    gap: 12px;
+
+    button {
+      width: 100%;
+      max-width: 360px;
+    }
+  }
+}
+
+// =========================================================
+// MOBILE - 600px
+// =========================================================
+
+@media (max-width: 600px) {
+  .header-actions {
+    width: 100%;
+
+    .btn-back,
+    .btn-edit {
+      flex: 1;
+
+      min-width: 0;
+    }
+  }
+
+  .profile-card {
+    padding: 25px 20px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+
+    gap: 20px;
+  }
+
+  .info-item {
+    label {
+      font-size: 12px;
+    }
+
+    p {
+      font-size: 13px;
+    }
+  }
+}
+
+// =========================================================
+// MOBILE - 480px
+// =========================================================
+
+@media (max-width: 480px) {
+  .title-group {
+    h1 {
+      font-size: 25px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+    }
+  }
+
+  .header-actions {
+    flex-direction: column;
+
+    width: 100%;
+
+    .btn-back,
+    .btn-edit {
+      width: 100%;
+    }
+  }
+
+  .profile-card {
+    padding: 22px 16px;
+
+    border-radius: 16px;
+  }
+
+  .avatar-wrapper {
+    width: 110px;
+    height: 110px;
+  }
+
+  .user-name {
+    font-size: 18px;
+  }
+
+  .user-email {
+    font-size: 12px;
+  }
+
+  .action-buttons-row button {
+    height: 45px;
+
+    font-size: 13px;
+  }
+
+  // ---------------------------------------------
+  // MOBILE MODALS
+  // ---------------------------------------------
+
+  .delete-modal-card,
+  .password-modal-card {
+    width: calc(100vw - 32px);
+
+    padding: 28px 20px;
+
+    border-radius: 18px;
+  }
+
+  .password-modal-card {
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+
+  .password-modal-card .modal-title {
+    font-size: 18px;
+
+    margin-bottom: 24px;
+  }
+
+  .password-input-wrapper {
+    height: 46px;
+
+    margin-bottom: 24px;
+  }
+
+  .password-input-wrapper input {
+    height: 46px;
+
+    padding-left: 43px;
+    padding-right: 45px;
+
+    font-size: 13px;
+
+    &::placeholder {
+      font-size: 13px;
+    }
+  }
+
+  .password-modal-card .btn-confirm {
+    width: 140px;
+    height: 42px;
+
+    font-size: 13px;
+  }
+}
+
+// =========================================================
+// MOBILE - 360px
+// =========================================================
+
+@media (max-width: 360px) {
+  .profile-card {
+    padding: 20px 14px;
+  }
+
+  .avatar-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-grid {
+    gap: 18px;
+  }
+
+  .delete-modal-card {
+    .modal-actions {
+      flex-direction: column;
+
+      width: 100%;
+
+      gap: 12px;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+
+  .password-modal-card {
+    width: calc(100vw - 24px);
+
+    padding: 26px 16px;
+  }
+
+  .password-modal-card .modal-title {
+    font-size: 17px;
+  }
+}
+
+// =========================================================
+// ACCESSIBILITY
+// =========================================================
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+
+  outline-offset: 2px;
+}
+
+// =========================================================
+// REDUCED MOTION
+// =========================================================
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+
+    animation: none !important;
   }
 }

@@ -1,191 +1,244 @@
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,600,0,0" />
+<div class="profile-page">
 
-<div class="app-layout">
-  <!-- Top Dark Header Navigation -->
-  <header class="top-navbar">
-    <div class="nav-left">
-      <span class="material-symbols-outlined menu-icon">menu</span>
-      <div class="brand-container">
-        <div class="logo-emblem">
-          <img src="images/logo.png" alt="PolicyGPT Logo" class="brand-logo-img" />
-        </div>
-        <div class="brand-text">
-          <span class="brand-name">Policy<span class="highlight">GPT</span></span>
-          <span class="brand-tagline">Government Information, Simplified.</span>
-        </div>
-      </div>
+  <!-- =========================================================
+       PAGE HEADER
+       ========================================================= -->
+
+  <div class="profile-header">
+
+    <div class="title-group">
+
+      <h1>
+        My Profile
+      </h1>
+
+      <p class="subtitle">
+        Manage your personal details
+      </p>
+
     </div>
 
-    <div class="search-bar">
-      <span class="material-symbols-outlined search-icon">search</span>
-      <input type="text" placeholder="Search policies / schemes" />
+
+    <div class="header-actions">
+
+      <button type="button" class="btn-edit" (click)="onEditProfile()">
+        Edit Profile
+      </button>
+
     </div>
 
-    <div class="user-profile-badge">
-      <div class="badge-avatar">
-        <span class="material-symbols-outlined">person</span>
-      </div>
-      <div class="badge-info">
-        <span class="user-name">{{ userProfile.fullName }}</span>
-        <span class="user-role">{{ userProfile.role }}</span>
-      </div>
-    </div>
-  </header>
-
-  <div class="body-container">
-    <!-- Left Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-overlay"></div>
-      
-      <div class="sidebar-content">
-        <nav class="sidebar-nav">
-          <a class="nav-item"><span class="material-symbols-outlined">home</span> Dashboard</a>
-          <a class="nav-item"><span class="material-symbols-outlined">badge</span> Search Policies</a>
-          <a class="nav-item"><span class="material-symbols-outlined">description</span> Search Schemes</a>
-          <a class="nav-item"><span class="material-symbols-outlined">verified</span> Eligibility Checker</a>
-          <a class="nav-item"><span class="material-symbols-outlined">grid_view</span> Compare</a>
-          <a class="nav-item"><span class="material-symbols-outlined">bookmark</span> Saved Items</a>
-          <a class="nav-item"><span class="material-symbols-outlined">notifications</span> Notifications</a>
-          <a class="nav-item"><span class="material-symbols-outlined">history</span> Search History</a>
-          <a class="nav-item"><span class="material-symbols-outlined">bar_chart</span> Reports / Status</a>
-          <a class="nav-item"><span class="material-symbols-outlined">headset_mic</span> Support</a>
-        </nav>
-
-        <div class="sidebar-bottom">
-          <a class="nav-item"><span class="material-symbols-outlined">account_circle</span> Profile</a>
-          <a class="nav-item"><span class="material-symbols-outlined">settings</span> Settings</a>
-          <a class="nav-item active"><span class="material-symbols-outlined">logout</span> Logout</a>
-        </div>
-      </div>
-    </aside>
-
-    <!-- Main Section Wrapper -->
-    <div class="main-wrapper">
-      <!-- Scrollable Main Content -->
-      <main class="main-content">
-        <div class="profile-header">
-          <div class="title-group">
-            <h1>My Profile</h1>
-            <p class="subtitle">Manage your personal detailes</p>
-          </div>
-          <div class="header-actions">
-            <button class="btn-back" (click)="goBack()">&larr; Back</button>
-            <button class="btn-edit" (click)="onEditProfile()">Edit Profile</button>
-          </div>
-        </div>
-
-        <!-- Main Profile Card -->
-        <div class="profile-card">
-          <div class="left-section">
-            <div class="avatar-wrapper">
-              <svg viewBox="0 0 100 100" class="avatar-svg">
-                <circle cx="50" cy="50" r="50" fill="#c0dbea" />
-                <circle cx="50" cy="38" r="18" fill="#2d3748" />
-                <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
-                <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
-                <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
-              </svg>
-            </div>
-            <h3 class="user-name">{{ userProfile.fullName }}</h3>
-            <p class="user-email">{{ userProfile.email }}</p>
-            <span class="role-badge">{{ userProfile.role }}</span>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="right-section">
-            <div class="info-grid">
-              <div class="info-item">
-                <label>Full Name</label>
-                <p>{{ userProfile.fullName }}</p>
-              </div>
-              <div class="info-item">
-                <label>Date Of Birth</label>
-                <p>{{ userProfile.dob }}</p>
-              </div>
-              <div class="info-item">
-                <label>Gender</label>
-                <p>{{ userProfile.gender }}</p>
-              </div>
-              <div class="info-item">
-                <label>State</label>
-                <p>{{ userProfile.state }}</p>
-              </div>
-              <div class="info-item">
-                <label>District</label>
-                <p>{{ userProfile.district }}</p>
-              </div>
-              <div class="info-item">
-                <label>Occupation</label>
-                <p>{{ userProfile.occupation }}</p>
-              </div>
-              <div class="info-item">
-                <label>Phone</label>
-                <p>{{ userProfile.phone }}</p>
-              </div>
-              <div class="info-item">
-                <label>Email</label>
-                <p>{{ userProfile.email }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons Row -->
-        <div class="action-buttons-row">
-          <button class="btn-change-password" (click)="onChangePassword()">Change Password</button>
-          <button class="btn-delete-account" (click)="onDeleteAccount()">Delete Account</button>
-        </div>
-      </main>
-
-      <!-- Bottom Dark Footer Bar -->
-      <footer class="bottom-footer">
-        <span class="copyright">&copy; 2026 PolicyGPT. All rights reserved.</span>
-        <div class="footer-links">
-          <a>Privacy</a>
-          <span class="bullet">&bull;</span>
-          <a>Terms</a>
-          <span class="bullet">&bull;</span>
-          <a>Help</a>
-        </div>
-      </footer>
-    </div>
   </div>
 
-  <!-- STEP 1 MODAL: Confirmation Modal -->
-  <div class="modal-backdrop" *ngIf="showDeleteModal" (click)="cancelDeleteAccount()">
+
+  <!-- =========================================================
+       PROFILE CARD
+       ========================================================= -->
+
+  <div class="profile-card">
+
+    <!-- LEFT -->
+
+    <div class="left-section">
+
+      <div class="avatar-wrapper">
+
+        <svg viewBox="0 0 100 100" class="avatar-svg">
+
+          <circle cx="50" cy="50" r="50" fill="#c0dbea" />
+
+          <circle cx="50" cy="38" r="18" fill="#2d3748" />
+
+          <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
+
+          <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
+
+          <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
+
+        </svg>
+
+      </div>
+
+
+      <h3 class="user-name">
+        {{ userProfile.fullName }}
+      </h3>
+
+      <p class="user-email">
+        {{ userProfile.email }}
+      </p>
+
+      <span class="role-badge">
+        {{ userProfile.role }}
+      </span>
+
+    </div>
+
+
+    <div class="divider"></div>
+
+
+    <!-- RIGHT -->
+
+    <div class="right-section">
+
+      <div class="info-grid">
+
+        <div class="info-item">
+          <label>Full Name</label>
+          <p>{{ userProfile.fullName }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>Date Of Birth</label>
+          <p>{{ userProfile.dob }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>Gender</label>
+          <p>{{ userProfile.gender }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>State</label>
+          <p>{{ userProfile.state }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>District</label>
+          <p>{{ userProfile.district }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>Occupation</label>
+          <p>{{ userProfile.occupation }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>Phone</label>
+          <p>{{ userProfile.phone }}</p>
+        </div>
+
+
+        <div class="info-item">
+          <label>Email</label>
+          <p>{{ userProfile.email }}</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       ACTION BUTTONS
+       ========================================================= -->
+
+  <div class="action-buttons-row">
+
+    <button type="button" class="btn-change-password" (click)="onChangePassword()">
+      Change Password
+    </button>
+
+    <button type="button" class="btn-delete-account" (click)="onDeleteAccount()">
+      Delete Account
+    </button>
+
+  </div>
+
+
+  <!-- =========================================================
+       DELETE ACCOUNT MODAL
+       ========================================================= -->
+
+  @if (showDeleteModal) {
+
+  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
+
     <div class="delete-modal-card" (click)="$event.stopPropagation()">
-      <h2 class="modal-title">Want to delete your account?</h2>
+
+      <h2 class="modal-title">
+        Want to delete your account?
+      </h2>
+
       <div class="modal-actions">
-        <button class="btn-yes" (click)="confirmDeleteAccount()">YES</button>
-        <button class="btn-no" (click)="cancelDeleteAccount()">NO</button>
+
+        <button type="button" class="btn-yes" (click)="confirmDeleteAccount()">
+          YES
+        </button>
+
+        <button type="button" class="btn-no" (click)="cancelDeleteAccount()">
+          NO
+        </button>
+
       </div>
+
     </div>
+
   </div>
 
-  <!-- STEP 2 MODAL: Password Confirmation Modal -->
-  <div class="modal-backdrop" *ngIf="showPasswordModal" (click)="cancelDeleteAccount()">
+  }
+
+
+  <!-- =========================================================
+       PASSWORD CONFIRMATION MODAL
+       ========================================================= -->
+
+  @if (showPasswordModal) {
+
+  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
+
     <div class="password-modal-card" (click)="$event.stopPropagation()">
-      <h2 class="modal-title">To confirm Enter your password</h2>
-      
+
+      <h2 class="modal-title">
+        To confirm Enter your password
+      </h2>
+
+
       <div class="password-input-wrapper">
-        <span class="material-symbols-outlined icon-left">lock</span>
-        <input 
-          [type]="showPasswordText ? 'text' : 'password'" 
-          placeholder="Enter your password" 
-          [(ngModel)]="confirmPasswordValue"
-        />
-        <span 
-          class="material-symbols-outlined icon-eye" 
-          (click)="togglePasswordVisibility()"
-        >
-          {{ showPasswordText ? 'visibility_off' : 'visibility' }}
+
+        <span class="material-symbols-outlined icon-left">
+          lock
         </span>
+
+        <input [type]="showPasswordText ? 'text' : 'password'" placeholder="Enter your password"
+          [(ngModel)]="confirmPasswordValue" />
+
+        <button type="button" class="icon-eye" (click)="togglePasswordVisibility()"
+          aria-label="Toggle password visibility">
+
+          <span class="material-symbols-outlined">
+            {{
+            showPasswordText
+            ? "visibility_off"
+            : "visibility"
+            }}
+          </span>
+
+        </button>
+
       </div>
 
+
       <div class="modal-actions">
-        <button class="btn-confirm" (click)="submitPasswordConfirmation()">Confirm</button>
+
+        <button type="button" class="btn-confirm" (click)="submitPasswordConfirmation()">
+          Confirm
+        </button>
+
       </div>
+
     </div>
+
   </div>
+
+  }
+
 </div>

@@ -1,65 +1,34 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  HostListener,
-  OnInit,
-} from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-
-import { FormsModule } from "@angular/forms";
-
-import { Router, RouterLink, RouterLinkActive } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
 
-import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
-
-// =========================================================
-// NAVIGATION ITEM
-// =========================================================
-
-export interface NavItem {
-  icon: string;
-  label: string;
-  route?: string;
-
-  children?: {
-    label: string;
-    route: string;
-  }[];
-
-  expanded?: boolean;
-}
-
-// =========================================================
+// =====================================================
 // STAT CARD
-// =========================================================
+// =====================================================
 
 export interface StatCard {
   icon: string;
-
   color: "blue" | "orange" | "green" | "purple";
-
   value: number | null;
-
   label: string;
-
   sub?: string;
 }
 
-// =========================================================
+// =====================================================
 // SCHEME ITEM
-// =========================================================
+// =====================================================
 
 export interface SchemeItem {
   name: string;
   ministry: string;
 }
 
-// =========================================================
+// =====================================================
 // POLICY ITEM
-// =========================================================
+// =====================================================
 
 export interface PolicyItem {
   name: string;
@@ -67,175 +36,69 @@ export interface PolicyItem {
   savedOn: string;
 }
 
-// =========================================================
+// =====================================================
 // SEARCH HISTORY
-// =========================================================
+// =====================================================
 
 export interface HistoryItem {
   name: string;
   filters: string;
 }
 
-// =========================================================
+// =====================================================
 // APPLICATION
-// =========================================================
+// =====================================================
 
 export interface ApplicationItem {
   name: string;
   appId: string;
 }
 
-// =========================================================
+// =====================================================
 // CITIZEN COMPONENT
-// =========================================================
+// =====================================================
 
 @Component({
   selector: "app-citizen",
-
   standalone: true,
 
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    RouterLinkActive,
-
-    // Logout confirmation popup
-    LogoutConfirmComponent,
-  ],
+  imports: [CommonModule, RouterLink],
 
   templateUrl: "./citizen.component.html",
-
   styleUrl: "./citizen.component.scss",
 })
 export class CitizenComponent implements OnInit {
-  // =======================================================
+  // =====================================================
   // USER INFORMATION
-  // =======================================================
+  // =====================================================
 
   user: AuthUser | null = null;
 
   userName = "User Name";
-
   userRole = "Citizen";
 
   userEmail = "";
-
   userPhone = "";
-
   userState = "";
-
   userDistrict = "";
-
   userOccupation = "";
-
   userOrganization = "";
 
   loadingUser = true;
 
-  // =======================================================
-  // SIDEBAR
-  // =======================================================
-
-  sidebarCollapsed = false;
-
-  mobileMenuOpen = false;
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
-
-  // =======================================================
+  // =====================================================
   // LOADING STATES
-  // =======================================================
+  // =====================================================
 
   loadingStats = false;
-
   loadingSchemes = false;
-
   loadingPolicies = false;
-
   loadingHistory = false;
-
   loadingApplications = false;
 
-  // =======================================================
-  // LOGOUT MODAL
-  // =======================================================
-
-  showLogoutModal = false;
-
-  // =======================================================
-  // NAVIGATION
-  // =======================================================
-
-  navItems: NavItem[] = [
-    {
-      icon: "home",
-      label: "Dashboard",
-      route: "/dashboard/citizen",
-    },
-
-    {
-      icon: "manage_search",
-      label: "Search Policies",
-      route: "/policies",
-    },
-
-    {
-      icon: "account_balance",
-      label: "Search Schemes",
-      route: "/schemes",
-    },
-
-    {
-      icon: "fact_check",
-      label: "Eligibility Checker",
-      route: "/eligibility",
-    },
-
-    {
-      icon: "compare_arrows",
-      label: "Compare",
-      route: "/compare",
-    },
-
-    {
-      icon: "bookmark_border",
-      label: "Saved Items",
-      route: "/saved",
-    },
-
-    {
-      icon: "notifications_none",
-      label: "Notifications",
-      route: "/notifications",
-    },
-
-    {
-      icon: "history",
-      label: "Search History",
-      route: "/history",
-    },
-
-    {
-      icon: "insert_chart_outlined",
-      label: "Application Status",
-      route: "/status",
-    },
-
-    {
-      icon: "support_agent",
-      label: "Support",
-      route: "/feedback",
-    },
-  ];
-
-  // =======================================================
+  // =====================================================
   // STATISTICS
-  // =======================================================
+  // =====================================================
 
   statCards: StatCard[] = [
     {
@@ -271,9 +134,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =====================================================
   // ELIGIBLE SCHEMES
-  // =======================================================
+  // =====================================================
 
   eligibleSchemes: SchemeItem[] = [
     {
@@ -297,9 +160,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =====================================================
   // SAVED POLICIES
-  // =======================================================
+  // =====================================================
 
   savedPolicies: PolicyItem[] = [
     {
@@ -321,9 +184,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =====================================================
   // SEARCH HISTORY
-  // =======================================================
+  // =====================================================
 
   searchHistory: HistoryItem[] = [
     {
@@ -347,9 +210,9 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =====================================================
   // APPLICATIONS
-  // =======================================================
+  // =====================================================
 
   applications: ApplicationItem[] = [
     {
@@ -368,36 +231,34 @@ export class CitizenComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =====================================================
   // CONSTRUCTOR
-  // =======================================================
+  // =====================================================
 
   constructor(
-    private router: Router,
-
-    private authService: Auth,
-
-    private cdr: ChangeDetectorRef,
+    private readonly router: Router,
+    private readonly authService: Auth,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
-  // =======================================================
+  // =====================================================
   // INIT
-  // =======================================================
+  // =====================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  // =======================================================
+  // =====================================================
   // LOAD CURRENT USER
-  // =======================================================
+  // =====================================================
 
   private loadCurrentUser(): void {
     this.loadingUser = true;
 
-    // =====================================================
+    // -----------------------------------------------------
     // FIRST: LOAD CACHED USER
-    // =====================================================
+    // -----------------------------------------------------
 
     const cachedUser = this.authService.getStoredUser();
 
@@ -409,9 +270,9 @@ export class CitizenComponent implements OnInit {
       this.cdr.detectChanges();
     }
 
-    // =====================================================
+    // -----------------------------------------------------
     // CHECK TOKEN
-    // =====================================================
+    // -----------------------------------------------------
 
     const token = this.authService.getToken();
 
@@ -425,9 +286,9 @@ export class CitizenComponent implements OnInit {
       return;
     }
 
-    // =====================================================
+    // -----------------------------------------------------
     // GET FRESH USER
-    // =====================================================
+    // -----------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -436,8 +297,6 @@ export class CitizenComponent implements OnInit {
 
           return;
         }
-
-        this.user = user;
 
         this.setUserDetails(user);
 
@@ -453,9 +312,9 @@ export class CitizenComponent implements OnInit {
 
         console.error("GET CURRENT USER ERROR:", error);
 
-        // ===============================================
+        // -------------------------------------------------
         // INVALID TOKEN
-        // ===============================================
+        // -------------------------------------------------
 
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();
@@ -472,9 +331,9 @@ export class CitizenComponent implements OnInit {
     });
   }
 
-  // =======================================================
+  // =====================================================
   // SET USER DETAILS
-  // =======================================================
+  // =====================================================
 
   private setUserDetails(user: AuthUser): void {
     this.user = user;
@@ -496,11 +355,11 @@ export class CitizenComponent implements OnInit {
     this.userOrganization = user.organization || "";
   }
 
-  // =======================================================
+  // =====================================================
   // FORMAT ROLE
-  // =======================================================
+  // =====================================================
 
-  private formatRole(role: string): string {
+  private formatRole(role: string | null | undefined): string {
     if (!role) {
       return "Citizen";
     }
@@ -510,153 +369,5 @@ export class CitizenComponent implements OnInit {
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (character: string) => character.toUpperCase());
-  }
-
-  // =======================================================
-  // SIDEBAR TOGGLE
-  // =======================================================
-
-  toggleSidebar(): void {
-    if (window.innerWidth <= 767) {
-      this.mobileMenuOpen = !this.mobileMenuOpen;
-
-      return;
-    }
-
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
-
-  // =======================================================
-  // MOBILE MENU
-  // =======================================================
-
-  openMobileMenu(): void {
-    this.mobileMenuOpen = true;
-  }
-
-  closeMobileMenu(): void {
-    this.mobileMenuOpen = false;
-  }
-
-  // =======================================================
-  // WINDOW RESIZE
-  // =======================================================
-
-  @HostListener("window:resize")
-  onWindowResize(): void {
-    if (window.innerWidth > 767) {
-      this.mobileMenuOpen = false;
-    }
-  }
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-  }
-
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =======================================================
-  // LOGOUT
-  // OPEN CONFIRMATION POPUP
-  // =======================================================
-
-  logout(): void {
-    console.log("Logout confirmation opened");
-
-    this.showLogoutModal = true;
-
-    this.cdr.detectChanges();
-  }
-
-  // =======================================================
-  // CONFIRM LOGOUT
-  // YES BUTTON
-  // =======================================================
-
-  confirmLogout(): void {
-    console.log("User confirmed logout");
-
-    // -----------------------------------------------------
-    // CLOSE POPUP
-    // -----------------------------------------------------
-
-    this.showLogoutModal = false;
-
-    // -----------------------------------------------------
-    // CLEAR AUTHENTICATION
-    // -----------------------------------------------------
-
-    this.authService.logout();
-
-    // -----------------------------------------------------
-    // CLEAR USER DATA
-    // -----------------------------------------------------
-
-    this.user = null;
-
-    this.userName = "User Name";
-
-    this.userRole = "Citizen";
-
-    this.userEmail = "";
-
-    this.userPhone = "";
-
-    this.userState = "";
-
-    this.userDistrict = "";
-
-    this.userOccupation = "";
-
-    this.userOrganization = "";
-
-    // -----------------------------------------------------
-    // RESET SIDEBAR
-    // -----------------------------------------------------
-
-    this.sidebarCollapsed = false;
-
-    this.mobileMenuOpen = false;
-
-    // -----------------------------------------------------
-    // GO TO LOGIN
-    // -----------------------------------------------------
-
-    this.router.navigate(["/auth/login"], {
-      replaceUrl: true,
-    });
-  }
-
-  // =======================================================
-  // CANCEL LOGOUT
-  // NO BUTTON
-  // =======================================================
-
-  cancelLogout(): void {
-    console.log("Logout cancelled");
-
-    this.showLogoutModal = false;
-
-    this.cdr.detectChanges();
   }
 }

@@ -1,852 +1,599 @@
-<div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
-  [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
+<div class="government-dashboard">
 
   <!-- =========================================================
-       MOBILE OVERLAY
+       WELCOME BANNER
        ========================================================= -->
 
-  @if (mobileMenuOpen) {
+  <section class="dash-welcome">
 
-  <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+    <div class="dash-welcome__text">
 
-  }
+      <p class="dash-welcome__eyebrow">
+        GOVERNMENT DASHBOARD
+      </p>
 
+      <h1 class="dash-welcome__title">
+        Welcome back, {{ userName }}!
+      </h1>
 
-  <!-- =========================================================
-       TOP NAVBAR
-       ========================================================= -->
-
-  <header class="dash-topbar" role="banner">
-
-    <!-- BRAND -->
-
-    <div class="dash-topbar__brand">
-
-      <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
-        [attr.aria-expanded]="!sidebarCollapsed">
-        <span class="material-icons">
-          menu
-        </span>
-      </button>
-
-
-      <a routerLink="/dashboard/government" class="dash-topbar__logo-link">
-
-        <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-
-      </a>
-
-
-      <div class="dash-topbar__brand-text">
-
-        <span class="dash-topbar__title">
-          Policy<span>GPT</span>
-        </span>
-
-        <span class="dash-topbar__tagline">
-          Government Information. Simplified.
-        </span>
-
-      </div>
+      <p class="dash-welcome__sub">
+        Manage government policies, schemes, applications,
+        and public information from one place.
+      </p>
 
     </div>
 
 
-    <!-- SEARCH -->
+    <!-- GOVERNMENT BUILDING -->
 
-    <div class="dash-search">
+    <div class="dash-welcome__illustration" aria-hidden="true">
 
-      <span class="material-icons dash-search__icon" aria-hidden="true">
-        search
+      <div class="welcome-building
+               welcome-building--large">
+
+        <div class="welcome-building__dome"></div>
+
+        <div class="welcome-building__roof"></div>
+
+        <div class="welcome-building__columns">
+
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+
+        </div>
+
+      </div>
+
+
+      <div class="welcome-building
+               welcome-building--small">
+
+        <div class="welcome-building__tower"></div>
+
+        <div class="welcome-building__body"></div>
+
+      </div>
+
+
+      <span class="welcome-bird
+               welcome-bird--one">
+        ︿
       </span>
 
-      <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
-        placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
+
+      <span class="welcome-bird
+               welcome-bird--two">
+        ︿
+      </span>
 
     </div>
 
-
-    <!-- USER -->
-
-    <div class="dash-user">
-
-      <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
-        title="Notifications">
-
-        <span class="material-icons">
-          notifications_none
-        </span>
-
-      </button>
-
-
-      <div class="dash-user__avatar" aria-hidden="true">
-
-        <span class="material-icons">
-          account_circle
-        </span>
-
-      </div>
-
-
-      <div class="dash-user__info">
-
-        <p class="dash-user__name">
-          {{ userName }}
-        </p>
-
-        <p class="dash-user__role">
-          {{ userRole }}
-        </p>
-
-      </div>
-
-    </div>
-
-  </header>
+  </section>
 
 
   <!-- =========================================================
-       SIDEBAR
+       STATISTICS
        ========================================================= -->
 
-  <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
-    [class.dash-sidebar--mobile-open]="mobileMenuOpen">
+  <section class="dash-stats" aria-label="Government dashboard statistics">
 
-    <nav class="dash-nav" aria-label="Main navigation">
+    @for (
+    card of statCards;
+    track card.label
+    ) {
 
-      @for (item of navItems; track item.label) {
+    <article class="dash-stat-card">
 
-      <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
-        [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
-        [attr.title]="sidebarCollapsed ? item.label : null">
+      <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + card.color">
 
-        <span class="material-icons dash-nav__icon">
-          {{ item.icon }}
+        <span class="material-icons">
+          {{ card.icon }}
         </span>
 
-        <span class="dash-nav__label">
-          {{ item.label }}
-        </span>
+      </div>
 
-        @if (item.children?.length) {
 
-        <span class="material-icons dash-nav__chevron">
-          chevron_right
-        </span>
+      <div class="dash-stat-card__content">
+
+        @if (loadingStats) {
+
+        <div class="skeleton
+                     skeleton--stat-num"></div>
+
+        } @else {
+
+        <p class="dash-stat-card__value">
+          {{ card.value }}
+        </p>
 
         }
 
-      </a>
 
-      }
+        <p class="dash-stat-card__label">
+          {{ card.label }}
+        </p>
 
-    </nav>
 
+        @if (
+        !loadingStats &&
+        card.sub
+        ) {
 
-    <!-- SIDEBAR FOOTER -->
+        <p class="dash-stat-card__sub">
+          {{ card.sub }}
+        </p>
 
-    <div class="dash-sidebar__footer">
-
-      <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Profile' : null">
-
-        <span class="material-icons dash-nav__icon">
-          account_circle
-        </span>
-
-        <span class="dash-nav__label">
-          Profile
-        </span>
-
-      </a>
-
-
-      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
-
-        <span class="material-icons dash-nav__icon">
-          settings
-        </span>
-
-        <span class="dash-nav__label">
-          Settings
-        </span>
-
-      </a>
-
-
-      <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
-        [attr.title]="sidebarCollapsed ? 'Logout' : null">
-
-        <span class="material-icons dash-nav__icon">
-          logout
-        </span>
-
-        <span class="dash-nav__label">
-          Logout
-        </span>
-
-      </button>
-
-    </div>
-
-  </aside>
-
-
-  <!-- =========================================================
-       MAIN CONTAINER
-       ========================================================= -->
-
-  <div class="dash-main-container">
-
-    <main class="dash-main">
-
-      <div class="dash-content">
-
-
-        <!-- =====================================================
-             GOVERNMENT WELCOME
-             ===================================================== -->
-
-        <section class="dash-welcome">
-
-          <div class="dash-welcome__text">
-
-            <p class="dash-welcome__eyebrow">
-              GOVERNMENT DASHBOARD
-            </p>
-
-            <h1 class="dash-welcome__title">
-              Welcome back, {{ userName }}!
-            </h1>
-
-            <p class="dash-welcome__sub">
-              Manage government policies, schemes, applications,
-              and public information from one place.
-            </p>
-
-          </div>
-
-
-          <!-- GOVERNMENT BUILDING -->
-
-          <div class="dash-welcome__illustration" aria-hidden="true">
-
-            <div class="welcome-building
-                     welcome-building--large">
-
-              <div class="welcome-building__dome"></div>
-
-              <div class="welcome-building__roof"></div>
-
-              <div class="welcome-building__columns">
-
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-
-              </div>
-
-            </div>
-
-
-            <div class="welcome-building
-                     welcome-building--small">
-
-              <div class="welcome-building__tower"></div>
-
-              <div class="welcome-building__body"></div>
-
-            </div>
-
-
-            <span class="welcome-bird
-                     welcome-bird--one">
-              ︿
-            </span>
-
-            <span class="welcome-bird
-                     welcome-bird--two">
-              ︿
-            </span>
-
-          </div>
-
-        </section>
-
-
-        <!-- =====================================================
-             STATISTICS
-             ===================================================== -->
-
-        <section class="dash-stats" aria-label="Government dashboard statistics">
-
-          @for (
-          card of statCards;
-          track card.label
-          ) {
-
-          <article class="dash-stat-card">
-
-            <div class="dash-stat-card__icon" [ngClass]="
-                  'dash-stat-card__icon--' +
-                  card.color
-                ">
-
-              <span class="material-icons">
-                {{ card.icon }}
-              </span>
-
-            </div>
-
-
-            <div class="dash-stat-card__content">
-
-              @if (loadingStats) {
-
-              <div class="skeleton
-                           skeleton--stat-num"></div>
-
-              } @else {
-
-              <p class="dash-stat-card__value">
-                {{ card.value }}
-              </p>
-
-              }
-
-              <p class="dash-stat-card__label">
-                {{ card.label }}
-              </p>
-
-              @if (
-              !loadingStats &&
-              card.sub
-              ) {
-
-              <p class="dash-stat-card__sub">
-                {{ card.sub }}
-              </p>
-
-              }
-
-            </div>
-
-          </article>
-
-          }
-
-        </section>
-
-
-        <!-- =====================================================
-             FIRST ROW
-             ===================================================== -->
-
-        <section class="dash-panels">
-
-
-          <!-- ===================================================
-               UPCOMING SCHEMES
-               =================================================== -->
-
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-
-              <h2>
-                Upcoming Schemes
-              </h2>
-
-              <a routerLink="/government/schemes" class="dash-panel__link">
-                View All
-              </a>
-
-            </div>
-
-
-            @if (loadingUpcoming) {
-
-            <div class="dash-loader">
-
-              <div class="dash-spinner"></div>
-
-              <span>
-                Loading schemes...
-              </span>
-
-            </div>
-
-            } @else if (
-            upcomingSchemes.length === 0
-            ) {
-
-            <div class="dash-loader">
-
-              <span class="material-icons">
-                account_balance
-              </span>
-
-              <span>
-                No upcoming schemes
-              </span>
-
-            </div>
-
-            } @else {
-
-            <ul class="dash-list">
-
-              @for (
-              scheme of upcomingSchemes;
-              track scheme.name
-              ) {
-
-              <li class="dash-list__item">
-
-                <div class="dash-list__icon-wrap
-                             dash-list__icon-wrap--health">
-
-                  <span class="material-icons">
-                    account_balance
-                  </span>
-
-                </div>
-
-
-                <div class="dash-list__details">
-
-                  <p class="dash-list__title">
-                    {{ scheme.name }}
-                  </p>
-
-                  <p class="dash-list__meta">
-                    {{ scheme.ministry }}
-                  </p>
-
-                </div>
-
-
-                <a routerLink="/government/schemes" class="dash-list__action">
-                  View Details
-                </a>
-
-              </li>
-
-              }
-
-            </ul>
-
-            }
-
-
-            <a routerLink="/government/schemes" class="dash-panel__footer-link">
-
-              View All Schemes
-
-              <span class="material-icons">
-                arrow_forward
-              </span>
-
-            </a>
-
-          </article>
-
-
-          <!-- ===================================================
-               UPLOADED POLICIES
-               =================================================== -->
-
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-
-              <h2>
-                Uploaded Policies
-              </h2>
-
-              <a routerLink="/government/policies" class="dash-panel__link">
-                View All
-              </a>
-
-            </div>
-
-
-            @if (loadingUploaded) {
-
-            <div class="dash-loader">
-
-              <div class="dash-spinner"></div>
-
-              <span>
-                Loading policies...
-              </span>
-
-            </div>
-
-            } @else if (
-            uploadedPolicies.length === 0
-            ) {
-
-            <div class="dash-loader">
-
-              <span class="material-icons">
-                policy
-              </span>
-
-              <span>
-                No policies uploaded yet
-              </span>
-
-            </div>
-
-            } @else {
-
-            <ul class="dash-list">
-
-              @for (
-              policy of uploadedPolicies;
-              track policy.name
-              ) {
-
-              <li class="dash-list__item">
-
-                <div class="dash-list__icon-wrap
-                             dash-list__icon-wrap--neutral">
-
-                  <span class="material-icons">
-                    policy
-                  </span>
-
-                </div>
-
-
-                <div class="dash-list__details">
-
-                  <p class="dash-list__title">
-                    {{ policy.name }}
-                  </p>
-
-                  <p class="dash-list__meta">
-                    {{ policy.ministry }}
-                  </p>
-
-                  <p class="dash-list__submeta">
-                    Uploaded on
-                    {{ policy.savedOn }}
-                  </p>
-
-                </div>
-
-
-                <a routerLink="/government/policies" class="dash-list__action">
-                  View Details
-                </a>
-
-              </li>
-
-              }
-
-            </ul>
-
-            }
-
-
-            <a routerLink="/government/policies" class="dash-panel__footer-link">
-
-              Manage Policies
-
-              <span class="material-icons">
-                arrow_forward
-              </span>
-
-            </a>
-
-          </article>
-
-        </section>
-
-
-        <!-- =====================================================
-             SECOND ROW
-             ===================================================== -->
-
-        <section class="dash-panels
-                 dash-panels--bottom">
-
-
-          <!-- ===================================================
-               SEARCH HISTORY
-               =================================================== -->
-
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-
-              <h2>
-                Search History
-              </h2>
-
-              <a routerLink="/history" class="dash-panel__link">
-                View All
-              </a>
-
-            </div>
-
-
-            @if (loadingHistory) {
-
-            <div class="dash-loader">
-
-              <div class="dash-spinner"></div>
-
-              <span>
-                Loading history...
-              </span>
-
-            </div>
-
-            } @else if (
-            searchHistory.length === 0
-            ) {
-
-            <div class="dash-loader">
-
-              <span class="material-icons">
-                history
-              </span>
-
-              <span>
-                No search history yet
-              </span>
-
-            </div>
-
-            } @else {
-
-            <ul class="dash-list">
-
-              @for (
-              history of searchHistory;
-              track history.name
-              ) {
-
-              <li class="dash-list__item">
-
-                <div class="dash-list__icon-wrap
-                             dash-list__icon-wrap--neutral">
-
-                  <span class="material-icons">
-                    history
-                  </span>
-
-                </div>
-
-
-                <div class="dash-list__details">
-
-                  <p class="dash-list__title">
-                    {{ history.name }}
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Filters:
-                    {{ history.filters }}
-                  </p>
-
-                </div>
-
-
-                <a routerLink="/schemes" [queryParams]="{
-                        q: history.name
-                      }" class="dash-list__action">
-                  View Details
-                </a>
-
-              </li>
-
-              }
-
-            </ul>
-
-            }
-
-
-            <a routerLink="/history" class="dash-panel__footer-link">
-
-              View Search History
-
-              <span class="material-icons">
-                arrow_forward
-              </span>
-
-            </a>
-
-          </article>
-
-
-          <!-- ===================================================
-               APPLICATION STATUS
-               =================================================== -->
-
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-
-              <h2>
-                Application Status
-              </h2>
-
-              <a routerLink="/government/applications" class="dash-panel__link">
-                View All
-              </a>
-
-            </div>
-
-
-            @if (loadingApplications) {
-
-            <div class="dash-loader">
-
-              <div class="dash-spinner"></div>
-
-              <span>
-                Loading applications...
-              </span>
-
-            </div>
-
-            } @else if (
-            applications.length === 0
-            ) {
-
-            <div class="dash-loader">
-
-              <span class="material-icons">
-                description
-              </span>
-
-              <span>
-                No applications yet
-              </span>
-
-            </div>
-
-            } @else {
-
-            <ul class="dash-list">
-
-              @for (
-              app of applications;
-              track app.appId
-              ) {
-
-              <li class="dash-list__item">
-
-                <div class="dash-list__icon-wrap
-                             dash-list__icon-wrap--neutral">
-
-                  <span class="material-icons">
-                    description
-                  </span>
-
-                </div>
-
-
-                <div class="dash-list__details">
-
-                  <p class="dash-list__title">
-                    {{ app.name }}
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Application ID:
-                    {{ app.appId }}
-                  </p>
-
-                </div>
-
-
-                <a routerLink="/government/applications" class="dash-list__action">
-                  View Details
-                </a>
-
-              </li>
-
-              }
-
-            </ul>
-
-            }
-
-
-            <a routerLink="/government/applications" class="dash-panel__footer-link">
-
-              View All Applications
-
-              <span class="material-icons">
-                arrow_forward
-              </span>
-
-            </a>
-
-          </article>
-
-        </section>
+        }
 
       </div>
 
-    </main>
-
-
-    <!-- =======================================================
-         FOOTER
-         ======================================================= -->
-
-    <footer class="dash-footer">
-
-      <p class="dash-footer__copy">
-        © 2026 PolicyGPT. All rights reserved.
-      </p>
-
-      <div class="dash-footer__links">
-
-        <a routerLink="/privacy">
-          Privacy
-        </a>
-
-        <span class="dash-footer__dot">
-          •
-        </span>
-
-        <a routerLink="/terms">
-          Terms
-        </a>
-
-        <span class="dash-footer__dot">
-          •
-        </span>
-
-        <a routerLink="/help">
-          Help
-        </a>
-
-      </div>
-
-    </footer>
-
-    @if (showLogoutModal) {
-
-    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+    </article>
 
     }
 
-  </div>
+  </section>
+
+
+  <!-- =========================================================
+       FIRST ROW
+       ========================================================= -->
+
+  <section class="dash-panels">
+
+
+    <!-- =======================================================
+         UPCOMING SCHEMES
+         ======================================================= -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Upcoming Schemes
+        </h2>
+
+        <a routerLink="/government/schemes" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      @if (loadingUpcoming) {
+
+      <div class="dash-loader">
+
+        <div class="dash-spinner"></div>
+
+        <span>
+          Loading schemes...
+        </span>
+
+      </div>
+
+      } @else if (
+      upcomingSchemes.length === 0
+      ) {
+
+      <div class="dash-loader">
+
+        <span class="material-icons">
+          account_balance
+        </span>
+
+        <span>
+          No upcoming schemes
+        </span>
+
+      </div>
+
+      } @else {
+
+      <ul class="dash-list">
+
+        @for (
+        scheme of upcomingSchemes;
+        track scheme.name
+        ) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap
+                       dash-list__icon-wrap--health">
+
+            <span class="material-icons">
+              account_balance
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ scheme.name }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ scheme.ministry }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/government/schemes" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+      }
+
+
+      <a routerLink="/government/schemes" class="dash-panel__footer-link">
+
+        View All Schemes
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+
+    <!-- =======================================================
+         UPLOADED POLICIES
+         ======================================================= -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Uploaded Policies
+        </h2>
+
+        <a routerLink="/government/policies" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      @if (loadingUploaded) {
+
+      <div class="dash-loader">
+
+        <div class="dash-spinner"></div>
+
+        <span>
+          Loading policies...
+        </span>
+
+      </div>
+
+      } @else if (
+      uploadedPolicies.length === 0
+      ) {
+
+      <div class="dash-loader">
+
+        <span class="material-icons">
+          policy
+        </span>
+
+        <span>
+          No policies uploaded yet
+        </span>
+
+      </div>
+
+      } @else {
+
+      <ul class="dash-list">
+
+        @for (
+        policy of uploadedPolicies;
+        track policy.name
+        ) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap
+                       dash-list__icon-wrap--neutral">
+
+            <span class="material-icons">
+              policy
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ policy.name }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ policy.ministry }}
+            </p>
+
+            <p class="dash-list__submeta">
+              Uploaded on
+              {{ policy.savedOn }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/government/policies" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+      }
+
+
+      <a routerLink="/government/policies" class="dash-panel__footer-link">
+
+        Manage Policies
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+  </section>
+
+
+  <!-- =========================================================
+       SECOND ROW
+       ========================================================= -->
+
+  <section class="dash-panels
+           dash-panels--bottom">
+
+
+    <!-- =======================================================
+         SEARCH HISTORY
+         ======================================================= -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Search History
+        </h2>
+
+        <a routerLink="/history" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      @if (loadingHistory) {
+
+      <div class="dash-loader">
+
+        <div class="dash-spinner"></div>
+
+        <span>
+          Loading history...
+        </span>
+
+      </div>
+
+      } @else if (
+      searchHistory.length === 0
+      ) {
+
+      <div class="dash-loader">
+
+        <span class="material-icons">
+          history
+        </span>
+
+        <span>
+          No search history yet
+        </span>
+
+      </div>
+
+      } @else {
+
+      <ul class="dash-list">
+
+        @for (
+        history of searchHistory;
+        track history.name
+        ) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap
+                       dash-list__icon-wrap--neutral">
+
+            <span class="material-icons">
+              history
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ history.name }}
+            </p>
+
+            <p class="dash-list__meta">
+              Filters:
+              {{ history.filters }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/schemes" [queryParams]="{
+                  q: history.name
+                }" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+      }
+
+
+      <a routerLink="/history" class="dash-panel__footer-link">
+
+        View Search History
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+
+    <!-- =======================================================
+         APPLICATION STATUS
+         ======================================================= -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Application Status
+        </h2>
+
+        <a routerLink="/government/applications" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      @if (loadingApplications) {
+
+      <div class="dash-loader">
+
+        <div class="dash-spinner"></div>
+
+        <span>
+          Loading applications...
+        </span>
+
+      </div>
+
+      } @else if (
+      applications.length === 0
+      ) {
+
+      <div class="dash-loader">
+
+        <span class="material-icons">
+          description
+        </span>
+
+        <span>
+          No applications yet
+        </span>
+
+      </div>
+
+      } @else {
+
+      <ul class="dash-list">
+
+        @for (
+        app of applications;
+        track app.appId
+        ) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap
+                       dash-list__icon-wrap--neutral">
+
+            <span class="material-icons">
+              description
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ app.name }}
+            </p>
+
+            <p class="dash-list__meta">
+              Application ID:
+              {{ app.appId }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/government/applications" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+      }
+
+
+      <a routerLink="/government/applications" class="dash-panel__footer-link">
+
+        View All Applications
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+  </section>
 
 </div>

@@ -1,0 +1,432 @@
+<div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
+    [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
+
+
+    <!-- =====================================================
+       MOBILE OVERLAY
+  ====================================================== -->
+
+    @if (mobileMenuOpen) {
+
+    <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+
+    }
+
+
+    <!-- =====================================================
+       SIDEBAR
+  ====================================================== -->
+
+    <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
+        [class.dash-sidebar--mobile-open]="mobileMenuOpen">
+
+        <nav class="dash-nav" aria-label="Admin navigation">
+
+
+            <!-- =================================================
+           DASHBOARD
+      ================================================== -->
+
+            <a class="dash-nav__item" [class.dash-nav__item--active]="isDashboardRouteActive()"
+                routerLink="/dashboard/admin" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    home
+                </span>
+
+                <span class="dash-nav__label">
+                    Dashboard
+                </span>
+
+            </a>
+
+
+            <!-- =================================================
+           POLICIES
+      ================================================== -->
+
+            <a class="dash-nav__item" routerLink="/admin/policies" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Policies' : null">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    policy
+                </span>
+
+                <span class="dash-nav__label">
+                    Policies
+                </span>
+
+                <span class="material-icons dash-nav__chevron" aria-hidden="true">
+                    chevron_right
+                </span>
+
+            </a>
+
+
+            <!-- =================================================
+           SCHEME
+      ================================================== -->
+
+            <a class="dash-nav__item" routerLink="/admin/schemes" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Scheme' : null">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    description
+                </span>
+
+                <span class="dash-nav__label">
+                    Scheme
+                </span>
+
+                <span class="material-icons dash-nav__chevron" aria-hidden="true">
+                    chevron_right
+                </span>
+
+            </a>
+
+
+            <!-- =================================================
+           NOTIFICATIONS
+      ================================================== -->
+
+            <a class="dash-nav__item" routerLink="/admin/notifications" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Notifications' : null">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    notifications_none
+                </span>
+
+                <span class="dash-nav__label">
+                    Notifications
+                </span>
+
+            </a>
+
+
+            <!-- =================================================
+           USERS
+      ================================================== -->
+
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+          usersMenuOpen || isUsersRouteActive()
+        " (click)="toggleUsersMenu()" [attr.title]="
+          sidebarCollapsed ? 'Users' : null
+        " [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    groups
+                </span>
+
+                <span class="dash-nav__label">
+                    Users
+                </span>
+
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="usersMenuOpen"
+                    aria-hidden="true">
+                    chevron_right
+                </span>
+
+            </button>
+
+
+            <!-- =================================================
+           USERS SUBMENU
+      ================================================== -->
+
+            @if (usersMenuOpen && !sidebarCollapsed) {
+
+            <div id="admin-users-submenu" class="dash-nav__submenu" aria-label="Users management">
+
+
+                <!-- VIEW USERS -->
+
+                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'view' }"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
+                    (click)="closeMobileMenu()">
+
+                    <span class="material-icons">
+                        person_search
+                    </span>
+
+                    <span>
+                        View Users
+                    </span>
+
+                </a>
+
+
+                <!-- ADD USER -->
+
+                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'add' }"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
+                    (click)="closeMobileMenu()">
+
+                    <span class="material-icons">
+                        person_add
+                    </span>
+
+                    <span>
+                        Add User
+                    </span>
+
+                </a>
+
+
+                <!-- REMOVE USER -->
+
+                <a class="dash-nav__submenu-item" routerLink="/admin/users" [queryParams]="{ section: 'remove' }"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
+                    (click)="closeMobileMenu()">
+
+                    <span class="material-icons">
+                        person_remove
+                    </span>
+
+                    <span>
+                        Remove User
+                    </span>
+
+                </a>
+
+            </div>
+
+            }
+
+
+            <!-- =================================================
+           REPORTS
+      ================================================== -->
+
+            <a class="dash-nav__item" routerLink="/admin/reports" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Reports' : null">
+
+                <span class="material-icons dash-nav__icon">
+                    query_stats
+                </span>
+
+                <span class="dash-nav__label">
+                    Reports
+                </span>
+
+            </a>
+
+
+            <!-- =================================================
+           AUDIT LOGS
+      ================================================== -->
+
+            <a class="dash-nav__item" routerLink="/admin/audit-logs" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Audit Logs' : null">
+
+                <span class="material-icons dash-nav__icon">
+                    history
+                </span>
+
+                <span class="dash-nav__label">
+                    Audit Logs
+                </span>
+
+            </a>
+
+        </nav>
+
+
+        <!-- ===================================================
+         SIDEBAR FOOTER
+    ==================================================== -->
+
+        <div class="dash-sidebar__footer">
+
+            <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item"
+                (click)="closeUsersMenu(); closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Profile' : null">
+
+                <span class="material-icons dash-nav__icon">
+                    account_circle
+                </span>
+
+                <span class="dash-nav__label">
+                    Profile
+                </span>
+
+            </a>
+
+
+            <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item"
+                (click)="closeUsersMenu(); closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
+
+                <span class="material-icons dash-nav__icon">
+                    settings
+                </span>
+
+                <span class="dash-nav__label">
+                    Settings
+                </span>
+
+            </a>
+
+
+            <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
+                [attr.title]="sidebarCollapsed ? 'Logout' : null">
+
+                <span class="material-icons dash-nav__icon">
+                    logout
+                </span>
+
+                <span class="dash-nav__label">
+                    Logout
+                </span>
+
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =====================================================
+       MAIN CONTAINER
+  ====================================================== -->
+
+    <div class="dash-main-container">
+
+
+        <!-- ===================================================
+         TOPBAR
+    ==================================================== -->
+
+        <header class="dash-topbar">
+
+
+            <!-- BRAND -->
+
+            <div class="dash-topbar__brand">
+
+                <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" [attr.aria-label]="
+            sidebarCollapsed
+              ? 'Expand sidebar'
+              : 'Collapse sidebar'
+          ">
+
+                    <span class="material-icons">
+                        menu
+                    </span>
+
+                </button>
+
+
+                <a routerLink="/dashboard/admin" class="dash-topbar__logo-link" aria-label="PolicyGPT Admin Dashboard"
+                    (click)="closeUsersMenu(); closeMobileMenu()">
+
+                    <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
+
+                </a>
+
+
+                <div class="dash-topbar__brand-text">
+
+                    <span class="dash-topbar__title">
+                        Policy<span>GPT</span>
+                    </span>
+
+                    <span class="dash-topbar__tagline">
+                        Government Information. Simplified.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- SEARCH -->
+
+            <div class="dash-search">
+
+                <span class="material-icons dash-search__icon">
+                    search
+                </span>
+
+                <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
+                    placeholder="Search policies / schemes" aria-label="Search policies and schemes"
+                    autocomplete="off" />
+
+            </div>
+
+
+            <!-- USER -->
+
+            <div class="dash-user">
+
+                <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
+                    title="Notifications">
+
+                    <span class="material-icons">
+                        notifications_none
+                    </span>
+
+                </button>
+
+
+                <div class="dash-user__avatar" aria-hidden="true">
+
+                    <span class="material-icons">
+                        account_circle
+                    </span>
+
+                </div>
+
+
+                <div class="dash-user__info">
+
+                    <p class="dash-user__name">
+                        {{ userName }}
+                    </p>
+
+                    <p class="dash-user__role">
+                        {{ userRole }}
+                    </p>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- ===================================================
+         CONTENT
+    ==================================================== -->
+
+        <main class="dash-main">
+
+            <div class="dash-content">
+
+                <router-outlet></router-outlet>
+
+            </div>
+
+            <app-footer></app-footer>
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================================
+       LOGOUT MODAL
+       ========================================= -->
+
+    @if (showLogoutModal) {
+
+    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+
+    }
+
+</div>

@@ -1,0 +1,1115 @@
+/* =========================================================
+   POLICYGPT USER LAYOUT
+   ========================================================= */
+
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
+$primary-navy: #073572;
+$primary-navy-dark: #062b5d;
+$primary-navy-light: #19539a;
+
+$background: #f4f7fc;
+$white: #ffffff;
+
+$text-dark: #17233b;
+$text-muted: #64748b;
+$border: #e4e9f1;
+
+$sidebar-width: 295px;
+$sidebar-collapsed-width: 76px;
+
+$topbar-height: 80px;
+$mobile-topbar-height: 64px;
+
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+
+.dash-layout {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+
+  background: $background;
+  color: $text-dark;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   MOBILE OVERLAY
+   ========================================================= */
+
+.dash-overlay {
+  display: none;
+}
+
+/* =========================================================
+   TOP NAVBAR
+   ========================================================= */
+
+.dash-topbar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  width: 100%;
+  height: $topbar-height;
+  min-height: $topbar-height;
+
+  display: flex;
+  align-items: center;
+
+  gap: 24px;
+
+  padding: 10px 28px;
+
+  background: $primary-navy;
+
+  color: $white;
+
+  z-index: 2000;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================================================
+   TOPBAR BRAND
+   ========================================================= */
+
+.dash-topbar__brand {
+  width: $sidebar-width;
+  min-width: $sidebar-width;
+
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+.dash-topbar__toggle {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 38px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+  color: $white;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dash-topbar__toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-topbar__toggle:active {
+  transform: scale(0.96);
+}
+
+.dash-topbar__toggle .material-icons {
+  font-size: 27px;
+}
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.dash-topbar__logo-link {
+  display: flex;
+  align-items: center;
+
+  flex: 0 0 auto;
+
+  text-decoration: none;
+}
+
+.dash-topbar__logo {
+  width: 48px;
+  height: 48px;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+/* =========================================================
+   BRAND TEXT
+   ========================================================= */
+
+.dash-topbar__brand-text {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.dash-topbar__title {
+  color: $white;
+
+  font-size: 19px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.dash-topbar__title span {
+  color: #ff821b;
+}
+
+.dash-topbar__tagline {
+  color: rgba(255, 255, 255, 0.76);
+
+  font-size: 7.5px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.dash-search {
+  width: min(615px, 52vw);
+  height: 48px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 15px;
+
+  border: 3px solid $white;
+  border-radius: 26px;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  flex-shrink: 1;
+
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-search:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.dash-search__icon {
+  flex-shrink: 0;
+
+  color: $white;
+
+  font-size: 25px;
+}
+
+.dash-search input {
+  width: 100%;
+  min-width: 0;
+
+  padding: 0;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: $white;
+
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dash-search input::placeholder {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+/* =========================================================
+   USER AREA
+   ========================================================= */
+
+.dash-user {
+  min-width: 190px;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  color: $white;
+}
+
+.dash-user__icon-btn {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+  color: $white;
+
+  text-decoration: none;
+}
+
+.dash-user__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-user__icon-btn .material-icons {
+  font-size: 23px;
+}
+
+/* =========================================================
+   AVATAR
+   ========================================================= */
+
+.dash-user__avatar {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #dcecff;
+}
+
+.dash-user__avatar .material-icons {
+  color: #5d7795;
+  font-size: 38px;
+}
+
+/* =========================================================
+   USER INFORMATION
+   ========================================================= */
+
+.dash-user__info {
+  min-width: 90px;
+  max-width: 135px;
+}
+
+.dash-user__name {
+  margin: 0;
+
+  color: $white;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-user__role {
+  margin: 2px 0 0;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.dash-sidebar {
+  position: fixed;
+
+  top: $topbar-height;
+  left: 0;
+  bottom: 0;
+
+  width: $sidebar-width;
+
+  display: flex;
+  flex-direction: column;
+
+  color: $white;
+
+  background-color: #082f68;
+
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(3, 31, 72, 0.94) 0%,
+      rgba(4, 43, 88, 0.89) 48%,
+      rgba(2, 22, 51, 0.84) 100%
+    ),
+    url("/images/flag.png");
+
+  background-position:
+    center,
+    center bottom;
+
+  background-size: cover, cover;
+
+  background-repeat: no-repeat, no-repeat;
+
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
+
+  z-index: 1100;
+
+  overflow: hidden;
+
+  transition:
+    width 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* =========================================================
+   SIDEBAR OVERLAY LAYER
+   ========================================================= */
+
+.dash-sidebar::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    180deg,
+    rgba(3, 30, 70, 0.18) 0%,
+    rgba(3, 30, 70, 0.08) 55%,
+    rgba(3, 25, 60, 0.12) 100%
+  );
+
+  pointer-events: none;
+
+  z-index: 0;
+}
+
+.dash-sidebar > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+   ========================================================= */
+
+.dash-nav {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  padding: 43px 16px 12px;
+}
+
+.dash-nav__item {
+  width: 100%;
+  min-height: 41px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 9px 14px;
+
+  border: 1px solid transparent;
+  border-radius: 9px;
+
+  color: rgba(255, 255, 255, 0.94);
+
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dash-nav__item:hover {
+  color: $white;
+
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-nav__item:active {
+  transform: scale(0.99);
+}
+
+.dash-nav__item--active {
+  color: $white !important;
+
+  background: #19539a;
+
+  border-color: rgba(255, 255, 255, 0.08);
+
+  box-shadow: inset 3px 0 0 #4b91ff;
+}
+
+/* =========================================================
+   NAV ICON
+   ========================================================= */
+
+.dash-nav__icon {
+  width: 22px;
+  min-width: 22px;
+
+  flex-shrink: 0;
+
+  text-align: center;
+
+  font-size: 21px !important;
+}
+
+.dash-nav__label {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+.dash-nav__chevron {
+  margin-left: auto;
+
+  opacity: 0.75;
+
+  font-size: 19px !important;
+}
+
+/* =========================================================
+   SIDEBAR FOOTER
+   ========================================================= */
+
+.dash-sidebar__footer {
+  margin-top: auto;
+
+  padding: 12px 16px 18px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dash-nav__logout {
+  appearance: none;
+
+  border: 1px solid transparent;
+
+  text-align: left;
+
+  font-family: inherit;
+}
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+   ========================================================= */
+
+.dash-layout--sidebar-collapsed .dash-sidebar {
+  width: $sidebar-collapsed-width;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__item {
+  justify-content: center;
+
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__label,
+.dash-layout--sidebar-collapsed .dash-nav__chevron {
+  display: none;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__icon {
+  margin: 0;
+}
+
+.dash-layout--sidebar-collapsed .dash-sidebar__footer {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
+
+.dash-main-container {
+  width: calc(100% - #{$sidebar-width});
+
+  min-width: 0;
+  min-height: 100vh;
+
+  margin-left: $sidebar-width;
+
+  display: flex;
+  flex-direction: column;
+
+  padding-top: $topbar-height;
+
+  transition:
+    margin-left 0.25s ease,
+    width 0.25s ease;
+}
+
+.dash-layout--sidebar-collapsed .dash-main-container {
+  width: calc(100% - #{$sidebar-collapsed-width});
+
+  margin-left: $sidebar-collapsed-width;
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.dash-main {
+  width: 100%;
+  min-width: 0;
+
+  flex: 1;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.dash-footer {
+  min-height: 61px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 13px 60px;
+
+  background: #173a70;
+
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.dash-footer__copy {
+  margin: 0;
+
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.dash-footer__links {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+}
+
+.dash-footer__links a {
+  color: $white;
+
+  font-size: 10.5px;
+  font-weight: 500;
+
+  text-decoration: none;
+}
+
+.dash-footer__links a:hover {
+  text-decoration: underline;
+}
+
+.dash-footer__dot {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.dash-nav__item:focus-visible,
+.dash-footer__links a:focus-visible,
+.dash-user__icon-btn:focus-visible,
+.dash-topbar__toggle:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.dash-search input:focus-visible {
+  outline: none;
+}
+
+/* =========================================================
+   LAPTOP
+   1200px - 1439px
+   ========================================================= */
+
+@media (max-width: 1439px) {
+  .dash-topbar {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .dash-topbar__brand {
+    width: 255px;
+    min-width: 255px;
+  }
+
+  .dash-search {
+    width: min(550px, 48vw);
+  }
+
+  .dash-user {
+    min-width: 175px;
+  }
+
+  .dash-footer {
+    padding-left: 34px;
+    padding-right: 34px;
+  }
+}
+
+/* =========================================================
+   SMALL DESKTOP
+   992px - 1199px
+   ========================================================= */
+
+@media (max-width: 1199px) {
+  .dash-sidebar {
+    width: 240px;
+  }
+
+  .dash-main-container {
+    width: calc(100% - 240px);
+    margin-left: 240px;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-main-container {
+    width: calc(100% - #{$sidebar-collapsed-width});
+    margin-left: $sidebar-collapsed-width;
+  }
+
+  .dash-topbar__brand {
+    width: 225px;
+    min-width: 225px;
+  }
+
+  .dash-search {
+    width: 43%;
+  }
+
+  .dash-user {
+    min-width: 145px;
+  }
+
+  .dash-user__info {
+    max-width: 100px;
+  }
+
+  .dash-footer {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+}
+
+/* =========================================================
+   TABLET
+   768px - 991px
+   ========================================================= */
+
+@media (max-width: 991px) {
+  .dash-sidebar {
+    width: 225px;
+  }
+
+  .dash-main-container {
+    width: calc(100% - 225px);
+    margin-left: 225px;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-main-container {
+    width: calc(100% - 225px);
+    margin-left: 225px;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-sidebar {
+    width: 225px;
+  }
+
+  .dash-topbar {
+    gap: 12px;
+  }
+
+  .dash-topbar__brand {
+    width: 205px;
+    min-width: 205px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
+  }
+
+  .dash-search {
+    width: 48%;
+    max-width: none;
+  }
+
+  .dash-user {
+    min-width: 125px;
+  }
+
+  .dash-user__info {
+    display: none;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   <= 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+  .dash-layout {
+    display: block;
+    min-height: 100vh;
+  }
+
+  /* ---------------------------------------------------------
+     MOBILE OVERLAY
+     --------------------------------------------------------- */
+
+  .dash-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    display: block;
+
+    background: rgba(3, 17, 38, 0.48);
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+      opacity 0.25s ease,
+      visibility 0.25s ease;
+
+    z-index: 1150;
+  }
+
+  .dash-layout--mobile-menu-open .dash-overlay {
+    opacity: 1;
+    visibility: visible;
+
+    pointer-events: auto;
+  }
+
+  /* ---------------------------------------------------------
+     SIDEBAR
+     --------------------------------------------------------- */
+
+  .dash-sidebar {
+    top: $mobile-topbar-height;
+    bottom: 0;
+
+    width: min(280px, 86vw);
+
+    transform: translateX(-100%);
+
+    box-shadow: 8px 0 25px rgba(0, 0, 0, 0.25);
+
+    z-index: 1200;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-sidebar {
+    width: min(280px, 86vw);
+
+    transform: translateX(-100%);
+  }
+
+  .dash-sidebar--mobile-open,
+  .dash-layout--mobile-menu-open .dash-sidebar {
+    transform: translateX(0);
+  }
+
+  .dash-nav {
+    padding-top: 25px;
+  }
+
+  /* ---------------------------------------------------------
+     MAIN
+     --------------------------------------------------------- */
+
+  .dash-main-container,
+  .dash-layout--sidebar-collapsed .dash-main-container {
+    width: 100%;
+    margin-left: 0;
+
+    padding-top: $mobile-topbar-height;
+  }
+
+  /* ---------------------------------------------------------
+     TOPBAR
+     --------------------------------------------------------- */
+
+  .dash-topbar,
+  .dash-layout--sidebar-collapsed .dash-topbar {
+    top: 0;
+    left: 0;
+    right: 0;
+
+    width: 100%;
+
+    height: $mobile-topbar-height;
+    min-height: $mobile-topbar-height;
+
+    gap: 8px;
+
+    padding: 8px 11px;
+  }
+
+  .dash-topbar__brand,
+  .dash-layout--sidebar-collapsed .dash-topbar__brand {
+    width: auto;
+    min-width: 0;
+
+    flex: 0 0 auto;
+
+    gap: 6px;
+  }
+
+  .dash-topbar__toggle {
+    width: 34px;
+    height: 34px;
+
+    flex-basis: 34px;
+  }
+
+  .dash-topbar__toggle .material-icons {
+    font-size: 24px;
+  }
+
+  .dash-topbar__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
+  }
+
+  /* ---------------------------------------------------------
+     SEARCH
+     --------------------------------------------------------- */
+
+  .dash-search {
+    width: auto;
+    max-width: none;
+
+    flex: 1 1 auto;
+
+    margin: 0;
+
+    height: 39px;
+
+    padding: 0 10px;
+
+    border-width: 2px;
+
+    gap: 7px;
+  }
+
+  .dash-search__icon {
+    font-size: 20px;
+  }
+
+  .dash-search input {
+    font-size: 12px;
+  }
+
+  /* ---------------------------------------------------------
+     USER
+     --------------------------------------------------------- */
+
+  .dash-user {
+    min-width: auto;
+
+    flex: 0 0 auto;
+  }
+
+  .dash-user__icon-btn,
+  .dash-user__avatar {
+    display: none;
+  }
+
+  .dash-user__info {
+    display: block;
+
+    min-width: 0;
+    max-width: 78px;
+  }
+
+  .dash-user__name {
+    max-width: 78px;
+
+    font-size: 10px;
+  }
+
+  .dash-user__role {
+    font-size: 8.5px;
+  }
+
+  /* ---------------------------------------------------------
+     FOOTER
+     --------------------------------------------------------- */
+
+  .dash-footer {
+    min-height: auto;
+
+    padding: 15px;
+
+    flex-direction: column;
+
+    gap: 7px;
+
+    text-align: center;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .dash-topbar {
+    height: 62px;
+    min-height: 62px;
+
+    padding: 8px 10px;
+  }
+
+  .dash-main-container {
+    padding-top: 62px;
+  }
+
+  .dash-sidebar {
+    top: 62px;
+  }
+
+  .dash-user__info {
+    display: none;
+  }
+
+  .dash-search {
+    height: 37px;
+  }
+
+  .dash-search input {
+    font-size: 10.5px;
+  }
+
+  .dash-search__icon {
+    font-size: 19px;
+  }
+
+  .dash-footer__links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

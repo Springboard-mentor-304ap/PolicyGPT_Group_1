@@ -1,0 +1,373 @@
+import { Component, HostListener, OnInit } from "@angular/core";
+
+import { CommonModule } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+
+import {
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from "@angular/router";
+
+import { Auth, AuthUser } from "../../../core/services/auth";
+
+import { FooterComponent } from "../../components/footer/footer.component";
+
+import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+
+// =========================================================
+// NAV ITEM
+// =========================================================
+
+export interface AdminNavItem {
+  label: string;
+  route: string;
+  icon: string;
+  hasSubmenu?: boolean;
+}
+
+@Component({
+  selector: "app-admin-layout",
+
+  standalone: true,
+
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    FooterComponent,
+    LogoutConfirmComponent,
+  ],
+
+  templateUrl: "./admin-layout.component.html",
+
+  styleUrl: "./admin-layout.component.scss",
+})
+export class AdminLayoutComponent implements OnInit {
+  // =======================================================
+  // USER
+  // =======================================================
+
+  userName = "User";
+
+  userRole = "Admin";
+
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
+
+  sidebarCollapsed = false;
+
+  mobileMenuOpen = false;
+
+  // =======================================================
+  // USERS SUBMENU
+  // =======================================================
+
+  usersMenuOpen = false;
+
+  // =======================================================
+  // SEARCH
+  // =======================================================
+
+  searchText = "";
+
+  // =======================================================
+  // LOGOUT
+  // =======================================================
+
+  showLogoutModal = false;
+
+  // =======================================================
+  // NAVIGATION
+  // =======================================================
+
+  navItems: AdminNavItem[] = [
+    {
+      label: "Dashboard",
+      route: "/dashboard/admin",
+      icon: "home",
+    },
+
+    {
+      label: "Policies",
+      route: "/admin/policies",
+      icon: "policy",
+      hasSubmenu: true,
+    },
+
+    {
+      label: "Scheme",
+      route: "/admin/schemes",
+      icon: "article",
+      hasSubmenu: true,
+    },
+
+    {
+      label: "Notifications",
+      route: "/admin/notifications",
+      icon: "notifications_none",
+    },
+
+    {
+      label: "Reports",
+      route: "/admin/reports",
+      icon: "assessment",
+    },
+
+    {
+      label: "Audit Logs",
+      route: "/admin/audit-logs",
+      icon: "history",
+    },
+  ];
+
+  // =======================================================
+  // CONSTRUCTOR
+  // =======================================================
+
+  constructor(
+    private authService: Auth,
+    private router: Router,
+  ) {}
+
+  // =======================================================
+  // INIT
+  // =======================================================
+
+  ngOnInit(): void {
+    this.loadCurrentUser();
+
+    if (this.isUsersRouteActive()) {
+      this.usersMenuOpen = true;
+    }
+  }
+
+  // =======================================================
+  // LOAD CURRENT USER
+  // =======================================================
+
+  private loadCurrentUser(): void {
+    const storedUser: AuthUser | null = this.authService.getStoredUser();
+
+    // Show cached user immediately
+
+    if (storedUser) {
+      this.setUserDetails(storedUser);
+    }
+
+    // Check authentication
+
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(["/auth/login"], {
+        replaceUrl: true,
+      });
+
+      return;
+    }
+
+    // Get latest user from backend
+
+    this.authService.getCurrentUser().subscribe({
+      next: (user: AuthUser) => {
+        this.setUserDetails(user);
+      },
+
+      error: (error: unknown) => {
+        console.error("Unable to load logged-in admin:", error);
+
+        const status = (
+          error as {
+            status?: number;
+          }
+        )?.status;
+
+        if (status === 401 || status === 403) {
+          this.authService.logout();
+
+          this.router.navigate(["/auth/login"], {
+            replaceUrl: true,
+          });
+        }
+      },
+    });
+  }
+
+  // =======================================================
+  // SET USER DETAILS
+  // =======================================================
+
+  private setUserDetails(user: AuthUser): void {
+    if (!user) {
+      return;
+    }
+
+    if (typeof user.full_name === "string" && user.full_name.trim()) {
+      this.userName = user.full_name.trim();
+    }
+
+    this.userRole = this.formatRole(user.role);
+  }
+
+  // =======================================================
+  // FORMAT ROLE
+  // =======================================================
+
+  private formatRole(role: string | null | undefined): string {
+    if (!role) {
+      return "Admin";
+    }
+
+    const normalizedRole = role.trim().toUpperCase();
+
+    switch (normalizedRole) {
+      case "ADMIN":
+        return "Admin";
+
+      case "ADMINISTRATOR":
+        return "Administrator";
+
+      case "GOVERNMENT_OFFICIAL":
+        return "Government Official";
+
+      case "CITIZEN":
+        return "Citizen";
+
+      case "RESEARCHER":
+        return "Researcher";
+
+      case "ORGANIZATION":
+      case "ORGANISATION":
+        return "Organization";
+
+      default:
+        return role
+          .trim()
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char: string) => char.toUpperCase());
+    }
+  }
+
+  // =======================================================
+  // SIDEBAR
+  // =======================================================
+
+  toggleSidebar(): void {
+    if (window.innerWidth <= 767) {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+
+      return;
+    }
+
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+  }
+
+  openMobileMenu(): void {
+    this.mobileMenuOpen = true;
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
+  }
+
+  // =======================================================
+  // WINDOW RESIZE
+  // =======================================================
+
+  @HostListener("window:resize")
+  onWindowResize(): void {
+    if (window.innerWidth > 767) {
+      this.mobileMenuOpen = false;
+    }
+  }
+
+  // =======================================================
+  // USERS MENU
+  // =======================================================
+
+  toggleUsersMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.usersMenuOpen = !this.usersMenuOpen;
+  }
+
+  closeUsersMenu(): void {
+    this.usersMenuOpen = false;
+  }
+
+  // =======================================================
+  // ACTIVE DASHBOARD
+  // =======================================================
+
+  isDashboardRouteActive(): boolean {
+    return !this.usersMenuOpen && this.router.url === "/dashboard/admin";
+  }
+
+  // =======================================================
+  // ACTIVE USERS
+  // =======================================================
+
+  isUsersRouteActive(): boolean {
+    return this.router.url.startsWith("/admin/users");
+  }
+
+  // =======================================================
+  // SEARCH
+  // =======================================================
+
+  performSearch(): void {
+    const query = this.searchText.trim();
+
+    if (!query) {
+      return;
+    }
+
+    this.router.navigate(["/schemes"], {
+      queryParams: {
+        q: query,
+      },
+    });
+  }
+
+  clearSearch(): void {
+    this.searchText = "";
+  }
+
+  // =======================================================
+  // LOGOUT
+  // =======================================================
+
+  logout(): void {
+    this.showLogoutModal = true;
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal = false;
+
+    this.authService.logout();
+
+    this.userName = "User";
+
+    this.userRole = "Admin";
+
+    this.sidebarCollapsed = false;
+
+    this.mobileMenuOpen = false;
+
+    this.usersMenuOpen = false;
+
+    this.router.navigate(["/auth/login"], {
+      replaceUrl: true,
+    });
+  }
+
+  cancelLogout(): void {
+    this.showLogoutModal = false;
+  }
+}

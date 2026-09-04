@@ -1,38 +1,8 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  HostListener,
-  OnInit,
-} from "@angular/core";
-
+import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
-import { Router, RouterLink, RouterLinkActive } from "@angular/router";
+import { RouterLink } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
-
-import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
-
-// =========================================================
-// NAVIGATION ITEM
-// =========================================================
-
-export interface NavItem {
-  icon: string;
-  label: string;
-  route?: string;
-
-  children?: {
-    label: string;
-    route: string;
-  }[];
-
-  expanded?: boolean;
-}
-
-// =========================================================
-// STAT CARD
-// =========================================================
 
 export interface StatCard {
   icon: string;
@@ -42,18 +12,10 @@ export interface StatCard {
   sub?: string;
 }
 
-// =========================================================
-// SCHEME
-// =========================================================
-
 export interface SchemeItem {
   name: string;
   ministry: string;
 }
-
-// =========================================================
-// POLICY
-// =========================================================
 
 export interface PolicyItem {
   name: string;
@@ -61,181 +23,48 @@ export interface PolicyItem {
   savedOn: string;
 }
 
-// =========================================================
-// SEARCH HISTORY
-// =========================================================
-
 export interface HistoryItem {
   name: string;
   filters: string;
 }
-
-// =========================================================
-// APPLICATION
-// =========================================================
 
 export interface ApplicationItem {
   name: string;
   appId: string;
 }
 
-// =========================================================
-// USER DASHBOARD COMPONENT
-// =========================================================
-
 @Component({
   selector: "app-user-dashboard",
-
   standalone: true,
-
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    RouterLinkActive,
-
-    // Logout confirmation popup
-    LogoutConfirmComponent,
-  ],
-
+  imports: [CommonModule, RouterLink],
   templateUrl: "./user-dashboard.component.html",
-
   styleUrl: "./user-dashboard.component.scss",
 })
 export class UserDashboardComponent implements OnInit {
-  // =======================================================
-  // USER INFORMATION
-  // =======================================================
+  // =========================================================
+  // USER
+  // =========================================================
 
   user: AuthUser | null = null;
 
   userName = "User Name";
-
-  /*
-   * Keep the ORIGINAL backend role here.
-   *
-   * Examples:
-   * RESEARCHER
-   * ORGANIZATION
-   * GUEST
-   * CITIZEN
-   * GOVERNMENT_OFFICIAL
-   * ADMINISTRATOR
-   */
-
   userRole = "GUEST";
-
-  userEmail = "";
-
-  userPhone = "";
-
-  userState = "";
-
-  userDistrict = "";
-
-  userOccupation = "";
-
-  userOrganization = "";
 
   loadingUser = true;
 
-  // =======================================================
-  // SIDEBAR
-  // =======================================================
-
-  sidebarCollapsed = false;
-
-  mobileMenuOpen = false;
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
-
-  // =======================================================
+  // =========================================================
   // LOADING STATES
-  // =======================================================
+  // =========================================================
 
   loadingStats = false;
-
   loadingSchemes = false;
-
   loadingPolicies = false;
-
   loadingHistory = false;
-
   loadingApplications = false;
 
-  // =======================================================
-  // LOGOUT MODAL
-  // =======================================================
-
-  showLogoutModal = false;
-
-  // =======================================================
-  // NAVIGATION
-  // =======================================================
-
-  navItems: NavItem[] = [
-    {
-      icon: "manage_search",
-      label: "Search Policies",
-      route: "/policies",
-    },
-
-    {
-      icon: "account_balance",
-      label: "Search Schemes",
-      route: "/schemes",
-    },
-
-    {
-      icon: "fact_check",
-      label: "Eligibility Checker",
-      route: "/eligibility",
-    },
-
-    {
-      icon: "compare_arrows",
-      label: "Compare",
-      route: "/compare",
-    },
-
-    {
-      icon: "bookmark_border",
-      label: "Saved Items",
-      route: "/saved",
-    },
-
-    {
-      icon: "notifications_none",
-      label: "Notifications",
-      route: "/notifications",
-    },
-
-    {
-      icon: "history",
-      label: "Search History",
-      route: "/history",
-    },
-
-    {
-      icon: "insert_chart_outlined",
-      label: "Application Status",
-      route: "/status",
-    },
-
-    {
-      icon: "support_agent",
-      label: "Support",
-      route: "/feedback",
-    },
-  ];
-
-  // =======================================================
+  // =========================================================
   // STATISTICS
-  // =======================================================
+  // =========================================================
 
   statCards: StatCard[] = [
     {
@@ -271,9 +100,9 @@ export class UserDashboardComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =========================================================
   // ELIGIBLE SCHEMES
-  // =======================================================
+  // =========================================================
 
   eligibleSchemes: SchemeItem[] = [
     {
@@ -297,9 +126,9 @@ export class UserDashboardComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =========================================================
   // SAVED POLICIES
-  // =======================================================
+  // =========================================================
 
   savedPolicies: PolicyItem[] = [
     {
@@ -321,9 +150,9 @@ export class UserDashboardComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =========================================================
   // SEARCH HISTORY
-  // =======================================================
+  // =========================================================
 
   searchHistory: HistoryItem[] = [
     {
@@ -347,9 +176,9 @@ export class UserDashboardComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =========================================================
   // APPLICATIONS
-  // =======================================================
+  // =========================================================
 
   applications: ApplicationItem[] = [
     {
@@ -368,27 +197,23 @@ export class UserDashboardComponent implements OnInit {
     },
   ];
 
-  // =======================================================
+  // =========================================================
   // CONSTRUCTOR
-  // =======================================================
+  // =========================================================
 
-  constructor(
-    private router: Router,
-    private authService: Auth,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  constructor(private authService: Auth) {}
 
-  // =======================================================
+  // =========================================================
   // INIT
-  // =======================================================
+  // =========================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  // =======================================================
+  // =========================================================
   // DASHBOARD TITLE
-  // =======================================================
+  // =========================================================
 
   get dashboardTitle(): string {
     const role = (this.userRole || "")
@@ -397,355 +222,89 @@ export class UserDashboardComponent implements OnInit {
       .replace(/[\s-]+/g, "_");
 
     switch (role) {
-      // -----------------------------------------------
-      // RESEARCHER
-      // -----------------------------------------------
-
       case "RESEARCHER":
         return "RESEARCHER DASHBOARD";
-
-      // -----------------------------------------------
-      // ORGANIZATION
-      // -----------------------------------------------
 
       case "ORGANIZATION":
       case "ORGANISATION":
         return "ORGANIZATION DASHBOARD";
-
-      // -----------------------------------------------
-      // GUEST
-      // -----------------------------------------------
 
       case "GUEST":
       case "GUEST_USER":
       case "GUESTUSER":
         return "GUEST USER";
 
-      // -----------------------------------------------
-      // CITIZEN
-      // -----------------------------------------------
-
       case "CITIZEN":
         return "CITIZEN DASHBOARD";
-
-      // -----------------------------------------------
-      // GOVERNMENT
-      // -----------------------------------------------
 
       case "GOVERNMENT_OFFICIAL":
       case "GOVERNMENT_OFFICER":
       case "GOVERNMENT":
         return "GOVERNMENT DASHBOARD";
 
-      // -----------------------------------------------
-      // ADMIN
-      // -----------------------------------------------
-
       case "ADMIN":
       case "ADMINISTRATOR":
         return "ADMIN DASHBOARD";
-
-      // -----------------------------------------------
-      // DEFAULT
-      // -----------------------------------------------
 
       default:
         return "USER DASHBOARD";
     }
   }
 
-  // =======================================================
+  // =========================================================
   // LOAD CURRENT USER
-  // =======================================================
+  // =========================================================
 
   private loadCurrentUser(): void {
     this.loadingUser = true;
-
-    // =====================================================
-    // FIRST: LOAD CACHED USER
-    // =====================================================
 
     const cachedUser = this.authService.getStoredUser();
 
     if (cachedUser) {
       this.setUserDetails(cachedUser);
-
       this.loadingUser = false;
-
-      this.cdr.detectChanges();
     }
-
-    // =====================================================
-    // CHECK TOKEN
-    // =====================================================
 
     const token = this.authService.getToken();
 
     if (!token) {
       this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
       return;
     }
-
-    // =====================================================
-    // GET FRESH USER FROM BACKEND
-    // =====================================================
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
         if (!user) {
           this.loadingUser = false;
-
           return;
         }
-
-        // Save complete user
-
-        this.user = user;
-
-        // Update UI
 
         this.setUserDetails(user);
 
         this.loadingUser = false;
-
-        this.cdr.detectChanges();
-
-        console.log("CURRENT LOGGED-IN USER:", user);
-
-        console.log("CURRENT USER ROLE:", this.userRole);
-
-        console.log("DASHBOARD TITLE:", this.dashboardTitle);
       },
 
-      error: (error: any) => {
+      error: (error) => {
         this.loadingUser = false;
 
         console.error("GET CURRENT USER ERROR:", error);
 
-        // ===============================================
-        // TOKEN INVALID / EXPIRED
-        // ===============================================
-
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-
-          return;
         }
-
-        // ===============================================
-        // TEMPORARY SERVER ERROR
-        // ===============================================
-
-        this.cdr.detectChanges();
       },
     });
   }
 
-  // =======================================================
+  // =========================================================
   // SET USER DETAILS
-  // =======================================================
+  // =========================================================
 
   private setUserDetails(user: AuthUser): void {
     this.user = user;
 
-    // User name
-
     this.userName = user.full_name?.trim() || "User Name";
 
-    /*
-     * Keep the original backend role.
-     */
-
     this.userRole = user.role?.trim().toUpperCase() || "GUEST";
-
-    this.userEmail = user.email || "";
-
-    this.userPhone = user.phone || "";
-
-    this.userState = user.state || "";
-
-    this.userDistrict = user.district || "";
-
-    this.userOccupation = user.occupation || "";
-
-    this.userOrganization = user.organization || "";
-  }
-
-  // =======================================================
-  // DISPLAY ROLE
-  // =======================================================
-
-  get displayRole(): string {
-    switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
-      case "RESEARCHER":
-        return "Researcher";
-
-      case "ORGANIZATION":
-      case "ORGANISATION":
-        return "Organization";
-
-      case "GUEST":
-      case "GUEST_USER":
-        return "Guest User";
-
-      case "CITIZEN":
-        return "Citizen";
-
-      case "GOVERNMENT_OFFICIAL":
-      case "GOVERNMENT_OFFICER":
-      case "GOVERNMENT":
-        return "Government Official";
-
-      case "ADMIN":
-      case "ADMINISTRATOR":
-        return "Administrator";
-
-      default:
-        return "Guest User";
-    }
-  }
-
-  // =======================================================
-  // SIDEBAR
-  // =======================================================
-
-  toggleSidebar(): void {
-    if (window.innerWidth <= 767) {
-      this.mobileMenuOpen = !this.mobileMenuOpen;
-
-      return;
-    }
-
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
-
-  // =======================================================
-  // MOBILE MENU
-  // =======================================================
-
-  openMobileMenu(): void {
-    this.mobileMenuOpen = true;
-  }
-
-  closeMobileMenu(): void {
-    this.mobileMenuOpen = false;
-  }
-
-  // =======================================================
-  // RESIZE
-  // =======================================================
-
-  @HostListener("window:resize")
-  onWindowResize(): void {
-    if (window.innerWidth > 767) {
-      this.mobileMenuOpen = false;
-    }
-  }
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-  }
-
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =======================================================
-  // LOGOUT - OPEN CONFIRMATION
-  // =======================================================
-
-  logout(): void {
-    console.log("Logout confirmation opened for:", this.userName);
-
-    this.showLogoutModal = true;
-
-    this.cdr.detectChanges();
-  }
-
-  // =======================================================
-  // CONFIRM LOGOUT - YES
-  // =======================================================
-
-  confirmLogout(): void {
-    console.log("LOGGING OUT:", this.userName);
-
-    // Close popup
-
-    this.showLogoutModal = false;
-
-    // Clear authentication
-
-    this.authService.logout();
-
-    // Clear user information
-
-    this.user = null;
-
-    this.userName = "User Name";
-
-    this.userRole = "GUEST";
-
-    this.userEmail = "";
-
-    this.userPhone = "";
-
-    this.userState = "";
-
-    this.userDistrict = "";
-
-    this.userOccupation = "";
-
-    this.userOrganization = "";
-
-    // Reset sidebar
-
-    this.sidebarCollapsed = false;
-
-    this.mobileMenuOpen = false;
-
-    // Go to login
-
-    this.router.navigate(["/auth/login"], {
-      replaceUrl: true,
-    });
-  }
-
-  // =======================================================
-  // CANCEL LOGOUT - NO
-  // =======================================================
-
-  cancelLogout(): void {
-    console.log("Logout cancelled");
-
-    this.showLogoutModal = false;
-
-    this.cdr.detectChanges();
   }
 }

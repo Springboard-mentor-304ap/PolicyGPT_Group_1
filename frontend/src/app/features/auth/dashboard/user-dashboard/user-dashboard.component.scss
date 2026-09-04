@@ -1,688 +1,27 @@
 /* =========================================================
-   POLICYGPT CITIZEN DASHBOARD
+   POLICYGPT USER DASHBOARD
    ========================================================= */
 
 /* =========================================================
    VARIABLES
    ========================================================= */
 
-$admin-navy: #062b63;
-$admin-navy-dark: #061f4a;
-$admin-navy-light: #19539a;
+$dashboard-bg: #f4f7fb;
+$white: #ffffff;
 
-$admin-bg: #f4f7fb;
-$admin-white: #ffffff;
-$admin-heading: #111827;
-$admin-text: #1e293b;
-$admin-muted: #64748b;
-$admin-border: #e4e9f1;
+$heading: #111827;
+$text: #1e293b;
+$muted: #64748b;
+$border: #e4e9f1;
 
-$admin-blue: #0879ed;
-$admin-blue-dark: #075dcc;
-$admin-orange: #ff861c;
-$admin-green: #078944;
-$admin-purple: #8b00e8;
-
-$sidebar-width: 295px;
-$sidebar-collapsed-width: 76px;
-$topbar-height: 80px;
-$mobile-topbar-height: 64px;
+$blue: #0879ed;
+$orange: #ff861c;
+$green: #078944;
+$purple: #8b00e8;
 
 /* =========================================================
-   GLOBAL
+   DASHBOARD CONTENT
    ========================================================= */
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  width: 100%;
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  overflow-x: hidden;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-ul,
-ol {
-  margin-top: 0;
-}
-
-img {
-  max-width: 100%;
-}
-
-/* =========================================================
-   MAIN LAYOUT
-   ========================================================= */
-
-.dash-layout {
-  width: 100%;
-  min-height: 100vh;
-
-  display: flex;
-
-  background: $admin-bg;
-  color: $admin-text;
-
-  font-family:
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
-
-  overflow-x: hidden;
-}
-
-/* =========================================================
-   OVERLAY
-   ========================================================= */
-
-.dash-overlay {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .dash-overlay {
-    position: fixed;
-    inset: 0;
-
-    display: block;
-
-    background: rgba(3, 17, 38, 0.48);
-
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-
-    transition:
-      opacity 0.25s ease,
-      visibility 0.25s ease;
-
-    z-index: 1150;
-  }
-
-  .dash-layout--mobile-menu-open .dash-overlay {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-}
-
-/* =========================================================
-   SIDEBAR
-   ========================================================= */
-
-.dash-sidebar {
-  position: fixed;
-  top: $topbar-height;
-  left: 0;
-  bottom: 0;
-
-  width: $sidebar-width;
-
-  display: flex;
-  flex-direction: column;
-
-  color: $admin-white;
-
-  background-color: #082f68;
-
-  /*
-    Keep the parliament/flag background behind the menu.
-    If your file is named parliament.png, replace flag.png
-    below with parliament.png.
-  */
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(3, 31, 72, 0.94) 0%,
-      rgba(4, 43, 88, 0.89) 48%,
-      rgba(2, 22, 51, 0.84) 100%
-    ),
-    url("/images/flag.png");
-
-  background-position:
-    center,
-    center bottom;
-
-  background-size: cover, cover;
-  background-repeat: no-repeat, no-repeat;
-
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
-
-  z-index: 1100;
-
-  overflow: hidden;
-
-  transition:
-    width 0.25s ease,
-    transform 0.25s ease;
-}
-
-.dash-sidebar::before {
-  content: "";
-
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    180deg,
-    rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 55%,
-    rgba(3, 25, 60, 0.12) 100%
-  );
-
-  pointer-events: none;
-  z-index: 0;
-}
-
-.dash-sidebar > * {
-  position: relative;
-  z-index: 2;
-}
-
-/* =========================================================
-   SIDEBAR NAVIGATION
-   ========================================================= */
-
-.dash-nav {
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
-
-  padding: 43px 16px 12px;
-}
-
-.dash-nav__item {
-  width: 100%;
-  min-height: 41px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 13px;
-
-  padding: 9px 14px;
-
-  border: 1px solid transparent;
-  border-radius: 9px;
-
-  color: rgba(255, 255, 255, 0.94);
-  background: transparent;
-
-  text-decoration: none;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-nav__item:hover {
-  color: $admin-white;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-nav__item:active {
-  transform: scale(0.99);
-}
-
-.dash-nav__item--active {
-  color: $admin-white !important;
-  background: #19539a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 3px 0 0 #4b91ff;
-}
-
-.dash-nav__icon {
-  width: 22px;
-  min-width: 22px;
-
-  flex-shrink: 0;
-
-  text-align: center;
-
-  font-size: 21px !important;
-}
-
-.dash-nav__label {
-  min-width: 0;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-nav__chevron {
-  margin-left: auto;
-
-  opacity: 0.75;
-
-  font-size: 19px !important;
-}
-
-/* =========================================================
-   SIDEBAR FOOTER
-   ========================================================= */
-
-.dash-sidebar__footer {
-  margin-top: auto;
-
-  padding: 12px 16px 18px;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.dash-nav__logout {
-  appearance: none;
-
-  border: 1px solid transparent;
-
-  text-align: left;
-
-  font-family: inherit;
-}
-
-/* =========================================================
-   COLLAPSED SIDEBAR
-   ========================================================= */
-
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  width: $sidebar-collapsed-width;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__item {
-  justify-content: center;
-
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__label,
-.dash-layout--sidebar-collapsed .dash-nav__chevron {
-  display: none;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__icon {
-  margin: 0;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__footer {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-/* =========================================================
-   MAIN CONTAINER
-   ========================================================= */
-
-.dash-main-container {
-  width: calc(100% - #{$sidebar-width});
-  min-width: 0;
-  min-height: 100vh;
-
-  margin-left: $sidebar-width;
-
-  display: flex;
-  flex-direction: column;
-
-  padding-top: $topbar-height;
-
-  transition:
-    margin-left 0.25s ease,
-    width 0.25s ease;
-}
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - #{$sidebar-collapsed-width});
-  margin-left: $sidebar-collapsed-width;
-}
-
-/* =========================================================
-   TOP NAVBAR
-   ========================================================= */
-
-.dash-topbar {
-  position: fixed;
-
-  top: 0;
-  left: 0;
-  right: 0;
-
-  width: 100%;
-  height: $topbar-height;
-  min-height: $topbar-height;
-
-  display: flex;
-  align-items: center;
-
-  gap: 24px;
-
-  padding: 10px 28px;
-
-  background: $admin-navy;
-
-  color: $admin-white;
-
-  z-index: 2000;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* =========================================================
-   NAVBAR BRAND
-   ========================================================= */
-
-.dash-topbar__brand {
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-
-  height: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-}
-
-.dash-topbar__toggle {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 38px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 7px;
-
-  background: transparent;
-  color: $admin-white;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-topbar__toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-topbar__toggle:active {
-  transform: scale(0.96);
-}
-
-.dash-topbar__toggle .material-icons {
-  font-size: 27px;
-}
-
-.dash-topbar__logo-link {
-  display: flex;
-  align-items: center;
-
-  flex: 0 0 auto;
-
-  text-decoration: none;
-}
-
-.dash-topbar__logo {
-  width: 48px;
-  height: 48px;
-
-  object-fit: contain;
-
-  display: block;
-}
-
-.dash-topbar__brand-text {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dash-topbar__title {
-  color: $admin-white;
-
-  font-size: 19px;
-  line-height: 1;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.dash-topbar__title span {
-  color: #ff821b;
-}
-
-.dash-topbar__tagline {
-  color: rgba(255, 255, 255, 0.76);
-
-  font-size: 7.5px;
-  font-weight: 500;
-
-  white-space: nowrap;
-}
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-.dash-search {
-  width: min(615px, 52vw);
-  height: 48px;
-
-  margin: 0 auto;
-
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-
-  padding: 0 15px;
-
-  border: 3px solid $admin-white;
-  border-radius: 26px;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  flex-shrink: 1;
-
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.dash-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-}
-
-.dash-search__icon {
-  flex-shrink: 0;
-
-  color: $admin-white;
-
-  font-size: 25px;
-}
-
-.dash-search input {
-  width: 100%;
-  min-width: 0;
-
-  padding: 0;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: $admin-white;
-
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.dash-search input::placeholder {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-/* =========================================================
-   USER AREA
-   ========================================================= */
-
-.dash-user {
-  min-width: 190px;
-
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 10px;
-
-  color: $admin-white;
-}
-
-.dash-user__icon-btn {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-  color: $admin-white;
-
-  text-decoration: none;
-}
-
-.dash-user__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-user__icon-btn .material-icons {
-  font-size: 23px;
-}
-
-.dash-user__avatar {
-  width: 42px;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: #dcecff;
-}
-
-.dash-user__avatar .material-icons {
-  color: #5d7795;
-  font-size: 38px;
-}
-
-.dash-user__info {
-  min-width: 90px;
-  max-width: 135px;
-}
-
-.dash-user__name {
-  margin: 0;
-
-  color: $admin-white;
-
-  font-size: 14px;
-  font-weight: 800;
-
-  line-height: 1.2;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-user__role {
-  margin: 2px 0 0;
-
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* =========================================================
-   MAIN
-   ========================================================= */
-
-.dash-main {
-  width: 100%;
-  min-width: 0;
-
-  flex: 1;
-}
 
 .dash-content {
   width: 100%;
@@ -717,6 +56,10 @@ img {
   box-shadow: 0 2px 10px rgba(24, 51, 100, 0.04);
 }
 
+/* =========================================================
+   WELCOME TEXT
+   ========================================================= */
+
 .dash-welcome__text {
   position: relative;
 
@@ -742,6 +85,7 @@ img {
   color: #111111;
 
   font-size: clamp(30px, 2.4vw, 38px);
+
   font-weight: 800;
 
   line-height: 1.15;
@@ -788,6 +132,10 @@ img {
   background: #cbd8fa;
 }
 
+/* =========================================================
+   LARGE BUILDING
+   ========================================================= */
+
 .welcome-building--large {
   right: 5%;
 
@@ -829,6 +177,10 @@ img {
   border-radius: 5px;
 }
 
+/* =========================================================
+   BUILDING COLUMNS
+   ========================================================= */
+
 .welcome-building__columns {
   position: absolute;
 
@@ -839,6 +191,7 @@ img {
   height: 78px;
 
   display: flex;
+
   justify-content: space-between;
 }
 
@@ -849,6 +202,10 @@ img {
 
   border-radius: 4px 4px 0 0;
 }
+
+/* =========================================================
+   SMALL BUILDING
+   ========================================================= */
 
 .welcome-building--small {
   right: 39%;
@@ -879,6 +236,10 @@ img {
 
   background: #d1dcfa;
 }
+
+/* =========================================================
+   BIRDS
+   ========================================================= */
 
 .welcome-bird {
   position: absolute;
@@ -915,6 +276,10 @@ img {
   margin-bottom: 26px;
 }
 
+/* =========================================================
+   STAT CARD
+   ========================================================= */
+
 .dash-stat-card {
   min-width: 0;
   min-height: 84px;
@@ -928,7 +293,7 @@ img {
 
   border-radius: 17px;
 
-  background: $admin-white;
+  background: $white;
 
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.06);
 
@@ -942,6 +307,10 @@ img {
 
   box-shadow: 0 7px 20px rgba(15, 40, 82, 0.09);
 }
+
+/* =========================================================
+   STAT ICON
+   ========================================================= */
 
 .dash-stat-card__icon {
   width: 47px;
@@ -957,28 +326,34 @@ img {
 }
 
 .dash-stat-card__icon .material-icons {
-  color: $admin-white;
+  color: $white;
+
   font-size: 24px;
 }
 
 .dash-stat-card__icon--blue {
-  background: $admin-blue;
+  background: $blue;
 }
 
 .dash-stat-card__icon--orange {
-  background: $admin-orange;
+  background: $orange;
 }
 
 .dash-stat-card__icon--green {
-  background: $admin-green;
+  background: $green;
 }
 
 .dash-stat-card__icon--purple {
-  background: $admin-purple;
+  background: $purple;
 }
+
+/* =========================================================
+   STAT CONTENT
+   ========================================================= */
 
 .dash-stat-card__content {
   min-width: 0;
+
   flex: 1;
 }
 
@@ -1007,12 +382,13 @@ img {
 .dash-stat-card__sub {
   margin: 3px 0 0;
 
-  color: $admin-muted;
+  color: $muted;
 
   font-size: 9.5px;
   font-weight: 500;
 
   white-space: nowrap;
+
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1027,8 +403,13 @@ img {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
   gap: 42px;
+
   margin-bottom: 42px;
 }
+
+/* =========================================================
+   PANEL
+   ========================================================= */
 
 .dash-panel {
   min-width: 0;
@@ -1041,10 +422,14 @@ img {
 
   border-radius: 19px;
 
-  background: $admin-white;
+  background: $white;
 
   box-shadow: 0 4px 17px rgba(15, 40, 82, 0.055);
 }
+
+/* =========================================================
+   PANEL HEADER
+   ========================================================= */
 
 .dash-panel__header {
   display: flex;
@@ -1083,6 +468,10 @@ img {
   text-decoration: underline;
 }
 
+/* =========================================================
+   PANEL FOOTER LINK
+   ========================================================= */
+
 .dash-panel__footer-link {
   margin-top: auto;
 
@@ -1111,7 +500,7 @@ img {
 }
 
 /* =========================================================
-   LISTS
+   LIST
    ========================================================= */
 
 .dash-list {
@@ -1120,6 +509,10 @@ img {
   padding: 0;
   margin: 0;
 }
+
+/* =========================================================
+   LIST ITEM
+   ========================================================= */
 
 .dash-list__item {
   min-width: 0;
@@ -1131,12 +524,16 @@ img {
 
   padding: 13px 0;
 
-  border-bottom: 1px solid $admin-border;
+  border-bottom: 1px solid $border;
 }
 
 .dash-list__item:last-child {
   border-bottom: 0;
 }
+
+/* =========================================================
+   LIST ICON
+   ========================================================= */
 
 .dash-list__icon-wrap {
   width: 35px;
@@ -1157,13 +554,19 @@ img {
 
 .dash-list__icon-wrap--health {
   background: #e9f8ef;
+
   color: #079348;
 }
 
 .dash-list__icon-wrap--neutral {
   background: #f0f2f5;
+
   color: #657184;
 }
+
+/* =========================================================
+   LIST DETAILS
+   ========================================================= */
 
 .dash-list__details {
   min-width: 0;
@@ -1197,6 +600,21 @@ img {
   line-height: 1.35;
 }
 
+.dash-list__submeta {
+  margin: 3px 0 0;
+
+  color: #7b8798;
+
+  font-size: 8.5px;
+  font-weight: 500;
+
+  line-height: 1.3;
+}
+
+/* =========================================================
+   LIST ACTION
+   ========================================================= */
+
 .dash-list__action {
   flex-shrink: 0;
 
@@ -1215,72 +633,124 @@ img {
 }
 
 /* =========================================================
-   FOOTER
+   LOADING
    ========================================================= */
 
-.dash-footer {
-  min-height: 61px;
+.dash-loader {
+  min-height: 180px;
 
   display: flex;
+  flex-direction: column;
+
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 
-  gap: 20px;
+  gap: 10px;
 
-  padding: 13px 60px;
+  color: $muted;
 
-  background: #173a70;
-
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.dash-footer__copy {
-  margin: 0;
-
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.dash-footer__links {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-}
-
-.dash-footer__links a {
-  color: $admin-white;
-
-  font-size: 10.5px;
-  font-weight: 500;
-
-  text-decoration: none;
-}
-
-.dash-footer__links a:hover {
-  text-decoration: underline;
-}
-
-.dash-footer__dot {
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
 }
 
 /* =========================================================
-   ACCESSIBILITY
+   SPINNER
    ========================================================= */
 
-.dash-nav__item:focus-visible,
-.dash-panel__link:focus-visible,
-.dash-panel__footer-link:focus-visible,
-.dash-footer__links a:focus-visible,
-.dash-user__icon-btn:focus-visible,
-.dash-topbar__toggle:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
+.dash-spinner {
+  width: 28px;
+  height: 28px;
+
+  border: 3px solid #dbe5f5;
+  border-top-color: #075ee8;
+
+  border-radius: 50%;
+
+  animation: dash-spin 0.8s linear infinite;
 }
 
-.dash-search input:focus-visible {
-  outline: none;
+@keyframes dash-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   EMPTY STATE
+   ========================================================= */
+
+.dash-empty {
+  min-height: 180px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  padding: 20px;
+}
+
+.dash-empty__icon {
+  margin-bottom: 8px;
+
+  color: #9aa8bc;
+
+  font-size: 34px;
+}
+
+.dash-empty p {
+  margin: 0;
+
+  color: #475569;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dash-empty__hint {
+  max-width: 280px;
+
+  margin-top: 6px !important;
+
+  color: #8491a4 !important;
+
+  font-size: 10px !important;
+  font-weight: 500 !important;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   SKELETON
+   ========================================================= */
+
+.skeleton {
+  background: linear-gradient(90deg, #edf1f7 25%, #f7f9fc 50%, #edf1f7 75%);
+
+  background-size: 200% 100%;
+
+  animation: skeleton-loading 1.4s ease infinite;
+
+  border-radius: 6px;
+}
+
+.skeleton--stat-num {
+  width: 45px;
+  height: 20px;
+
+  margin-bottom: 6px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* =========================================================
@@ -1303,7 +773,7 @@ img {
 
 /* =========================================================
    LAPTOP
-   1200px - 1439px
+   <= 1439px
    ========================================================= */
 
 @media (max-width: 1439px) {
@@ -1311,26 +781,9 @@ img {
     padding: 38px 34px 35px;
   }
 
-  .dash-topbar {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
-  .dash-topbar__brand {
-    width: 255px;
-    min-width: 255px;
-  }
-
-  .dash-search {
-    width: min(550px, 48vw);
-  }
-
-  .dash-user {
-    min-width: 175px;
-  }
-
   .dash-welcome {
     min-height: 190px;
+
     padding-left: 35px;
     padding-right: 35px;
   }
@@ -1342,50 +795,14 @@ img {
   .dash-panels {
     gap: 25px;
   }
-
-  .dash-footer {
-    padding-left: 34px;
-    padding-right: 34px;
-  }
 }
 
 /* =========================================================
    SMALL DESKTOP
-   992px - 1199px
+   <= 1199px
    ========================================================= */
 
 @media (max-width: 1199px) {
-  .dash-sidebar {
-    width: 240px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 240px);
-    margin-left: 240px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - #{$sidebar-collapsed-width});
-    margin-left: $sidebar-collapsed-width;
-  }
-
-  .dash-topbar__brand {
-    width: 225px;
-    min-width: 225px;
-  }
-
-  .dash-search {
-    width: 43%;
-  }
-
-  .dash-user {
-    min-width: 145px;
-  }
-
-  .dash-user__info {
-    max-width: 100px;
-  }
-
   .dash-content {
     padding: 28px 22px 32px;
   }
@@ -1432,70 +849,23 @@ img {
     padding-left: 20px;
     padding-right: 20px;
   }
-
-  .dash-footer {
-    padding-left: 22px;
-    padding-right: 22px;
-  }
 }
 
 /* =========================================================
    TABLET
-   768px - 991px
+   <= 991px
    ========================================================= */
 
 @media (max-width: 991px) {
-  .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-topbar {
-    gap: 12px;
-  }
-
-  .dash-topbar__brand {
-    width: 205px;
-    min-width: 205px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  .dash-search {
-    width: 48%;
-    max-width: none;
-  }
-
-  .dash-user {
-    min-width: 125px;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-
   .dash-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 14px;
   }
 
   .dash-panels {
     grid-template-columns: 1fr;
+
     gap: 16px;
   }
 
@@ -1506,11 +876,6 @@ img {
   .dash-welcome__illustration {
     width: 45%;
   }
-
-  .dash-footer {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
 }
 
 /* =========================================================
@@ -1519,168 +884,6 @@ img {
    ========================================================= */
 
 @media (max-width: 767px) {
-  .dash-layout {
-    display: block;
-    min-height: 100vh;
-  }
-
-  /* ---------------------------------------------------------
-     SIDEBAR
-     --------------------------------------------------------- */
-
-  .dash-sidebar {
-    top: $mobile-topbar-height;
-    bottom: 0;
-
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-
-    box-shadow: 8px 0 25px rgba(0, 0, 0, 0.25);
-
-    z-index: 1200;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-  }
-
-  .dash-sidebar--mobile-open,
-  .dash-layout--mobile-menu-open .dash-sidebar {
-    transform: translateX(0);
-  }
-
-  .dash-nav {
-    padding-top: 25px;
-  }
-
-  /* ---------------------------------------------------------
-     MAIN
-     --------------------------------------------------------- */
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100%;
-    margin-left: 0;
-
-    padding-top: $mobile-topbar-height;
-  }
-
-  /* ---------------------------------------------------------
-     MOBILE TOPBAR
-     --------------------------------------------------------- */
-
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    top: 0;
-    left: 0;
-    right: 0;
-
-    width: 100%;
-
-    height: $mobile-topbar-height;
-    min-height: $mobile-topbar-height;
-
-    gap: 8px;
-
-    padding: 8px 11px;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    width: auto;
-    min-width: 0;
-
-    flex: 0 0 auto;
-
-    gap: 6px;
-  }
-
-  .dash-topbar__toggle {
-    width: 34px;
-    height: 34px;
-
-    flex-basis: 34px;
-  }
-
-  .dash-topbar__toggle .material-icons {
-    font-size: 24px;
-  }
-
-  .dash-topbar__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  /* ---------------------------------------------------------
-     SEARCH
-     --------------------------------------------------------- */
-
-  .dash-search {
-    width: auto;
-    max-width: none;
-
-    flex: 1 1 auto;
-
-    margin: 0;
-
-    height: 39px;
-
-    padding: 0 10px;
-
-    border-width: 2px;
-
-    gap: 7px;
-  }
-
-  .dash-search__icon {
-    font-size: 20px;
-  }
-
-  .dash-search input {
-    font-size: 12px;
-  }
-
-  /* ---------------------------------------------------------
-     USER
-     --------------------------------------------------------- */
-
-  .dash-user {
-    min-width: auto;
-    flex: 0 0 auto;
-  }
-
-  .dash-user__icon-btn,
-  .dash-user__avatar {
-    display: none;
-  }
-
-  .dash-user__info {
-    display: block;
-
-    min-width: 0;
-    max-width: 78px;
-  }
-
-  .dash-user__name {
-    max-width: 78px;
-    font-size: 10px;
-  }
-
-  .dash-user__role {
-    font-size: 8.5px;
-  }
-
-  /* ---------------------------------------------------------
-     CONTENT
-     --------------------------------------------------------- */
-
   .dash-content {
     padding: 17px 14px 25px;
   }
@@ -1810,6 +1013,7 @@ img {
 
   .dash-list__item {
     gap: 9px;
+
     padding: 10px 0;
   }
 
@@ -1830,24 +1034,12 @@ img {
     font-size: 8px;
   }
 
-  .dash-list__action {
+  .dash-list__submeta {
     font-size: 7.5px;
   }
 
-  /* ---------------------------------------------------------
-     FOOTER
-     --------------------------------------------------------- */
-
-  .dash-footer {
-    min-height: auto;
-
-    padding: 15px;
-
-    flex-direction: column;
-
-    gap: 7px;
-
-    text-align: center;
+  .dash-list__action {
+    font-size: 7.5px;
   }
 }
 
@@ -1857,37 +1049,6 @@ img {
    ========================================================= */
 
 @media (max-width: 480px) {
-  .dash-topbar {
-    height: 62px;
-    min-height: 62px;
-
-    padding: 8px 10px;
-  }
-
-  .dash-main-container {
-    padding-top: 62px;
-  }
-
-  .dash-sidebar {
-    top: 62px;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-
-  .dash-search {
-    height: 37px;
-  }
-
-  .dash-search input {
-    font-size: 10.5px;
-  }
-
-  .dash-search__icon {
-    font-size: 19px;
-  }
-
   .dash-content {
     padding: 13px 10px 20px;
   }
@@ -1900,16 +1061,19 @@ img {
 
   .dash-welcome__title {
     max-width: 90%;
+
     font-size: 20px;
   }
 
   .dash-welcome__sub {
     max-width: 87%;
+
     font-size: 9.5px;
   }
 
   .dash-welcome__illustration {
     opacity: 0.48;
+
     width: 55%;
   }
 
@@ -1919,6 +1083,7 @@ img {
 
   .dash-stat-card {
     padding: 9px;
+
     gap: 7px;
   }
 
@@ -1955,11 +1120,6 @@ img {
   .dash-list__action {
     display: none;
   }
-
-  .dash-footer__links {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
 }
 
 /* =========================================================
@@ -1986,57 +1146,5 @@ img {
 
   .dash-welcome__sub {
     font-size: 9px;
-  }
-}
-
-/* =========================================================
-   EXTRA SMALL
-   <= 320px
-   ========================================================= */
-
-@media (max-width: 320px) {
-  .dash-sidebar {
-    width: 250px;
-  }
-
-  .dash-search {
-    height: 35px;
-  }
-
-  .dash-search input {
-    font-size: 9.5px;
-  }
-
-  .dash-search__icon {
-    font-size: 17px;
-  }
-
-  .dash-content {
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .dash-welcome {
-    padding-left: 13px;
-    padding-right: 13px;
-  }
-
-  .dash-stat-card {
-    padding: 8px;
-  }
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

@@ -1,546 +1,269 @@
-<div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
-  [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
-  <!-- =========================================================
-       MOBILE OVERLAY
-       ========================================================= -->
-  @if (mobileMenuOpen) {
-  <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
-  }
+<section class="admin-dashboard">
 
-  <!-- =========================================================
-       SIDEBAR
-       ========================================================= -->
-  <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
-    [class.dash-sidebar--mobile-open]="mobileMenuOpen">
-    <nav class="dash-nav" aria-label="Admin navigation">
+  <!-- =====================================================
+       WELCOME SECTION
+  ====================================================== -->
 
-      <!-- DASHBOARD -->
-      <a class="dash-nav__item dash-nav__item--active" routerLink="/dashboard/admin"
-        routerLinkActive="dash-nav__item--active" [routerLinkActiveOptions]="{ exact: true }"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          home
-        </span>
-        <span class="dash-nav__label">Dashboard</span>
-      </a>
+  <section class="dash-welcome">
 
-      <!-- POLICIES -->
-      <a class="dash-nav__item" routerLink="/policies" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Policies' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          policy
-        </span>
-        <span class="dash-nav__label">Policies</span>
-        <span class="material-icons dash-nav__chevron" aria-hidden="true">
-          chevron_right
-        </span>
-      </a>
+    <div class="dash-welcome__text">
 
-      <!-- SCHEMES -->
-      <a class="dash-nav__item" routerLink="/schemes" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Scheme' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          description
-        </span>
-        <span class="dash-nav__label">Scheme</span>
-        <span class="material-icons dash-nav__chevron" aria-hidden="true">
-          chevron_right
-        </span>
-      </a>
-
-      <!-- NOTIFICATIONS -->
-      <a class="dash-nav__item" routerLink="/notifications" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Notifications' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          notifications_none
-        </span>
-        <span class="dash-nav__label">Notifications</span>
-      </a>
-
-      <!-- USERS -->
-      <a class="dash-nav__item" routerLink="/users" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Users' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          groups
-        </span>
-        <span class="dash-nav__label">Users</span>
-      </a>
-
-      <!-- REPORTS -->
-      <a class="dash-nav__item" routerLink="/reports" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Reports' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          query_stats
-        </span>
-        <span class="dash-nav__label">Reports</span>
-      </a>
-
-      <!-- AUDIT LOGS -->
-      <a class="dash-nav__item" routerLink="/audit-logs" routerLinkActive="dash-nav__item--active"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Audit Logs' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          history_edu
-        </span>
-        <span class="dash-nav__label">Audit Logs</span>
-      </a>
-    </nav>
-
-    <!-- =======================================================
-         SIDEBAR FOOTER
-         ======================================================= -->
-    <div class="dash-sidebar__footer">
-
-      <!-- PROFILE -->
-      <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Profile' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          account_circle
-        </span>
-        <span class="dash-nav__label">Profile</span>
-      </a>
-
-      <!-- SETTINGS -->
-      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-        (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          settings
-        </span>
-        <span class="dash-nav__label">Settings</span>
-      </a>
-
-      <!-- LOGOUT -->
-      <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
-        [attr.title]="sidebarCollapsed ? 'Logout' : null">
-        <span class="material-icons dash-nav__icon" aria-hidden="true">
-          logout
-        </span>
-        <span class="dash-nav__label">Logout</span>
-      </button>
-    </div>
-  </aside>
-
-  <!-- =========================================================
-       MAIN CONTAINER
-       ========================================================= -->
-  <div class="dash-main-container">
-
-    <!-- =======================================================
-         TOPBAR
-         ======================================================= -->
-    <header class="dash-topbar">
-
-      <!-- BRAND -->
-      <div class="dash-topbar__brand">
-
-        <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" [attr.aria-label]="
-            sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
-          " [attr.title]="
-            sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
-          ">
-          <span class="material-icons" aria-hidden="true">menu</span>
-        </button>
-
-        <a routerLink="/dashboard/admin" class="dash-topbar__logo-link" aria-label="PolicyGPT Admin Dashboard"
-          (click)="closeMobileMenu()">
-          <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-        </a>
-
-        <div class="dash-topbar__brand-text">
-          <span class="dash-topbar__title">
-            Policy<span>GPT</span>
-          </span>
-          <span class="dash-topbar__tagline">
-            Government Information. Simplified.
-          </span>
-        </div>
-      </div>
-
-      <!-- SEARCH -->
-      <div class="dash-search">
-        <span class="material-icons dash-search__icon" aria-hidden="true">
-          search
-        </span>
-
-        <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
-          placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
-      </div>
-
-      <!-- USER AREA -->
-      <div class="dash-user">
-
-        <!-- NOTIFICATIONS -->
-        <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
-          title="Notifications">
-          <span class="material-icons" aria-hidden="true">
-            notifications_none
-          </span>
-        </button>
-
-        <!-- AVATAR -->
-        <div class="dash-user__avatar" aria-hidden="true">
-          <span class="material-icons">
-            account_circle
-          </span>
-        </div>
-
-        <!-- USER INFORMATION -->
-        <div class="dash-user__info">
-          <p class="dash-user__name">
-            {{ userName }}
-          </p>
-
-          <p class="dash-user__role">
-            {{ userRole }}
-          </p>
-        </div>
-      </div>
-    </header>
-
-    <!-- =======================================================
-         MAIN CONTENT
-         ======================================================= -->
-    <main class="dash-main">
-      <div class="dash-content">
-
-        <!-- =====================================================
-             WELCOME SECTION
-             ===================================================== -->
-        <section class="dash-welcome">
-
-          <div class="dash-welcome__text">
-            <p class="dash-welcome__eyebrow">
-              ADMIN DASHBOARD
-            </p>
-
-            <h1 class="dash-welcome__title">
-              Welcome back, {{ userName }}!
-            </h1>
-
-            <p class="dash-welcome__sub">
-              Manage government policies, schemes, users and platform
-              activities from your admin dashboard.
-            </p>
-          </div>
-
-          <!-- DECORATIVE GOVERNMENT BUILDING -->
-          <div class="dash-welcome__illustration" aria-hidden="true">
-            <div class="welcome-building welcome-building--large">
-              <div class="welcome-building__dome"></div>
-              <div class="welcome-building__roof"></div>
-
-              <div class="welcome-building__columns">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-
-            <div class="welcome-building welcome-building--small">
-              <div class="welcome-building__tower"></div>
-              <div class="welcome-building__body"></div>
-            </div>
-
-            <span class="welcome-bird welcome-bird--one">︿</span>
-            <span class="welcome-bird welcome-bird--two">︿</span>
-          </div>
-        </section>
-
-        <!-- =====================================================
-             STATISTICS
-             ===================================================== -->
-        <section class="dash-stats" aria-label="Admin dashboard statistics">
-
-          <!-- TOTAL POLICIES -->
-          <article class="dash-stat-card">
-            <div class="dash-stat-card__icon dash-stat-card__icon--blue">
-              <span class="material-icons" aria-hidden="true">
-                policy
-              </span>
-            </div>
-
-            <div class="dash-stat-card__content">
-              <p class="dash-stat-card__value">1242</p>
-              <p class="dash-stat-card__label">Total Policies</p>
-              <p class="dash-stat-card__sub">+32 this week</p>
-            </div>
-          </article>
-
-          <!-- TOTAL SCHEMES -->
-          <article class="dash-stat-card">
-            <div class="dash-stat-card__icon dash-stat-card__icon--orange">
-              <span class="material-icons" aria-hidden="true">
-                description
-              </span>
-            </div>
-
-            <div class="dash-stat-card__content">
-              <p class="dash-stat-card__value">897</p>
-              <p class="dash-stat-card__label">Total Schemes</p>
-              <p class="dash-stat-card__sub">+18 this week</p>
-            </div>
-          </article>
-
-          <!-- TOTAL USERS -->
-          <article class="dash-stat-card">
-            <div class="dash-stat-card__icon dash-stat-card__icon--green">
-              <span class="material-icons" aria-hidden="true">
-                groups
-              </span>
-            </div>
-
-            <div class="dash-stat-card__content">
-              <p class="dash-stat-card__value">432</p>
-              <p class="dash-stat-card__label">Total Users</p>
-              <p class="dash-stat-card__sub">+2,154 this week</p>
-            </div>
-          </article>
-
-          <!-- APPLICATIONS -->
-          <article class="dash-stat-card">
-            <div class="dash-stat-card__icon dash-stat-card__icon--blue">
-              <span class="material-icons" aria-hidden="true">
-                assignment
-              </span>
-            </div>
-
-            <div class="dash-stat-card__content">
-              <p class="dash-stat-card__value">321</p>
-              <p class="dash-stat-card__label">Applications</p>
-              <p class="dash-stat-card__sub">+61 this week</p>
-            </div>
-          </article>
-        </section>
-
-        <!-- =====================================================
-             ADMIN PANELS
-             ===================================================== -->
-        <section class="dash-panels">
-
-          <!-- ===================================================
-               SCHEMES
-               =================================================== -->
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-              <h2>Schemes</h2>
-
-              <a routerLink="/schemes" class="dash-panel__link">
-                View All
-              </a>
-            </div>
-
-            <ul class="dash-list">
-
-              <!-- SCHEME 1 -->
-              <li class="dash-list__item">
-                <div class="dash-list__icon-wrap dash-list__icon-wrap--health">
-                  <span class="material-icons" aria-hidden="true">
-                    wb_sunny
-                  </span>
-                </div>
-
-                <div class="dash-list__details">
-                  <p class="dash-list__title">
-                    PM Surya Ghar Muft Bijli Yojana
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of New &amp; Renewable Energy
-                  </p>
-                </div>
-
-                <a routerLink="/schemes" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-
-              <!-- SCHEME 2 -->
-              <li class="dash-list__item">
-                <div class="dash-list__icon-wrap dash-list__icon-wrap--health">
-                  <span class="material-icons" aria-hidden="true">
-                    health_and_safety
-                  </span>
-                </div>
-
-                <div class="dash-list__details">
-                  <p class="dash-list__title">
-                    Pradhan Mantri Jan Arogya Yojana (PM-JAY)
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Health &amp; Family Welfare
-                  </p>
-                </div>
-
-                <a routerLink="/schemes" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-
-              <!-- SCHEME 3 -->
-              <li class="dash-list__item">
-                <div class="dash-list__icon-wrap dash-list__icon-wrap--health">
-                  <span class="material-icons" aria-hidden="true">
-                    construction
-                  </span>
-                </div>
-
-                <div class="dash-list__details">
-                  <p class="dash-list__title">
-                    PM Vishwakarma Yojana
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Micro, Small &amp; Medium Enterprises
-                  </p>
-                </div>
-
-                <a routerLink="/schemes" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-
-              <!-- SCHEME 4 -->
-              <li class="dash-list__item">
-                <div class="dash-list__icon-wrap dash-list__icon-wrap--health">
-                  <span class="material-icons" aria-hidden="true">
-                    school
-                  </span>
-                </div>
-
-                <div class="dash-list__details">
-                  <p class="dash-list__title">
-                    Post Matric Scholarship Scheme
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Health &amp; Family Welfare
-                  </p>
-                </div>
-
-                <a routerLink="/schemes" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-            </ul>
-
-            <a routerLink="/schemes" class="dash-panel__footer-link">
-              See More Schemes
-              <span class="material-icons" aria-hidden="true">
-                arrow_forward
-              </span>
-            </a>
-          </article>
-
-          <!-- ===================================================
-               POLICIES
-               =================================================== -->
-          <article class="dash-panel">
-
-            <div class="dash-panel__header">
-              <h2>Policies</h2>
-
-              <a routerLink="/policies" class="dash-panel__link">
-                View All
-              </a>
-            </div>
-
-            <ul class="dash-list">
-
-              <!-- POLICY 1 -->
-              <li class="dash-list__item">
-                <div class="dash-list__details dash-list__details--no-icon">
-                  <p class="dash-list__title">
-                    National Education Policy 2020
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Education
-                  </p>
-                </div>
-
-                <a routerLink="/policies" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-
-              <!-- POLICY 2 -->
-              <li class="dash-list__item">
-                <div class="dash-list__details dash-list__details--no-icon">
-                  <p class="dash-list__title">
-                    Ayushman Bharat Policy
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Health &amp; Family Welfare
-                  </p>
-                </div>
-
-                <a routerLink="/policies" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-
-              <!-- POLICY 3 -->
-              <li class="dash-list__item">
-                <div class="dash-list__details dash-list__details--no-icon">
-                  <p class="dash-list__title">
-                    Electricity Act, 2003
-                  </p>
-
-                  <p class="dash-list__meta">
-                    Ministry of Power
-                  </p>
-                </div>
-
-                <a routerLink="/policies" class="dash-list__action">
-                  View Details
-                </a>
-              </li>
-            </ul>
-
-            <a routerLink="/policies" class="dash-panel__footer-link">
-              See More Policies
-              <span class="material-icons" aria-hidden="true">
-                arrow_forward
-              </span>
-            </a>
-          </article>
-        </section>
-      </div>
-    </main>
-
-    <!-- =======================================================
-         FOOTER
-         ======================================================= -->
-    <footer class="dash-footer">
-
-      <p class="dash-footer__copy">
-        © 2026 PolicyGPT. All rights reserved.
+      <p class="dash-welcome__eyebrow">
+        ADMIN DASHBOARD
       </p>
 
-      <div class="dash-footer__links">
-        <a routerLink="/privacy">Privacy</a>
+      <h1 class="dash-welcome__title">
+        Welcome back, {{ userName }}!
+      </h1>
 
-        <span class="dash-footer__dot">•</span>
+      <p class="dash-welcome__sub">
+        Manage government policies, schemes, users and platform
+        activities from your admin dashboard.
+      </p>
 
-        <a routerLink="/terms">Terms</a>
+    </div>
 
-        <span class="dash-footer__dot">•</span>
 
-        <a routerLink="/help">Help</a>
+    <!-- GOVERNMENT BUILDING -->
+
+    <div class="dash-welcome__illustration" aria-hidden="true">
+
+      <div class="welcome-building welcome-building--large">
+
+        <div class="welcome-building__dome"></div>
+
+        <div class="welcome-building__roof"></div>
+
+        <div class="welcome-building__columns">
+
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+
+        </div>
+
       </div>
-    </footer>
 
-    @if (showLogoutModal) {
 
-    <app-logout-confirm (confirmed)="confirmLogout()" (cancelled)="cancelLogout()"></app-logout-confirm>
+      <div class="welcome-building welcome-building--small">
+
+        <div class="welcome-building__tower"></div>
+
+        <div class="welcome-building__body"></div>
+
+      </div>
+
+
+      <span class="welcome-bird welcome-bird--one">
+        ︿
+      </span>
+
+      <span class="welcome-bird welcome-bird--two">
+        ︿
+      </span>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       STATISTICS
+  ====================================================== -->
+
+  <section class="dash-stats" aria-label="Admin dashboard statistics">
+
+    @for (card of statCards; track card.label) {
+
+    <article class="dash-stat-card">
+
+      <div class="dash-stat-card__icon" [class.dash-stat-card__icon--blue]="card.color === 'blue'"
+        [class.dash-stat-card__icon--orange]="card.color === 'orange'"
+        [class.dash-stat-card__icon--green]="card.color === 'green'"
+        [class.dash-stat-card__icon--purple]="card.color === 'purple'">
+
+        <span class="material-icons" aria-hidden="true">
+          {{ card.icon }}
+        </span>
+
+      </div>
+
+
+      <div class="dash-stat-card__content">
+
+        <p class="dash-stat-card__value">
+          {{ card.value }}
+        </p>
+
+        <p class="dash-stat-card__label">
+          {{ card.label }}
+        </p>
+
+        <p class="dash-stat-card__sub">
+          {{ card.sublabel }}
+        </p>
+
+      </div>
+
+    </article>
 
     }
-  </div>
-</div>
+
+  </section>
+
+
+  <!-- =====================================================
+       ADMIN PANELS
+  ====================================================== -->
+
+  <section class="dash-panels">
+
+
+    <!-- ===================================================
+         SCHEMES
+    ==================================================== -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Schemes
+        </h2>
+
+        <a routerLink="/admin/schemes" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      <ul class="dash-list">
+
+        @for (scheme of schemes; track scheme.id) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--health]="
+                scheme.iconClass === 'health' ||
+                scheme.iconClass === 'sun' ||
+                scheme.iconClass === 'work' ||
+                scheme.iconClass === 'edu'
+              ">
+
+            <span class="material-icons">
+              {{ scheme.icon }}
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ scheme.title }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ scheme.ministry }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/admin/schemes" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+
+      <a routerLink="/admin/schemes" class="dash-panel__footer-link">
+
+        See More Schemes
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+
+    <!-- ===================================================
+         POLICIES
+    ==================================================== -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Policies
+        </h2>
+
+        <a routerLink="/admin/policies" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      <ul class="dash-list">
+
+        @for (policy of policies; track policy.id) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__details
+                     dash-list__details--no-icon">
+
+            <p class="dash-list__title">
+              {{ policy.title }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ policy.ministry }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/admin/policies" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+
+      <a routerLink="/admin/policies" class="dash-panel__footer-link">
+
+        See More Policies
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+  </section>
+
+</section>

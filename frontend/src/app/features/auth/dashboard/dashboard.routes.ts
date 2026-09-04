@@ -11,9 +11,7 @@ export const DASHBOARD_ROUTES: Routes = [
 
   {
     path: "user-dashboard",
-
     canActivate: [authGuard, roleGuard],
-
     data: {
       roles: [
         "RESEARCHER",
@@ -25,13 +23,24 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("./user-dashboard/user-dashboard.component").then(
-        (m) => m.UserDashboardComponent,
+      import("../../../shared/layouts/user-layout/user-layout.component").then(
+        (m) => m.UserLayoutComponent,
       ),
+
+    children: [
+      {
+        path: "",
+        loadComponent: () =>
+          import("./user-dashboard/user-dashboard.component").then(
+            (m) => m.UserDashboardComponent,
+          ),
+      },
+    ],
   },
 
   // =========================================================
   // CITIZEN DASHBOARD
+  // CitizenLayout is the PARENT
   // =========================================================
 
   {
@@ -44,11 +53,24 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+      import("../../../shared/layouts/citizen-layout/citizen-layout.component").then(
+        (m) => m.CitizenLayoutComponent,
+      ),
+
+    children: [
+      // Citizen Dashboard
+      {
+        path: "",
+
+        loadComponent: () =>
+          import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+      },
+    ],
   },
 
   // =========================================================
   // GOVERNMENT DASHBOARD
+  // GovernmentLayout is the PARENT
   // =========================================================
 
   {
@@ -61,13 +83,26 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("./government/government.component").then(
-        (m) => m.GovernmentComponent,
+      import("../../../shared/layouts/government-layout/government-layout.component").then(
+        (m) => m.GovernmentLayoutComponent,
       ),
+
+    children: [
+      // Government Dashboard
+      {
+        path: "",
+
+        loadComponent: () =>
+          import("./government/government.component").then(
+            (m) => m.GovernmentComponent,
+          ),
+      },
+    ],
   },
 
   // =========================================================
   // ADMIN DASHBOARD
+  // AdminLayout is the PARENT
   // =========================================================
 
   {
@@ -80,7 +115,19 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("./admin/admin.component").then((m) => m.AdminComponent),
+      import("../../../shared/layouts/admin-layout/admin-layout.component").then(
+        (m) => m.AdminLayoutComponent,
+      ),
+
+    children: [
+      // Admin Dashboard
+      {
+        path: "",
+
+        loadComponent: () =>
+          import("./admin/admin.component").then((m) => m.AdminComponent),
+      },
+    ],
   },
 
   // =========================================================

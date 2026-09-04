@@ -1,0 +1,1269 @@
+/* =========================================================
+   POLICYGPT CITIZEN LAYOUT
+   TOPBAR + SIDEBAR + SEARCH + USERS MENU + RESPONSIVE
+   ========================================================= */
+
+/* =========================================================
+   VARIABLES
+   ========================================================= */
+
+$citizen-navy: #062b63;
+$citizen-navy-dark: #061f4a;
+$citizen-navy-light: #19539a;
+
+$citizen-bg: #f4f7fb;
+$citizen-white: #ffffff;
+$citizen-heading: #111827;
+$citizen-text: #1e293b;
+$citizen-muted: #64748b;
+$citizen-border: #e4e9f1;
+
+$citizen-blue: #0879ed;
+$citizen-blue-dark: #075dcc;
+
+$sidebar-width: 295px;
+$sidebar-collapsed-width: 76px;
+
+$topbar-height: 80px;
+$mobile-topbar-height: 64px;
+
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+
+.dash-layout {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+
+  background: $citizen-bg;
+  color: $citizen-text;
+
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  overflow-x: hidden;
+}
+
+/* =========================================================
+   MOBILE OVERLAY
+   ========================================================= */
+
+.dash-overlay {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .dash-overlay {
+    position: fixed;
+    inset: 0;
+
+    display: block;
+
+    background: rgba(3, 17, 38, 0.48);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+
+    transition:
+      opacity 0.25s ease,
+      visibility 0.25s ease;
+
+    z-index: 1150;
+  }
+
+  .dash-layout--mobile-menu-open .dash-overlay {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.dash-sidebar {
+  position: fixed;
+
+  top: $topbar-height;
+  left: 0;
+  bottom: 0;
+
+  width: $sidebar-width;
+
+  display: flex;
+  flex-direction: column;
+
+  color: $citizen-white;
+
+  background-color: #082f68;
+
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(3, 31, 72, 0.94) 0%,
+      rgba(4, 43, 88, 0.89) 48%,
+      rgba(2, 22, 51, 0.84) 100%
+    ),
+    url("/images/flag.png");
+
+  background-position:
+    center,
+    center bottom;
+
+  background-size: cover, cover;
+
+  background-repeat: no-repeat, no-repeat;
+
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
+
+  z-index: 1100;
+
+  overflow: hidden;
+
+  transition:
+    width 0.25s ease,
+    transform 0.25s ease;
+}
+
+/* Sidebar overlay layer */
+
+.dash-sidebar::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    180deg,
+    rgba(3, 30, 70, 0.18) 0%,
+    rgba(3, 30, 70, 0.08) 55%,
+    rgba(3, 25, 60, 0.12) 100%
+  );
+
+  pointer-events: none;
+
+  z-index: 0;
+}
+
+/* Keep sidebar content above overlay */
+
+.dash-sidebar > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* =========================================================
+   SIDEBAR NAVIGATION
+   ========================================================= */
+
+.dash-nav {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  padding: 43px 16px 12px;
+}
+
+.dash-nav__item {
+  width: 100%;
+  min-height: 41px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 9px 14px;
+
+  border: 1px solid transparent;
+  border-radius: 9px;
+
+  color: rgba(255, 255, 255, 0.94);
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dash-nav__item:hover {
+  color: $citizen-white;
+
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-nav__item:active {
+  transform: scale(0.99);
+}
+
+/* Active navigation */
+
+.dash-nav__item--active {
+  color: $citizen-white !important;
+
+  background: #19539a;
+
+  border-color: rgba(255, 255, 255, 0.08);
+
+  box-shadow: inset 3px 0 0 #4b91ff;
+}
+
+/* Navigation icon */
+
+.dash-nav__icon {
+  width: 22px;
+  min-width: 22px;
+
+  flex-shrink: 0;
+
+  text-align: center;
+
+  font-size: 21px !important;
+}
+
+/* Navigation label */
+
+.dash-nav__label {
+  min-width: 0;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+/* Chevron */
+
+.dash-nav__chevron {
+  margin-left: auto;
+
+  opacity: 0.75;
+
+  font-size: 19px !important;
+
+  flex-shrink: 0;
+
+  transition:
+    transform 0.22s ease,
+    opacity 0.2s ease;
+}
+
+.dash-nav__chevron--open {
+  transform: rotate(90deg);
+}
+
+/* =========================================================
+   USERS MANAGEMENT
+   ========================================================= */
+
+.dash-nav__users-toggle {
+  appearance: none;
+
+  font-family: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  outline: none;
+}
+
+.dash-nav__users-toggle:hover {
+  color: $citizen-white;
+}
+
+.dash-nav__users-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   USERS SUBMENU
+   ========================================================= */
+
+.dash-nav__submenu {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 3px;
+
+  margin: 0 0 10px 40px;
+}
+
+.dash-nav__submenu-item {
+  min-height: 36px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 8px 12px;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dash-nav__submenu-item .material-icons {
+  width: 18px;
+
+  min-width: 18px;
+
+  font-size: 17px !important;
+
+  text-align: center;
+}
+
+.dash-nav__submenu-item:hover {
+  color: $citizen-white;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  transform: translateX(2px);
+}
+
+.dash-nav__submenu-item--active {
+  color: $citizen-white !important;
+
+  background: rgba(75, 145, 255, 0.22);
+
+  border-color: rgba(75, 145, 255, 0.18);
+}
+
+.dash-nav__submenu-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   SIDEBAR FOOTER
+   ========================================================= */
+
+.dash-sidebar__footer {
+  margin-top: auto;
+
+  padding: 12px 16px 18px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Logout button */
+
+.dash-nav__logout {
+  appearance: none;
+
+  border: 1px solid transparent;
+
+  text-align: left;
+
+  font-family: inherit;
+}
+
+/* =========================================================
+   COLLAPSED SIDEBAR
+   ========================================================= */
+
+.dash-layout--sidebar-collapsed .dash-sidebar {
+  width: $sidebar-collapsed-width;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__item {
+  justify-content: center;
+
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__label,
+.dash-layout--sidebar-collapsed .dash-nav__chevron {
+  display: none;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__submenu {
+  display: none;
+}
+
+.dash-layout--sidebar-collapsed .dash-nav__icon {
+  margin: 0;
+}
+
+.dash-layout--sidebar-collapsed .dash-sidebar__footer {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
+
+.dash-main-container {
+  width: calc(100% - #{$sidebar-width});
+
+  min-width: 0;
+
+  min-height: 100vh;
+
+  margin-left: $sidebar-width;
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding-top: $topbar-height;
+
+  transition:
+    margin-left 0.25s ease,
+    width 0.25s ease;
+}
+
+.dash-layout--sidebar-collapsed .dash-main-container {
+  width: calc(100% - #{$sidebar-collapsed-width});
+
+  margin-left: $sidebar-collapsed-width;
+}
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+.dash-topbar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  width: 100%;
+
+  height: $topbar-height;
+
+  min-height: $topbar-height;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 24px;
+
+  padding: 10px 28px;
+
+  background: $citizen-navy;
+
+  color: $citizen-white;
+
+  z-index: 2000;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================================================
+   TOPBAR BRAND
+   ========================================================= */
+
+.dash-topbar__brand {
+  width: $sidebar-width;
+
+  min-width: $sidebar-width;
+
+  height: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 9px;
+}
+
+.dash-topbar__toggle {
+  width: 38px;
+
+  height: 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex: 0 0 38px;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 7px;
+
+  background: transparent;
+
+  color: $citizen-white;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dash-topbar__toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-topbar__toggle:active {
+  transform: scale(0.96);
+}
+
+.dash-topbar__toggle .material-icons {
+  font-size: 27px;
+}
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.dash-topbar__logo-link {
+  display: flex;
+
+  align-items: center;
+
+  flex: 0 0 auto;
+
+  text-decoration: none;
+}
+
+.dash-topbar__logo {
+  width: 48px;
+
+  height: 48px;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+/* =========================================================
+   BRAND TEXT
+   ========================================================= */
+
+.dash-topbar__brand-text {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.dash-topbar__title {
+  color: $citizen-white;
+
+  font-size: 19px;
+
+  line-height: 1;
+
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.dash-topbar__title span {
+  color: #ff821b;
+}
+
+.dash-topbar__tagline {
+  display: block;
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 7.5px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.dash-search {
+  width: min(615px, 52vw);
+
+  height: 48px;
+
+  margin: 0 auto;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 0 15px;
+
+  border: 3px solid $citizen-white;
+
+  border-radius: 26px;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  flex-shrink: 1;
+
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-search:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.dash-search__icon {
+  flex-shrink: 0;
+
+  color: $citizen-white;
+
+  font-size: 25px;
+}
+
+.dash-search input {
+  width: 100%;
+
+  min-width: 0;
+
+  padding: 0;
+
+  border: 0;
+
+  outline: 0;
+
+  background: transparent;
+
+  color: $citizen-white;
+
+  font-size: 16px;
+
+  font-weight: 500;
+}
+
+.dash-search input::placeholder {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+/* =========================================================
+   USER AREA
+   ========================================================= */
+
+.dash-user {
+  min-width: 190px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  color: $citizen-white;
+}
+
+.dash-user__icon-btn {
+  width: 38px;
+
+  height: 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: $citizen-white;
+
+  text-decoration: none;
+}
+
+.dash-user__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-user__icon-btn .material-icons {
+  font-size: 23px;
+}
+
+/* Avatar */
+
+.dash-user__avatar {
+  width: 42px;
+
+  height: 42px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: #dcecff;
+}
+
+.dash-user__avatar .material-icons {
+  color: #5d7795;
+
+  font-size: 38px;
+}
+
+/* User information */
+
+.dash-user__info {
+  min-width: 90px;
+
+  max-width: 135px;
+}
+
+.dash-user__name {
+  margin: 0;
+
+  color: $citizen-white;
+
+  font-size: 14px;
+
+  font-weight: 800;
+
+  line-height: 1.2;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+.dash-user__role {
+  margin: 2px 0 0;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.dash-main {
+  width: 100%;
+
+  min-width: 0;
+
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+}
+
+/* This is where citizenComponent appears */
+
+.dash-content {
+  width: 100%;
+
+  min-width: 0;
+
+  flex: 1;
+
+  margin: 0;
+
+  padding: 0;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.dash-footer {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 22px 40px;
+
+  background: $citizen-white;
+
+  border-top: 1px solid $citizen-border;
+
+  color: $citizen-muted;
+
+  font-size: 13px;
+}
+
+.dash-footer__copy {
+  margin: 0;
+}
+
+.dash-footer__links {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.dash-footer__links a {
+  color: $citizen-muted;
+
+  text-decoration: none;
+
+  transition: color 0.2s ease;
+}
+
+.dash-footer__links a:hover {
+  color: $citizen-blue;
+}
+
+.dash-footer__dot {
+  color: #a0aec0;
+}
+
+/* =========================================================
+   TABLET
+   768px - 1100px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .dash-topbar {
+    gap: 14px;
+
+    padding: 10px 18px;
+  }
+
+  .dash-topbar__brand {
+    width: 235px;
+
+    min-width: 235px;
+  }
+
+  .dash-search {
+    width: min(450px, 42vw);
+  }
+
+  .dash-user {
+    min-width: 160px;
+  }
+
+  .dash-user__info {
+    max-width: 105px;
+  }
+
+  .dash-topbar__tagline {
+    display: none;
+  }
+
+  .dash-sidebar {
+    width: 250px;
+  }
+
+  .dash-main-container {
+    width: calc(100% - 250px);
+
+    margin-left: 250px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   <= 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+  .dash-layout {
+    display: block;
+
+    min-height: 100vh;
+  }
+
+  /* -----------------------------------------
+     TOPBAR
+     ----------------------------------------- */
+
+  .dash-topbar {
+    height: $mobile-topbar-height;
+
+    min-height: $mobile-topbar-height;
+
+    padding: 8px 14px;
+
+    gap: 10px;
+  }
+
+  .dash-topbar__brand {
+    width: auto;
+
+    min-width: 0;
+
+    flex: 1;
+  }
+
+  .dash-topbar__toggle {
+    width: 38px;
+
+    height: 38px;
+
+    flex: 0 0 38px;
+  }
+
+  .dash-topbar__logo {
+    width: 38px;
+
+    height: 38px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
+  }
+
+  /* -----------------------------------------
+     SEARCH
+     ----------------------------------------- */
+
+  .dash-search {
+    width: auto;
+
+    max-width: 210px;
+
+    flex: 1;
+
+    height: 40px;
+
+    padding: 0 11px;
+
+    border-width: 2px;
+
+    gap: 7px;
+  }
+
+  .dash-search__icon {
+    font-size: 20px;
+  }
+
+  .dash-search input {
+    font-size: 13px;
+  }
+
+  .dash-search input::placeholder {
+    font-size: 12px;
+  }
+
+  /* -----------------------------------------
+     USER
+     ----------------------------------------- */
+
+  .dash-user {
+    min-width: auto;
+
+    gap: 5px;
+  }
+
+  .dash-user__icon-btn {
+    width: 34px;
+
+    height: 34px;
+  }
+
+  .dash-user__avatar {
+    width: 36px;
+
+    height: 36px;
+  }
+
+  .dash-user__avatar .material-icons {
+    font-size: 32px;
+  }
+
+  .dash-user__info {
+    display: none;
+  }
+
+  /* -----------------------------------------
+     SIDEBAR
+     ----------------------------------------- */
+
+  .dash-sidebar {
+    top: $mobile-topbar-height;
+
+    bottom: 0;
+
+    width: $sidebar-width;
+
+    max-width: 86vw;
+
+    transform: translateX(-105%);
+
+    box-shadow: 6px 0 20px rgba(0, 0, 0, 0.25);
+
+    transition: transform 0.25s ease;
+  }
+
+  .dash-layout--mobile-menu-open .dash-sidebar {
+    transform: translateX(0);
+  }
+
+  /* -----------------------------------------
+     NAV
+     ----------------------------------------- */
+
+  .dash-nav {
+    padding: 25px 14px 12px;
+  }
+
+  .dash-nav__item {
+    min-height: 44px;
+
+    padding: 10px 13px;
+
+    font-size: 14px;
+  }
+
+  .dash-nav__icon {
+    font-size: 21px !important;
+  }
+
+  /* -----------------------------------------
+     SUBMENU
+     ----------------------------------------- */
+
+  .dash-nav__submenu {
+    margin-left: 35px;
+  }
+
+  /* -----------------------------------------
+     SIDEBAR FOOTER
+     ----------------------------------------- */
+
+  .dash-sidebar__footer {
+    padding: 12px 14px 16px;
+  }
+
+  /* -----------------------------------------
+     MAIN CONTAINER
+     ----------------------------------------- */
+
+  .dash-main-container {
+    width: 100%;
+
+    margin-left: 0;
+
+    padding-top: $mobile-topbar-height;
+
+    min-height: 100vh;
+  }
+
+  /* -----------------------------------------
+     MAIN
+     ----------------------------------------- */
+
+  .dash-main {
+    width: 100%;
+  }
+
+  .dash-content {
+    width: 100%;
+
+    padding: 0;
+  }
+
+  /* -----------------------------------------
+     FOOTER
+     ----------------------------------------- */
+
+  .dash-footer {
+    flex-direction: column;
+
+    justify-content: center;
+
+    text-align: center;
+
+    padding: 20px 18px;
+
+    gap: 10px;
+
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .dash-topbar {
+    padding: 8px 10px;
+
+    gap: 7px;
+  }
+
+  .dash-topbar__logo {
+    width: 35px;
+
+    height: 35px;
+  }
+
+  .dash-search {
+    max-width: none;
+
+    height: 38px;
+  }
+
+  .dash-search input {
+    font-size: 12px;
+  }
+
+  .dash-search__icon {
+    font-size: 19px;
+  }
+
+  .dash-user__icon-btn {
+    display: none;
+  }
+
+  .dash-user__avatar {
+    width: 34px;
+
+    height: 34px;
+  }
+
+  .dash-user__avatar .material-icons {
+    font-size: 30px;
+  }
+
+  .dash-sidebar {
+    width: 280px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   <= 360px
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .dash-search {
+    display: none;
+  }
+
+  .dash-topbar__brand {
+    flex: 1;
+  }
+
+  .dash-user {
+    margin-left: auto;
+  }
+}

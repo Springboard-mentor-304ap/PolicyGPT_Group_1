@@ -2,24 +2,9 @@ import { Component, OnInit, ChangeDetectorRef, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 
-import { FormsModule } from "@angular/forms";
-
-import { Router, RouterLink, RouterLinkActive } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 
 import { Auth } from "../../../../core/services/auth";
-
-import { LogoutConfirmComponent } from "../../../../shared/components/logout-confirm/logout-confirm.component";
-
-// =========================================================
-// NAVIGATION ITEM
-// =========================================================
-
-export interface NavItem {
-  icon: string;
-  label: string;
-  route?: string;
-  children?: NavItem[];
-}
 
 // =========================================================
 // STAT CARD
@@ -79,13 +64,7 @@ export interface ApplicationItem {
 
   standalone: true,
 
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    RouterLinkActive,
-    LogoutConfirmComponent,
-  ],
+  imports: [CommonModule, RouterLink],
 
   templateUrl: "./government.component.html",
 
@@ -111,20 +90,6 @@ export class GovernmentComponent implements OnInit {
   userRole = "GOVERNMENT OFFICIAL";
 
   // =======================================================
-  // SIDEBAR
-  // =======================================================
-
-  sidebarCollapsed = false;
-
-  mobileMenuOpen = false;
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
-
-  // =======================================================
   // LOADING STATES
   // =======================================================
 
@@ -137,60 +102,6 @@ export class GovernmentComponent implements OnInit {
   loadingHistory = true;
 
   loadingApplications = true;
-
-  // =======================================================
-  // LOGOUT MODAL
-  // =======================================================
-
-  showLogoutModal = false;
-
-  // =======================================================
-  // NAVIGATION
-  // =======================================================
-
-  navItems: NavItem[] = [
-    {
-      icon: "home",
-      label: "Dashboard",
-      route: "/dashboard/government",
-    },
-
-    {
-      icon: "description",
-      label: "Policies Management",
-      route: "/government/policies",
-    },
-
-    {
-      icon: "account_balance",
-      label: "Scheme Management",
-      route: "/government/schemes",
-    },
-
-    {
-      icon: "assignment",
-      label: "Applications",
-      route: "/government/applications",
-    },
-
-    {
-      icon: "notifications_none",
-      label: "Notifications",
-      route: "/notifications",
-    },
-
-    {
-      icon: "insert_chart_outlined",
-      label: "Reports",
-      route: "/government/reports",
-    },
-
-    {
-      icon: "fact_check",
-      label: "Audit Logs",
-      route: "/government/audit-logs",
-    },
-  ];
 
   // =======================================================
   // STATISTICS
@@ -244,7 +155,7 @@ export class GovernmentComponent implements OnInit {
 
   ngOnInit(): void {
     // =====================================================
-    // LOAD USER
+    // LOAD CURRENT USER
     // =====================================================
 
     this.loadUser();
@@ -364,6 +275,7 @@ export class GovernmentComponent implements OnInit {
       this.searchHistory = [
         {
           name: "Ayushman Bharat",
+
           filters: "Scheme • Health",
         },
 
@@ -424,7 +336,7 @@ export class GovernmentComponent implements OnInit {
     const storedUser = this.authService.getStoredUser();
 
     // =====================================================
-    // USE STORED USER
+    // USE STORED USER FIRST
     // =====================================================
 
     if (storedUser) {
@@ -467,9 +379,9 @@ export class GovernmentComponent implements OnInit {
       error: (error) => {
         console.error("Unable to load current user:", error);
 
-        // -----------------------------------------------
+        // =============================================
         // INVALID / EXPIRED TOKEN
-        // -----------------------------------------------
+        // =============================================
 
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();
@@ -480,115 +392,5 @@ export class GovernmentComponent implements OnInit {
         }
       },
     });
-  }
-
-  // =======================================================
-  // SIDEBAR TOGGLE
-  // =======================================================
-
-  toggleSidebar(): void {
-    if (window.innerWidth <= 767) {
-      this.mobileMenuOpen = !this.mobileMenuOpen;
-
-      return;
-    }
-
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
-
-  // =======================================================
-  // CLOSE MOBILE MENU
-  // =======================================================
-
-  closeMobileMenu(): void {
-    this.mobileMenuOpen = false;
-  }
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    console.log("Government dashboard search:", query);
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-  }
-
-  // =======================================================
-  // LOGOUT
-  // =======================================================
-
-  logout(): void {
-    // -----------------------------------------------
-    // OPEN CONFIRMATION POPUP
-    // -----------------------------------------------
-
-    this.showLogoutModal = true;
-
-    this.cdr.detectChanges();
-  }
-
-  // =======================================================
-  // CONFIRM LOGOUT
-  // YES BUTTON
-  // =======================================================
-
-  confirmLogout(): void {
-    console.log("Government user confirmed logout");
-
-    // -----------------------------------------------
-    // CLOSE POPUP
-    // -----------------------------------------------
-
-    this.showLogoutModal = false;
-
-    // -----------------------------------------------
-    // LOGOUT USING AUTH SERVICE
-    // -----------------------------------------------
-
-    this.authService.logout();
-
-    // -----------------------------------------------
-    // RESET SIDEBAR
-    // -----------------------------------------------
-
-    this.mobileMenuOpen = false;
-
-    this.sidebarCollapsed = false;
-
-    // -----------------------------------------------
-    // REDIRECT TO LOGIN
-    // -----------------------------------------------
-
-    this.router.navigate(["/auth/login"], {
-      replaceUrl: true,
-    });
-  }
-
-  // =======================================================
-  // CANCEL LOGOUT
-  // NO BUTTON
-  // =======================================================
-
-  cancelLogout(): void {
-    console.log("Government user cancelled logout");
-
-    // -----------------------------------------------
-    // CLOSE POPUP
-    // -----------------------------------------------
-
-    this.showLogoutModal = false;
-
-    this.cdr.detectChanges();
   }
 }

@@ -1,97 +1,54 @@
-/* =========================================================
-   POLICYGPT CITIZEN DASHBOARD
-   ========================================================= */
+// =====================================================
+// POLICYGPT CITIZEN DASHBOARD
+// =====================================================
 
-/* =========================================================
-   VARIABLES
-   ========================================================= */
-
-$admin-navy: #062b63;
-$admin-navy-dark: #061f4a;
-$admin-navy-light: #19539a;
+// =====================================================
+// VARIABLES
+// =====================================================
 
 $admin-bg: #f4f7fb;
 $admin-white: #ffffff;
+
 $admin-heading: #111827;
 $admin-text: #1e293b;
 $admin-muted: #64748b;
+
 $admin-border: #e4e9f1;
 
 $admin-blue: #0879ed;
-$admin-blue-dark: #075dcc;
 $admin-orange: #ff861c;
 $admin-green: #078944;
 $admin-purple: #8b00e8;
 
-$sidebar-width: 295px;
-$sidebar-collapsed-width: 76px;
-$topbar-height: 80px;
-$mobile-topbar-height: 64px;
+// =====================================================
+// HOST
+// =====================================================
 
-/* =========================================================
-   GLOBAL
-   ========================================================= */
-
-* {
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100%;
   box-sizing: border-box;
 }
 
-html,
-body {
+// =====================================================
+// DASHBOARD
+// =====================================================
+
+.citizen-dashboard {
   width: 100%;
-  min-height: 100%;
-  margin: 0;
-  padding: 0;
-}
+  min-width: 0;
 
-body {
-  overflow-x: hidden;
-}
+  // MAIN PADDING
+  padding: 28px 32px 40px;
 
-button,
-input {
-  font: inherit;
-}
+  // MAIN MARGIN
+  margin: 0 auto;
 
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-ul,
-ol {
-  margin-top: 0;
-}
-
-img {
-  max-width: 100%;
-}
-
-/* =========================================================
-   MAIN LAYOUT
-   ========================================================= */
-
-.dash-layout {
-  width: 100%;
-  min-height: 100vh;
-
-  display: flex;
+  box-sizing: border-box;
 
   background: $admin-bg;
+
   color: $admin-text;
 
   font-family:
@@ -107,601 +64,16 @@ img {
   overflow-x: hidden;
 }
 
-/* =========================================================
-   OVERLAY
-   ========================================================= */
-
-.dash-overlay {
-  display: none;
-}
-
-@media (max-width: 767px) {
-  .dash-overlay {
-    position: fixed;
-    inset: 0;
-
-    display: block;
-
-    background: rgba(3, 17, 38, 0.48);
-
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-
-    transition:
-      opacity 0.25s ease,
-      visibility 0.25s ease;
-
-    z-index: 1150;
-  }
-
-  .dash-layout--mobile-menu-open .dash-overlay {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-}
-
-/* =========================================================
-   SIDEBAR
-   ========================================================= */
-
-.dash-sidebar {
-  position: fixed;
-  top: $topbar-height;
-  left: 0;
-  bottom: 0;
-
-  width: $sidebar-width;
-
-  display: flex;
-  flex-direction: column;
-
-  color: $admin-white;
-
-  background-color: #082f68;
-
-  /*
-    Keep the parliament/flag background behind the menu.
-    If your file is named parliament.png, replace flag.png
-    below with parliament.png.
-  */
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(3, 31, 72, 0.94) 0%,
-      rgba(4, 43, 88, 0.89) 48%,
-      rgba(2, 22, 51, 0.84) 100%
-    ),
-    url("/images/flag.png");
-
-  background-position:
-    center,
-    center bottom;
-
-  background-size: cover, cover;
-  background-repeat: no-repeat, no-repeat;
-
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
-
-  z-index: 1100;
-
-  overflow: hidden;
-
-  transition:
-    width 0.25s ease,
-    transform 0.25s ease;
-}
-
-.dash-sidebar::before {
-  content: "";
-
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    180deg,
-    rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 55%,
-    rgba(3, 25, 60, 0.12) 100%
-  );
-
-  pointer-events: none;
-  z-index: 0;
-}
-
-.dash-sidebar > * {
-  position: relative;
-  z-index: 2;
-}
-
-/* =========================================================
-   SIDEBAR NAVIGATION
-   ========================================================= */
-
-.dash-nav {
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
-
-  padding: 43px 16px 12px;
-}
-
-.dash-nav__item {
-  width: 100%;
-  min-height: 41px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 13px;
-
-  padding: 9px 14px;
-
-  border: 1px solid transparent;
-  border-radius: 9px;
-
-  color: rgba(255, 255, 255, 0.94);
-  background: transparent;
-
-  text-decoration: none;
-
-  font-size: 14px;
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-nav__item:hover {
-  color: $admin-white;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-nav__item:active {
-  transform: scale(0.99);
-}
-
-.dash-nav__item--active {
-  color: $admin-white !important;
-  background: #19539a;
-  border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 3px 0 0 #4b91ff;
-}
-
-.dash-nav__icon {
-  width: 22px;
-  min-width: 22px;
-
-  flex-shrink: 0;
-
-  text-align: center;
-
-  font-size: 21px !important;
-}
-
-.dash-nav__label {
-  min-width: 0;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-nav__chevron {
-  margin-left: auto;
-
-  opacity: 0.75;
-
-  font-size: 19px !important;
-}
-
-/* =========================================================
-   SIDEBAR FOOTER
-   ========================================================= */
-
-.dash-sidebar__footer {
-  margin-top: auto;
-
-  padding: 12px 16px 18px;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.dash-nav__logout {
-  appearance: none;
-
-  border: 1px solid transparent;
-
-  text-align: left;
-
-  font-family: inherit;
-}
-
-/* =========================================================
-   COLLAPSED SIDEBAR
-   ========================================================= */
-
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  width: $sidebar-collapsed-width;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__item {
-  justify-content: center;
-
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__label,
-.dash-layout--sidebar-collapsed .dash-nav__chevron {
-  display: none;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__icon {
-  margin: 0;
-}
-
-.dash-layout--sidebar-collapsed .dash-sidebar__footer {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-/* =========================================================
-   MAIN CONTAINER
-   ========================================================= */
-
-.dash-main-container {
-  width: calc(100% - #{$sidebar-width});
-  min-width: 0;
-  min-height: 100vh;
-
-  margin-left: $sidebar-width;
-
-  display: flex;
-  flex-direction: column;
-
-  padding-top: $topbar-height;
-
-  transition:
-    margin-left 0.25s ease,
-    width 0.25s ease;
-}
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - #{$sidebar-collapsed-width});
-  margin-left: $sidebar-collapsed-width;
-}
-
-/* =========================================================
-   TOP NAVBAR
-   ========================================================= */
-
-.dash-topbar {
-  position: fixed;
-
-  top: 0;
-  left: 0;
-  right: 0;
-
-  width: 100%;
-  height: $topbar-height;
-  min-height: $topbar-height;
-
-  display: flex;
-  align-items: center;
-
-  gap: 24px;
-
-  padding: 10px 28px;
-
-  background: $admin-navy;
-
-  color: $admin-white;
-
-  z-index: 2000;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* =========================================================
-   NAVBAR BRAND
-   ========================================================= */
-
-.dash-topbar__brand {
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-
-  height: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-}
-
-.dash-topbar__toggle {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 38px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 7px;
-
-  background: transparent;
-  color: $admin-white;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-topbar__toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-topbar__toggle:active {
-  transform: scale(0.96);
-}
-
-.dash-topbar__toggle .material-icons {
-  font-size: 27px;
-}
-
-.dash-topbar__logo-link {
-  display: flex;
-  align-items: center;
-
-  flex: 0 0 auto;
-
-  text-decoration: none;
-}
-
-.dash-topbar__logo {
-  width: 48px;
-  height: 48px;
-
-  object-fit: contain;
-
-  display: block;
-}
-
-.dash-topbar__brand-text {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dash-topbar__title {
-  color: $admin-white;
-
-  font-size: 19px;
-  line-height: 1;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.dash-topbar__title span {
-  color: #ff821b;
-}
-
-.dash-topbar__tagline {
-  color: rgba(255, 255, 255, 0.76);
-
-  font-size: 7.5px;
-  font-weight: 500;
-
-  white-space: nowrap;
-}
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-.dash-search {
-  width: min(615px, 52vw);
-  height: 48px;
-
-  margin: 0 auto;
-
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-
-  padding: 0 15px;
-
-  border: 3px solid $admin-white;
-  border-radius: 26px;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  flex-shrink: 1;
-
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.dash-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-}
-
-.dash-search__icon {
-  flex-shrink: 0;
-
-  color: $admin-white;
-
-  font-size: 25px;
-}
-
-.dash-search input {
-  width: 100%;
-  min-width: 0;
-
-  padding: 0;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-
-  color: $admin-white;
-
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.dash-search input::placeholder {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-/* =========================================================
-   USER AREA
-   ========================================================= */
-
-.dash-user {
-  min-width: 190px;
-
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 10px;
-
-  color: $admin-white;
-}
-
-.dash-user__icon-btn {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-  color: $admin-white;
-
-  text-decoration: none;
-}
-
-.dash-user__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-user__icon-btn .material-icons {
-  font-size: 23px;
-}
-
-.dash-user__avatar {
-  width: 42px;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: #dcecff;
-}
-
-.dash-user__avatar .material-icons {
-  color: #5d7795;
-  font-size: 38px;
-}
-
-.dash-user__info {
-  min-width: 90px;
-  max-width: 135px;
-}
-
-.dash-user__name {
-  margin: 0;
-
-  color: $admin-white;
-
-  font-size: 14px;
-  font-weight: 800;
-
-  line-height: 1.2;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-user__role {
-  margin: 2px 0 0;
-
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* =========================================================
-   MAIN
-   ========================================================= */
-
-.dash-main {
-  width: 100%;
-  min-width: 0;
-
-  flex: 1;
-}
-
-.dash-content {
-  width: 100%;
-
-  margin: 0;
-
-  padding: 50px 60px 40px;
-}
-
-/* =========================================================
-   WELCOME BANNER
-   ========================================================= */
+// =====================================================
+// WELCOME BANNER
+// =====================================================
 
 .dash-welcome {
   position: relative;
 
   min-height: 233px;
 
-  margin-bottom: 36px;
+  margin: 0 0 28px;
 
   display: flex;
   align-items: center;
@@ -709,6 +81,8 @@ img {
   overflow: hidden;
 
   padding: 34px 43px;
+
+  box-sizing: border-box;
 
   border-radius: 20px;
 
@@ -723,14 +97,17 @@ img {
   z-index: 3;
 
   max-width: 700px;
+
+  margin: 0;
 }
 
 .dash-welcome__eyebrow {
-  margin: 0 0 7px;
+  margin: 0 0 8px;
 
   color: #5073b7;
 
   font-size: 10px;
+
   font-weight: 800;
 
   letter-spacing: 1.2px;
@@ -742,6 +119,7 @@ img {
   color: #111111;
 
   font-size: clamp(30px, 2.4vw, 38px);
+
   font-weight: 800;
 
   line-height: 1.15;
@@ -750,19 +128,20 @@ img {
 .dash-welcome__sub {
   max-width: 620px;
 
-  margin: 10px 0 0;
+  margin: 12px 0 0;
 
   color: #344054;
 
   font-size: 14px;
+
   font-weight: 500;
 
   line-height: 1.55;
 }
 
-/* =========================================================
-   WELCOME ILLUSTRATION
-   ========================================================= */
+// =====================================================
+// WELCOME ILLUSTRATION
+// =====================================================
 
 .dash-welcome__illustration {
   position: absolute;
@@ -839,6 +218,7 @@ img {
   height: 78px;
 
   display: flex;
+
   justify-content: space-between;
 }
 
@@ -886,6 +266,7 @@ img {
   color: #a7bbef;
 
   font-size: 27px;
+
   font-weight: 700;
 }
 
@@ -901,22 +282,27 @@ img {
   font-size: 21px;
 }
 
-/* =========================================================
-   STATISTICS
-   ========================================================= */
+// =====================================================
+// STATISTICS
+// =====================================================
 
 .dash-stats {
   display: grid;
 
   grid-template-columns: repeat(4, minmax(0, 1fr));
 
-  gap: 28px;
+  gap: 24px;
 
-  margin-bottom: 26px;
+  margin: 0 0 30px;
+
+  padding: 0;
+
+  box-sizing: border-box;
 }
 
 .dash-stat-card {
   min-width: 0;
+
   min-height: 84px;
 
   display: flex;
@@ -924,7 +310,9 @@ img {
 
   gap: 14px;
 
-  padding: 15px 17px;
+  padding: 17px 19px;
+
+  box-sizing: border-box;
 
   border-radius: 17px;
 
@@ -958,6 +346,7 @@ img {
 
 .dash-stat-card__icon .material-icons {
   color: $admin-white;
+
   font-size: 24px;
 }
 
@@ -979,6 +368,7 @@ img {
 
 .dash-stat-card__content {
   min-width: 0;
+
   flex: 1;
 }
 
@@ -988,56 +378,75 @@ img {
   color: #111827;
 
   font-size: 20px;
+
   font-weight: 800;
 
   line-height: 1;
 }
 
 .dash-stat-card__label {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
 
   color: #172033;
 
   font-size: 12px;
+
   font-weight: 700;
 
   line-height: 1.25;
 }
 
 .dash-stat-card__sub {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
 
   color: $admin-muted;
 
   font-size: 9.5px;
+
   font-weight: 500;
 
   white-space: nowrap;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
 }
 
-/* =========================================================
-   PANELS
-   ========================================================= */
+// =====================================================
+// PANELS
+// =====================================================
 
 .dash-panels {
   display: grid;
 
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  gap: 42px;
-  margin-bottom: 42px;
+  gap: 28px;
+
+  margin: 0 0 30px;
+
+  padding: 0;
+
+  box-sizing: border-box;
+}
+
+.dash-panels--bottom {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .dash-panel {
   min-width: 0;
+
   min-height: 370px;
 
   display: flex;
+
   flex-direction: column;
 
-  padding: 25px 26px 18px;
+  padding: 25px 26px 20px;
+
+  box-sizing: border-box;
 
   border-radius: 19px;
 
@@ -1046,15 +455,22 @@ img {
   box-shadow: 0 4px 17px rgba(15, 40, 82, 0.055);
 }
 
+// =====================================================
+// PANEL HEADER
+// =====================================================
+
 .dash-panel__header {
   display: flex;
+
   align-items: center;
 
   justify-content: space-between;
 
   gap: 12px;
 
-  margin-bottom: 9px;
+  margin: 0 0 12px;
+
+  padding: 0;
 }
 
 .dash-panel__header h2 {
@@ -1063,6 +479,7 @@ img {
   color: #16223d;
 
   font-size: 14px;
+
   font-weight: 800;
 
   line-height: 1.3;
@@ -1074,6 +491,7 @@ img {
   color: #075ee8;
 
   font-size: 11px;
+
   font-weight: 700;
 
   text-decoration: none;
@@ -1083,13 +501,19 @@ img {
   text-decoration: underline;
 }
 
-.dash-panel__footer-link {
-  margin-top: auto;
+// =====================================================
+// PANEL FOOTER LINK
+// =====================================================
 
-  padding-top: 12px;
+.dash-panel__footer-link {
+  margin: auto 0 0;
+
+  padding: 15px 0 2px;
 
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   gap: 4px;
@@ -1097,6 +521,7 @@ img {
   color: #075ee8;
 
   font-size: 10.5px;
+
   font-weight: 700;
 
   text-decoration: none;
@@ -1110,14 +535,15 @@ img {
   font-size: 14px;
 }
 
-/* =========================================================
-   LISTS
-   ========================================================= */
+// =====================================================
+// LIST
+// =====================================================
 
 .dash-list {
   list-style: none;
 
   padding: 0;
+
   margin: 0;
 }
 
@@ -1125,11 +551,12 @@ img {
   min-width: 0;
 
   display: flex;
+
   align-items: center;
 
   gap: 12px;
 
-  padding: 13px 0;
+  padding: 14px 0;
 
   border-bottom: 1px solid $admin-border;
 }
@@ -1138,12 +565,18 @@ img {
   border-bottom: 0;
 }
 
+// =====================================================
+// LIST ICON
+// =====================================================
+
 .dash-list__icon-wrap {
   width: 35px;
   height: 35px;
 
   display: flex;
+
   align-items: center;
+
   justify-content: center;
 
   flex-shrink: 0;
@@ -1157,18 +590,26 @@ img {
 
 .dash-list__icon-wrap--health {
   background: #e9f8ef;
+
   color: #079348;
 }
 
 .dash-list__icon-wrap--neutral {
   background: #f0f2f5;
+
   color: #657184;
 }
+
+// =====================================================
+// LIST DETAILS
+// =====================================================
 
 .dash-list__details {
   min-width: 0;
 
   flex: 1;
+
+  margin: 0;
 }
 
 .dash-list__details--no-icon {
@@ -1181,28 +622,47 @@ img {
   color: #18202f;
 
   font-size: 11.5px;
+
   font-weight: 750;
 
   line-height: 1.35;
 }
 
 .dash-list__meta {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
 
   color: #526071;
 
   font-size: 9.5px;
+
   font-weight: 500;
 
   line-height: 1.35;
 }
 
+.dash-list__submeta {
+  margin: 4px 0 0;
+
+  color: #7b8797;
+
+  font-size: 8.5px;
+
+  font-weight: 500;
+}
+
+// =====================================================
+// LIST ACTION
+// =====================================================
+
 .dash-list__action {
   flex-shrink: 0;
+
+  margin-left: 8px;
 
   color: #075ee8;
 
   font-size: 9px;
+
   font-weight: 700;
 
   text-decoration: none;
@@ -1214,86 +674,117 @@ img {
   text-decoration: underline;
 }
 
-/* =========================================================
-   FOOTER
-   ========================================================= */
+// =====================================================
+// LOADING
+// =====================================================
 
-.dash-footer {
-  min-height: 61px;
+.dash-loader {
+  flex: 1;
 
   display: flex;
+
+  flex-direction: column;
+
   align-items: center;
-  justify-content: space-between;
 
-  gap: 20px;
+  justify-content: center;
 
-  padding: 13px 60px;
+  gap: 10px;
 
-  background: #173a70;
-
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.dash-footer__copy {
-  margin: 0;
+  color: $admin-muted;
 
   font-size: 11px;
-  font-weight: 500;
+
+  padding: 25px;
 }
 
-.dash-footer__links {
-  display: flex;
-  align-items: center;
+.dash-spinner {
+  width: 25px;
+  height: 25px;
 
-  gap: 8px;
+  border: 3px solid #dbe5f5;
+
+  border-top-color: $admin-blue;
+
+  border-radius: 50%;
+
+  animation: dash-spin 0.8s linear infinite;
 }
 
-.dash-footer__links a {
-  color: $admin-white;
-
-  font-size: 10.5px;
-  font-weight: 500;
-
-  text-decoration: none;
+@keyframes dash-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.dash-footer__links a:hover {
-  text-decoration: underline;
+// =====================================================
+// SKELETON
+// =====================================================
+
+.skeleton {
+  background: linear-gradient(90deg, #edf1f7 25%, #f8fafc 50%, #edf1f7 75%);
+
+  background-size: 200% 100%;
+
+  animation: skeleton-loading 1.5s infinite;
 }
 
-.dash-footer__dot {
-  color: rgba(255, 255, 255, 0.55);
+.skeleton--stat-num {
+  width: 42px;
+  height: 20px;
+
+  border-radius: 5px;
+
+  margin: 0 0 5px;
 }
 
-/* =========================================================
-   ACCESSIBILITY
-   ========================================================= */
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
 
-.dash-nav__item:focus-visible,
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// =====================================================
+// ACCESSIBILITY
+// =====================================================
+
 .dash-panel__link:focus-visible,
 .dash-panel__footer-link:focus-visible,
-.dash-footer__links a:focus-visible,
-.dash-user__icon-btn:focus-visible,
-.dash-topbar__toggle:focus-visible {
+.dash-list__action:focus-visible {
   outline: 2px solid #60a5fa;
+
   outline-offset: 2px;
 }
 
-.dash-search input:focus-visible {
-  outline: none;
-}
-
-/* =========================================================
-   LARGE DESKTOP
-   ========================================================= */
+// =====================================================
+// LARGE DESKTOP
+// =====================================================
 
 @media (min-width: 1440px) {
-  .dash-content {
-    padding: 51px 60px 40px;
+  .citizen-dashboard {
+    padding: 32px 40px 45px;
   }
 
   .dash-welcome {
     min-height: 233px;
+
+    margin-bottom: 30px;
+  }
+
+  .dash-stats {
+    gap: 28px;
+
+    margin-bottom: 32px;
+  }
+
+  .dash-panels {
+    gap: 32px;
+
+    margin-bottom: 32px;
   }
 
   .dash-panel {
@@ -1301,97 +792,51 @@ img {
   }
 }
 
-/* =========================================================
-   LAPTOP
-   1200px - 1439px
-   ========================================================= */
+// =====================================================
+// LAPTOP
+// =====================================================
 
 @media (max-width: 1439px) {
-  .dash-content {
-    padding: 38px 34px 35px;
-  }
-
-  .dash-topbar {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
-  .dash-topbar__brand {
-    width: 255px;
-    min-width: 255px;
-  }
-
-  .dash-search {
-    width: min(550px, 48vw);
-  }
-
-  .dash-user {
-    min-width: 175px;
+  .citizen-dashboard {
+    padding: 26px 28px 38px;
   }
 
   .dash-welcome {
     min-height: 190px;
-    padding-left: 35px;
-    padding-right: 35px;
+
+    padding: 32px 35px;
+
+    margin-bottom: 26px;
   }
 
   .dash-stats {
-    gap: 18px;
+    gap: 20px;
+
+    margin-bottom: 26px;
   }
 
   .dash-panels {
-    gap: 25px;
-  }
+    gap: 24px;
 
-  .dash-footer {
-    padding-left: 34px;
-    padding-right: 34px;
+    margin-bottom: 26px;
   }
 }
 
-/* =========================================================
-   SMALL DESKTOP
-   992px - 1199px
-   ========================================================= */
+// =====================================================
+// TABLET
+// =====================================================
 
 @media (max-width: 1199px) {
-  .dash-sidebar {
-    width: 240px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 240px);
-    margin-left: 240px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - #{$sidebar-collapsed-width});
-    margin-left: $sidebar-collapsed-width;
-  }
-
-  .dash-topbar__brand {
-    width: 225px;
-    min-width: 225px;
-  }
-
-  .dash-search {
-    width: 43%;
-  }
-
-  .dash-user {
-    min-width: 145px;
-  }
-
-  .dash-user__info {
-    max-width: 100px;
-  }
-
-  .dash-content {
-    padding: 28px 22px 32px;
+  .citizen-dashboard {
+    padding: 24px 22px 34px;
   }
 
   .dash-welcome {
-    min-height: 160px;
+    min-height: 170px;
+
+    padding: 28px 30px;
+
+    margin-bottom: 24px;
   }
 
   .dash-welcome__title {
@@ -1400,103 +845,64 @@ img {
 
   .dash-welcome__sub {
     font-size: 12px;
+
+    margin-top: 9px;
   }
 
   .dash-stats {
-    gap: 12px;
+    gap: 15px;
+
+    margin-bottom: 22px;
   }
 
   .dash-stat-card {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding: 14px;
   }
 
   .dash-stat-card__icon {
-    width: 41px;
-    height: 41px;
+    width: 42px;
+
+    height: 42px;
   }
 
   .dash-stat-card__value {
     font-size: 18px;
   }
 
-  .dash-stat-card__label {
-    font-size: 11px;
-  }
-
   .dash-panels {
-    gap: 18px;
+    gap: 20px;
+
+    margin-bottom: 22px;
   }
 
   .dash-panel {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
-
-  .dash-footer {
-    padding-left: 22px;
-    padding-right: 22px;
+    padding: 22px 21px 18px;
   }
 }
 
-/* =========================================================
-   TABLET
-   768px - 991px
-   ========================================================= */
+// =====================================================
+// TABLET / SMALL LAPTOP
+// =====================================================
 
 @media (max-width: 991px) {
-  .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-topbar {
-    gap: 12px;
-  }
-
-  .dash-topbar__brand {
-    width: 205px;
-    min-width: 205px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  .dash-search {
-    width: 48%;
-    max-width: none;
-  }
-
-  .dash-user {
-    min-width: 125px;
-  }
-
-  .dash-user__info {
-    display: none;
+  .citizen-dashboard {
+    padding: 22px 18px 32px;
   }
 
   .dash-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 14px;
+
+    margin-bottom: 20px;
   }
 
   .dash-panels {
     grid-template-columns: 1fr;
-    gap: 16px;
+
+    gap: 18px;
+
+    margin-bottom: 20px;
   }
 
   .dash-panel {
@@ -1506,193 +912,24 @@ img {
   .dash-welcome__illustration {
     width: 45%;
   }
-
-  .dash-footer {
-    padding-left: 20px;
-    padding-right: 20px;
-  }
 }
 
-/* =========================================================
-   MOBILE
-   <= 767px
-   ========================================================= */
+// =====================================================
+// MOBILE
+// =====================================================
 
 @media (max-width: 767px) {
-  .dash-layout {
-    display: block;
-    min-height: 100vh;
-  }
-
-  /* ---------------------------------------------------------
-     SIDEBAR
-     --------------------------------------------------------- */
-
-  .dash-sidebar {
-    top: $mobile-topbar-height;
-    bottom: 0;
-
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-
-    box-shadow: 8px 0 25px rgba(0, 0, 0, 0.25);
-
-    z-index: 1200;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-  }
-
-  .dash-sidebar--mobile-open,
-  .dash-layout--mobile-menu-open .dash-sidebar {
-    transform: translateX(0);
-  }
-
-  .dash-nav {
-    padding-top: 25px;
-  }
-
-  /* ---------------------------------------------------------
-     MAIN
-     --------------------------------------------------------- */
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100%;
-    margin-left: 0;
-
-    padding-top: $mobile-topbar-height;
-  }
-
-  /* ---------------------------------------------------------
-     MOBILE TOPBAR
-     --------------------------------------------------------- */
-
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    top: 0;
-    left: 0;
-    right: 0;
-
-    width: 100%;
-
-    height: $mobile-topbar-height;
-    min-height: $mobile-topbar-height;
-
-    gap: 8px;
-
-    padding: 8px 11px;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    width: auto;
-    min-width: 0;
-
-    flex: 0 0 auto;
-
-    gap: 6px;
-  }
-
-  .dash-topbar__toggle {
-    width: 34px;
-    height: 34px;
-
-    flex-basis: 34px;
-  }
-
-  .dash-topbar__toggle .material-icons {
-    font-size: 24px;
-  }
-
-  .dash-topbar__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  /* ---------------------------------------------------------
-     SEARCH
-     --------------------------------------------------------- */
-
-  .dash-search {
-    width: auto;
-    max-width: none;
-
-    flex: 1 1 auto;
+  .citizen-dashboard {
+    // MOBILE OUTER SPACING
+    padding: 18px 14px 28px;
 
     margin: 0;
-
-    height: 39px;
-
-    padding: 0 10px;
-
-    border-width: 2px;
-
-    gap: 7px;
   }
-
-  .dash-search__icon {
-    font-size: 20px;
-  }
-
-  .dash-search input {
-    font-size: 12px;
-  }
-
-  /* ---------------------------------------------------------
-     USER
-     --------------------------------------------------------- */
-
-  .dash-user {
-    min-width: auto;
-    flex: 0 0 auto;
-  }
-
-  .dash-user__icon-btn,
-  .dash-user__avatar {
-    display: none;
-  }
-
-  .dash-user__info {
-    display: block;
-
-    min-width: 0;
-    max-width: 78px;
-  }
-
-  .dash-user__name {
-    max-width: 78px;
-    font-size: 10px;
-  }
-
-  .dash-user__role {
-    font-size: 8.5px;
-  }
-
-  /* ---------------------------------------------------------
-     CONTENT
-     --------------------------------------------------------- */
-
-  .dash-content {
-    padding: 17px 14px 25px;
-  }
-
-  /* ---------------------------------------------------------
-     WELCOME
-     --------------------------------------------------------- */
 
   .dash-welcome {
     min-height: 155px;
 
-    margin-bottom: 17px;
+    margin: 0 0 18px;
 
     padding: 22px 20px;
 
@@ -1700,11 +937,15 @@ img {
   }
 
   .dash-welcome__eyebrow {
+    margin-bottom: 6px;
+
     font-size: 8px;
   }
 
   .dash-welcome__title {
     max-width: 74%;
+
+    margin: 0;
 
     font-size: 22px;
   }
@@ -1712,7 +953,7 @@ img {
   .dash-welcome__sub {
     max-width: 70%;
 
-    margin-top: 7px;
+    margin: 7px 0 0;
 
     font-size: 10.5px;
   }
@@ -1723,6 +964,7 @@ img {
 
   .welcome-building--large {
     width: 180px;
+
     height: 72px;
   }
 
@@ -1736,19 +978,20 @@ img {
 
   .welcome-building--small {
     width: 60px;
+
     height: 60px;
   }
 
-  /* ---------------------------------------------------------
-     STATS
-     --------------------------------------------------------- */
+  // ===================================================
+  // MOBILE STATISTICS
+  // ===================================================
 
   .dash-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
     gap: 10px;
 
-    margin-bottom: 15px;
+    margin: 0 0 18px;
   }
 
   .dash-stat-card {
@@ -1763,6 +1006,7 @@ img {
 
   .dash-stat-card__icon {
     width: 35px;
+
     height: 35px;
   }
 
@@ -1775,21 +1019,31 @@ img {
   }
 
   .dash-stat-card__label {
+    margin-top: 3px;
+
     font-size: 9.5px;
   }
 
   .dash-stat-card__sub {
+    margin-top: 2px;
+
     font-size: 7.5px;
   }
 
-  /* ---------------------------------------------------------
-     PANELS
-     --------------------------------------------------------- */
+  // ===================================================
+  // MOBILE PANELS
+  // ===================================================
 
   .dash-panels {
     grid-template-columns: 1fr;
 
-    gap: 13px;
+    gap: 14px;
+
+    margin: 0 0 14px;
+  }
+
+  .dash-panels--bottom {
+    margin-bottom: 0;
   }
 
   .dash-panel {
@@ -1800,21 +1054,27 @@ img {
     border-radius: 14px;
   }
 
+  .dash-panel__header {
+    margin-bottom: 9px;
+  }
+
   .dash-panel__header h2 {
     font-size: 13px;
   }
 
-  /* ---------------------------------------------------------
-     LISTS
-     --------------------------------------------------------- */
+  .dash-panel__link {
+    font-size: 9px;
+  }
 
   .dash-list__item {
     gap: 9px;
+
     padding: 10px 0;
   }
 
   .dash-list__icon-wrap {
     width: 30px;
+
     height: 30px;
   }
 
@@ -1827,103 +1087,90 @@ img {
   }
 
   .dash-list__meta {
+    margin-top: 3px;
+
     font-size: 8px;
+  }
+
+  .dash-list__submeta {
+    font-size: 7.5px;
   }
 
   .dash-list__action {
     font-size: 7.5px;
+
+    margin-left: 4px;
   }
 
-  /* ---------------------------------------------------------
-     FOOTER
-     --------------------------------------------------------- */
+  .dash-panel__footer-link {
+    padding-top: 11px;
 
-  .dash-footer {
-    min-height: auto;
-
-    padding: 15px;
-
-    flex-direction: column;
-
-    gap: 7px;
-
-    text-align: center;
+    font-size: 9px;
   }
 }
 
-/* =========================================================
-   SMALL MOBILE
-   <= 480px
-   ========================================================= */
+// =====================================================
+// SMALL MOBILE
+// =====================================================
 
 @media (max-width: 480px) {
-  .dash-topbar {
-    height: 62px;
-    min-height: 62px;
-
-    padding: 8px 10px;
-  }
-
-  .dash-main-container {
-    padding-top: 62px;
-  }
-
-  .dash-sidebar {
-    top: 62px;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-
-  .dash-search {
-    height: 37px;
-  }
-
-  .dash-search input {
-    font-size: 10.5px;
-  }
-
-  .dash-search__icon {
-    font-size: 19px;
-  }
-
-  .dash-content {
-    padding: 13px 10px 20px;
+  .citizen-dashboard {
+    padding: 14px 10px 24px;
   }
 
   .dash-welcome {
     min-height: 145px;
 
+    margin-bottom: 16px;
+
     padding: 20px 16px;
+
+    border-radius: 13px;
   }
 
   .dash-welcome__title {
     max-width: 90%;
+
     font-size: 20px;
   }
 
   .dash-welcome__sub {
     max-width: 87%;
+
+    margin-top: 7px;
+
     font-size: 9.5px;
   }
 
   .dash-welcome__illustration {
     opacity: 0.48;
+
     width: 55%;
   }
 
+  // ===================================================
+  // SMALL STAT CARDS
+  // ===================================================
+
   .dash-stats {
     gap: 8px;
+
+    margin-bottom: 16px;
   }
 
   .dash-stat-card {
+    min-height: 72px;
+
     padding: 9px;
+
     gap: 7px;
+
+    border-radius: 11px;
   }
 
   .dash-stat-card__icon {
     width: 32px;
+
     height: 32px;
   }
 
@@ -1943,41 +1190,86 @@ img {
     display: none;
   }
 
+  // ===================================================
+  // SMALL PANELS
+  // ===================================================
+
+  .dash-panels {
+    gap: 12px;
+
+    margin-bottom: 12px;
+  }
+
   .dash-panel {
+    min-height: 260px;
+
     padding: 16px 13px 13px;
+
+    border-radius: 13px;
+  }
+
+  .dash-panel__header h2 {
+    font-size: 12px;
+  }
+
+  .dash-panel__link {
+    font-size: 8.5px;
+  }
+
+  .dash-list__item {
+    gap: 8px;
+
+    padding: 9px 0;
   }
 
   .dash-list__icon-wrap {
     width: 28px;
+
     height: 28px;
+  }
+
+  .dash-list__icon-wrap .material-icons {
+    font-size: 14px;
+  }
+
+  .dash-list__title {
+    font-size: 9.5px;
+  }
+
+  .dash-list__meta {
+    font-size: 7.8px;
+  }
+
+  .dash-list__submeta {
+    font-size: 7px;
   }
 
   .dash-list__action {
     display: none;
   }
 
-  .dash-footer__links {
-    flex-wrap: wrap;
-    justify-content: center;
+  .dash-panel__footer-link {
+    padding-top: 10px;
+
+    font-size: 8.5px;
   }
 }
 
-/* =========================================================
-   VERY SMALL DEVICES
-   <= 380px
-   ========================================================= */
+// =====================================================
+// VERY SMALL DEVICES
+// =====================================================
 
 @media (max-width: 380px) {
-  .dash-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .dash-stat-card {
-    min-height: 68px;
+  .citizen-dashboard {
+    padding: 12px 9px 20px;
   }
 
   .dash-welcome {
     min-height: 150px;
+
+    padding: 18px 14px;
+
+    margin-bottom: 14px;
   }
 
   .dash-welcome__title {
@@ -1987,56 +1279,66 @@ img {
   .dash-welcome__sub {
     font-size: 9px;
   }
+
+  .dash-stats {
+    grid-template-columns: 1fr;
+
+    gap: 8px;
+
+    margin-bottom: 14px;
+  }
+
+  .dash-stat-card {
+    min-height: 68px;
+  }
+
+  .dash-panels {
+    gap: 10px;
+  }
+
+  .dash-panel {
+    min-height: 250px;
+
+    padding: 14px 12px;
+  }
 }
 
-/* =========================================================
-   EXTRA SMALL
-   <= 320px
-   ========================================================= */
+// =====================================================
+// EXTRA SMALL
+// =====================================================
 
 @media (max-width: 320px) {
-  .dash-sidebar {
-    width: 250px;
-  }
-
-  .dash-search {
-    height: 35px;
-  }
-
-  .dash-search input {
-    font-size: 9.5px;
-  }
-
-  .dash-search__icon {
-    font-size: 17px;
-  }
-
-  .dash-content {
-    padding-left: 8px;
-    padding-right: 8px;
+  .citizen-dashboard {
+    padding: 10px 7px 18px;
   }
 
   .dash-welcome {
-    padding-left: 13px;
-    padding-right: 13px;
+    padding: 16px 12px;
   }
 
   .dash-stat-card {
     padding: 8px;
   }
+
+  .dash-panel {
+    padding: 13px 10px;
+  }
 }
 
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
+// =====================================================
+// REDUCED MOTION
+// =====================================================
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+
     animation-iteration-count: 1 !important;
+
     transition-duration: 0.01ms !important;
+
     scroll-behavior: auto !important;
   }
 }

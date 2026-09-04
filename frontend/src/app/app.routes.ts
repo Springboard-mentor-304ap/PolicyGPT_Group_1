@@ -1,6 +1,7 @@
 import { Routes } from "@angular/router";
 
 import { authGuard } from "./core/guards/auth.guard";
+import { roleGuard } from "./core/guards/role.guard";
 
 export const routes: Routes = [
   // =========================================================
@@ -19,7 +20,6 @@ export const routes: Routes = [
 
   {
     path: "auth",
-
     loadChildren: () =>
       import("./features/auth/auth.routes").then((m) => m.AUTH_ROUTES),
   },
@@ -30,12 +30,26 @@ export const routes: Routes = [
 
   {
     path: "dashboard",
-
     canActivate: [authGuard],
-
     loadChildren: () =>
       import("./features/auth/dashboard/dashboard.routes").then(
         (m) => m.DASHBOARD_ROUTES,
+      ),
+  },
+
+  // =========================================================
+  // ADMIN USERS ROUTE
+  // =========================================================
+
+  {
+    path: "admin/users",
+    canActivate: [authGuard, roleGuard],
+    data: {
+      roles: ["ADMINISTRATOR"],
+    },
+    loadComponent: () =>
+      import("./features/auth/dashboard/admin/users/view-users.component").then(
+        (m) => m.ViewUsersComponent,
       ),
   },
 

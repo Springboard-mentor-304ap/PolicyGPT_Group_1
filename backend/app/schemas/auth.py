@@ -705,3 +705,40 @@ class DeleteAccountRequest(BaseModel):
         min_length=1,
         max_length=72
     )
+
+# =========================================================
+# SEND OTP REQUEST
+# =========================================================
+
+class SendOTPRequest(BaseModel):
+
+    email: EmailStr
+
+
+# =========================================================
+# VERIFY OTP REQUEST
+# =========================================================
+
+class VerifyOTPRequest(BaseModel):
+
+    email: EmailStr
+
+    otp: str = Field(
+        min_length=6,
+        max_length=6
+    )
+
+    @field_validator("otp")
+    @classmethod
+    def validate_otp(
+        cls,
+        value: str
+    ) -> str:
+
+        if not value.isdigit():
+            raise ValueError(
+                "OTP must contain only digits"
+            )
+
+        return value
+

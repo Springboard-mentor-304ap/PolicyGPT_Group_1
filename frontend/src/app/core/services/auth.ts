@@ -227,6 +227,23 @@ export class Auth {
     });
   }
 
+    // =========================================================
+  // VERIFY OTP
+  // =========================================================
+
+  verifyOtp(
+    email: string,
+    otp: string,
+  ): Observable<{ message: string; verified: boolean }> {
+    return this.http.post<{
+      message: string;
+      verified: boolean;
+    }>(`${this.apiUrl}/verify-otp`, {
+      email: email.trim().toLowerCase(),
+      otp: otp.trim(),
+    });
+  }
+
   // =========================================================
   // GET TOKEN
   // =========================================================

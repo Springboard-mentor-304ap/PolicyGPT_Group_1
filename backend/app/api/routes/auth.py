@@ -2,13 +2,13 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import secrets
 import re
-
+import random
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
+from app.services.email_service import send_otp_email
 from app.core.config import settings
 from app.core.security import (
     create_access_token,
@@ -20,6 +20,7 @@ from app.core.security import (
 from app.db.database import get_db
 
 from app.models.password_reset import PasswordResetToken
+from app.models.otp import OTPVerification
 from app.models.user import User
 
 from app.schemas.auth import (
@@ -31,6 +32,8 @@ from app.schemas.auth import (
     ProfileUpdateRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    SendOTPRequest,
+    VerifyOTPRequest,
     UserResponse,
 )
 
@@ -671,7 +674,250 @@ def logout(
         "message": "Logged out successfully"
     }
 
+    # =========================================================
+# SEND EMAIL OTP
+# =========================================================
 
+@router.post(
+    "/send-otp"
+)
+def send_otp(
+    data: SendOTPRequest,
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------------------------------
+    # CLEAN EMAIL
+    # -----------------------------------------------------
+
+    email = str(
+        data.email
+    ).lower().strip()
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
+
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid email address"
+        )
+
+    # -----------------------------------------------------
+    # INVALIDATE PREVIOUS OTP
+    # -----------------------------------------------------
+
+    db.query(
+        OTPVerification
+    ).filter(
+        OTPVerification.user_id == user.user_id,
+        OTPVerification.used.is_(False)
+    ).update({
+        "used": True
+    })
+
+    # -----------------------------------------------------
+    # GENERATE 6 DIGIT OTP
+    # -----------------------------------------------------
+
+    otp = str(
+        random.randint(
+            100000,
+            999999
+        )
+    )
+
+    # -----------------------------------------------------
+    # HASH OTP
+    # -----------------------------------------------------
+
+    otp_hash = hashlib.sha256(
+        otp.encode("utf-8")
+    ).hexdigest()
+
+    # -----------------------------------------------------
+    # CURRENT TIME
+    # -----------------------------------------------------
+
+    now = (
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
+    )
+
+    # -----------------------------------------------------
+    # CREATE OTP RECORD
+    # -----------------------------------------------------
+
+    otp_record = OTPVerification(
+        user_id=user.user_id,
+        otp_hash=otp_hash,
+        expires_at=now + timedelta(
+            minutes=5
+        ),
+        used=False,
+        created_at=now
+    )
+
+    # -----------------------------------------------------
+    # SAVE OTP
+    # -----------------------------------------------------
+
+    db.add(otp_record)
+    db.commit()
+
+    # -----------------------------------------------------
+    # SEND EMAIL
+    # -----------------------------------------------------
+
+    try:
+
+        send_otp_email(
+            recipient_email=email,
+            otp=otp
+        )
+
+    except Exception:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to send OTP email"
+        )
+
+    # -----------------------------------------------------
+    # SUCCESS
+    # -----------------------------------------------------
+
+    return {
+        "message": "OTP sent successfully"
+    }
+
+# =========================================================
+# VERIFY EMAIL OTP
+# =========================================================
+
+@router.post(
+    "/verify-otp"
+)
+def verify_otp(
+    data: VerifyOTPRequest,
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------------------------------
+    # CLEAN EMAIL
+    # -----------------------------------------------------
+
+    email = str(
+        data.email
+    ).lower().strip()
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
+
+    user = db.query(User).filter(
+        User.email == email
+    ).first()
+
+    if not user:
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid email address"
+        )
+
+    # -----------------------------------------------------
+    # FIND ACTIVE OTP
+    # -----------------------------------------------------
+
+    otp_record = db.query(
+        OTPVerification
+    ).filter(
+        OTPVerification.user_id == user.user_id,
+        OTPVerification.used.is_(False)
+    ).order_by(
+        OTPVerification.created_at.desc()
+    ).first()
+
+    if not otp_record:
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP not found or already used"
+        )
+
+    # -----------------------------------------------------
+    # CURRENT TIME
+    # -----------------------------------------------------
+
+    now = (
+        datetime.now(
+            timezone.utc
+        ).replace(
+            tzinfo=None
+        )
+    )
+
+    # -----------------------------------------------------
+    # CHECK EXPIRATION
+    # -----------------------------------------------------
+
+    if otp_record.expires_at < now:
+
+        otp_record.used = True
+
+        db.commit()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP has expired"
+        )
+
+    # -----------------------------------------------------
+    # HASH ENTERED OTP
+    # -----------------------------------------------------
+
+    entered_otp_hash = hashlib.sha256(
+        data.otp.encode("utf-8")
+    ).hexdigest()
+
+    # -----------------------------------------------------
+    # CHECK OTP
+    # -----------------------------------------------------
+
+    if entered_otp_hash != otp_record.otp_hash:
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid OTP"
+        )
+
+    # -----------------------------------------------------
+    # MARK OTP USED
+    # -----------------------------------------------------
+
+    otp_record.used = True
+
+    db.commit()
+
+    # -----------------------------------------------------
+    # SUCCESS
+    # -----------------------------------------------------
+
+    return {
+        "message": "OTP verified successfully",
+        "verified": True
+    }
 # =========================================================
 # FORGOT PASSWORD
 # =========================================================

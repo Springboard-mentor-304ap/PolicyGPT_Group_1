@@ -314,23 +314,67 @@ export class PasswordResetComponent {
      Backend OTP verification can be connected here.
      ========================================================= */
 
+    // =========================================================
+  // VERIFY OTP
+  // =========================================================
+
   verifyOtp(): void {
     this.errorMessage = "";
+    this.successMessage = "";
 
     const enteredOtp = this.otp.join("");
 
+    // Check 6-digit OTP
     if (enteredOtp.length !== 6) {
       this.errorMessage = "Please enter the complete 6-digit OTP.";
       return;
     }
 
-    /* -------------------------------------------------------
-       FRONTEND DEMO
-       ------------------------------------------------------- */
+    // Get email from Step 1
+    const email = String(
+      this.emailForm.get("email")?.value || ""
+    )
+      .trim()
+      .toLowerCase();
 
-    this.currentStep = 3;
+    if (!email) {
+      this.errorMessage = "Email address is required.";
+      return;
+    }
 
-    this.cdr.detectChanges();
+    // Start loading
+    this.loading = true;
+
+    // Call backend
+    this.auth.verifyOtp(email, enteredOtp).subscribe({
+      next: (response) => {
+        this.loading = false;
+
+        this.successMessage =
+          response.message || "OTP verified successfully.";
+
+        // Move to password reset ONLY after backend says OTP is valid
+        this.currentStep = 3;
+
+        this.cdr.detectChanges();
+      },
+
+      error: (err: any) => {
+        this.loading = false;
+
+        const backendMessage =
+          typeof err?.error === "string"
+            ? err.error
+            : err?.error?.detail ||
+              err?.error?.message ||
+              "";
+
+        this.errorMessage =
+          backendMessage || "Invalid OTP. Please try again.";
+
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   /* =========================================================

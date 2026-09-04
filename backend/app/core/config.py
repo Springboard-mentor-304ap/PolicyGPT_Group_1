@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str
 
     ALGORITHM: str = "HS256"
+    SMTP_EMAIL: str
+    SMTP_APP_PASSWORD: str
+
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 

@@ -1,7 +1,7 @@
 <div class="citizen-dashboard">
 
   <!-- =====================================================
-       WELCOME SECTION
+       WELCOME
        ===================================================== -->
 
   <section class="dash-welcome">
@@ -24,7 +24,7 @@
     </div>
 
 
-    <!-- DECORATIVE GOVERNMENT BUILDING -->
+    <!-- GOVERNMENT BUILDING -->
 
     <div class="dash-welcome__illustration" aria-hidden="true">
 
@@ -71,18 +71,18 @@
   </section>
 
 
-
   <!-- =====================================================
        STATISTICS
        ===================================================== -->
 
   <section class="dash-stats" aria-label="Dashboard statistics">
 
-    @for (card of statCards; track card.label) {
+    @for (
+    card of statCards;
+    track card.label
+    ) {
 
     <article class="dash-stat-card">
-
-      <!-- ICON -->
 
       <div class="dash-stat-card__icon" [ngClass]="
             'dash-stat-card__icon--' + card.color
@@ -94,8 +94,6 @@
 
       </div>
 
-
-      <!-- CONTENT -->
 
       <div class="dash-stat-card__content">
 
@@ -116,7 +114,10 @@
         </p>
 
 
-        @if (!loadingStats && card.sub) {
+        @if (
+        !loadingStats &&
+        card.sub
+        ) {
 
         <p class="dash-stat-card__sub">
           {{ card.sub }}
@@ -131,7 +132,6 @@
     }
 
   </section>
-
 
 
   <!-- =====================================================
@@ -183,8 +183,6 @@
 
         <li class="dash-list__item">
 
-          <!-- ICON -->
-
           <div class="
                   dash-list__icon-wrap
                   dash-list__icon-wrap--health
@@ -196,8 +194,6 @@
 
           </div>
 
-
-          <!-- DETAILS -->
 
           <div class="dash-list__details">
 
@@ -212,8 +208,6 @@
           </div>
 
 
-          <!-- ACTION -->
-
           <a routerLink="/schemes" class="dash-list__action">
             View Details
           </a>
@@ -227,8 +221,6 @@
       }
 
 
-      <!-- FOOTER LINK -->
-
       <a routerLink="/eligibility" class="dash-panel__footer-link">
 
         Check Eligibility for More Schemes
@@ -240,7 +232,6 @@
       </a>
 
     </article>
-
 
 
     <!-- ===================================================
@@ -318,8 +309,6 @@
       }
 
 
-      <!-- FOOTER LINK -->
-
       <a routerLink="/policies" class="dash-panel__footer-link">
 
         See More Policies
@@ -333,7 +322,6 @@
     </article>
 
   </section>
-
 
 
   <!-- =====================================================
@@ -385,8 +373,6 @@
 
         <li class="dash-list__item">
 
-          <!-- ICON -->
-
           <div class="
                   dash-list__icon-wrap
                   dash-list__icon-wrap--neutral
@@ -398,8 +384,6 @@
 
           </div>
 
-
-          <!-- DETAILS -->
 
           <div class="dash-list__details">
 
@@ -414,9 +398,9 @@
           </div>
 
 
-          <!-- ACTION -->
-
-          <a routerLink="/schemes" [queryParams]="{ q: history.name }" class="dash-list__action">
+          <a routerLink="/schemes" [queryParams]="{
+                  q: history.name
+                }" class="dash-list__action">
             View Details
           </a>
 
@@ -429,7 +413,6 @@
       }
 
     </article>
-
 
 
     <!-- ===================================================
@@ -474,8 +457,6 @@
 
         <li class="dash-list__item">
 
-          <!-- ICON -->
-
           <div class="
                   dash-list__icon-wrap
                   dash-list__icon-wrap--neutral
@@ -487,8 +468,6 @@
 
           </div>
 
-
-          <!-- DETAILS -->
 
           <div class="dash-list__details">
 
@@ -504,8 +483,6 @@
           </div>
 
 
-          <!-- ACTION -->
-
           <a routerLink="/reports" class="dash-list__action">
             View Details
           </a>
@@ -518,8 +495,6 @@
 
       }
 
-
-      <!-- FOOTER LINK -->
 
       <a routerLink="/reports" class="dash-panel__footer-link">
 

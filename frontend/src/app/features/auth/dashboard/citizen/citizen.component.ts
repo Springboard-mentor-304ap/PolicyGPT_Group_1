@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
+
 import { Router, RouterLink } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
@@ -60,28 +61,36 @@ export interface ApplicationItem {
 
 @Component({
   selector: "app-citizen",
+
   standalone: true,
 
   imports: [CommonModule, RouterLink],
 
   templateUrl: "./citizen.component.html",
+
   styleUrl: "./citizen.component.scss",
 })
 export class CitizenComponent implements OnInit {
   // =====================================================
-  // USER INFORMATION
+  // USER
   // =====================================================
 
   user: AuthUser | null = null;
 
   userName = "User Name";
+
   userRole = "Citizen";
 
   userEmail = "";
+
   userPhone = "";
+
   userState = "";
+
   userDistrict = "";
+
   userOccupation = "";
+
   userOrganization = "";
 
   loadingUser = true;
@@ -91,9 +100,13 @@ export class CitizenComponent implements OnInit {
   // =====================================================
 
   loadingStats = false;
+
   loadingSchemes = false;
+
   loadingPolicies = false;
+
   loadingHistory = false;
+
   loadingApplications = false;
 
   // =====================================================
@@ -257,7 +270,7 @@ export class CitizenComponent implements OnInit {
     this.loadingUser = true;
 
     // -----------------------------------------------------
-    // FIRST: LOAD CACHED USER
+    // LOAD CACHED USER FIRST
     // -----------------------------------------------------
 
     const cachedUser = this.authService.getStoredUser();
@@ -287,13 +300,15 @@ export class CitizenComponent implements OnInit {
     }
 
     // -----------------------------------------------------
-    // GET FRESH USER
+    // LOAD FRESH USER
     // -----------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
         if (!user) {
           this.loadingUser = false;
+
+          this.cdr.detectChanges();
 
           return;
         }
@@ -308,13 +323,9 @@ export class CitizenComponent implements OnInit {
       },
 
       error: (error: any) => {
-        this.loadingUser = false;
-
         console.error("GET CURRENT USER ERROR:", error);
 
-        // -------------------------------------------------
-        // INVALID TOKEN
-        // -------------------------------------------------
+        this.loadingUser = false;
 
         if (error?.status === 401 || error?.status === 403) {
           this.authService.logout();

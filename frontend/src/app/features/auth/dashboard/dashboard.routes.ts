@@ -116,10 +116,12 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "",
         pathMatch: "full",
 
+        // IMPORTANT:
+        // This must load CitizenComponent,
+        // NOT CitizenLayoutComponent.
+
         loadComponent: () =>
-          import("../../../shared/layouts/citizen-layout/citizen-layout.component").then(
-            (m) => m.CitizenLayoutComponent,
-          ),
+          import("./citizen/citizen.component").then((m) => m.CitizenComponent),
       },
 
       // -------------------------------------------------------

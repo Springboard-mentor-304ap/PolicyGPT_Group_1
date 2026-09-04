@@ -158,7 +158,7 @@ export class PasswordResetComponent {
     this.loading = true;
 
     /* -------------------------------------------------------
-       EXISTING AUTH SERVICE
+       SEND PASSWORD RESET REQUEST
        ------------------------------------------------------- */
 
     this.auth.requestPasswordReset(email).subscribe({
@@ -306,9 +306,12 @@ export class PasswordResetComponent {
 
   /* =========================================================
      VERIFY OTP
-     
-     FRONTEND ONLY FOR NOW.
-     BACKEND OTP VERIFICATION WILL BE CONNECTED LATER.
+     =========================================================
+
+     FRONTEND DEMO:
+     Currently moves to password screen.
+
+     Backend OTP verification can be connected here.
      ========================================================= */
 
   verifyOtp(): void {
@@ -321,13 +324,9 @@ export class PasswordResetComponent {
       return;
     }
 
-    /*
-     * FRONTEND DEMO:
-     * Move to password screen.
-     *
-     * Later this will call:
-     * auth.verifyOtp(email, enteredOtp)
-     */
+    /* -------------------------------------------------------
+       FRONTEND DEMO
+       ------------------------------------------------------- */
 
     this.currentStep = 3;
 
@@ -414,9 +413,12 @@ export class PasswordResetComponent {
   /* =========================================================
      STEP 3
      RESET PASSWORD
-     
-     FRONTEND ONLY FOR NOW.
-     BACKEND PASSWORD RESET WILL BE CONNECTED LATER.
+     =========================================================
+
+     FRONTEND DEMO:
+     Currently moves to success screen.
+
+     Backend password reset can be connected here.
      ========================================================= */
 
   resetPassword(): void {
@@ -427,13 +429,9 @@ export class PasswordResetComponent {
       return;
     }
 
-    /*
-     * FRONTEND DEMO:
-     * Move to success screen.
-     *
-     * Later this will call:
-     * auth.resetPassword(email, otp, newPassword)
-     */
+    /* -------------------------------------------------------
+       FRONTEND DEMO
+       ------------------------------------------------------- */
 
     this.currentStep = 4;
 

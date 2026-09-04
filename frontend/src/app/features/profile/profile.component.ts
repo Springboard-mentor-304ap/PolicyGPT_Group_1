@@ -185,11 +185,44 @@ export class ProfileComponent implements OnInit {
   }
 
   // =========================================================
-  // BACK
+  // BACK TO ROLE DASHBOARD
   // =========================================================
 
   goBack(): void {
-    this.location.back();
+    const currentUrl = this.router.url;
+
+    // -------------------------------------------------------
+    // ADMIN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/admin")) {
+      this.router.navigate(["/dashboard/admin"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // CITIZEN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/citizen")) {
+      this.router.navigate(["/dashboard/citizen"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // GOVERNMENT OFFICIAL
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/government")) {
+      this.router.navigate(["/dashboard/government"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // RESEARCHER / ORGANIZATION
+    // -------------------------------------------------------
+
+    this.router.navigate(["/dashboard/user-dashboard"]);
   }
 
   // =========================================================
@@ -197,7 +230,40 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   onEditProfile(): void {
-    this.router.navigate(["/user/profile/edit"]);
+    const currentUrl = this.router.url;
+
+    // -------------------------------------------------------
+    // ADMIN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/admin")) {
+      this.router.navigate(["/dashboard/admin/profile/edit"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // CITIZEN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/citizen")) {
+      this.router.navigate(["/dashboard/citizen/profile/edit"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // GOVERNMENT OFFICIAL
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/government")) {
+      this.router.navigate(["/dashboard/government/profile/edit"]);
+      return;
+    }
+
+    // -------------------------------------------------------
+    // RESEARCHER / ORGANIZATION
+    // -------------------------------------------------------
+
+    this.router.navigate(["/dashboard/user-dashboard/profile/edit"]);
   }
 
   // =========================================================
@@ -331,15 +397,15 @@ export class ProfileComponent implements OnInit {
         next: (response) => {
           console.log("Account deleted:", response);
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // CLEAR LOGIN SESSION
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           this.authService.logout();
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // CLOSE MODAL
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           this.showDeleteModal = false;
 
@@ -351,9 +417,9 @@ export class ProfileComponent implements OnInit {
 
           this.deletingAccount = false;
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // GO TO LOGIN
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           alert("Your account has been deleted successfully.");
 
@@ -371,9 +437,9 @@ export class ProfileComponent implements OnInit {
 
           this.deletingAccount = false;
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // WRONG PASSWORD
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           if (error?.status === 401) {
             alert("Incorrect password. Please try again.");
@@ -387,9 +453,9 @@ export class ProfileComponent implements OnInit {
             return;
           }
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // VALIDATION ERROR
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           if (error?.status === 422) {
             alert("Please enter a valid password.");
@@ -399,9 +465,9 @@ export class ProfileComponent implements OnInit {
             return;
           }
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // SERVER ERROR
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           if (error?.status === 500) {
             alert("Unable to delete your account right now. Please try again.");
@@ -411,9 +477,9 @@ export class ProfileComponent implements OnInit {
             return;
           }
 
-          // -----------------------------------------------
+          // -------------------------------------------------
           // OTHER ERROR
-          // -----------------------------------------------
+          // -------------------------------------------------
 
           alert("Account deletion failed. Please try again.");
 

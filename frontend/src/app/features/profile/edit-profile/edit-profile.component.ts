@@ -1207,11 +1207,36 @@ export class EditProfileComponent implements OnInit {
   }
 
   // =========================================================
+  // NAVIGATE TO CORRECT PROFILE
+  // =========================================================
+
+  private navigateToProfile(): void {
+    const currentUrl = this.router.url;
+
+    if (currentUrl.startsWith("/dashboard/admin")) {
+      this.router.navigate(["/dashboard/admin/profile"]);
+      return;
+    }
+
+    if (currentUrl.startsWith("/dashboard/citizen")) {
+      this.router.navigate(["/dashboard/citizen/profile"]);
+      return;
+    }
+
+    if (currentUrl.startsWith("/dashboard/government")) {
+      this.router.navigate(["/dashboard/government/profile"]);
+      return;
+    }
+
+    this.router.navigate(["/dashboard/user-dashboard/profile"]);
+  }
+
+  // =========================================================
   // BACK
   // =========================================================
 
   goBack(): void {
-    this.router.navigate(["/user/profile"]);
+    this.navigateToProfile();
   }
 
   // =========================================================
@@ -1315,14 +1340,14 @@ export class EditProfileComponent implements OnInit {
         this.authService.getCurrentUser().subscribe({
           next: () => {
             alert("Profile updated successfully.");
-            this.router.navigate(["/user/profile"]);
+            this.navigateToProfile();
           },
           error: (error: unknown) => {
             console.error("Profile updated, but user refresh failed:", error);
             alert(
               "Profile updated successfully. Please refresh the profile page.",
             );
-            this.router.navigate(["/user/profile"]);
+            this.navigateToProfile();
           },
         });
       },

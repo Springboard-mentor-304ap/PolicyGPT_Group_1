@@ -5,7 +5,7 @@ import { roleGuard } from "../../../core/guards/role.guard";
 
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
-  // USER DASHBOARD
+  // USER / RESEARCHER / ORGANIZATION DASHBOARD
   // =========================================================
 
   {
@@ -29,12 +29,46 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
+      // -------------------------------------------------------
+      // DASHBOARD
+      // /dashboard/user-dashboard
+      // -------------------------------------------------------
+
       {
         path: "",
+        pathMatch: "full",
 
         loadComponent: () =>
           import("./user-dashboard/user-dashboard.component").then(
             (m) => m.UserDashboardComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // EDIT PROFILE
+      // /dashboard/user-dashboard/profile/edit
+      // -------------------------------------------------------
+
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // PROFILE
+      // /dashboard/user-dashboard/profile
+      // -------------------------------------------------------
+
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
           ),
       },
     ],
@@ -59,11 +93,45 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
+      // -------------------------------------------------------
+      // DASHBOARD
+      // /dashboard/citizen
+      // -------------------------------------------------------
+
       {
         path: "",
+        pathMatch: "full",
 
         loadComponent: () =>
           import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+      },
+
+      // -------------------------------------------------------
+      // EDIT PROFILE
+      // /dashboard/citizen/profile/edit
+      // -------------------------------------------------------
+
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // PROFILE
+      // /dashboard/citizen/profile
+      // -------------------------------------------------------
+
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
+          ),
       },
     ],
   },
@@ -87,16 +155,54 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
+      // -------------------------------------------------------
+      // DASHBOARD
+      // /dashboard/government
+      // -------------------------------------------------------
+
       {
         path: "",
+        pathMatch: "full",
 
         loadComponent: () =>
           import("./government/government.component").then(
             (m) => m.GovernmentComponent,
           ),
       },
+
+      // -------------------------------------------------------
+      // EDIT PROFILE
+      // /dashboard/government/profile/edit
+      // -------------------------------------------------------
+
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // PROFILE
+      // /dashboard/government/profile
+      // -------------------------------------------------------
+
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
+          ),
+      },
     ],
   },
+
+  // =========================================================
+  // ADMIN DASHBOARD
+  // =========================================================
 
   {
     path: "admin",
@@ -113,22 +219,51 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // =====================================================
+      // -------------------------------------------------------
       // ADMIN DASHBOARD
       // /dashboard/admin
-      // =====================================================
+      // -------------------------------------------------------
 
       {
         path: "",
+        pathMatch: "full",
 
         loadComponent: () =>
           import("./admin/admin.component").then((m) => m.AdminComponent),
       },
 
-      // =====================================================
+      // -------------------------------------------------------
+      // ADMIN EDIT PROFILE
+      // /dashboard/admin/profile/edit
+      // -------------------------------------------------------
+
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // ADMIN PROFILE
+      // /dashboard/admin/profile
+      // -------------------------------------------------------
+
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
       // VIEW USERS
       // /dashboard/admin/users
-      // =====================================================
+      // -------------------------------------------------------
 
       {
         path: "users",
@@ -139,10 +274,10 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // =====================================================
+      // -------------------------------------------------------
       // ADD USER
       // /dashboard/admin/users/add
-      // =====================================================
+      // -------------------------------------------------------
 
       {
         path: "users/add",
@@ -156,14 +291,12 @@ export const DASHBOARD_ROUTES: Routes = [
   },
 
   // =========================================================
-  // DEFAULT
+  // DEFAULT DASHBOARD ROUTE
   // =========================================================
 
   {
     path: "",
-
     redirectTo: "user-dashboard",
-
     pathMatch: "full",
   },
 ];

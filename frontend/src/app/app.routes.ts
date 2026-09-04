@@ -20,17 +20,23 @@ export const routes: Routes = [
 
   {
     path: "auth",
+
     loadChildren: () =>
       import("./features/auth/auth.routes").then((m) => m.AUTH_ROUTES),
   },
 
   // =========================================================
   // PROTECTED DASHBOARD ROUTES
+  //
+  // All role-based dashboards are handled inside
+  // dashboard.routes.ts
   // =========================================================
 
   {
     path: "dashboard",
+
     canActivate: [authGuard],
+
     loadChildren: () =>
       import("./features/auth/dashboard/dashboard.routes").then(
         (m) => m.DASHBOARD_ROUTES,
@@ -38,66 +44,12 @@ export const routes: Routes = [
   },
 
   // =========================================================
-  // USER / PROFILE LAYOUT
-  // =========================================================
-  //
-  // All layouts use:
-  // /user/profile
-  //
-  // This route loads CitizenLayoutComponent.
-  // The ProfileComponent is displayed inside its router-outlet.
-  //
-
-  {
-    path: "user",
-    canActivate: [authGuard],
-
-    loadComponent: () =>
-      import("./shared/layouts/citizen-layout/citizen-layout.component").then(
-        (m) => m.CitizenLayoutComponent,
-      ),
-
-    children: [
-      // =====================================================
-      // PROFILE
-      // =====================================================
-
-      {
-        path: "profile",
-
-        loadComponent: () =>
-          import("./features/profile/profile.component").then(
-            (m) => m.ProfileComponent,
-          ),
-      },
-
-      // =====================================================
-      // EDIT PROFILE
-      // =====================================================
-
-      {
-        path: "profile/edit",
-
-        loadComponent: () =>
-          import("./features/profile/edit-profile/edit-profile.component").then(
-            (m) => m.EditProfileComponent,
-          ),
-      },
-
-      // =====================================================
-      // DEFAULT USER ROUTE
-      // =====================================================
-
-      {
-        path: "",
-        redirectTo: "profile",
-        pathMatch: "full",
-      },
-    ],
-  },
-
-  // =========================================================
   // ADMIN USERS ROUTE
+  //
+  // /admin/users
+  //
+  // Kept separately because this route already exists
+  // in your project.
   // =========================================================
 
   {
@@ -117,6 +69,8 @@ export const routes: Routes = [
 
   // =========================================================
   // FALLBACK
+  //
+  // If an invalid URL is entered, send the user to Login.
   // =========================================================
 
   {

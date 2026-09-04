@@ -4,22 +4,21 @@
     <!-- =========================================================
        MOBILE OVERLAY
        ========================================================= -->
-
     @if (mobileMenuOpen) {
-    <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+
+    <button type="button" class="dash-overlay" aria-label="Close navigation menu" (click)="closeMobileMenu()"></button>
+
     }
 
 
     <!-- =========================================================
        TOPBAR
        ========================================================= -->
-
     <header class="dash-topbar" role="banner">
 
-        <!-- BRAND -->
         <div class="dash-topbar__brand">
 
-            <!-- MENU BUTTON -->
+            <!-- MENU -->
             <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
                 [attr.aria-expanded]="!sidebarCollapsed">
                 <span class="material-icons">
@@ -35,7 +34,7 @@
             </a>
 
 
-            <!-- BRAND TEXT -->
+            <!-- BRAND -->
             <div class="dash-topbar__brand-text">
 
                 <span class="dash-topbar__title">
@@ -51,10 +50,7 @@
         </div>
 
 
-        <!-- =======================================================
-         SEARCH
-         ======================================================= -->
-
+        <!-- SEARCH -->
         <div class="dash-search">
 
             <span class="material-icons dash-search__icon" aria-hidden="true">
@@ -67,13 +63,9 @@
         </div>
 
 
-        <!-- =======================================================
-         USER
-         ======================================================= -->
-
+        <!-- USER -->
         <div class="dash-user">
 
-            <!-- NOTIFICATIONS -->
             <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
                 title="Notifications">
                 <span class="material-icons">
@@ -82,7 +74,6 @@
             </button>
 
 
-            <!-- AVATAR -->
             <div class="dash-user__avatar" aria-hidden="true">
                 <span class="material-icons">
                     account_circle
@@ -90,7 +81,6 @@
             </div>
 
 
-            <!-- USER DETAILS -->
             <div class="dash-user__info">
 
                 <p class="dash-user__name">
@@ -108,17 +98,11 @@
     </header>
 
 
-
     <!-- =========================================================
        SIDEBAR
        ========================================================= -->
-
     <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
         [class.dash-sidebar--mobile-open]="mobileMenuOpen">
-
-        <!-- =======================================================
-         MAIN NAVIGATION
-         ======================================================= -->
 
         <nav class="dash-nav" aria-label="Main navigation">
 
@@ -147,22 +131,15 @@
         </nav>
 
 
-
-        <!-- =========================================================
+        <!-- =======================================================
          SIDEBAR FOOTER
-         ========================================================= -->
-
+         ======================================================= -->
         <div class="dash-sidebar__footer">
 
-
-            <!-- =======================================================
-           PROFILE
-           ======================================================= -->
-
-            <a routerLink="/user/profile" routerLinkActive="dash-nav__item--active"
+            <!-- PROFILE -->
+            <a routerLink="/dashboard/citizen/profile" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Profile' : null">
-
                 <span class="material-icons dash-nav__icon">
                     account_circle
                 </span>
@@ -170,18 +147,13 @@
                 <span class="dash-nav__label">
                     Profile
                 </span>
-
             </a>
 
 
-
-            <!-- =======================================================
-           SETTINGS
-           ======================================================= -->
-
-            <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active" class="dash-nav__item"
-                (click)="closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Settings' : null">
-
+            <!-- SETTINGS -->
+            <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Settings' : null">
                 <span class="material-icons dash-nav__icon">
                     settings
                 </span>
@@ -189,18 +161,12 @@
                 <span class="dash-nav__label">
                     Settings
                 </span>
-
             </a>
 
 
-
-            <!-- =======================================================
-           LOGOUT
-           ======================================================= -->
-
+            <!-- LOGOUT -->
             <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
                 [attr.title]="sidebarCollapsed ? 'Logout' : null">
-
                 <span class="material-icons dash-nav__icon">
                     logout
                 </span>
@@ -208,7 +174,6 @@
                 <span class="dash-nav__label">
                     Logout
                 </span>
-
             </button>
 
         </div>
@@ -216,46 +181,28 @@
     </aside>
 
 
-
     <!-- =========================================================
        MAIN CONTAINER
        ========================================================= -->
-
     <div class="dash-main-container">
 
         <main class="dash-main">
 
             <div class="dash-content">
-
-                <!-- ===================================================
-             CHILD ROUTES APPEAR HERE
-             
-             /user/profile
-             /user/profile/edit
-             =================================================== -->
-
                 <router-outlet></router-outlet>
-
             </div>
 
         </main>
 
-
-
-        <!-- =======================================================
-         SHARED FOOTER
-         ======================================================= -->
 
         <app-footer></app-footer>
 
     </div>
 
 
-
     <!-- =========================================================
        LOGOUT MODAL
        ========================================================= -->
-
     @if (showLogoutModal) {
 
     <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>

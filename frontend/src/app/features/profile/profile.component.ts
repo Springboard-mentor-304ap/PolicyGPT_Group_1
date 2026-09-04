@@ -6,12 +6,9 @@ import {
   inject,
 } from "@angular/core";
 
-import { CommonModule, Location } from "@angular/common";
-
+import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-
 import { HttpClient } from "@angular/common/http";
-
 import { Router } from "@angular/router";
 
 import { Auth, AuthUser } from "../../core/services/auth";
@@ -54,8 +51,6 @@ export class ProfileComponent implements OnInit {
   // =========================================================
   // SERVICES
   // =========================================================
-
-  private readonly location = inject(Location);
 
   private readonly router = inject(Router);
 
@@ -120,11 +115,19 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   ngOnInit(): void {
+    // -------------------------------------------------------
+    // LOAD CACHED USER
+    // -------------------------------------------------------
+
     const cachedUser = this.authService.getStoredUser();
 
     if (cachedUser) {
       this.setProfile(cachedUser);
     }
+
+    // -------------------------------------------------------
+    // LOAD CURRENT USER FROM BACKEND
+    // -------------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -197,6 +200,7 @@ export class ProfileComponent implements OnInit {
 
     if (currentUrl.startsWith("/dashboard/admin")) {
       this.router.navigate(["/dashboard/admin"]);
+
       return;
     }
 
@@ -206,15 +210,17 @@ export class ProfileComponent implements OnInit {
 
     if (currentUrl.startsWith("/dashboard/citizen")) {
       this.router.navigate(["/dashboard/citizen"]);
+
       return;
     }
 
     // -------------------------------------------------------
-    // GOVERNMENT OFFICIAL
+    // GOVERNMENT
     // -------------------------------------------------------
 
     if (currentUrl.startsWith("/dashboard/government")) {
       this.router.navigate(["/dashboard/government"]);
+
       return;
     }
 
@@ -238,6 +244,7 @@ export class ProfileComponent implements OnInit {
 
     if (currentUrl.startsWith("/dashboard/admin")) {
       this.router.navigate(["/dashboard/admin/profile/edit"]);
+
       return;
     }
 
@@ -247,15 +254,17 @@ export class ProfileComponent implements OnInit {
 
     if (currentUrl.startsWith("/dashboard/citizen")) {
       this.router.navigate(["/dashboard/citizen/profile/edit"]);
+
       return;
     }
 
     // -------------------------------------------------------
-    // GOVERNMENT OFFICIAL
+    // GOVERNMENT
     // -------------------------------------------------------
 
     if (currentUrl.startsWith("/dashboard/government")) {
       this.router.navigate(["/dashboard/government/profile/edit"]);
+
       return;
     }
 
@@ -271,7 +280,43 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   onChangePassword(): void {
-    this.router.navigate(["/auth/change-password"]);
+    const currentUrl = this.router.url;
+
+    // -------------------------------------------------------
+    // ADMIN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/admin")) {
+      this.router.navigate(["/dashboard/admin/change-password"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // CITIZEN
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/citizen")) {
+      this.router.navigate(["/dashboard/citizen/change-password"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // GOVERNMENT
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/government")) {
+      this.router.navigate(["/dashboard/government/change-password"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // RESEARCHER / ORGANIZATION
+    // -------------------------------------------------------
+
+    this.router.navigate(["/dashboard/user-dashboard/change-password"]);
   }
 
   // =========================================================
@@ -404,7 +449,7 @@ export class ProfileComponent implements OnInit {
           this.authService.logout();
 
           // -------------------------------------------------
-          // CLOSE MODAL
+          // CLOSE MODALS
           // -------------------------------------------------
 
           this.showDeleteModal = false;

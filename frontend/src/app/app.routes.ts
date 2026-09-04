@@ -16,6 +16,14 @@ export const routes: Routes = [
 
   // =========================================================
   // AUTH ROUTES
+  //
+  // Includes:
+  // /auth/login
+  // /auth/register
+  // /auth/password-reset
+  // /auth/change-password
+  //
+  // These routes are defined inside auth.routes.ts
   // =========================================================
 
   {
@@ -30,6 +38,24 @@ export const routes: Routes = [
   //
   // All role-based dashboards are handled inside
   // dashboard.routes.ts
+  //
+  // Examples:
+  //
+  // /dashboard/citizen
+  // /dashboard/citizen/profile
+  // /dashboard/citizen/profile/edit
+  //
+  // /dashboard/government
+  // /dashboard/government/profile
+  // /dashboard/government/profile/edit
+  //
+  // /dashboard/admin
+  // /dashboard/admin/profile
+  // /dashboard/admin/profile/edit
+  //
+  // /dashboard/user-dashboard
+  // /dashboard/user-dashboard/profile
+  // /dashboard/user-dashboard/profile/edit
   // =========================================================
 
   {
@@ -46,9 +72,10 @@ export const routes: Routes = [
   // =========================================================
   // ADMIN USERS ROUTE
   //
+  // URL:
   // /admin/users
   //
-  // Kept separately because this route already exists
+  // This route is kept separately because it already exists
   // in your project.
   // =========================================================
 
@@ -68,9 +95,10 @@ export const routes: Routes = [
   },
 
   // =========================================================
-  // FALLBACK
+  // FALLBACK ROUTE
   //
-  // If an invalid URL is entered, send the user to Login.
+  // If the user enters an invalid URL,
+  // redirect them to Login.
   // =========================================================
 
   {

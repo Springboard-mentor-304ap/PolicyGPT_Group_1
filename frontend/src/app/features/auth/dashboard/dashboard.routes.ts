@@ -71,6 +71,20 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ProfileComponent,
           ),
       },
+
+      // -------------------------------------------------------
+      // CHANGE PASSWORD
+      // /dashboard/user-dashboard/change-password
+      // -------------------------------------------------------
+
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
     ],
   },
 
@@ -103,7 +117,9 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+          import("../../../shared/layouts/citizen-layout/citizen-layout.component").then(
+            (m) => m.CitizenLayoutComponent,
+          ),
       },
 
       // -------------------------------------------------------
@@ -131,6 +147,20 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../profile/profile.component").then(
             (m) => m.ProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // CHANGE PASSWORD
+      // /dashboard/citizen/change-password
+      // -------------------------------------------------------
+
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
           ),
       },
     ],
@@ -197,6 +227,20 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ProfileComponent,
           ),
       },
+
+      // -------------------------------------------------------
+      // CHANGE PASSWORD
+      // /dashboard/government/change-password
+      // -------------------------------------------------------
+
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
     ],
   },
 
@@ -261,6 +305,20 @@ export const DASHBOARD_ROUTES: Routes = [
       },
 
       // -------------------------------------------------------
+      // ADMIN CHANGE PASSWORD
+      // /dashboard/admin/change-password
+      // -------------------------------------------------------
+
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
       // VIEW USERS
       // /dashboard/admin/users
       // -------------------------------------------------------
@@ -296,7 +354,9 @@ export const DASHBOARD_ROUTES: Routes = [
 
   {
     path: "",
+
     redirectTo: "user-dashboard",
+
     pathMatch: "full",
   },
 ];

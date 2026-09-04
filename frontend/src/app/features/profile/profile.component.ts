@@ -10,31 +10,32 @@ import { CommonModule, Location } from "@angular/common";
 
 import { FormsModule } from "@angular/forms";
 
+import { HttpClient } from "@angular/common/http";
+
 import { Router } from "@angular/router";
 
 import { Auth, AuthUser } from "../../core/services/auth";
 
+// =========================================================
+// USER PROFILE INTERFACE
+// =========================================================
+
 export interface UserProfile {
   fullName: string;
-
   email: string;
-
   role: string;
-
   dob: string;
-
   gender: string;
-
   state: string;
-
   district: string;
-
   occupation: string;
-
   phone: string;
-
   avatarUrl: string;
 }
+
+// =========================================================
+// PROFILE COMPONENT
+// =========================================================
 
 @Component({
   selector: "app-profile",
@@ -50,6 +51,10 @@ export interface UserProfile {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileComponent implements OnInit {
+  // =========================================================
+  // SERVICES
+  // =========================================================
+
   private readonly location = inject(Location);
 
   private readonly router = inject(Router);
@@ -57,6 +62,14 @@ export class ProfileComponent implements OnInit {
   private readonly authService = inject(Auth);
 
   private readonly cdr = inject(ChangeDetectorRef);
+
+  private readonly http = inject(HttpClient);
+
+  // =========================================================
+  // API
+  // =========================================================
+
+  private readonly apiUrl = "http://localhost:8000/auth";
 
   // =========================================================
   // MODALS
@@ -73,6 +86,8 @@ export class ProfileComponent implements OnInit {
   confirmPasswordValue = "";
 
   showPasswordText = false;
+
+  deletingAccount = false;
 
   // =========================================================
   // USER PROFILE
@@ -198,9 +213,17 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   onDeleteAccount(): void {
+    if (this.deletingAccount) {
+      return;
+    }
+
     this.showDeleteModal = true;
 
     this.showPasswordModal = false;
+
+    this.confirmPasswordValue = "";
+
+    this.showPasswordText = false;
 
     this.cdr.markForCheck();
   }
@@ -226,11 +249,17 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   cancelDeleteAccount(): void {
+    if (this.deletingAccount) {
+      return;
+    }
+
     this.showDeleteModal = false;
 
     this.showPasswordModal = false;
 
     this.confirmPasswordValue = "";
+
+    this.showPasswordText = false;
 
     this.cdr.markForCheck();
   }
@@ -240,6 +269,10 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   togglePasswordVisibility(): void {
+    if (this.deletingAccount) {
+      return;
+    }
+
     this.showPasswordText = !this.showPasswordText;
 
     this.cdr.markForCheck();
@@ -250,23 +283,142 @@ export class ProfileComponent implements OnInit {
   // =========================================================
 
   submitPasswordConfirmation(): void {
-    if (!this.confirmPasswordValue.trim()) {
+    // -------------------------------------------------------
+    // CHECK EMPTY PASSWORD
+    // -------------------------------------------------------
+
+    const password = this.confirmPasswordValue.trim();
+
+    if (!password) {
       alert("Please enter your password to confirm.");
 
       return;
     }
 
-    /*
-     * IMPORTANT:
-     * Connect your delete-account API here.
-     */
+    // -------------------------------------------------------
+    // PREVENT DOUBLE CLICK
+    // -------------------------------------------------------
 
-    console.log("Account deletion requested");
+    if (this.deletingAccount) {
+      return;
+    }
 
-    this.showPasswordModal = false;
+    // -------------------------------------------------------
+    // START DELETE
+    // -------------------------------------------------------
 
-    this.confirmPasswordValue = "";
+    this.deletingAccount = true;
 
     this.cdr.markForCheck();
+
+    // -------------------------------------------------------
+    // BACKEND REQUEST
+    // -------------------------------------------------------
+
+    this.http
+      .delete<{
+        message: string;
+      }>(`${this.apiUrl}/account`, {
+        body: {
+          password: password,
+        },
+      })
+      .subscribe({
+        // ===================================================
+        // SUCCESS
+        // ===================================================
+
+        next: (response) => {
+          console.log("Account deleted:", response);
+
+          // -----------------------------------------------
+          // CLEAR LOGIN SESSION
+          // -----------------------------------------------
+
+          this.authService.logout();
+
+          // -----------------------------------------------
+          // CLOSE MODAL
+          // -----------------------------------------------
+
+          this.showDeleteModal = false;
+
+          this.showPasswordModal = false;
+
+          this.confirmPasswordValue = "";
+
+          this.showPasswordText = false;
+
+          this.deletingAccount = false;
+
+          // -----------------------------------------------
+          // GO TO LOGIN
+          // -----------------------------------------------
+
+          alert("Your account has been deleted successfully.");
+
+          this.router.navigate(["/auth/login"], {
+            replaceUrl: true,
+          });
+        },
+
+        // ===================================================
+        // ERROR
+        // ===================================================
+
+        error: (error) => {
+          console.error("Account deletion failed:", error);
+
+          this.deletingAccount = false;
+
+          // -----------------------------------------------
+          // WRONG PASSWORD
+          // -----------------------------------------------
+
+          if (error?.status === 401) {
+            alert("Incorrect password. Please try again.");
+
+            this.confirmPasswordValue = "";
+
+            this.showPasswordText = false;
+
+            this.cdr.markForCheck();
+
+            return;
+          }
+
+          // -----------------------------------------------
+          // VALIDATION ERROR
+          // -----------------------------------------------
+
+          if (error?.status === 422) {
+            alert("Please enter a valid password.");
+
+            this.cdr.markForCheck();
+
+            return;
+          }
+
+          // -----------------------------------------------
+          // SERVER ERROR
+          // -----------------------------------------------
+
+          if (error?.status === 500) {
+            alert("Unable to delete your account right now. Please try again.");
+
+            this.cdr.markForCheck();
+
+            return;
+          }
+
+          // -----------------------------------------------
+          // OTHER ERROR
+          // -----------------------------------------------
+
+          alert("Account deletion failed. Please try again.");
+
+          this.cdr.markForCheck();
+        },
+      });
   }
 }

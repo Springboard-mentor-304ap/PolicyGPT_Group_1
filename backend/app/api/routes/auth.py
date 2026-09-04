@@ -5,7 +5,7 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from app.models.user import User
 from app.schemas.auth import (
     AuthResponse,
     ChangePasswordRequest,
+    DeleteAccountRequest,
     ForgotPasswordRequest,
     LoginRequest,
     ProfileUpdateRequest,
@@ -777,6 +778,78 @@ def forgot_password(
         }
 
     return generic_response
+
+
+# =========================================================
+# DELETE CURRENT ACCOUNT
+# =========================================================
+
+@router.delete("/account")
+def delete_account(
+    data: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    # -----------------------------------------------------
+    # VERIFY PASSWORD
+    # -----------------------------------------------------
+
+    if not verify_password(
+        data.password,
+        current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password"
+        )
+
+    user_id = current_user.user_id
+
+    try:
+        # -------------------------------------------------
+        # DELETE RESET TOKENS
+        # -------------------------------------------------
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # -------------------------------------------------
+        # DELETE NON-CASCADE USER DATA
+        # -------------------------------------------------
+        db.execute(
+            text("DELETE FROM scheme_applications WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        )
+
+        db.execute(
+            text("DELETE FROM search_history WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        )
+
+        db.execute(
+            text("DELETE FROM support_queries WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        )
+
+        # -------------------------------------------------
+        # DELETE USER
+        # -------------------------------------------------
+        db.delete(current_user)
+        db.commit()
+
+    except Exception as exc:
+        db.rollback()
+        print("ACCOUNT DELETE ERROR:", exc)
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to delete account"
+        )
+
+    return {
+        "message": "Account deleted successfully"
+    }
 
 
 # =========================================================

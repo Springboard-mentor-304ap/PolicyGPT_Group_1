@@ -694,3 +694,14 @@ class ResetPasswordRequest(BaseModel):
             )
 
         return self
+
+
+# =========================================================
+# DELETE ACCOUNT REQUEST
+# =========================================================
+
+class DeleteAccountRequest(BaseModel):
+    password: str = Field(
+        min_length=1,
+        max_length=72
+    )

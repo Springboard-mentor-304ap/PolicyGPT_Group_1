@@ -5,10 +5,6 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.admin_users import router as admin_users_router
 
 
-# =========================================================
-# FASTAPI APPLICATION
-# =========================================================
-
 app = FastAPI(
     title="PolicyGPT API",
     description="Government Policy & Public Scheme Intelligence Platform",
@@ -33,13 +29,10 @@ app.add_middleware(
 
 
 # =========================================================
-# ROUTES
+# ROUTERS
 # =========================================================
 
-# Authentication
 app.include_router(auth_router)
-
-# Administrator - User Management
 app.include_router(admin_users_router)
 
 
@@ -56,11 +49,11 @@ def root():
 
 
 # =========================================================
-# HEALTH
+# HEALTH CHECK
 # =========================================================
 
 @app.get("/health")
 def health_check():
     return {
-        "status": "healthy",
+        "status": "healthy"
     }

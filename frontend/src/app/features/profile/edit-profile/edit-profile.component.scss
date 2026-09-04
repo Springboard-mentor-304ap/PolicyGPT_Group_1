@@ -14,12 +14,13 @@
 // =========================================================
 
 .edit-profile-page {
-  width: 100%;
-  max-width: 1200px;
+  width: 90%;
+  max-width: 1020px;
 
   margin: 0 auto;
-  padding: 0;
-  margin-top: 20px;
+
+  padding: 22px 34px 30px;
+
   box-sizing: border-box;
 }
 
@@ -34,7 +35,7 @@
 
   width: 100%;
 
-  margin-bottom: 24px;
+  margin-bottom: 22px;
 
   gap: 24px;
 }
@@ -54,7 +55,7 @@
 
     color: #17233d;
 
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 800;
 
     line-height: 1.2;
@@ -66,8 +67,8 @@
 
     color: #71829d;
 
-    font-size: 14px;
-    font-weight: 400;
+    font-size: 16px;
+    font-weight: 500;
 
     line-height: 1.5;
   }
@@ -81,7 +82,7 @@
   display: flex;
   align-items: center;
 
-  gap: 10px;
+  gap: 14px;
 
   flex-shrink: 0;
 
@@ -112,19 +113,21 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 86px;
-  height: 42px;
+  min-width: 115px;
+  height: 48px;
 
-  padding: 0 18px;
+  padding: 0 22px;
 
   border: 1px solid #d7dfe9;
-  border-radius: 9px;
+  border-radius: 10px;
 
   background: #ffffff;
   color: #475569;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
+
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
 
   &:hover {
     background: #f8fafc;
@@ -144,26 +147,26 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 105px;
-  height: 42px;
+  min-width: 120px;
+  height: 48px;
 
-  padding: 0 22px;
+  padding: 0 25px;
 
   border: none;
-  border-radius: 9px;
+  border-radius: 10px;
 
-  background: #2864e8;
+  background: #3b82f6;
   color: #ffffff;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 
-  box-shadow: 0 4px 14px rgba(40, 100, 232, 0.22);
+  box-shadow: 0 5px 16px rgba(59, 130, 246, 0.25);
 
   &:hover {
-    background: #1f56d0;
+    background: #2563eb;
 
-    box-shadow: 0 6px 18px rgba(40, 100, 232, 0.3);
+    box-shadow: 0 7px 20px rgba(59, 130, 246, 0.32);
   }
 
   &:disabled {
@@ -185,23 +188,28 @@
 
   width: 100%;
 
-  min-height: 440px;
+  /*
+   * Larger professional card
+   */
+  min-height: 500px;
 
-  padding: 30px 32px;
+  padding: 50px 55px;
 
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 
   box-sizing: border-box;
 
   background: #ffffff;
 
-  border: 1px solid #eef2f7;
+  border: 1px solid #e8edf3;
 
-  border-radius: 20px;
+  border-radius: 22px;
 
-  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 12px 35px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(15, 23, 42, 0.03);
 
-  gap: 30px;
+  gap: 55px;
 }
 
 // =========================================================
@@ -212,10 +220,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
 
-  flex: 0 0 190px;
+  flex: 0 0 260px;
 
-  padding-top: 5px;
+  padding-top: 25px;
 
   box-sizing: border-box;
 
@@ -229,22 +238,24 @@
 .avatar-wrapper {
   position: relative;
 
-  width: 125px;
-  height: 125px;
+  width: 165px;
+  height: 165px;
 
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 
   overflow: hidden;
 
   box-sizing: border-box;
 
-  border: 4px solid #e9f4ff;
+  border: 5px solid #e8f4fd;
 
   border-radius: 50%;
 
   background: #c0dbea;
 
-  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.1);
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.1),
+    0 2px 6px rgba(15, 23, 42, 0.05);
 }
 
 // =========================================================
@@ -280,21 +291,20 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 120px;
-  height: 35px;
+  min-width: 145px;
+  height: 43px;
 
-  padding: 0 16px;
+  padding: 0 20px;
 
   border: 1px solid #d5dce5;
-
-  border-radius: 8px;
+  border-radius: 9px;
 
   background: #ffffff;
   color: #475569;
 
   font-family: inherit;
 
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 
   cursor: pointer;
@@ -303,7 +313,8 @@
     background-color 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
 
   &:hover {
     background: #f8fbff;
@@ -311,6 +322,8 @@
     border-color: #93baf5;
 
     color: #2563eb;
+
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
   }
 
   &:active {
@@ -325,16 +338,16 @@
 .photo-hint {
   display: block;
 
-  max-width: 160px;
+  max-width: 200px;
 
-  margin-top: 8px;
+  margin-top: 10px;
 
-  color: #9aabc1;
+  color: #94a3b8;
 
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 
-  line-height: 1.4;
+  line-height: 1.5;
 
   text-align: center;
 }
@@ -361,6 +374,9 @@
   flex: 1;
 
   min-width: 0;
+
+  display: flex;
+  align-items: center;
 }
 
 // =========================================================
@@ -373,7 +389,7 @@
 
   width: 100%;
 
-  gap: 16px;
+  gap: 25px;
 
   box-sizing: border-box;
 }
@@ -391,14 +407,14 @@
   label {
     display: block;
 
-    margin: 0 0 7px;
+    margin: 0 0 10px;
 
     color: #1e293b;
 
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 16px;
+    font-weight: 750;
 
-    line-height: 1.3;
+    line-height: 1.35;
   }
 }
 
@@ -423,7 +439,7 @@
 
   width: 100%;
 
-  gap: 20px;
+  gap: 28px;
 
   box-sizing: border-box;
 }
@@ -436,15 +452,15 @@
   display: block;
 
   width: 100%;
-  height: 42px;
+  height: 54px;
 
-  padding: 0 13px;
+  padding: 0 17px;
 
   box-sizing: border-box;
 
-  border: 1px solid #d3dce7;
+  border: 1px solid #cbd5e1;
 
-  border-radius: 8px;
+  border-radius: 10px;
 
   outline: none;
 
@@ -453,7 +469,7 @@
 
   font-family: inherit;
 
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
 
   transition:
@@ -462,13 +478,13 @@
     background-color 0.2s ease;
 
   &::placeholder {
-    color: #9aabc1;
+    color: #94a3b8;
 
     opacity: 1;
   }
 
   &:hover {
-    border-color: #b8c4d3;
+    border-color: #aebdce;
   }
 
   &:focus {
@@ -476,7 +492,7 @@
 
     background: #ffffff;
 
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
   &:disabled {
@@ -511,7 +527,7 @@
 // =========================================================
 
 .form-group input[type="date"] {
-  padding-left: 13px;
+  padding-left: 17px;
 
   color: #263449;
 
@@ -523,14 +539,14 @@
 // =========================================================
 
 .form-group input[type="date"]::-webkit-calendar-picker-indicator {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 
-  margin-right: 2px;
+  margin-right: 4px;
 
   cursor: pointer;
 
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 // =========================================================
@@ -538,7 +554,7 @@
 // =========================================================
 
 .form-group input[type="tel"] {
-  letter-spacing: 0.15px;
+  letter-spacing: 0.2px;
 }
 
 // =========================================================
@@ -570,15 +586,15 @@
   display: block;
 
   width: 100%;
-  height: 42px;
+  height: 54px;
 
-  padding: 0 42px 0 13px;
+  padding: 0 48px 0 17px;
 
   box-sizing: border-box;
 
-  border: 1px solid #d3dce7;
+  border: 1px solid #cbd5e1;
 
-  border-radius: 8px;
+  border-radius: 10px;
 
   outline: none;
 
@@ -587,7 +603,7 @@
 
   font-family: inherit;
 
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
 
   cursor: pointer;
@@ -598,13 +614,13 @@
     background-color 0.2s ease;
 
   &:hover {
-    border-color: #b8c4d3;
+    border-color: #aebdce;
   }
 
   &:focus {
     border-color: #3b82f6;
 
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
   }
 
   &:disabled {
@@ -619,16 +635,12 @@
 // =========================================================
 // CUSTOM DROPDOWN ARROW
 // =========================================================
-//
-// Do not depend on Material Symbols.
-// This prevents "arrow_drop_down" from appearing as text.
-//
 
 .select-arrow {
   position: absolute;
 
   top: 50%;
-  right: 14px;
+  right: 18px;
 
   z-index: 2;
 
@@ -637,11 +649,11 @@
 
   transform: translateY(-35%);
 
-  border-top: 6px solid #64748b;
+  border-top: 7px solid #64748b;
 
-  border-right: 5px solid transparent;
+  border-right: 6px solid transparent;
 
-  border-left: 5px solid transparent;
+  border-left: 6px solid transparent;
 
   font-size: 0;
 
@@ -670,7 +682,7 @@
     &:focus {
       border-color: #dc2626;
 
-      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
     }
   }
 }
@@ -682,14 +694,14 @@
 .error-msg {
   display: block;
 
-  margin-top: 5px;
+  margin-top: 7px;
 
   color: #dc2626;
 
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 500;
 
-  line-height: 1.35;
+  line-height: 1.4;
 }
 
 // =========================================================
@@ -703,10 +715,10 @@
 
   width: 100%;
 
-  gap: 12px;
+  gap: 14px;
 
-  margin-top: 5px;
-  padding-top: 18px;
+  margin-top: 8px;
+  padding-top: 20px;
 
   border-top: 1px solid #e2e8f0;
 }
@@ -720,21 +732,21 @@
   align-items: center;
   justify-content: center;
 
-  min-width: 105px;
-  height: 40px;
+  min-width: 115px;
+  height: 46px;
 
-  padding: 0 18px;
+  padding: 0 20px;
 
   border: 1px solid #cbd5e1;
 
-  border-radius: 8px;
+  border-radius: 10px;
 
   background: #ffffff;
   color: #475569;
 
   font-family: inherit;
 
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 
   cursor: pointer;
@@ -768,22 +780,32 @@
 // =========================================================
 
 @media (max-width: 1100px) {
+
   .edit-profile-page {
     max-width: 100%;
+
+    padding: 20px 24px;
   }
 
   .edit-card {
-    gap: 25px;
+    min-height: 560px;
 
-    padding: 28px;
+    padding: 42px;
+
+    gap: 38px;
   }
 
   .avatar-section {
-    flex-basis: 175px;
+    flex-basis: 220px;
+  }
+
+  .avatar-wrapper {
+    width: 145px;
+    height: 145px;
   }
 
   .form-row {
-    gap: 15px;
+    gap: 20px;
   }
 }
 
@@ -792,24 +814,33 @@
 // =========================================================
 
 @media (max-width: 900px) {
-  .edit-card {
-    gap: 22px;
 
-    padding: 24px;
+  .edit-card {
+    min-height: 540px;
+
+    padding: 36px 32px;
+
+    gap: 30px;
   }
 
   .avatar-section {
-    flex-basis: 155px;
+    flex-basis: 190px;
   }
 
   .avatar-wrapper {
-    width: 110px;
-    height: 110px;
+    width: 130px;
+    height: 130px;
   }
 
   .form-group input,
   .form-group select {
-    font-size: 12px;
+    height: 50px;
+
+    font-size: 15px;
+  }
+
+  .form-group label {
+    font-size: 15px;
   }
 }
 
@@ -818,12 +849,13 @@
 // =========================================================
 
 @media (max-width: 800px) {
+
   .profile-header {
     flex-direction: column;
 
     align-items: stretch;
 
-    gap: 14px;
+    gap: 16px;
   }
 
   .header-actions {
@@ -833,9 +865,11 @@
   .edit-card {
     flex-direction: column;
 
-    gap: 24px;
+    min-height: auto;
 
-    padding: 24px;
+    gap: 30px;
+
+    padding: 36px 28px;
   }
 
   .avatar-section {
@@ -843,7 +877,7 @@
 
     width: 100%;
 
-    padding-bottom: 24px;
+    padding: 0 0 28px;
 
     border-bottom: 1px solid #e2e8f0;
   }
@@ -854,6 +888,8 @@
 
   .form-section {
     width: 100%;
+
+    display: block;
   }
 }
 
@@ -862,17 +898,19 @@
 // =========================================================
 
 @media (max-width: 650px) {
+
   .edit-profile-page {
-    padding: 0;
+    padding: 18px;
   }
 
   .title-group {
+
     h1 {
-      font-size: 26px;
+      font-size: 28px;
     }
 
     .subtitle {
-      font-size: 13px;
+      font-size: 15px;
     }
   }
 
@@ -888,7 +926,7 @@
   }
 
   .edit-card {
-    padding: 20px;
+    padding: 30px 22px;
 
     border-radius: 18px;
   }
@@ -896,7 +934,7 @@
   .form-row {
     grid-template-columns: 1fr;
 
-    gap: 16px;
+    gap: 24px;
   }
 }
 
@@ -905,17 +943,19 @@
 // =========================================================
 
 @media (max-width: 480px) {
+
   .profile-header {
-    gap: 12px;
+    gap: 14px;
   }
 
   .title-group {
+
     h1 {
-      font-size: 23px;
+      font-size: 25px;
     }
 
     .subtitle {
-      font-size: 12px;
+      font-size: 14px;
     }
   }
 
@@ -931,21 +971,25 @@
   }
 
   .edit-card {
-    padding: 16px;
+    padding: 24px 18px;
 
     border-radius: 16px;
   }
 
   .avatar-wrapper {
-    width: 105px;
-    height: 105px;
+    width: 130px;
+    height: 130px;
   }
 
   .form-group input,
   .form-group select {
-    height: 42px;
+    height: 50px;
 
-    font-size: 13px;
+    font-size: 15px;
+  }
+
+  .form-group label {
+    font-size: 15px;
   }
 }
 
@@ -954,24 +998,27 @@
 // =========================================================
 
 @media (max-width: 360px) {
+
   .edit-card {
-    padding: 14px;
+    padding: 20px 14px;
   }
 
   .title-group h1 {
-    font-size: 21px;
+    font-size: 22px;
   }
 
   .form-group input,
   .form-group select {
-    height: 41px;
+    height: 48px;
 
-    padding-left: 11px;
-    padding-right: 11px;
+    padding-left: 13px;
+    padding-right: 13px;
+
+    font-size: 14px;
   }
 
   .form-group select {
-    padding-right: 38px;
+    padding-right: 42px;
   }
 }
 
@@ -992,6 +1039,7 @@ select:focus-visible {
 // =========================================================
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

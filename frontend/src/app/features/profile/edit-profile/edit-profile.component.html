@@ -1,0 +1,248 @@
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+<div class="app-layout">
+  <div class="body-container">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <!-- Dark Overlay -->
+      <div class="sidebar-overlay"></div>
+      
+      <div class="sidebar-content">
+        <!-- Integrated Sidebar Header -->
+        <div class="sidebar-header">
+          <span class="material-symbols-outlined menu-icon">menu</span>
+          <div class="brand-container">
+            <div class="logo-emblem">
+              <img src="images/logo.png" alt="PolicyGPT Logo" class="brand-logo-img" />
+            </div>
+            <div class="brand-text">
+              <span class="brand-name">Policy<span class="highlight">GPT</span></span>
+              <span class="brand-tagline">Government Information. Simplified.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Navigation Links -->
+        <nav class="sidebar-nav">
+          <a class="nav-item"><span class="material-symbols-outlined">home</span> Dashboard</a>
+          <a class="nav-item"><span class="material-symbols-outlined">description</span> Search Policies</a>
+          <a class="nav-item"><span class="material-symbols-outlined">article</span> Search Schemes</a>
+          <a class="nav-item"><span class="material-symbols-outlined">verified</span> Eligibility Checker</a>
+          <a class="nav-item"><span class="material-symbols-outlined">grid_view</span> Compare</a>
+          <a class="nav-item"><span class="material-symbols-outlined">bookmark</span> Saved Items</a>
+          <a class="nav-item"><span class="material-symbols-outlined">notifications</span> Notifications</a>
+          <a class="nav-item"><span class="material-symbols-outlined">history</span> Search History</a>
+          <a class="nav-item"><span class="material-symbols-outlined">bar_chart</span> Application Status</a>
+          <a class="nav-item"><span class="material-symbols-outlined">headset_mic</span> Support</a>
+        </nav>
+
+        <!-- Bottom Navigation Links -->
+        <div class="sidebar-bottom">
+          <a class="nav-item active"><span class="material-symbols-outlined">account_circle</span> Profile</a>
+          <a class="nav-item"><span class="material-symbols-outlined">settings</span> Settings</a>
+          <a class="nav-item"><span class="material-symbols-outlined">logout</span> Logout</a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="main-wrapper">
+      <!-- Top Dark Navigation Header -->
+      <header class="top-navbar">
+        <div class="search-bar">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input type="text" placeholder="Search policies / schemes" />
+        </div>
+
+        <div class="user-profile-badge">
+          <div class="badge-avatar">
+            @if (selectedPhotoUrl) {
+              <img [src]="selectedPhotoUrl" alt="User Avatar" class="header-avatar-img" />
+            } @else {
+              <span class="material-symbols-outlined">person</span>
+            }
+          </div>
+          <div class="badge-info">
+            <span class="user-name">{{ f['fullName'].value || 'USER NAME' }}</span>
+            <span class="user-role">User Role</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main-content">
+        <!-- Header Row -->
+        <div class="profile-header">
+          <div class="title-group">
+            <h1>Edit Profile</h1>
+            <p class="subtitle">Update your personal details</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-back" type="button" (click)="goBack()">&larr; Back</button>
+            <button class="btn-save" type="button" (click)="onSave()">Save</button>
+          </div>
+        </div>
+
+        <!-- Form Main Container Card -->
+        <div class="edit-card">
+          <!-- Left Avatar Column -->
+          <div class="avatar-section">
+            <div class="avatar-wrapper">
+              @if (selectedPhotoUrl) {
+                <img [src]="selectedPhotoUrl" alt="Profile Picture" class="avatar-preview-img" />
+              } @else {
+                <svg viewBox="0 0 100 100" class="avatar-svg">
+                  <circle cx="50" cy="50" r="50" fill="#c0dbea" />
+                  <circle cx="50" cy="38" r="18" fill="#2d3748" />
+                  <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
+                  <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
+                  <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
+                </svg>
+              }
+            </div>
+            <button class="btn-change-photo" type="button" (click)="onChangePhoto()">Change Photo</button>
+            <span class="photo-hint">JPG or PNG supported.</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Right Form Column -->
+          <div class="form-section">
+            <form [formGroup]="profileForm" (ngSubmit)="onSave()" class="edit-form">
+              
+              <!-- Full Name (Full Width) -->
+              <div class="form-group full-width" [class.invalid]="f['fullName'].touched && f['fullName'].invalid">
+                <label for="fullName">Full Name</label>
+                <input id="fullName" type="text" formControlName="fullName" placeholder="Enter your full name" />
+                @if (f['fullName'].touched && f['fullName'].errors?.['required']) {
+                  <span class="error-msg">Full name is required.</span>
+                }
+              </div>
+
+              <!-- Date of Birth & Gender -->
+              <div class="form-row">
+                <div class="form-group" [class.invalid]="f['dob'].touched && f['dob'].invalid">
+                  <label for="dob">Date Of Birth</label>
+                  <div class="input-with-icon">
+                    <span class="material-symbols-outlined input-icon">calendar_month</span>
+                    <input id="dob" type="date" formControlName="dob" placeholder="YYYY-MM-DD" />
+                  </div>
+                  @if (f['dob'].touched && f['dob'].errors?.['required']) {
+                    <span class="error-msg">Date of birth is required.</span>
+                  }
+                </div>
+
+                <div class="form-group" [class.invalid]="f['gender'].touched && f['gender'].invalid">
+                  <label for="gender">Gender</label>
+                  <div class="select-wrapper">
+                    <select id="gender" formControlName="gender">
+                      <option value="" disabled>Select your gender</option>
+                      @for (option of genderOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                    <span class="material-symbols-outlined select-arrow">arrow_drop_down</span>
+                  </div>
+                  @if (f['gender'].touched && f['gender'].errors?.['required']) {
+                    <span class="error-msg">Please select a gender.</span>
+                  }
+                </div>
+              </div>
+
+              <!-- State & District -->
+              <div class="form-row">
+                <div class="form-group" [class.invalid]="f['state'].touched && f['state'].invalid">
+                  <label for="state">State</label>
+                  <div class="select-wrapper">
+                    <select id="state" formControlName="state">
+                      <option value="" disabled>Select your state</option>
+                      @for (state of stateOptions; track state) {
+                        <option [value]="state">{{ state }}</option>
+                      }
+                    </select>
+                    <span class="material-symbols-outlined select-arrow">arrow_drop_down</span>
+                  </div>
+                  @if (f['state'].touched && f['state'].errors?.['required']) {
+                    <span class="error-msg">Please select a state.</span>
+                  }
+                </div>
+
+                <div class="form-group" [class.invalid]="f['district'].touched && f['district'].invalid">
+                  <label for="district">District</label>
+                  <div class="select-wrapper">
+                    <select id="district" formControlName="district" [attr.disabled]="districtOptions.length === 0 ? true : null">
+                      <option value="" disabled>
+                        {{ districtOptions.length === 0 ? 'Select state first' : 'Select your district' }}
+                      </option>
+                      @for (district of districtOptions; track district) {
+                        <option [value]="district">{{ district }}</option>
+                      }
+                    </select>
+                    <span class="material-symbols-outlined select-arrow">arrow_drop_down</span>
+                  </div>
+                  @if (f['district'].touched && f['district'].errors?.['required']) {
+                    <span class="error-msg">Please select a district.</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Occupation & Phone Number -->
+              <div class="form-row">
+                <div class="form-group" [class.invalid]="f['occupation'].touched && f['occupation'].invalid">
+                  <label for="occupation">Occupation</label>
+                  <input id="occupation" type="text" formControlName="occupation" placeholder="Enter your occupation" />
+                  @if (f['occupation'].touched && f['occupation'].errors?.['required']) {
+                    <span class="error-msg">Occupation is required.</span>
+                  }
+                </div>
+
+                <div class="form-group" [class.invalid]="f['phone'].touched && f['phone'].invalid">
+                  <label for="phone">Phone Number</label>
+                  <div class="input-with-icon">
+                    <span class="material-symbols-outlined input-icon">call</span>
+                    <input id="phone" type="tel" formControlName="phone" placeholder="Enter your phone number" />
+                  </div>
+                  @if (f['phone'].touched && f['phone'].errors?.['required']) {
+                    <span class="error-msg">Phone number is required.</span>
+                  }
+                  @if (f['phone'].touched && f['phone'].errors?.['pattern']) {
+                    <span class="error-msg">Enter a valid 10-digit number.</span>
+                  }
+                </div>
+              </div>
+
+              <!-- Email Address (Full Width) -->
+              <div class="form-group full-width" [class.invalid]="f['email'].touched && f['email'].invalid">
+                <label for="email">Email Address</label>
+                <div class="input-with-icon">
+                  <span class="material-symbols-outlined input-icon">mail</span>
+                  <input id="email" type="email" formControlName="email" placeholder="Enter your email address" />
+                </div>
+                @if (f['email'].touched && f['email'].errors?.['required']) {
+                  <span class="error-msg">Email address is required.</span>
+                }
+                @if (f['email'].touched && f['email'].errors?.['email']) {
+                  <span class="error-msg">Enter a valid email address.</span>
+                }
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </main>
+
+      <!-- Bottom Dark Footer Bar -->
+      <footer class="bottom-footer">
+        <span class="copyright">&copy; 2026 PolicyGPT. All rights reserved.</span>
+        <div class="footer-links">
+          <a>Privacy</a>
+          <span class="bullet">&bull;</span>
+          <a>Terms</a>
+          <span class="bullet">&bull;</span>
+          <a>Help</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+</div>

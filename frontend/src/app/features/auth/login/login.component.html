@@ -59,9 +59,11 @@
         <li class="login-feature">
 
           <div class="login-feature__icon login-feature__icon--blue">
+
             <span class="material-icons">
               search
             </span>
+
           </div>
 
           <div class="login-feature__content">
@@ -85,9 +87,11 @@
         <li class="login-feature">
 
           <div class="login-feature__icon login-feature__icon--green">
+
             <span class="material-icons">
               verified_user
             </span>
+
           </div>
 
           <div class="login-feature__content">
@@ -111,9 +115,11 @@
         <li class="login-feature">
 
           <div class="login-feature__icon login-feature__icon--orange">
+
             <span class="material-icons">
               bookmark
             </span>
+
           </div>
 
           <div class="login-feature__content">
@@ -137,9 +143,11 @@
         <li class="login-feature">
 
           <div class="login-feature__icon login-feature__icon--purple">
+
             <span class="material-icons">
               notifications
             </span>
+
           </div>
 
           <div class="login-feature__content">
@@ -369,11 +377,13 @@
               ">
 
               <span class="material-icons">
+
                 {{
                 hidePassword
                 ? 'visibility'
                 : 'visibility_off'
                 }}
+
               </span>
 
             </button>
@@ -493,21 +503,21 @@
 
 
       <!-- =================================================
-           SOCIAL LOGIN
+           GUEST LOGIN
       ================================================== -->
 
       <div class="login-social">
 
-        <!-- GOOGLE -->
+        <!-- GUEST USER -->
 
-        <button type="button" class="login-social__button" (click)="loginWithGoogle()" [disabled]="loading">
+        <button type="button" class="login-social__button" (click)="loginAsGuest()" [disabled]="loading">
 
-          <span class="google-icon">
-            G
+          <span class="material-icons guest-icon" aria-hidden="true">
+            person_outline
           </span>
 
           <span>
-            Google
+            Guest User
           </span>
 
         </button>

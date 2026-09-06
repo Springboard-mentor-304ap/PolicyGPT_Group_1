@@ -14,13 +14,7 @@ export const DASHBOARD_ROUTES: Routes = [
     canActivate: [authGuard, roleGuard],
 
     data: {
-      roles: [
-        "RESEARCHER",
-        "ORGANIZATION",
-        "ORGANISATION",
-        "GUEST",
-        "GUEST_USER",
-      ],
+      roles: ["RESEARCHER", "ORGANIZATION", "ORGANISATION"],
     },
 
     loadComponent: () =>
@@ -115,10 +109,6 @@ export const DASHBOARD_ROUTES: Routes = [
       {
         path: "",
         pathMatch: "full",
-
-        // IMPORTANT:
-        // This must load CitizenComponent,
-        // NOT CitizenLayoutComponent.
 
         loadComponent: () =>
           import("./citizen/citizen.component").then((m) => m.CitizenComponent),
@@ -351,13 +341,55 @@ export const DASHBOARD_ROUTES: Routes = [
   },
 
   // =========================================================
+  // GUEST USER DASHBOARD
+  // =========================================================
+  //
+  // IMPORTANT:
+  // Guest users do NOT use authGuard.
+  // Guest users do NOT use roleGuard.
+  // Guest users do NOT need an access token.
+  //
+  // URL:
+  // /dashboard/guest
+  //
+  // Layout:
+  // GuestUserLayoutComponent
+  //
+  // =========================================================
+
+  {
+    path: "guest",
+
+    loadComponent: () =>
+      import("../../../shared/layouts/guest-user-layout/guest-user-layout.component").then(
+        (m) => m.GuestUserLayoutComponent,
+      ),
+
+    children: [
+      {
+        path: "",
+        pathMatch: "full",
+
+        loadComponent: () =>
+          import("./guest/guest.component").then((m) => m.GuestComponent),
+      },
+    ],
+  },
+
+  // =========================================================
   // DEFAULT DASHBOARD ROUTE
+  // =========================================================
+  //
+  // /dashboard
+  //      ↓
+  // /dashboard/guest
+  //
   // =========================================================
 
   {
     path: "",
 
-    redirectTo: "user-dashboard",
+    redirectTo: "guest",
 
     pathMatch: "full",
   },

@@ -1,7 +1,5 @@
 import { ChangeDetectorRef, Component } from "@angular/core";
-
 import { CommonModule } from "@angular/common";
-
 import { Router, RouterLink } from "@angular/router";
 
 import {
@@ -271,6 +269,7 @@ export class LoginComponent {
     /*
      * Immediately update the button.
      */
+
     this.cdr.detectChanges();
 
     console.log("=================================");
@@ -289,27 +288,27 @@ export class LoginComponent {
 
     this.authService.login(identifier, password).subscribe({
       /* ===================================================
-           SUCCESS
-           =================================================== */
+             SUCCESS
+        =================================================== */
 
       next: (response) => {
         console.log("LOGIN SUCCESS:", response);
 
         /* -------------------------------------------------
-             STOP LOADING IMMEDIATELY
-             ------------------------------------------------- */
+               STOP LOADING IMMEDIATELY
+          ------------------------------------------------- */
 
         this.loading = false;
 
         /* -------------------------------------------------
-             UPDATE UI
-             ------------------------------------------------- */
+               UPDATE UI
+          ------------------------------------------------- */
 
         this.cdr.detectChanges();
 
         /* -------------------------------------------------
-             CHECK RESPONSE
-             ------------------------------------------------- */
+               CHECK RESPONSE
+          ------------------------------------------------- */
 
         if (!response) {
           this.errorMessage = "Invalid response from server.";
@@ -320,8 +319,8 @@ export class LoginComponent {
         }
 
         /* -------------------------------------------------
-             CHECK TOKEN
-             ------------------------------------------------- */
+               CHECK TOKEN
+          ------------------------------------------------- */
 
         if (!response.access_token) {
           this.errorMessage = "Login failed. Access token not received.";
@@ -332,8 +331,8 @@ export class LoginComponent {
         }
 
         /* -------------------------------------------------
-             GET USER
-             ------------------------------------------------- */
+               GET USER
+          ------------------------------------------------- */
 
         const user = response.user;
 
@@ -346,8 +345,8 @@ export class LoginComponent {
         }
 
         /* -------------------------------------------------
-             GET ROLE
-             ------------------------------------------------- */
+               GET ROLE
+          ------------------------------------------------- */
 
         const role = user.role;
 
@@ -365,34 +364,34 @@ export class LoginComponent {
         console.log("ROLE:", role);
 
         /* -------------------------------------------------
-             REDIRECT
-             ------------------------------------------------- */
+               REDIRECT
+          ------------------------------------------------- */
 
         this.redirectByRole(role);
       },
 
       /* ===================================================
            ERROR
-           =================================================== */
+        =================================================== */
 
       error: (err: any) => {
         console.error("LOGIN ERROR:", err);
 
         /* =================================================
              STOP LOADING IMMEDIATELY
-             ================================================= */
+          ================================================= */
 
         this.loading = false;
 
         /* =================================================
              READ HTTP STATUS
-             ================================================= */
+          ================================================= */
 
         const status = err?.status;
 
         /* =================================================
              READ BACKEND ERROR
-             ================================================= */
+          ================================================= */
 
         let backendMessage = "";
 
@@ -412,14 +411,7 @@ export class LoginComponent {
 
         /* =================================================
              INVALID PASSWORD
-             =================================================
-             
-             Backend:
-             INVALID_PASSWORD
-             
-             Screen:
-             Invalid password.
-             ================================================= */
+          ================================================= */
 
         if (
           message === "invalid_password" ||
@@ -434,7 +426,7 @@ export class LoginComponent {
 
         /* =================================================
              INVALID CREDENTIAL
-             ================================================= */
+          ================================================= */
         else if (
           message === "invalid_credential" ||
           message.includes("invalid_credential") ||
@@ -448,14 +440,14 @@ export class LoginComponent {
 
         /* =================================================
              ANY 401
-             ================================================= */
+          ================================================= */
         else if (status === 401) {
           this.errorMessage = "Invalid credential.";
         }
 
         /* =================================================
              ACCOUNT INACTIVE
-             ================================================= */
+          ================================================= */
         else if (status === 403) {
           this.errorMessage =
             "Your account is inactive. Please contact administrator.";
@@ -463,28 +455,28 @@ export class LoginComponent {
 
         /* =================================================
              VALIDATION ERROR
-             ================================================= */
+          ================================================= */
         else if (status === 422) {
           this.errorMessage = "Please enter valid login details.";
         }
 
         /* =================================================
              SERVER ERROR
-             ================================================= */
+          ================================================= */
         else if (status !== undefined && status >= 500) {
           this.errorMessage = "Server error. Please try again later.";
         }
 
         /* =================================================
              CONNECTION ERROR
-             ================================================= */
+          ================================================= */
         else if (status === 0) {
           this.errorMessage = "Unable to connect to the server.";
         }
 
         /* =================================================
              OTHER ERROR
-             ================================================= */
+          ================================================= */
         else {
           this.errorMessage =
             backendMessage || "Login failed. Please check your credentials.";
@@ -492,7 +484,7 @@ export class LoginComponent {
 
         /* =================================================
              FORCE IMMEDIATE UI UPDATE
-             ================================================= */
+          ================================================= */
 
         this.cdr.detectChanges();
 
@@ -517,7 +509,7 @@ export class LoginComponent {
     switch (normalizedRole) {
       /* =====================================================
          ADMINISTRATOR
-         ===================================================== */
+      ===================================================== */
 
       case "ADMINISTRATOR":
         this.router.navigate(["/dashboard/admin"]);
@@ -526,7 +518,7 @@ export class LoginComponent {
 
       /* =====================================================
          CITIZEN
-         ===================================================== */
+      ===================================================== */
 
       case "CITIZEN":
         this.router.navigate(["/dashboard/citizen"]);
@@ -535,7 +527,7 @@ export class LoginComponent {
 
       /* =====================================================
          GOVERNMENT OFFICIAL
-         ===================================================== */
+      ===================================================== */
 
       case "GOVERNMENT_OFFICIAL":
         this.router.navigate(["/dashboard/government"]);
@@ -544,7 +536,7 @@ export class LoginComponent {
 
       /* =====================================================
          RESEARCHER
-         ===================================================== */
+      ===================================================== */
 
       case "RESEARCHER":
         this.router.navigate(["/dashboard/user-dashboard"]);
@@ -553,7 +545,7 @@ export class LoginComponent {
 
       /* =====================================================
          ORGANIZATION
-         ===================================================== */
+      ===================================================== */
 
       case "ORGANIZATION":
         this.router.navigate(["/dashboard/user-dashboard"]);
@@ -562,16 +554,22 @@ export class LoginComponent {
 
       /* =====================================================
          GUEST
-         ===================================================== */
+
+         A guest does NOT use the authenticated
+         user dashboard.
+
+         It goes directly to the public
+         Guest User layout.
+      ===================================================== */
 
       case "GUEST":
-        this.router.navigate(["/dashboard/user-dashboard"]);
+        this.router.navigate(["/dashboard/guest"]);
 
         break;
 
       /* =====================================================
          UNKNOWN ROLE
-         ===================================================== */
+      ===================================================== */
 
       default:
         this.errorMessage = "Unknown user role. Please contact administrator.";
@@ -583,17 +581,29 @@ export class LoginComponent {
   }
 
   /* =========================================================
-     GOOGLE LOGIN
+     GUEST USER
      ========================================================= */
 
-  loginWithGoogle(): void {
+  loginAsGuest(): void {
     if (this.loading) {
       return;
     }
 
-    this.errorMessage = "Google login is not available yet.";
+    /* -------------------------------------------------------
+       Clear previous error
+    ------------------------------------------------------- */
 
-    this.cdr.detectChanges();
+    this.errorMessage = "";
+
+    /* -------------------------------------------------------
+       Navigate directly to guest dashboard
+    ------------------------------------------------------- */
+
+    console.log("Opening Guest User dashboard...");
+
+    this.router.navigate(["/dashboard/guest"]).then((success) => {
+      console.log("Guest navigation:", success);
+    });
   }
 
   /* =========================================================

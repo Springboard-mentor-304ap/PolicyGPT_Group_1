@@ -28,41 +28,34 @@ export const routes: Routes = [
 
   {
     path: "auth",
-
     loadChildren: () =>
       import("./features/auth/auth.routes").then((m) => m.AUTH_ROUTES),
   },
 
   // =========================================================
-  // PROTECTED DASHBOARD ROUTES
+  // DASHBOARD ROUTES
   //
-  // All role-based dashboards are handled inside
-  // dashboard.routes.ts
+  // IMPORTANT:
+  //
+  // DO NOT put authGuard here.
+  //
+  // /dashboard/guest is a PUBLIC route.
+  //
+  // The individual authenticated dashboard routes
+  // handle their own authGuard + roleGuard.
   //
   // Examples:
   //
+  // /dashboard/guest
   // /dashboard/citizen
-  // /dashboard/citizen/profile
-  // /dashboard/citizen/profile/edit
-  //
   // /dashboard/government
-  // /dashboard/government/profile
-  // /dashboard/government/profile/edit
-  //
   // /dashboard/admin
-  // /dashboard/admin/profile
-  // /dashboard/admin/profile/edit
-  //
   // /dashboard/user-dashboard
-  // /dashboard/user-dashboard/profile
-  // /dashboard/user-dashboard/profile/edit
+  //
   // =========================================================
 
   {
     path: "dashboard",
-
-    canActivate: [authGuard],
-
     loadChildren: () =>
       import("./features/auth/dashboard/dashboard.routes").then(
         (m) => m.DASHBOARD_ROUTES,
@@ -75,19 +68,15 @@ export const routes: Routes = [
   // URL:
   // /admin/users
   //
-  // This route is kept separately because it already exists
-  // in your project.
+  // This route remains separately protected.
   // =========================================================
 
   {
     path: "admin/users",
-
     canActivate: [authGuard, roleGuard],
-
     data: {
       roles: ["ADMINISTRATOR"],
     },
-
     loadComponent: () =>
       import("./features/auth/dashboard/admin/users/view-users.component").then(
         (m) => m.ViewUsersComponent,
@@ -97,8 +86,7 @@ export const routes: Routes = [
   // =========================================================
   // FALLBACK ROUTE
   //
-  // If the user enters an invalid URL,
-  // redirect them to Login.
+  // Invalid URLs redirect to Login.
   // =========================================================
 
   {

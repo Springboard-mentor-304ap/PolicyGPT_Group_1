@@ -9,7 +9,6 @@ from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.services.email_service import send_otp_email
-from app.core.config import settings
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -674,7 +673,8 @@ def logout(
         "message": "Logged out successfully"
     }
 
-    # =========================================================
+
+# =========================================================
 # SEND EMAIL OTP
 # =========================================================
 
@@ -801,6 +801,7 @@ def send_otp(
         "message": "OTP sent successfully"
     }
 
+
 # =========================================================
 # VERIFY EMAIL OTP
 # =========================================================
@@ -825,19 +826,24 @@ def verify_otp(
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
+    user = db.query(
+        User
+    ).filter(
         User.email == email
     ).first()
 
     if not user:
 
         raise HTTPException(
+
             status_code=status.HTTP_404_NOT_FOUND,
+
             detail="Invalid email address"
+
         )
 
     # -----------------------------------------------------
-    # FIND ACTIVE OTP
+    # FIND LATEST ACTIVE OTP
     # -----------------------------------------------------
 
     otp_record = db.query(
@@ -852,8 +858,11 @@ def verify_otp(
     if not otp_record:
 
         raise HTTPException(
+
             status_code=status.HTTP_400_BAD_REQUEST,
+
             detail="OTP not found or already used"
+
         )
 
     # -----------------------------------------------------
@@ -869,7 +878,7 @@ def verify_otp(
     )
 
     # -----------------------------------------------------
-    # CHECK EXPIRATION
+    # CHECK OTP EXPIRATION
     # -----------------------------------------------------
 
     if otp_record.expires_at < now:
@@ -879,8 +888,11 @@ def verify_otp(
         db.commit()
 
         raise HTTPException(
+
             status_code=status.HTTP_400_BAD_REQUEST,
+
             detail="OTP has expired"
+
         )
 
     # -----------------------------------------------------
@@ -888,18 +900,68 @@ def verify_otp(
     # -----------------------------------------------------
 
     entered_otp_hash = hashlib.sha256(
-        data.otp.encode("utf-8")
-    ).hexdigest()
+            data.otp.encode("utf-8")
+        ).hexdigest()
 
     # -----------------------------------------------------
     # CHECK OTP
     # -----------------------------------------------------
 
-    if entered_otp_hash != otp_record.otp_hash:
+    if (
+        entered_otp_hash
+        != otp_record.otp_hash
+    ):
 
         raise HTTPException(
+
             status_code=status.HTTP_400_BAD_REQUEST,
+
             detail="Invalid OTP"
+
+        )
+
+    # -----------------------------------------------------
+    # INVALIDATE OLD RESET TOKENS
+    # -----------------------------------------------------
+
+    db.query(
+        PasswordResetToken
+    ).filter(
+        PasswordResetToken.user_id == user.user_id,
+        PasswordResetToken.used.is_(False)
+    ).update(
+        {
+            "used": True
+        }
+    )
+
+    # -----------------------------------------------------
+    # CREATE NEW RESET TOKEN
+    # -----------------------------------------------------
+
+    raw_reset_token = secrets.token_urlsafe(32)
+
+    token_hash = hash_reset_token(
+            raw_reset_token
+        )
+
+    # -----------------------------------------------------
+    # CREATE RESET RECORD
+    # -----------------------------------------------------
+
+    reset_record = PasswordResetToken(
+            user_id=user.user_id,
+
+            token_hash=token_hash,
+
+            expires_at=now + timedelta(
+                minutes=15
+            ),
+
+            used=False,
+
+            created_at=now,
+
         )
 
     # -----------------------------------------------------
@@ -908,16 +970,53 @@ def verify_otp(
 
     otp_record.used = True
 
-    db.commit()
+    # -----------------------------------------------------
+    # SAVE
+    # -----------------------------------------------------
+
+    try:
+
+        db.add(
+            reset_record
+        )
+
+        db.commit()
+
+    except Exception as exc:
+
+        db.rollback()
+
+        print(
+            "PASSWORD RESET TOKEN ERROR:",
+            exc
+        )
+
+        raise HTTPException(
+
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+
+            detail="Unable to create password reset session"
+
+        )
 
     # -----------------------------------------------------
     # SUCCESS
     # -----------------------------------------------------
 
     return {
-        "message": "OTP verified successfully",
-        "verified": True
+
+        "message":
+            "OTP verified successfully",
+
+        "verified":
+            True,
+
+        "reset_token":
+            raw_reset_token,
+
     }
+
+
 # =========================================================
 # FORGOT PASSWORD
 # =========================================================
@@ -942,7 +1041,9 @@ def forgot_password(
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
+    user = db.query(
+        User
+    ).filter(
         User.email == email
     ).first()
 
@@ -951,11 +1052,33 @@ def forgot_password(
     # -----------------------------------------------------
 
     generic_response = {
-        "message": "If account exists, password reset link generated."
+        "message":
+            "If an account exists with this email, "
+            "a verification code has been sent."
     }
 
+    # -----------------------------------------------------
+    # DO NOT REVEAL ACCOUNT EXISTENCE
+    # -----------------------------------------------------
+
     if not user:
+
         return generic_response
+
+    # -----------------------------------------------------
+    # INVALIDATE OLD OTPs
+    # -----------------------------------------------------
+
+    db.query(
+        OTPVerification
+    ).filter(
+        OTPVerification.user_id == user.user_id,
+        OTPVerification.used.is_(False)
+    ).update(
+        {
+            "used": True
+        }
+    )
 
     # -----------------------------------------------------
     # INVALIDATE OLD RESET TOKENS
@@ -966,19 +1089,30 @@ def forgot_password(
     ).filter(
         PasswordResetToken.user_id == user.user_id,
         PasswordResetToken.used.is_(False)
-    ).update({
-        "used": True
-    })
-
-    # -----------------------------------------------------
-    # CREATE RESET TOKEN
-    # -----------------------------------------------------
-
-    raw_token = secrets.token_urlsafe(32)
-
-    token_hash = hash_reset_token(
-        raw_token
+    ).update(
+        {
+            "used": True
+        }
     )
+
+    # -----------------------------------------------------
+    # GENERATE 6 DIGIT OTP
+    # -----------------------------------------------------
+
+    otp = str(
+        random.randint(
+            100000,
+            999999
+        )
+    )
+
+    # -----------------------------------------------------
+    # HASH OTP
+    # -----------------------------------------------------
+
+    otp_hash = hashlib.sha256(
+        otp.encode("utf-8")
+    ).hexdigest()
 
     # -----------------------------------------------------
     # CURRENT TIME
@@ -993,35 +1127,95 @@ def forgot_password(
     )
 
     # -----------------------------------------------------
-    # CREATE RESET RECORD
+    # CREATE OTP RECORD
     # -----------------------------------------------------
 
-    reset_token = PasswordResetToken(
+    otp_record = OTPVerification(
+
         user_id=user.user_id,
-        token_hash=token_hash,
+
+        otp_hash=otp_hash,
+
         expires_at=now + timedelta(
-            minutes=15
+            minutes=5
         ),
+
         used=False,
-        created_at=now
+
+        created_at=now,
+
     )
 
     # -----------------------------------------------------
-    # SAVE
+    # SAVE OTP
     # -----------------------------------------------------
 
-    db.add(reset_token)
-    db.commit()
+    db.add(
+        otp_record
+    )
+
+    try:
+
+        db.commit()
+
+    except Exception:
+
+        db.rollback()
+
+        raise HTTPException(
+
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+
+            detail="Unable to create verification code"
+
+        )
 
     # -----------------------------------------------------
-    # DEVELOPMENT TOKEN
+    # SEND OTP EMAIL
     # -----------------------------------------------------
 
-    if settings.DEBUG:
-        return {
-            **generic_response,
-            "development_reset_token": raw_token
-        }
+    try:
+
+        send_otp_email(
+
+            recipient_email=email,
+
+            otp=otp
+
+        )
+
+    except Exception as exc:
+
+        print(
+            "PASSWORD RESET OTP EMAIL ERROR:",
+            exc
+        )
+
+        # -------------------------------------------------
+        # Invalidate the OTP if email failed
+        # -------------------------------------------------
+
+        try:
+
+            otp_record.used = True
+
+            db.commit()
+
+        except Exception:
+
+            db.rollback()
+
+        raise HTTPException(
+
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+
+            detail="Unable to send verification code"
+
+        )
+
+    # -----------------------------------------------------
+    # SUCCESS
+    # -----------------------------------------------------
 
     return generic_response
 

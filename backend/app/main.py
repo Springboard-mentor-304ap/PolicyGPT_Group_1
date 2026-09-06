@@ -4,6 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.auth import router as auth_router
 from app.api.routes.admin_users import router as admin_users_router
 
+from app.db.database import Base, engine
+# =========================================================
+# CREATE DATABASE TABLES
+# =========================================================
+
+Base.metadata.create_all(
+    bind=engine
+)
+
+# =========================================================
+# FASTAPI APPLICATION
+# =========================================================
 
 app = FastAPI(
     title="PolicyGPT API",
@@ -33,6 +45,7 @@ app.add_middleware(
 # =========================================================
 
 app.include_router(auth_router)
+
 app.include_router(admin_users_router)
 
 
@@ -42,6 +55,7 @@ app.include_router(admin_users_router)
 
 @app.get("/")
 def root():
+
     return {
         "message": "PolicyGPT Backend is running",
         "status": "success",
@@ -54,6 +68,7 @@ def root():
 
 @app.get("/health")
 def health_check():
+
     return {
-        "status": "healthy"
+        "status": "healthy",
     }

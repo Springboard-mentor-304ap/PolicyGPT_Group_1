@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { Component, ChangeDetectorRef } from "@angular/core";
+import { ChangeDetectorRef, Component, OnDestroy } from "@angular/core";
 import {
   FormBuilder,
   FormGroup,
@@ -17,13 +17,15 @@ import { Auth } from "../../../core/services/auth";
   templateUrl: "./password-reset.component.html",
   styleUrl: "./password-reset.component.scss",
 })
-export class PasswordResetComponent {
+export class PasswordResetComponent implements OnDestroy {
   /* =========================================================
      CURRENT STEP
+
      1 = EMAIL
      2 = OTP
      3 = NEW PASSWORD
      4 = SUCCESS
+
      ========================================================= */
 
   currentStep = 1;
@@ -37,6 +39,17 @@ export class PasswordResetComponent {
   successMessage = "";
 
   emailSubmitted = false;
+
+  /* =========================================================
+     RESET TOKEN
+
+     This token is kept only in component memory.
+
+     We do NOT store it in localStorage.
+
+     ========================================================= */
+
+  private resetToken = "";
 
   /* =========================================================
      PASSWORD VISIBILITY
@@ -92,14 +105,23 @@ export class PasswordResetComponent {
           [
             Validators.required,
             Validators.minLength(8),
+            Validators.maxLength(72),
             Validators.pattern(
               /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/,
             ),
           ],
         ],
 
-        confirmPassword: ["", [Validators.required]],
+        confirmPassword: [
+          "",
+          [
+            Validators.required,
+            Validators.minLength(8),
+            Validators.maxLength(72),
+          ],
+        ],
       },
+
       {
         validators: this.passwordMatchValidator,
       },
@@ -118,12 +140,16 @@ export class PasswordResetComponent {
       return null;
     }
 
-    return password === confirmPassword ? null : { passwordMismatch: true };
+    return password === confirmPassword
+      ? null
+      : {
+          passwordMismatch: true,
+        };
   }
 
   /* =========================================================
      STEP 1
-     SEND RESET REQUEST
+     SEND OTP
      ========================================================= */
 
   submitEmail(): void {
@@ -135,7 +161,7 @@ export class PasswordResetComponent {
     this.successMessage = "";
 
     /* -------------------------------------------------------
-       VALIDATION
+       VALIDATE EMAIL
        ------------------------------------------------------- */
 
     if (this.emailForm.invalid) {
@@ -158,23 +184,40 @@ export class PasswordResetComponent {
     this.loading = true;
 
     /* -------------------------------------------------------
-       SEND PASSWORD RESET REQUEST
+       REQUEST PASSWORD RESET
        ------------------------------------------------------- */
 
     this.auth.requestPasswordReset(email).subscribe({
-      next: () => {
+      next: (response) => {
         this.loading = false;
 
         this.emailSubmitted = true;
 
         this.currentStep = 2;
 
+        this.otp = ["", "", "", "", "", ""];
+
+        this.resetToken = "";
+
         this.successMessage =
+          response?.message ||
           "A verification code has been sent to your email.";
 
         this.startResendCountdown();
 
         this.cdr.detectChanges();
+
+        /* ---------------------------------------------------
+           FOCUS FIRST OTP INPUT
+           --------------------------------------------------- */
+
+        setTimeout(() => {
+          const firstOtpInput = document.getElementById(
+            "otp-0",
+          ) as HTMLInputElement | null;
+
+          firstOtpInput?.focus();
+        });
       },
 
       error: (err: any) => {
@@ -187,7 +230,7 @@ export class PasswordResetComponent {
 
         this.errorMessage =
           backendMessage ||
-          "Unable to send reset instructions. Please try again.";
+          "Unable to send verification code. Please try again.";
 
         this.cdr.detectChanges();
       },
@@ -195,7 +238,6 @@ export class PasswordResetComponent {
   }
 
   /* =========================================================
-     STEP 2
      OTP INPUT
      ========================================================= */
 
@@ -305,35 +347,35 @@ export class PasswordResetComponent {
   }
 
   /* =========================================================
+     STEP 2
      VERIFY OTP
-     =========================================================
-
-     FRONTEND DEMO:
-     Currently moves to password screen.
-
-     Backend OTP verification can be connected here.
      ========================================================= */
 
-    // =========================================================
-  // VERIFY OTP
-  // =========================================================
-
   verifyOtp(): void {
-    this.errorMessage = "";
-    this.successMessage = "";
-
-    const enteredOtp = this.otp.join("");
-
-    // Check 6-digit OTP
-    if (enteredOtp.length !== 6) {
-      this.errorMessage = "Please enter the complete 6-digit OTP.";
+    if (this.loading) {
       return;
     }
 
-    // Get email from Step 1
-    const email = String(
-      this.emailForm.get("email")?.value || ""
-    )
+    this.errorMessage = "";
+    this.successMessage = "";
+
+    /* -------------------------------------------------------
+       VALIDATE OTP
+       ------------------------------------------------------- */
+
+    const enteredOtp = this.otp.join("");
+
+    if (enteredOtp.length !== 6) {
+      this.errorMessage = "Please enter the complete 6-digit OTP.";
+
+      return;
+    }
+
+    /* -------------------------------------------------------
+       GET EMAIL
+       ------------------------------------------------------- */
+
+    const email = String(this.emailForm.get("email")?.value || "")
       .trim()
       .toLowerCase();
 
@@ -342,18 +384,39 @@ export class PasswordResetComponent {
       return;
     }
 
-    // Start loading
+    /* -------------------------------------------------------
+       START LOADING
+       ------------------------------------------------------- */
+
     this.loading = true;
 
-    // Call backend
+    /* -------------------------------------------------------
+       VERIFY OTP WITH BACKEND
+       ------------------------------------------------------- */
+
     this.auth.verifyOtp(email, enteredOtp).subscribe({
       next: (response) => {
         this.loading = false;
 
-        this.successMessage =
-          response.message || "OTP verified successfully.";
+        /* -------------------------------------------------
+           STORE RESET TOKEN IN MEMORY
+           ------------------------------------------------- */
 
-        // Move to password reset ONLY after backend says OTP is valid
+        this.resetToken = response.reset_token;
+
+        if (!this.resetToken) {
+          this.errorMessage =
+            "Reset session could not be created. Please try again.";
+
+          return;
+        }
+
+        /* -------------------------------------------------
+           MOVE TO PASSWORD SCREEN
+           ------------------------------------------------- */
+
+        this.successMessage = response.message || "OTP verified successfully.";
+
         this.currentStep = 3;
 
         this.cdr.detectChanges();
@@ -365,12 +428,9 @@ export class PasswordResetComponent {
         const backendMessage =
           typeof err?.error === "string"
             ? err.error
-            : err?.error?.detail ||
-              err?.error?.message ||
-              "";
+            : err?.error?.detail || err?.error?.message || "";
 
-        this.errorMessage =
-          backendMessage || "Invalid OTP. Please try again.";
+        this.errorMessage = backendMessage || "Invalid OTP. Please try again.";
 
         this.cdr.detectChanges();
       },
@@ -395,19 +455,40 @@ export class PasswordResetComponent {
     }
 
     this.loading = true;
+
     this.errorMessage = "";
+    this.successMessage = "";
+
+    /* -------------------------------------------------------
+       REQUEST NEW OTP
+       ------------------------------------------------------- */
 
     this.auth.requestPasswordReset(email).subscribe({
-      next: () => {
+      next: (response) => {
         this.loading = false;
 
         this.otp = ["", "", "", "", "", ""];
 
-        this.successMessage = "A new verification code has been sent.";
+        this.resetToken = "";
+
+        this.successMessage =
+          response?.message || "A new verification code has been sent.";
 
         this.startResendCountdown();
 
         this.cdr.detectChanges();
+
+        /* ---------------------------------------------------
+           FOCUS FIRST OTP INPUT
+           --------------------------------------------------- */
+
+        setTimeout(() => {
+          const firstOtpInput = document.getElementById(
+            "otp-0",
+          ) as HTMLInputElement | null;
+
+          firstOtpInput?.focus();
+        });
       },
 
       error: (err: any) => {
@@ -457,33 +538,107 @@ export class PasswordResetComponent {
   /* =========================================================
      STEP 3
      RESET PASSWORD
-     =========================================================
-
-     FRONTEND DEMO:
-     Currently moves to success screen.
-
-     Backend password reset can be connected here.
      ========================================================= */
 
   resetPassword(): void {
+    if (this.loading) {
+      return;
+    }
+
     this.errorMessage = "";
+    this.successMessage = "";
+
+    /* -------------------------------------------------------
+       CHECK RESET TOKEN
+       ------------------------------------------------------- */
+
+    if (!this.resetToken) {
+      this.errorMessage =
+        "Your password reset session has expired. Please start again.";
+
+      this.currentStep = 1;
+
+      return;
+    }
+
+    /* -------------------------------------------------------
+       VALIDATE PASSWORD FORM
+       ------------------------------------------------------- */
 
     if (this.passwordForm.invalid) {
       this.passwordForm.markAllAsTouched();
       return;
     }
 
+    const newPassword = String(
+      this.passwordForm.get("newPassword")?.value || "",
+    );
+
+    const confirmPassword = String(
+      this.passwordForm.get("confirmPassword")?.value || "",
+    );
+
     /* -------------------------------------------------------
-       FRONTEND DEMO
+       PASSWORD MATCH
        ------------------------------------------------------- */
 
-    this.currentStep = 4;
+    if (newPassword !== confirmPassword) {
+      this.errorMessage = "Passwords do not match.";
+      return;
+    }
 
-    this.cdr.detectChanges();
+    /* -------------------------------------------------------
+       START LOADING
+       ------------------------------------------------------- */
+
+    this.loading = true;
+
+    /* -------------------------------------------------------
+       CALL BACKEND
+       ------------------------------------------------------- */
+
+    this.auth
+      .resetPassword(this.resetToken, newPassword, confirmPassword)
+      .subscribe({
+        next: (response) => {
+          this.loading = false;
+
+          this.successMessage =
+            response?.message || "Password reset successfully.";
+
+          /* -----------------------------------------------
+             REMOVE RESET TOKEN FROM MEMORY
+             ----------------------------------------------- */
+
+          this.resetToken = "";
+
+          /* -----------------------------------------------
+             MOVE TO SUCCESS
+             ----------------------------------------------- */
+
+          this.currentStep = 4;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (err: any) => {
+          this.loading = false;
+
+          const backendMessage =
+            typeof err?.error === "string"
+              ? err.error
+              : err?.error?.detail || err?.error?.message || "";
+
+          this.errorMessage =
+            backendMessage || "Unable to reset password. Please try again.";
+
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   /* =========================================================
-     PASSWORD STRENGTH CHECKS
+     PASSWORD STRENGTH
      ========================================================= */
 
   hasMinLength(): boolean {
@@ -524,21 +679,45 @@ export class PasswordResetComponent {
     this.errorMessage = "";
     this.successMessage = "";
 
+    /* -------------------------------------------------------
+       STEP 2 → STEP 1
+       ------------------------------------------------------- */
+
     if (this.currentStep === 2) {
       this.currentStep = 1;
+
+      this.otp = ["", "", "", "", "", ""];
+
+      this.resetToken = "";
+
+      this.stopCountdown();
+
       return;
     }
 
+    /* -------------------------------------------------------
+       STEP 3 → STEP 2
+       ------------------------------------------------------- */
+
     if (this.currentStep === 3) {
       this.currentStep = 2;
+
+      this.resetToken = "";
+
+      this.passwordForm.reset();
+
       return;
     }
+
+    /* -------------------------------------------------------
+       STEP 4 → LOGIN
+       ------------------------------------------------------- */
 
     this.router.navigate(["/auth/login"]);
   }
 
   /* =========================================================
-     GET MASKED EMAIL
+     MASK EMAIL
      ========================================================= */
 
   getMaskedEmail(): string {
@@ -560,5 +739,28 @@ export class PasswordResetComponent {
     return `${username.charAt(0)}${"*".repeat(
       Math.max(username.length - 2, 2),
     )}${username.charAt(username.length - 1)}@${domain}`;
+  }
+
+  /* =========================================================
+     STOP COUNTDOWN
+     ========================================================= */
+
+  private stopCountdown(): void {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+
+    this.resendDisabled = false;
+  }
+
+  /* =========================================================
+     DESTROY
+     ========================================================= */
+
+  ngOnDestroy(): void {
+    this.stopCountdown();
+
+    this.resetToken = "";
   }
 }

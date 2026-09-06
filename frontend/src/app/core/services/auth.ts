@@ -227,20 +227,43 @@ export class Auth {
     });
   }
 
-    // =========================================================
+  // =========================================================
   // VERIFY OTP
   // =========================================================
 
   verifyOtp(
     email: string,
     otp: string,
-  ): Observable<{ message: string; verified: boolean }> {
+  ): Observable<{
+    message: string;
+    verified: boolean;
+    reset_token: string;
+  }> {
     return this.http.post<{
       message: string;
       verified: boolean;
+      reset_token: string;
     }>(`${this.apiUrl}/verify-otp`, {
       email: email.trim().toLowerCase(),
       otp: otp.trim(),
+    });
+  }
+
+  // =========================================================
+  // RESET PASSWORD
+  // =========================================================
+
+  resetPassword(
+    token: string,
+    newPassword: string,
+    confirmPassword: string,
+  ): Observable<{ message: string }> {
+    return this.http.post<{
+      message: string;
+    }>(`${this.apiUrl}/reset-password`, {
+      token,
+      new_password: newPassword,
+      confirm_password: confirmPassword,
     });
   }
 

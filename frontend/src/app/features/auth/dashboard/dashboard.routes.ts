@@ -341,6 +341,95 @@ export const DASHBOARD_ROUTES: Routes = [
   },
 
   // =========================================================
+  // RESEARCHER DASHBOARD
+  // =========================================================
+  //
+  // URL:
+  // /dashboard/researcher
+  //
+  // Layout:
+  // ResearcherLayoutComponent
+  //
+  // Role:
+  // RESEARCHER
+  //
+  // =========================================================
+
+  {
+    path: "researcher",
+
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: ["RESEARCHER"],
+    },
+
+    loadComponent: () =>
+      import("../../../shared/layouts/researcher-layout/researcher-layout.component").then(
+        (m) => m.ResearcherLayoutComponent,
+      ),
+
+    children: [
+      // -------------------------------------------------------
+      // RESEARCHER DASHBOARD
+      // /dashboard/researcher
+      // -------------------------------------------------------
+
+      {
+        path: "",
+        pathMatch: "full",
+
+        loadComponent: () =>
+          import("./researcher/researcher.component").then(
+            (m) => m.ResearcherComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // PROFILE
+      // /dashboard/researcher/profile
+      // -------------------------------------------------------
+
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // EDIT PROFILE
+      // /dashboard/researcher/profile/edit
+      // -------------------------------------------------------
+
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // -------------------------------------------------------
+      // CHANGE PASSWORD
+      // /dashboard/researcher/change-password
+      // -------------------------------------------------------
+
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
+    ],
+  },
+
+  // =========================================================
   // GUEST USER DASHBOARD
   // =========================================================
   //

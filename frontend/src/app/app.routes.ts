@@ -7,6 +7,12 @@ export const routes: Routes = [
   // =========================================================
   // DEFAULT ROUTE
   // =========================================================
+  //
+  // /
+  // ↓
+  // /auth/login
+  //
+  // =========================================================
 
   {
     path: "",
@@ -16,46 +22,55 @@ export const routes: Routes = [
 
   // =========================================================
   // AUTH ROUTES
+  // =========================================================
   //
   // Includes:
+  //
   // /auth/login
   // /auth/register
   // /auth/password-reset
   // /auth/change-password
   //
   // These routes are defined inside auth.routes.ts
+  //
   // =========================================================
 
   {
     path: "auth",
+
     loadChildren: () =>
       import("./features/auth/auth.routes").then((m) => m.AUTH_ROUTES),
   },
 
   // =========================================================
   // DASHBOARD ROUTES
+  // =========================================================
   //
   // IMPORTANT:
   //
   // DO NOT put authGuard here.
   //
-  // /dashboard/guest is a PUBLIC route.
+  // /dashboard/guest is PUBLIC.
   //
-  // The individual authenticated dashboard routes
-  // handle their own authGuard + roleGuard.
+  // Each authenticated dashboard handles:
   //
-  // Examples:
+  // authGuard + roleGuard
+  //
+  // internally.
+  //
+  // Available dashboards:
   //
   // /dashboard/guest
   // /dashboard/citizen
+  // /dashboard/researcher
   // /dashboard/government
   // /dashboard/admin
-  // /dashboard/user-dashboard
   //
   // =========================================================
 
   {
     path: "dashboard",
+
     loadChildren: () =>
       import("./features/auth/dashboard/dashboard.routes").then(
         (m) => m.DASHBOARD_ROUTES,
@@ -64,19 +79,25 @@ export const routes: Routes = [
 
   // =========================================================
   // ADMIN USERS ROUTE
+  // =========================================================
   //
   // URL:
+  //
   // /admin/users
   //
   // This route remains separately protected.
+  //
   // =========================================================
 
   {
     path: "admin/users",
+
     canActivate: [authGuard, roleGuard],
+
     data: {
       roles: ["ADMINISTRATOR"],
     },
+
     loadComponent: () =>
       import("./features/auth/dashboard/admin/users/view-users.component").then(
         (m) => m.ViewUsersComponent,
@@ -85,8 +106,10 @@ export const routes: Routes = [
 
   // =========================================================
   // FALLBACK ROUTE
+  // =========================================================
   //
   // Invalid URLs redirect to Login.
+  //
   // =========================================================
 
   {

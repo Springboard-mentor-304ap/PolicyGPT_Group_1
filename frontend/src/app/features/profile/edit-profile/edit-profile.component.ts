@@ -72,6 +72,47 @@ export class EditProfileComponent implements OnInit {
   genderOptions: string[] = ["Male", "Female", "Other"];
 
   // =========================================================
+  // OCCUPATION OPTIONS
+  // =========================================================
+
+  occupationOptions: string[] = [
+    "Student",
+    "Teacher / Professor",
+    "Researcher",
+    "Government Employee",
+    "Private Sector Employee",
+    "Business Owner",
+    "Self-Employed",
+    "Farmer",
+    "Healthcare Professional",
+    "Legal Professional",
+    "Engineer / IT Professional",
+    "Homemaker",
+    "Retired",
+    "Unemployed",
+    "Other",
+  ];
+
+  // =========================================================
+  // ORGANIZATION OPTIONS
+  // =========================================================
+
+  organizationOptions: string[] = [
+    "Government Organization",
+    "Private Company",
+    "Educational Institution",
+    "Research Institution",
+    "Non-Governmental Organization (NGO)",
+    "Non-Profit Organization",
+    "Healthcare Organization",
+    "Financial Institution",
+    "Startup",
+    "Business / Enterprise",
+    "Self-Employed",
+    "Other",
+  ];
+
+  // =========================================================
   // STATE OPTIONS
   // =========================================================
 
@@ -1006,6 +1047,8 @@ export class EditProfileComponent implements OnInit {
 
       occupation: ["", [Validators.required]],
 
+      organization: ["", [Validators.required]],
+
       phone: ["", [Validators.required, Validators.pattern("^[0-9]{10}$")]],
 
       email: ["", [Validators.required, Validators.email]],
@@ -1070,6 +1113,8 @@ export class EditProfileComponent implements OnInit {
       district: user.district || "",
 
       occupation: user.occupation || "",
+
+      organization: user.organization || "",
 
       phone: this.cleanPhone(user.phone || ""),
 
@@ -1185,6 +1230,7 @@ export class EditProfileComponent implements OnInit {
       state: string;
       district: string;
       occupation: string;
+      organization: string;
       phone: string;
       email: string;
     }>,
@@ -1228,7 +1274,17 @@ export class EditProfileComponent implements OnInit {
       return;
     }
 
-    this.router.navigate(["/dashboard/user-dashboard/profile"]);
+    if (currentUrl.startsWith("/dashboard/researcher")) {
+      this.router.navigate(["/dashboard/researcher/profile"]);
+      return;
+    }
+
+    if (currentUrl.startsWith("/dashboard/user-dashboard")) {
+      this.router.navigate(["/dashboard/user-dashboard/profile"]);
+      return;
+    }
+
+    this.router.navigate(["/auth/login"]);
   }
 
   // =========================================================
@@ -1326,7 +1382,8 @@ export class EditProfileComponent implements OnInit {
       date_of_birth: formValue.dob || null,
       state: formValue.state,
       district: formValue.district,
-      occupation: formValue.occupation.trim(),
+      occupation: formValue.occupation,
+      organization: formValue.organization,
     };
 
     // -------------------------------------------------------

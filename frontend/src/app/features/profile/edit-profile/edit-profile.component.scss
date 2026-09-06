@@ -1,462 +1,448 @@
-// =========================================================
-// EDIT PROFILE PAGE
-// =========================================================
-
-:host {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-// =========================================================
-// PAGE CONTAINER
-// =========================================================
+/* =========================================================
+   EDIT PROFILE PAGE
+   ========================================================= */
 
 .edit-profile-page {
   width: 90%;
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 0;
-  margin-top: 50px;
-  margin-bottom: 50px;
+  margin: 50px auto;
+  color: #263449;
   box-sizing: border-box;
 }
 
-// =========================================================
-// PAGE HEADER
-// =========================================================
+/* =========================================================
+   PROFILE HEADER
+   ========================================================= */
 
 .profile-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-
-  width: 100%;
-  margin-bottom: 34px;
   gap: 24px;
+  margin-bottom: 34px;
 }
-
-// =========================================================
-// TITLE GROUP
-// =========================================================
 
 .title-group {
   display: flex;
-  flex-direction: column;
-
-  min-width: 0;
-
-  h1 {
-    margin: 0 0 6px;
-
-    color: #17233d;
-
-    font-size: 32px;
-    font-weight: 800;
-
-    line-height: 1.2;
-    letter-spacing: -0.5px;
-  }
-
-  .subtitle {
-    margin: 0;
-    color: #71829d;
-    font-size: 15px;
-    font-weight: 400;
-    line-height: 1.5;
-  }
+  align-items: center;
+  gap: 20px;
 }
 
 .title-group h2 {
-  margin: 0 0 6px;
+  margin: 0;
   color: #17233d;
   font-size: 32px;
   font-weight: 800;
   line-height: 1.2;
-  letter-spacing: -0.7px;
 }
 
-// =========================================================
-// HEADER ACTIONS
-// =========================================================
-
-.header-actions {
-  display: flex;
-  align-items: center;
-
-  gap: 14px;
-
-  flex-shrink: 0;
-
-  button {
-    font-family: inherit;
-
-    cursor: pointer;
-
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease,
-      color 0.2s ease,
-      transform 0.15s ease,
-      box-shadow 0.2s ease;
-
-    &:active {
-      transform: scale(0.98);
-    }
-  }
+.title-group p {
+  margin: 7px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-// =========================================================
-// BACK BUTTON
-// =========================================================
+/* =========================================================
+   BACK BUTTON
+   ========================================================= */
 
-.btn-back {
+.back-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 7px;
 
-  min-width: 115px;
-  height: 48px;
+  min-width: 82px;
+  height: 42px;
+  padding: 0 14px;
 
-  padding: 0 22px;
-
-  border: 1px solid #d7dfe9;
-  border-radius: 10px;
+  border: 1px solid #dbe3ed;
+  border-radius: 9px;
 
   background: #ffffff;
   color: #475569;
 
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
 
-  &:hover {
-    background: #f8fafc;
-
-    border-color: #b9c5d4;
-
-    color: #1e293b;
-  }
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
-// =========================================================
-// SAVE BUTTON
-// =========================================================
+.back-button .material-icons {
+  font-size: 19px;
+}
 
-.btn-save {
+.back-button:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #17233d;
+}
+
+.back-button:active {
+  transform: translateY(1px);
+}
+
+/* =========================================================
+   HEADER ACTIONS
+   ========================================================= */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* =========================================================
+   COMMON BUTTONS
+   ========================================================= */
+
+.cancel-button,
+.save-button {
+  height: 44px;
+  padding: 0 18px;
+
+  border-radius: 9px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
 
-  min-width: 120px;
-  height: 48px;
-
-  padding: 0 25px;
-
-  border: none;
-  border-radius: 10px;
-
-  background: #3b82f6;
-  color: #ffffff;
-
-  font-size: 15px;
-  font-weight: 700;
-
-  box-shadow: 0 5px 16px rgba(59, 130, 246, 0.25);
-
-  &:hover {
-    background: #2563eb;
-
-    box-shadow: 0 7px 20px rgba(59, 130, 246, 0.32);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-
-    cursor: not-allowed;
-
-    box-shadow: none;
-  }
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
-// =========================================================
-// MAIN EDIT CARD
-// =========================================================
+.cancel-button {
+  border: 1px solid #d5deea;
+  background: #ffffff;
+  color: #475569;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #c2ccda;
+  color: #17233d;
+}
+
+.save-button {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  min-width: 135px;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.18);
+}
+
+.cancel-button:active:not(:disabled),
+.save-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.cancel-button:disabled,
+.save-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   ALERTS
+   ========================================================= */
+
+.alert {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 13px 16px;
+  margin-bottom: 20px;
+
+  border-radius: 10px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.alert .material-icons {
+  font-size: 20px;
+}
+
+.alert-success {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+}
+
+/* =========================================================
+   MAIN EDIT CARD
+   ========================================================= */
 
 .edit-card {
+  width: 100%;
+  min-height: 500px;
+
   display: flex;
   align-items: stretch;
 
-  width: 100%;
-
-  /*
-   * Larger professional card
-   */
-  min-height: 500px;
-
   padding: 50px 55px;
-
-  margin-bottom: 30px;
 
   box-sizing: border-box;
 
   background: #ffffff;
 
   border: 1px solid #e8edf3;
-
   border-radius: 22px;
 
   box-shadow:
-    0 12px 35px rgba(15, 23, 42, 0.06),
+    0 10px 30px rgba(15, 23, 42, 0.06),
     0 2px 8px rgba(15, 23, 42, 0.03);
 
   gap: 55px;
 }
 
-// =========================================================
-// AVATAR SECTION
-// =========================================================
+/* =========================================================
+   AVATAR SECTION
+   ========================================================= */
 
 .avatar-section {
+  flex: 0 0 260px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
 
-  flex: 0 0 260px;
-
-  padding-top: 25px;
+  padding: 10px 15px;
 
   box-sizing: border-box;
 
   text-align: center;
 }
 
-// =========================================================
-// AVATAR WRAPPER
-// =========================================================
-
 .avatar-wrapper {
-  width: 124px;
-  height: 124px;
+  width: 145px;
+  height: 145px;
+
   margin-bottom: 18px;
-  overflow: hidden;
-  box-sizing: border-box;
-  border: 4px solid #e8f4fd;
+
   border-radius: 50%;
-  background: #c0dbea;
-  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.08);
+
+  overflow: hidden;
+
+  background: #f1f5f9;
+
+  border: 5px solid #ffffff;
+
+  box-shadow:
+    0 0 0 1px #dbe3ed,
+    0 8px 20px rgba(15, 23, 42, 0.08);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-// =========================================================
-// AVATAR IMAGE
-// =========================================================
-
-.avatar-preview-img {
-  display: block;
-
+.profile-avatar {
   width: 100%;
   height: 100%;
 
   object-fit: cover;
-}
-
-// =========================================================
-// DEFAULT AVATAR SVG
-// =========================================================
-
-.avatar-svg {
   display: block;
-
-  width: 100%;
-  height: 100%;
 }
 
-// =========================================================
-// CHANGE PHOTO BUTTON
-// =========================================================
-
-.btn-change-photo {
-  display: inline-flex;
+.profile-avatar--default {
+  display: flex;
   align-items: center;
   justify-content: center;
 
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  background: #eff6ff;
+  color: #3b82f6;
+}
 
-  min-width: 94px;
-  height: 34px;
-  padding: 0 18px;
+.profile-avatar--default .material-icons {
+  font-size: 100px;
+}
 
-  border: 1px solid #d5dce5;
-  border-radius: 9px;
+.avatar-section h3 {
+  margin: 0;
 
-  background: #ffffff;
-  color: #475569;
+  color: #17233d;
 
-  font-family: inherit;
+  font-size: 18px;
+  font-weight: 800;
 
-  font-size: 14px;
+  line-height: 1.35;
+
+  word-break: break-word;
+}
+
+.profile-role {
+  margin: 6px 0 0;
+
+  color: #2563eb;
+
+  font-size: 12px;
   font-weight: 700;
 
-  cursor: pointer;
-
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    background: #f8fbff;
-
-    border-color: #93baf5;
-
-    color: #2563eb;
-
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
 }
 
-// =========================================================
-// PHOTO HINT
-// =========================================================
+.avatar-description {
+  max-width: 220px;
 
-.photo-hint {
-  display: block;
-
-  max-width: 200px;
-
-  margin-top: 10px;
+  margin: 14px auto 0;
 
   color: #94a3b8;
 
   font-size: 12px;
-  font-weight: 500;
-
-  line-height: 1.5;
-
-  text-align: center;
+  line-height: 1.6;
 }
 
-// =========================================================
-// DIVIDER
-// =========================================================
-
-.divider {
-  width: 1px;
-
-  min-height: 100%;
-
-  flex: 0 0 1px;
-
-  background: #e2e8f0;
-}
-
-// =========================================================
-// FORM SECTION
-// =========================================================
+/* =========================================================
+   FORM SECTION
+   ========================================================= */
 
 .form-section {
   flex: 1;
-
   min-width: 0;
 
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  justify-content: center;
 }
 
-// =========================================================
-// FORM
-// =========================================================
-
 .edit-form {
+  width: 100%;
+
   display: flex;
   flex-direction: column;
 
-  width: 100%;
-
-  gap: 25px;
-
-  box-sizing: border-box;
+  gap: 24px;
 }
 
-// =========================================================
-// FORM GROUP
-// =========================================================
-
-.form-group {
-  display: block;
-  margin: 0 0 7px;
-  color: #1e293b;
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.3;
-  label {
-    display: block;
-    margin: 0 0 10px;
-    color: #1e293b;
-    font-size: 13px;
-    font-weight: 750;
-    line-height: 1.35;
-  }
-}
-
-// =========================================================
-// FULL WIDTH
-// =========================================================
-
-.form-group.full-width {
-  width: 100%;
-}
-
-// =========================================================
-// TWO COLUMN ROW
-// =========================================================
+/* =========================================================
+   FORM ROW
+   ========================================================= */
 
 .form-row {
+  width: 100%;
+
   display: grid;
 
   grid-template-columns:
     minmax(0, 1fr)
     minmax(0, 1fr);
 
-  width: 100%;
-
   gap: 28px;
-
-  box-sizing: border-box;
 }
 
-// =========================================================
-// INPUTS
-// =========================================================
+.form-row--single {
+  grid-template-columns: minmax(0, 1fr);
+}
 
-.form-group input {
+/* =========================================================
+   FORM GROUP
+   ========================================================= */
+
+.form-group {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
   display: block;
 
+  margin-bottom: 8px;
+
+  color: #334155;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   INPUT WRAPPER
+   ========================================================= */
+
+.input-wrapper {
+  position: relative;
+
+  width: 100%;
+}
+
+/* =========================================================
+   INPUT ICON
+   ========================================================= */
+
+.input-icon {
+  position: absolute;
+
+  left: 15px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #94a3b8;
+
+  font-size: 19px;
+
+  pointer-events: none;
+
+  z-index: 1;
+}
+
+/* =========================================================
+   TEXT INPUT
+   ========================================================= */
+
+.form-group input {
   width: 100%;
   height: 50px;
 
-  padding: 0 17px;
+  padding: 0 15px 0 46px;
 
   box-sizing: border-box;
 
   border: 1px solid #cbd5e1;
-
   border-radius: 10px;
 
   outline: none;
 
   background: #ffffff;
+
   color: #263449;
 
   font-family: inherit;
@@ -467,99 +453,71 @@
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    background-color 0.2s ease;
-
-  &::placeholder {
-    color: #94a3b8;
-
-    opacity: 1;
-  }
-
-  &:hover {
-    border-color: #aebdce;
-  }
-
-  &:focus {
-    border-color: #3b82f6;
-
-    background: #ffffff;
-
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  }
-
-  &:disabled {
-    background: #f7f9fc;
-
-    color: #94a3b8;
-
-    cursor: not-allowed;
-  }
+    background 0.2s ease;
 }
 
-// =========================================================
-// DATE FIELD
-// =========================================================
-
-.input-with-icon {
-  position: relative;
-
-  width: 100%;
+.form-group input::placeholder {
+  color: #9ba8bd;
+  opacity: 1;
 }
 
-// =========================================================
-// HIDE MATERIAL SYMBOL CALENDAR TEXT
-// =========================================================
-
-.input-with-icon .input-icon {
-  display: none;
+.form-group input:hover {
+  border-color: #aebdce;
 }
 
-// =========================================================
-// DATE INPUT
-// =========================================================
+.form-group input:focus {
+  border-color: #3b82f6;
+
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+  background: #ffffff;
+}
+
+.form-group input:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   DATE INPUT
+   ========================================================= */
 
 .form-group input[type="date"] {
-  padding-left: 17px;
-
   color: #263449;
-
-  cursor: pointer;
+  color-scheme: light;
 }
 
-// =========================================================
-// NATIVE CALENDAR ICON
-// =========================================================
+.form-group input[type="date"]::-webkit-datetime-edit {
+  color: #263449;
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  color: #263449;
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-text {
+  color: #64748b;
+}
+
+.form-group input[type="date"]::-webkit-datetime-edit-month-field,
+.form-group input[type="date"]::-webkit-datetime-edit-day-field,
+.form-group input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #263449;
+}
 
 .form-group input[type="date"]::-webkit-calendar-picker-indicator {
-  width: 18px;
-  height: 18px;
-
-  margin-right: 4px;
+  opacity: 0.65;
 
   cursor: pointer;
 
-  opacity: 0.75;
+  filter: none;
 }
 
-// =========================================================
-// PHONE
-// =========================================================
-
-.form-group input[type="tel"] {
-  letter-spacing: 0.2px;
-}
-
-// =========================================================
-// EMAIL
-// =========================================================
-
-.form-group input[type="email"] {
-  width: 100%;
-}
-
-// =========================================================
-// SELECT WRAPPER
-// =========================================================
+/* =========================================================
+   SELECT WRAPPER
+   ========================================================= */
 
 .select-wrapper {
   position: relative;
@@ -567,30 +525,31 @@
   width: 100%;
 }
 
-// =========================================================
-// SELECT
-// =========================================================
+/* =========================================================
+   SELECT DROPDOWN
+   ========================================================= */
 
 .form-group select {
   appearance: none;
   -webkit-appearance: none;
+  -moz-appearance: none;
 
   display: block;
 
   width: 100%;
-  height: 54px;
+  height: 50px;
 
   padding: 0 48px 0 17px;
 
   box-sizing: border-box;
 
   border: 1px solid #cbd5e1;
-
   border-radius: 10px;
 
   outline: none;
 
   background: #ffffff;
+
   color: #263449;
 
   font-family: inherit;
@@ -603,210 +562,217 @@
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    background-color 0.2s ease;
-
-  &:hover {
-    border-color: #aebdce;
-  }
-
-  &:focus {
-    border-color: #3b82f6;
-
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-  }
-
-  &:disabled {
-    background: #f7f9fc;
-
-    color: #94a3b8;
-
-    cursor: not-allowed;
-  }
+    background 0.2s ease;
 }
 
-// =========================================================
-// CUSTOM DROPDOWN ARROW
-// =========================================================
+.form-group select:hover {
+  border-color: #aebdce;
+}
+
+.form-group select:focus {
+  border-color: #3b82f6;
+
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+
+  background: #ffffff;
+}
+
+/* =========================================================
+   SELECT PLACEHOLDER
+   ========================================================= */
+
+.form-group select:has(option[value=""]:checked) {
+  color: #9ba8bd;
+}
+
+.form-group select option {
+  color: #263449;
+  background: #ffffff;
+
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.form-group select option[value=""] {
+  color: #9ba8bd;
+}
+
+.form-group select option:disabled {
+  color: #9ba8bd;
+}
+
+/* =========================================================
+   CUSTOM SELECT ARROW
+   ========================================================= */
 
 .select-arrow {
   position: absolute;
 
   top: 50%;
-  right: 18px;
-
-  z-index: 2;
+  right: 17px;
 
   width: 0;
   height: 0;
 
-  transform: translateY(-35%);
+  transform: translateY(-30%);
 
-  border-top: 7px solid #64748b;
-
-  border-right: 6px solid transparent;
-
-  border-left: 6px solid transparent;
-
-  font-size: 0;
-
-  line-height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #64748b;
 
   pointer-events: none;
 }
 
-// =========================================================
-// DISABLED DROPDOWN ARROW
-// =========================================================
+.form-group select:focus + .select-arrow {
+  border-top-color: #2563eb;
+}
+
+/* =========================================================
+   DISABLED DISTRICT DROPDOWN
+   ========================================================= */
+
+.form-group select:disabled {
+  background: #f8fafc;
+
+  color: #94a3b8;
+
+  border-color: #e2e8f0;
+
+  cursor: not-allowed;
+}
 
 .form-group select:disabled + .select-arrow {
   border-top-color: #cbd5e1;
 }
 
-// =========================================================
-// INVALID FIELD
-// =========================================================
+/* =========================================================
+   VALIDATION
+   ========================================================= */
 
-.form-group.invalid {
-  input,
-  select {
-    border-color: #ef4444;
-
-    &:focus {
-      border-color: #dc2626;
-
-      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
-    }
-  }
-}
-
-// =========================================================
-// ERROR MESSAGE
-// =========================================================
-
-.error-msg {
-  display: block;
-
-  margin-top: 7px;
+.field-error {
+  margin-top: 6px;
 
   color: #dc2626;
 
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
 
   line-height: 1.4;
 }
 
-// =========================================================
-// OPTIONAL FORM ACTIONS
-// =========================================================
+.form-group input.ng-invalid.ng-touched,
+.form-group select.ng-invalid.ng-touched {
+  border-color: #ef4444;
+}
+
+.form-group input.ng-invalid.ng-touched:focus,
+.form-group select.ng-invalid.ng-touched:focus {
+  border-color: #ef4444;
+
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+/* =========================================================
+   FORM ACTIONS
+   ========================================================= */
 
 .form-actions {
+  width: 100%;
+
   display: flex;
   align-items: center;
   justify-content: flex-end;
 
-  width: 100%;
+  gap: 12px;
 
-  gap: 14px;
+  padding-top: 8px;
 
-  margin-top: 8px;
-  padding-top: 20px;
-
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #eef2f7;
 }
 
-// =========================================================
-// CANCEL BUTTON
-// =========================================================
+/* =========================================================
+   LOADING SPINNER
+   ========================================================= */
 
-.btn-cancel {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.spinner {
+  width: 15px;
+  height: 15px;
 
-  min-width: 115px;
-  height: 46px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
 
-  padding: 0 20px;
+  border-radius: 50%;
 
-  border: 1px solid #cbd5e1;
+  animation: edit-profile-spin 0.7s linear infinite;
+}
 
-  border-radius: 10px;
-
-  background: #ffffff;
-  color: #475569;
-
-  font-family: inherit;
-
-  font-size: 15px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
-
-  &:hover {
-    background: #f8fafc;
-
-    border-color: #94a3b8;
-
-    color: #1e293b;
+@keyframes edit-profile-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-// =========================================================
-// LOADING
-// =========================================================
+/* =========================================================
+   TABLET
+   ========================================================= */
 
-.loading {
-  opacity: 0.65;
-
-  pointer-events: none;
-}
-
-// =========================================================
-// TABLET - 1100px
-// =========================================================
-
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .edit-profile-page {
-    max-width: 100%;
-
-    padding: 20px 24px;
+    width: 92%;
+    margin-top: 40px;
   }
 
   .edit-card {
-    min-height: 560px;
-
-    padding: 42px;
-
-    gap: 38px;
+    padding: 42px 40px;
+    gap: 40px;
   }
 
   .avatar-section {
-    flex-basis: 220px;
+    flex: 0 0 220px;
   }
 
   .avatar-wrapper {
-    width: 145px;
-    height: 145px;
+    width: 130px;
+    height: 130px;
+  }
+
+  .profile-avatar--default .material-icons {
+    font-size: 88px;
+  }
+
+  .title-group h2 {
+    font-size: 29px;
   }
 
   .form-row {
-    gap: 20px;
+    gap: 22px;
   }
 }
 
-// =========================================================
-// TABLET - 900px
-// =========================================================
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
+  .edit-profile-page {
+    width: 94%;
+    margin-top: 32px;
+    margin-bottom: 40px;
+  }
+
+  .profile-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .edit-card {
-    min-height: 540px;
+    flex-direction: column;
 
     padding: 36px 32px;
 
@@ -814,220 +780,253 @@
   }
 
   .avatar-section {
-    flex-basis: 190px;
-  }
-
-  .avatar-wrapper {
-    width: 130px;
-    height: 130px;
-  }
-
-  .form-group input,
-  .form-group select {
-    height: 50px;
-
-    font-size: 15px;
-  }
-
-  .form-group label {
-    font-size: 15px;
-  }
-}
-
-// =========================================================
-// MOBILE - 800px
-// =========================================================
-
-@media (max-width: 800px) {
-  .profile-header {
-    flex-direction: column;
-
-    align-items: stretch;
-
-    gap: 16px;
-  }
-
-  .header-actions {
-    justify-content: flex-start;
-  }
-
-  .edit-card {
-    flex-direction: column;
-
-    min-height: auto;
-
-    gap: 30px;
-
-    padding: 36px 28px;
-  }
-
-  .avatar-section {
     flex: none;
 
     width: 100%;
 
-    padding: 0 0 28px;
+    padding: 0;
 
-    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 25px;
+
+    border-bottom: 1px solid #eef2f7;
   }
 
-  .divider {
-    display: none;
+  .avatar-description {
+    max-width: 360px;
   }
 
   .form-section {
     width: 100%;
-
-    display: block;
   }
 }
 
-// =========================================================
-// MOBILE - 650px
-// =========================================================
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
-@media (max-width: 650px) {
+@media (max-width: 700px) {
   .edit-profile-page {
-    padding: 18px;
+    width: 94%;
+    margin-top: 25px;
+    margin-bottom: 30px;
   }
 
   .title-group {
-    h1 {
-      font-size: 28px;
-    }
+    width: 100%;
+    align-items: flex-start;
+    gap: 13px;
+  }
 
-    .subtitle {
-      font-size: 15px;
-    }
+  .title-group h2 {
+    font-size: 25px;
+  }
+
+  .title-group p {
+    font-size: 12px;
+  }
+
+  .back-button {
+    min-width: 42px;
+    width: 42px;
+    padding: 0;
+  }
+
+  .back-button span:not(.material-icons) {
+    display: none;
   }
 
   .header-actions {
-    width: 100%;
+    justify-content: stretch;
+  }
 
-    .btn-back,
-    .btn-save {
-      flex: 1;
-
-      min-width: 0;
-    }
+  .header-actions .cancel-button,
+  .header-actions .save-button {
+    flex: 1;
   }
 
   .edit-card {
     padding: 30px 22px;
 
-    border-radius: 18px;
+    border-radius: 17px;
+
+    gap: 25px;
+  }
+
+  .avatar-wrapper {
+    width: 115px;
+    height: 115px;
+  }
+
+  .profile-avatar--default .material-icons {
+    font-size: 78px;
+  }
+
+  .avatar-section h3 {
+    font-size: 17px;
+  }
+
+  .edit-form {
+    gap: 20px;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+    gap: 20px;
+  }
 
-    gap: 24px;
+  .form-row--single {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+
+    align-items: stretch;
+
+    padding-top: 15px;
+  }
+
+  .form-actions .cancel-button,
+  .form-actions .save-button {
+    width: 100%;
   }
 }
 
-// =========================================================
-// MOBILE - 480px
-// =========================================================
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
 
 @media (max-width: 480px) {
+  .edit-profile-page {
+    width: 92%;
+    margin-top: 20px;
+  }
+
   .profile-header {
-    gap: 14px;
+    margin-bottom: 22px;
   }
 
-  .title-group {
-    h1 {
-      font-size: 25px;
-    }
-
-    .subtitle {
-      font-size: 14px;
-    }
+  .title-group h2 {
+    font-size: 22px;
   }
 
-  .header-actions {
-    flex-direction: column;
-
-    width: 100%;
-
-    .btn-back,
-    .btn-save {
-      width: 100%;
-    }
+  .title-group p {
+    font-size: 11px;
   }
 
   .edit-card {
-    padding: 24px 18px;
+    padding: 25px 17px;
 
-    border-radius: 16px;
+    border-radius: 15px;
+  }
+
+  .avatar-section {
+    padding-bottom: 22px;
   }
 
   .avatar-wrapper {
-    width: 130px;
-    height: 130px;
+    width: 105px;
+    height: 105px;
   }
 
-  .form-group input,
-  .form-group select {
-    height: 50px;
-
-    font-size: 15px;
+  .profile-avatar--default .material-icons {
+    font-size: 70px;
   }
 
   .form-group label {
-    font-size: 15px;
-  }
-}
-
-// =========================================================
-// MOBILE - 360px
-// =========================================================
-
-@media (max-width: 360px) {
-  .edit-card {
-    padding: 20px 14px;
-  }
-
-  .title-group h1 {
-    font-size: 22px;
+    font-size: 12px;
   }
 
   .form-group input,
   .form-group select {
     height: 48px;
 
-    padding-left: 13px;
-    padding-right: 13px;
-
-    font-size: 14px;
+    font-size: 12px;
   }
 
-  .form-group select {
-    padding-right: 42px;
+  .form-group input {
+    padding-left: 43px;
+  }
+
+  .input-icon {
+    left: 13px;
+    font-size: 18px;
+  }
+
+  .select-arrow {
+    right: 15px;
+  }
+
+  .cancel-button,
+  .save-button {
+    height: 43px;
+    font-size: 12px;
   }
 }
 
-// =========================================================
-// ACCESSIBILITY
-// =========================================================
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
 
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.18);
+@media (max-width: 380px) {
+  .edit-profile-page {
+    width: 94%;
+  }
 
+  .edit-card {
+    padding: 22px 14px;
+  }
+
+  .title-group {
+    gap: 9px;
+  }
+
+  .title-group h2 {
+    font-size: 20px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .header-actions .cancel-button,
+  .header-actions .save-button {
+    padding: 0 10px;
+  }
+
+  .form-group input,
+  .form-group select {
+    height: 46px;
+  }
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.back-button:focus-visible,
+.cancel-button:focus-visible,
+.save-button:focus-visible,
+.form-group input:focus-visible,
+.form-group select:focus-visible {
+  outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
-// =========================================================
-// REDUCED MOTION
-// =========================================================
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    transition: none !important;
+  .back-button,
+  .cancel-button,
+  .save-button,
+  .form-group input,
+  .form-group select {
+    transition: none;
+  }
 
-    animation: none !important;
+  .spinner {
+    animation: none;
   }
 }

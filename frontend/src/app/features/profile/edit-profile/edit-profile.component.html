@@ -1,164 +1,176 @@
 <div class="edit-profile-page">
 
   <!-- =========================================================
-       PAGE HEADER
+       PROFILE HEADER
        ========================================================= -->
-
   <div class="profile-header">
 
     <div class="title-group">
+      <button type="button" class="back-button" (click)="goBack()">
+        <span class="material-icons">arrow_back</span>
+        <span>Back</span>
+      </button>
 
-      <h2>
-        Edit Profile
-      </h2>
-
-      <p class="subtitle">
-        Update your personal details
-      </p>
-
+      <div>
+        <h2>Edit Profile</h2>
+        <p>Update your personal information</p>
+      </div>
     </div>
 
-
     <div class="header-actions">
-
-      <button type="button" class="btn-back" (click)="goBack()">
-        &larr; Back
+      <button type="button" class="cancel-button" (click)="goBack()" [disabled]="saving">
+        Cancel
       </button>
 
-      <button type="button" class="btn-save" (click)="onSave()">
-        Save
+      <button type="button" class="save-button" (click)="onSave()" [disabled]="saving">
+        @if (saving) {
+        <span class="spinner"></span>
+        Saving...
+        } @else {
+        <span class="material-icons">save</span>
+        Save Changes
+        }
       </button>
-
     </div>
 
   </div>
 
 
   <!-- =========================================================
-       EDIT CARD
+       SUCCESS / ERROR MESSAGE
        ========================================================= -->
+  @if (successMessage) {
+  <div class="alert alert-success">
+    <span class="material-icons">check_circle</span>
+    <span>{{ successMessage }}</span>
+  </div>
+  }
 
+  @if (errorMessage) {
+  <div class="alert alert-error">
+    <span class="material-icons">error</span>
+    <span>{{ errorMessage }}</span>
+  </div>
+  }
+
+
+  <!-- =========================================================
+       PROFILE CARD
+       ========================================================= -->
   <div class="edit-card">
 
-    <!-- AVATAR -->
-
+    <!-- =======================================================
+         AVATAR SECTION
+         ======================================================= -->
     <div class="avatar-section">
 
       <div class="avatar-wrapper">
 
-        @if (selectedPhotoUrl) {
-
-        <img [src]="selectedPhotoUrl" alt="Profile Picture" class="avatar-preview-img" />
-
+        @if (profileImage) {
+        <img [src]="profileImage" alt="Profile photo" class="profile-avatar" />
         } @else {
-
-        <svg viewBox="0 0 100 100" class="avatar-svg">
-
-          <circle cx="40" cy="40" r="40" fill="#c0dbea" />
-
-          <circle cx="50" cy="38" r="18" fill="#2d3748" />
-
-          <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
-
-          <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
-
-          <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
-
-        </svg>
-
+        <div class="profile-avatar profile-avatar--default">
+          <span class="material-icons">
+            account_circle
+          </span>
+        </div>
         }
 
       </div>
 
+      <h3>{{ userName || 'User' }}</h3>
 
-      <button type="button" class="btn-change-photo" (click)="onChangePhoto()">
-        Change Photo
-      </button>
+      <p class="profile-role">
+        {{ displayRole }}
+      </p>
 
-      <span class="photo-hint">
-        JPG or PNG supported.
-      </span>
+      <p class="avatar-description">
+        Keep your profile information up to date.
+      </p>
 
     </div>
 
 
-    <div class="divider"></div>
-
-
-    <!-- FORM -->
-
+    <!-- =======================================================
+         FORM SECTION
+         ======================================================= -->
     <div class="form-section">
 
       <form [formGroup]="profileForm" (ngSubmit)="onSave()" class="edit-form">
 
-        <!-- FULL NAME -->
-
-        <div class="form-group full-width" [class.invalid]="
-            f['fullName'].touched &&
-            f['fullName'].invalid
-          ">
-
-          <label for="fullName">
-            Full Name
-          </label>
-
-          <input id="fullName" type="text" formControlName="fullName" placeholder="Enter your full name" />
-
-          @if (
-          f['fullName'].touched &&
-          f['fullName'].errors?.['required']
-          ) {
-
-          <span class="error-msg">
-            Full name is required.
-          </span>
-
-          }
-
-        </div>
-
-
-        <!-- DOB + GENDER -->
-
+        <!-- ===================================================
+             FULL NAME + DATE OF BIRTH
+             =================================================== -->
         <div class="form-row">
 
-          <div class="form-group" [class.invalid]="
-              f['dob'].touched &&
-              f['dob'].invalid
-            ">
+          <!-- Full Name -->
+          <div class="form-group">
 
-            <label for="dob">
-              Date Of Birth
+            <label for="fullName">
+              Full Name
             </label>
 
-            <div class="input-with-icon">
+            <div class="input-wrapper">
 
-              <span class="material-symbols-outlined input-icon">
-                calendar_month
+              <span class="material-icons input-icon">
+                person
               </span>
 
-              <input id="dob" type="date" formControlName="dob" />
+              <input id="fullName" type="text" formControlName="fullName" placeholder="Enter your full name"
+                autocomplete="name" />
 
             </div>
 
             @if (
-            f['dob'].touched &&
-            f['dob'].errors?.['required']
+            profileForm.get('fullName')?.touched &&
+            profileForm.get('fullName')?.invalid
             ) {
-
-            <span class="error-msg">
-              Date of birth is required.
-            </span>
-
+            <div class="field-error">
+              Full name is required.
+            </div>
             }
 
           </div>
 
 
-          <div class="form-group" [class.invalid]="
-              f['gender'].touched &&
-              f['gender'].invalid
-            ">
+          <!-- Date of Birth -->
+          <div class="form-group">
+
+            <label for="dob">
+              Date of Birth
+            </label>
+
+            <div class="input-wrapper">
+
+              <span class="material-icons input-icon">
+                calendar_today
+              </span>
+
+              <input id="dob" type="date" formControlName="dob" aria-label="Date of birth" />
+
+            </div>
+
+            @if (
+            profileForm.get('dob')?.touched &&
+            profileForm.get('dob')?.invalid
+            ) {
+            <div class="field-error">
+              Date of birth is required.
+            </div>
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             GENDER + STATE
+             =================================================== -->
+        <div class="form-row">
+
+          <!-- Gender -->
+          <div class="form-group">
 
             <label for="gender">
               Gender
@@ -173,48 +185,34 @@
                 </option>
 
                 @for (
-                option of genderOptions;
-                track option
+                gender of genderOptions;
+                track gender
                 ) {
-
-                <option [value]="option">
-                  {{ option }}
+                <option [value]="gender">
+                  {{ gender }}
                 </option>
-
                 }
 
               </select>
 
-              <span class="material-symbols-outlined select-arrow">
-                arrow_drop_down
-              </span>
+              <span class="select-arrow"></span>
 
             </div>
 
             @if (
-            f['gender'].touched &&
-            f['gender'].errors?.['required']
+            profileForm.get('gender')?.touched &&
+            profileForm.get('gender')?.invalid
             ) {
-
-            <span class="error-msg">
-              Please select a gender.
-            </span>
-
+            <div class="field-error">
+              Please select your gender.
+            </div>
             }
 
           </div>
 
-        </div>
 
-
-        <!-- STATE + DISTRICT -->
-
-        <div class="form-row">
-
-          <div class="form-group" [class.invalid]="
-              f['state'].touched &&
-              f['state'].invalid
-            ">
+          <!-- State -->
+          <div class="form-group">
 
             <label for="state">
               State
@@ -222,49 +220,48 @@
 
             <div class="select-wrapper">
 
-              <select id="state" formControlName="state">
+              <select id="state" formControlName="state" (change)="onStateChange()">
 
                 <option value="" disabled>
                   Select your state
                 </option>
 
                 @for (
-                state of stateOptions;
+                state of states;
                 track state
                 ) {
-
                 <option [value]="state">
                   {{ state }}
                 </option>
-
                 }
 
               </select>
 
-              <span class="material-symbols-outlined select-arrow">
-                arrow_drop_down
-              </span>
+              <span class="select-arrow"></span>
 
             </div>
 
             @if (
-            f['state'].touched &&
-            f['state'].errors?.['required']
+            profileForm.get('state')?.touched &&
+            profileForm.get('state')?.invalid
             ) {
-
-            <span class="error-msg">
-              Please select a state.
-            </span>
-
+            <div class="field-error">
+              Please select your state.
+            </div>
             }
 
           </div>
 
+        </div>
 
-          <div class="form-group" [class.invalid]="
-              f['district'].touched &&
-              f['district'].invalid
-            ">
+
+        <!-- ===================================================
+             DISTRICT + OCCUPATION
+             =================================================== -->
+        <div class="form-row">
+
+          <!-- District -->
+          <div class="form-group">
 
             <label for="district">
               District
@@ -272,114 +269,79 @@
 
             <div class="select-wrapper">
 
-              <select id="district" formControlName="district" [disabled]="
-                  districtOptions.length === 0
-                ">
+              <select id="district" formControlName="district">
 
                 <option value="" disabled>
-                  {{
-                  districtOptions.length === 0
-                  ? "Select state first"
-                  : "Select your district"
-                  }}
+                  Select your district
                 </option>
 
                 @for (
-                district of districtOptions;
+                district of districts;
                 track district
                 ) {
-
                 <option [value]="district">
                   {{ district }}
                 </option>
-
                 }
 
               </select>
 
-              <span class="material-symbols-outlined select-arrow">
-                arrow_drop_down
-              </span>
+              <span class="select-arrow"></span>
 
             </div>
 
             @if (
-            f['district'].touched &&
-            f['district'].errors?.['required']
+            profileForm.get('district')?.touched &&
+            profileForm.get('district')?.invalid
             ) {
-
-            <span class="error-msg">
-              Please select a district.
-            </span>
-
+            <div class="field-error">
+              Please select your district.
+            </div>
             }
 
           </div>
 
-        </div>
 
-
-        <!-- OCCUPATION + PHONE -->
-
-        <div class="form-row">
-
-          <div class="form-group" [class.invalid]="
-              f['occupation'].touched &&
-              f['occupation'].invalid
-            ">
+          <!-- =================================================
+               OCCUPATION DROPDOWN
+               ================================================= -->
+          <div class="form-group">
 
             <label for="occupation">
               Occupation
             </label>
 
-            <input id="occupation" type="text" formControlName="occupation" placeholder="Enter your occupation" />
+            <div class="select-wrapper">
+
+              <select id="occupation" formControlName="occupation">
+
+                <!-- Placeholder -->
+                <option value="" disabled>
+                  Select your occupation
+                </option>
+
+                @for (
+                occupation of occupationOptions;
+                track occupation
+                ) {
+                <option [value]="occupation">
+                  {{ occupation }}
+                </option>
+                }
+
+              </select>
+
+              <span class="select-arrow"></span>
+
+            </div>
 
             @if (
-            f['occupation'].touched &&
-            f['occupation'].errors?.['required']
+            profileForm.get('occupation')?.touched &&
+            profileForm.get('occupation')?.invalid
             ) {
-
-            <span class="error-msg">
-              Occupation is required.
-            </span>
-
-            }
-
-          </div>
-
-
-          <div class="form-group" [class.invalid]="
-              f['phone'].touched &&
-              f['phone'].invalid
-            ">
-
-            <label for="phone">
-              Phone Number
-            </label>
-
-            <input id="phone" type="tel" formControlName="phone" placeholder="Enter 10 digit phone number"
-              maxlength="10" />
-
-            @if (
-            f['phone'].touched &&
-            f['phone'].errors?.['required']
-            ) {
-
-            <span class="error-msg">
-              Phone number is required.
-            </span>
-
-            }
-
-            @if (
-            f['phone'].touched &&
-            f['phone'].errors?.['pattern']
-            ) {
-
-            <span class="error-msg">
-              Enter a valid 10 digit phone number.
-            </span>
-
+            <div class="field-error">
+              Please select your occupation.
+            </div>
             }
 
           </div>
@@ -387,40 +349,175 @@
         </div>
 
 
-        <!-- EMAIL -->
+        <!-- ===================================================
+             ORGANIZATION + PHONE
+             =================================================== -->
+        <div class="form-row">
 
-        <div class="form-group full-width" [class.invalid]="
-            f['email'].touched &&
-            f['email'].invalid
-          ">
+          <!-- =================================================
+               ORGANIZATION DROPDOWN
+               ================================================= -->
+          <div class="form-group">
 
-          <label for="email">
-            Email
-          </label>
+            <label for="organization">
+              Organization
+            </label>
 
-          <input id="email" type="email" formControlName="email" placeholder="Enter your email" />
+            <div class="select-wrapper">
 
-          @if (
-          f['email'].touched &&
-          f['email'].errors?.['required']
-          ) {
+              <select id="organization" formControlName="organization">
 
-          <span class="error-msg">
-            Email is required.
-          </span>
+                <!-- Placeholder -->
+                <option value="" disabled>
+                  Select your organization
+                </option>
 
-          }
+                @for (
+                organization of organizationOptions;
+                track organization
+                ) {
+                <option [value]="organization">
+                  {{ organization }}
+                </option>
+                }
 
-          @if (
-          f['email'].touched &&
-          f['email'].errors?.['email']
-          ) {
+              </select>
 
-          <span class="error-msg">
-            Enter a valid email address.
-          </span>
+              <span class="select-arrow"></span>
 
-          }
+            </div>
+
+            @if (
+            profileForm.get('organization')?.touched &&
+            profileForm.get('organization')?.invalid
+            ) {
+            <div class="field-error">
+              Please select your organization.
+            </div>
+            }
+
+          </div>
+
+
+          <!-- Phone -->
+          <div class="form-group">
+
+            <label for="phone">
+              Phone Number
+            </label>
+
+            <div class="input-wrapper">
+
+              <span class="material-icons input-icon">
+                phone
+              </span>
+
+              <input id="phone" type="tel" formControlName="phone" placeholder="Enter 10-digit phone number"
+                maxlength="10" inputmode="numeric" autocomplete="tel" />
+
+            </div>
+
+            @if (
+            profileForm.get('phone')?.touched &&
+            profileForm.get('phone')?.invalid
+            ) {
+            <div class="field-error">
+
+              @if (
+              profileForm.get('phone')?.errors?.['required']
+              ) {
+              Phone number is required.
+              }
+
+              @if (
+              profileForm.get('phone')?.errors?.['pattern']
+              ) {
+              Enter a valid 10-digit phone number.
+              }
+
+            </div>
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             EMAIL
+             =================================================== -->
+        <div class="form-row form-row--single">
+
+          <div class="form-group">
+
+            <label for="email">
+              Email Address
+            </label>
+
+            <div class="input-wrapper">
+
+              <span class="material-icons input-icon">
+                email
+              </span>
+
+              <input id="email" type="email" formControlName="email" placeholder="Enter your email address"
+                autocomplete="email" />
+
+            </div>
+
+            @if (
+            profileForm.get('email')?.touched &&
+            profileForm.get('email')?.invalid
+            ) {
+            <div class="field-error">
+
+              @if (
+              profileForm.get('email')?.errors?.['required']
+              ) {
+              Email address is required.
+              }
+
+              @if (
+              profileForm.get('email')?.errors?.['email']
+              ) {
+              Enter a valid email address.
+              }
+
+            </div>
+            }
+
+          </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             FORM ACTIONS
+             =================================================== -->
+        <div class="form-actions">
+
+          <button type="button" class="cancel-button" (click)="goBack()" [disabled]="saving">
+            Cancel
+          </button>
+
+          <button type="submit" class="save-button" [disabled]="saving">
+
+            @if (saving) {
+
+            <span class="spinner"></span>
+            Saving...
+
+            } @else {
+
+            <span class="material-icons">
+              save
+            </span>
+
+            Save Changes
+
+            }
+
+          </button>
 
         </div>
 

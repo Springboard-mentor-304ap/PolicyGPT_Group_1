@@ -474,11 +474,10 @@
 
 
         <!-- ======================================
-             OCCUPATION + ORGANIZATION
-             ====================================== -->
+     OCCUPATION + ORGANIZATION
+     ====================================== -->
 
         <div class="login-row">
-
 
           <!-- OCCUPATION -->
           <div class="login-col">
@@ -487,8 +486,23 @@
               Occupation
             </label>
 
-            <input id="occupation" class="login-input login-input--no-icon" type="text" formControlName="occupation"
-              placeholder="Enter your occupation" />
+            <div class="login-select-wrap">
+
+              <select id="occupation" class="login-select" formControlName="occupation">
+
+                <option value="">
+                  Select your occupation
+                </option>
+
+                @for (occupation of occupations; track occupation) {
+                <option [value]="occupation">
+                  {{ occupation }}
+                </option>
+                }
+
+              </select>
+
+            </div>
 
           </div>
 
@@ -500,8 +514,23 @@
               Organization
             </label>
 
-            <input id="organization" class="login-input login-input--no-icon" type="text" formControlName="organization"
-              placeholder="Enter your organization" />
+            <div class="login-select-wrap">
+
+              <select id="organization" class="login-select" formControlName="organization">
+
+                <option value="">
+                  Select your organization
+                </option>
+
+                @for (organization of organizations; track organization) {
+                <option [value]="organization">
+                  {{ organization }}
+                </option>
+                }
+
+              </select>
+
+            </div>
 
           </div>
 

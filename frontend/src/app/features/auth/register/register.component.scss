@@ -26,6 +26,7 @@ $border: #d2dbe9;
 $page-bg: #f5f7fb;
 
 $login-error: #dc3545;
+
 /* =========================================================
    GLOBAL
 ========================================================= */
@@ -105,10 +106,6 @@ $login-error: #dc3545;
 
   background-size: cover;
 
-  /*
-    Keeps parliament visible toward the bottom
-    just like the reference image.
-  */
   background-position: center bottom;
 
   background-repeat: no-repeat;
@@ -129,7 +126,6 @@ $login-error: #dc3545;
   min-height: 0;
 
   display: flex;
-
   flex-direction: column;
 }
 
@@ -187,10 +183,6 @@ $login-error: #dc3545;
 
   letter-spacing: -0.6px;
 }
-
-/* =========================================================
-   POLICYGPT ORANGE PART
-========================================================= */
 
 .login-hero__title span {
   color: $orange;
@@ -417,10 +409,6 @@ $login-error: #dc3545;
 
   align-items: center;
 
-  /*
-    Important:
-    The right side scrolls independently.
-  */
   overflow-y: auto;
 
   overflow-x: hidden;
@@ -569,7 +557,9 @@ $login-error: #dc3545;
 
   display: grid;
 
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
 
   column-gap: 20px;
 
@@ -599,7 +589,7 @@ $login-error: #dc3545;
 }
 
 /* =========================================================
-   INPUT WRAPPER
+   INPUT / SELECT WRAPPER
 ========================================================= */
 
 .login-input-wrap,
@@ -631,7 +621,7 @@ $login-error: #dc3545;
 }
 
 /* =========================================================
-   INPUT
+   TEXT INPUT
 ========================================================= */
 
 .login-input {
@@ -676,6 +666,15 @@ $login-error: #dc3545;
   color: #9ba8bd;
 
   opacity: 1;
+}
+
+/* =========================================================
+   FILLED INPUT TEXT
+   Keeps user-entered values dark
+========================================================= */
+
+.login-input:not(:placeholder-shown) {
+  color: $text-dark;
 }
 
 /* =========================================================
@@ -728,36 +727,46 @@ $login-error: #dc3545;
 }
 
 /* =========================================================
-   SELECT
+   SELECT DROPDOWNS
 ========================================================= */
 
 .login-select {
   width: 100%;
+
   height: 49px;
 
   padding: 0 39px 0 14px;
 
   border: 1.5px solid $border;
+
   border-radius: 9px;
 
   outline: none;
+
   background-color: #ffffff;
 
-  /* SAME COLOR AS PLACEHOLDERS */
-  color: #9ba8bd;
+  /*
+    IMPORTANT:
+    Selected dropdown value is DARK.
+  */
+  color: $text-dark;
 
   font-family: inherit;
+
   font-size: 13px;
+
   font-weight: 500;
 
   cursor: pointer;
 
   appearance: none;
+
   -webkit-appearance: none;
 
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2395A3B8' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
 
   background-repeat: no-repeat;
+
   background-position: right 14px center;
 
   transition:
@@ -765,46 +774,119 @@ $login-error: #dc3545;
     box-shadow 0.2s ease;
 }
 
+/* =========================================================
+   SELECT HOVER
+========================================================= */
+
+.login-select:hover {
+  border-color: #bcc8da;
+}
+
+/* =========================================================
+   SELECT FOCUS
+========================================================= */
+
 .login-select:focus {
   border-color: $blue;
 
   box-shadow: 0 0 0 3px rgba($blue, 0.09);
 }
 
-.login-select:invalid {
+/* =========================================================
+   SELECT OPTIONS
+========================================================= */
+
+.login-select option {
+  color: $text-dark;
+
+  background: #ffffff;
+
+  font-weight: 500;
+}
+
+/* =========================================================
+   PLACEHOLDER OPTION
+========================================================= */
+
+.login-select option[value=""] {
+  color: #9ba8bd;
+}
+
+/*
+   When the first empty option is selected,
+   show placeholder-like color.
+*/
+.login-select:has(option[value=""]:checked) {
   color: #9ba8bd;
 }
 
 /* =========================================================
-   DATE INPUT
+   DISABLED SELECT
+========================================================= */
+
+.login-select:disabled {
+  background-color: #f6f8fb;
+
+  color: #a8b3c4;
+
+  cursor: not-allowed;
+
+  opacity: 1;
+}
+
+.login-select:disabled option {
+  color: #a8b3c4;
+}
+
+/* =========================================================
+   DATE OF BIRTH
 ========================================================= */
 
 input[type="date"] {
+  width: 100%;
+  color: $text-dark;
+  color-scheme: light;
+}
+
+/*
+   Empty DOB
+   Native Chrome/Safari date placeholder
+   Matches the other form placeholders.
+*/
+input[type="date"]:invalid::-webkit-datetime-edit {
   color: #9ba8bd;
 }
 
-input[type="date"]::-webkit-datetime-edit {
+input[type="date"]:invalid::-webkit-datetime-edit-text {
   color: #9ba8bd;
 }
 
-input[type="date"]::-webkit-datetime-edit-text {
+input[type="date"]:invalid::-webkit-datetime-edit-month-field,
+input[type="date"]:invalid::-webkit-datetime-edit-day-field,
+input[type="date"]:invalid::-webkit-datetime-edit-year-field {
   color: #9ba8bd;
 }
 
-input[type="date"]::-webkit-datetime-edit-month-field,
-input[type="date"]::-webkit-datetime-edit-day-field,
-input[type="date"]::-webkit-datetime-edit-year-field {
-  color: #9ba8bd;
+/*
+   Filled DOB
+   Selected date is dark, like other entered form values.
+*/
+input[type="date"]:valid::-webkit-datetime-edit {
+  color: $text-dark;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.45;
+input[type="date"]:valid::-webkit-datetime-edit-text,
+input[type="date"]:valid::-webkit-datetime-edit-month-field,
+input[type="date"]:valid::-webkit-datetime-edit-day-field,
+input[type="date"]:valid::-webkit-datetime-edit-year-field {
+  color: $text-dark;
 }
 
+/* Calendar icon */
 input[type="date"]::-webkit-calendar-picker-indicator {
   width: 22px;
   height: 22px;
-  opacity: 0.35;
+  opacity: 0.45;
   cursor: pointer;
 }
 
@@ -834,7 +916,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: $login-error;
 
   font-size: 10px;
+
   line-height: 1.35;
+
   font-weight: 500;
 }
 
@@ -844,6 +928,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   text-align: center;
 
   font-size: 12px;
+
   font-weight: 600;
 }
 
@@ -941,7 +1026,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   height: 50px;
 
-  margin-top: 50px;margin-bottom: 50px;
+  margin-top: 50px;
+
+  margin-bottom: 50px;
 
   border: 0;
 
@@ -1364,7 +1451,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   /* -------------------------------------------------------
-     RIGHT PANEL BECOMES FULL WIDTH
+     RIGHT PANEL FULL WIDTH
   ------------------------------------------------------- */
 
   .login-form-panel {

@@ -743,10 +743,47 @@ export class RegisterComponent {
       value: "organization",
       label: "Organization",
     },
-    {
-      value: "guest",
-      label: "Guest User",
-    },
+  ];
+
+  // ==========================================
+  // OCCUPATION OPTIONS
+  // ==========================================
+
+  occupations = [
+    "Student",
+    "Teacher / Professor",
+    "Researcher",
+    "Government Employee",
+    "Private Sector Employee",
+    "Business Owner",
+    "Self-Employed",
+    "Farmer",
+    "Healthcare Professional",
+    "Legal Professional",
+    "Engineer / IT Professional",
+    "Homemaker",
+    "Retired",
+    "Unemployed",
+    "Other",
+  ];
+
+  // ==========================================
+  // ORGANIZATION OPTIONS
+  // ==========================================
+
+  organizations = [
+    "Government Organization",
+    "Private Company",
+    "Educational Institution",
+    "Research Institution",
+    "Non-Governmental Organization (NGO)",
+    "Non-Profit Organization",
+    "Healthcare Organization",
+    "Financial Institution",
+    "Startup",
+    "Business / Enterprise",
+    "Self-Employed",
+    "Other",
   ];
 
   // ==========================================

@@ -1,5 +1,5 @@
 /* =========================================================
-   POLICYGPT USER LAYOUT
+   POLICYGPT — ORGANIZATION LAYOUT
    ========================================================= */
 
 /* =========================================================
@@ -23,23 +23,40 @@ $sidebar-collapsed-width: 82px;
 $topbar-height: 82px;
 $mobile-topbar-height: 64px;
 
-
 /* =========================================================
-   GLOBAL
+   GLOBAL BOX SIZING
    ========================================================= */
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
+/* =========================================================
+   HOST
+   ========================================================= */
+
 :host {
   display: block;
+
   width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
   min-height: 100vh;
+
+  overflow-x: hidden;
 }
 
+/* =========================================================
+   BASIC ELEMENTS
+   ========================================================= */
+
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 
@@ -56,16 +73,22 @@ a {
 }
 
 img {
+  display: block;
+
   max-width: 100%;
 }
-
 
 /* =========================================================
    MAIN LAYOUT
    ========================================================= */
 
 .dash-layout {
+  position: relative;
+
   width: 100%;
+  max-width: 100%;
+
+  min-width: 0;
   min-height: 100vh;
 
   display: flex;
@@ -86,7 +109,6 @@ img {
   overflow-x: hidden;
 }
 
-
 /* =========================================================
    MOBILE OVERLAY
    ========================================================= */
@@ -95,9 +117,8 @@ img {
   display: none;
 }
 
-
 /* =========================================================
-   TOP NAVBAR
+   TOPBAR
    ========================================================= */
 
 .dash-topbar {
@@ -113,27 +134,29 @@ img {
   display: flex;
   align-items: center;
 
-  gap: 24px;
+  gap: 20px;
 
-  padding: 10px 30px;
+  padding: 10px 28px;
 
   background: $primary-navy;
-
   color: $white;
 
   z-index: 2000;
 
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-}
 
+  overflow: hidden;
+}
 
 /* =========================================================
    TOPBAR BRAND
    ========================================================= */
 
 .dash-topbar__brand {
+  flex: 0 0 $sidebar-width;
+
   width: $sidebar-width;
-  min-width: $sidebar-width;
+  min-width: 0;
 
   height: 100%;
 
@@ -141,17 +164,23 @@ img {
   align-items: center;
 
   gap: 10px;
+
+  overflow: hidden;
 }
+
+/* =========================================================
+   MENU BUTTON
+   ========================================================= */
 
 .dash-topbar__toggle {
   width: 42px;
   height: 42px;
 
+  flex: 0 0 42px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-
-  flex: 0 0 42px;
 
   padding: 0;
 
@@ -160,24 +189,34 @@ img {
 
   background: transparent;
   color: $white;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dash-topbar__toggle:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.dash-topbar__toggle:active {
+  transform: scale(0.96);
+}
+
 .dash-topbar__toggle .material-icons {
   font-size: 29px;
 }
-
 
 /* =========================================================
    LOGO
    ========================================================= */
 
 .dash-topbar__logo-link {
+  flex: 0 0 auto;
+
   display: flex;
   align-items: center;
+  justify-content: center;
 
   text-decoration: none;
 }
@@ -189,16 +228,19 @@ img {
   object-fit: contain;
 }
 
-
 /* =========================================================
    BRAND TEXT
    ========================================================= */
 
 .dash-topbar__brand-text {
+  min-width: 0;
+
   display: flex;
   flex-direction: column;
 
   gap: 3px;
+
+  overflow: hidden;
 }
 
 .dash-topbar__title {
@@ -208,6 +250,8 @@ img {
   line-height: 1;
 
   font-weight: 800;
+
+  white-space: nowrap;
 }
 
 .dash-topbar__title span {
@@ -218,15 +262,22 @@ img {
   color: rgba(255, 255, 255, 0.76);
 
   font-size: 9px;
-}
 
+  white-space: nowrap;
+}
 
 /* =========================================================
    SEARCH
    ========================================================= */
 
 .dash-search {
-  width: min(650px, 52vw);
+  flex: 1 1 650px;
+
+  width: 100%;
+  max-width: 650px;
+
+  min-width: 180px;
+
   height: 50px;
 
   margin: 0 auto;
@@ -243,10 +294,12 @@ img {
 
   background: rgba(255, 255, 255, 0.04);
 
-  flex-shrink: 1;
+  overflow: hidden;
 }
 
 .dash-search__icon {
+  flex: 0 0 auto;
+
   color: $white;
 
   font-size: 26px;
@@ -254,6 +307,9 @@ img {
 
 .dash-search input {
   width: 100%;
+  min-width: 0;
+
+  padding: 0;
 
   border: 0;
   outline: 0;
@@ -268,13 +324,19 @@ img {
   color: rgba(255, 255, 255, 0.74);
 }
 
+.dash-search input::-webkit-search-cancel-button {
+  filter: brightness(0) invert(1);
+}
 
 /* =========================================================
    USER AREA
    ========================================================= */
 
 .dash-user {
-  min-width: 205px;
+  flex: 0 0 auto;
+
+  width: auto;
+  min-width: 180px;
 
   display: flex;
   align-items: center;
@@ -283,31 +345,48 @@ img {
   gap: 11px;
 
   color: $white;
+
+  overflow: hidden;
 }
+
+/* =========================================================
+   NOTIFICATION BUTTON
+   ========================================================= */
 
 .dash-user__icon-btn {
   width: 42px;
   height: 42px;
 
+  flex: 0 0 42px;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  padding: 0;
 
   border: 0;
   border-radius: 50%;
 
   background: transparent;
   color: $white;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .dash-user__icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.dash-user__icon-btn:active {
+  transform: scale(0.95);
+}
+
 .dash-user__icon-btn .material-icons {
   font-size: 25px;
 }
-
 
 /* =========================================================
    AVATAR
@@ -316,6 +395,8 @@ img {
 .dash-user__avatar {
   width: 46px;
   height: 46px;
+
+  flex: 0 0 46px;
 
   display: flex;
   align-items: center;
@@ -332,14 +413,15 @@ img {
   font-size: 41px;
 }
 
-
 /* =========================================================
    USER INFORMATION
    ========================================================= */
 
 .dash-user__info {
-  min-width: 100px;
+  min-width: 0;
   max-width: 145px;
+
+  overflow: hidden;
 }
 
 .dash-user__name {
@@ -362,8 +444,9 @@ img {
   color: rgba(255, 255, 255, 0.78);
 
   font-size: 13px;
-}
 
+  white-space: nowrap;
+}
 
 /* =========================================================
    SIDEBAR
@@ -394,7 +477,9 @@ img {
     ),
     url("/images/flag.png");
 
-  background-position: center, center bottom;
+  background-position:
+    center,
+    center bottom;
 
   background-size: cover, cover;
 
@@ -410,6 +495,10 @@ img {
     width 0.25s ease,
     transform 0.25s ease;
 }
+
+/* =========================================================
+   SIDEBAR OVERLAY LAYER
+   ========================================================= */
 
 .dash-sidebar::before {
   content: "";
@@ -433,13 +522,13 @@ img {
   z-index: 2;
 }
 
-
 /* =========================================================
    SIDEBAR NAVIGATION
    ========================================================= */
 
 .dash-nav {
   width: 100%;
+  min-width: 0;
 
   display: flex;
   flex-direction: column;
@@ -447,8 +536,22 @@ img {
   gap: 7px;
 
   padding: 28px 16px 10px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
 }
 
+.dash-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dash-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+
+  border-radius: 10px;
+}
 
 /* =========================================================
    NAVIGATION ITEMS
@@ -456,6 +559,7 @@ img {
 
 .dash-nav__item {
   width: 100%;
+  min-width: 0;
   min-height: 55px;
 
   display: flex;
@@ -466,6 +570,7 @@ img {
   padding: 12px 17px;
 
   border: 1px solid transparent;
+
   border-radius: 11px;
 
   color: rgba(255, 255, 255, 0.96);
@@ -479,9 +584,12 @@ img {
 
   white-space: nowrap;
 
+  overflow: hidden;
+
   transition:
     background 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 .dash-nav__item:hover {
@@ -492,19 +600,14 @@ img {
   transform: translateX(2px);
 }
 
-
 /* =========================================================
-   ACTIVE NAVIGATION ITEM
+   ACTIVE ITEM
    ========================================================= */
 
 .dash-nav__item--active {
   color: $white !important;
 
-  background: linear-gradient(
-    90deg,
-    #19539a,
-    rgba(25, 83, 154, 0.82)
-  );
+  background: linear-gradient(90deg, #19539a, rgba(25, 83, 154, 0.82));
 
   border-color: rgba(255, 255, 255, 0.1);
 
@@ -512,7 +615,6 @@ img {
     inset 4px 0 0 #63a4ff,
     0 4px 12px rgba(0, 0, 0, 0.15);
 }
-
 
 /* =========================================================
    NAV ICON
@@ -522,12 +624,16 @@ img {
   width: 27px;
   min-width: 27px;
 
-  flex-shrink: 0;
+  flex: 0 0 27px;
 
   text-align: center;
 
   font-size: 25px !important;
 }
+
+/* =========================================================
+   NAV LABEL
+   ========================================================= */
 
 .dash-nav__label {
   min-width: 0;
@@ -537,19 +643,21 @@ img {
   text-overflow: ellipsis;
 }
 
-
 /* =========================================================
    SIDEBAR FOOTER
    ========================================================= */
 
 .dash-sidebar__footer {
-  margin-top: 6px;
+  flex: 0 0 auto;
+
+  margin-top: auto;
 
   padding: 8px 16px 18px;
 
   border-top: 1px solid rgba(255, 255, 255, 0.14);
-}
 
+  background: rgba(3, 25, 60, 0.12);
+}
 
 /* =========================================================
    LOGOUT
@@ -559,6 +667,7 @@ img {
   appearance: none;
 
   width: 100%;
+  min-width: 0;
 
   border: 1px solid transparent;
 
@@ -570,7 +679,6 @@ img {
 
   color: rgba(255, 255, 255, 0.96);
 }
-
 
 /* =========================================================
    COLLAPSED SIDEBAR
@@ -601,12 +709,11 @@ img {
 }
 
 .dash-layout--sidebar-collapsed .dash-sidebar__footer {
-  margin-top: 6px;
+  margin-top: auto;
 
   padding-left: 10px;
   padding-right: 10px;
 }
-
 
 /* =========================================================
    MAIN CONTAINER
@@ -616,6 +723,8 @@ img {
   width: calc(100% - #{$sidebar-width});
 
   min-width: 0;
+  max-width: 100%;
+
   min-height: 100vh;
 
   margin-left: $sidebar-width;
@@ -625,10 +734,16 @@ img {
 
   padding-top: $topbar-height;
 
+  overflow-x: hidden;
+
   transition:
     margin-left 0.25s ease,
     width 0.25s ease;
 }
+
+/* =========================================================
+   COLLAPSED MAIN CONTAINER
+   ========================================================= */
 
 .dash-layout--sidebar-collapsed .dash-main-container {
   width: calc(100% - #{$sidebar-collapsed-width});
@@ -636,28 +751,33 @@ img {
   margin-left: $sidebar-collapsed-width;
 }
 
-
 /* =========================================================
    MAIN CONTENT
    ========================================================= */
 
 .dash-main {
   width: 100%;
+  max-width: 100%;
+
   min-width: 0;
 
   flex: 1;
 
   min-height: calc(100vh - #{$topbar-height});
-  
-  padding: 24px 28px 30px;
-}
 
+  padding: 24px 28px 30px;
+
+  overflow-x: hidden;
+}
 
 /* =========================================================
    FOOTER
    ========================================================= */
 
 .dash-footer {
+  width: 100%;
+  max-width: 100%;
+
   min-height: 61px;
 
   display: flex;
@@ -671,37 +791,42 @@ img {
   background: #173a70;
 
   color: rgba(255, 255, 255, 0.92);
+
+  overflow: hidden;
 }
 
-
 /* =========================================================
-   RESPONSIVE - LAPTOP
+   LARGE LAPTOP
    ========================================================= */
 
 @media (max-width: 1439px) {
+  .dash-topbar {
+    gap: 16px;
+
+    padding-left: 22px;
+    padding-right: 22px;
+  }
 
   .dash-topbar__brand {
+    flex-basis: 265px;
+
     width: 265px;
-    min-width: 265px;
   }
 
   .dash-search {
-    width: min(560px, 48vw);
+    max-width: 560px;
   }
 
   .dash-user {
-    min-width: 180px;
+    min-width: 160px;
   }
-
 }
 
-
 /* =========================================================
-   SMALL DESKTOP
+   DESKTOP
    ========================================================= */
 
 @media (max-width: 1199px) {
-
   .dash-sidebar {
     width: 255px;
   }
@@ -713,12 +838,13 @@ img {
   }
 
   .dash-topbar__brand {
+    flex-basis: 225px;
+
     width: 225px;
-    min-width: 225px;
   }
 
   .dash-search {
-    width: 43%;
+    max-width: 500px;
   }
 
   .dash-user {
@@ -735,15 +861,16 @@ img {
     min-height: 52px;
   }
 
+  .dash-main {
+    padding: 22px 22px 28px;
+  }
 }
 
-
 /* =========================================================
-   TABLET
+   TABLET / SMALL DESKTOP
    ========================================================= */
 
 @media (max-width: 991px) {
-
   .dash-sidebar {
     width: 225px;
   }
@@ -754,9 +881,16 @@ img {
     margin-left: 225px;
   }
 
+  .dash-topbar {
+    gap: 12px;
+
+    padding: 10px 16px;
+  }
+
   .dash-topbar__brand {
+    flex-basis: 205px;
+
     width: 205px;
-    min-width: 205px;
   }
 
   .dash-topbar__brand-text {
@@ -764,11 +898,15 @@ img {
   }
 
   .dash-search {
-    width: 48%;
+    flex: 1 1 auto;
+
+    max-width: none;
+
+    min-width: 160px;
   }
 
   .dash-user {
-    min-width: 125px;
+    min-width: auto;
   }
 
   .dash-user__info {
@@ -781,20 +919,26 @@ img {
     min-height: 50px;
   }
 
+  .dash-main {
+    padding: 20px 18px 24px;
+  }
 }
-
 
 /* =========================================================
    MOBILE
    ========================================================= */
 
 @media (max-width: 767px) {
-
   .dash-layout {
     display: block;
+
+    width: 100%;
+    min-width: 0;
   }
 
-  /* OVERLAY */
+  /* -------------------------------------------------------
+     OVERLAY
+     ------------------------------------------------------- */
 
   .dash-overlay {
     position: fixed;
@@ -803,13 +947,16 @@ img {
 
     display: block;
 
-    background: rgba(3, 17, 38, 0.48);
+    background: rgba(3, 17, 38, 0.52);
 
     z-index: 1150;
+
+    animation: dashOverlayIn 0.2s ease;
   }
 
-
-  /* SIDEBAR */
+  /* -------------------------------------------------------
+     SIDEBAR
+     ------------------------------------------------------- */
 
   .dash-sidebar {
     top: $mobile-topbar-height;
@@ -829,23 +976,47 @@ img {
     transform: translateX(0);
   }
 
+  /* -------------------------------------------------------
+     NAV
+     ------------------------------------------------------- */
+
   .dash-nav {
-    padding-top: 22px;
+    padding: 22px 14px 12px;
   }
 
+  .dash-nav__item {
+    min-height: 50px;
 
-  /* MAIN */
+    padding: 11px 15px;
+
+    font-size: 15px;
+  }
+
+  /* -------------------------------------------------------
+     SIDEBAR FOOTER
+     ------------------------------------------------------- */
+
+  .dash-sidebar__footer {
+    padding: 8px 14px 14px;
+  }
+
+  /* -------------------------------------------------------
+     MAIN
+     ------------------------------------------------------- */
 
   .dash-main-container {
     width: 100%;
+
+    max-width: 100%;
 
     margin-left: 0;
 
     padding-top: $mobile-topbar-height;
   }
 
-
-  /* TOPBAR */
+  /* -------------------------------------------------------
+     TOPBAR
+     ------------------------------------------------------- */
 
   .dash-topbar {
     height: $mobile-topbar-height;
@@ -856,6 +1027,8 @@ img {
   }
 
   .dash-topbar__brand {
+    flex: 0 0 auto;
+
     width: auto;
     min-width: 0;
   }
@@ -867,6 +1040,12 @@ img {
   .dash-topbar__toggle {
     width: 34px;
     height: 34px;
+
+    flex-basis: 34px;
+  }
+
+  .dash-topbar__toggle .material-icons {
+    font-size: 25px;
   }
 
   .dash-topbar__logo {
@@ -874,13 +1053,18 @@ img {
     height: 40px;
   }
 
-
-  /* SEARCH */
+  /* -------------------------------------------------------
+     SEARCH
+     ------------------------------------------------------- */
 
   .dash-search {
+    flex: 1 1 auto;
+
     width: auto;
 
-    flex: 1;
+    min-width: 0;
+
+    max-width: none;
 
     margin: 0;
 
@@ -889,17 +1073,28 @@ img {
     padding: 0 10px;
 
     border-width: 2px;
+
+    gap: 7px;
+  }
+
+  .dash-search__icon {
+    font-size: 21px;
   }
 
   .dash-search input {
     font-size: 12px;
   }
 
-
-  /* USER */
+  /* -------------------------------------------------------
+     USER
+     ------------------------------------------------------- */
 
   .dash-user {
-    min-width: auto;
+    flex: 0 0 auto;
+
+    min-width: 0;
+
+    width: auto;
   }
 
   .dash-user__icon-btn,
@@ -923,28 +1118,54 @@ img {
 
   .dash-user__role {
     font-size: 8.5px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
+  /* -------------------------------------------------------
+     MAIN CONTENT
+     ------------------------------------------------------- */
 
-  /* FOOTER */
+  .dash-main {
+    width: 100%;
+    max-width: 100%;
+
+    min-width: 0;
+
+    padding: 16px 14px 22px;
+
+    overflow-x: hidden;
+  }
+
+  /* -------------------------------------------------------
+     FOOTER
+     ------------------------------------------------------- */
 
   .dash-footer {
+    min-height: 80px;
+
     flex-direction: column;
 
+    justify-content: center;
+
     text-align: center;
+
+    gap: 8px;
+
+    padding: 16px 20px;
   }
-
 }
-
 
 /* =========================================================
    SMALL MOBILE
    ========================================================= */
 
 @media (max-width: 480px) {
-
   .dash-topbar {
     height: 62px;
+
+    padding: 7px 9px;
   }
 
   .dash-main-container {
@@ -961,10 +1182,97 @@ img {
 
   .dash-search {
     height: 37px;
+
+    padding: 0 9px;
+  }
+
+  .dash-search__icon {
+    font-size: 19px;
   }
 
   .dash-search input {
     font-size: 10.5px;
   }
 
+  .dash-main {
+    padding: 14px 10px 20px;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 360px) {
+  .dash-topbar {
+    gap: 5px;
+
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .dash-topbar__toggle {
+    width: 31px;
+    height: 31px;
+
+    flex-basis: 31px;
+  }
+
+  .dash-topbar__logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dash-search {
+    height: 35px;
+  }
+
+  .dash-search input {
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.dash-topbar__toggle:focus-visible,
+.dash-user__icon-btn:focus-visible,
+.dash-nav__item:focus-visible,
+.dash-search input:focus-visible {
+  outline: 3px solid rgba(99, 164, 255, 0.9);
+
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-sidebar,
+  .dash-main-container,
+  .dash-nav__item,
+  .dash-topbar__toggle,
+  .dash-user__icon-btn {
+    transition: none;
+  }
+
+  .dash-overlay {
+    animation: none;
+  }
+}
+
+/* =========================================================
+   ANIMATION
+   ========================================================= */
+
+@keyframes dashOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

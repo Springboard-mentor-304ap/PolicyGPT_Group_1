@@ -1,0 +1,731 @@
+<div class="organization-dashboard">
+
+  <!-- =========================================================
+       WELCOME / HERO
+       ========================================================= -->
+
+  <section class="organization-hero">
+
+    <div class="organization-hero__content">
+
+      <p class="organization-hero__eyebrow">
+        {{ dashboardTitle }}
+      </p>
+
+      <h1 class="organization-hero__title">
+        Make better decisions with
+        <span>PolicyGPT</span>
+      </h1>
+
+      <p class="organization-hero__description">
+        Discover policies, schemes and insights that help
+        your organization make informed decisions.
+      </p>
+
+      <div class="organization-hero__actions">
+
+        <button type="button" class="organization-hero__button organization-hero__button--primary"
+          (click)="searchPolicies()">
+          <span class="material-icons">
+            search
+          </span>
+
+          Search Policies
+        </button>
+
+        <button type="button" class="organization-hero__button organization-hero__button--secondary"
+          (click)="searchSchemes()">
+          <span class="material-icons">
+            account_balance
+          </span>
+
+          Explore Schemes
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- HERO VISUAL -->
+
+    <div class="organization-hero__visual" aria-hidden="true">
+
+      <div class="organization-hero__circle">
+
+        <span class="material-icons">
+          analytics
+        </span>
+
+      </div>
+
+      <div class="organization-hero__card organization-hero__card--one">
+
+        <span class="material-icons">
+          policy
+        </span>
+
+      </div>
+
+      <div class="organization-hero__card organization-hero__card--two">
+
+        <span class="material-icons">
+          account_balance
+        </span>
+
+      </div>
+
+      <div class="organization-hero__card organization-hero__card--three">
+
+        <span class="material-icons">
+          compare_arrows
+        </span>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================================================
+       ORGANIZATION STATISTICS
+       ========================================================= -->
+
+  <section class="organization-stats" aria-label="Organization statistics">
+
+    @for (
+    stat of organizationStats;
+    track stat.label
+    ) {
+
+    <article class="organization-stat" [ngClass]="'organization-stat--' + stat.color">
+
+      <div class="organization-stat__icon">
+
+        <span class="material-icons" aria-hidden="true">
+          {{ stat.icon }}
+        </span>
+
+      </div>
+
+
+      <div class="organization-stat__content">
+
+        @if (loadingStats) {
+
+        <div class="organization-skeleton organization-skeleton--number"></div>
+
+        } @else {
+
+        <strong>
+          {{ stat.value }}
+        </strong>
+
+        }
+
+        <span class="organization-stat__label">
+          {{ stat.label }}
+        </span>
+
+        @if (!loadingStats && stat.sub) {
+
+        <small>
+          {{ stat.sub }}
+        </small>
+
+        }
+
+      </div>
+
+    </article>
+
+    }
+
+  </section>
+
+
+  <!-- =========================================================
+       MAIN WORKSPACE
+       ========================================================= -->
+
+  <section class="organization-workspace">
+
+
+    <!-- =======================================================
+         RECENT ACTIVITY
+         ======================================================= -->
+
+    <article class="organization-card organization-card--activity">
+
+      <div class="organization-card__header">
+
+        <div>
+
+          <span class="organization-card__eyebrow">
+            WORKSPACE
+          </span>
+
+          <h2>
+            Recent Activity
+          </h2>
+
+        </div>
+
+        <button type="button" class="organization-card__link" (click)="viewHistory()">
+          View All
+        </button>
+
+      </div>
+
+
+      <!-- LOADING -->
+
+      @if (loadingActivity) {
+
+      <div class="organization-loader">
+
+        <div class="organization-spinner"></div>
+
+        <span>
+          Loading activity...
+        </span>
+
+      </div>
+
+      }
+
+
+      <!-- EMPTY -->
+
+      @else if (recentActivity.length === 0) {
+
+      <div class="organization-empty">
+
+        <span class="material-icons">
+          history
+        </span>
+
+        <p>
+          No recent activity
+        </p>
+
+        <small>
+          Your policy and scheme activity will appear here.
+        </small>
+
+      </div>
+
+      }
+
+
+      <!-- ACTIVITY LIST -->
+
+      @else {
+
+      <ul class="organization-activity-list">
+
+        @for (
+        activity of recentActivity;
+        track activity.title
+        ) {
+
+        <li class="organization-activity">
+
+          <button type="button" class="organization-activity__button" (click)="viewActivity(activity)">
+
+            <span class="organization-activity__icon" [ngClass]="
+                    'organization-activity__icon--' +
+                    activity.type
+                  ">
+
+              <span class="material-icons">
+                {{ activity.icon }}
+              </span>
+
+            </span>
+
+
+            <span class="organization-activity__content">
+
+              <strong>
+                {{ activity.title }}
+              </strong>
+
+              <span>
+                {{ activity.description }}
+              </span>
+
+              <small>
+                {{ activity.date }}
+              </small>
+
+            </span>
+
+
+            <span class="material-icons organization-activity__arrow">
+              arrow_forward
+            </span>
+
+          </button>
+
+        </li>
+
+        }
+
+      </ul>
+
+      }
+
+    </article>
+
+
+    <!-- =======================================================
+         QUICK ACTIONS
+         ======================================================= -->
+
+    <article class="organization-card organization-card--actions">
+
+      <div class="organization-card__header">
+
+        <div>
+
+          <span class="organization-card__eyebrow">
+            SHORTCUTS
+          </span>
+
+          <h2>
+            Quick Actions
+          </h2>
+
+        </div>
+
+      </div>
+
+
+      <div class="organization-quick-actions">
+
+        @for (
+        action of quickActions;
+        track action.title
+        ) {
+
+        <button type="button" class="organization-quick-action" (click)="navigateTo(action.route)">
+
+          <span class="organization-quick-action__icon">
+
+            <span class="material-icons">
+              {{ action.icon }}
+            </span>
+
+          </span>
+
+
+          <span class="organization-quick-action__content">
+
+            <strong>
+              {{ action.title }}
+            </strong>
+
+            <small>
+              {{ action.description }}
+            </small>
+
+          </span>
+
+
+          <span class="material-icons organization-quick-action__arrow">
+            arrow_forward
+          </span>
+
+        </button>
+
+        }
+
+      </div>
+
+    </article>
+
+  </section>
+
+
+  <!-- =========================================================
+       ORGANIZATION INSIGHTS
+       ========================================================= -->
+
+  <section class="organization-insights">
+
+    <div class="organization-insights__header">
+
+      <div>
+
+        <span class="organization-card__eyebrow">
+          ANALYTICS
+        </span>
+
+        <h2>
+          Organization Insights
+        </h2>
+
+        <p>
+          Understand the areas your organization researches most.
+        </p>
+
+      </div>
+
+      <button type="button" class="organization-insights__button" (click)="viewInsights()">
+
+        View Analytics
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </button>
+
+    </div>
+
+
+    <!-- INSIGHT BODY -->
+
+    <div class="organization-insights__body">
+
+
+      <!-- =====================================================
+           ACTIVITY CHART
+           ===================================================== -->
+
+      <div class="organization-chart">
+
+        <div class="organization-chart__header">
+
+          <strong>
+            Policy &amp; Scheme Activity
+          </strong>
+
+          <span>
+            Last 6 months
+          </span>
+
+        </div>
+
+
+        <div class="organization-chart__area">
+
+          <div class="organization-chart__grid organization-chart__grid--1"></div>
+
+          <div class="organization-chart__grid organization-chart__grid--2"></div>
+
+          <div class="organization-chart__grid organization-chart__grid--3"></div>
+
+          <div class="organization-chart__grid organization-chart__grid--4"></div>
+
+
+          <div class="organization-chart__bars">
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--1"></div>
+
+              <span>
+                Apr
+              </span>
+
+            </div>
+
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--2"></div>
+
+              <span>
+                May
+              </span>
+
+            </div>
+
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--3"></div>
+
+              <span>
+                Jun
+              </span>
+
+            </div>
+
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--4"></div>
+
+              <span>
+                Jul
+              </span>
+
+            </div>
+
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--5"></div>
+
+              <span>
+                Aug
+              </span>
+
+            </div>
+
+
+            <div class="organization-chart__bar-group">
+
+              <div class="organization-chart__bar organization-chart__bar--6"></div>
+
+              <span>
+                Sep
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- =====================================================
+           SECTOR INSIGHTS
+           ===================================================== -->
+
+      <div class="organization-sector-insights">
+
+        <div class="organization-sector-insights__header">
+
+          <strong>
+            Most Viewed Sectors
+          </strong>
+
+          <span>
+            Current activity
+          </span>
+
+        </div>
+
+
+        <div class="organization-sector-list">
+
+          @for (
+          sector of sectorInsights;
+          track sector.name
+          ) {
+
+          <div class="organization-sector">
+
+            <div class="organization-sector__top">
+
+              <div class="organization-sector__name">
+
+                <span class="material-icons">
+                  {{ sector.icon }}
+                </span>
+
+                <span>
+                  {{ sector.name }}
+                </span>
+
+              </div>
+
+              <strong>
+                {{ sector.percentage }}%
+              </strong>
+
+            </div>
+
+
+            <div class="organization-sector__track">
+
+              <div class="organization-sector__progress" [style.width]="getSectorWidth(sector.percentage)"></div>
+
+            </div>
+
+          </div>
+
+          }
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- =========================================================
+       SAVED ORGANIZATION ITEMS
+       ========================================================= -->
+
+  <section class="organization-saved">
+
+    <div class="organization-saved__icon">
+
+      <span class="material-icons">
+        bookmark
+      </span>
+
+    </div>
+
+
+    <div class="organization-saved__content">
+
+      <span>
+        ORGANIZATION WORKSPACE
+      </span>
+
+      <h2>
+        Saved for Your Organization
+      </h2>
+
+      <p>
+        Keep important policies and schemes organized
+        for future reference.
+      </p>
+
+    </div>
+
+
+    <button type="button" class="organization-saved__button" (click)="viewSavedItems()">
+
+      View Saved Items
+
+      <span class="material-icons">
+        arrow_forward
+      </span>
+
+    </button>
+
+  </section>
+
+
+  <!-- =========================================================
+       SAVED ITEMS LIST
+       ========================================================= -->
+
+  <section class="organization-saved-list">
+
+    <div class="organization-saved-list__header">
+
+      <div>
+
+        <span class="organization-card__eyebrow">
+          SAVED RESEARCH
+        </span>
+
+        <h2>
+          Recently Saved
+        </h2>
+
+      </div>
+
+      <button type="button" class="organization-card__link" (click)="viewSavedItems()">
+        View All
+      </button>
+
+    </div>
+
+
+    @if (loadingSavedItems) {
+
+    <div class="organization-loader">
+
+      <div class="organization-spinner"></div>
+
+      <span>
+        Loading saved items...
+      </span>
+
+    </div>
+
+    }
+
+    @else if (savedItems.length === 0) {
+
+    <div class="organization-empty">
+
+      <span class="material-icons">
+        bookmark_border
+      </span>
+
+      <p>
+        No saved items yet
+      </p>
+
+      <small>
+        Save policies and schemes to access them quickly later.
+      </small>
+
+    </div>
+
+    }
+
+    @else {
+
+    <div class="organization-saved-items">
+
+      @for (
+      item of savedItems;
+      track item.name
+      ) {
+
+      <button type="button" class="organization-saved-item" (click)="
+              item.type === 'policy'
+                ? viewPolicy(item.name)
+                : viewScheme(item.name)
+            ">
+
+        <span class="organization-saved-item__icon" [ngClass]="
+                'organization-saved-item__icon--' +
+                item.type
+              ">
+
+          <span class="material-icons">
+            {{ getSavedItemIcon(item.type) }}
+          </span>
+
+        </span>
+
+
+        <span class="organization-saved-item__content">
+
+          <strong>
+            {{ item.name }}
+          </strong>
+
+          <small>
+            {{ item.ministry }}
+          </small>
+
+          <span>
+            Saved on {{ item.savedOn }}
+          </span>
+
+        </span>
+
+
+        <span class="material-icons organization-saved-item__arrow">
+          arrow_forward
+        </span>
+
+      </button>
+
+      }
+
+    </div>
+
+    }
+
+  </section>
+
+</div>

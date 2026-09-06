@@ -24,14 +24,12 @@ export const routes: Routes = [
   // AUTH ROUTES
   // =========================================================
   //
-  // Includes:
-  //
   // /auth/login
   // /auth/register
   // /auth/password-reset
   // /auth/change-password
   //
-  // These routes are defined inside auth.routes.ts
+  // Defined inside auth.routes.ts
   //
   // =========================================================
 
@@ -48,23 +46,13 @@ export const routes: Routes = [
   //
   // IMPORTANT:
   //
-  // DO NOT put authGuard here.
+  // No authGuard here.
   //
-  // /dashboard/guest is PUBLIC.
+  // Guest dashboard is public.
   //
-  // Each authenticated dashboard handles:
+  // Individual dashboards handle:
   //
   // authGuard + roleGuard
-  //
-  // internally.
-  //
-  // Available dashboards:
-  //
-  // /dashboard/guest
-  // /dashboard/citizen
-  // /dashboard/researcher
-  // /dashboard/government
-  // /dashboard/admin
   //
   // =========================================================
 
@@ -78,14 +66,12 @@ export const routes: Routes = [
   },
 
   // =========================================================
-  // ADMIN USERS ROUTE
+  // ADMIN USERS
   // =========================================================
-  //
-  // URL:
   //
   // /admin/users
   //
-  // This route remains separately protected.
+  // Protected separately.
   //
   // =========================================================
 
@@ -105,10 +91,14 @@ export const routes: Routes = [
   },
 
   // =========================================================
-  // FALLBACK ROUTE
+  // FALLBACK
   // =========================================================
   //
-  // Invalid URLs redirect to Login.
+  // Any invalid URL:
+  //
+  // /something
+  // ↓
+  // /auth/login
   //
   // =========================================================
 

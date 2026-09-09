@@ -6,7 +6,7 @@ import {
   OnInit,
 } from "@angular/core";
 
-import { CommonModule, Location } from "@angular/common";
+import { CommonModule } from "@angular/common";
 
 import {
   ReactiveFormsModule,
@@ -39,8 +39,6 @@ export class EditProfileComponent implements OnInit {
   // SERVICES
   // =========================================================
 
-  private readonly location = inject(Location);
-
   private readonly router = inject(Router);
 
   private readonly fb = inject(FormBuilder);
@@ -64,6 +62,49 @@ export class EditProfileComponent implements OnInit {
   // =========================================================
 
   selectedPhotoUrl: string | null = null;
+
+  // =========================================================
+  // UI STATE
+  // =========================================================
+
+  saving = false;
+  successMessage = "";
+  errorMessage = "";
+  currentUser: AuthUser | null = null;
+
+  // The HTML template uses these names. Keep them as getters so
+  // the existing template and the TypeScript state stay in sync.
+  get profileImage(): string | null {
+    return this.selectedPhotoUrl;
+  }
+
+  get userName(): string {
+    return (
+      this.profileForm?.get("fullName")?.value ||
+      this.currentUser?.full_name ||
+      "User"
+    );
+  }
+
+  get displayRole(): string {
+    const role = String(
+      (this.currentUser as (AuthUser & { role?: string }) | null)?.role ||
+        "User",
+    );
+    return role
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  }
+
+  get states(): string[] {
+    return this.stateOptions;
+  }
+
+  get districts(): string[] {
+    return this.districtOptions;
+  }
 
   // =========================================================
   // GENDER OPTIONS
@@ -1024,8 +1065,6 @@ export class EditProfileComponent implements OnInit {
   ngOnInit(): void {
     this.initForm();
 
-    this.setupStateChangeListener();
-
     this.loadCurrentUser();
   }
 
@@ -1092,6 +1131,8 @@ export class EditProfileComponent implements OnInit {
   // =========================================================
 
   private patchUserData(user: AuthUser): void {
+    this.currentUser = user;
+    const extendedUser = user as AuthUser & { gender?: string };
     const state = user.state || "";
 
     // Update district list BEFORE
@@ -1106,7 +1147,7 @@ export class EditProfileComponent implements OnInit {
         ? this.formatDateForInput(user.date_of_birth)
         : "",
 
-      gender: "",
+      gender: extendedUser.gender || "",
 
       state: state,
 
@@ -1182,6 +1223,15 @@ export class EditProfileComponent implements OnInit {
       ?.valueChanges.subscribe((selectedState: string) => {
         this.updateDistrictList(selectedState, true);
       });
+  }
+
+  // =========================================================
+  // STATE CHANGE
+  // =========================================================
+
+  onStateChange(): void {
+    const selectedState = this.profileForm.get("state")?.value || "";
+    this.updateDistrictList(selectedState, true);
   }
 
   // =========================================================
@@ -1346,86 +1396,86 @@ export class EditProfileComponent implements OnInit {
   // =========================================================
 
   onSave(): void {
-    // -------------------------------------------------------
-    // VALIDATE
-    // -------------------------------------------------------
+    this.successMessage = "";
+    this.errorMessage = "";
 
     if (this.profileForm.invalid) {
       this.profileForm.markAllAsTouched();
-
+      this.errorMessage = "Please correct the highlighted fields.";
       this.cdr.markForCheck();
-
       return;
     }
 
-    // -------------------------------------------------------
-    // GET FORM DATA
-    // -------------------------------------------------------
-
     const formValue = this.profileForm.getRawValue();
 
-    // -------------------------------------------------------
-    // BACKEND PAYLOAD
-    // -------------------------------------------------------
-    // The FastAPI PUT /auth/profile endpoint accepts only:
-    // full_name, phone, date_of_birth, state, district,
-    // occupation and organization.
-    //
-    // Gender, email and avatar are kept in the existing UI but
-    // are intentionally NOT sent because the current backend
-    // ProfileUpdateRequest does not support those fields.
-    // -------------------------------------------------------
-
     const payload = {
-      full_name: formValue.fullName.trim(),
-      phone: formValue.phone.trim(),
+      full_name: String(formValue.fullName || "").trim(),
+      phone: String(formValue.phone || "").trim(),
       date_of_birth: formValue.dob || null,
-      state: formValue.state,
-      district: formValue.district,
-      occupation: formValue.occupation,
-      organization: formValue.organization,
+      state: formValue.state || null,
+      district: formValue.district || null,
+      occupation: formValue.occupation || null,
+      organization: formValue.organization || null,
     };
 
-    // -------------------------------------------------------
-    // SAVE TO BACKEND
-    // -------------------------------------------------------
+    this.saving = true;
+    this.cdr.markForCheck();
 
     this.http.put<AuthUser>(`${this.apiUrl}/profile`, payload).subscribe({
-      next: () => {
-        // Refresh the logged-in user so Auth/localStorage contains
-        // the exact data returned by the backend.
+      next: (updatedUser: AuthUser) => {
+        this.currentUser = updatedUser || this.currentUser;
+        this.saving = false;
+        this.successMessage = "Profile updated successfully.";
+        this.errorMessage = "";
+        this.cdr.markForCheck();
+
+        // Refresh Auth/localStorage. If refresh fails, the backend
+        // update has still succeeded, so keep the success message.
         this.authService.getCurrentUser().subscribe({
-          next: () => {
-            alert("Profile updated successfully.");
-            this.navigateToProfile();
+          next: (freshUser: AuthUser) => {
+            if (freshUser) {
+              this.currentUser = freshUser;
+              this.patchUserData(freshUser);
+            }
+            this.cdr.markForCheck();
+            setTimeout(() => this.navigateToProfile(), 700);
           },
-          error: (error: unknown) => {
-            console.error("Profile updated, but user refresh failed:", error);
-            alert(
-              "Profile updated successfully. Please refresh the profile page.",
+          error: (refreshError: unknown) => {
+            console.error(
+              "Profile updated, but user refresh failed:",
+              refreshError,
             );
-            this.navigateToProfile();
+            this.cdr.markForCheck();
+            setTimeout(() => this.navigateToProfile(), 1000);
           },
         });
       },
-
       error: (error: unknown) => {
         console.error("Unable to update profile:", error);
+        this.saving = false;
 
         const response = error as {
           status?: number;
-          error?: { detail?: string };
+          error?: { detail?: string | { msg?: string }[] };
         };
 
-        const message =
-          response?.error?.detail ||
-          (response?.status === 401
-            ? "Your session has expired. Please log in again."
-            : response?.status === 409
-              ? "This phone number is already registered."
-              : "Unable to update your profile. Please try again.");
+        let detail = response?.error?.detail;
+        if (Array.isArray(detail)) {
+          detail = detail
+            .map((item) => item?.msg || "Invalid value")
+            .join("; ");
+        }
 
-        alert(message);
+        this.errorMessage =
+          String(detail || "") ||
+          (response?.status === 400
+            ? "Invalid profile information."
+            : response?.status === 401
+              ? "Your session has expired. Please log in again."
+              : response?.status === 409
+                ? "This phone number is already registered."
+                : "Unable to update your profile. Please try again.");
+
         this.cdr.markForCheck();
       },
     });

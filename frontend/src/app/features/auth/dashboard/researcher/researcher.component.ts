@@ -1,6 +1,10 @@
+import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
 import { Router } from "@angular/router";
+
+/* =========================================================
+   TYPES
+   ========================================================= */
 
 interface ResearchStat {
   icon: string;
@@ -10,7 +14,7 @@ interface ResearchStat {
   type: "blue" | "orange" | "green" | "purple";
 }
 
-interface ResearchActivity {
+interface ResearchItem {
   icon: string;
   title: string;
   description: string;
@@ -25,162 +29,178 @@ interface QuickAction {
   route: string;
 }
 
+/* =========================================================
+   COMPONENT
+   ========================================================= */
+
 @Component({
   selector: "app-researcher",
   standalone: true,
   imports: [CommonModule],
   templateUrl: "./researcher.component.html",
-  styleUrl: "./researcher.component.scss",
+  styleUrls: ["./researcher.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResearcherComponent {
-  // =========================================================
-  // RESEARCH STATISTICS
-  // =========================================================
+  /* =======================================================
+     SERVICES
+     ======================================================= */
 
-  researchStats: ResearchStat[] = [
+  private readonly router = inject(Router);
+
+  /* =======================================================
+     RESEARCH STATISTICS
+     ======================================================= */
+
+  readonly researchStats: ResearchStat[] = [
     {
       icon: "policy",
-      value: "248",
+      value: "128",
       label: "Policies Researched",
-      description: "Across different sectors",
+      description: "Across government departments",
       type: "blue",
     },
     {
       icon: "account_balance",
-      value: "126",
-      label: "Schemes Analyzed",
-      description: "Government schemes",
+      value: "64",
+      label: "Schemes Explored",
+      description: "Central and state schemes",
       type: "orange",
     },
     {
-      icon: "bookmark",
+      icon: "compare_arrows",
       value: "18",
-      label: "Saved Research",
-      description: "Your saved items",
+      label: "Comparisons",
+      description: "Policy comparisons completed",
       type: "green",
     },
     {
-      icon: "compare_arrows",
+      icon: "bookmark",
       value: "32",
-      label: "Comparisons",
-      description: "Policy comparisons",
+      label: "Saved Research",
+      description: "Saved for later reference",
       type: "purple",
     },
   ];
 
-  // =========================================================
-  // RECENT RESEARCH
-  // =========================================================
+  /* =======================================================
+     RECENT RESEARCH
+     ======================================================= */
 
-  recentResearch: ResearchActivity[] = [
+  readonly recentResearch: ResearchItem[] = [
     {
       icon: "policy",
-      title: "National Education Policy 2020",
-      description: "Ministry of Education",
-      date: "Today, 10:30 AM",
+      title: "Digital India Policy Review",
+      description:
+        "Reviewed objectives, eligibility and implementation details.",
+      date: "Today",
       type: "policy",
     },
     {
       icon: "account_balance",
-      title: "PM Kisan Samman Nidhi",
-      description: "Ministry of Agriculture & Farmers Welfare",
-      date: "Yesterday, 4:15 PM",
+      title: "PM-KISAN Scheme Analysis",
+      description: "Explored eligibility, benefits and application process.",
+      date: "Yesterday",
       type: "scheme",
     },
     {
       icon: "compare_arrows",
       title: "Education Policy Comparison",
-      description: "Compared 3 policies",
-      date: "Sep 4, 2026",
+      description: "Compared major provisions across selected policies.",
+      date: "2 days ago",
       type: "compare",
     },
     {
       icon: "analytics",
-      title: "Healthcare Policy Analysis",
-      description: "Sector-wise research",
-      date: "Sep 3, 2026",
+      title: "Policy Trend Analysis",
+      description: "Analyzed recent policy activity and sector trends.",
+      date: "5 days ago",
       type: "analytics",
     },
   ];
 
-  // =========================================================
-  // QUICK ACTIONS
-  // =========================================================
+  /* =======================================================
+     QUICK ACTIONS
+     ======================================================= */
 
-  quickActions: QuickAction[] = [
+  readonly quickActions: QuickAction[] = [
     {
       icon: "search",
       title: "Search Policies",
-      description: "Find government policies",
+      description: "Find government policies by keyword or category.",
       route: "/policies",
     },
     {
       icon: "account_balance",
-      title: "Search Schemes",
-      description: "Explore government schemes",
+      title: "Explore Schemes",
+      description: "Discover government schemes and their benefits.",
       route: "/schemes",
     },
     {
       icon: "compare_arrows",
       title: "Compare Policies",
-      description: "Compare multiple policies",
+      description: "Compare policies side by side.",
       route: "/compare",
     },
     {
       icon: "analytics",
       title: "View Analytics",
-      description: "Explore policy insights",
+      description: "Explore policy trends and research insights.",
       route: "/analytics",
     },
   ];
 
-  // =========================================================
-  // CONSTRUCTOR
-  // =========================================================
-
-  constructor(private readonly router: Router) {}
-
-  // =========================================================
-  // NAVIGATION
-  // =========================================================
-
-  navigateTo(route: string): void {
-    this.router.navigate([route]);
-  }
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
+  /* =======================================================
+     SEARCH POLICIES
+     ======================================================= */
 
   searchPolicies(): void {
-    this.router.navigate(["/policies"]);
+    this.navigateTo("/policies");
   }
+
+  /* =======================================================
+     SEARCH SCHEMES
+     ======================================================= */
 
   searchSchemes(): void {
-    this.router.navigate(["/schemes"]);
+    this.navigateTo("/schemes");
   }
 
-  // =========================================================
-  // VIEW ALL RESEARCH
-  // =========================================================
+  /* =======================================================
+     VIEW ALL RESEARCH
+     ======================================================= */
 
   viewAllResearch(): void {
-    this.router.navigate(["/history"]);
+    this.navigateTo("/research");
   }
 
-  // =========================================================
-  // VIEW SAVED RESEARCH
-  // =========================================================
-
-  viewSavedResearch(): void {
-    this.router.navigate(["/saved"]);
-  }
-
-  // =========================================================
-  // VIEW ANALYTICS
-  // =========================================================
+  /* =======================================================
+     VIEW ANALYTICS
+     ======================================================= */
 
   viewAnalytics(): void {
-    this.router.navigate(["/analytics"]);
+    this.navigateTo("/analytics");
+  }
+
+  /* =======================================================
+     VIEW SAVED RESEARCH
+     ======================================================= */
+
+  viewSavedResearch(): void {
+    this.navigateTo("/research/saved");
+  }
+
+  /* =======================================================
+     GENERIC NAVIGATION
+     ======================================================= */
+
+  navigateTo(route: string): void {
+    if (!route || route === "#") {
+      return;
+    }
+
+    this.router.navigateByUrl(route).catch((error: unknown) => {
+      console.error(`Unable to navigate to ${route}:`, error);
+    });
   }
 }

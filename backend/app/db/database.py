@@ -3,7 +3,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config import settings
 
-
 # =========================================================
 # DATABASE ENGINE
 # =========================================================
@@ -35,6 +34,7 @@ Base = declarative_base()
 # =========================================================
 # DATABASE DEPENDENCY
 # =========================================================
+
 
 def get_db():
     db = SessionLocal()

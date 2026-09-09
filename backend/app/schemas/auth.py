@@ -19,9 +19,21 @@ ALLOWED_ROLES = {
     "RESEARCHER",
     "ORGANIZATION",
     "GOVERNMENT_OFFICIAL",
-    "ADMINISTRATOR",
+    "ADMIN",
 }
 
+
+# =========================================================
+# PUBLIC REGISTRATION ROLES
+# =========================================================
+#
+# These are the roles that can normally be selected by a
+# public user during registration.
+#
+# ADMIN and GOVERNMENT_OFFICIAL can still be accepted by
+# the schema. If you want to restrict public registration,
+# enforce this in the registration route/service.
+# =========================================================
 
 PUBLIC_REGISTRATION_ROLES = {
     "CITIZEN",
@@ -31,10 +43,125 @@ PUBLIC_REGISTRATION_ROLES = {
 
 
 # =========================================================
+# ROLE ALIASES
+# =========================================================
+#
+# All user-friendly role names are converted into one
+# canonical role before reaching the database.
+#
+# Example:
+#
+# admin
+# ADMIN
+# administrator
+# ADMINISTRATOR
+#
+#        ↓
+#
+# ADMIN
+# =========================================================
+
+ROLE_ALIASES = {
+
+    # -----------------------------------------------------
+    # ADMIN
+    # -----------------------------------------------------
+
+    "ADMIN": "ADMIN",
+    "ADMINISTRATOR": "ADMIN",
+
+    # -----------------------------------------------------
+    # GOVERNMENT
+    # -----------------------------------------------------
+
+    "GOVERNMENT": "GOVERNMENT_OFFICIAL",
+    "GOVT": "GOVERNMENT_OFFICIAL",
+    "GOVERNMENT OFFICIAL": "GOVERNMENT_OFFICIAL",
+    "GOVERNMENT_OFFICIAL": "GOVERNMENT_OFFICIAL",
+
+    # -----------------------------------------------------
+    # CITIZEN
+    # -----------------------------------------------------
+
+    "CITIZEN": "CITIZEN",
+
+    # -----------------------------------------------------
+    # RESEARCHER
+    # -----------------------------------------------------
+
+    "RESEARCHER": "RESEARCHER",
+
+    # -----------------------------------------------------
+    # ORGANIZATION
+    # -----------------------------------------------------
+
+    "ORGANIZATION": "ORGANIZATION",
+    "ORG": "ORGANIZATION",
+}
+
+
+# =========================================================
+# ROLE NORMALIZATION HELPER
+# =========================================================
+
+def normalize_role(value: str) -> str:
+    """
+    Normalize a role entered by the user.
+
+    Examples:
+
+        admin
+        ADMIN
+        administrator
+        ADMINISTRATOR
+
+        -> ADMIN
+
+
+        government
+        GOVERNMENT
+        govt
+        GOVT
+        government official
+
+        -> GOVERNMENT_OFFICIAL
+    """
+
+    if not isinstance(value, str):
+        raise ValueError(
+            "Role must be a string"
+        )
+
+    # Remove leading/trailing spaces
+    value = value.strip()
+
+    # Make case-insensitive
+    value = value.upper()
+
+    # Convert aliases to canonical role
+    value = ROLE_ALIASES.get(
+        value,
+        value
+    )
+
+    # Final validation
+    if value not in ALLOWED_ROLES:
+        raise ValueError(
+            "Invalid role. Allowed roles: "
+            "CITIZEN, RESEARCHER, ORGANIZATION, "
+            "GOVERNMENT_OFFICIAL, ADMIN"
+        )
+
+    return value
+
+
+# =========================================================
 # PASSWORD VALIDATION
 # =========================================================
 
-def validate_password_strength(value: str) -> str:
+def validate_password_strength(
+    value: str
+) -> str:
     """
     Password requirements:
 
@@ -99,7 +226,7 @@ def validate_password_strength(value: str) -> str:
     )
 
     # -----------------------------------------------------
-    # COUNT TYPES
+    # COUNT PASSWORD TYPES
     # -----------------------------------------------------
 
     type_count = sum(
@@ -112,7 +239,7 @@ def validate_password_strength(value: str) -> str:
     )
 
     # -----------------------------------------------------
-    # AT LEAST 3 OF 4
+    # REQUIRE AT LEAST 3 OF 4
     # -----------------------------------------------------
 
     if type_count < 3:
@@ -195,7 +322,10 @@ class RegisterRequest(BaseModel):
     # ROLE
     # =====================================================
 
-    role: str
+    role: str = Field(
+        min_length=1,
+        max_length=50
+    )
 
     # =====================================================
     # FULL NAME VALIDATOR
@@ -241,14 +371,7 @@ class RegisterRequest(BaseModel):
         value: str
     ) -> str:
 
-        value = value.upper().strip()
-
-        if value not in ALLOWED_ROLES:
-            raise ValueError(
-                "Invalid role"
-            )
-
-        return value
+        return normalize_role(value)
 
     # =====================================================
     # PHONE VALIDATOR
@@ -277,6 +400,11 @@ class RegisterRequest(BaseModel):
         if len(value) < 10:
             raise ValueError(
                 "Phone number must contain at least 10 digits"
+            )
+
+        if len(value) > 20:
+            raise ValueError(
+                "Phone number must not exceed 20 digits"
             )
 
         return value
@@ -313,7 +441,7 @@ class RegisterRequest(BaseModel):
         return value
 
     # =====================================================
-    # PASSWORD MATCH
+    # PASSWORD MATCH VALIDATOR
     # =====================================================
 
     @model_validator(mode="after")
@@ -509,6 +637,29 @@ class ProfileUpdateRequest(BaseModel):
     )
 
     # =====================================================
+    # FULL NAME VALIDATOR
+    # =====================================================
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(
+        cls,
+        value: str | None
+    ) -> str | None:
+
+        if value is None:
+            return None
+
+        value = value.strip()
+
+        if not value:
+            raise ValueError(
+                "Full name cannot be empty"
+            )
+
+        return value
+
+    # =====================================================
     # PHONE VALIDATOR
     # =====================================================
 
@@ -532,6 +683,16 @@ class ProfileUpdateRequest(BaseModel):
                 "Phone number must contain only digits"
             )
 
+        if len(value) < 10:
+            raise ValueError(
+                "Phone number must contain at least 10 digits"
+            )
+
+        if len(value) > 20:
+            raise ValueError(
+                "Phone number must not exceed 20 digits"
+            )
+
         return value
 
 
@@ -545,7 +706,9 @@ class ChangePasswordRequest(BaseModel):
     # CURRENT PASSWORD
     # =====================================================
 
-    current_password: str
+    current_password: str = Field(
+        min_length=1
+    )
 
     # =====================================================
     # NEW PASSWORD
@@ -630,7 +793,9 @@ class ResetPasswordRequest(BaseModel):
     # RESET TOKEN
     # =====================================================
 
-    token: str
+    token: str = Field(
+        min_length=1
+    )
 
     # =====================================================
     # NEW PASSWORD
@@ -701,10 +866,12 @@ class ResetPasswordRequest(BaseModel):
 # =========================================================
 
 class DeleteAccountRequest(BaseModel):
+
     password: str = Field(
         min_length=1,
         max_length=72
     )
+
 
 # =========================================================
 # SEND OTP REQUEST
@@ -728,6 +895,10 @@ class VerifyOTPRequest(BaseModel):
         max_length=6
     )
 
+    # =====================================================
+    # OTP VALIDATOR
+    # =====================================================
+
     @field_validator("otp")
     @classmethod
     def validate_otp(
@@ -741,4 +912,3 @@ class VerifyOTPRequest(BaseModel):
             )
 
         return value
-

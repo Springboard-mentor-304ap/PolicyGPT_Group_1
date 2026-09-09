@@ -160,19 +160,88 @@ def get_current_user(
 
 
 # =========================================================
-# ROLE CHECK
+# ROLE SYSTEM
 # =========================================================
 
+# Canonical roles used by the application.
+# ADMIN is the superuser and can access every protected role route.
+CANONICAL_ROLES = {
+    "ADMIN",
+    "GOVERNMENT_OFFICIAL",
+    "RESEARCHER",
+    "ORGANIZATION",
+    "CITIZEN",
+}
+
+# Backward-compatible aliases. This means ADMIN, administrator,
+# GOVERNMENT, govt, etc. can all be used safely.
+ROLE_ALIASES = {
+    "ADMIN": "ADMIN",
+    "ADMINISTRATOR": "ADMIN",
+    "ADMINISTRATOR_ROLE": "ADMIN",
+
+    "GOVERNMENT": "GOVERNMENT_OFFICIAL",
+    "GOVT": "GOVERNMENT_OFFICIAL",
+    "GOVERNMENT OFFICIAL": "GOVERNMENT_OFFICIAL",
+    "GOVERNMENT_OFFICIAL": "GOVERNMENT_OFFICIAL",
+
+    "CITIZEN": "CITIZEN",
+
+    "RESEARCHER": "RESEARCHER",
+
+    "ORGANIZATION": "ORGANIZATION",
+    "ORG": "ORGANIZATION",
+}
+
+
+def normalize_role(role: str | None) -> str:
+    """
+    Convert a stored/requested role to one canonical role.
+
+    Examples:
+        admin -> ADMIN
+        ADMINISTRATOR -> ADMIN
+        government -> GOVERNMENT_OFFICIAL
+        govt -> GOVERNMENT_OFFICIAL
+    """
+    if role is None:
+        return ""
+
+    normalized = str(role).strip().upper()
+    return ROLE_ALIASES.get(normalized, normalized)
+
+
 def require_roles(*allowed_roles: str):
+
+    normalized_allowed_roles = {
+        normalize_role(role)
+        for role in allowed_roles
+    }
 
     def role_checker(
         current_user: User = Depends(get_current_user)
     ) -> User:
 
-        if current_user.role not in allowed_roles:
+        user_role = normalize_role(current_user.role)
+
+        # -------------------------------------------------
+        # ADMIN = SUPERUSER
+        # -------------------------------------------------
+        # ADMIN can access every protected role endpoint.
+        if user_role == "ADMIN":
+            return current_user
+
+        # -------------------------------------------------
+        # ROLE CHECK
+        # -------------------------------------------------
+        if user_role not in normalized_allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to access this resource"
+                detail=(
+                    f"Access denied. Required role(s): "
+                    f"{', '.join(sorted(normalized_allowed_roles))}. "
+                    f"Your role: {user_role or 'UNKNOWN'}"
+                ),
             )
 
         return current_user
@@ -292,7 +361,7 @@ def register(
         password_hash=hash_password(
             data.password
         ),
-        role=data.role,
+        role=normalize_role(data.role),
         phone=(re.sub(r"\D", "", data.phone) if data.phone else None),
         date_of_birth=data.date_of_birth,
         state=data.state,
@@ -1301,7 +1370,9 @@ def delete_account(
 )
 def delete_user(
     email: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles("ADMIN")
+    ),
     db: Session = Depends(get_db)
 ):
 
@@ -1341,7 +1412,9 @@ def delete_user(
 )
 def delete_user_by_phone(
     phone: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles("ADMIN")
+    ),
     db: Session = Depends(get_db)
 ):
 
@@ -1502,21 +1575,16 @@ def reset_password(
 # ADMIN TEST
 # =========================================================
 
-@router.get(
-    "/admin-test"
-)
+@router.get("/admin-test")
 def admin_test(
     current_user: User = Depends(
-        require_roles(
-            "ADMINISTRATOR"
-        )
+        require_roles("ADMIN")
     )
 ):
-
     return {
         "message": "Administrator access granted",
         "user_id": current_user.user_id,
-        "role": current_user.role
+        "role": normalize_role(current_user.role),
     }
 
 
@@ -1524,22 +1592,16 @@ def admin_test(
 # GOVERNMENT TEST
 # =========================================================
 
-@router.get(
-    "/government-test"
-)
+@router.get("/government-test")
 def government_test(
     current_user: User = Depends(
-        require_roles(
-            "ADMINISTRATOR",
-            "GOVERNMENT_OFFICIAL"
-        )
+        require_roles("GOVERNMENT_OFFICIAL")
     )
 ):
-
     return {
         "message": "Government access granted",
         "user_id": current_user.user_id,
-        "role": current_user.role
+        "role": normalize_role(current_user.role),
     }
 
 
@@ -1547,22 +1609,16 @@ def government_test(
 # RESEARCHER TEST
 # =========================================================
 
-@router.get(
-    "/researcher-test"
-)
+@router.get("/researcher-test")
 def researcher_test(
     current_user: User = Depends(
-        require_roles(
-            "ADMINISTRATOR",
-            "RESEARCHER"
-        )
+        require_roles("RESEARCHER")
     )
 ):
-
     return {
         "message": "Researcher access granted",
         "user_id": current_user.user_id,
-        "role": current_user.role
+        "role": normalize_role(current_user.role),
     }
 
 
@@ -1570,22 +1626,16 @@ def researcher_test(
 # CITIZEN TEST
 # =========================================================
 
-@router.get(
-    "/citizen-test"
-)
+@router.get("/citizen-test")
 def citizen_test(
     current_user: User = Depends(
-        require_roles(
-            "ADMINISTRATOR",
-            "CITIZEN"
-        )
+        require_roles("CITIZEN")
     )
 ):
-
     return {
         "message": "Citizen access granted",
         "user_id": current_user.user_id,
-        "role": current_user.role
+        "role": normalize_role(current_user.role),
     }
 
 
@@ -1593,20 +1643,14 @@ def citizen_test(
 # ORGANIZATION TEST
 # =========================================================
 
-@router.get(
-    "/organization-test"
-)
+@router.get("/organization-test")
 def organization_test(
     current_user: User = Depends(
-        require_roles(
-            "ADMINISTRATOR",
-            "ORGANIZATION"
-        )
+        require_roles("ORGANIZATION")
     )
 ):
-
     return {
         "message": "Organization access granted",
         "user_id": current_user.user_id,
-        "role": current_user.role
+        "role": normalize_role(current_user.role),
     }

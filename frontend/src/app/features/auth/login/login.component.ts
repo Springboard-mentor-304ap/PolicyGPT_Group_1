@@ -1,7 +1,5 @@
 import { ChangeDetectorRef, Component } from "@angular/core";
-
 import { CommonModule } from "@angular/common";
-
 import { Router, RouterLink } from "@angular/router";
 
 import {
@@ -15,13 +13,9 @@ import { Auth } from "../../../core/services/auth";
 
 @Component({
   selector: "app-login",
-
   standalone: true,
-
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
-
   templateUrl: "./login.component.html",
-
   styleUrl: "./login.component.scss",
 })
 export class LoginComponent {
@@ -265,21 +259,16 @@ export class LoginComponent {
 
     this.errorMessage = "";
 
-    // Immediately update button state
     this.cdr.detectChanges();
 
     // =======================================================
-    // DEBUG LOG
+    // DEBUG
     // =======================================================
 
     console.log("=================================");
-
     console.log("LOGIN STARTED");
-
     console.log("Login mode:", this.loginMode);
-
     console.log("Identifier:", identifier);
-
     console.log("=================================");
 
     // =======================================================
@@ -287,28 +276,28 @@ export class LoginComponent {
     // =======================================================
 
     this.authService.login(identifier, password).subscribe({
-      // ===================================================
+      // =====================================================
       // SUCCESS
-      // ===================================================
+      // =====================================================
 
-      next: (response) => {
+      next: (response: any) => {
         console.log("LOGIN SUCCESS:", response);
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // STOP LOADING
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         this.loading = false;
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // UPDATE UI
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         this.cdr.detectChanges();
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // CHECK RESPONSE
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         if (!response) {
           this.errorMessage = "Invalid response from server.";
@@ -318,9 +307,9 @@ export class LoginComponent {
           return;
         }
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // CHECK ACCESS TOKEN
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         if (!response.access_token) {
           this.errorMessage = "Login failed. Access token not received.";
@@ -330,9 +319,9 @@ export class LoginComponent {
           return;
         }
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // GET USER
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         const user = response.user;
 
@@ -344,9 +333,9 @@ export class LoginComponent {
           return;
         }
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // GET ROLE
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         const role = user.role;
 
@@ -359,43 +348,43 @@ export class LoginComponent {
           return;
         }
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // DEBUG
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         console.log("USER:", user);
 
-        console.log("ROLE:", role);
+        console.log("RAW ROLE:", role);
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // REDIRECT
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         this.redirectByRole(role);
       },
 
-      // ===================================================
+      // =====================================================
       // ERROR
-      // ===================================================
+      // =====================================================
 
       error: (err: any) => {
         console.error("LOGIN ERROR:", err);
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // STOP LOADING
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         this.loading = false;
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // HTTP STATUS
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         const status = err?.status;
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // BACKEND ERROR MESSAGE
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         let backendMessage = "";
 
@@ -450,7 +439,7 @@ export class LoginComponent {
         }
 
         // =================================================
-        // ACCOUNT INACTIVE
+        // 403
         // =================================================
         else if (status === 403) {
           this.errorMessage =
@@ -486,9 +475,9 @@ export class LoginComponent {
             backendMessage || "Login failed. Please check your credentials.";
         }
 
-        // -------------------------------------------------
+        // ---------------------------------------------------
         // FORCE UI UPDATE
-        // -------------------------------------------------
+        // ---------------------------------------------------
 
         this.cdr.detectChanges();
 
@@ -502,23 +491,136 @@ export class LoginComponent {
   }
 
   // =========================================================
+  // NORMALIZE ROLE
+  // =========================================================
+
+  private normalizeRole(role: string): string {
+    const normalized = String(role || "")
+      .trim()
+      .toUpperCase();
+
+    // =======================================================
+    // ADMIN
+    // =======================================================
+
+    if (normalized === "ADMIN" || normalized === "ADMINISTRATOR") {
+      return "ADMIN";
+    }
+
+    // =======================================================
+    // GOVERNMENT
+    // =======================================================
+
+    if (
+      normalized === "GOVERNMENT" ||
+      normalized === "GOVT" ||
+      normalized === "GOVERNMENT_OFFICIAL" ||
+      normalized === "GOVERNMENT_OFFICER" ||
+      normalized === "GOVERNMENT OFFICIAL"
+    ) {
+      return "GOVERNMENT_OFFICIAL";
+    }
+
+    // =======================================================
+    // CITIZEN
+    // =======================================================
+
+    if (normalized === "CITIZEN") {
+      return "CITIZEN";
+    }
+
+    // =======================================================
+    // RESEARCHER
+    // =======================================================
+
+    if (normalized === "RESEARCHER") {
+      return "RESEARCHER";
+    }
+
+    // =======================================================
+    // ORGANIZATION
+    // =======================================================
+
+    if (
+      normalized === "ORGANIZATION" ||
+      normalized === "ORGANISATION" ||
+      normalized === "ORG"
+    ) {
+      return "ORGANIZATION";
+    }
+
+    // =======================================================
+    // GUEST
+    // =======================================================
+
+    if (normalized === "GUEST" || normalized === "GUEST_USER") {
+      return "GUEST";
+    }
+
+    // =======================================================
+    // UNKNOWN
+    // =======================================================
+
+    return normalized;
+  }
+
+  // =========================================================
   // REDIRECT BASED ON ROLE
   // =========================================================
 
   private redirectByRole(role: string): void {
-    const normalizedRole = String(role).trim().toUpperCase();
+    // -------------------------------------------------------
+    // NORMALIZE ROLE
+    // -------------------------------------------------------
 
-    console.log("REDIRECTING:", normalizedRole);
+    const normalizedRole = this.normalizeRole(role);
+
+    console.log("RAW ROLE:", role);
+
+    console.log("NORMALIZED ROLE:", normalizedRole);
+
+    // =======================================================
+    // ROLE ROUTING
+    // =======================================================
 
     switch (normalizedRole) {
       // =====================================================
-      // ADMINISTRATOR
+      // ADMIN
       // =====================================================
 
-      case "ADMINISTRATOR":
+      case "ADMIN":
         console.log("→ Admin Dashboard");
 
-        this.router.navigate(["/dashboard/admin"]);
+        console.log("REDIRECTING: ADMIN");
+
+        this.router
+          .navigate(["/dashboard/admin"])
+          .then((success) => {
+            console.log("Admin navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Admin navigation error:", error);
+          });
+
+        break;
+
+      // =====================================================
+      // GOVERNMENT OFFICIAL
+      // =====================================================
+
+      case "GOVERNMENT_OFFICIAL":
+        console.log("→ Government Dashboard");
+
+        console.log("REDIRECTING: GOVERNMENT");
+
+        this.router
+          .navigate(["/dashboard/government"])
+          .then((success) => {
+            console.log("Government navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Government navigation error:", error);
+          });
 
         break;
 
@@ -529,22 +631,16 @@ export class LoginComponent {
       case "CITIZEN":
         console.log("→ Citizen Dashboard");
 
-        this.router.navigate(["/dashboard/citizen"]);
+        console.log("REDIRECTING: CITIZEN");
 
-        break;
-
-      // =====================================================
-      // GOVERNMENT OFFICIAL
-      // =====================================================
-
-      case "GOVERNMENT_OFFICIAL":
-
-      case "GOVERNMENT_OFFICER":
-
-      case "GOVERNMENT":
-        console.log("→ Government Dashboard");
-
-        this.router.navigate(["/dashboard/government"]);
+        this.router
+          .navigate(["/dashboard/citizen"])
+          .then((success) => {
+            console.log("Citizen navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Citizen navigation error:", error);
+          });
 
         break;
 
@@ -555,7 +651,16 @@ export class LoginComponent {
       case "RESEARCHER":
         console.log("→ Researcher Dashboard");
 
-        this.router.navigate(["/dashboard/researcher"]);
+        console.log("REDIRECTING: RESEARCHER");
+
+        this.router
+          .navigate(["/dashboard/researcher"])
+          .then((success) => {
+            console.log("Researcher navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Researcher navigation error:", error);
+          });
 
         break;
 
@@ -564,11 +669,18 @@ export class LoginComponent {
       // =====================================================
 
       case "ORGANIZATION":
-
-      case "ORGANISATION":
         console.log("→ Organization Dashboard");
 
-        this.router.navigate(["/dashboard/organization"]);
+        console.log("REDIRECTING: ORGANIZATION");
+
+        this.router
+          .navigate(["/dashboard/organization"])
+          .then((success) => {
+            console.log("Organization navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Organization navigation error:", error);
+          });
 
         break;
 
@@ -577,11 +689,18 @@ export class LoginComponent {
       // =====================================================
 
       case "GUEST":
-
-      case "GUEST_USER":
         console.log("→ Guest Dashboard");
 
-        this.router.navigate(["/dashboard/guest"]);
+        console.log("REDIRECTING: GUEST");
+
+        this.router
+          .navigate(["/dashboard/guest"])
+          .then((success) => {
+            console.log("Guest navigation:", success);
+          })
+          .catch((error) => {
+            console.error("Guest navigation error:", error);
+          });
 
         break;
 
@@ -592,7 +711,7 @@ export class LoginComponent {
       default:
         console.error("Unknown user role:", normalizedRole);
 
-        this.errorMessage = "Unknown user role. Please contact administrator.";
+        this.errorMessage = `Unknown user role: ${role}. Please contact administrator.`;
 
         this.cdr.detectChanges();
 
@@ -625,9 +744,14 @@ export class LoginComponent {
 
     console.log("Opening Guest User dashboard...");
 
-    this.router.navigate(["/dashboard/guest"]).then((success) => {
-      console.log("Guest navigation:", success);
-    });
+    this.router
+      .navigate(["/dashboard/guest"])
+      .then((success) => {
+        console.log("Guest navigation:", success);
+      })
+      .catch((error) => {
+        console.error("Guest navigation error:", error);
+      });
   }
 
   // =========================================================
@@ -637,8 +761,13 @@ export class LoginComponent {
   goToPasswordReset(): void {
     console.log("Opening password reset page...");
 
-    this.router.navigate(["/auth/password-reset"]).then((success) => {
-      console.log("Password reset navigation:", success);
-    });
+    this.router
+      .navigate(["/auth/password-reset"])
+      .then((success) => {
+        console.log("Password reset navigation:", success);
+      })
+      .catch((error) => {
+        console.error("Password reset navigation error:", error);
+      });
   }
 }

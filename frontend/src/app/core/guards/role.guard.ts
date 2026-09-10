@@ -1,10 +1,12 @@
 import { inject } from "@angular/core";
+
 import { CanActivateFn, Router } from "@angular/router";
 
 import { Auth } from "../services/auth";
 
 export const roleGuard: CanActivateFn = (route) => {
   const authService = inject(Auth);
+
   const router = inject(Router);
 
   // =======================================================
@@ -44,16 +46,76 @@ export const roleGuard: CanActivateFn = (route) => {
   }
 
   // =======================================================
+  // NORMALIZE USER ROLE
+  // =======================================================
+
+  let normalizedUserRole = userRole;
+
+  // ADMIN aliases
+  if (userRole === "ADMINISTRATOR" || userRole === "ADMINISTRATOR_ROLE") {
+    normalizedUserRole = "ADMIN";
+  }
+
+  // GOVERNMENT aliases
+  else if (
+    userRole === "GOVERNMENT" ||
+    userRole === "GOVT" ||
+    userRole === "GOVERNMENT_OFFICER"
+  ) {
+    normalizedUserRole = "GOVERNMENT_OFFICIAL";
+  }
+
+  // ORGANIZATION aliases
+  else if (userRole === "ORGANISATION") {
+    normalizedUserRole = "ORGANIZATION";
+  }
+
+  // =======================================================
   // NORMALIZE ALLOWED ROLES
   // =======================================================
 
-  const normalizedRoles = allowedRoles.map((role) => role.toUpperCase().trim());
+  const normalizedRoles = allowedRoles.map((role) => {
+    const normalizedRole = role.toUpperCase().trim();
+
+    if (
+      normalizedRole === "ADMINISTRATOR" ||
+      normalizedRole === "ADMINISTRATOR_ROLE"
+    ) {
+      return "ADMIN";
+    }
+
+    if (
+      normalizedRole === "GOVERNMENT" ||
+      normalizedRole === "GOVT" ||
+      normalizedRole === "GOVERNMENT_OFFICER"
+    ) {
+      return "GOVERNMENT_OFFICIAL";
+    }
+
+    if (normalizedRole === "ORGANISATION") {
+      return "ORGANIZATION";
+    }
+
+    return normalizedRole;
+  });
+
+  // =======================================================
+  // ADMIN = SUPERUSER
+  // =======================================================
+  // ADMIN can access every protected dashboard.
+  // =======================================================
+
+  if (normalizedUserRole === "ADMIN") {
+    console.log("ADMIN ACCESS GRANTED");
+
+    return true;
+  }
 
   // =======================================================
   // CHECK ROLE
   // =======================================================
 
-  if (normalizedRoles.includes(userRole)) {
+  if (normalizedRoles.includes(normalizedUserRole)) {
     return true;
   }
 
@@ -65,7 +127,9 @@ export const roleGuard: CanActivateFn = (route) => {
 
   console.warn(
     `Unauthorized dashboard access.
-     User role: ${userRole}
+
+     User role: ${normalizedUserRole}
+
      Allowed roles: ${normalizedRoles.join(", ")}`,
   );
 

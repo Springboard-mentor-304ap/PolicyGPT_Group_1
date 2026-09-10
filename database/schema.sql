@@ -80,7 +80,12 @@ CREATE TABLE schemes (
 
 CREATE TABLE eligibility_rules (
     rule_id BIGSERIAL PRIMARY KEY,
-    scheme_id BIGINT NOT NULL REFERENCES schemes(scheme_id),
+    policy_id BIGINT
+        REFERENCES policies(policy_id)
+        ON DELETE CASCADE,
+    scheme_id BIGINT
+        REFERENCES schemes(scheme_id)
+        ON DELETE CASCADE,
     min_age INTEGER,
     max_age INTEGER,
     gender VARCHAR(30),
@@ -91,7 +96,31 @@ CREATE TABLE eligibility_rules (
     social_category VARCHAR(100),
     disability_status BOOLEAN,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_policy_or_scheme
+        CHECK (
+            (policy_id IS NOT NULL AND scheme_id IS NULL)
+            OR
+            (policy_id IS NULL AND scheme_id IS NOT NULL)
+        ),
+    CONSTRAINT chk_age_range
+        CHECK (
+            min_age IS NULL
+            OR max_age IS NULL
+            OR min_age <= max_age
+        ),
+    CONSTRAINT chk_min_age
+        CHECK (
+            min_age IS NULL OR min_age >= 0
+        ),
+    CONSTRAINT chk_max_age
+        CHECK (
+            max_age IS NULL OR max_age >= 0
+        ),
+    CONSTRAINT chk_max_income
+        CHECK (
+            max_income IS NULL OR max_income >= 0
+        )
 );
 
 

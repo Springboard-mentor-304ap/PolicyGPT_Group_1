@@ -97,6 +97,7 @@ CREATE TABLE eligibility_rules (
     disability_status BOOLEAN,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT chk_policy_or_scheme
         CHECK (
             (policy_id IS NOT NULL AND scheme_id IS NULL)

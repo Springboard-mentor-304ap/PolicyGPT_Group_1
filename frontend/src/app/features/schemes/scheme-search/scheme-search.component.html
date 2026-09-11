@@ -1,0 +1,120 @@
+<div class="page-container">
+  <!-- Top Right Navigation -->
+  <div class="top-nav">
+    <button type="button" class="btn-back" (click)="goBack()">
+      &larr; Back
+    </button>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Search Schemes</h1>
+    <p>Find government schemes that match your needs.</p>
+  </div>
+
+  <!-- Main Search Box -->
+  <div class="search-bar-container">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        placeholder="Search by scheme name, keyword, ministry, or benefit..." 
+        (keyup.enter)="applyFilters()"
+      />
+    </div>
+    <button type="button" class="btn-search" (click)="applyFilters()">Search</button>
+  </div>
+
+  <!-- Dropdown Filters Bar -->
+  <div class="filters-container">
+    <div class="filter-dropdown">
+      <label>Category</label>
+      <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+        <option value="All Categories">All Categories</option>
+        <option value="Agriculture">Agriculture</option>
+        <option value="Energy">Energy</option>
+        <option value="Education">Education</option>
+        <option value="Health">Health</option>
+        <option value="Skill Development">Skill Development</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>Ministry</label>
+      <select [(ngModel)]="selectedMinistry" (change)="applyFilters()">
+        <option value="All Ministries">All Ministries</option>
+        <option value="Ministry of Agriculture & Farmers Welfare">Ministry of Agriculture</option>
+        <option value="Ministry of New & Renewable Energy">Ministry of New & Renewable Energy</option>
+        <option value="Ministry of Health & Family Welfare">Ministry of Health & Family Welfare</option>
+        <option value="Ministry of Micro, Small & Medium Enterprises">Ministry of MSME</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>State</label>
+      <select [(ngModel)]="selectedState" (change)="applyFilters()">
+        <option value="All States">All States</option>
+        <option value="Central">Central</option>
+        <option value="Delhi">Delhi</option>
+        <option value="Maharashtra">Maharashtra</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>Target Group</label>
+      <select [(ngModel)]="selectedTargetGroup" (change)="applyFilters()">
+        <option value="All">All</option>
+        <option value="Farmers">Farmers</option>
+        <option value="Citizens">Citizens</option>
+        <option value="Students">Students</option>
+        <option value="Youth & Entrepreneurs">Youth & Entrepreneurs</option>
+      </select>
+    </div>
+
+    <button type="button" class="btn-clear" (click)="clearFilters()">Clear Filters</button>
+  </div>
+
+  <!-- Results Count -->
+  <div class="results-count">
+    {{ filteredSchemes.length }} results found
+  </div>
+
+  <!-- Scheme Cards List -->
+  <div class="scheme-list">
+    <div class="scheme-card" *ngFor="let scheme of visibleSchemes">
+      <div class="card-left">
+        <!-- Emblem/Badge Icon Container -->
+        <div class="badge-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 8v8M8 12h8"></path>
+          </svg>
+        </div>
+        <div class="scheme-info">
+          <h3>{{ scheme.title }}</h3>
+          <p>{{ scheme.ministry }}</p>
+        </div>
+      </div>
+
+      <div class="card-right">
+        <a [routerLink]="['/schemes', scheme.id]" class="btn-view-details">
+          View Details
+        </a>
+        <button type="button" class="btn-bookmark" (click)="toggleBookmark(scheme)" [title]="scheme.isBookmarked ? 'Remove Bookmark' : 'Bookmark'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" [attr.fill]="scheme.isBookmarked ? '#1e293b' : 'none'" [attr.stroke]="scheme.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View More Action -->
+  <div class="view-more-container" *ngIf="itemsToShow < filteredSchemes.length">
+    <button type="button" class="btn-view-more" (click)="loadMore()">View More</button>
+  </div>
+</div>

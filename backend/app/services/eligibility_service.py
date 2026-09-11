@@ -1,33 +1,36 @@
 from datetime import datetime
-from decimal import Decimal
+from typing import Any
 
 from fastapi import HTTPException
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.models.policy import Policy
 
 from app.models.eligibility_rule import EligibilityRule
+from app.models.policy import Policy
 from app.models.scheme import Scheme
+
 from app.schemas.eligibility import (
     EligibilityCheckRequest,
     EligibilityCheckResponse,
-    EligibilityRuleResponse,
-    MatchedScheme,
-    SchemeMatchRequest,
-    SchemeMatchResponse,
-    PolicyEligibilityCheckRequest,
-    PolicyEligibilityCheckResponse,
-    PolicyEligibilityRuleResponse,
-    PolicyMatchRequest,
-    PolicyMatchResponse,
-    MatchedPolicy,
+    EligibilityMatchRequest,
+    EligibilityMatchResponse,
+    EligibilityProfile,
+    EligibilityRuleCreate,
+    EligibilityRuleUpdate,
 )
 
 # =========================================================
-# HELPER
+# HELPERS
 # =========================================================
 
+
+def now() -> datetime:
+    return datetime.utcnow()
+
+
 def normalize(value: str | None) -> str:
+
     if value is None:
         return ""
 
@@ -35,6 +38,7 @@ def normalize(value: str | None) -> str:
 
 
 def is_any(value: str | None) -> bool:
+
     if value is None:
         return True
 
@@ -53,11 +57,9 @@ def text_matches(
     rule_value: str | None,
 ) -> bool:
 
-    # No rule means no restriction
     if rule_value is None:
         return True
 
-    # ANY means no restriction
     if is_any(rule_value):
         return True
 
@@ -67,822 +69,631 @@ def text_matches(
     user = normalize(user_value)
     rule = normalize(rule_value)
 
-    # Exact match
     if user == rule:
         return True
 
-    # Handle combined categories such as:
-    # SC/OBC/EWS/DNT/Safai Mitra
     if "/" in rule:
-        allowed_values = [
-            normalize(item)
-            for item in rule.split("/")
-        ]
 
-        if user in allowed_values:
+        values = [normalize(value) for value in rule.split("/")]
+
+        if user in values:
             return True
 
-    # Handle comma-separated values
     if "," in rule:
-        allowed_values = [
-            normalize(item)
-            for item in rule.split(",")
-        ]
 
-        if user in allowed_values:
+        values = [normalize(value) for value in rule.split(",")]
+
+        if user in values:
             return True
 
     return False
 
 
 # =========================================================
-# GET ELIGIBILITY RULES
+# ENTITY HELPERS
 # =========================================================
+
+
+def get_entity(
+    db: Session,
+    entity_type: str,
+    entity_id: int,
+) -> Policy | Scheme:
+
+    entity_type = normalize(entity_type)
+
+    if entity_type == "policy":
+
+        entity = db.get(
+            Policy,
+            entity_id,
+        )
+
+        if entity is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Policy not found",
+            )
+
+        return entity
+
+    if entity_type == "scheme":
+
+        entity = db.get(
+            Scheme,
+            entity_id,
+        )
+
+        if entity is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Scheme not found",
+            )
+
+        return entity
+
+    raise HTTPException(
+        status_code=400,
+        detail="entity_type must be 'policy' or 'scheme'",
+    )
+
+
+def get_entity_name(
+    entity_type: str,
+    entity: Policy | Scheme,
+) -> str:
+
+    if normalize(entity_type) == "policy":
+        return entity.title
+
+    return entity.name
+
+
+def entity_is_approved(
+    entity: Policy | Scheme,
+) -> bool:
+
+    return entity.status == "APPROVED"
+
+
+# =========================================================
+# GET ACTIVE RULES
+# =========================================================
+
 
 def get_eligibility_rules(
     db: Session,
-    scheme_id: int,
+    entity_type: str,
+    entity_id: int,
 ) -> list[EligibilityRule]:
 
-    scheme = db.get(Scheme, scheme_id)
-
-    if not scheme:
-        raise HTTPException(
-            status_code=404,
-            detail="Scheme not found",
-        )
-
-    rules = db.scalars(
-        select(EligibilityRule)
-        .where(
-            EligibilityRule.scheme_id == scheme_id
-        )
-        .order_by(EligibilityRule.rule_id)
-    ).all()
-
-    return list(rules)
-
-# =========================================================
-# GET POLICY ELIGIBILITY RULES
-# =========================================================
-
-def get_policy_eligibility_rules(
-    db: Session,
-    policy_id: int,
-) -> list[EligibilityRule]:
-
-    policy = db.get(
-        Policy,
-        policy_id,
+    # Verify parent exists
+    get_entity(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
     )
 
-    if not policy:
-        raise HTTPException(
-            status_code=404,
-            detail="Policy not found",
-        )
+    entity_type = normalize(entity_type)
 
-    rules = db.scalars(
-        select(EligibilityRule)
-        .where(
-            EligibilityRule.policy_id == policy_id
-        )
-        .order_by(EligibilityRule.rule_id)
-    ).all()
+    if entity_type == "policy":
+
+        rules = db.scalars(
+            select(EligibilityRule)
+            .where(
+                EligibilityRule.policy_id == entity_id,
+                EligibilityRule.is_active.is_(True),
+            )
+            .order_by(EligibilityRule.rule_id)
+        ).all()
+
+    else:
+
+        rules = db.scalars(
+            select(EligibilityRule)
+            .where(
+                EligibilityRule.scheme_id == entity_id,
+                EligibilityRule.is_active.is_(True),
+            )
+            .order_by(EligibilityRule.rule_id)
+        ).all()
 
     return list(rules)
+
 
 # =========================================================
 # CHECK ONE RULE
 # =========================================================
 
+
 def check_rule(
     rule: EligibilityRule,
-    data: EligibilityCheckRequest,
+    data: EligibilityProfile,
 ) -> tuple[list[str], list[str]]:
 
-    matched_rules: list[str] = []
-    failed_rules: list[str] = []
+    matched: list[str] = []
+    failed: list[str] = []
 
-    # -----------------------------------------------------
+    # =====================================================
     # AGE
-    # -----------------------------------------------------
+    # =====================================================
 
     if rule.min_age is not None:
 
         if data.age >= rule.min_age:
-            matched_rules.append(
-                f"Minimum age requirement satisfied ({rule.min_age})"
+
+            matched.append(
+                f"Minimum age requirement satisfied " f"({rule.min_age})"
             )
+
         else:
-            failed_rules.append(
-                f"Age must be at least {rule.min_age}"
-            )
+
+            failed.append(f"Age must be at least {rule.min_age}")
 
     if rule.max_age is not None:
 
         if data.age <= rule.max_age:
-            matched_rules.append(
-                f"Maximum age requirement satisfied ({rule.max_age})"
-            )
-        else:
-            failed_rules.append(
-                f"Age must not exceed {rule.max_age}"
+
+            matched.append(
+                f"Maximum age requirement satisfied " f"({rule.max_age})"
             )
 
-    # -----------------------------------------------------
+        else:
+
+            failed.append(f"Age must not exceed {rule.max_age}")
+
+    # =====================================================
     # GENDER
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_any(rule.gender):
 
-        matched_rules.append(
-            "Gender requirement has no restriction"
-        )
+        matched.append("Gender requirement has no restriction")
 
-    elif text_matches(data.gender, rule.gender):
+    elif text_matches(
+        data.gender,
+        rule.gender,
+    ):
 
-        matched_rules.append(
-            "Gender requirement satisfied"
-        )
+        matched.append("Gender requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"Gender must be {rule.gender}"
-        )
+        failed.append(f"Gender must be {rule.gender}")
 
-    # -----------------------------------------------------
+    # =====================================================
     # INCOME
-    # -----------------------------------------------------
+    # =====================================================
 
     if rule.max_income is None:
 
-        matched_rules.append(
-            "Income requirement has no restriction"
-        )
+        matched.append("Income requirement has no restriction")
 
     elif data.annual_income is None:
 
-        failed_rules.append(
-            "Annual income is required"
-        )
+        failed.append("Annual income is required")
 
-    elif data.annual_income <= (rule.max_income):
+    elif data.annual_income <= rule.max_income:
 
-        matched_rules.append(
-            "Income requirement satisfied"
-        )
+        matched.append("Income requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"Annual income must not exceed ₹{rule.max_income}"
-        )
+        failed.append(f"Annual income must not exceed " f"₹{rule.max_income}")
 
-    # -----------------------------------------------------
+    # =====================================================
     # OCCUPATION
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_any(rule.occupation):
 
-        matched_rules.append(
-            "Occupation requirement has no restriction"
-        )
+        matched.append("Occupation requirement has no restriction")
 
     elif text_matches(
         data.occupation,
         rule.occupation,
     ):
 
-        matched_rules.append(
-            "Occupation requirement satisfied"
-        )
+        matched.append("Occupation requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"Occupation must be {rule.occupation}"
-        )
+        failed.append(f"Occupation must be {rule.occupation}")
 
-    # -----------------------------------------------------
+    # =====================================================
     # EDUCATION
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_any(rule.education):
 
-        matched_rules.append(
-            "Education requirement has no restriction"
-        )
+        matched.append("Education requirement has no restriction")
 
     elif text_matches(
         data.education,
         rule.education,
     ):
 
-        matched_rules.append(
-            "Education requirement satisfied"
-        )
+        matched.append("Education requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"Education requirement: {rule.education}"
-        )
+        failed.append(f"Education requirement: " f"{rule.education}")
 
-    # -----------------------------------------------------
+    # =====================================================
     # STATE
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_any(rule.state):
 
-        matched_rules.append(
-            "State requirement has no restriction"
-        )
+        matched.append("State requirement has no restriction")
 
     elif normalize(rule.state) == "all india":
 
-        matched_rules.append(
-            "Scheme is available across India"
-        )
+        matched.append("Available across India")
 
     elif text_matches(
         data.state,
         rule.state,
     ):
 
-        matched_rules.append(
-            "State requirement satisfied"
-        )
+        matched.append("State requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"State eligibility is {rule.state}"
-        )
+        failed.append(f"State eligibility is {rule.state}")
 
-    # -----------------------------------------------------
+    # =====================================================
     # SOCIAL CATEGORY
-    # -----------------------------------------------------
+    # =====================================================
 
     if is_any(rule.social_category):
 
-        matched_rules.append(
-            "Social category requirement has no restriction"
-        )
+        matched.append("Social category has no restriction")
 
     elif text_matches(
         data.social_category,
         rule.social_category,
     ):
 
-        matched_rules.append(
-            "Social category requirement satisfied"
-        )
+        matched.append("Social category requirement satisfied")
 
     else:
 
-        failed_rules.append(
-            f"Social category must satisfy {rule.social_category}"
+        failed.append(
+            f"Social category must satisfy " f"{rule.social_category}"
         )
 
-    # -----------------------------------------------------
+    # =====================================================
     # DISABILITY
-    # -----------------------------------------------------
+    # =====================================================
 
     if rule.disability_status is None:
 
-        matched_rules.append(
-            "Disability status has no restriction"
-        )
+        matched.append("Disability status has no restriction")
 
     elif data.disability_status is None:
 
-        failed_rules.append(
-            "Disability status is required"
-        )
+        failed.append("Disability status is required")
 
     elif data.disability_status == rule.disability_status:
 
-        matched_rules.append(
-            "Disability requirement satisfied"
-        )
+        matched.append("Disability requirement satisfied")
 
     else:
 
-        required_status = (
-            "disabled"
-            if rule.disability_status
-            else "non-disabled"
-        )
+        required = "disabled" if rule.disability_status else "non-disabled"
 
-        failed_rules.append(
-            f"Applicant must be {required_status}"
-        )
+        failed.append(f"Applicant must be {required}")
 
-    return matched_rules, failed_rules
+    return matched, failed
 
 
 # =========================================================
-# CHECK ELIGIBILITY
+# EVALUATE RULES
 # =========================================================
+
+
+def evaluate_rules(
+    rules: list[EligibilityRule],
+    data: EligibilityProfile,
+) -> tuple[bool, list[str], list[str]]:
+
+    # No active rules
+    if not rules:
+
+        return (
+            True,
+            ["No eligibility restrictions found"],
+            [],
+        )
+
+    results: list[tuple[list[str], list[str]]] = []
+
+    for rule in rules:
+
+        matched, failed = check_rule(
+            rule,
+            data,
+        )
+
+        results.append((matched, failed))
+
+    # =====================================================
+    # OR LOGIC
+    #
+    # If at least one complete rule passes,
+    # applicant is eligible.
+    # =====================================================
+
+    successful = [result for result in results if not result[1]]
+
+    if successful:
+
+        return (
+            True,
+            successful[0][0],
+            [],
+        )
+
+    # =====================================================
+    # ALL RULES FAILED
+    # =====================================================
+
+    matched_rules: list[str] = []
+    failed_rules: list[str] = []
+
+    for matched, failed in results:
+
+        matched_rules.extend(matched)
+        failed_rules.extend(failed)
+
+    return (
+        False,
+        list(dict.fromkeys(matched_rules)),
+        list(dict.fromkeys(failed_rules)),
+    )
+
+
+# =========================================================
+# CHECK ONE POLICY OR SCHEME
+# =========================================================
+
 
 def check_eligibility(
     db: Session,
     data: EligibilityCheckRequest,
 ) -> EligibilityCheckResponse:
 
-    scheme = db.get(
-        Scheme,
-        data.scheme_id,
+    entity = get_entity(
+        db=db,
+        entity_type=data.entity_type,
+        entity_id=data.entity_id,
     )
 
-    if not scheme:
+    # Only approved entities can be checked
+    if not entity_is_approved(entity):
 
         raise HTTPException(
             status_code=404,
-            detail="Scheme not found",
+            detail=(f"{data.entity_type.capitalize()} " "not found"),
         )
 
-    # -----------------------------------------------------
-    # ONLY APPROVED SCHEMES
-    # -----------------------------------------------------
-
-    if scheme.status != "APPROVED":
-
-        raise HTTPException(
-            status_code=404,
-            detail="Scheme not found",
-        )
-
+    # Only ACTIVE rules are returned
     rules = get_eligibility_rules(
         db=db,
-        scheme_id=data.scheme_id,
+        entity_type=data.entity_type,
+        entity_id=data.entity_id,
     )
 
-    if not rules:
+    eligible, matched, failed = evaluate_rules(
+        rules,
+        data,
+    )
 
-        return EligibilityCheckResponse(
-            scheme_id=scheme.scheme_id,
-            scheme_name=scheme.name,
-            eligible=True,
-            message=(
-                "No eligibility restrictions are defined "
-                "for this scheme."
-            ),
-            matched_rules=[
-                "No eligibility restrictions found"
-            ],
-            failed_rules=[],
-        )
+    entity_name = get_entity_name(
+        data.entity_type,
+        entity,
+    )
 
-    all_matched_rules: list[str] = []
-    all_failed_rules: list[str] = []
+    if eligible:
 
-    # -----------------------------------------------------
-    # CURRENT DATABASE DESIGN SUPPORTS RULE RECORDS.
-    #
-    # For multiple rules, a user qualifies if ANY complete
-    # rule is satisfied.
-    # -----------------------------------------------------
+        message = f"You are eligible for this " f"{data.entity_type}."
 
-    rule_results = []
+    else:
 
-    for rule in rules:
-
-        matched, failed = check_rule(
-            rule,
-            data,
-        )
-
-        rule_results.append(
-            (matched, failed)
-        )
-
-    # A complete rule has no failed conditions
-    successful_rules = [
-        result
-        for result in rule_results
-        if not result[1]
-    ]
-
-    if successful_rules:
-
-        matched = successful_rules[0][0]
-
-        return EligibilityCheckResponse(
-            scheme_id=scheme.scheme_id,
-            scheme_name=scheme.name,
-            eligible=True,
-            message="You are eligible for this scheme.",
-            matched_rules=matched,
-            failed_rules=[],
-        )
-
-    # -----------------------------------------------------
-    # NOT ELIGIBLE
-    # -----------------------------------------------------
-
-    for matched, failed in rule_results:
-
-        all_matched_rules.extend(matched)
-        all_failed_rules.extend(failed)
+        message = f"You are not eligible for this " f"{data.entity_type}."
 
     return EligibilityCheckResponse(
-        scheme_id=scheme.scheme_id,
-        scheme_name=scheme.name,
-        eligible=False,
-        message="You are not eligible for this scheme.",
-        matched_rules=list(dict.fromkeys(all_matched_rules)),
-        failed_rules=list(dict.fromkeys(all_failed_rules)),
+        entity_type=data.entity_type,
+        entity_id=data.entity_id,
+        entity_name=entity_name,
+        eligible=eligible,
+        message=message,
+        matched_rules=matched,
+        failed_rules=failed,
     )
 
 
 # =========================================================
-# CHECK POLICY ELIGIBILITY
+# MATCH ALL APPROVED POLICIES OR SCHEMES
 # =========================================================
 
-def check_policy_eligibility(
+
+def match_entities(
     db: Session,
-    data: PolicyEligibilityCheckRequest,
-) -> PolicyEligibilityCheckResponse:
+    data: EligibilityMatchRequest,
+) -> EligibilityMatchResponse:
 
-    policy = db.get(
-        Policy,
-        data.policy_id,
-    )
+    entity_type = data.entity_type
 
-    if not policy:
-        raise HTTPException(
-            status_code=404,
-            detail="Policy not found",
-        )
+    # =====================================================
+    # GET APPROVED ENTITIES
+    # =====================================================
 
-    # -----------------------------------------------------
-    # ONLY APPROVED POLICIES
-    # -----------------------------------------------------
+    if entity_type == "policy":
 
-    if policy.status != "APPROVED":
+        entities = db.scalars(
+            select(Policy)
+            .where(Policy.status == "APPROVED")
+            .order_by(Policy.policy_id)
+        ).all()
 
-        raise HTTPException(
-            status_code=404,
-            detail="Policy not found",
-        )
+    else:
 
-    # -----------------------------------------------------
-    # GET POLICY RULES
-    # -----------------------------------------------------
+        entities = db.scalars(
+            select(Scheme)
+            .where(Scheme.status == "APPROVED")
+            .order_by(Scheme.scheme_id)
+        ).all()
 
-    rules = get_policy_eligibility_rules(
-        db=db,
-        policy_id=data.policy_id,
-    )
+    eligible_entities: list[dict[str, Any]] = []
 
-    # -----------------------------------------------------
-    # NO ELIGIBILITY RULES
-    # -----------------------------------------------------
+    ineligible_entities: list[dict[str, Any]] = []
 
-    if not rules:
+    # =====================================================
+    # CHECK EACH ENTITY
+    # =====================================================
 
-        return PolicyEligibilityCheckResponse(
-            policy_id=policy.policy_id,
-            policy_name=policy.title,
-            eligible=True,
-            message=(
-                "No eligibility restrictions are defined "
-                "for this policy."
-            ),
-            matched_rules=[
-                "No eligibility restrictions found"
-            ],
-            failed_rules=[],
-        )
+    for entity in entities:
 
-    # -----------------------------------------------------
-    # CHECK EACH POLICY RULE
-    # -----------------------------------------------------
+        if entity_type == "policy":
 
-    rule_results = []
+            entity_id = entity.policy_id
 
-    for rule in rules:
+            rules = db.scalars(
+                select(EligibilityRule)
+                .where(
+                    EligibilityRule.policy_id == entity_id,
+                    EligibilityRule.is_active.is_(True),
+                )
+                .order_by(EligibilityRule.rule_id)
+            ).all()
 
-        matched, failed = check_rule(
-            rule,
+        else:
+
+            entity_id = entity.scheme_id
+
+            rules = db.scalars(
+                select(EligibilityRule)
+                .where(
+                    EligibilityRule.scheme_id == entity_id,
+                    EligibilityRule.is_active.is_(True),
+                )
+                .order_by(EligibilityRule.rule_id)
+            ).all()
+
+        # Evaluate ONLY active rules
+        eligible, _, _ = evaluate_rules(
+            list(rules),
             data,
         )
 
-        rule_results.append(
-            (matched, failed)
+        entity_name = get_entity_name(
+            entity_type,
+            entity,
         )
 
-    # -----------------------------------------------------
-    # ANY COMPLETE RULE = ELIGIBLE
-    # -----------------------------------------------------
+        result = {
+            "entity_id": entity_id,
+            "entity_name": entity_name,
+            "eligible": eligible,
+            "message": (
+                f"You are eligible for this " f"{entity_type}."
+                if eligible
+                else f"You are not eligible for this " f"{entity_type}."
+            ),
+        }
 
-    successful_rules = [
-        result
-        for result in rule_results
-        if not result[1]
-    ]
+        if eligible:
 
-    if successful_rules:
-
-        matched = successful_rules[0][0]
-
-        return PolicyEligibilityCheckResponse(
-            policy_id=policy.policy_id,
-            policy_name=policy.title,
-            eligible=True,
-            message="You are eligible for this policy.",
-            matched_rules=matched,
-            failed_rules=[],
-        )
-
-    # -----------------------------------------------------
-    # NOT ELIGIBLE
-    # -----------------------------------------------------
-
-    all_matched_rules: list[str] = []
-    all_failed_rules: list[str] = []
-
-    for matched, failed in rule_results:
-
-        all_matched_rules.extend(matched)
-        all_failed_rules.extend(failed)
-
-    return PolicyEligibilityCheckResponse(
-        policy_id=policy.policy_id,
-        policy_name=policy.name,
-        eligible=False,
-        message="You are not eligible for this policy.",
-        matched_rules=list(
-            dict.fromkeys(all_matched_rules)
-        ),
-        failed_rules=list(
-            dict.fromkeys(all_failed_rules)
-        ),
-    )
-# =========================================================
-# MATCH USER WITH ALL APPROVED SCHEMES
-# =========================================================
-
-def match_schemes(
-    db: Session,
-    data: SchemeMatchRequest,
-) -> SchemeMatchResponse:
-
-    schemes = db.scalars(
-        select(Scheme)
-        .where(
-            Scheme.status == "APPROVED"
-        )
-        .order_by(Scheme.scheme_id)
-    ).all()
-
-    eligible_schemes: list[MatchedScheme] = []
-    ineligible_schemes: list[MatchedScheme] = []
-
-    for scheme in schemes:
-
-        request = EligibilityCheckRequest(
-            scheme_id=scheme.scheme_id,
-            age=data.age,
-            gender=data.gender,
-            annual_income=data.annual_income,
-            occupation=data.occupation,
-            education=data.education,
-            state=data.state,
-            social_category=data.social_category,
-            disability_status=data.disability_status,
-        )
-
-        result = check_eligibility(
-            db=db,
-            data=request,
-        )
-
-        matched_scheme = MatchedScheme(
-            scheme_id=scheme.scheme_id,
-            scheme_name=scheme.name,
-            eligible=result.eligible,
-            message=result.message,
-        )
-
-        if result.eligible:
-
-            eligible_schemes.append(
-                matched_scheme
-            )
+            eligible_entities.append(result)
 
         else:
 
-            ineligible_schemes.append(
-                matched_scheme
-            )
+            ineligible_entities.append(result)
 
-    return SchemeMatchResponse(
-        total_schemes_checked=len(schemes),
-        eligible_schemes=eligible_schemes,
-        ineligible_schemes=ineligible_schemes,
+    # =====================================================
+    # RETURN
+    # =====================================================
+
+    return EligibilityMatchResponse(
+        entity_type=entity_type,
+        total_checked=len(entities),
+        eligible_entities=eligible_entities,
+        ineligible_entities=ineligible_entities,
     )
 
+
 # =========================================================
-# MATCH USER WITH ALL APPROVED POLICIES
+# VALIDATE RULE
 # =========================================================
 
-def match_policies(
-    db: Session,
-    data: PolicyMatchRequest,
-) -> PolicyMatchResponse:
 
-    policies = db.scalars(
-        select(Policy)
-        .where(
-            Policy.status == "APPROVED"
-        )
-        .order_by(Policy.policy_id)
-    ).all()
+def validate_rule(
+    data: EligibilityRuleCreate | EligibilityRuleUpdate,
+) -> None:
 
-    eligible_policies: list[MatchedPolicy] = []
-    ineligible_policies: list[MatchedPolicy] = []
+    if (
+        data.min_age is not None
+        and data.max_age is not None
+        and data.min_age > data.max_age
+    ):
 
-    for policy in policies:
-
-        request = PolicyEligibilityCheckRequest(
-            policy_id=policy.policy_id,
-            age=data.age,
-            gender=data.gender,
-            annual_income=data.annual_income,
-            occupation=data.occupation,
-            education=data.education,
-            state=data.state,
-            social_category=data.social_category,
-            disability_status=data.disability_status,
+        raise HTTPException(
+            status_code=422,
+            detail=("min_age cannot be greater " "than max_age"),
         )
 
-        result = check_policy_eligibility(
-            db=db,
-            data=request,
+    if data.min_age is not None and data.min_age < 0:
+
+        raise HTTPException(
+            status_code=422,
+            detail="min_age cannot be negative",
         )
 
-        matched_policy = MatchedPolicy(
-            policy_id=policy.policy_id,
-            policy_name=policy.title,
-            eligible=result.eligible,
-            message=result.message,
+    if data.max_age is not None and data.max_age < 0:
+
+        raise HTTPException(
+            status_code=422,
+            detail="max_age cannot be negative",
         )
 
-        if result.eligible:
+    if data.max_income is not None and data.max_income < 0:
 
-            eligible_policies.append(
-                matched_policy
-            )
+        raise HTTPException(
+            status_code=422,
+            detail="max_income cannot be negative",
+        )
 
-        else:
 
-            ineligible_policies.append(
-                matched_policy
-            )
-
-    return PolicyMatchResponse(
-        total_policies_checked=len(policies),
-        eligible_policies=eligible_policies,
-        ineligible_policies=ineligible_policies,
-    )
 # =========================================================
-# CREATE ELIGIBILITY RULE
+# CREATE RULE
 # =========================================================
+
 
 def create_eligibility_rule(
     db: Session,
-    scheme_id: int,
-    data,
-):
+    entity_type: str,
+    entity_id: int,
+    data: EligibilityRuleCreate,
+) -> EligibilityRule:
 
-    scheme = db.get(
-        Scheme,
-        scheme_id,
+    # Verify parent exists
+    get_entity(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
     )
 
-    if not scheme:
+    validate_rule(data)
 
-        raise HTTPException(
-            status_code=404,
-            detail="Scheme not found",
-        )
+    entity_type = normalize(entity_type)
+
+    current_time = now()
 
     rule = EligibilityRule(
-    scheme_id=scheme_id,
-    min_age=data.min_age,
-    max_age=data.max_age,
-    gender=data.gender,
-    max_income=data.max_income,
-    occupation=data.occupation,
-    education=data.education,
-    state=data.state,
-    social_category=data.social_category,
-    disability_status=data.disability_status,
-    created_at=datetime.utcnow(),
-)
-
-    db.add(rule)
-    db.commit()
-    db.refresh(rule)
-
-    return rule
-# =========================================================
-# UPDATE POLICY ELIGIBILITY RULE
-# =========================================================
-
-def update_policy_eligibility_rule(
-    db: Session,
-    rule_id: int,
-    data,
-):
-    rule = db.get(
-        EligibilityRule,
-        rule_id,
-    )
-
-    if not rule:
-        raise HTTPException(
-            status_code=404,
-            detail="Eligibility rule not found",
-        )
-
-    if rule.policy_id is None:
-        raise HTTPException(
-            status_code=400,
-            detail="This eligibility rule belongs to a scheme",
-        )
-
-    update_data = data.model_dump(
-        exclude_unset=True
-    )
-
-    for field, value in update_data.items():
-        setattr(rule, field, value)
-
-    db.commit()
-    db.refresh(rule)
-
-    return rule
-# =========================================================
-# DELETE POLICY ELIGIBILITY RULE
-# =========================================================
-
-def delete_policy_eligibility_rule(
-    db: Session,
-    rule_id: int,
-):
-    rule = db.get(
-        EligibilityRule,
-        rule_id,
-    )
-
-    if not rule:
-        raise HTTPException(
-            status_code=404,
-            detail="Eligibility rule not found",
-        )
-
-    if rule.policy_id is None:
-        raise HTTPException(
-            status_code=400,
-            detail="This eligibility rule belongs to a scheme",
-        )
-
-    db.delete(rule)
-    db.commit()
-
-    return {
-        "message": "Policy eligibility rule deleted successfully",
-        "rule_id": rule_id,
-    }
-# =========================================================
-# CREATE POLICY ELIGIBILITY RULE
-# =========================================================
-
-def create_policy_eligibility_rule(
-    db: Session,
-    policy_id: int,
-    data,
-):
-
-    policy = db.get(
-        Policy,
-        policy_id,
-    )
-
-    if not policy:
-
-        raise HTTPException(
-            status_code=404,
-            detail="Policy not found",
-        )
-
-    rule = EligibilityRule(
-        policy_id=policy_id,
+        policy_id=(entity_id if entity_type == "policy" else None),
+        scheme_id=(entity_id if entity_type == "scheme" else None),
         min_age=data.min_age,
         max_age=data.max_age,
         gender=data.gender,
@@ -892,40 +703,80 @@ def create_policy_eligibility_rule(
         state=data.state,
         social_category=data.social_category,
         disability_status=data.disability_status,
-        created_at=datetime.utcnow(),
+        # New rules are active by default
+        is_active=True,
+        created_at=current_time,
+        updated_at=current_time,
     )
 
     db.add(rule)
+
     db.commit()
+
     db.refresh(rule)
 
     return rule
+
 
 # =========================================================
 # UPDATE RULE
 # =========================================================
 
+
 def update_eligibility_rule(
     db: Session,
     rule_id: int,
-    data,
-):
+    data: EligibilityRuleUpdate,
+) -> EligibilityRule:
 
     rule = db.get(
         EligibilityRule,
         rule_id,
     )
 
-    if not rule:
+    if rule is None:
 
         raise HTTPException(
             status_code=404,
             detail="Eligibility rule not found",
         )
 
-    update_data = data.model_dump(
-        exclude_unset=True
+    update_data = data.model_dump(exclude_unset=True)
+
+    # =====================================================
+    # FINAL VALUES
+    # =====================================================
+
+    min_age = update_data.get(
+        "min_age",
+        rule.min_age,
     )
+
+    max_age = update_data.get(
+        "max_age",
+        rule.max_age,
+    )
+
+    max_income = update_data.get(
+        "max_income",
+        rule.max_income,
+    )
+
+    # =====================================================
+    # VALIDATE
+    # =====================================================
+
+    validate_rule(
+        EligibilityRuleUpdate(
+            min_age=min_age,
+            max_age=max_age,
+            max_income=max_income,
+        )
+    )
+
+    # =====================================================
+    # APPLY UPDATES
+    # =====================================================
 
     for field, value in update_data.items():
 
@@ -935,27 +786,32 @@ def update_eligibility_rule(
             value,
         )
 
+    rule.updated_at = now()
+
     db.commit()
+
     db.refresh(rule)
 
     return rule
 
 
 # =========================================================
-# DELETE RULE
+# HARD DELETE RULE
+# ADMIN ONLY
 # =========================================================
+
 
 def delete_eligibility_rule(
     db: Session,
     rule_id: int,
-):
+) -> dict[str, Any]:
 
     rule = db.get(
         EligibilityRule,
         rule_id,
     )
 
-    if not rule:
+    if rule is None:
 
         raise HTTPException(
             status_code=404,
@@ -963,9 +819,10 @@ def delete_eligibility_rule(
         )
 
     db.delete(rule)
+
     db.commit()
 
     return {
-        "message": "Eligibility rule deleted successfully",
+        "message": ("Eligibility rule deleted successfully"),
         "rule_id": rule_id,
     }

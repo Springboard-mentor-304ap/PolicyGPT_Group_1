@@ -1,18 +1,22 @@
+from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+# =========================================================
+# TYPES
+# =========================================================
+
+EntityType = Literal["policy", "scheme"]
+
 
 # =========================================================
-# ELIGIBILITY CHECK REQUEST
+# COMMON ELIGIBILITY PROFILE
 # =========================================================
 
-class EligibilityCheckRequest(BaseModel):
 
-    scheme_id: int = Field(
-        ...,
-        gt=0,
-    )
+class EligibilityProfile(BaseModel):
 
     age: int = Field(
         ...,
@@ -55,113 +59,9 @@ class EligibilityCheckRequest(BaseModel):
 
 
 # =========================================================
-# ELIGIBILITY RULE RESPONSE
+# CREATE RULE
 # =========================================================
 
-class EligibilityRuleResponse(BaseModel):
-
-    model_config = ConfigDict(from_attributes=True)
-
-    rule_id: int
-    scheme_id: int
-
-    min_age: int | None
-    max_age: int | None
-    gender: str | None
-    max_income: Decimal | None
-    occupation: str | None
-    education: str | None
-    state: str | None
-    social_category: str | None
-    disability_status: bool | None
-
-
-# =========================================================
-# ELIGIBILITY CHECK RESPONSE
-# =========================================================
-
-class EligibilityCheckResponse(BaseModel):
-
-    scheme_id: int
-    scheme_name: str
-    eligible: bool
-    message: str
-    matched_rules: list[str]
-    failed_rules: list[str]
-
-
-# =========================================================
-# MATCHED SCHEME
-# =========================================================
-
-class MatchedScheme(BaseModel):
-
-    scheme_id: int
-    scheme_name: str
-    eligible: bool
-    message: str
-
-
-# =========================================================
-# SCHEME MATCH REQUEST
-# =========================================================
-
-class SchemeMatchRequest(BaseModel):
-
-    age: int = Field(
-        ...,
-        ge=0,
-        le=120,
-    )
-
-    gender: str = Field(
-        ...,
-        min_length=1,
-        max_length=30,
-    )
-
-    annual_income: Decimal | None = Field(
-        default=None,
-        ge=0,
-    )
-
-    occupation: str | None = Field(
-        default=None,
-        max_length=150,
-    )
-
-    education: str | None = Field(
-        default=None,
-        max_length=150,
-    )
-
-    state: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    social_category: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    disability_status: bool | None = None
-
-
-# =========================================================
-# SCHEME MATCH RESPONSE
-# =========================================================
-
-class SchemeMatchResponse(BaseModel):
-
-    total_schemes_checked: int
-
-    eligible_schemes: list[MatchedScheme]
-
-    ineligible_schemes: list[MatchedScheme]
-# =========================================================
-# ELIGIBILITY RULE CREATE
-# =========================================================
 
 class EligibilityRuleCreate(BaseModel):
 
@@ -211,8 +111,9 @@ class EligibilityRuleCreate(BaseModel):
 
 
 # =========================================================
-# ELIGIBILITY RULE UPDATE
+# UPDATE RULE
 # =========================================================
+
 
 class EligibilityRuleUpdate(BaseModel):
 
@@ -259,158 +160,113 @@ class EligibilityRuleUpdate(BaseModel):
     )
 
     disability_status: bool | None = None
+
+    # Allow Admin/Government Official
+    # to activate/deactivate a rule
+    is_active: bool | None = None
+
+
 # =========================================================
-# POLICY ELIGIBILITY CHECK REQUEST
+# RULE RESPONSE
 # =========================================================
 
-class PolicyEligibilityCheckRequest(BaseModel):
 
-    policy_id: int = Field(
+class EligibilityRuleResponse(BaseModel):
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    rule_id: int
+
+    policy_id: int | None = None
+
+    scheme_id: int | None = None
+
+    min_age: int | None = None
+
+    max_age: int | None = None
+
+    gender: str | None = None
+
+    max_income: Decimal | None = None
+
+    occupation: str | None = None
+
+    education: str | None = None
+
+    state: str | None = None
+
+    social_category: str | None = None
+
+    disability_status: bool | None = None
+
+    is_active: bool
+
+    created_at: datetime
+
+    updated_at: datetime
+
+
+# =========================================================
+# CHECK ONE ENTITY
+# =========================================================
+
+
+class EligibilityCheckRequest(EligibilityProfile):
+
+    entity_type: EntityType
+
+    entity_id: int = Field(
         ...,
         gt=0,
     )
 
-    age: int = Field(
-        ...,
-        ge=0,
-        le=120,
-    )
 
-    gender: str = Field(
-        ...,
-        min_length=1,
-        max_length=30,
-    )
+class EligibilityCheckResponse(BaseModel):
 
-    annual_income: Decimal | None = Field(
-        default=None,
-        ge=0,
-    )
+    entity_type: EntityType
 
-    occupation: str | None = Field(
-        default=None,
-        max_length=150,
-    )
+    entity_id: int
 
-    education: str | None = Field(
-        default=None,
-        max_length=150,
-    )
+    entity_name: str
 
-    state: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    social_category: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    disability_status: bool | None = None
-
-
-# =========================================================
-# POLICY ELIGIBILITY CHECK RESPONSE
-# =========================================================
-
-class PolicyEligibilityCheckResponse(BaseModel):
-
-    policy_id: int
-    policy_name: str
     eligible: bool
+
     message: str
+
     matched_rules: list[str]
+
     failed_rules: list[str]
 
 
 # =========================================================
-# POLICY ELIGIBILITY RULE RESPONSE
+# MATCH ALL ENTITIES
 # =========================================================
 
-class PolicyEligibilityRuleResponse(BaseModel):
 
-    model_config = ConfigDict(from_attributes=True)
+class EligibilityMatchRequest(EligibilityProfile):
 
-    rule_id: int
-    policy_id: int
-
-    min_age: int | None
-    max_age: int | None
-    gender: str | None
-    max_income: Decimal | None
-    occupation: str | None
-    education: str | None
-    state: str | None
-    social_category: str | None
-    disability_status: bool | None
-
-# =========================================================
-# POLICY MATCH REQUEST
-# =========================================================
-
-class PolicyMatchRequest(BaseModel):
-
-    age: int = Field(
-        ...,
-        ge=0,
-        le=120,
-    )
-
-    gender: str = Field(
-        ...,
-        min_length=1,
-        max_length=30,
-    )
-
-    annual_income: Decimal | None = Field(
-        default=None,
-        ge=0,
-    )
-
-    occupation: str | None = Field(
-        default=None,
-        max_length=150,
-    )
-
-    education: str | None = Field(
-        default=None,
-        max_length=150,
-    )
-
-    state: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    social_category: str | None = Field(
-        default=None,
-        max_length=100,
-    )
-
-    disability_status: bool | None = None
+    entity_type: EntityType
 
 
-# =========================================================
-# MATCHED POLICY
-# =========================================================
+class MatchedEntity(BaseModel):
 
-class MatchedPolicy(BaseModel):
+    entity_id: int
 
-    policy_id: int
-    policy_name: str
+    entity_name: str
+
     eligible: bool
+
     message: str
 
 
-# =========================================================
-# POLICY MATCH RESPONSE
-# =========================================================
+class EligibilityMatchResponse(BaseModel):
 
-class PolicyMatchResponse(BaseModel):
+    entity_type: EntityType
 
-    total_policies_checked: int
+    total_checked: int
 
-    eligible_policies: list[MatchedPolicy]
+    eligible_entities: list[MatchedEntity]
 
-    ineligible_policies: list[MatchedPolicy]
+    ineligible_entities: list[MatchedEntity]

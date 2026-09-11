@@ -259,3 +259,158 @@ class EligibilityRuleUpdate(BaseModel):
     )
 
     disability_status: bool | None = None
+# =========================================================
+# POLICY ELIGIBILITY CHECK REQUEST
+# =========================================================
+
+class PolicyEligibilityCheckRequest(BaseModel):
+
+    policy_id: int = Field(
+        ...,
+        gt=0,
+    )
+
+    age: int = Field(
+        ...,
+        ge=0,
+        le=120,
+    )
+
+    gender: str = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+    )
+
+    annual_income: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    occupation: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    education: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    social_category: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    disability_status: bool | None = None
+
+
+# =========================================================
+# POLICY ELIGIBILITY CHECK RESPONSE
+# =========================================================
+
+class PolicyEligibilityCheckResponse(BaseModel):
+
+    policy_id: int
+    policy_name: str
+    eligible: bool
+    message: str
+    matched_rules: list[str]
+    failed_rules: list[str]
+
+
+# =========================================================
+# POLICY ELIGIBILITY RULE RESPONSE
+# =========================================================
+
+class PolicyEligibilityRuleResponse(BaseModel):
+
+    model_config = ConfigDict(from_attributes=True)
+
+    rule_id: int
+    policy_id: int
+
+    min_age: int | None
+    max_age: int | None
+    gender: str | None
+    max_income: Decimal | None
+    occupation: str | None
+    education: str | None
+    state: str | None
+    social_category: str | None
+    disability_status: bool | None
+
+# =========================================================
+# POLICY MATCH REQUEST
+# =========================================================
+
+class PolicyMatchRequest(BaseModel):
+
+    age: int = Field(
+        ...,
+        ge=0,
+        le=120,
+    )
+
+    gender: str = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+    )
+
+    annual_income: Decimal | None = Field(
+        default=None,
+        ge=0,
+    )
+
+    occupation: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    education: str | None = Field(
+        default=None,
+        max_length=150,
+    )
+
+    state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    social_category: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
+    disability_status: bool | None = None
+
+
+# =========================================================
+# MATCHED POLICY
+# =========================================================
+
+class MatchedPolicy(BaseModel):
+
+    policy_id: int
+    policy_name: str
+    eligible: bool
+    message: str
+
+
+# =========================================================
+# POLICY MATCH RESPONSE
+# =========================================================
+
+class PolicyMatchResponse(BaseModel):
+
+    total_policies_checked: int
+
+    eligible_policies: list[MatchedPolicy]
+
+    ineligible_policies: list[MatchedPolicy]

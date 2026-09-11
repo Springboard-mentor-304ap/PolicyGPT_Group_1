@@ -4,6 +4,7 @@ from decimal import Decimal
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from app.models.policy import Policy
 
 from app.models.eligibility_rule import EligibilityRule
 from app.models.scheme import Scheme
@@ -14,6 +15,12 @@ from app.schemas.eligibility import (
     MatchedScheme,
     SchemeMatchRequest,
     SchemeMatchResponse,
+    PolicyEligibilityCheckRequest,
+    PolicyEligibilityCheckResponse,
+    PolicyEligibilityRuleResponse,
+    PolicyMatchRequest,
+    PolicyMatchResponse,
+    MatchedPolicy,
 )
 
 # =========================================================
@@ -115,6 +122,35 @@ def get_eligibility_rules(
 
     return list(rules)
 
+# =========================================================
+# GET POLICY ELIGIBILITY RULES
+# =========================================================
+
+def get_policy_eligibility_rules(
+    db: Session,
+    policy_id: int,
+) -> list[EligibilityRule]:
+
+    policy = db.get(
+        Policy,
+        policy_id,
+    )
+
+    if not policy:
+        raise HTTPException(
+            status_code=404,
+            detail="Policy not found",
+        )
+
+    rules = db.scalars(
+        select(EligibilityRule)
+        .where(
+            EligibilityRule.policy_id == policy_id
+        )
+        .order_by(EligibilityRule.rule_id)
+    ).all()
+
+    return list(rules)
 
 # =========================================================
 # CHECK ONE RULE
@@ -463,6 +499,130 @@ def check_eligibility(
 
 
 # =========================================================
+# CHECK POLICY ELIGIBILITY
+# =========================================================
+
+def check_policy_eligibility(
+    db: Session,
+    data: PolicyEligibilityCheckRequest,
+) -> PolicyEligibilityCheckResponse:
+
+    policy = db.get(
+        Policy,
+        data.policy_id,
+    )
+
+    if not policy:
+        raise HTTPException(
+            status_code=404,
+            detail="Policy not found",
+        )
+
+    # -----------------------------------------------------
+    # ONLY APPROVED POLICIES
+    # -----------------------------------------------------
+
+    if policy.status != "APPROVED":
+
+        raise HTTPException(
+            status_code=404,
+            detail="Policy not found",
+        )
+
+    # -----------------------------------------------------
+    # GET POLICY RULES
+    # -----------------------------------------------------
+
+    rules = get_policy_eligibility_rules(
+        db=db,
+        policy_id=data.policy_id,
+    )
+
+    # -----------------------------------------------------
+    # NO ELIGIBILITY RULES
+    # -----------------------------------------------------
+
+    if not rules:
+
+        return PolicyEligibilityCheckResponse(
+            policy_id=policy.policy_id,
+            policy_name=policy.title,
+            eligible=True,
+            message=(
+                "No eligibility restrictions are defined "
+                "for this policy."
+            ),
+            matched_rules=[
+                "No eligibility restrictions found"
+            ],
+            failed_rules=[],
+        )
+
+    # -----------------------------------------------------
+    # CHECK EACH POLICY RULE
+    # -----------------------------------------------------
+
+    rule_results = []
+
+    for rule in rules:
+
+        matched, failed = check_rule(
+            rule,
+            data,
+        )
+
+        rule_results.append(
+            (matched, failed)
+        )
+
+    # -----------------------------------------------------
+    # ANY COMPLETE RULE = ELIGIBLE
+    # -----------------------------------------------------
+
+    successful_rules = [
+        result
+        for result in rule_results
+        if not result[1]
+    ]
+
+    if successful_rules:
+
+        matched = successful_rules[0][0]
+
+        return PolicyEligibilityCheckResponse(
+            policy_id=policy.policy_id,
+            policy_name=policy.title,
+            eligible=True,
+            message="You are eligible for this policy.",
+            matched_rules=matched,
+            failed_rules=[],
+        )
+
+    # -----------------------------------------------------
+    # NOT ELIGIBLE
+    # -----------------------------------------------------
+
+    all_matched_rules: list[str] = []
+    all_failed_rules: list[str] = []
+
+    for matched, failed in rule_results:
+
+        all_matched_rules.extend(matched)
+        all_failed_rules.extend(failed)
+
+    return PolicyEligibilityCheckResponse(
+        policy_id=policy.policy_id,
+        policy_name=policy.name,
+        eligible=False,
+        message="You are not eligible for this policy.",
+        matched_rules=list(
+            dict.fromkeys(all_matched_rules)
+        ),
+        failed_rules=list(
+            dict.fromkeys(all_failed_rules)
+        ),
+    )
+# =========================================================
 # MATCH USER WITH ALL APPROVED SCHEMES
 # =========================================================
 
@@ -526,7 +686,69 @@ def match_schemes(
         ineligible_schemes=ineligible_schemes,
     )
 
+# =========================================================
+# MATCH USER WITH ALL APPROVED POLICIES
+# =========================================================
 
+def match_policies(
+    db: Session,
+    data: PolicyMatchRequest,
+) -> PolicyMatchResponse:
+
+    policies = db.scalars(
+        select(Policy)
+        .where(
+            Policy.status == "APPROVED"
+        )
+        .order_by(Policy.policy_id)
+    ).all()
+
+    eligible_policies: list[MatchedPolicy] = []
+    ineligible_policies: list[MatchedPolicy] = []
+
+    for policy in policies:
+
+        request = PolicyEligibilityCheckRequest(
+            policy_id=policy.policy_id,
+            age=data.age,
+            gender=data.gender,
+            annual_income=data.annual_income,
+            occupation=data.occupation,
+            education=data.education,
+            state=data.state,
+            social_category=data.social_category,
+            disability_status=data.disability_status,
+        )
+
+        result = check_policy_eligibility(
+            db=db,
+            data=request,
+        )
+
+        matched_policy = MatchedPolicy(
+            policy_id=policy.policy_id,
+            policy_name=policy.title,
+            eligible=result.eligible,
+            message=result.message,
+        )
+
+        if result.eligible:
+
+            eligible_policies.append(
+                matched_policy
+            )
+
+        else:
+
+            ineligible_policies.append(
+                matched_policy
+            )
+
+    return PolicyMatchResponse(
+        total_policies_checked=len(policies),
+        eligible_policies=eligible_policies,
+        ineligible_policies=ineligible_policies,
+    )
 # =========================================================
 # CREATE ELIGIBILITY RULE
 # =========================================================
@@ -568,7 +790,116 @@ def create_eligibility_rule(
     db.refresh(rule)
 
     return rule
+# =========================================================
+# UPDATE POLICY ELIGIBILITY RULE
+# =========================================================
 
+def update_policy_eligibility_rule(
+    db: Session,
+    rule_id: int,
+    data,
+):
+    rule = db.get(
+        EligibilityRule,
+        rule_id,
+    )
+
+    if not rule:
+        raise HTTPException(
+            status_code=404,
+            detail="Eligibility rule not found",
+        )
+
+    if rule.policy_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="This eligibility rule belongs to a scheme",
+        )
+
+    update_data = data.model_dump(
+        exclude_unset=True
+    )
+
+    for field, value in update_data.items():
+        setattr(rule, field, value)
+
+    db.commit()
+    db.refresh(rule)
+
+    return rule
+# =========================================================
+# DELETE POLICY ELIGIBILITY RULE
+# =========================================================
+
+def delete_policy_eligibility_rule(
+    db: Session,
+    rule_id: int,
+):
+    rule = db.get(
+        EligibilityRule,
+        rule_id,
+    )
+
+    if not rule:
+        raise HTTPException(
+            status_code=404,
+            detail="Eligibility rule not found",
+        )
+
+    if rule.policy_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="This eligibility rule belongs to a scheme",
+        )
+
+    db.delete(rule)
+    db.commit()
+
+    return {
+        "message": "Policy eligibility rule deleted successfully",
+        "rule_id": rule_id,
+    }
+# =========================================================
+# CREATE POLICY ELIGIBILITY RULE
+# =========================================================
+
+def create_policy_eligibility_rule(
+    db: Session,
+    policy_id: int,
+    data,
+):
+
+    policy = db.get(
+        Policy,
+        policy_id,
+    )
+
+    if not policy:
+
+        raise HTTPException(
+            status_code=404,
+            detail="Policy not found",
+        )
+
+    rule = EligibilityRule(
+        policy_id=policy_id,
+        min_age=data.min_age,
+        max_age=data.max_age,
+        gender=data.gender,
+        max_income=data.max_income,
+        occupation=data.occupation,
+        education=data.education,
+        state=data.state,
+        social_category=data.social_category,
+        disability_status=data.disability_status,
+        created_at=datetime.utcnow(),
+    )
+
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+
+    return rule
 
 # =========================================================
 # UPDATE RULE

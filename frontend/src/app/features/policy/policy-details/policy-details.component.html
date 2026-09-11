@@ -1,0 +1,248 @@
+<div class="page-container">
+  <!-- Back Button -->
+  <div class="top-nav">
+    <button type="button" class="btn-back" (click)="goBack()">
+      &larr; Back
+    </button>
+  </div>
+
+  <!-- Main Header -->
+  <div class="page-header">
+    <h1>Policy Details</h1>
+    <p>Details of the selected policy</p>
+  </div>
+
+  <!-- Hero Header Card -->
+  <div class="hero-card">
+    <div class="hero-header-row">
+      <div class="hero-left">
+        <div class="policy-avatar">
+          <!-- Graduation Cap & Books Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+        </div>
+        <div class="policy-main-info">
+          <h2>{{ policy.title }}</h2>
+          <span class="ministry-name">{{ policy.ministry }}</span>
+          <span class="category-badge">{{ policy.category }}</span>
+        </div>
+      </div>
+      <button type="button" class="btn-bookmark" (click)="toggleBookmark()" [title]="policy.isBookmarked ? 'Remove Bookmark' : 'Bookmark'">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" [attr.fill]="policy.isBookmarked ? '#1e293b' : 'none'" [attr.stroke]="policy.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <div class="hero-footer-row">
+      <p class="description-text">{{ policy.description }}</p>
+      <button type="button" class="btn-share" (click)="sharePolicy()">
+        Share
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabs Bar -->
+  <div class="tabs-container">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+      Overview
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'" (click)="setActiveTab('eligibility')">
+      Eligibility
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'benefits'" (click)="setActiveTab('benefits')">
+      Benefits
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'documents'" (click)="setActiveTab('documents')">
+      Documents
+    </button>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="content-grid" *ngIf="activeTab === 'overview'">
+    <!-- Left Detail Panel -->
+    <div class="detail-card left-panel">
+      <section class="section-block">
+        <h3>About the Policy</h3>
+        <p>{{ policy.about }}</p>
+      </section>
+
+      <hr class="divider" />
+
+      <div class="meta-grid">
+        <!-- Objective -->
+        <div class="meta-item full-width">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Objective</h4>
+            <p>{{ policy.objective }}</p>
+          </div>
+        </div>
+
+        <!-- Launch Year -->
+        <div class="meta-item">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Launch Year</h4>
+            <p>{{ policy.launchYear }}</p>
+          </div>
+        </div>
+
+        <!-- Nodal Ministry -->
+        <div class="meta-item">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"></path>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Nodal Ministry</h4>
+            <p>{{ policy.nodalMinistry }}</p>
+          </div>
+        </div>
+
+        <!-- Target Beneficiaries -->
+        <div class="meta-item">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Target Beneficiaries</h4>
+            <p>{{ policy.targetBeneficiaries }}</p>
+          </div>
+        </div>
+
+        <!-- Policy Type -->
+        <div class="meta-item">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Policy Type</h4>
+            <p>{{ policy.policyType }}</p>
+          </div>
+        </div>
+
+        <!-- Coverage -->
+        <div class="meta-item">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Coverage</h4>
+            <p>{{ policy.coverage }}</p>
+          </div>
+        </div>
+
+        <!-- Official Website -->
+        <div class="meta-item full-width">
+          <div class="meta-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <div class="meta-content">
+            <h4>Official Website</h4>
+            <a [href]="policy.officialWebsite" target="_blank" rel="noopener noreferrer">{{ policy.officialWebsite }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panels -->
+    <div class="right-stack">
+      <!-- Policy Highlights Card -->
+      <div class="detail-card">
+        <h3>Policy Highlights</h3>
+        <ul class="highlights-list">
+          <li *ngFor="let highlight of policy.highlights">
+            <span class="bullet-arrow">&#155;</span>
+            <span>{{ highlight }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Helpline / Support Card -->
+      <div class="detail-card support-card">
+        <div class="support-header">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 18v-6a9 9 0 0 1 18 0v6"></path>
+            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path>
+          </svg>
+          <h3>Helpline / Support</h3>
+        </div>
+        <p class="support-sub">For any queries related to this policy</p>
+
+        <div class="contact-info">
+          <div class="contact-row">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <a [href]="'tel:' + policy.helplinePhone">{{ policy.helplinePhone }}</a>
+          </div>
+
+          <div class="contact-row">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.8">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <a [href]="'mailto:' + policy.helplineEmail">{{ policy.helplineEmail }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Other Tabs View -->
+  <div class="detail-card tab-content-card" *ngIf="activeTab !== 'overview'">
+    <div *ngIf="activeTab === 'eligibility'">
+      <h3>Eligibility Criteria</h3>
+      <ul class="simple-list">
+        <li *ngFor="let item of policy.eligibility">{{ item }}</li>
+      </ul>
+    </div>
+
+    <div *ngIf="activeTab === 'benefits'">
+      <h3>Policy Benefits</h3>
+      <ul class="simple-list">
+        <li *ngFor="let benefit of policy.benefits">{{ benefit }}</li>
+      </ul>
+    </div>
+
+    <div *ngIf="activeTab === 'documents'">
+      <h3>Required Documents</h3>
+      <ul class="simple-list">
+        <li *ngFor="let doc of policy.documents">{{ doc }}</li>
+      </ul>
+    </div>
+  </div>
+</div>

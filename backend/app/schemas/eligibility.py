@@ -161,8 +161,6 @@ class EligibilityRuleUpdate(BaseModel):
 
     disability_status: bool | None = None
 
-    # Allow Admin/Government Official
-    # to activate/deactivate a rule
     is_active: bool | None = None
 
 

@@ -1,8 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from fastapi import HTTPException
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -30,7 +30,6 @@ def now() -> datetime:
 
 
 def normalize(value: str | None) -> str:
-
     if value is None:
         return ""
 
@@ -38,7 +37,6 @@ def normalize(value: str | None) -> str:
 
 
 def is_any(value: str | None) -> bool:
-
     if value is None:
         return True
 
@@ -73,14 +71,12 @@ def text_matches(
         return True
 
     if "/" in rule:
-
         values = [normalize(value) for value in rule.split("/")]
 
         if user in values:
             return True
 
     if "," in rule:
-
         values = [normalize(value) for value in rule.split(",")]
 
         if user in values:
@@ -153,7 +149,83 @@ def entity_is_approved(
     entity: Policy | Scheme,
 ) -> bool:
 
-    return entity.status == "APPROVED"
+    return normalize(entity.status) == "approved"
+
+
+# =========================================================
+# JSONB SYNC
+# =========================================================
+#
+# The database now contains:
+#
+# policies.eligibility_rules JSONB
+# schemes.eligibility_rules JSONB
+#
+# The existing eligibility_rules table is still maintained.
+# These helpers keep both representations synchronized.
+# =========================================================
+
+
+def rule_to_dict(
+    rule: EligibilityRule,
+) -> dict[str, Any]:
+
+    return {
+        "rule_id": rule.rule_id,
+        "min_age": rule.min_age,
+        "max_age": rule.max_age,
+        "gender": rule.gender,
+        "max_income": (
+            float(rule.max_income) if rule.max_income is not None else None
+        ),
+        "occupation": rule.occupation,
+        "education": rule.education,
+        "state": rule.state,
+        "social_category": rule.social_category,
+        "disability_status": rule.disability_status,
+        "is_active": rule.is_active,
+    }
+
+
+def sync_entity_eligibility_rules(
+    db: Session,
+    entity_type: str,
+    entity_id: int,
+) -> None:
+
+    entity_type = normalize(entity_type)
+
+    entity = get_entity(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
+    if entity_type == "policy":
+
+        rules = db.scalars(
+            select(EligibilityRule)
+            .where(
+                EligibilityRule.policy_id == entity_id,
+                EligibilityRule.is_active.is_(True),
+            )
+            .order_by(EligibilityRule.rule_id)
+        ).all()
+
+    else:
+
+        rules = db.scalars(
+            select(EligibilityRule)
+            .where(
+                EligibilityRule.scheme_id == entity_id,
+                EligibilityRule.is_active.is_(True),
+            )
+            .order_by(EligibilityRule.rule_id)
+        ).all()
+
+    entity.eligibility_rules = [rule_to_dict(rule) for rule in rules]
+
+    entity.updated_at = now()
 
 
 # =========================================================
@@ -167,7 +239,6 @@ def get_eligibility_rules(
     entity_id: int,
 ) -> list[EligibilityRule]:
 
-    # Verify parent exists
     get_entity(
         db=db,
         entity_type=entity_type,
@@ -223,7 +294,7 @@ def check_rule(
         if data.age >= rule.min_age:
 
             matched.append(
-                f"Minimum age requirement satisfied " f"({rule.min_age})"
+                f"Minimum age requirement satisfied ({rule.min_age})"
             )
 
         else:
@@ -235,7 +306,7 @@ def check_rule(
         if data.age <= rule.max_age:
 
             matched.append(
-                f"Maximum age requirement satisfied " f"({rule.max_age})"
+                f"Maximum age requirement satisfied ({rule.max_age})"
             )
 
         else:
@@ -273,13 +344,13 @@ def check_rule(
 
         failed.append("Annual income is required")
 
-    elif data.annual_income <= rule.max_income:
+    elif data.annual_income <= Decimal(str(rule.max_income)):
 
         matched.append("Income requirement satisfied")
 
     else:
 
-        failed.append(f"Annual income must not exceed " f"₹{rule.max_income}")
+        failed.append(f"Annual income must not exceed ₹{rule.max_income}")
 
     # =====================================================
     # OCCUPATION
@@ -317,7 +388,7 @@ def check_rule(
 
     else:
 
-        failed.append(f"Education requirement: " f"{rule.education}")
+        failed.append(f"Education requirement: {rule.education}")
 
     # =====================================================
     # STATE
@@ -359,9 +430,7 @@ def check_rule(
 
     else:
 
-        failed.append(
-            f"Social category must satisfy " f"{rule.social_category}"
-        )
+        failed.append(f"Social category must satisfy {rule.social_category}")
 
     # =====================================================
     # DISABILITY
@@ -398,7 +467,6 @@ def evaluate_rules(
     data: EligibilityProfile,
 ) -> tuple[bool, list[str], list[str]]:
 
-    # No active rules
     if not rules:
 
         return (
@@ -416,7 +484,12 @@ def evaluate_rules(
             data,
         )
 
-        results.append((matched, failed))
+        results.append(
+            (
+                matched,
+                failed,
+            )
+        )
 
     # =====================================================
     # OR LOGIC
@@ -475,10 +548,9 @@ def check_eligibility(
 
         raise HTTPException(
             status_code=404,
-            detail=(f"{data.entity_type.capitalize()} " "not found"),
+            detail=f"{data.entity_type.capitalize()} not found",
         )
 
-    # Only ACTIVE rules are returned
     rules = get_eligibility_rules(
         db=db,
         entity_type=data.entity_type,
@@ -582,7 +654,6 @@ def match_entities(
                 .order_by(EligibilityRule.rule_id)
             ).all()
 
-        # Evaluate ONLY active rules
         eligible, _, _ = evaluate_rules(
             list(rules),
             data,
@@ -641,7 +712,7 @@ def validate_rule(
 
         raise HTTPException(
             status_code=422,
-            detail=("min_age cannot be greater " "than max_age"),
+            detail="min_age cannot be greater than max_age",
         )
 
     if data.min_age is not None and data.min_age < 0:
@@ -678,7 +749,6 @@ def create_eligibility_rule(
     data: EligibilityRuleCreate,
 ) -> EligibilityRule:
 
-    # Verify parent exists
     get_entity(
         db=db,
         entity_type=entity_type,
@@ -703,13 +773,21 @@ def create_eligibility_rule(
         state=data.state,
         social_category=data.social_category,
         disability_status=data.disability_status,
-        # New rules are active by default
         is_active=True,
         created_at=current_time,
         updated_at=current_time,
     )
 
     db.add(rule)
+
+    db.flush()
+
+    # Synchronize JSONB field
+    sync_entity_eligibility_rules(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
 
     db.commit()
 
@@ -766,13 +844,13 @@ def update_eligibility_rule(
     # VALIDATE
     # =====================================================
 
-    validate_rule(
-        EligibilityRuleUpdate(
-            min_age=min_age,
-            max_age=max_age,
-            max_income=max_income,
-        )
+    validation_data = EligibilityRuleUpdate(
+        min_age=min_age,
+        max_age=max_age,
+        max_income=max_income,
     )
+
+    validate_rule(validation_data)
 
     # =====================================================
     # APPLY UPDATES
@@ -787,6 +865,24 @@ def update_eligibility_rule(
         )
 
     rule.updated_at = now()
+
+    db.flush()
+
+    # =====================================================
+    # SYNC PARENT JSONB
+    # =====================================================
+
+    entity_type = "policy" if rule.policy_id is not None else "scheme"
+
+    entity_id = (
+        rule.policy_id if rule.policy_id is not None else rule.scheme_id
+    )
+
+    sync_entity_eligibility_rules(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
 
     db.commit()
 
@@ -818,11 +914,30 @@ def delete_eligibility_rule(
             detail="Eligibility rule not found",
         )
 
+    # Save parent information before deleting
+    entity_type = "policy" if rule.policy_id is not None else "scheme"
+
+    entity_id = (
+        rule.policy_id if rule.policy_id is not None else rule.scheme_id
+    )
+
     db.delete(rule)
+
+    db.flush()
+
+    # =====================================================
+    # SYNC PARENT JSONB AFTER DELETE
+    # =====================================================
+
+    sync_entity_eligibility_rules(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
 
     db.commit()
 
     return {
-        "message": ("Eligibility rule deleted successfully"),
+        "message": "Eligibility rule deleted successfully",
         "rule_id": rule_id,
     }

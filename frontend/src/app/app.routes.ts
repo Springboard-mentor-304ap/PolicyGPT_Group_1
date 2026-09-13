@@ -89,6 +89,45 @@ export const routes: Routes = [
         (m) => m.ViewUsersComponent,
       ),
   },
+  
+  // POLICY ROUTES
+  // =========================================================
+  {
+    path: "policies/:id",
+    loadComponent: () =>
+      import("./features/policy/policy-details/policy-details.component").then(
+        (m) => m.PolicyDetailsComponent,
+      ),
+  },
+  {
+    path: "policies",
+    loadComponent: () =>
+      import("./features/policy/policy-search/policy-search.component").then(
+        (m) => m.PolicySearchComponent,
+      ),
+  },
+
+  // =========================================================
+  // SCHEMES ROUTES
+  // =========================================================
+  {
+    path: "schemes/:id",
+    loadComponent: () =>
+      import("./features/schemes/scheme-details/scheme-details.component").then(
+        (m) => m.SchemeDetailsComponent,
+      ),
+  },
+  {
+    path: "schemes",
+    loadComponent: () =>
+      import("./features/schemes/scheme-search/scheme-search.component").then(
+        (m) => m.SchemeSearchComponent,
+      ),
+  },
+
+  // 
+  
+  
        // =========================================================
   // COMPARE ROUTES
   // =========================================================

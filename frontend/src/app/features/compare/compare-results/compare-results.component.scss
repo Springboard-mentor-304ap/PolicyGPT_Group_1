@@ -1,0 +1,397 @@
+.compare-page {
+  min-height: 100vh;
+  padding: 40px 6%;
+  background: #f7f9fc;
+  box-sizing: border-box;
+}
+
+/* =========================
+   PAGE HEADER
+   ========================= */
+
+.page-header {
+  max-width: 1150px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  h1 {
+    margin: 0;
+    color: #172033;
+    font-size: 32px;
+    font-weight: 750;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    margin: 8px 0 0;
+    color: #475569;
+    font-size: 15px;
+    font-weight: 500;
+  }
+}
+
+/* =========================
+   BACK BUTTON
+   ========================= */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 17px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #273248;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  span {
+    font-size: 18px;
+    line-height: 1;
+  }
+}
+
+/* =========================
+   SELECTED ITEMS
+   ========================= */
+
+.selected-items {
+  max-width: 1150px;
+  margin: 0 auto 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+
+  &.three-items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* =========================
+   ITEM CARD
+   ========================= */
+
+.item-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #dbe2eb;
+  border-radius: 13px;
+  box-shadow: 0 4px 14px rgba(20, 35, 60, 0.05);
+  box-sizing: border-box;
+}
+
+.item-icon {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+}
+
+.policy-icon {
+  background: #eef2f7;
+
+  svg {
+    stroke: #1e293b;
+  }
+}
+
+.scheme-icon {
+  background: #eef4ff;
+
+  svg {
+    stroke: #2563eb;
+  }
+}
+
+.item-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  .type-label {
+    color: #315fc9;
+    font-size: 11px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  strong {
+    color: #172033;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* =========================
+   VS BADGE
+   ========================= */
+
+.vs-badge {
+  align-self: center;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(20, 35, 60, 0.06);
+}
+
+/* =========================
+   COMPARISON CARD
+   ========================= */
+
+.comparison-card {
+  max-width: 1150px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #dbe2eb;
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(20, 35, 60, 0.05);
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* =========================
+   TABLE
+   ========================= */
+
+table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+thead {
+  background: #f1f5f9;
+}
+
+th,
+td {
+  padding: 17px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+thead th:first-child {
+  width: 17%;
+}
+
+tbody th {
+  width: 17%;
+  background: #f8fafc;
+  color: #263248;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+tbody td {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: #fbfdff;
+}
+
+/* =========================
+   WEBSITE LINKS
+   ========================= */
+
+td a {
+  color: #2458c6;
+  font-weight: 650;
+  text-decoration: none;
+  word-break: break-all;
+
+  &:hover {
+    color: #173f99;
+    text-decoration: underline;
+  }
+}
+
+/* =========================
+   THREE ITEM TABLE
+   ========================= */
+
+.three-items + .comparison-card {
+  table {
+    min-width: 950px;
+  }
+
+  thead th:first-child,
+  tbody th {
+    width: 16%;
+  }
+
+  thead th:not(:first-child) {
+    width: 28%;
+  }
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 900px) {
+  .compare-page {
+    padding: 30px 20px;
+  }
+
+  .selected-items {
+    grid-template-columns: 1fr 1fr;
+
+    &.three-items {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .vs-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .compare-page {
+    padding: 22px 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    h1 {
+      font-size: 27px;
+    }
+
+    .back-btn {
+      align-self: flex-start;
+    }
+  }
+
+  .selected-items {
+    grid-template-columns: 1fr;
+  }
+
+  .item-card {
+    padding: 16px;
+  }
+
+  .comparison-card {
+    border-radius: 11px;
+  }
+
+  th,
+  td {
+    padding: 14px;
+  }
+}
+/* Professional comparison icons */
+
+.item-icon {
+  flex-shrink: 0;
+}
+
+.document-icon,
+.badge-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-icon svg,
+.badge-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+/* Education */
+.education-icon {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+/* Health */
+.health-icon {
+  background: #eef8f3;
+  color: #16845b;
+}
+
+/* Agriculture */
+.agriculture-icon {
+  background: #f1f8ed;
+  color: #4d8b32;
+}
+
+/* Normal Policy */
+.policy-icon {
+  background: #eef2f7;
+  color: #1e293b;
+}
+
+/* Scheme */
+.scheme-icon {
+  background: #eef4ff;
+  color: #2563eb;
+}

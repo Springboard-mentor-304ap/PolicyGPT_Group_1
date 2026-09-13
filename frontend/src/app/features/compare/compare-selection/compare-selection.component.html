@@ -1,0 +1,301 @@
+<div class="compare-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Compare Schemes &amp; Policies</h1>
+      <p>Compare any two policies or schemes side by side.</p>
+    </div>
+
+    <button class="back-btn" type="button" (click)="goBack()">
+      <span class="back-icon">←</span>
+      Back
+    </button>
+  </div>
+
+
+  <!-- Main Selection Card -->
+  <div class="selection-card">
+
+    <div class="card-header">
+      <h2>Select Items to Compare</h2>
+      <p>Choose at least two schemes or policies to compare.</p>
+    </div>
+
+
+    <!-- ITEM 1 -->
+    <div class="selection-section">
+
+      <label class="item-label">
+        <span class="number">1</span>
+        Item 1
+      </label>
+
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+
+        <input
+          type="text"
+          [(ngModel)]="searchItem1"
+          placeholder="Search schemes or policies..."
+        />
+
+        <button
+          *ngIf="searchItem1"
+          type="button"
+          class="clear-btn"
+          (click)="clearItem1()">
+          ×
+        </button>
+      </div>
+
+      <div
+        class="suggestions"
+        *ngIf="searchItem1 && !selectedItem1">
+
+        <button
+          type="button"
+          class="suggestion-item"
+          *ngFor="let item of filteredItem1"
+          (click)="selectItem1(item)">
+
+          <div class="suggestion-icon">
+            {{ item.type === 'Policy' ? 'P' : 'S' }}
+          </div>
+
+          <div class="suggestion-content">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.type }} · {{ item.category }}</span>
+          </div>
+
+        </button>
+
+        <div
+          class="no-results"
+          *ngIf="filteredItem1.length === 0">
+          No matching schemes or policies found.
+        </div>
+
+      </div>
+
+
+      <div
+        class="selected-item"
+        *ngIf="selectedItem1">
+
+        <div class="selected-icon">
+          {{ selectedItem1.type === 'Policy' ? 'P' : 'S' }}
+        </div>
+
+        <div class="selected-content">
+          <span class="type-label">{{ selectedItem1.type }}</span>
+          <strong>{{ selectedItem1.title }}</strong>
+          <small>{{ selectedItem1.ministry }}</small>
+        </div>
+
+        <button
+          type="button"
+          class="remove-btn"
+          (click)="clearItem1()">
+          ×
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- ITEM 2 -->
+    <div class="selection-section">
+
+      <label class="item-label">
+        <span class="number">2</span>
+        Item 2
+      </label>
+
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+
+        <input
+          type="text"
+          [(ngModel)]="searchItem2"
+          placeholder="Search schemes or policies..."
+        />
+
+        <button
+          *ngIf="searchItem2"
+          type="button"
+          class="clear-btn"
+          (click)="clearItem2()">
+          ×
+        </button>
+      </div>
+
+      <div
+        class="suggestions"
+        *ngIf="searchItem2 && !selectedItem2">
+
+        <button
+          type="button"
+          class="suggestion-item"
+          *ngFor="let item of filteredItem2"
+          (click)="selectItem2(item)">
+
+          <div class="suggestion-icon">
+            {{ item.type === 'Policy' ? 'P' : 'S' }}
+          </div>
+
+          <div class="suggestion-content">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.type }} · {{ item.category }}</span>
+          </div>
+
+        </button>
+
+        <div
+          class="no-results"
+          *ngIf="filteredItem2.length === 0">
+          No matching schemes or policies found.
+        </div>
+
+      </div>
+
+
+      <div
+        class="selected-item"
+        *ngIf="selectedItem2">
+
+        <div class="selected-icon">
+          {{ selectedItem2.type === 'Policy' ? 'P' : 'S' }}
+        </div>
+
+        <div class="selected-content">
+          <span class="type-label">{{ selectedItem2.type }}</span>
+          <strong>{{ selectedItem2.title }}</strong>
+          <small>{{ selectedItem2.ministry }}</small>
+        </div>
+
+        <button
+          type="button"
+          class="remove-btn"
+          (click)="clearItem2()">
+          ×
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- ITEM 3 -->
+    <div class="selection-section optional-section">
+
+      <label class="item-label">
+        <span class="number optional-number">3</span>
+        Item 3
+        <span class="optional-text">(Optional)</span>
+      </label>
+
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+
+        <input
+          type="text"
+          [(ngModel)]="searchItem3"
+          placeholder="Add another scheme or policy..."
+        />
+
+        <button
+          *ngIf="searchItem3"
+          type="button"
+          class="clear-btn"
+          (click)="clearItem3()">
+          ×
+        </button>
+      </div>
+
+      <div
+        class="suggestions"
+        *ngIf="searchItem3 && !selectedItem3">
+
+        <button
+          type="button"
+          class="suggestion-item"
+          *ngFor="let item of filteredItem3"
+          (click)="selectItem3(item)">
+
+          <div class="suggestion-icon">
+            {{ item.type === 'Policy' ? 'P' : 'S' }}
+          </div>
+
+          <div class="suggestion-content">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.type }} · {{ item.category }}</span>
+          </div>
+
+        </button>
+
+        <div
+          class="no-results"
+          *ngIf="filteredItem3.length === 0">
+          No matching schemes or policies found.
+        </div>
+
+      </div>
+
+
+      <div
+        class="selected-item"
+        *ngIf="selectedItem3">
+
+        <div class="selected-icon">
+          {{ selectedItem3.type === 'Policy' ? 'P' : 'S' }}
+        </div>
+
+        <div class="selected-content">
+          <span class="type-label">{{ selectedItem3.type }}</span>
+          <strong>{{ selectedItem3.title }}</strong>
+          <small>{{ selectedItem3.ministry }}</small>
+        </div>
+
+        <button
+          type="button"
+          class="remove-btn"
+          (click)="clearItem3()">
+          ×
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- Information -->
+    <div class="info-box">
+      <div class="info-icon">i</div>
+
+      <div>
+        <strong>Compare combinations</strong>
+        <p>
+          You can compare any combination of schemes and policies.
+          Select at least two items to continue.
+        </p>
+      </div>
+    </div>
+
+
+    <!-- Compare Button -->
+    <button
+      type="button"
+      class="compare-btn"
+      [disabled]="!canCompare()"
+      (click)="compareNow()">
+
+      <span>Compare Now</span>
+      <span class="arrow">→</span>
+
+    </button>
+
+  </div>
+
+</div>

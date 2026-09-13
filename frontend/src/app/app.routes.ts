@@ -89,6 +89,30 @@ export const routes: Routes = [
         (m) => m.ViewUsersComponent,
       ),
   },
+       // =========================================================
+  // COMPARE ROUTES
+  // =========================================================
+  //
+  // /compare
+  // /compare/results
+  //
+  // =========================================================
+
+  {
+    path: "compare",
+    loadComponent: () =>
+      import("./features/compare/compare-selection/compare-selection.component").then(
+        (m) => m.CompareSelectionComponent,
+      ),
+  },
+
+  {
+    path: "compare/results",
+    loadComponent: () =>
+      import("./features/compare/compare-results/compare-results.component").then(
+        (m) => m.CompareResultsComponent,
+      ),
+  },
 
   // =========================================================
   // FALLBACK

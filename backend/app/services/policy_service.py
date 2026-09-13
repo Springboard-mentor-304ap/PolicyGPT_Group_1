@@ -1,171 +1,79 @@
 from datetime import datetime, timezone
 from math import ceil
+from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.policy import Policy
 from app.models.user import User
-from app.schemas.policy import (
-    PolicyCreate,
-    PolicyUpdate,
-)
+from app.schemas.policy import PolicyCreate, PolicyUpdate
 
-# =========================================================
-# CURRENT TIME
-# =========================================================
+# ============================================================
+# HELPERS
+# ============================================================
 
 
-def current_time() -> datetime:
+def _now() -> datetime:
+    """
+    Database uses TIMESTAMP WITHOUT TIME ZONE.
+    Store naive UTC datetime.
+    """
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-# =========================================================
-# CREATE POLICY
-# =========================================================
+def _clean_benefits(
+    benefits: list[str] | None,
+) -> list[str] | None:
+
+    if benefits is None:
+        return None
+
+    cleaned = []
+
+    for benefit in benefits:
+
+        if benefit is None:
+            continue
+
+        value = str(benefit).strip()
+
+        if value:
+            cleaned.append(value)
+
+    return cleaned or None
 
 
-def create_policy(
-    db: Session,
-    data: PolicyCreate,
-    current_user: User,
-) -> Policy:
+def _clean_eligibility_rules(
+    rules: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]] | None:
 
-    # -----------------------------------------------------
-    # NORMALIZE VALUES
-    # -----------------------------------------------------
+    if rules is None:
+        return None
 
-    title = data.title.strip()
-
-    ministry = (
-        data.ministry.strip()
-        if data.ministry and data.ministry.strip()
-        else None
-    )
-
-    department = (
-        data.department.strip()
-        if data.department and data.department.strip()
-        else None
-    )
-
-    state = data.state.strip() if data.state and data.state.strip() else None
-
-    sector = (
-        data.sector.strip() if data.sector and data.sector.strip() else None
-    )
-
-    document_url = (
-        data.document_url.strip()
-        if data.document_url and data.document_url.strip()
-        else None
-    )
-
-    source_url = (
-        data.source_url.strip()
-        if data.source_url and data.source_url.strip()
-        else None
-    )
-
-    # -----------------------------------------------------
-    # DUPLICATE CHECK
-    #
-    # Same:
-    # title + ministry + department + state
-    #
-    # = duplicate
-    # -----------------------------------------------------
-
-    query = db.query(Policy).filter(Policy.title.ilike(title))
-
-    # Ministry
-    if ministry is None:
-        query = query.filter(Policy.ministry.is_(None))
-    else:
-        query = query.filter(Policy.ministry.ilike(ministry))
-
-    # Department
-    if department is None:
-        query = query.filter(Policy.department.is_(None))
-    else:
-        query = query.filter(Policy.department.ilike(department))
-
-    # State
-    if state is None:
-        query = query.filter(Policy.state.is_(None))
-    else:
-        query = query.filter(Policy.state.ilike(state))
-
-    existing_policy = query.first()
-
-    if existing_policy:
+    if not isinstance(rules, list):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "A policy with the same title, ministry, "
-                "department, and state already exists."
-            ),
+            detail="eligibility_rules must be a list.",
         )
 
-    # -----------------------------------------------------
-    # CREATE POLICY
-    # -----------------------------------------------------
+    cleaned = []
 
-    now = current_time()
+    for rule in rules:
 
-    policy = Policy(
-        title=title,
-        description=data.description.strip(),
-        category=data.category.strip(),
-        ministry=ministry,
-        department=department,
-        state=state,
-        sector=sector,
-        publication_date=data.publication_date,
-        effective_date=data.effective_date,
-        # New policies always start as DRAFT
-        status="DRAFT",
-        document_url=document_url,
-        source_url=source_url,
-        created_by=current_user.user_id,
-        approved_by=None,
-        created_at=now,
-        updated_at=now,
-    )
+        if not isinstance(rule, dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Each eligibility rule must be an object.",
+            )
 
-    db.add(policy)
+        cleaned.append(rule)
 
-    try:
-        db.commit()
-
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "A policy with the same title, ministry, "
-                "department, and state already exists."
-            ),
-        )
-
-    except Exception:
-        db.rollback()
-        raise
-
-    db.refresh(policy)
-
-    return policy
+    return cleaned or None
 
 
-# =========================================================
-# GET POLICY
-# =========================================================
-
-
-def get_policy(
+def _policy_or_404(
     db: Session,
     policy_id: int,
 ) -> Policy:
@@ -175,234 +83,351 @@ def get_policy(
     if not policy:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Policy not found",
+            detail="Policy not found.",
         )
 
     return policy
 
 
-# =========================================================
-# UPDATE POLICY
-# =========================================================
+def _calculate_pages(
+    total: int,
+    limit: int,
+) -> int:
+
+    if total == 0:
+        return 0
+
+    return ceil(total / limit)
 
 
-def update_policy(
+def _validate_policy_duplicate(
     db: Session,
-    policy: Policy,
-    data: PolicyUpdate,
-) -> Policy:
-
-    updates = data.model_dump(exclude_unset=True)
-
-    # -----------------------------------------------------
-    # DETERMINE FINAL VALUES
-    # -----------------------------------------------------
-
-    new_title = updates.get(
-        "title",
-        policy.title,
-    )
-
-    new_ministry = updates.get(
-        "ministry",
-        policy.ministry,
-    )
-
-    new_department = updates.get(
-        "department",
-        policy.department,
-    )
-
-    new_state = updates.get(
-        "state",
-        policy.state,
-    )
-
-    # -----------------------------------------------------
-    # NORMALIZE
-    # -----------------------------------------------------
-
-    if isinstance(new_title, str):
-        new_title = new_title.strip()
-
-    if isinstance(new_ministry, str):
-        new_ministry = new_ministry.strip() if new_ministry.strip() else None
-
-    if isinstance(new_department, str):
-        new_department = (
-            new_department.strip() if new_department.strip() else None
-        )
-
-    if isinstance(new_state, str):
-        new_state = new_state.strip() if new_state.strip() else None
-
-    # -----------------------------------------------------
-    # DUPLICATE CHECK
-    #
-    # Exclude current policy from the search.
-    # -----------------------------------------------------
+    title: str,
+    exclude_policy_id: int | None = None,
+) -> None:
 
     query = db.query(Policy).filter(
-        Policy.policy_id != policy.policy_id,
-        Policy.title.ilike(new_title),
+        func.lower(Policy.title) == title.strip().lower()
     )
 
-    # Ministry
-    if new_ministry is None:
-        query = query.filter(Policy.ministry.is_(None))
-    else:
-        query = query.filter(Policy.ministry.ilike(new_ministry))
+    if exclude_policy_id is not None:
+        query = query.filter(Policy.policy_id != exclude_policy_id)
 
-    # Department
-    if new_department is None:
-        query = query.filter(Policy.department.is_(None))
-    else:
-        query = query.filter(Policy.department.ilike(new_department))
+    existing = query.first()
 
-    # State
-    if new_state is None:
-        query = query.filter(Policy.state.is_(None))
-    else:
-        query = query.filter(Policy.state.ilike(new_state))
-
-    existing_policy = query.first()
-
-    if existing_policy:
+    if existing:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Another policy with the same title, "
-                "ministry, department, and state "
-                "already exists."
-            ),
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A policy with this title already exists.",
         )
 
-    # -----------------------------------------------------
-    # STORE NORMALIZED VALUES
-    # -----------------------------------------------------
 
-    if "title" in updates:
-        updates["title"] = new_title
+# ============================================================
+# CREATE POLICY
+# ============================================================
 
-    if "ministry" in updates:
-        updates["ministry"] = new_ministry
 
-    if "department" in updates:
-        updates["department"] = new_department
+def create_policy(
+    db: Session,
+    data: PolicyCreate,
+    current_user: User,
+) -> Policy:
 
-    if "state" in updates:
-        updates["state"] = new_state
+    _validate_policy_duplicate(
+        db=db,
+        title=data.title,
+    )
 
-    # -----------------------------------------------------
-    # STRIP OTHER TEXT FIELDS
-    # -----------------------------------------------------
+    now = _now()
 
-    text_fields = [
-        "description",
-        "category",
-        "sector",
-        "document_url",
-        "source_url",
-    ]
+    policy = Policy(
+        title=data.title.strip(),
+        description=data.description.strip(),
+        category=data.category.strip(),
+        ministry=(data.ministry.strip() if data.ministry else None),
+        department=(data.department.strip() if data.department else None),
+        state=(data.state.strip() if data.state else None),
+        sector=(data.sector.strip() if data.sector else None),
+        publication_date=data.publication_date,
+        effective_date=data.effective_date,
+        status="DRAFT",
+        document_url=(
+            data.document_url.strip() if data.document_url else None
+        ),
+        source_url=(data.source_url.strip() if data.source_url else None),
+        benefits=_clean_benefits(data.benefits),
+        eligibility_rules=_clean_eligibility_rules(data.eligibility_rules),
+        created_by=current_user.user_id,
+        approved_by=None,
+        rejection_reason=None,
+        archive_reason=None,
+        archive_requested_by=None,
+        archive_requested_at=None,
+        delete_reason=None,
+        delete_requested_by=None,
+        delete_requested_at=None,
+        delete_requested_from_status=None,
+        created_at=now,
+        updated_at=now,
+    )
 
-    for field in text_fields:
-
-        if field in updates:
-
-            value = updates[field]
-
-            if isinstance(value, str):
-                updates[field] = value.strip() if value.strip() else None
-
-    # -----------------------------------------------------
-    # APPLY UPDATE
-    # -----------------------------------------------------
-
-    for field, value in updates.items():
-        setattr(
-            policy,
-            field,
-            value,
-        )
-
-    policy.updated_at = current_time()
-
-    # -----------------------------------------------------
-    # SAVE
-    # -----------------------------------------------------
-
-    try:
-        db.commit()
-
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Another policy with the same title, "
-                "ministry, department, and state "
-                "already exists."
-            ),
-        )
-
-    except Exception:
-        db.rollback()
-        raise
-
+    db.add(policy)
+    db.commit()
     db.refresh(policy)
 
     return policy
 
 
-# =========================================================
-# DELETE POLICY
-# =========================================================
+# ============================================================
+# GET SINGLE POLICY
+# ============================================================
 
 
-def delete_policy(
+def get_policy(
     db: Session,
-    policy: Policy,
-) -> None:
+    policy_id: int,
+) -> Policy:
 
-    try:
-        db.delete(policy)
-        db.commit()
+    return _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
 
-    except IntegrityError:
-        db.rollback()
 
+# ============================================================
+# UPDATE POLICY
+#
+# Allowed:
+# DRAFT
+# REJECTED
+# ARCHIVED
+#
+# ARCHIVED -> DRAFT after edit
+# REJECTED stays REJECTED until resubmitted
+# ============================================================
+
+
+def update_policy(
+    db: Session,
+    policy_id: int,
+    data: PolicyUpdate,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status not in {
+        "DRAFT",
+        "REJECTED",
+        "ARCHIVED",
+    }:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                "This policy cannot be deleted because it "
-                "is referenced by other records. "
-                "Archive it instead."
+                "Policy can only be edited when its status "
+                "is DRAFT, REJECTED, or ARCHIVED."
             ),
         )
 
+    old_status = policy.status
 
-# =========================================================
-# SUBMIT POLICY
-# =========================================================
+    update_data = data.model_dump(exclude_unset=True)
 
-
-def submit_policy(
-    db: Session,
-    policy: Policy,
-) -> Policy:
-
-    if policy.status not in [
-        "DRAFT",
-        "REJECTED",
-    ]:
+    if not update_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only DRAFT or REJECTED policies " "can be submitted"),
+            detail="No fields provided for update.",
         )
 
-    policy.status = "PENDING_APPROVAL"
-    policy.updated_at = current_time()
+    # --------------------------------------------------------
+    # TITLE
+    # --------------------------------------------------------
+
+    if "title" in update_data:
+
+        title = update_data["title"]
+
+        if title is None or not str(title).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Policy title cannot be empty.",
+            )
+
+        _validate_policy_duplicate(
+            db=db,
+            title=str(title),
+            exclude_policy_id=policy_id,
+        )
+
+        policy.title = str(title).strip()
+
+    # --------------------------------------------------------
+    # DESCRIPTION
+    # --------------------------------------------------------
+
+    if "description" in update_data:
+
+        description = update_data["description"]
+
+        if description is None or not str(description).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Policy description cannot be empty.",
+            )
+
+        policy.description = str(description).strip()
+
+    # --------------------------------------------------------
+    # CATEGORY
+    # --------------------------------------------------------
+
+    if "category" in update_data:
+
+        category = update_data["category"]
+
+        if category is None or not str(category).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Policy category cannot be empty.",
+            )
+
+        policy.category = str(category).strip()
+
+    # --------------------------------------------------------
+    # MINISTRY
+    # --------------------------------------------------------
+
+    if "ministry" in update_data:
+
+        policy.ministry = (
+            str(update_data["ministry"]).strip()
+            if update_data["ministry"]
+            else None
+        )
+
+    # --------------------------------------------------------
+    # DEPARTMENT
+    # --------------------------------------------------------
+
+    if "department" in update_data:
+
+        policy.department = (
+            str(update_data["department"]).strip()
+            if update_data["department"]
+            else None
+        )
+
+    # --------------------------------------------------------
+    # STATE
+    # --------------------------------------------------------
+
+    if "state" in update_data:
+
+        policy.state = (
+            str(update_data["state"]).strip() if update_data["state"] else None
+        )
+
+    # --------------------------------------------------------
+    # SECTOR
+    # --------------------------------------------------------
+
+    if "sector" in update_data:
+
+        policy.sector = (
+            str(update_data["sector"]).strip()
+            if update_data["sector"]
+            else None
+        )
+
+    # --------------------------------------------------------
+    # DATES
+    # --------------------------------------------------------
+
+    if "publication_date" in update_data:
+        policy.publication_date = update_data["publication_date"]
+
+    if "effective_date" in update_data:
+        policy.effective_date = update_data["effective_date"]
+
+    # --------------------------------------------------------
+    # DOCUMENT URL
+    # --------------------------------------------------------
+
+    if "document_url" in update_data:
+
+        policy.document_url = (
+            str(update_data["document_url"]).strip()
+            if update_data["document_url"]
+            else None
+        )
+
+    # --------------------------------------------------------
+    # SOURCE URL
+    # --------------------------------------------------------
+
+    if "source_url" in update_data:
+
+        policy.source_url = (
+            str(update_data["source_url"]).strip()
+            if update_data["source_url"]
+            else None
+        )
+
+    # --------------------------------------------------------
+    # BENEFITS
+    # --------------------------------------------------------
+
+    if "benefits" in update_data:
+
+        policy.benefits = _clean_benefits(update_data["benefits"])
+
+    # --------------------------------------------------------
+    # ELIGIBILITY RULES
+    # --------------------------------------------------------
+
+    if "eligibility_rules" in update_data:
+
+        policy.eligibility_rules = _clean_eligibility_rules(
+            update_data["eligibility_rules"]
+        )
+
+    # --------------------------------------------------------
+    # IMPORTANT STATUS LOGIC
+    #
+    # Archived policy edited:
+    #
+    # ARCHIVED -> DRAFT
+    #
+    # It must go through approval again.
+    # --------------------------------------------------------
+
+    if old_status == "ARCHIVED":
+
+        policy.status = "DRAFT"
+
+        # Previous approval is no longer valid
+        policy.approved_by = None
+
+        # Clear old archive request information
+        policy.archive_reason = None
+        policy.archive_requested_by = None
+        policy.archive_requested_at = None
+
+    # --------------------------------------------------------
+    # Rejected policy edited
+    #
+    # REJECTED remains REJECTED until /submit.
+    # Clear old rejection reason because the policy was modified.
+    # --------------------------------------------------------
+
+    elif old_status == "REJECTED":
+
+        policy.rejection_reason = None
+
+    policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
@@ -410,28 +435,118 @@ def submit_policy(
     return policy
 
 
-# =========================================================
+# ============================================================
+# DIRECT DELETE
+#
+# ADMIN ONLY
+# ============================================================
+
+
+def delete_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> None:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    try:
+
+        db.delete(policy)
+        db.commit()
+
+    except Exception as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Policy could not be deleted. "
+                "It may be referenced by another record. "
+                "Consider archiving it instead."
+            ),
+        ) from exc
+
+
+# ============================================================
+# SUBMIT POLICY
+#
+# DRAFT / REJECTED
+#        ↓
+# PENDING_APPROVAL
+# ============================================================
+
+
+def submit_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status not in {
+        "DRAFT",
+        "REJECTED",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only DRAFT or REJECTED policies "
+                "can be submitted for approval."
+            ),
+        )
+
+    policy.status = "PENDING_APPROVAL"
+
+    policy.rejection_reason = None
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
 # APPROVE POLICY
-# =========================================================
+#
+# PENDING_APPROVAL -> APPROVED
+# ============================================================
 
 
 def approve_policy(
     db: Session,
-    policy: Policy,
+    policy_id: int,
     current_user: User,
 ) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
 
     if policy.status != "PENDING_APPROVAL":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only policies pending approval " "can be approved"),
+            detail=("Only policies pending approval " "can be approved."),
         )
 
     policy.status = "APPROVED"
 
     policy.approved_by = current_user.user_id
 
-    policy.updated_at = current_time()
+    policy.rejection_reason = None
+
+    policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
@@ -439,34 +554,44 @@ def approve_policy(
     return policy
 
 
-# =========================================================
+# ============================================================
 # REJECT POLICY
-# =========================================================
+#
+# PENDING_APPROVAL -> REJECTED
+# ============================================================
 
 
 def reject_policy(
     db: Session,
-    policy: Policy,
+    policy_id: int,
     reason: str,
+    current_user: User,
 ) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
 
     if policy.status != "PENDING_APPROVAL":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only policies pending approval " "can be rejected"),
+            detail=("Only policies pending approval " "can be rejected."),
         )
 
     if not reason or not reason.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Rejection reason is required",
+            detail="Rejection reason is required.",
         )
 
     policy.status = "REJECTED"
 
+    policy.rejection_reason = reason.strip()
+
     policy.approved_by = None
 
-    policy.updated_at = current_time()
+    policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
@@ -474,25 +599,124 @@ def reject_policy(
     return policy
 
 
-# =========================================================
-# ARCHIVE POLICY
-# =========================================================
+# ============================================================
+# REQUEST ARCHIVE
+#
+# GOVERNMENT OFFICIAL ONLY
+#
+# APPROVED -> ARCHIVE_REQUESTED
+# ============================================================
 
 
-def archive_policy(
+def request_archive_policy(
     db: Session,
-    policy: Policy,
+    policy_id: int,
+    reason: str,
+    current_user: User,
 ) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
 
     if policy.status != "APPROVED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only APPROVED policies " "can be archived"),
+            detail=("Only APPROVED policies can have " "an archive request."),
+        )
+
+    if not reason or not reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Archive reason is required.",
+        )
+
+    policy.status = "ARCHIVE_REQUESTED"
+
+    policy.archive_reason = reason.strip()
+
+    policy.archive_requested_by = current_user.user_id
+
+    policy.archive_requested_at = _now()
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
+# GET ARCHIVE REQUESTS
+#
+# ADMIN ONLY
+# ============================================================
+
+
+def get_archive_requests(
+    db: Session,
+    page: int = 1,
+    limit: int = 10,
+) -> dict:
+
+    query = (
+        db.query(Policy)
+        .filter(Policy.status == "ARCHIVE_REQUESTED")
+        .order_by(Policy.updated_at.desc())
+    )
+
+    total = query.count()
+
+    pages = _calculate_pages(
+        total=total,
+        limit=limit,
+    )
+
+    policies = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+        "policies": policies,
+    }
+
+
+# ============================================================
+# APPROVE ARCHIVE REQUEST
+#
+# ADMIN ONLY
+#
+# ARCHIVE_REQUESTED -> ARCHIVED
+# ============================================================
+
+
+def approve_archive_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "ARCHIVE_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only policies with an "
+                "ARCHIVE_REQUESTED status can be archived."
+            ),
         )
 
     policy.status = "ARCHIVED"
 
-    policy.updated_at = current_time()
+    policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
@@ -500,25 +724,39 @@ def archive_policy(
     return policy
 
 
-# =========================================================
-# RESTORE POLICY
-# =========================================================
+# ============================================================
+# REJECT ARCHIVE REQUEST
+#
+# ADMIN ONLY
+#
+# ARCHIVE_REQUESTED -> APPROVED
+# ============================================================
 
 
-def restore_policy(
+def reject_archive_policy(
     db: Session,
-    policy: Policy,
+    policy_id: int,
+    current_user: User,
 ) -> Policy:
 
-    if policy.status != "ARCHIVED":
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "ARCHIVE_REQUESTED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only archived policies " "can be restored"),
+            detail=(
+                "Only policies with an "
+                "ARCHIVE_REQUESTED status can have "
+                "their archive request rejected."
+            ),
         )
 
     policy.status = "APPROVED"
 
-    policy.updated_at = current_time()
+    policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
@@ -526,14 +764,258 @@ def restore_policy(
     return policy
 
 
-# =========================================================
+# ============================================================
+# RESTORE POLICY
+#
+# ADMIN ONLY
+#
+# ARCHIVED -> APPROVED
+# ============================================================
+
+
+def restore_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "ARCHIVED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=("Only ARCHIVED policies can be restored."),
+        )
+
+    policy.status = "APPROVED"
+
+    policy.approved_by = current_user.user_id
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
+# REQUEST DELETE
+#
+# GOVERNMENT OFFICIAL ONLY
+#
+# APPROVED / ARCHIVED -> DELETE_REQUESTED
+# ============================================================
+
+
+def request_delete_policy(
+    db: Session,
+    policy_id: int,
+    reason: str,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status not in {
+        "APPROVED",
+        "ARCHIVED",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Deletion can only be requested for "
+                "APPROVED or ARCHIVED policies."
+            ),
+        )
+
+    if not reason or not reason.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Deletion reason is required.",
+        )
+
+    # Save the previous status.
+    policy.delete_requested_from_status = policy.status
+
+    policy.status = "DELETE_REQUESTED"
+
+    policy.delete_reason = reason.strip()
+
+    policy.delete_requested_by = current_user.user_id
+
+    policy.delete_requested_at = _now()
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
+# GET DELETE REQUESTS
+#
+# ADMIN ONLY
+# ============================================================
+
+
+def get_delete_requests(
+    db: Session,
+    page: int = 1,
+    limit: int = 10,
+) -> dict:
+
+    query = (
+        db.query(Policy)
+        .filter(Policy.status == "DELETE_REQUESTED")
+        .order_by(Policy.updated_at.desc())
+    )
+
+    total = query.count()
+
+    pages = _calculate_pages(
+        total=total,
+        limit=limit,
+    )
+
+    policies = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+        "policies": policies,
+    }
+
+
+# ============================================================
+# APPROVE DELETE REQUEST
+#
+# ADMIN ONLY
+#
+# DELETE_REQUESTED -> PHYSICAL DELETE
+# ============================================================
+
+
+def approve_delete_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> None:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "DELETE_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only policies with a DELETE_REQUESTED "
+                "status can be permanently deleted."
+            ),
+        )
+
+    try:
+
+        db.delete(policy)
+
+        db.commit()
+
+    except Exception as exc:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Policy could not be permanently deleted. "
+                "It may be referenced by another record."
+            ),
+        ) from exc
+
+
+# ============================================================
+# REJECT DELETE REQUEST
+#
+# ADMIN ONLY
+#
+# DELETE_REQUESTED -> PREVIOUS STATUS
+#
+# APPROVED -> DELETE_REQUESTED -> APPROVED
+#
+# ARCHIVED -> DELETE_REQUESTED -> ARCHIVED
+# ============================================================
+
+
+def reject_delete_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "DELETE_REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only policies with a DELETE_REQUESTED "
+                "status can have their deletion request rejected."
+            ),
+        )
+
+    previous_status = policy.delete_requested_from_status
+
+    if previous_status not in {
+        "APPROVED",
+        "ARCHIVED",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=(
+                "Previous policy status for the delete "
+                "request could not be determined."
+            ),
+        )
+
+    policy.status = previous_status
+
+    # Clear active delete-request data.
+    policy.delete_reason = None
+    policy.delete_requested_by = None
+    policy.delete_requested_at = None
+    policy.delete_requested_from_status = None
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
 # SEARCH POLICIES
-# =========================================================
+# ============================================================
 
 
 def search_policies(
     db: Session,
-    keyword: str | None = None,
+    search: str | None = None,
     category: str | None = None,
     ministry: str | None = None,
     department: str | None = None,
@@ -542,41 +1024,32 @@ def search_policies(
     policy_status: str | None = None,
     page: int = 1,
     limit: int = 10,
-    include_archived: bool = False,
-):
+) -> dict:
 
     query = db.query(Policy)
 
-    # -----------------------------------------------------
-    # ARCHIVED FILTER
-    # -----------------------------------------------------
+    # --------------------------------------------------------
+    # SEARCH
+    # --------------------------------------------------------
 
-    if not include_archived:
-        query = query.filter(Policy.status != "ARCHIVED")
+    if search:
 
-    # -----------------------------------------------------
-    # KEYWORD
-    # -----------------------------------------------------
-
-    if keyword:
-
-        search = f"%{keyword.strip()}%"
+        search_term = f"%{search.strip()}%"
 
         query = query.filter(
             or_(
-                Policy.title.ilike(search),
-                Policy.description.ilike(search),
-                Policy.category.ilike(search),
-                Policy.ministry.ilike(search),
-                Policy.department.ilike(search),
-                Policy.state.ilike(search),
-                Policy.sector.ilike(search),
+                Policy.title.ilike(search_term),
+                Policy.description.ilike(search_term),
+                Policy.category.ilike(search_term),
+                Policy.ministry.ilike(search_term),
+                Policy.department.ilike(search_term),
+                Policy.sector.ilike(search_term),
             )
         )
 
-    # -----------------------------------------------------
+    # --------------------------------------------------------
     # FILTERS
-    # -----------------------------------------------------
+    # --------------------------------------------------------
 
     if category:
         query = query.filter(Policy.category.ilike(category.strip()))
@@ -593,29 +1066,40 @@ def search_policies(
     if sector:
         query = query.filter(Policy.sector.ilike(sector.strip()))
 
-    if policy_status:
-        query = query.filter(Policy.status == policy_status.upper())
+    # --------------------------------------------------------
+    # STATUS
+    # --------------------------------------------------------
 
-    # -----------------------------------------------------
-    # TOTAL
-    # -----------------------------------------------------
+    if policy_status:
+
+        query = query.filter(Policy.status == policy_status.strip().upper())
+
+    else:
+
+        # Normal search does not show archived policies.
+        query = query.filter(Policy.status != "ARCHIVED")
+
+    # --------------------------------------------------------
+    # COUNT
+    # --------------------------------------------------------
 
     total = query.count()
 
-    # -----------------------------------------------------
-    # PAGINATION
-    # -----------------------------------------------------
+    pages = _calculate_pages(
+        total=total,
+        limit=limit,
+    )
 
-    offset = (page - 1) * limit
+    # --------------------------------------------------------
+    # PAGINATION
+    # --------------------------------------------------------
 
     policies = (
         query.order_by(Policy.created_at.desc())
-        .offset(offset)
+        .offset((page - 1) * limit)
         .limit(limit)
         .all()
     )
-
-    pages = ceil(total / limit) if total else 0
 
     return {
         "total": total,
@@ -626,18 +1110,75 @@ def search_policies(
     }
 
 
-# =========================================================
-# PENDING APPROVAL
-# =========================================================
+# ============================================================
+# GET PENDING APPROVAL POLICIES
+#
+# ADMIN ONLY
+# ============================================================
 
 
-def get_pending_policies(
+def get_pending_approval_policies(
     db: Session,
-):
+    page: int = 1,
+    limit: int = 10,
+) -> dict:
 
-    return (
+    query = (
         db.query(Policy)
         .filter(Policy.status == "PENDING_APPROVAL")
-        .order_by(Policy.created_at.asc())
-        .all()
+        .order_by(Policy.updated_at.desc())
     )
+
+    total = query.count()
+
+    pages = _calculate_pages(
+        total=total,
+        limit=limit,
+    )
+
+    policies = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+        "policies": policies,
+    }
+
+
+# ============================================================
+# GET ARCHIVED POLICIES
+#
+# Optional helper if you want a dedicated admin page.
+# ============================================================
+
+
+def get_archived_policies(
+    db: Session,
+    page: int = 1,
+    limit: int = 10,
+) -> dict:
+
+    query = (
+        db.query(Policy)
+        .filter(Policy.status == "ARCHIVED")
+        .order_by(Policy.updated_at.desc())
+    )
+
+    total = query.count()
+
+    pages = _calculate_pages(
+        total=total,
+        limit=limit,
+    )
+
+    policies = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+        "policies": policies,
+    }

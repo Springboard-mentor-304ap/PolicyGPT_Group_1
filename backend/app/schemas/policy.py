@@ -1,11 +1,11 @@
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-# =========================================================
-# POLICY STATUS
-# =========================================================
+# ============================================================
+# STATUS
+# ============================================================
 
 PolicyStatus = Literal[
     "DRAFT",
@@ -13,28 +13,53 @@ PolicyStatus = Literal[
     "APPROVED",
     "REJECTED",
     "ARCHIVED",
+    "ARCHIVE_REQUESTED",
+    "DELETE_REQUESTED",
 ]
 
 
-# =========================================================
+# ============================================================
 # CREATE POLICY
-# =========================================================
+# ============================================================
 
 
 class PolicyCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=300)
+    title: str = Field(
+        ...,
+        min_length=1,
+        max_length=300,
+    )
 
-    description: str = Field(..., min_length=1)
+    description: str = Field(
+        ...,
+        min_length=1,
+    )
 
-    category: str = Field(..., min_length=1, max_length=100)
+    category: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+    )
 
-    ministry: str | None = Field(default=None, max_length=200)
+    ministry: str | None = Field(
+        default=None,
+        max_length=200,
+    )
 
-    department: str | None = Field(default=None, max_length=200)
+    department: str | None = Field(
+        default=None,
+        max_length=200,
+    )
 
-    state: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
 
-    sector: str | None = Field(default=None, max_length=100)
+    sector: str | None = Field(
+        default=None,
+        max_length=100,
+    )
 
     publication_date: date | None = None
 
@@ -44,26 +69,54 @@ class PolicyCreate(BaseModel):
 
     source_url: str | None = None
 
+    benefits: list[str] | None = None
 
-# =========================================================
+    # Eligibility module can manage these separately later.
+    eligibility_rules: list[dict[str, Any]] | None = None
+
+
+# ============================================================
 # UPDATE POLICY
-# =========================================================
+# ============================================================
 
 
 class PolicyUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=300)
+    title: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=300,
+    )
 
-    description: str | None = Field(default=None, min_length=1)
+    description: str | None = Field(
+        default=None,
+        min_length=1,
+    )
 
-    category: str | None = Field(default=None, min_length=1, max_length=100)
+    category: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=100,
+    )
 
-    ministry: str | None = Field(default=None, max_length=200)
+    ministry: str | None = Field(
+        default=None,
+        max_length=200,
+    )
 
-    department: str | None = Field(default=None, max_length=200)
+    department: str | None = Field(
+        default=None,
+        max_length=200,
+    )
 
-    state: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
 
-    sector: str | None = Field(default=None, max_length=100)
+    sector: str | None = Field(
+        default=None,
+        max_length=100,
+    )
 
     publication_date: date | None = None
 
@@ -73,24 +126,60 @@ class PolicyUpdate(BaseModel):
 
     source_url: str | None = None
 
+    benefits: list[str] | None = None
 
-# =========================================================
+    eligibility_rules: list[dict[str, Any]] | None = None
+
+
+# ============================================================
 # REJECT POLICY
-# =========================================================
+# ============================================================
 
 
 class PolicyRejectRequest(BaseModel):
-    reason: str = Field(..., min_length=1, max_length=1000)
+    reason: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+    )
 
 
-# =========================================================
-# POLICY RESPONSE
-# =========================================================
+# ============================================================
+# ARCHIVE REQUEST
+# ============================================================
+
+
+class PolicyArchiveRequest(BaseModel):
+    reason: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+    )
+
+
+# ============================================================
+# DELETE REQUEST
+# ============================================================
+
+
+class PolicyDeleteRequest(BaseModel):
+    reason: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+    )
+
+
+# ============================================================
+# RESPONSE
+# ============================================================
 
 
 class PolicyResponse(BaseModel):
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
     policy_id: int
 
@@ -118,18 +207,44 @@ class PolicyResponse(BaseModel):
 
     source_url: str | None
 
+    benefits: list[str] | None
+
+    eligibility_rules: list[dict[str, Any]] | None
+
     created_by: int | None
 
     approved_by: int | None
+
+    # Approval rejection
+    rejection_reason: str | None
+
+    # Archive request
+    archive_reason: str | None
+
+    archive_requested_by: int | None
+
+    archive_requested_at: datetime | None
+
+    # Delete request
+    delete_reason: str | None
+
+    delete_requested_by: int | None
+
+    delete_requested_at: datetime | None
+
+    # Important:
+    # Stores whether delete was requested from APPROVED
+    # or ARCHIVED state.
+    delete_requested_from_status: str | None
 
     created_at: datetime
 
     updated_at: datetime
 
 
-# =========================================================
-# PAGINATED POLICY RESPONSE
-# =========================================================
+# ============================================================
+# LIST RESPONSE
+# ============================================================
 
 
 class PolicyListResponse(BaseModel):

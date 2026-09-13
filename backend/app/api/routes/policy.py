@@ -1,41 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import (
     get_current_user,
     require_roles,
 )
-
 from app.db.database import get_db
-
-from app.models.policy import Policy
 from app.models.user import User
 
 from app.schemas.policy import (
+    PolicyArchiveRequest,
     PolicyCreate,
+    PolicyDeleteRequest,
+    PolicyListResponse,
     PolicyRejectRequest,
     PolicyResponse,
     PolicyUpdate,
-    PolicyListResponse,
 )
 
 from app.services.policy_service import (
+    approve_archive_policy,
+    approve_delete_policy,
     approve_policy,
-    archive_policy,
     create_policy,
     delete_policy,
-    get_pending_policies,
+    get_archive_requests,
+    get_delete_requests,
+    get_pending_approval_policies,
     get_policy,
+    reject_archive_policy,
+    reject_delete_policy,
     reject_policy,
+    request_archive_policy,
+    request_delete_policy,
     restore_policy,
     search_policies,
     submit_policy,
     update_policy,
 )
-
-# =========================================================
-# ROUTER
-# =========================================================
 
 router = APIRouter(
     prefix="/policies",
@@ -43,9 +51,11 @@ router = APIRouter(
 )
 
 
-# =========================================================
+# ============================================================
 # CREATE POLICY
-# =========================================================
+#
+# ADMIN + GOVERNMENT OFFICIAL
+# ============================================================
 
 
 @router.post(
@@ -53,15 +63,15 @@ router = APIRouter(
     response_model=PolicyResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_policy_api(
+def create_policy_route(
     data: PolicyCreate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
             "ADMIN",
             "GOVERNMENT_OFFICIAL",
         )
     ),
-    db: Session = Depends(get_db),
 ):
 
     return create_policy(
@@ -71,55 +81,69 @@ def create_policy_api(
     )
 
 
-# =========================================================
-# GET / SEARCH POLICIES
-# =========================================================
+# ============================================================
+# SEARCH / LIST POLICIES
+#
+# ALL AUTHENTICATED USERS
+#
+# Citizen / Researcher / Organization:
+# APPROVED ONLY
+# ============================================================
 
 
 @router.get(
     "",
     response_model=PolicyListResponse,
 )
-def get_policies_api(
-    keyword: str | None = Query(default=None),
+def search_policy_route(
+    search: str | None = Query(default=None),
     category: str | None = Query(default=None),
     ministry: str | None = Query(default=None),
     department: str | None = Query(default=None),
     state: str | None = Query(default=None),
     sector: str | None = Query(default=None),
-    policy_status: str | None = Query(default=None, alias="status"),
-    page: int = Query(default=1, ge=1),
-    limit: int = Query(default=10, ge=1, le=100),
-    include_archived: bool = Query(default=False),
-    current_user: User = Depends(get_current_user),
+    policy_status: str | None = Query(
+        default=None,
+        alias="status",
+    ),
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
 
-    normalized_role = str(current_user.role).strip().upper()
+    role = str(current_user.role).strip().upper()
 
-    # -----------------------------------------------------
-    # CITIZENS / RESEARCHERS / ORGANIZATIONS
-    # CAN ONLY SEE APPROVED POLICIES
-    # -----------------------------------------------------
-
-    if normalized_role in [
+    public_roles = {
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
-    ]:
+    }
 
-        if policy_status and (policy_status.upper() not in ["APPROVED"]):
+    # --------------------------------------------------------
+    # PUBLIC ROLES
+    # --------------------------------------------------------
+
+    if role in public_roles:
+
+        if policy_status is not None and policy_status.upper() != "APPROVED":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=("You can only view approved policies"),
+                detail=("You can only view approved policies."),
             )
 
         policy_status = "APPROVED"
-        include_archived = False
 
     return search_policies(
         db=db,
-        keyword=keyword,
+        search=search,
         category=category,
         ministry=ministry,
         department=department,
@@ -128,291 +152,495 @@ def get_policies_api(
         policy_status=policy_status,
         page=page,
         limit=limit,
-        include_archived=include_archived,
     )
 
 
-# =========================================================
+# ============================================================
 # PENDING APPROVAL
-# =========================================================
+#
+# ADMIN ONLY
+#
+# IMPORTANT:
+# Must be before /{policy_id}
+# ============================================================
 
 
 @router.get(
     "/pending-approval",
-    response_model=list[PolicyResponse],
+    response_model=PolicyListResponse,
 )
-def pending_approval_api(
-    current_user: User = Depends(require_roles("ADMIN")),
+def pending_approval_route(
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return get_pending_policies(db)
+    return get_pending_approval_policies(
+        db=db,
+        page=page,
+        limit=limit,
+    )
 
 
-# =========================================================
-# GET POLICY BY ID
-# =========================================================
+# ============================================================
+# ARCHIVE REQUESTS
+#
+# ADMIN ONLY
+#
+# IMPORTANT:
+# Must be before /{policy_id}
+# ============================================================
+
+
+@router.get(
+    "/archive-requests",
+    response_model=PolicyListResponse,
+)
+def archive_requests_route(
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    return get_archive_requests(
+        db=db,
+        page=page,
+        limit=limit,
+    )
+
+
+# ============================================================
+# DELETE REQUESTS
+#
+# ADMIN ONLY
+#
+# IMPORTANT:
+# Must be before /{policy_id}
+# ============================================================
+
+
+@router.get(
+    "/delete-requests",
+    response_model=PolicyListResponse,
+)
+def delete_requests_route(
+    page: int = Query(
+        default=1,
+        ge=1,
+    ),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    return get_delete_requests(
+        db=db,
+        page=page,
+        limit=limit,
+    )
+
+
+# ============================================================
+# GET SINGLE POLICY
+#
+# ALL AUTHENTICATED USERS
+#
+# PUBLIC ROLES:
+# APPROVED ONLY
+# ============================================================
 
 
 @router.get(
     "/{policy_id}",
     response_model=PolicyResponse,
 )
-def get_policy_api(
+def get_policy_route(
     policy_id: int,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
+
+    role = str(current_user.role).strip().upper()
+
+    public_roles = {
+        "CITIZEN",
+        "RESEARCHER",
+        "ORGANIZATION",
+    }
 
     policy = get_policy(
         db=db,
         policy_id=policy_id,
     )
 
-    normalized_role = str(current_user.role).strip().upper()
-
-    # -----------------------------------------------------
-    # PUBLIC ROLES
-    # -----------------------------------------------------
-
-    if normalized_role in [
-        "CITIZEN",
-        "RESEARCHER",
-        "ORGANIZATION",
-    ]:
+    if role in public_roles:
 
         if policy.status != "APPROVED":
 
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=("This policy is not available " "for your role"),
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
             )
 
     return policy
 
 
-# =========================================================
+# ============================================================
 # UPDATE POLICY
-# =========================================================
+#
+# ADMIN + GOVERNMENT OFFICIAL
+#
+# DRAFT
+# REJECTED
+# ARCHIVED
+#
+# ARCHIVED -> DRAFT after editing
+# ============================================================
 
 
 @router.put(
     "/{policy_id}",
     response_model=PolicyResponse,
 )
-def update_policy_api(
+def update_policy_route(
     policy_id: int,
     data: PolicyUpdate,
+    db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
             "ADMIN",
             "GOVERNMENT_OFFICIAL",
         )
     ),
-    db: Session = Depends(get_db),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
-
-    # -----------------------------------------------------
-    # ARCHIVED POLICY
-    # -----------------------------------------------------
-
-    if policy.status == "ARCHIVED":
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Archived policies cannot be updated. " "Restore the policy first."
-            ),
-        )
-
-    # -----------------------------------------------------
-    # APPROVED POLICY
-    # -----------------------------------------------------
-
-    # Government officials editing an approved policy
-    # must send it through approval again.
-    if (
-        policy.status == "APPROVED"
-        and str(current_user.role).strip().upper() != "ADMIN"
-    ):
-        policy.status = "DRAFT"
-        policy.approved_by = None
 
     return update_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
         data=data,
+        current_user=current_user,
     )
 
 
-# =========================================================
-# DELETE POLICY
-# =========================================================
+# ============================================================
+# DIRECT PERMANENT DELETE
+#
+# ADMIN ONLY
+#
+# This bypasses request workflow.
+# Use only for direct administrative deletion.
+# ============================================================
 
 
 @router.delete(
     "/{policy_id}",
 )
-def delete_policy_api(
+def delete_policy_route(
     policy_id: int,
-    current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
 
     delete_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
+        current_user=current_user,
     )
 
-    return {
-        "message": "Policy deleted successfully",
-        "policy_id": policy_id,
-    }
+    return {"message": "Policy deleted successfully."}
 
 
-# =========================================================
-# SUBMIT FOR APPROVAL
-# =========================================================
+# ============================================================
+# SUBMIT POLICY
+#
+# ADMIN + GOVERNMENT OFFICIAL
+#
+# DRAFT / REJECTED -> PENDING_APPROVAL
+# ============================================================
 
 
 @router.post(
     "/{policy_id}/submit",
     response_model=PolicyResponse,
 )
-def submit_policy_api(
+def submit_policy_route(
     policy_id: int,
+    db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
             "ADMIN",
             "GOVERNMENT_OFFICIAL",
         )
     ),
-    db: Session = Depends(get_db),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
 
     return submit_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
+        current_user=current_user,
     )
 
 
-# =========================================================
-# APPROVE
-# =========================================================
+# ============================================================
+# APPROVE POLICY
+#
+# ADMIN ONLY
+#
+# PENDING_APPROVAL -> APPROVED
+# ============================================================
 
 
 @router.post(
     "/{policy_id}/approve",
     response_model=PolicyResponse,
 )
-def approve_policy_api(
+def approve_policy_route(
     policy_id: int,
-    current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
 
     return approve_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
         current_user=current_user,
     )
 
 
-# =========================================================
-# REJECT
-# =========================================================
+# ============================================================
+# REJECT POLICY
+#
+# ADMIN ONLY
+#
+# PENDING_APPROVAL -> REJECTED
+# ============================================================
 
 
 @router.post(
     "/{policy_id}/reject",
     response_model=PolicyResponse,
 )
-def reject_policy_api(
+def reject_policy_route(
     policy_id: int,
     data: PolicyRejectRequest,
-    current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
 
     return reject_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
         reason=data.reason,
+        current_user=current_user,
     )
 
 
-# =========================================================
-# ARCHIVE
-# =========================================================
+# ============================================================
+# REQUEST ARCHIVE
+#
+# GOVERNMENT OFFICIAL ONLY
+#
+# APPROVED -> ARCHIVE_REQUESTED
+# ============================================================
 
 
 @router.post(
-    "/{policy_id}/archive",
+    "/{policy_id}/request-archive",
     response_model=PolicyResponse,
 )
-def archive_policy_api(
+def request_archive_policy_route(
     policy_id: int,
-    current_user: User = Depends(require_roles("ADMIN")),
+    data: PolicyArchiveRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
 
-    policy = get_policy(
+    return request_archive_policy(
         db=db,
         policy_id=policy_id,
+        reason=data.reason,
+        current_user=current_user,
     )
 
-    return archive_policy(
+
+# ============================================================
+# APPROVE ARCHIVE
+#
+# ADMIN ONLY
+#
+# ARCHIVE_REQUESTED -> ARCHIVED
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/approve-archive",
+    response_model=PolicyResponse,
+)
+def approve_archive_policy_route(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    return approve_archive_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
+        current_user=current_user,
     )
 
 
-# =========================================================
-# RESTORE
-# =========================================================
+# ============================================================
+# REJECT ARCHIVE
+#
+# ADMIN ONLY
+#
+# ARCHIVE_REQUESTED -> APPROVED
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/reject-archive",
+    response_model=PolicyResponse,
+)
+def reject_archive_policy_route(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    return reject_archive_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+
+# ============================================================
+# RESTORE POLICY
+#
+# ADMIN ONLY
+#
+# ARCHIVED -> APPROVED
+# ============================================================
 
 
 @router.post(
     "/{policy_id}/restore",
     response_model=PolicyResponse,
 )
-def restore_policy_api(
+def restore_policy_route(
     policy_id: int,
-    current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-
-    policy = get_policy(
-        db=db,
-        policy_id=policy_id,
-    )
 
     return restore_policy(
         db=db,
-        policy=policy,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+
+# ============================================================
+# REQUEST DELETE
+#
+# GOVERNMENT OFFICIAL ONLY
+#
+# APPROVED / ARCHIVED -> DELETE_REQUESTED
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/request-delete",
+    response_model=PolicyResponse,
+)
+def request_delete_policy_route(
+    policy_id: int,
+    data: PolicyDeleteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+
+    return request_delete_policy(
+        db=db,
+        policy_id=policy_id,
+        reason=data.reason,
+        current_user=current_user,
+    )
+
+
+# ============================================================
+# APPROVE DELETE
+#
+# ADMIN ONLY
+#
+# DELETE_REQUESTED -> PERMANENT DELETE
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/approve-delete",
+)
+def approve_delete_policy_route(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    approve_delete_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+    return {
+        "message": (
+            "Policy deletion approved and " "policy permanently deleted."
+        )
+    }
+
+
+# ============================================================
+# REJECT DELETE
+#
+# ADMIN ONLY
+#
+# DELETE_REQUESTED -> PREVIOUS STATUS
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/reject-delete",
+    response_model=PolicyResponse,
+)
+def reject_delete_policy_route(
+    policy_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    return reject_delete_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
     )

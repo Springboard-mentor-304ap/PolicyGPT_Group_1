@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,6 +9,8 @@ SchemeStatus = Literal[
     "APPROVED",
     "REJECTED",
     "ARCHIVED",
+    "ARCHIVE_REQUESTED",
+    "DELETE_REQUESTED",
 ]
 
 
@@ -45,7 +47,7 @@ class SchemeCreate(BaseModel):
         max_length=100,
     )
 
-    benefits: str | None = None
+    benefits: list[str] | None = None
 
     documents_required: str | None = None
 
@@ -54,6 +56,8 @@ class SchemeCreate(BaseModel):
     application_url: str | None = None
 
     source_url: str | None = None
+
+    eligibility_rules: list[dict[str, Any]] | None = None
 
 
 class SchemeUpdate(BaseModel):
@@ -89,7 +93,7 @@ class SchemeUpdate(BaseModel):
         max_length=100,
     )
 
-    benefits: str | None = None
+    benefits: list[str] | None = None
 
     documents_required: str | None = None
 
@@ -99,17 +103,37 @@ class SchemeUpdate(BaseModel):
 
     source_url: str | None = None
 
+    eligibility_rules: list[dict[str, Any]] | None = None
+
 
 class SchemeRejectRequest(BaseModel):
     reason: str = Field(
         ...,
         min_length=1,
-        max_length=1000,
+        max_length=2000,
+    )
+
+
+class SchemeArchiveRequest(BaseModel):
+    reason: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+    )
+
+
+class SchemeDeleteRequest(BaseModel):
+    reason: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
     )
 
 
 class SchemeResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
 
     scheme_id: int
 
@@ -125,7 +149,7 @@ class SchemeResponse(BaseModel):
 
     state: str | None
 
-    benefits: str | None
+    benefits: list[str] | None
 
     documents_required: str | None
 
@@ -137,7 +161,27 @@ class SchemeResponse(BaseModel):
 
     status: SchemeStatus
 
+    eligibility_rules: list[dict[str, Any]] | None
+
     created_by: int | None
+
+    approved_by: int | None
+
+    rejection_reason: str | None
+
+    archive_reason: str | None
+
+    archive_requested_by: int | None
+
+    archive_requested_at: datetime | None
+
+    delete_reason: str | None
+
+    delete_requested_by: int | None
+
+    delete_requested_at: datetime | None
+
+    delete_requested_from_status: str | None
 
     created_at: datetime
 

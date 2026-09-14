@@ -5,29 +5,43 @@ from fastapi import (
     Query,
     status,
 )
+
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import (
     get_current_user,
     require_roles,
 )
+
 from app.db.database import get_db
 from app.models.user import User
+
 from app.schemas.scheme import (
+    SchemeArchiveRequest,
     SchemeCreate,
+    SchemeDeleteRequest,
     SchemeListResponse,
     SchemeRejectRequest,
     SchemeResponse,
     SchemeUpdate,
 )
+
 from app.services.scheme_service import (
+    approve_archive_scheme,
+    approve_delete_scheme,
     approve_scheme,
     archive_scheme,
     create_scheme,
     delete_scheme,
+    get_archive_requests,
+    get_delete_requests,
     get_pending_schemes,
     get_scheme,
+    reject_archive_scheme,
+    reject_delete_scheme,
     reject_scheme,
+    request_archive_scheme,
+    request_delete_scheme,
     restore_scheme,
     search_schemes,
     submit_scheme,
@@ -38,11 +52,6 @@ router = APIRouter(
     prefix="/schemes",
     tags=["Schemes"],
 )
-
-
-# =========================================================
-# CREATE
-# =========================================================
 
 
 @router.post(
@@ -60,17 +69,11 @@ def create_scheme_api(
         )
     ),
 ):
-
     return create_scheme(
         db=db,
         data=data,
         user_id=current_user.user_id,
     )
-
-
-# =========================================================
-# GET ALL / SEARCH
-# =========================================================
 
 
 @router.get(
@@ -102,13 +105,11 @@ def list_schemes(
 
     role = current_user.role.upper()
 
-    # Public roles can only see APPROVED
     if role in {
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
     }:
-
         status_filter = "APPROVED"
 
     return search_schemes(
@@ -125,12 +126,6 @@ def list_schemes(
     )
 
 
-# =========================================================
-# PENDING APPROVAL
-# IMPORTANT: BEFORE /{scheme_id}
-# =========================================================
-
-
 @router.get(
     "/pending-approval",
     response_model=list[SchemeResponse],
@@ -139,13 +134,29 @@ def pending_approval(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-
     return get_pending_schemes(db)
 
 
-# =========================================================
-# GET ONE
-# =========================================================
+@router.get(
+    "/archive-requests",
+    response_model=list[SchemeResponse],
+)
+def archive_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_archive_requests(db)
+
+
+@router.get(
+    "/delete-requests",
+    response_model=list[SchemeResponse],
+)
+def delete_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_delete_requests(db)
 
 
 @router.get(
@@ -171,12 +182,12 @@ def get_scheme_api(
 
     role = current_user.role.upper()
 
-    # Public users can only see APPROVED
     if role in {
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
     }:
+
         if scheme.status != "APPROVED":
             raise HTTPException(
                 status_code=404,
@@ -184,11 +195,6 @@ def get_scheme_api(
             )
 
     return scheme
-
-
-# =========================================================
-# UPDATE
-# =========================================================
 
 
 @router.put(
@@ -218,24 +224,23 @@ def update_scheme_api(
             detail="Scheme not found",
         )
 
-    # Government Official editing an approved scheme
-    # sends it back to draft.
-    if (
-        current_user.role.upper() == "GOVERNMENT_OFFICIAL"
-        and scheme.status == "APPROVED"
-    ):
-        scheme.status = "DRAFT"
+    if scheme.status not in {
+        "DRAFT",
+        "REJECTED",
+        "ARCHIVED",
+    }:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Only DRAFT, REJECTED, or ARCHIVED " "schemes can be edited."
+            ),
+        )
 
     return update_scheme(
         db=db,
         scheme=scheme,
         data=data,
     )
-
-
-# =========================================================
-# DELETE
-# =========================================================
 
 
 @router.delete(
@@ -266,11 +271,6 @@ def delete_scheme_api(
     return {"message": "Scheme deleted successfully"}
 
 
-# =========================================================
-# SUBMIT
-# =========================================================
-
-
 @router.post(
     "/{scheme_id}/submit",
     response_model=SchemeResponse,
@@ -298,23 +298,16 @@ def submit_scheme_api(
         )
 
     try:
-
         return submit_scheme(
             db,
             scheme,
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
-
-
-# =========================================================
-# APPROVE
-# =========================================================
 
 
 @router.post(
@@ -339,23 +332,17 @@ def approve_scheme_api(
         )
 
     try:
-
         return approve_scheme(
             db,
             scheme,
+            current_user.user_id,
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
-
-
-# =========================================================
-# REJECT
-# =========================================================
 
 
 @router.post(
@@ -381,25 +368,17 @@ def reject_scheme_api(
         )
 
     try:
-
-        # Reason is validated by Pydantic.
-        # Current DB has no rejection_reason column.
         return reject_scheme(
             db,
             scheme,
+            data.reason,
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
-
-
-# =========================================================
-# ARCHIVE
-# =========================================================
 
 
 @router.post(
@@ -424,23 +403,121 @@ def archive_scheme_api(
         )
 
     try:
-
         return archive_scheme(
             db,
             scheme,
         )
 
     except ValueError as exc:
-
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         )
 
 
-# =========================================================
-# RESTORE
-# =========================================================
+@router.post(
+    "/{scheme_id}/request-archive",
+    response_model=SchemeResponse,
+)
+def request_archive_scheme_api(
+    scheme_id: int,
+    data: SchemeArchiveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        return request_archive_scheme(
+            db=db,
+            scheme=scheme,
+            user_id=current_user.user_id,
+            reason=data.reason,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{scheme_id}/approve-archive",
+    response_model=SchemeResponse,
+)
+def approve_archive_scheme_api(
+    scheme_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        return approve_archive_scheme(
+            db,
+            scheme,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{scheme_id}/reject-archive",
+    response_model=SchemeResponse,
+)
+def reject_archive_scheme_api(
+    scheme_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        return reject_archive_scheme(
+            db,
+            scheme,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
 
 
 @router.post(
@@ -465,14 +542,122 @@ def restore_scheme_api(
         )
 
     try:
-
         return restore_scheme(
             db,
             scheme,
         )
 
     except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
 
+
+@router.post(
+    "/{scheme_id}/request-delete",
+    response_model=SchemeResponse,
+)
+def request_delete_scheme_api(
+    scheme_id: int,
+    data: SchemeDeleteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        return request_delete_scheme(
+            db=db,
+            scheme=scheme,
+            user_id=current_user.user_id,
+            reason=data.reason,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{scheme_id}/approve-delete",
+)
+def approve_delete_scheme_api(
+    scheme_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        approve_delete_scheme(
+            db,
+            scheme,
+        )
+
+        return {
+            "message": (
+                "Scheme deletion approved " "and scheme permanently deleted."
+            )
+        }
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+
+@router.post(
+    "/{scheme_id}/reject-delete",
+    response_model=SchemeResponse,
+)
+def reject_delete_scheme_api(
+    scheme_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    try:
+        return reject_delete_scheme(
+            db,
+            scheme,
+        )
+
+    except ValueError as exc:
         raise HTTPException(
             status_code=400,
             detail=str(exc),

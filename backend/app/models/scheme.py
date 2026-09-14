@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -10,6 +11,7 @@ class Scheme(Base):
     __tablename__ = "schemes"
 
     scheme_id: Mapped[int] = mapped_column(
+        BigInteger,
         primary_key=True,
         autoincrement=True,
     )
@@ -44,8 +46,8 @@ class Scheme(Base):
         nullable=True,
     )
 
-    benefits: Mapped[str | None] = mapped_column(
-        Text,
+    benefits: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
         nullable=True,
     )
 
@@ -75,8 +77,62 @@ class Scheme(Base):
         default="DRAFT",
     )
 
+    eligibility_rules: Mapped[list | None] = mapped_column(
+        JSONB,
+        nullable=True,
+    )
+
     created_by: Mapped[int | None] = mapped_column(
+        BigInteger,
         ForeignKey("users.user_id"),
+        nullable=True,
+    )
+
+    approved_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("users.user_id"),
+        nullable=True,
+    )
+
+    rejection_reason: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    archive_reason: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    archive_requested_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("users.user_id"),
+        nullable=True,
+    )
+
+    archive_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    delete_reason: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    delete_requested_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("users.user_id"),
+        nullable=True,
+    )
+
+    delete_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    delete_requested_from_status: Mapped[str | None] = mapped_column(
+        String(30),
         nullable=True,
     )
 

@@ -7,18 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.models.scheme import Scheme
 
-# =========================================================
-# CURRENT TIME
-# =========================================================
-
 
 def current_time() -> datetime:
     return datetime.utcnow()
-
-
-# =========================================================
-# CREATE
-# =========================================================
 
 
 def create_scheme(
@@ -27,11 +18,9 @@ def create_scheme(
     user_id: int,
 ) -> Scheme:
 
-    # -----------------------------------------------------
-    # NORMALIZE VALUES
-    # -----------------------------------------------------
-
     name = data.name.strip()
+    description = data.description.strip()
+    category = data.category.strip()
 
     ministry = (
         data.ministry.strip()
@@ -47,38 +36,24 @@ def create_scheme(
 
     state = data.state.strip() if data.state and data.state.strip() else None
 
-    # -----------------------------------------------------
-    # DUPLICATE CHECK
-    #
-    # Same:
-    # name + ministry + department + state
-    #
-    # is considered duplicate.
-    # -----------------------------------------------------
-
     query = db.query(Scheme).filter(Scheme.name.ilike(name))
 
-    # Ministry
     if ministry is None:
         query = query.filter(Scheme.ministry.is_(None))
     else:
         query = query.filter(Scheme.ministry.ilike(ministry))
 
-    # Department
     if department is None:
         query = query.filter(Scheme.department.is_(None))
     else:
         query = query.filter(Scheme.department.ilike(department))
 
-    # State
     if state is None:
         query = query.filter(Scheme.state.is_(None))
     else:
         query = query.filter(Scheme.state.ilike(state))
 
-    existing_scheme = query.first()
-
-    if existing_scheme:
+    if query.first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
@@ -87,46 +62,40 @@ def create_scheme(
             ),
         )
 
-    # -----------------------------------------------------
-    # CREATE SCHEME
-    # -----------------------------------------------------
-
     now = current_time()
 
     scheme = Scheme(
         name=name,
-        description=data.description.strip(),
-        category=data.category.strip(),
+        description=description,
+        category=category,
         ministry=ministry,
         department=department,
         state=state,
-        benefits=(
-            data.benefits.strip()
-            if data.benefits and data.benefits.strip()
-            else None
-        ),
+        benefits=data.benefits,
         documents_required=(
             data.documents_required.strip()
-            if (data.documents_required and data.documents_required.strip())
+            if data.documents_required and data.documents_required.strip()
             else None
         ),
         application_process=(
             data.application_process.strip()
-            if (data.application_process and data.application_process.strip())
+            if data.application_process and data.application_process.strip()
             else None
         ),
         application_url=(
             data.application_url.strip()
-            if (data.application_url and data.application_url.strip())
+            if data.application_url and data.application_url.strip()
             else None
         ),
         source_url=(
             data.source_url.strip()
-            if (data.source_url and data.source_url.strip())
+            if data.source_url and data.source_url.strip()
             else None
         ),
+        eligibility_rules=data.eligibility_rules,
         status="DRAFT",
         created_by=user_id,
+        approved_by=None,
         created_at=now,
         updated_at=now,
     )
@@ -135,30 +104,15 @@ def create_scheme(
 
     try:
         db.commit()
+        db.refresh(scheme)
+        return scheme
 
     except IntegrityError:
         db.rollback()
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "A scheme with the same name, ministry, "
-                "department, and state already exists."
-            ),
+            detail="Unable to create scheme.",
         )
-
-    except Exception:
-        db.rollback()
-        raise
-
-    db.refresh(scheme)
-
-    return scheme
-
-
-# =========================================================
-# GET ONE
-# =========================================================
 
 
 def get_scheme(
@@ -169,22 +123,25 @@ def get_scheme(
     return db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first()
 
 
-# =========================================================
-# UPDATE
-# =========================================================
-
-
 def update_scheme(
     db: Session,
     scheme: Scheme,
     data,
 ) -> Scheme:
 
-    update_data = data.model_dump(exclude_unset=True)
+    if scheme.status not in {
+        "DRAFT",
+        "REJECTED",
+        "ARCHIVED",
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only DRAFT, REJECTED, or ARCHIVED " "schemes can be edited."
+            ),
+        )
 
-    # -----------------------------------------------------
-    # DETERMINE FINAL VALUES
-    # -----------------------------------------------------
+    update_data = data.model_dump(exclude_unset=True)
 
     new_name = update_data.get(
         "name",
@@ -206,10 +163,6 @@ def update_scheme(
         scheme.state,
     )
 
-    # -----------------------------------------------------
-    # NORMALIZE
-    # -----------------------------------------------------
-
     if isinstance(new_name, str):
         new_name = new_name.strip()
 
@@ -224,38 +177,27 @@ def update_scheme(
     if isinstance(new_state, str):
         new_state = new_state.strip() if new_state.strip() else None
 
-    # -----------------------------------------------------
-    # DUPLICATE CHECK
-    #
-    # Exclude the current scheme itself.
-    # -----------------------------------------------------
-
     query = db.query(Scheme).filter(
         Scheme.scheme_id != scheme.scheme_id,
         Scheme.name.ilike(new_name),
     )
 
-    # Ministry
     if new_ministry is None:
         query = query.filter(Scheme.ministry.is_(None))
     else:
         query = query.filter(Scheme.ministry.ilike(new_ministry))
 
-    # Department
     if new_department is None:
         query = query.filter(Scheme.department.is_(None))
     else:
         query = query.filter(Scheme.department.ilike(new_department))
 
-    # State
     if new_state is None:
         query = query.filter(Scheme.state.is_(None))
     else:
         query = query.filter(Scheme.state.ilike(new_state))
 
-    existing_scheme = query.first()
-
-    if existing_scheme:
+    if query.first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
@@ -263,10 +205,6 @@ def update_scheme(
                 "department, and state already exists."
             ),
         )
-
-    # -----------------------------------------------------
-    # STORE NORMALIZED VALUES
-    # -----------------------------------------------------
 
     if "name" in update_data:
         update_data["name"] = new_name
@@ -280,14 +218,9 @@ def update_scheme(
     if "state" in update_data:
         update_data["state"] = new_state
 
-    # -----------------------------------------------------
-    # STRIP OTHER TEXT FIELDS
-    # -----------------------------------------------------
-
     text_fields = [
         "description",
         "category",
-        "benefits",
         "documents_required",
         "application_process",
         "application_url",
@@ -295,57 +228,31 @@ def update_scheme(
     ]
 
     for field in text_fields:
-
         if field in update_data:
-
             value = update_data[field]
 
             if isinstance(value, str):
                 update_data[field] = value.strip() if value.strip() else None
 
-    # -----------------------------------------------------
-    # APPLY UPDATE
-    # -----------------------------------------------------
-
     for field, value in update_data.items():
-        setattr(
-            scheme,
-            field,
-            value,
-        )
+        setattr(scheme, field, value)
+
+    if scheme.status == "ARCHIVED":
+        scheme.status = "DRAFT"
 
     scheme.updated_at = current_time()
 
-    # -----------------------------------------------------
-    # SAVE
-    # -----------------------------------------------------
-
     try:
         db.commit()
+        db.refresh(scheme)
+        return scheme
 
     except IntegrityError:
         db.rollback()
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Another scheme with the same name, ministry, "
-                "department, and state already exists."
-            ),
+            detail="Unable to update scheme.",
         )
-
-    except Exception:
-        db.rollback()
-        raise
-
-    db.refresh(scheme)
-
-    return scheme
-
-
-# =========================================================
-# DELETE
-# =========================================================
 
 
 def delete_scheme(
@@ -363,16 +270,10 @@ def delete_scheme(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                "This scheme cannot be deleted because it "
-                "is referenced by other records. "
-                "Archive it instead."
+                "This scheme cannot be permanently deleted "
+                "because it is referenced by other records."
             ),
         )
-
-
-# =========================================================
-# SUBMIT
-# =========================================================
 
 
 def submit_scheme(
@@ -387,6 +288,9 @@ def submit_scheme(
         raise ValueError("Only DRAFT or REJECTED schemes " "can be submitted.")
 
     scheme.status = "PENDING_APPROVAL"
+
+    scheme.rejection_reason = None
+
     scheme.updated_at = current_time()
 
     db.commit()
@@ -395,53 +299,48 @@ def submit_scheme(
     return scheme
 
 
-# =========================================================
-# APPROVE
-# =========================================================
-
-
 def approve_scheme(
     db: Session,
     scheme: Scheme,
+    admin_user_id: int,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
         raise ValueError("Only PENDING_APPROVAL schemes " "can be approved.")
 
     scheme.status = "APPROVED"
+    scheme.approved_by = admin_user_id
+    scheme.rejection_reason = None
     scheme.updated_at = current_time()
 
     db.commit()
     db.refresh(scheme)
 
     return scheme
-
-
-# =========================================================
-# REJECT
-# =========================================================
 
 
 def reject_scheme(
     db: Session,
     scheme: Scheme,
+    reason: str,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
         raise ValueError("Only PENDING_APPROVAL schemes " "can be rejected.")
 
+    reason = reason.strip()
+
+    if not reason:
+        raise ValueError("Rejection reason is required.")
+
     scheme.status = "REJECTED"
+    scheme.rejection_reason = reason
     scheme.updated_at = current_time()
 
     db.commit()
     db.refresh(scheme)
 
     return scheme
-
-
-# =========================================================
-# ARCHIVE
-# =========================================================
 
 
 def archive_scheme(
@@ -453,6 +352,11 @@ def archive_scheme(
         raise ValueError("Only APPROVED schemes can be archived.")
 
     scheme.status = "ARCHIVED"
+
+    scheme.archive_reason = None
+    scheme.archive_requested_by = None
+    scheme.archive_requested_at = None
+
     scheme.updated_at = current_time()
 
     db.commit()
@@ -461,9 +365,92 @@ def archive_scheme(
     return scheme
 
 
-# =========================================================
-# RESTORE
-# =========================================================
+def request_archive_scheme(
+    db: Session,
+    scheme: Scheme,
+    user_id: int,
+    reason: str,
+) -> Scheme:
+
+    if scheme.status != "APPROVED":
+        raise ValueError(
+            "Only APPROVED schemes can have " "an archive request."
+        )
+
+    reason = reason.strip()
+
+    if not reason:
+        raise ValueError("Archive reason is required.")
+
+    scheme.status = "ARCHIVE_REQUESTED"
+
+    scheme.archive_reason = reason
+    scheme.archive_requested_by = user_id
+    scheme.archive_requested_at = current_time()
+
+    scheme.updated_at = current_time()
+
+    db.commit()
+    db.refresh(scheme)
+
+    return scheme
+
+
+def get_archive_requests(
+    db: Session,
+):
+
+    return (
+        db.query(Scheme)
+        .filter(Scheme.status == "ARCHIVE_REQUESTED")
+        .order_by(Scheme.scheme_id.desc())
+        .all()
+    )
+
+
+def approve_archive_scheme(
+    db: Session,
+    scheme: Scheme,
+) -> Scheme:
+
+    if scheme.status != "ARCHIVE_REQUESTED":
+        raise ValueError(
+            "Only ARCHIVE_REQUESTED schemes " "can be approved for archive."
+        )
+
+    scheme.status = "ARCHIVED"
+
+    scheme.updated_at = current_time()
+
+    db.commit()
+    db.refresh(scheme)
+
+    return scheme
+
+
+def reject_archive_scheme(
+    db: Session,
+    scheme: Scheme,
+) -> Scheme:
+
+    if scheme.status != "ARCHIVE_REQUESTED":
+        raise ValueError(
+            "Only ARCHIVE_REQUESTED schemes "
+            "can have their archive request rejected."
+        )
+
+    scheme.status = "APPROVED"
+
+    scheme.archive_reason = None
+    scheme.archive_requested_by = None
+    scheme.archive_requested_at = None
+
+    scheme.updated_at = current_time()
+
+    db.commit()
+    db.refresh(scheme)
+
+    return scheme
 
 
 def restore_scheme(
@@ -475,6 +462,7 @@ def restore_scheme(
         raise ValueError("Only ARCHIVED schemes can be restored.")
 
     scheme.status = "APPROVED"
+
     scheme.updated_at = current_time()
 
     db.commit()
@@ -483,9 +471,112 @@ def restore_scheme(
     return scheme
 
 
-# =========================================================
-# SEARCH / FILTER
-# =========================================================
+def request_delete_scheme(
+    db: Session,
+    scheme: Scheme,
+    user_id: int,
+    reason: str,
+) -> Scheme:
+
+    if scheme.status not in {
+        "APPROVED",
+        "ARCHIVED",
+    }:
+        raise ValueError(
+            "Only APPROVED or ARCHIVED schemes " "can have a delete request."
+        )
+
+    reason = reason.strip()
+
+    if not reason:
+        raise ValueError("Delete reason is required.")
+
+    scheme.delete_requested_from_status = scheme.status
+
+    scheme.status = "DELETE_REQUESTED"
+
+    scheme.delete_reason = reason
+    scheme.delete_requested_by = user_id
+    scheme.delete_requested_at = current_time()
+
+    scheme.updated_at = current_time()
+
+    db.commit()
+    db.refresh(scheme)
+
+    return scheme
+
+
+def get_delete_requests(
+    db: Session,
+):
+
+    return (
+        db.query(Scheme)
+        .filter(Scheme.status == "DELETE_REQUESTED")
+        .order_by(Scheme.scheme_id.desc())
+        .all()
+    )
+
+
+def approve_delete_scheme(
+    db: Session,
+    scheme: Scheme,
+) -> None:
+
+    if scheme.status != "DELETE_REQUESTED":
+        raise ValueError(
+            "Only DELETE_REQUESTED schemes " "can be permanently deleted."
+        )
+
+    try:
+        db.delete(scheme)
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "This scheme cannot be permanently deleted "
+                "because it is referenced by other records."
+            ),
+        )
+
+
+def reject_delete_scheme(
+    db: Session,
+    scheme: Scheme,
+) -> Scheme:
+
+    if scheme.status != "DELETE_REQUESTED":
+        raise ValueError(
+            "Only DELETE_REQUESTED schemes "
+            "can have their delete request rejected."
+        )
+
+    previous_status = scheme.delete_requested_from_status
+
+    if previous_status not in {
+        "APPROVED",
+        "ARCHIVED",
+    }:
+        raise ValueError("Previous scheme status is invalid.")
+
+    scheme.status = previous_status
+
+    scheme.delete_reason = None
+    scheme.delete_requested_by = None
+    scheme.delete_requested_at = None
+    scheme.delete_requested_from_status = None
+
+    scheme.updated_at = current_time()
+
+    db.commit()
+    db.refresh(scheme)
+
+    return scheme
 
 
 def search_schemes(
@@ -503,12 +594,7 @@ def search_schemes(
 
     query = db.query(Scheme)
 
-    # -----------------------------------------------------
-    # KEYWORD
-    # -----------------------------------------------------
-
     if keyword:
-
         search = f"%{keyword.strip()}%"
 
         query = query.filter(
@@ -519,15 +605,10 @@ def search_schemes(
                 Scheme.ministry.ilike(search),
                 Scheme.department.ilike(search),
                 Scheme.state.ilike(search),
-                Scheme.benefits.ilike(search),
                 Scheme.documents_required.ilike(search),
                 Scheme.application_process.ilike(search),
             )
         )
-
-    # -----------------------------------------------------
-    # FILTERS
-    # -----------------------------------------------------
 
     if category:
         query = query.filter(Scheme.category.ilike(category.strip()))
@@ -547,15 +628,7 @@ def search_schemes(
     elif not include_archived:
         query = query.filter(Scheme.status != "ARCHIVED")
 
-    # -----------------------------------------------------
-    # TOTAL
-    # -----------------------------------------------------
-
     total = query.count()
-
-    # -----------------------------------------------------
-    # PAGINATION
-    # -----------------------------------------------------
 
     offset = (page - 1) * limit
 
@@ -575,11 +648,6 @@ def search_schemes(
         "pages": pages,
         "schemes": schemes,
     }
-
-
-# =========================================================
-# PENDING APPROVAL
-# =========================================================
 
 
 def get_pending_schemes(

@@ -1,0 +1,21 @@
+<div class="search-container">
+  <h2 class="search-title">{{ title }}</h2>
+  
+  <div class="search-input-group">
+    <input
+      type="text"
+      class="search-input"
+      [(ngModel)]="searchQuery"
+      [placeholder]="placeholder"
+      (keyup.enter)="onSearch()"
+    />
+    <button type="button" class="search-button" (click)="onSearch()">
+      Search
+    </button>
+  </div>
+
+  <!-- Content slot for search results passed by parent -->
+  <div class="search-results">
+    <ng-content></ng-content>
+  </div>
+</div>

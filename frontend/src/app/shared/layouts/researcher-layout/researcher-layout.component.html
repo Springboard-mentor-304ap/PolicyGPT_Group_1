@@ -27,7 +27,7 @@
             </button>
 
             <!-- LOGO -->
-            <a routerLink="/dashboard/user-dashboard" class="dash-topbar__logo-link"
+            <a routerLink="/dashboard/researcher" class="dash-topbar__logo-link"
                 aria-label="PolicyGPT Researcher Dashboard" (click)="closeMobileMenu()">
                 <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
             </a>
@@ -113,7 +113,7 @@
 
             <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{
-            exact: item.route === '/dashboard/user-dashboard'
+            exact: item.route === '/dashboard/researcher'
           }" (click)="closeMobileMenu()" [attr.title]="
             sidebarCollapsed
               ? item.label
@@ -142,7 +142,7 @@
 
             <!-- PROFILE -->
 
-            <a routerLink="/dashboard/user-dashboard/profile" routerLinkActive="dash-nav__item--active"
+            <a routerLink="/dashboard/researcher/profile" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{
           exact: true
         }" class="dash-nav__item" (click)="closeMobileMenu()" [attr.title]="

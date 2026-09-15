@@ -100,8 +100,7 @@
       </div>
 
       <div class="card-right">
-        <!-- UPDATED: Using RouterLink -->
-        <a [routerLink]="['/policies', policy.id]" class="btn-view-details">
+        <a [routerLink]="[policy.id]" class="btn-view-details">
           View Details
         </a>
         <button type="button" class="btn-bookmark" (click)="toggleBookmark(policy)" [title]="policy.isBookmarked ? 'Remove Bookmark' : 'Bookmark'">

@@ -1,12 +1,12 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Component, inject } from "@angular/core";
+import { CommonModule, Location } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, Router } from "@angular/router";
 
 interface CompareItem {
   id: number;
   title: string;
-  type: 'Policy' | 'Scheme';
+  type: "Policy" | "Scheme";
   ministry: string;
   category: string;
   state: string;
@@ -14,127 +14,143 @@ interface CompareItem {
 }
 
 @Component({
-  selector: 'app-compare-selection',
+  selector: "app-compare-selection",
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './compare-selection.component.html',
-  styleUrls: ['./compare-selection.component.scss']
+  templateUrl: "./compare-selection.component.html",
+  styleUrls: ["./compare-selection.component.scss"],
 })
 export class CompareSelectionComponent {
   private readonly location = inject(Location);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   selectedItem1: CompareItem | null = null;
   selectedItem2: CompareItem | null = null;
   selectedItem3: CompareItem | null = null;
 
-  searchItem1 = '';
-  searchItem2 = '';
-  searchItem3 = '';
+  searchItem1 = "";
+  searchItem2 = "";
+  searchItem3 = "";
 
   allItems: CompareItem[] = [
-    // Policies
+    // =======================================================
+    // POLICIES
+    // =======================================================
+
     {
       id: 1,
-      title: 'National Education Policy 2020',
-      type: 'Policy',
-      ministry: 'Ministry of Education',
-      category: 'Education',
-      state: 'Central',
-      targetGroup: 'Students'
-    },
-    {
-      id: 2,
-      title: 'National Health Policy 2017',
-      type: 'Policy',
-      ministry: 'Ministry of Health & Family Welfare',
-      category: 'Health',
-      state: 'Central',
-      targetGroup: 'Citizens'
-    },
-    {
-      id: 3,
-      title: 'National Policy on Skill Development and Entrepreneurship 2015',
-      type: 'Policy',
-      ministry: 'Ministry of Skill Development & Entrepreneurship',
-      category: 'Skill Development',
-      state: 'Central',
-      targetGroup: 'Youth & Entrepreneurs'
-    },
-    {
-      id: 4,
-      title: 'National Agriculture Policy',
-      type: 'Policy',
-      ministry: 'Ministry of Agriculture & Farmers Welfare',
-      category: 'Agriculture',
-      state: 'Central',
-      targetGroup: 'Farmers'
+      title: "National Education Policy 2020",
+      type: "Policy",
+      ministry: "Ministry of Education",
+      category: "Education",
+      state: "Central",
+      targetGroup: "Students",
     },
 
-    // Schemes
+    {
+      id: 2,
+      title: "National Health Policy 2017",
+      type: "Policy",
+      ministry: "Ministry of Health & Family Welfare",
+      category: "Health",
+      state: "Central",
+      targetGroup: "Citizens",
+    },
+
+    {
+      id: 3,
+      title: "National Policy on Skill Development and Entrepreneurship 2015",
+      type: "Policy",
+      ministry: "Ministry of Skill Development & Entrepreneurship",
+      category: "Skill Development",
+      state: "Central",
+      targetGroup: "Youth & Entrepreneurs",
+    },
+
+    {
+      id: 4,
+      title: "National Agriculture Policy",
+      type: "Policy",
+      ministry: "Ministry of Agriculture & Farmers Welfare",
+      category: "Agriculture",
+      state: "Central",
+      targetGroup: "Farmers",
+    },
+
+    // =======================================================
+    // SCHEMES
+    // =======================================================
+
     {
       id: 101,
-      title: 'PM Kisan Samman Nidhi',
-      type: 'Scheme',
-      ministry: 'Ministry of Agriculture & Farmers Welfare',
-      category: 'Agriculture',
-      state: 'Central',
-      targetGroup: 'Farmers'
+      title: "PM Kisan Samman Nidhi",
+      type: "Scheme",
+      ministry: "Ministry of Agriculture & Farmers Welfare",
+      category: "Agriculture",
+      state: "Central",
+      targetGroup: "Farmers",
     },
+
     {
       id: 102,
-      title: 'PM Surya Ghar Muft Bijli Yojana',
-      type: 'Scheme',
-      ministry: 'Ministry of New & Renewable Energy',
-      category: 'Energy',
-      state: 'Central',
-      targetGroup: 'Citizens'
+      title: "PM Surya Ghar Muft Bijli Yojana",
+      type: "Scheme",
+      ministry: "Ministry of New & Renewable Energy",
+      category: "Energy",
+      state: "Central",
+      targetGroup: "Citizens",
     },
+
     {
       id: 103,
-      title: 'Post Matric Scholarship Scheme',
-      type: 'Scheme',
-      ministry: 'Ministry of Health & Family Welfare',
-      category: 'Education',
-      state: 'Central',
-      targetGroup: 'Students'
+      title: "Post Matric Scholarship Scheme",
+      type: "Scheme",
+      ministry: "Ministry of Health & Family Welfare",
+      category: "Education",
+      state: "Central",
+      targetGroup: "Students",
     },
+
     {
       id: 104,
-      title: 'PM Vishwakarma Yojana',
-      type: 'Scheme',
-      ministry: 'Ministry of Micro, Small & Medium Enterprises',
-      category: 'Skill Development',
-      state: 'Central',
-      targetGroup: 'Youth & Entrepreneurs'
+      title: "PM Vishwakarma Yojana",
+      type: "Scheme",
+      ministry: "Ministry of Micro, Small & Medium Enterprises",
+      category: "Skill Development",
+      state: "Central",
+      targetGroup: "Youth & Entrepreneurs",
     },
+
     {
       id: 105,
-      title: 'Pradhan Mantri Jan Arogya Yojana (PM-JAY)',
-      type: 'Scheme',
-      ministry: 'Ministry of Health & Family Welfare',
-      category: 'Health',
-      state: 'Central',
-      targetGroup: 'Citizens'
+      title: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+      type: "Scheme",
+      ministry: "Ministry of Health & Family Welfare",
+      category: "Health",
+      state: "Central",
+      targetGroup: "Citizens",
     },
+
     {
       id: 106,
-      title: 'Pradhan Mantri Jan Dhan Yojana',
-      type: 'Scheme',
-      ministry: 'Ministry of Finance',
-      category: 'Financial Services',
-      state: 'Central',
-      targetGroup: 'Citizens'
+      title: "Pradhan Mantri Jan Dhan Yojana",
+      type: "Scheme",
+      ministry: "Ministry of Finance",
+      category: "Financial Services",
+      state: "Central",
+      targetGroup: "Citizens",
     },
+
     {
       id: 107,
-      title: 'Pradhan Mantri Awas Yojana',
-      type: 'Scheme',
-      ministry: 'Ministry of Housing and Urban Affairs',
-      category: 'Housing',
-      state: 'Central',
-      targetGroup: 'Citizens'
-    }
+      title: "Pradhan Mantri Awas Yojana",
+      type: "Scheme",
+      ministry: "Ministry of Housing and Urban Affairs",
+      category: "Housing",
+      state: "Central",
+      targetGroup: "Citizens",
+    },
   ];
 
   get filteredItem1(): CompareItem[] {
@@ -156,11 +172,12 @@ export class CompareSelectionComponent {
       return this.allItems;
     }
 
-    return this.allItems.filter(item =>
-      item.title.toLowerCase().includes(query) ||
-      item.type.toLowerCase().includes(query) ||
-      item.ministry.toLowerCase().includes(query) ||
-      item.category.toLowerCase().includes(query)
+    return this.allItems.filter(
+      (item) =>
+        item.title.toLowerCase().includes(query) ||
+        item.type.toLowerCase().includes(query) ||
+        item.ministry.toLowerCase().includes(query) ||
+        item.category.toLowerCase().includes(query),
     );
   }
 
@@ -181,17 +198,17 @@ export class CompareSelectionComponent {
 
   clearItem1(): void {
     this.selectedItem1 = null;
-    this.searchItem1 = '';
+    this.searchItem1 = "";
   }
 
   clearItem2(): void {
     this.selectedItem2 = null;
-    this.searchItem2 = '';
+    this.searchItem2 = "";
   }
 
   clearItem3(): void {
     this.selectedItem3 = null;
-    this.searchItem3 = '';
+    this.searchItem3 = "";
   }
 
   canCompare(): boolean {
@@ -206,13 +223,19 @@ export class CompareSelectionComponent {
     const items = [
       this.selectedItem1,
       this.selectedItem2,
-      ...(this.selectedItem3 ? [this.selectedItem3] : [])
+      ...(this.selectedItem3 ? [this.selectedItem3] : []),
     ];
 
-    this.router.navigate(['/compare/results'], {
+    // Navigate relative to:
+    // /dashboard/{role}/compare
+    //
+    // Result:
+    // /dashboard/{role}/compare/results
+    this.router.navigate(["results"], {
+      relativeTo: this.route,
       state: {
-        items
-      }
+        items,
+      },
     });
   }
 

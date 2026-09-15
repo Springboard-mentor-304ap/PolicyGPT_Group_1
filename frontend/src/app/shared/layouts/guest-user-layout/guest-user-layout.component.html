@@ -3,25 +3,24 @@
 
     <!-- =========================================================
        MOBILE OVERLAY
-  ========================================================== -->
+       ========================================================== -->
 
     @if (mobileMenuOpen) {
 
-    <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true">
-    </div>
+    <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
 
     }
 
 
     <!-- =========================================================
        TOPBAR
-  ========================================================== -->
+       ========================================================== -->
 
     <header class="dash-topbar" role="banner">
 
         <!-- =======================================================
          BRAND
-    ======================================================== -->
+         ======================================================== -->
 
         <div class="dash-topbar__brand">
 
@@ -68,7 +67,7 @@
 
         <!-- =======================================================
          SEARCH
-    ======================================================== -->
+         ======================================================== -->
 
         <div class="dash-search">
 
@@ -84,7 +83,7 @@
 
         <!-- =======================================================
          GUEST ACTIONS
-    ======================================================== -->
+         ======================================================== -->
 
         <div class="dash-user">
 
@@ -109,7 +108,7 @@
 
     <!-- =========================================================
        GUEST SIDEBAR
-  ========================================================== -->
+       ========================================================== -->
 
     <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
         [class.dash-sidebar--mobile-open]="mobileMenuOpen">
@@ -118,7 +117,7 @@
 
             <!-- =====================================================
            DASHBOARD
-      ====================================================== -->
+           ====================================================== -->
 
             <a routerLink="/dashboard/guest" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
@@ -140,9 +139,9 @@
 
             <!-- =====================================================
            POLICY SEARCH
-      ====================================================== -->
+           ====================================================== -->
 
-            <a routerLink="/policies" routerLinkActive="dash-nav__item--active"
+            <a routerLink="/dashboard/guest/policies" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
                 [attr.title]="
           sidebarCollapsed ? 'Policy Search' : null
@@ -162,9 +161,9 @@
 
             <!-- =====================================================
            SEARCH SCHEMES
-      ====================================================== -->
+           ====================================================== -->
 
-            <a routerLink="/schemes" routerLinkActive="dash-nav__item--active"
+            <a routerLink="/dashboard/guest/schemes" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
                 [attr.title]="
           sidebarCollapsed ? 'Search Scheme' : null
@@ -184,9 +183,8 @@
 
             <!-- =====================================================
            ELIGIBILITY CHECKER
-           
            LOGIN REQUIRED
-      ====================================================== -->
+           ====================================================== -->
 
             <a href="javascript:void(0)" class="dash-nav__item" (click)="requireLogin('Eligibility Checker')"
                 [attr.title]="
@@ -209,9 +207,8 @@
 
             <!-- =====================================================
            COMPARE
-           
            LOGIN REQUIRED
-      ====================================================== -->
+           ====================================================== -->
 
             <a href="javascript:void(0)" class="dash-nav__item" (click)="requireLogin('Compare')" [attr.title]="
           sidebarCollapsed
@@ -229,37 +226,14 @@
 
             </a>
 
-
-
-            <!-- =====================================================
-           SUPPORT
-      ====================================================== -->
-
-            <a routerLink="/feedback" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
-                [attr.title]="
-          sidebarCollapsed ? 'Support' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    support_agent
-                </span>
-
-                <span class="dash-nav__label">
-                    Support
-                </span>
-
-            </a>
-
         </nav>
 
 
 
         <!-- =======================================================
          SIDEBAR FOOTER
-         
          LOGIN + SIGN UP
-    ======================================================== -->
+         ======================================================== -->
 
         <div class="dash-sidebar__footer">
 
@@ -305,11 +279,13 @@
 
     <!-- =========================================================
        MAIN CONTAINER
-  ========================================================== -->
+       ========================================================== -->
 
     <div class="dash-main-container">
 
         <main class="dash-main">
+
+            <!-- CHILD PAGE RENDERS HERE -->
 
             <router-outlet></router-outlet>
 
@@ -326,7 +302,7 @@
 
     <!-- =========================================================
        LOGIN REQUIRED MODAL
-  ========================================================== -->
+       ========================================================== -->
 
     @if (showLoginMessage) {
 

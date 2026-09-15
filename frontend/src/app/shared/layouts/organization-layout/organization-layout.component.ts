@@ -11,9 +11,7 @@ import {
 } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
-
 import { FooterComponent } from "../../components/footer/footer.component";
-
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 
 /* =========================================================
@@ -46,119 +44,120 @@ export interface OrganizationNavItem {
   ],
 
   templateUrl: "./organization-layout.component.html",
-
   styleUrl: "./organization-layout.component.scss",
 })
 export class OrganizationLayoutComponent implements OnInit {
-  /* =======================================================
-     USER
-     ======================================================= */
+  // =========================================================
+  // USER
+  // =========================================================
 
   user: AuthUser | null = null;
 
   userName = "Organization";
-
   userRole = "ORGANIZATION";
 
-  /* =======================================================
-     SIDEBAR
-     ======================================================= */
+  // =========================================================
+  // SIDEBAR
+  // =========================================================
 
   sidebarCollapsed = false;
-
   mobileMenuOpen = false;
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =========================================================
+  // SEARCH
+  // =========================================================
 
   searchText = "";
 
-  /* =======================================================
-     LOGOUT MODAL
-     ======================================================= */
+  // =========================================================
+  // LOGOUT MODAL
+  // =========================================================
 
   showLogoutModal = false;
 
-  /* =======================================================
-     ORGANIZATION NAVIGATION
-     ======================================================= */
+  // =========================================================
+  // ORGANIZATION NAVIGATION
+  //
+  // IMPORTANT:
+  // All routes stay under /dashboard/organization
+  // so OrganizationLayoutComponent remains active.
+  // =========================================================
 
   navItems: OrganizationNavItem[] = [
     {
       icon: "manage_search",
       label: "Policy Search",
-      route: "/policies",
+      route: "/dashboard/organization/policies",
     },
 
     {
       icon: "account_balance",
       label: "Scheme Search",
-      route: "/schemes",
+      route: "/dashboard/organization/schemes",
     },
 
     {
       icon: "compare_arrows",
       label: "Policy Comparison",
-      route: "/compare",
+      route: "/dashboard/organization/compare",
     },
 
     {
       icon: "analytics",
       label: "Organization Insights",
-      route: "/analytics",
+      route: "/dashboard/organization/analytics",
     },
 
     {
       icon: "bookmark_border",
       label: "Saved Policies",
-      route: "/saved",
+      route: "/dashboard/organization/saved",
     },
 
     {
       icon: "history",
       label: "Research History",
-      route: "/history",
+      route: "/dashboard/organization/history",
     },
 
     {
       icon: "notifications_none",
       label: "Notifications",
-      route: "/notifications",
+      route: "/dashboard/organization/notifications",
     },
 
     {
       icon: "support_agent",
       label: "Support",
-      route: "/feedback",
+      route: "/dashboard/organization/feedback",
     },
   ];
 
-  /* =======================================================
-     CONSTRUCTOR
-     ======================================================= */
+  // =========================================================
+  // CONSTRUCTOR
+  // =========================================================
 
   constructor(
     private readonly authService: Auth,
     private readonly router: Router,
   ) {}
 
-  /* =======================================================
-     INIT
-     ======================================================= */
+  // =========================================================
+  // INIT
+  // =========================================================
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  /* =======================================================
-     LOAD CURRENT USER
-     ======================================================= */
+  // =========================================================
+  // LOAD CURRENT USER
+  // =========================================================
 
   private loadCurrentUser(): void {
-    /* -----------------------------------------------------
-       GET STORED USER
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // GET STORED USER
+    // -------------------------------------------------------
 
     const storedUser: AuthUser | null = this.authService.getStoredUser();
 
@@ -166,9 +165,9 @@ export class OrganizationLayoutComponent implements OnInit {
       this.setUserDetails(storedUser);
     }
 
-    /* -----------------------------------------------------
-       CHECK TOKEN
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // CHECK TOKEN
+    // -------------------------------------------------------
 
     const token = this.authService.getToken();
 
@@ -182,9 +181,9 @@ export class OrganizationLayoutComponent implements OnInit {
       return;
     }
 
-    /* -----------------------------------------------------
-       GET CURRENT USER FROM BACKEND
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // GET CURRENT USER FROM BACKEND
+    // -------------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -215,9 +214,9 @@ export class OrganizationLayoutComponent implements OnInit {
     });
   }
 
-  /* =======================================================
-     SET USER DETAILS
-     ======================================================= */
+  // =========================================================
+  // SET USER DETAILS
+  // =========================================================
 
   private setUserDetails(user: AuthUser): void {
     this.user = user;
@@ -227,14 +226,13 @@ export class OrganizationLayoutComponent implements OnInit {
     this.userRole = user.role?.trim().toUpperCase() || "ORGANIZATION";
   }
 
-  /* =======================================================
-     DISPLAY ROLE
-     ======================================================= */
+  // =========================================================
+  // DISPLAY ROLE
+  // =========================================================
 
   get displayRole(): string {
     switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
       case "ORGANIZATION":
-
       case "ORGANISATION":
         return "Organization";
 
@@ -243,9 +241,9 @@ export class OrganizationLayoutComponent implements OnInit {
     }
   }
 
-  /* =======================================================
-     SIDEBAR TOGGLE
-     ======================================================= */
+  // =========================================================
+  // SIDEBAR TOGGLE
+  // =========================================================
 
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
@@ -257,25 +255,25 @@ export class OrganizationLayoutComponent implements OnInit {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  /* =======================================================
-     OPEN MOBILE MENU
-     ======================================================= */
+  // =========================================================
+  // OPEN MOBILE MENU
+  // =========================================================
 
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
   }
 
-  /* =======================================================
-     CLOSE MOBILE MENU
-     ======================================================= */
+  // =========================================================
+  // CLOSE MOBILE MENU
+  // =========================================================
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  /* =======================================================
-     WINDOW RESIZE
-     ======================================================= */
+  // =========================================================
+  // WINDOW RESIZE
+  // =========================================================
 
   @HostListener("window:resize")
   onWindowResize(): void {
@@ -284,9 +282,9 @@ export class OrganizationLayoutComponent implements OnInit {
     }
   }
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =========================================================
+  // SEARCH
+  // =========================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -295,7 +293,9 @@ export class OrganizationLayoutComponent implements OnInit {
       return;
     }
 
-    this.router.navigate(["/schemes"], {
+    // Keep search inside Organization Layout
+
+    this.router.navigate(["/dashboard/organization/schemes"], {
       queryParams: {
         q: query,
       },
@@ -304,69 +304,67 @@ export class OrganizationLayoutComponent implements OnInit {
     this.closeMobileMenu();
   }
 
-  /* =======================================================
-     CLEAR SEARCH
-     ======================================================= */
+  // =========================================================
+  // CLEAR SEARCH
+  // =========================================================
 
   clearSearch(): void {
     this.searchText = "";
   }
 
-  /* =======================================================
-     LOGOUT
-     ======================================================= */
+  // =========================================================
+  // LOGOUT
+  // =========================================================
 
   logout(): void {
     this.showLogoutModal = true;
   }
 
-  /* =======================================================
-     CONFIRM LOGOUT
-     ======================================================= */
+  // =========================================================
+  // CONFIRM LOGOUT
+  // =========================================================
 
   confirmLogout(): void {
-    /* -----------------------------------------------------
-       CLOSE MODAL
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // CLOSE MODAL
+    // -------------------------------------------------------
 
     this.showLogoutModal = false;
 
-    /* -----------------------------------------------------
-       REMOVE AUTHENTICATION
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // REMOVE AUTHENTICATION
+    // -------------------------------------------------------
 
     this.authService.logout();
 
-    /* -----------------------------------------------------
-       RESET USER
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // RESET USER
+    // -------------------------------------------------------
 
     this.user = null;
 
     this.userName = "Organization";
-
     this.userRole = "ORGANIZATION";
 
-    /* -----------------------------------------------------
-       RESET LAYOUT
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // RESET LAYOUT
+    // -------------------------------------------------------
 
     this.mobileMenuOpen = false;
-
     this.sidebarCollapsed = false;
 
-    /* -----------------------------------------------------
-       REDIRECT TO LOGIN
-       ----------------------------------------------------- */
+    // -------------------------------------------------------
+    // REDIRECT TO LOGIN
+    // -------------------------------------------------------
 
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,
     });
   }
 
-  /* =======================================================
-     CANCEL LOGOUT
-     ======================================================= */
+  // =========================================================
+  // CANCEL LOGOUT
+  // =========================================================
 
   cancelLogout(): void {
     this.showLogoutModal = false;

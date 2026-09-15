@@ -7,18 +7,6 @@ export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
   // ORGANIZATION DASHBOARD
   // =========================================================
-  //
-  // URL:
-  // /dashboard/organization
-  //
-  // Roles:
-  // ORGANIZATION
-  // ORGANISATION
-  //
-  // Layout:
-  // OrganizationLayoutComponent
-  //
-  // =========================================================
 
   {
     path: "organization",
@@ -35,11 +23,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // -------------------------------------------------------
-      // ORGANIZATION HOME
-      // /dashboard/organization
-      // -------------------------------------------------------
-
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -50,11 +34,73 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
-      // PROFILE
-      // /dashboard/organization/profile
-      // -------------------------------------------------------
+      // POLICIES
+      // /dashboard/organization/policies
+      {
+        path: "policies",
 
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      // /dashboard/organization/policies/:id
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      // /dashboard/organization/schemes
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      // /dashboard/organization/schemes/:id
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE SELECTION
+      // /dashboard/organization/compare
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      // /dashboard/organization/compare/results
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
       {
         path: "profile",
 
@@ -64,11 +110,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // EDIT PROFILE
-      // /dashboard/organization/profile/edit
-      // -------------------------------------------------------
-
       {
         path: "profile/edit",
 
@@ -78,11 +120,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // CHANGE PASSWORD
-      // /dashboard/organization/change-password
-      // -------------------------------------------------------
-
       {
         path: "change-password",
 
@@ -96,14 +134,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // CITIZEN DASHBOARD
-  // =========================================================
-  //
-  // URL:
-  // /dashboard/citizen
-  //
-  // Role:
-  // CITIZEN
-  //
   // =========================================================
 
   {
@@ -121,6 +151,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -129,6 +160,73 @@ export const DASHBOARD_ROUTES: Routes = [
           import("./citizen/citizen.component").then((m) => m.CitizenComponent),
       },
 
+      // POLICIES
+      // /dashboard/citizen/policies
+      {
+        path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      // /dashboard/citizen/policies/:id
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      // /dashboard/citizen/schemes
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      // /dashboard/citizen/schemes/:id
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE SELECTION
+      // /dashboard/citizen/compare
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      // /dashboard/citizen/compare/results
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
       {
         path: "profile",
 
@@ -138,6 +236,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // EDIT PROFILE
       {
         path: "profile/edit",
 
@@ -147,6 +246,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // CHANGE PASSWORD
       {
         path: "change-password",
 
@@ -160,16 +260,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // GOVERNMENT DASHBOARD
-  // =========================================================
-  //
-  // URL:
-  // /dashboard/government
-  //
-  // Roles:
-  // GOVERNMENT_OFFICIAL
-  // GOVERNMENT_OFFICER
-  // GOVERNMENT
-  //
   // =========================================================
 
   {
@@ -187,6 +277,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -197,6 +288,67 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // POLICIES
+      {
+        path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
       {
         path: "profile",
 
@@ -206,6 +358,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // EDIT PROFILE
       {
         path: "profile/edit",
 
@@ -215,6 +368,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // CHANGE PASSWORD
       {
         path: "change-password",
 
@@ -228,14 +382,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // ADMIN DASHBOARD
-  // =========================================================
-  //
-  // URL:
-  // /dashboard/admin
-  //
-  // Role:
-  // ADMINISTRATOR
-  //
   // =========================================================
 
   {
@@ -253,10 +399,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // -------------------------------------------------------
-      // ADMIN HOME
-      // -------------------------------------------------------
-
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -265,10 +408,67 @@ export const DASHBOARD_ROUTES: Routes = [
           import("./admin/admin.component").then((m) => m.AdminComponent),
       },
 
-      // -------------------------------------------------------
-      // PROFILE
-      // -------------------------------------------------------
+      // POLICIES
+      {
+        path: "policies",
 
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
       {
         path: "profile",
 
@@ -278,10 +478,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // EDIT PROFILE
-      // -------------------------------------------------------
-
       {
         path: "profile/edit",
 
@@ -291,10 +488,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // CHANGE PASSWORD
-      // -------------------------------------------------------
-
       {
         path: "change-password",
 
@@ -304,11 +498,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
-      // VIEW USERS
-      // /dashboard/admin/users
-      // -------------------------------------------------------
-
+      // USERS
       {
         path: "users",
 
@@ -318,11 +508,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // ADD USER
-      // /dashboard/admin/users/add
-      // -------------------------------------------------------
-
       {
         path: "users/add",
 
@@ -336,14 +522,6 @@ export const DASHBOARD_ROUTES: Routes = [
 
   // =========================================================
   // RESEARCHER DASHBOARD
-  // =========================================================
-  //
-  // URL:
-  // /dashboard/researcher
-  //
-  // Role:
-  // RESEARCHER
-  //
   // =========================================================
 
   {
@@ -361,10 +539,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // -------------------------------------------------------
-      // RESEARCHER HOME
-      // -------------------------------------------------------
-
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -375,10 +550,67 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
-      // PROFILE
-      // -------------------------------------------------------
+      // POLICIES
+      {
+        path: "policies",
 
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
       {
         path: "profile",
 
@@ -388,10 +620,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // EDIT PROFILE
-      // -------------------------------------------------------
-
       {
         path: "profile/edit",
 
@@ -401,10 +630,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // -------------------------------------------------------
       // CHANGE PASSWORD
-      // -------------------------------------------------------
-
       {
         path: "change-password",
 
@@ -419,16 +645,6 @@ export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
   // GUEST DASHBOARD
   // =========================================================
-  //
-  // URL:
-  // /dashboard/guest
-  //
-  // IMPORTANT:
-  //
-  // NO authGuard
-  // NO roleGuard
-  //
-  // =========================================================
 
   {
     path: "guest",
@@ -439,10 +655,7 @@ export const DASHBOARD_ROUTES: Routes = [
       ),
 
     children: [
-      // -------------------------------------------------------
-      // GUEST HOME
-      // -------------------------------------------------------
-
+      // HOME
       {
         path: "",
         pathMatch: "full",
@@ -450,17 +663,71 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("./guest/guest.component").then((m) => m.GuestComponent),
       },
+
+      // POLICIES
+      {
+        path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
     ],
   },
 
   // =========================================================
   // DEFAULT DASHBOARD
-  // =========================================================
-  //
-  // /dashboard
-  // ↓
-  // /dashboard/guest
-  //
   // =========================================================
 
   {

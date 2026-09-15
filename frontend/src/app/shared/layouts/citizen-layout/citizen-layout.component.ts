@@ -13,7 +13,6 @@ import {
 import { Auth, AuthUser } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
-
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 
 @Component({
@@ -32,7 +31,6 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
   ],
 
   templateUrl: "./citizen-layout.component.html",
-
   styleUrl: "./citizen-layout.component.scss",
 })
 export class CitizenLayoutComponent implements OnInit {
@@ -43,7 +41,6 @@ export class CitizenLayoutComponent implements OnInit {
   user: AuthUser | null = null;
 
   userName = "User Name";
-
   userRole = "Citizen";
 
   loadingUser = true;
@@ -53,7 +50,6 @@ export class CitizenLayoutComponent implements OnInit {
   // =========================================================
 
   sidebarCollapsed = false;
-
   mobileMenuOpen = false;
 
   // =========================================================
@@ -70,6 +66,10 @@ export class CitizenLayoutComponent implements OnInit {
 
   // =========================================================
   // NAVIGATION
+  // IMPORTANT:
+  // All citizen pages MUST remain under
+  // /dashboard/citizen
+  // so that CitizenLayoutComponent stays active.
   // =========================================================
 
   navItems = [
@@ -82,55 +82,55 @@ export class CitizenLayoutComponent implements OnInit {
     {
       label: "Search Policies",
       icon: "policy",
-      route: "/policies",
+      route: "/dashboard/citizen/policies",
     },
 
     {
       label: "Search Schemes",
       icon: "account_balance",
-      route: "/schemes",
+      route: "/dashboard/citizen/schemes",
     },
 
     {
       label: "Eligibility Checker",
       icon: "fact_check",
-      route: "/eligibility",
+      route: "/dashboard/citizen/eligibility",
     },
 
     {
       label: "Compare",
       icon: "compare_arrows",
-      route: "/compare",
+      route: "/dashboard/citizen/compare",
     },
 
     {
       label: "Saved Items",
       icon: "bookmark",
-      route: "/saved",
+      route: "/dashboard/citizen/saved",
     },
 
     {
       label: "Notifications",
       icon: "notifications_none",
-      route: "/notifications",
+      route: "/dashboard/citizen/notifications",
     },
 
     {
       label: "Search History",
       icon: "history",
-      route: "/history",
+      route: "/dashboard/citizen/history",
     },
 
     {
       label: "Application Status",
       icon: "assignment",
-      route: "/status",
+      route: "/dashboard/citizen/status",
     },
 
     {
       label: "Support",
       icon: "support_agent",
-      route: "/feedback",
+      route: "/dashboard/citizen/feedback",
     },
   ];
 
@@ -166,7 +166,6 @@ export class CitizenLayoutComponent implements OnInit {
 
     if (cachedUser) {
       this.setUserDetails(cachedUser);
-
       this.loadingUser = false;
     }
 
@@ -194,12 +193,10 @@ export class CitizenLayoutComponent implements OnInit {
       next: (user: AuthUser) => {
         if (!user) {
           this.loadingUser = false;
-
           return;
         }
 
         this.setUserDetails(user);
-
         this.loadingUser = false;
       },
 
@@ -297,7 +294,9 @@ export class CitizenLayoutComponent implements OnInit {
       return;
     }
 
-    this.router.navigate(["/schemes"], {
+    // IMPORTANT:
+    // Keep search inside the citizen layout.
+    this.router.navigate(["/dashboard/citizen/schemes"], {
       queryParams: {
         q: query,
       },
@@ -324,11 +323,9 @@ export class CitizenLayoutComponent implements OnInit {
     this.user = null;
 
     this.userName = "User Name";
-
     this.userRole = "Citizen";
 
     this.mobileMenuOpen = false;
-
     this.sidebarCollapsed = false;
 
     this.router.navigate(["/auth/login"], {

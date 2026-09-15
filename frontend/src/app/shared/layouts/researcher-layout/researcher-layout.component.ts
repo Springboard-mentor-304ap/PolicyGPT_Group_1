@@ -1,6 +1,8 @@
 import { Component, HostListener, OnInit } from "@angular/core";
+
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+
 import {
   Router,
   RouterLink,
@@ -12,9 +14,25 @@ import { Auth, AuthUser } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 
+/* =========================================================
+   RESEARCHER NAVIGATION ITEM
+   ========================================================= */
+
+export interface ResearcherNavItem {
+  label: string;
+  icon: string;
+  route: string;
+}
+
+/* =========================================================
+   RESEARCHER LAYOUT
+   ========================================================= */
+
 @Component({
   selector: "app-researcher-layout",
+
   standalone: true,
+
   imports: [
     CommonModule,
     FormsModule,
@@ -24,6 +42,7 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
     FooterComponent,
     LogoutConfirmComponent,
   ],
+
   templateUrl: "./researcher-layout.component.html",
   styleUrl: "./researcher-layout.component.scss",
 })
@@ -60,55 +79,59 @@ export class ResearcherLayoutComponent implements OnInit {
 
   // =========================================================
   // NAVIGATION
+  //
+  // IMPORTANT:
+  // Keep researcher pages under /dashboard/researcher
+  // so this layout stays mounted.
   // =========================================================
 
-  navItems = [
+  navItems: ResearcherNavItem[] = [
     {
       label: "Dashboard",
       icon: "dashboard",
-      route: "/dashboard/user-dashboard",
+      route: "/dashboard/researcher",
     },
 
     {
       label: "Search Policies",
       icon: "policy",
-      route: "/policies",
+      route: "/dashboard/researcher/policies",
     },
 
     {
       label: "Search Schemes",
       icon: "account_balance",
-      route: "/schemes",
+      route: "/dashboard/researcher/schemes",
     },
 
     {
       label: "Compare",
       icon: "compare_arrows",
-      route: "/compare",
+      route: "/dashboard/researcher/compare",
     },
 
     {
       label: "Analytics",
       icon: "analytics",
-      route: "/analytics",
+      route: "/dashboard/researcher/analytics",
     },
 
     {
       label: "Saved Research",
       icon: "bookmark",
-      route: "/saved",
+      route: "/dashboard/researcher/saved",
     },
 
     {
       label: "Search History",
       icon: "history",
-      route: "/history",
+      route: "/dashboard/researcher/history",
     },
 
     {
       label: "Notifications",
       icon: "notifications_none",
-      route: "/notifications",
+      route: "/dashboard/researcher/notifications",
     },
   ];
 
@@ -175,6 +198,7 @@ export class ResearcherLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
+
         this.loadingUser = false;
       },
 
@@ -223,7 +247,7 @@ export class ResearcherLayoutComponent implements OnInit {
 
     return role
       .trim()
-      .replace(/_/g, " ")
+      .replace(/\_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (character: string) => character.toUpperCase());
   }
@@ -235,6 +259,7 @@ export class ResearcherLayoutComponent implements OnInit {
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
       this.mobileMenuOpen = !this.mobileMenuOpen;
+
       return;
     }
 
@@ -244,6 +269,10 @@ export class ResearcherLayoutComponent implements OnInit {
   // =========================================================
   // MOBILE MENU
   // =========================================================
+
+  openMobileMenu(): void {
+    this.mobileMenuOpen = true;
+  }
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
@@ -271,7 +300,9 @@ export class ResearcherLayoutComponent implements OnInit {
       return;
     }
 
-    this.router.navigate(["/schemes"], {
+    // Keep search inside Researcher Layout.
+
+    this.router.navigate(["/dashboard/researcher/schemes"], {
       queryParams: {
         q: query,
       },
@@ -293,17 +324,37 @@ export class ResearcherLayoutComponent implements OnInit {
   // =========================================================
 
   confirmLogout(): void {
+    // -------------------------------------------------------
+    // CLOSE MODAL
+    // -------------------------------------------------------
+
     this.showLogoutModal = false;
 
+    // -------------------------------------------------------
+    // REMOVE AUTHENTICATION
+    // -------------------------------------------------------
+
     this.authService.logout();
+
+    // -------------------------------------------------------
+    // RESET USER
+    // -------------------------------------------------------
 
     this.user = null;
 
     this.userName = "Researcher";
     this.userRole = "Researcher";
 
+    // -------------------------------------------------------
+    // RESET LAYOUT
+    // -------------------------------------------------------
+
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
+
+    // -------------------------------------------------------
+    // REDIRECT TO LOGIN
+    // -------------------------------------------------------
 
     this.router.navigate(["/auth/login"], {
       replaceUrl: true,

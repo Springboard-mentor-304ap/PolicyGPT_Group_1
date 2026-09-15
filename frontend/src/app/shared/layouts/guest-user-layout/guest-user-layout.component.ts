@@ -1,6 +1,8 @@
-import { Component, HostListener } from "@angular/core";
+import { Component, HostListener, OnInit } from "@angular/core";
+
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+
 import {
   Router,
   RouterLink,
@@ -27,7 +29,9 @@ export interface GuestNavItem {
 
 @Component({
   selector: "app-guest-user-layout",
+
   standalone: true,
+
   imports: [
     CommonModule,
     FormsModule,
@@ -36,40 +40,45 @@ export interface GuestNavItem {
     RouterOutlet,
     FooterComponent,
   ],
+
   templateUrl: "./guest-user-layout.component.html",
   styleUrl: "./guest-user-layout.component.scss",
 })
-export class GuestUserLayoutComponent {
-  /* =======================================================
-     GUEST USER
-     ======================================================= */
+export class GuestUserLayoutComponent implements OnInit {
+  // =========================================================
+  // GUEST USER
+  // =========================================================
 
   userName = "Guest User";
   userRole = "GUEST";
 
-  /* =======================================================
-     SIDEBAR
-     ======================================================= */
+  // =========================================================
+  // SIDEBAR
+  // =========================================================
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =========================================================
+  // SEARCH
+  // =========================================================
 
   searchText = "";
 
-  /* =======================================================
-     LOGIN REQUIRED MESSAGE
-     ======================================================= */
+  // =========================================================
+  // LOGIN REQUIRED MESSAGE
+  // =========================================================
 
   showLoginMessage = false;
   loginMessage = "";
 
-  /* =======================================================
-     NAVIGATION
-     ======================================================= */
+  // =========================================================
+  // NAVIGATION
+  //
+  // IMPORTANT:
+  // Keep all pages under /dashboard/guest
+  // so GuestUserLayoutComponent remains visible.
+  // =========================================================
 
   navItems: GuestNavItem[] = [
     {
@@ -78,74 +87,62 @@ export class GuestUserLayoutComponent {
       route: "/dashboard/guest",
       requiresLogin: false,
     },
+
     {
       icon: "policy",
       label: "Policy Search",
-      route: "/policies",
+      route: "/dashboard/guest/policies",
       requiresLogin: false,
     },
+
     {
       icon: "account_balance",
       label: "Search Scheme",
-      route: "/schemes",
+      route: "/dashboard/guest/schemes",
       requiresLogin: false,
     },
+
     {
       icon: "fact_check",
       label: "Eligibility Checker",
-      route: "/eligibility",
+      route: "/dashboard/guest/eligibility",
       requiresLogin: true,
     },
+
     {
       icon: "compare_arrows",
       label: "Compare",
-      route: "/compare",
+      route: "/dashboard/guest/compare",
       requiresLogin: true,
-    },
-    {
-      icon: "support_agent",
-      label: "Support",
-      route: "/feedback",
-      requiresLogin: false,
     },
   ];
 
-  /* =======================================================
-     CONSTRUCTOR
-     ======================================================= */
+  // =========================================================
+  // CONSTRUCTOR
+  // =========================================================
 
   constructor(private readonly router: Router) {}
 
-  /* =======================================================
-     INIT
-     ======================================================= */
+  // =========================================================
+  // INIT
+  // =========================================================
 
   ngOnInit(): void {
-    /*
-     * This is a dedicated Guest User Layout.
-     *
-     * Do NOT:
-     * - check authentication
-     * - load current user
-     * - call AuthService
-     * - require an access token
-     */
-
     this.userName = "Guest User";
     this.userRole = "GUEST";
   }
 
-  /* =======================================================
-     DISPLAY ROLE
-     ======================================================= */
+  // =========================================================
+  // DISPLAY ROLE
+  // =========================================================
 
   get displayRole(): string {
     return "Guest User";
   }
 
-  /* =======================================================
-     SIDEBAR TOGGLE
-     ======================================================= */
+  // =========================================================
+  // SIDEBAR TOGGLE
+  // =========================================================
 
   toggleSidebar(): void {
     if (window.innerWidth <= 767) {
@@ -156,25 +153,25 @@ export class GuestUserLayoutComponent {
     this.sidebarCollapsed = !this.sidebarCollapsed;
   }
 
-  /* =======================================================
-     OPEN MOBILE MENU
-     ======================================================= */
+  // =========================================================
+  // OPEN MOBILE MENU
+  // =========================================================
 
   openMobileMenu(): void {
     this.mobileMenuOpen = true;
   }
 
-  /* =======================================================
-     CLOSE MOBILE MENU
-     ======================================================= */
+  // =========================================================
+  // CLOSE MOBILE MENU
+  // =========================================================
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
   }
 
-  /* =======================================================
-     WINDOW RESIZE
-     ======================================================= */
+  // =========================================================
+  // WINDOW RESIZE
+  // =========================================================
 
   @HostListener("window:resize")
   onWindowResize(): void {
@@ -183,9 +180,9 @@ export class GuestUserLayoutComponent {
     }
   }
 
-  /* =======================================================
-     NAVIGATION
-     ======================================================= */
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
 
   navigateToItem(item: GuestNavItem): void {
     if (item.requiresLogin) {
@@ -194,55 +191,60 @@ export class GuestUserLayoutComponent {
     }
 
     this.router.navigate([item.route]);
+
     this.closeMobileMenu();
   }
 
-  /* =======================================================
-     REQUIRE LOGIN
-     ======================================================= */
+  // =========================================================
+  // REQUIRE LOGIN
+  // =========================================================
 
   requireLogin(feature: string): void {
     this.loginMessage = `${feature} requires you to login first.`;
+
     this.showLoginMessage = true;
+
     this.closeMobileMenu();
   }
 
-  /* =======================================================
-     CLOSE LOGIN MESSAGE
-     ======================================================= */
+  // =========================================================
+  // CLOSE LOGIN MESSAGE
+  // =========================================================
 
   closeLoginMessage(): void {
     this.showLoginMessage = false;
     this.loginMessage = "";
   }
 
-  /* =======================================================
-     GO TO LOGIN
-     ======================================================= */
+  // =========================================================
+  // GO TO LOGIN
+  // =========================================================
 
   goToLogin(): void {
     this.showLoginMessage = false;
     this.loginMessage = "";
+
     this.closeMobileMenu();
 
     this.router.navigate(["/auth/login"]);
   }
 
-  /* =======================================================
-     GO TO SIGN UP
-     ======================================================= */
+  // =========================================================
+  // GO TO SIGN UP
+  // =========================================================
 
   goToSignup(): void {
     this.showLoginMessage = false;
     this.loginMessage = "";
+
     this.closeMobileMenu();
 
     this.router.navigate(["/auth/signup"]);
   }
 
-  /* =======================================================
-     SEARCH
-     ======================================================= */
+  // =========================================================
+  // SEARCH
+  // =========================================================
 
   performSearch(): void {
     const query = this.searchText.trim();
@@ -253,9 +255,11 @@ export class GuestUserLayoutComponent {
 
     /*
      * Guests can search schemes.
+     *
+     * Keep the search route inside the guest layout.
      */
 
-    this.router.navigate(["/schemes"], {
+    this.router.navigate(["/dashboard/guest/schemes"], {
       queryParams: {
         q: query,
       },
@@ -264,26 +268,21 @@ export class GuestUserLayoutComponent {
     this.closeMobileMenu();
   }
 
-  /* =======================================================
-     CLEAR SEARCH
-     ======================================================= */
+  // =========================================================
+  // CLEAR SEARCH
+  // =========================================================
 
   clearSearch(): void {
     this.searchText = "";
   }
 
-  /* =======================================================
-     GO TO GUEST DASHBOARD
-     ======================================================= */
+  // =========================================================
+  // GO TO GUEST DASHBOARD
+  // =========================================================
 
   goToDashboard(): void {
-    /*
-     * Guest dashboard is /dashboard/guest
-     *
-     * NOT /dashboard/citizen
-     */
-
     this.router.navigate(["/dashboard/guest"]);
+
     this.closeMobileMenu();
   }
 }

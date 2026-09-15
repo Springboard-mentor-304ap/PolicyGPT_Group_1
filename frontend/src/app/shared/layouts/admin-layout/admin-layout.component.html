@@ -35,9 +35,11 @@
 
 
             <!-- POLICIES -->
-            <a class="dash-nav__item" routerLink="/admin/policies" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Policies' : null">
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                policiesMenuOpen || isPoliciesRouteActive()
+            " (click)="togglePoliciesMenu()" [attr.title]="sidebarCollapsed ? 'Policies' : null"
+                [attr.aria-expanded]="policiesMenuOpen" aria-controls="admin-policies-submenu">
+
                 <span class="material-icons dash-nav__icon">
                     policy
                 </span>
@@ -46,28 +48,122 @@
                     Policies
                 </span>
 
-                <span class="material-icons dash-nav__chevron">
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="policiesMenuOpen">
                     chevron_right
                 </span>
-            </a>
+
+            </button>
+
+            <!-- POLICIES SUBMENU -->
+            @if (policiesMenuOpen && !sidebarCollapsed) {
+
+            <div id="admin-policies-submenu" class="dash-nav__submenu" aria-label="Policies management">
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/policies"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        manage_search
+                    </span>
+
+                    <span>
+                        View Policies
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/policies/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        post_add
+                    </span>
+
+                    <span>
+                        Add Policy
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/policies/manage"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        tune
+                    </span>
+
+                    <span>
+                        Manage Policies
+                    </span>
+                </a>
+
+            </div>
+
+            }
 
 
             <!-- SCHEMES -->
-            <a class="dash-nav__item" routerLink="/admin/schemes" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Scheme' : null">
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                schemesMenuOpen || isSchemesRouteActive()
+            " (click)="toggleSchemesMenu()" [attr.title]="sidebarCollapsed ? 'Schemes' : null"
+                [attr.aria-expanded]="schemesMenuOpen" aria-controls="admin-schemes-submenu">
+
                 <span class="material-icons dash-nav__icon">
-                    description
+                    account_balance
                 </span>
 
                 <span class="dash-nav__label">
-                    Scheme
+                    Schemes
                 </span>
 
-                <span class="material-icons dash-nav__chevron">
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="schemesMenuOpen">
                     chevron_right
                 </span>
-            </a>
+
+            </button>
+
+            <!-- SCHEMES SUBMENU -->
+            @if (schemesMenuOpen && !sidebarCollapsed) {
+
+            <div id="admin-schemes-submenu" class="dash-nav__submenu" aria-label="Schemes management">
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/schemes"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        travel_explore
+                    </span>
+
+                    <span>
+                        View Schemes
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/schemes/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        post_add
+                    </span>
+
+                    <span>
+                        Add Scheme
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/schemes/manage"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        tune
+                    </span>
+
+                    <span>
+                        Manage Schemes
+                    </span>
+                </a>
+
+            </div>
+
+            }
 
 
             <!-- NOTIFICATIONS -->

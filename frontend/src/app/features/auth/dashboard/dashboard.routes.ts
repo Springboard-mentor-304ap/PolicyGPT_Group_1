@@ -298,6 +298,26 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // ADD POLICY
+      {
+        path: "policies/add",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
+          ),
+      },
+
+      // MANAGE POLICIES
+      {
+        path: "policies/manage",
+
+        loadComponent: () =>
+          import("../../policy/manage-policies/manage-policies.component").then(
+            (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
       // POLICY DETAILS
       {
         path: "policies/:id",
@@ -315,6 +335,36 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../schemes/scheme-search/scheme-search.component").then(
             (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // ADD SCHEME
+      {
+        path: "schemes/add",
+
+        loadComponent: () =>
+          import("../../schemes/add-scheme/add-scheme.component").then(
+            (m) => m.AddSchemeComponent,
+          ),
+      },
+
+      // MANAGE SCHEMES
+      {
+        path: "schemes/manage",
+
+        loadComponent: () =>
+          import("../../schemes/manage-schemes/manage-schemes.component").then(
+            (m) => m.ManageSchemesComponent,
+          ),
+      },
+
+      // EDIT SCHEME
+      {
+        path: "schemes/edit/:id",
+
+        loadComponent: () =>
+          import("../../schemes/edit-scheme/edit-scheme.component").then(
+            (m) => m.EditSchemeComponent,
           ),
       },
 
@@ -418,6 +468,26 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // ADD POLICY
+      {
+        path: "policies/add",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
+          ),
+      },
+
+      // MANAGE POLICIES
+      {
+        path: "policies/manage",
+
+        loadComponent: () =>
+          import("../../policy/manage-policies/manage-policies.component").then(
+            (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
       // POLICY DETAILS
       {
         path: "policies/:id",
@@ -435,6 +505,36 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../schemes/scheme-search/scheme-search.component").then(
             (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // ADD SCHEME
+      {
+        path: "schemes/add",
+
+        loadComponent: () =>
+          import("../../schemes/add-scheme/add-scheme.component").then(
+            (m) => m.AddSchemeComponent,
+          ),
+      },
+
+      // MANAGE SCHEMES
+      {
+        path: "schemes/manage",
+
+        loadComponent: () =>
+          import("../../schemes/manage-schemes/manage-schemes.component").then(
+            (m) => m.ManageSchemesComponent,
+          ),
+      },
+
+      // EDIT SCHEME
+      {
+        path: "schemes/edit/:id",
+
+        loadComponent: () =>
+          import("../../schemes/edit-scheme/edit-scheme.component").then(
+            (m) => m.EditSchemeComponent,
           ),
       },
 

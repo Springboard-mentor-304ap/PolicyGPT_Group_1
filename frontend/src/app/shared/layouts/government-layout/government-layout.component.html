@@ -111,31 +111,173 @@
 
         <nav class="dash-nav" aria-label="Government navigation">
 
-            @for (
-            item of navItems;
-            track item.route
-            ) {
-
-            <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{
-            exact: item.route === '/dashboard/government'
-          }" [attr.title]="
-            sidebarCollapsed
-              ? item.label
-              : null
-          " (click)="closeMobileMenu()">
-
-                <span class="material-icons dash-nav__icon">
-                    {{ item.icon }}
+            <!-- DASHBOARD -->
+            <a class="dash-nav__item" [class.dash-nav__item--active]="isDashboardRouteActive()"
+                routerLink="/dashboard/government" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    home
                 </span>
-
                 <span class="dash-nav__label">
-                    {{ item.label }}
+                    Dashboard
                 </span>
-
             </a>
 
+            <!-- POLICIES -->
+            <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
+                policiesMenuOpen || isPoliciesRouteActive()
+            " (click)="togglePoliciesMenu()" [attr.title]="sidebarCollapsed ? 'Policies' : null"
+                [attr.aria-expanded]="policiesMenuOpen" aria-controls="gov-policies-submenu">
+                <span class="material-icons dash-nav__icon">
+                    policy
+                </span>
+                <span class="dash-nav__label">
+                    Policies
+                </span>
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="policiesMenuOpen">
+                    chevron_right
+                </span>
+            </button>
+
+            <!-- POLICIES SUBMENU -->
+            @if (policiesMenuOpen && !sidebarCollapsed) {
+            <div id="gov-policies-submenu" class="dash-nav__submenu" aria-label="Policies management">
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/policies"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        manage_search
+                    </span>
+                    <span>
+                        View Policies
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/policies/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        post_add
+                    </span>
+                    <span>
+                        Add Policy
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/policies/manage"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        tune
+                    </span>
+                    <span>
+                        Manage Policies
+                    </span>
+                </a>
+            </div>
             }
+
+            <!-- SCHEMES -->
+            <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
+                schemesMenuOpen || isSchemesRouteActive()
+            " (click)="toggleSchemesMenu()" [attr.title]="sidebarCollapsed ? 'Schemes' : null"
+                [attr.aria-expanded]="schemesMenuOpen" aria-controls="gov-schemes-submenu">
+                <span class="material-icons dash-nav__icon">
+                    account_balance
+                </span>
+                <span class="dash-nav__label">
+                    Schemes
+                </span>
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="schemesMenuOpen">
+                    chevron_right
+                </span>
+            </button>
+
+            <!-- SCHEMES SUBMENU -->
+            @if (schemesMenuOpen && !sidebarCollapsed) {
+            <div id="gov-schemes-submenu" class="dash-nav__submenu" aria-label="Schemes management">
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/schemes"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        travel_explore
+                    </span>
+                    <span>
+                        View Schemes
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/schemes/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        post_add
+                    </span>
+                    <span>
+                        Add Scheme
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/schemes/manage"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        tune
+                    </span>
+                    <span>
+                        Manage Schemes
+                    </span>
+                </a>
+            </div>
+            }
+
+            <!-- APPLICATIONS -->
+            <a class="dash-nav__item" routerLink="/government/applications" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Applications' : null">
+                <span class="material-icons dash-nav__icon">
+                    assignment
+                </span>
+                <span class="dash-nav__label">
+                    Applications
+                </span>
+            </a>
+
+            <!-- NOTIFICATIONS -->
+            <a class="dash-nav__item" routerLink="/notifications" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Notifications' : null">
+                <span class="material-icons dash-nav__icon">
+                    notifications_none
+                </span>
+                <span class="dash-nav__label">
+                    Notifications
+                </span>
+            </a>
+
+            <!-- REPORTS -->
+            <a class="dash-nav__item" routerLink="/government/reports" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Reports' : null">
+                <span class="material-icons dash-nav__icon">
+                    insert_chart_outlined
+                </span>
+                <span class="dash-nav__label">
+                    Reports
+                </span>
+            </a>
+
+            <!-- AUDIT LOGS -->
+            <a class="dash-nav__item" routerLink="/government/audit-logs" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Audit Logs' : null">
+                <span class="material-icons dash-nav__icon">
+                    fact_check
+                </span>
+                <span class="dash-nav__label">
+                    Audit Logs
+                </span>
+            </a>
 
         </nav>
 

@@ -26,9 +26,11 @@ $admin-purple: #8b00e8;
 
 .admin-dashboard {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
 
-  padding: 50px 60px 40px;
+  margin: 0;
+  padding: 28px 32px 40px;
 
   background: $admin-bg;
 }
@@ -627,7 +629,7 @@ $admin-purple: #8b00e8;
 
 @media (max-width: 1439px) {
   .admin-dashboard {
-    padding: 38px 34px 35px;
+    padding: 28px 32px 40px;
   }
 
   .dash-welcome {
@@ -652,7 +654,7 @@ $admin-purple: #8b00e8;
 
 @media (max-width: 1199px) {
   .admin-dashboard {
-    padding: 28px 22px 32px;
+    padding: 24px 25px 35px;
   }
 
   .dash-welcome {
@@ -708,7 +710,7 @@ $admin-purple: #8b00e8;
 
 @media (max-width: 767px) {
   .admin-dashboard {
-    padding: 17px 14px 25px;
+    padding: 18px;
   }
 
   /* Welcome */
@@ -864,7 +866,7 @@ $admin-purple: #8b00e8;
 
 @media (max-width: 480px) {
   .admin-dashboard {
-    padding: 13px 10px 20px;
+    padding: 14px;
   }
 
   .dash-welcome {

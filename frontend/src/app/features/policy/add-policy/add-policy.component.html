@@ -1,0 +1,1285 @@
+<div class="policy-create">
+    <!-- =========================================================
+       BREADCRUMB & HEADER
+       ========================================================= -->
+    <div class="policy-create__header">
+        <div class="policy-create__header-left">
+            <nav class="policy-create__breadcrumb" aria-label="Breadcrumb">
+                <a [routerLink]="['/dashboard', rolePrefix, 'policies']">Policies</a>
+                <span class="separator">&gt;</span>
+                <span class="current">Add Policy</span>
+            </nav>
+
+            <div class="policy-create__title-row">
+                <button type="button" class="policy-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
+                    aria-label="Previous step">
+                    <span class="material-icons">arrow_back</span>
+                </button>
+
+                <div class="policy-create__title-box">
+                    <h1 class="policy-create__title">Add New Policy</h1>
+                    <p class="policy-create__subtitle">
+                        @if (currentStep === 1) {
+                        Enter the basic details of the government policy to be {{ isAdmin ? 'published.' : 'reviewed and
+                        approved.' }}
+                        } @else if (currentStep === 2) {
+                        Enter classification, sector and timeline details for the policy.
+                        } @else if (currentStep === 3) {
+                        Define the target groups, sector scope and eligibility conditions.
+                        } @else if (currentStep === 4) {
+                        Provide official document links and implementation/source details.
+                        } @else if (currentStep === 5) {
+                        Review all policy details before {{ isAdmin ? 'Submit.' : 'submitting for approval.' }}
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="policy-create__header-right">
+            <button type="button" class="policy-create__btn-draft" (click)="saveDraft()">
+                <span class="material-icons">save</span>
+                <span>Save as Draft</span>
+            </button>
+
+            @if (currentStep === 5) {
+            <div class="policy-create__emblem-tag">
+                <div class="policy-create__emblem-text">
+                    <span>Transparent Governance</span>
+                    <strong>Stronger Citizens</strong>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+
+    <!-- DRAFT SAVED TOAST -->
+    @if (savedDraftToast) {
+    <div class="policy-create__toast" role="alert">
+        <span class="material-icons">check_circle</span>
+        <span>Policy draft saved successfully! You can resume anytime.</span>
+    </div>
+    }
+
+    <!-- =========================================================
+       5-STEP STEPPER
+       ========================================================= -->
+    <div class="policy-stepper" aria-label="Progress">
+        <div class="policy-stepper__track">
+            <!-- STEP 1 -->
+            <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 1"
+                [class.policy-stepper__step--completed]="completedSteps.has(1)" (click)="goToStep(1)">
+                <div class="policy-stepper__circle">
+                    @if (completedSteps.has(1) && currentStep !== 1) {
+                    <span class="material-icons">check</span>
+                    } @else {
+                    <span>1</span>
+                    }
+                </div>
+                <span class="policy-stepper__label">Basic Information</span>
+            </div>
+
+            <div class="policy-stepper__line"
+                [class.policy-stepper__line--active]="currentStep > 1 || completedSteps.has(1)"></div>
+
+            <!-- STEP 2 -->
+            <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 2"
+                [class.policy-stepper__step--completed]="completedSteps.has(2)" (click)="goToStep(2)">
+                <div class="policy-stepper__circle">
+                    @if (completedSteps.has(2) && currentStep !== 2) {
+                    <span class="material-icons">check</span>
+                    } @else {
+                    <span>2</span>
+                    }
+                </div>
+                <span class="policy-stepper__label">Classification &amp; Timeline</span>
+            </div>
+
+            <div class="policy-stepper__line"
+                [class.policy-stepper__line--active]="currentStep > 2 || completedSteps.has(2)"></div>
+
+            <!-- STEP 3 -->
+            <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 3"
+                [class.policy-stepper__step--completed]="completedSteps.has(3)" (click)="goToStep(3)">
+                <div class="policy-stepper__circle">
+                    @if (completedSteps.has(3) && currentStep !== 3) {
+                    <span class="material-icons">check</span>
+                    } @else {
+                    <span>3</span>
+                    }
+                </div>
+                <span class="policy-stepper__label">Eligibility &amp; Scope</span>
+            </div>
+
+            <div class="policy-stepper__line"
+                [class.policy-stepper__line--active]="currentStep > 3 || completedSteps.has(3)"></div>
+
+            <!-- STEP 4 -->
+            <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 4"
+                [class.policy-stepper__step--completed]="completedSteps.has(4)" (click)="goToStep(4)">
+                <div class="policy-stepper__circle">
+                    @if (completedSteps.has(4) && currentStep !== 4) {
+                    <span class="material-icons">check</span>
+                    } @else {
+                    <span>4</span>
+                    }
+                </div>
+                <span class="policy-stepper__label">Documents &amp; Links</span>
+            </div>
+
+            <div class="policy-stepper__line"
+                [class.policy-stepper__line--active]="currentStep > 4 || completedSteps.has(4)"></div>
+
+            <!-- STEP 5 -->
+            <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 5"
+                [class.policy-stepper__step--completed]="completedSteps.has(5)" (click)="goToStep(5)">
+                <div class="policy-stepper__circle">
+                    @if (completedSteps.has(5) && currentStep !== 5) {
+                    <span class="material-icons">check</span>
+                    } @else {
+                    <span>5</span>
+                    }
+                </div>
+                <span class="policy-stepper__label">Review &amp; Submit</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORM CONTAINER -->
+    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" novalidate>
+        <!-- =========================================================
+         STEP 1: BASIC INFORMATION
+         ========================================================= -->
+        @if (currentStep === 1) {
+        <div class="policy-layout">
+            <!-- Main Form Card -->
+            <div class="policy-card policy-layout__main">
+                <div class="policy-card__header">
+                    <div class="policy-card__icon-badge">
+                        <span class="material-icons">policy</span>
+                    </div>
+                    <div>
+                        <h2 class="policy-card__title">Basic Information</h2>
+                        <p class="policy-card__subtitle">
+                            Provide the core details and official title of the policy.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="policy-form-grid">
+                    <!-- POLICY TITLE -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="policy-title">
+                            Policy Title <span class="required">*</span>
+                        </label>
+                        <div class="input-with-icon">
+                            <span class="material-icons input-icon">description</span>
+                            <input id="policy-title" type="text" class="form-control" formControlName="title"
+                                placeholder="Enter official policy title (e.g. National Education Policy)"
+                                maxlength="300" [class.is-invalid]="
+                    stepSubmitted[1] && policyForm.get('title')?.invalid
+                  " />
+                        </div>
+                        <div class="form-helper-row">
+                            <span class="form-helper">Provide the officially notified title of the policy.</span>
+                            <span class="char-counter">
+                                {{ policyForm.get('title')?.value?.length || 0 }}/300 characters
+                            </span>
+                        </div>
+                        @if (stepSubmitted[1] && policyForm.get('title')?.invalid) {
+                        <span class="form-error">Policy title is required.</span>
+                        }
+                    </div>
+
+                    <!-- CATEGORY -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="policy-category">
+                            Category <span class="required">*</span>
+                        </label>
+                        <div class="input-with-icon select-wrapper">
+                            <span class="material-icons input-icon">grid_view</span>
+                            <select id="policy-category" class="form-control form-select" formControlName="category"
+                                [class.is-invalid]="
+                    stepSubmitted[1] && policyForm.get('category')?.invalid
+                  ">
+                                <option value="" disabled selected>Select category</option>
+                                @for (cat of categories; track cat) {
+                                <option [value]="cat">{{ cat }}</option>
+                                }
+                            </select>
+                            <span class="material-icons select-arrow">expand_more</span>
+                        </div>
+                        <p class="form-helper">Choose the primary category that best fits this policy.</p>
+                        @if (stepSubmitted[1] && policyForm.get('category')?.invalid) {
+                        <span class="form-error">Category is required.</span>
+                        }
+                    </div>
+
+                    <!-- DESCRIPTION -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="policy-desc">
+                            Policy Description <span class="required">*</span>
+                        </label>
+                        <div class="textarea-container">
+                            <span class="material-icons textarea-icon">subject</span>
+                            <textarea id="policy-desc" class="form-control form-textarea" rows="4"
+                                formControlName="description"
+                                placeholder="Enter a comprehensive description of the policy, its objectives, scope and key provisions..."
+                                maxlength="1000" [class.is-invalid]="
+                    stepSubmitted[1] && policyForm.get('description')?.invalid
+                  "></textarea>
+                        </div>
+                        <div class="form-helper-row">
+                            <span class="form-helper">
+                                Explain the problem addressed, objectives, and long-term societal goals.
+                            </span>
+                            <span class="char-counter">
+                                {{ policyForm.get('description')?.value?.length || 0 }}/1000 characters
+                            </span>
+                        </div>
+                        @if (stepSubmitted[1] && policyForm.get('description')?.invalid) {
+                        <span class="form-error">Policy description is required.</span>
+                        }
+                    </div>
+
+                    <!-- BENEFITS -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label">
+                            Policy Benefits
+                            <span class="material-icons info-icon-inline"
+                                title="Key benefits and societal outcomes">info_outline</span>
+                        </label>
+
+                        <div formArrayName="benefits" class="dynamic-list">
+                            @for (benefitCtrl of benefits.controls; track $index; let i = $index) {
+                            <div class="dynamic-row">
+                                <input type="text" class="form-control" [formControlName]="i"
+                                    [placeholder]="i === 0 ? 'Enter a key benefit of this policy' : 'Enter another benefit'" />
+                                <button type="button" class="btn-icon-danger" (click)="removeBenefit(i)"
+                                    aria-label="Remove benefit">
+                                    <span class="material-icons">delete_outline</span>
+                                </button>
+                            </div>
+                            }
+
+                            <button type="button" class="btn-dashed-add" (click)="addBenefit()">
+                                <span class="material-icons">add</span>
+                                <span>Add Benefit</span>
+                            </button>
+                        </div>
+                        <p class="form-helper">List the key tangible benefits provided under this policy.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Tips & Example -->
+            <div class="policy-layout__sidebar">
+                <!-- TIPS CARD -->
+                <div class="info-card">
+                    <div class="info-card__header">
+                        <div class="info-card__icon-badge info-card__icon-badge--blue">
+                            <span class="material-icons">lightbulb_outline</span>
+                        </div>
+                        <h3 class="info-card__title">Tips for a Good Policy Entry</h3>
+                    </div>
+
+                    <ul class="info-checklist">
+                        <li>
+                            <span class="material-icons check-icon">check_circle</span>
+                            <span>Use an official gazette-notified policy title</span>
+                        </li>
+                        <li>
+                            <span class="material-icons check-icon">check_circle</span>
+                            <span>Assign the primary category and relevant sector</span>
+                        </li>
+                        <li>
+                            <span class="material-icons check-icon">check_circle</span>
+                            <span>Provide clear and meaningful descriptions</span>
+                        </li>
+                        <li>
+                            <span class="material-icons check-icon">check_circle</span>
+                            <span>Clearly highlight key benefits for citizens</span>
+                        </li>
+                        <li>
+                            <span class="material-icons check-icon">check_circle</span>
+                            <span>Ensure data matches official ministry notifications</span>
+                        </li>
+                    </ul>
+
+                    <div class="quote-box">
+                        <span class="material-icons quote-mark">format_quote</span>
+                        <p class="quote-text">
+                            “A well-defined policy framework fosters administrative transparency and seamless nationwide
+                            adoption.”
+                        </p>
+                    </div>
+                </div>
+
+                <!-- EXAMPLE POLICY CARD -->
+                <div class="example-card">
+                    <div class="example-card__header">
+                        <span class="material-icons example-card__icon">verified</span>
+                        <div class="example-card__title-box">
+                            <h4 class="example-card__subtitle">Example Policy Entry</h4>
+                            <p class="example-card__name">“National Education Policy (NEP)”</p>
+                        </div>
+                    </div>
+
+                    <ul class="example-details">
+                        <li><strong>Category:</strong> Education</li>
+                        <li><strong>Ministry:</strong> Ministry of Education</li>
+                        <li><strong>Department:</strong> Department of Higher Education</li>
+                        <li><strong>Sector:</strong> Education</li>
+                        <li><strong>State:</strong> All India</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- =========================================================
+         STEP 2: CLASSIFICATION & TIMELINE
+         ========================================================= -->
+        @if (currentStep === 2) {
+        <div class="policy-layout policy-layout--single">
+            <div class="policy-card">
+                <div class="policy-card__header">
+                    <div class="policy-card__icon-badge">
+                        <span class="material-icons">account_balance</span>
+                    </div>
+                    <div>
+                        <h2 class="policy-card__title">Classification &amp; Timeline</h2>
+                        <p class="policy-card__subtitle">
+                            Specify the responsible government ministry, department, sector, and official dates.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="policy-form-grid">
+                    <!-- MINISTRY -->
+                    <div class="form-group">
+                        <label class="form-label" for="policy-ministry">Ministry</label>
+                        <div class="input-with-icon select-wrapper">
+                            <span class="material-icons input-icon">account_balance</span>
+                            <select id="policy-ministry" class="form-control form-select" formControlName="ministry">
+                                <option value="" selected>Select ministry</option>
+                                @for (min of ministries; track min) {
+                                <option [value]="min">{{ min }}</option>
+                                }
+                            </select>
+                            <span class="material-icons select-arrow">expand_more</span>
+                        </div>
+                        <p class="form-helper">Select the concerned government ministry.</p>
+                    </div>
+
+                    <!-- DEPARTMENT -->
+                    <div class="form-group">
+                        <label class="form-label" for="policy-department">Department</label>
+                        <div class="input-with-icon select-wrapper">
+                            <span class="material-icons input-icon">apartment</span>
+                            <select id="policy-department" class="form-control form-select"
+                                formControlName="department">
+                                <option value="" selected>Select department</option>
+                                @for (dept of departments; track dept) {
+                                <option [value]="dept">{{ dept }}</option>
+                                }
+                            </select>
+                            <span class="material-icons select-arrow">expand_more</span>
+                        </div>
+                        <p class="form-helper">Select the nodal department managing this policy.</p>
+                    </div>
+
+                    <!-- STATE / REGION -->
+                    <div class="form-group">
+                        <label class="form-label" for="policy-state">State / Geographic Scope</label>
+                        <div class="input-with-icon select-wrapper">
+                            <span class="material-icons input-icon">location_on</span>
+                            <select id="policy-state" class="form-control form-select" formControlName="state">
+                                <option value="" disabled>Select state / region</option>
+                                @for (st of states; track st) {
+                                <option [value]="st">{{ st }}</option>
+                                }
+                            </select>
+                            <span class="material-icons select-arrow">expand_more</span>
+                        </div>
+                        <p class="form-helper">Applicable state or region (or All India).</p>
+                    </div>
+
+                    <!-- SECTOR -->
+                    <div class="form-group">
+                        <label class="form-label" for="policy-sector">Sector</label>
+                        <div class="input-with-icon select-wrapper">
+                            <span class="material-icons input-icon">business_center</span>
+                            <select id="policy-sector" class="form-control form-select" formControlName="sector">
+                                <option value="" selected>Select sector</option>
+                                @for (sec of sectors; track sec) {
+                                <option [value]="sec">{{ sec }}</option>
+                                }
+                            </select>
+                            <span class="material-icons select-arrow">expand_more</span>
+                        </div>
+                        <p class="form-helper">Economic or administrative sector category.</p>
+                    </div>
+
+                    <!-- PUBLICATION DATE -->
+                    <div class="form-group">
+                        <label class="form-label" for="pub-date">Publication Date</label>
+                        <div class="input-with-icon">
+                            <span class="material-icons input-icon">calendar_today</span>
+                            <input id="pub-date" type="date" class="form-control" formControlName="publicationDate" />
+                        </div>
+                        <p class="form-helper">Date when the policy was officially published or gazetted.</p>
+                    </div>
+
+                    <!-- EFFECTIVE DATE -->
+                    <div class="form-group">
+                        <label class="form-label" for="eff-date">Effective Date</label>
+                        <div class="input-with-icon">
+                            <span class="material-icons input-icon">event_available</span>
+                            <input id="eff-date" type="date" class="form-control" formControlName="effectiveDate" />
+                        </div>
+                        <p class="form-helper">Date from which the policy provisions officially take effect.</p>
+                    </div>
+
+                    <!-- KEY OBJECTIVES / HIGHLIGHTS -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label">Key Objectives &amp; Highlights</label>
+                        <div formArrayName="keyHighlights" class="dynamic-list">
+                            @for (hlCtrl of keyHighlights.controls; track $index; let i = $index) {
+                            <div class="dynamic-row">
+                                <input type="text" class="form-control" [formControlName]="i"
+                                    placeholder="Enter a key objective or pillar of the policy" />
+                                <button type="button" class="btn-icon-danger" (click)="removeHighlight(i)"
+                                    aria-label="Remove highlight">
+                                    <span class="material-icons">delete_outline</span>
+                                </button>
+                            </div>
+                            }
+
+                            <button type="button" class="btn-dashed-add" (click)="addHighlight()">
+                                <span class="material-icons">add</span>
+                                <span>Add Objective / Highlight</span>
+                            </button>
+                        </div>
+                        <p class="form-helper">
+                            Add key milestones or fundamental goals of this policy reform.
+                        </p>
+                    </div>
+
+                    <!-- ADDITIONAL INFORMATION -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="policy-add-info">
+                            Additional Information <span class="optional">(Optional)</span>
+                        </label>
+                        <div class="textarea-container">
+                            <span class="material-icons textarea-icon">description</span>
+                            <textarea id="policy-add-info" class="form-control form-textarea" rows="3"
+                                formControlName="additionalInfo"
+                                placeholder="Any other relevant details, special provisions, or implementation committee details..."
+                                maxlength="1000"></textarea>
+                        </div>
+                        <div class="form-helper-row">
+                            <span class="form-helper">
+                                Include additional background context or committee recommendations.
+                            </span>
+                            <span class="char-counter">
+                                {{ policyForm.get('additionalInfo')?.value?.length || 0 }}/1000 characters
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- IMPORTANT NOTES / DISCLAIMERS -->
+                    <div class="form-group form-group--full">
+                        <label class="form-label" for="policy-imp-notes">
+                            Important Notes / Regulatory Disclaimers <span class="optional">(Optional)</span>
+                        </label>
+                        <div class="textarea-container">
+                            <span class="material-icons textarea-icon">info_outline</span>
+                            <textarea id="policy-imp-notes" class="form-control form-textarea" rows="3"
+                                formControlName="importantNotes"
+                                placeholder="Enter regulatory references, amendment notes, or disclaimers..."
+                                maxlength="1000"></textarea>
+                        </div>
+                        <div class="form-helper-row">
+                            <span class="form-helper">
+                                Add any legislative citations, gazette notification numbers, or special notes.
+                            </span>
+                            <span class="char-counter">
+                                {{ policyForm.get('importantNotes')?.value?.length || 0 }}/1000 characters
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Tips Strip -->
+                <div class="tips-strip">
+                    <div class="tips-strip__label">
+                        <span class="material-icons">lightbulb_outline</span>
+                        <span>Tips for Policy Details</span>
+                    </div>
+                    <div class="tips-strip__items">
+                        <div class="tips-strip__item">
+                            <span class="material-icons">check_circle</span>
+                            <span>Verify gazette dates</span>
+                        </div>
+                        <div class="tips-strip__item">
+                            <span class="material-icons">check_circle</span>
+                            <span>Assign appropriate sector</span>
+                        </div>
+                        <div class="tips-strip__item">
+                            <span class="material-icons">check_circle</span>
+                            <span>Select nodal ministry</span>
+                        </div>
+                        <div class="tips-strip__item">
+                            <span class="material-icons">check_circle</span>
+                            <span>Link official guidelines</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- =========================================================
+         STEP 3: ELIGIBILITY & SCOPE
+         ========================================================= -->
+        @if (currentStep === 3) {
+        <div class="policy-layout policy-layout--single">
+            <div class="policy-card">
+                <div class="policy-card__header policy-card__header--split">
+                    <div class="policy-card__header-main">
+                        <div class="policy-card__icon-badge">
+                            <span class="material-icons">diversity_3</span>
+                        </div>
+                        <div>
+                            <h2 class="policy-card__title">Eligibility &amp; Scope</h2>
+                            <p class="policy-card__subtitle">
+                                Define the target groups, sector scope and eligibility conditions according to the
+                                policy schema.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="policy-card__header-tip">
+                        <span class="material-icons">lightbulb_outline</span>
+                        <span>Clear applicability criteria ensure targeted delivery and transparent institutional
+                            compliance.</span>
+                    </div>
+                </div>
+
+                <div class="criteria-list">
+                    <!-- TARGET BENEFICIARIES -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">groups</span>
+                            <span>Target Beneficiaries <span class="required">*</span></span>
+                        </div>
+                        <div class="criteria-row__inputs">
+                            <div class="input-with-icon">
+                                <span class="material-icons input-icon">groups</span>
+                                <input type="text" class="form-control" formControlName="targetBeneficiaries"
+                                    placeholder="e.g. Students, Higher Educational Institutions, Research Organizations, Faculty"
+                                    maxlength="500" [class.is-invalid]="
+                      stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid
+                    " />
+                            </div>
+                            <div class="form-helper-row">
+                                <span class="form-helper">
+                                    Mention the primary demographic, institutional, or societal groups impacted by this
+                                    policy.
+                                </span>
+                                <span class="char-counter">
+                                    {{ policyForm.get('targetBeneficiaries')?.value?.length || 0 }}/500 characters
+                                </span>
+                            </div>
+                            @if (stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid) {
+                            <span class="form-error">Target beneficiaries is required.</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- AGE CRITERIA -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">calendar_today</span>
+                            <span>Age Criteria <span class="optional">(Optional)</span></span>
+                        </div>
+                        <div class="criteria-row__inputs criteria-row__inputs--dual">
+                            <div class="sub-input-group">
+                                <label class="sub-label" for="policy-min-age">Minimum Age (years)</label>
+                                <div class="input-with-icon">
+                                    <span class="material-icons input-icon">calendar_today</span>
+                                    <input id="policy-min-age" type="number" class="form-control"
+                                        formControlName="minAge" placeholder="e.g. 18" />
+                                </div>
+                                <span class="form-helper">Leave blank if open to all age groups.</span>
+                            </div>
+
+                            <div class="sub-input-group">
+                                <label class="sub-label" for="policy-max-age">Maximum Age (years)</label>
+                                <div class="input-with-icon">
+                                    <span class="material-icons input-icon">calendar_today</span>
+                                    <input id="policy-max-age" type="number" class="form-control"
+                                        formControlName="maxAge" placeholder="e.g. 60" />
+                                </div>
+                                <span class="form-helper">Leave blank if no upper limit.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GENDER -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">wc</span>
+                            <span>Gender <span class="optional">(Optional)</span></span>
+                        </div>
+                        <div class="criteria-row__inputs">
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" formControlName="gender" value="All" />
+                                    <span>All</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" formControlName="gender" value="Male Only" />
+                                    <span>Male Only</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" formControlName="gender" value="Female Only" />
+                                    <span>Female Only</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" formControlName="gender" value="Other" />
+                                    <span>Other</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ANNUAL INCOME LIMIT -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">currency_rupee</span>
+                            <span>Income Ceiling <span class="optional">(Optional)</span></span>
+                        </div>
+                        <div class="criteria-row__inputs">
+                            <label class="sub-label" for="policy-income">Maximum Annual Income (₹)</label>
+                            <div class="input-with-icon">
+                                <span class="material-icons input-icon">currency_rupee</span>
+                                <input id="policy-income" type="number" class="form-control"
+                                    formControlName="annualIncome" placeholder="e.g. 800000" />
+                            </div>
+                            <span class="form-helper">Income ceiling for policy eligibility (if applicable).</span>
+                        </div>
+                    </div>
+
+                    <!-- EDUCATION / INSTITUTIONAL QUALIFICATION -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">school</span>
+                            <span>Qualification / Scope <span class="optional">(Optional)</span></span>
+                        </div>
+                        <div class="criteria-row__inputs">
+                            <div class="input-with-icon select-wrapper">
+                                <span class="material-icons input-icon">school</span>
+                                <select class="form-control form-select" formControlName="education">
+                                    <option value="" selected>Select minimum qualification or institution level</option>
+                                    @for (edu of educationOptions; track edu) {
+                                    <option [value]="edu">{{ edu }}</option>
+                                    }
+                                </select>
+                                <span class="material-icons select-arrow">expand_more</span>
+                            </div>
+                            <span class="form-helper">Applicable academic or institutional level.</span>
+                        </div>
+                    </div>
+
+                    <!-- STATE / REGION ELIGIBILITY -->
+                    <div class="criteria-row">
+                        <div class="criteria-row__label">
+                            <span class="material-icons criteria-row__icon">location_on</span>
+                            <span>Applicable Region <span class="optional">(Optional)</span></span>
+                        </div>
+                        <div class="criteria-row__inputs">
+                            <div class="input-with-icon select-wrapper">
+                                <span class="material-icons input-icon">location_on</span>
+                                <select class="form-control form-select" formControlName="eligibilityState">
+                                    <option value="" disabled>Select applicable state(s) or region(s)</option>
+                                    @for (st of states; track st) {
+                                    <option [value]="st">{{ st }}</option>
+                                    }
+                                </select>
+                                <span class="material-icons select-arrow">expand_more</span>
+                            </div>
+                            <span class="form-helper">Geographical applicability of policy benefits.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Eligibility Conditions Box (Green) -->
+                <div class="additional-criteria-box">
+                    <div class="additional-criteria-box__info">
+                        <span class="material-icons additional-criteria-box__icon">rule</span>
+                        <div>
+                            <h4 class="additional-criteria-box__title">
+                                Additional Eligibility Rules (JSONB) <span class="optional">(Optional)</span>
+                            </h4>
+                            <p class="additional-criteria-box__sub">
+                                Add specific regulatory, operational or institutional conditions stored in the policy
+                                schema.
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-outline-criteria" (click)="addEligibilityCondition()">
+                        <span class="material-icons">add</span>
+                        <span>Add Condition</span>
+                    </button>
+                </div>
+
+                <!-- Dynamic Conditions List -->
+                @if (additionalEligibilityConditions.length > 0) {
+                <div class="additional-criteria-list">
+                    @for (cond of additionalEligibilityConditions; track $index; let i = $index) {
+                    <div class="dynamic-row">
+                        <span class="material-icons row-icon">check_circle_outline</span>
+                        <input type="text" class="form-control" [(ngModel)]="additionalEligibilityConditions[i]"
+                            [ngModelOptions]="{ standalone: true }"
+                            placeholder="e.g. Must hold a recognized NAAC accreditation grade" />
+                        <button type="button" class="btn-icon-danger" (click)="removeEligibilityCondition(i)"
+                            aria-label="Remove condition">
+                            <span class="material-icons">delete_outline</span>
+                        </button>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+        }
+
+        <!-- =========================================================
+         STEP 4: DOCUMENTS & LINKS
+         ========================================================= -->
+        @if (currentStep === 4) {
+        <div class="policy-layout policy-layout--single">
+            <div class="policy-card">
+                <div class="policy-card__header scheme-card__header--split">
+                    <div class="policy-card__header-main">
+                        <div class="policy-card__icon-badge">
+                            <span class="material-icons">link</span>
+                        </div>
+                        <div>
+                            <h2 class="policy-card__title">Documents &amp; Links</h2>
+                            <p class="policy-card__subtitle">
+                                Provide official policy gazette links, document PDFs, and implementation details.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Tips badge -->
+                    <div class="tips-box-compact">
+                        <div class="tips-box-compact__header">
+                            <span class="material-icons">lightbulb_outline</span>
+                            <strong>Tips</strong>
+                        </div>
+                        <ul class="tips-box-compact__list">
+                            <li>Attach official gazette notification links or PDF URL.</li>
+                            <li>Provide the nodal ministry or department reference portal.</li>
+                            <li>Outline the implementation workflow and institutional compliance.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="policy-form-grid">
+                    <!-- POLICY DOCUMENT URL -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">picture_as_pdf</span>
+                            <label class="form-label" for="policy-doc-url">Policy Document URL (PDF)</label>
+                        </div>
+                        <div class="input-with-icon">
+                            <span class="material-icons input-icon">picture_as_pdf</span>
+                            <input id="policy-doc-url" type="url" class="form-control" formControlName="documentUrl"
+                                placeholder="https://example.gov.in/policies/official_policy_gazette.pdf" />
+                        </div>
+                        <p class="form-helper">Direct link to the official gazette or policy document PDF.</p>
+                    </div>
+
+                    <!-- SOURCE URL -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">link</span>
+                            <label class="form-label" for="policy-source-url">Source URL</label>
+                        </div>
+                        <div class="input-with-icon">
+                            <span class="material-icons input-icon">link</span>
+                            <input id="policy-source-url" type="url" class="form-control" formControlName="sourceUrl"
+                                placeholder="https://example.gov.in/ministry-portal" />
+                        </div>
+                        <p class="form-helper">Official ministry or departmental web portal for this policy.</p>
+                    </div>
+
+                    <!-- DOCUMENTS REQUIRED / COMPLIANCE -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">assignment</span>
+                            <label class="form-label" for="policy-compliance-docs">Compliance &amp; Required
+                                Documents</label>
+                        </div>
+                        <p class="form-helper">
+                            List any mandatory compliance certificates, documents, or clearances required under this
+                            policy.
+                        </p>
+                        <textarea id="policy-compliance-docs" class="form-control form-textarea" rows="4"
+                            formControlName="documentsRequired"
+                            placeholder="e.g. Institutional Registration Certificate, State NOC, Audited Financial Statements, Environmental Clearance"
+                            maxlength="2000"></textarea>
+                        <div class="form-helper-row form-helper-row--end">
+                            <span class="char-counter">
+                                {{ policyForm.get('documentsRequired')?.value?.length || 0 }}/2000 characters
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- IMPLEMENTATION PROCESS -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">format_list_numbered</span>
+                            <label class="form-label" for="policy-impl-process">Implementation &amp; Enactment
+                                Workflow</label>
+                        </div>
+                        <p class="form-helper">
+                            Describe the key phases for enactment, nodal monitoring, and periodic compliance review.
+                        </p>
+                        <textarea id="policy-impl-process" class="form-control form-textarea" rows="5"
+                            formControlName="implementationProcess" placeholder="e.g. 1. Official Gazette Notification
+      2. Nodal Implementing Agency Setup
+      3. State and Institutional Stakeholder Onboarding
+      4. Annual Audit &amp; Performance Review" maxlength="2000"></textarea>
+                        <div class="form-helper-row form-helper-row--end">
+                            <span class="char-counter">
+                                {{ policyForm.get('implementationProcess')?.value?.length || 0 }}/2000 characters
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accuracy Banner -->
+                <div class="accuracy-banner">
+                    <div class="accuracy-banner__icon-box">
+                        <span class="material-icons">verified_user</span>
+                    </div>
+                    <div class="accuracy-banner__content">
+                        <h4 class="accuracy-banner__title">Data Authenticity &amp; Compliance</h4>
+                        <p class="accuracy-banner__desc">
+                            Ensure all URLs point to authorized government portals (.gov.in / .nic.in). This guarantees
+                            integrity across all public PolicyGPT searches.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- =========================================================
+         STEP 5: REVIEW & SUBMIT
+         ========================================================= -->
+        @if (currentStep === 5) {
+        <div class="policy-layout policy-layout--single">
+            <!-- Review Policy Details Card -->
+            <div class="policy-card">
+                <div class="policy-card__header policy-card__header--split">
+                    <div class="policy-card__header-main">
+                        <div class="policy-card__icon-badge">
+                            <span class="material-icons">find_in_page</span>
+                        </div>
+                        <div>
+                            <h2 class="policy-card__title">Review Policy Details</h2>
+                            <p class="policy-card__subtitle">
+                                Please review all the information below. You can go back and edit any section if needed.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Role-Aware Review Notice -->
+                    <div class="review-notice">
+                        <span class="material-icons">info</span>
+                        <p>
+                            Make sure all information is correct and up-to-date before submitting.
+                            @if (isAdmin) {
+                            The policy will be published directly.
+                            } @else {
+                            The policy will be sent for review by the administrative team.
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                <!-- REVIEW SECTIONS -->
+                <div class="review-sections">
+                    <!-- 1. BASIC INFORMATION -->
+                    <div class="review-block">
+                        <div class="review-block__header">
+                            <div class="review-block__title-group">
+                                <div class="review-block__icon-box">
+                                    <span class="material-icons">policy</span>
+                                </div>
+                                <h3 class="review-block__title">Basic Information</h3>
+                            </div>
+                            <button type="button" class="review-block__btn-edit" (click)="goToStep(1)">
+                                <span class="material-icons">edit</span>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+
+                        <div class="review-grid">
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Policy Title</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value font-bold">{{ policyForm.get('title')?.value || 'Not
+                                    provided' }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Category</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('category')?.value || 'Not provided'
+                                    }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Sector</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('sector')?.value || 'Not specified'
+                                    }}</span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Description</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('description')?.value || 'Not
+                                    provided' }}</span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Benefits</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">
+                                    @if (filteredBenefits.length > 0) {
+                                    {{ filteredBenefits.join(', ') }}
+                                    } @else {
+                                    <span>Universal access and institutional development</span>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. CLASSIFICATION & TIMELINE -->
+                    <div class="review-block">
+                        <div class="review-block__header">
+                            <div class="review-block__title-group">
+                                <div class="review-block__icon-box">
+                                    <span class="material-icons">account_balance</span>
+                                </div>
+                                <h3 class="review-block__title">Classification &amp; Timeline</h3>
+                            </div>
+                            <button type="button" class="review-block__btn-edit" (click)="goToStep(2)">
+                                <span class="material-icons">edit</span>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+
+                        <div class="review-grid">
+                            <div class="review-item">
+                                <span class="review-item__label">Ministry</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('ministry')?.value || 'Not provided'
+                                    }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Department</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('department')?.value || 'Not
+                                    provided' }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">State / Region</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('state')?.value || 'All India'
+                                    }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Publication Date</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('publicationDate')?.value || 'Not
+                                    specified' }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Effective Date</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('effectiveDate')?.value || 'Not
+                                    specified' }}</span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Key Objectives</span>
+                                <span class="review-item__colon">:</span>
+                                <div class="review-item__value">
+                                    @if (filteredHighlights.length > 0) {
+                                    <ul class="bullet-list">
+                                        @for (hl of filteredHighlights; track hl) {
+                                        <li>{{ hl }}</li>
+                                        }
+                                    </ul>
+                                    } @else {
+                                    <span>Standard policy provisions</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. ELIGIBILITY & SCOPE -->
+                    <div class="review-block">
+                        <div class="review-block__header">
+                            <div class="review-block__title-group">
+                                <div class="review-block__icon-box">
+                                    <span class="material-icons">groups</span>
+                                </div>
+                                <h3 class="review-block__title">Eligibility &amp; Scope</h3>
+                            </div>
+                            <button type="button" class="review-block__btn-edit" (click)="goToStep(3)">
+                                <span class="material-icons">edit</span>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+
+                        <div class="review-grid">
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Target Beneficiaries</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('targetBeneficiaries')?.value || 'Not
+                                    provided' }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Age Scope</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ formattedAge }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Gender</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('gender')?.value || 'All' }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Income Ceiling</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ formattedIncome }}</span>
+                            </div>
+
+                            <div class="review-item">
+                                <span class="review-item__label">Qualification Level</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('education')?.value || 'All levels'
+                                    }}</span>
+                            </div>
+
+                            @if (additionalEligibilityConditions.length > 0) {
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Eligibility Rules (JSONB)</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ additionalEligibilityConditions.join(', ') }}</span>
+                            </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- 4. DOCUMENTS & LINKS -->
+                    <div class="review-block">
+                        <div class="review-block__header">
+                            <div class="review-block__title-group">
+                                <div class="review-block__icon-box">
+                                    <span class="material-icons">link</span>
+                                </div>
+                                <h3 class="review-block__title">Documents &amp; Links</h3>
+                            </div>
+                            <button type="button" class="review-block__btn-edit" (click)="goToStep(4)">
+                                <span class="material-icons">edit</span>
+                                <span>Edit</span>
+                            </button>
+                        </div>
+
+                        <div class="review-grid">
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Policy Document URL</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">
+                                    @if (policyForm.get('documentUrl')?.value) {
+                                    <a [href]="policyForm.get('documentUrl')?.value" target="_blank"
+                                        rel="noopener noreferrer" class="link-external">
+                                        {{ policyForm.get('documentUrl')?.value }}
+                                        <span class="material-icons">open_in_new</span>
+                                    </a>
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Source URL</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">
+                                    @if (policyForm.get('sourceUrl')?.value) {
+                                    <a [href]="policyForm.get('sourceUrl')?.value" target="_blank"
+                                        rel="noopener noreferrer" class="link-external">
+                                        {{ policyForm.get('sourceUrl')?.value }}
+                                        <span class="material-icons">open_in_new</span>
+                                    </a>
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Compliance Documents</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">{{ policyForm.get('documentsRequired')?.value || 'None
+                                    required' }}</span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Implementation Workflow</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value pre-wrap">{{
+                                    policyForm.get('implementationProcess')?.value || 'Standard administrative
+                                    implementation' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. DECLARATION (GREEN BOX) -->
+                    <div class="declaration-card"
+                        [class.is-invalid]="stepSubmitted[5] && policyForm.get('declarationAgreed')?.invalid">
+                        <div class="declaration-card__header">
+                            <div class="declaration-card__icon-box">
+                                <span class="material-icons">verified_user</span>
+                            </div>
+                            <div class="declaration-card__body">
+                                <h4 class="declaration-card__title">Official Policy Declaration</h4>
+                                <p class="declaration-card__text">
+                                    I hereby declare that this policy entry is accurate and grounded in official
+                                    government gazette records. Any deliberate misinformation may lead to rejection and
+                                    administrative review.
+                                </p>
+                            </div>
+                            <label class="declaration-checkbox">
+                                <input type="checkbox" formControlName="declarationAgreed" />
+                                <span>I agree to the above declaration</span>
+                            </label>
+                        </div>
+                        @if (stepSubmitted[5] && policyForm.get('declarationAgreed')?.invalid) {
+                        <span class="form-error declaration-error">
+                            Please acknowledge and accept the declaration to proceed.
+                        </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- =========================================================
+         STICKY FOOTER ACTIONS
+         ========================================================= -->
+        <div class="policy-create__footer">
+            <div class="policy-create__footer-left">
+                @if (currentStep > 1) {
+                <button type="button" class="btn btn-outline" (click)="prevStep()">
+                    <span class="material-icons">arrow_back</span>
+                    <span>Previous</span>
+                </button>
+                } @else {
+                <button type="button" class="btn btn-outline" (click)="cancel()">
+                    <span class="material-icons">arrow_back</span>
+                    <span>Cancel</span>
+                </button>
+                }
+            </div>
+
+            <div class="policy-create__footer-right">
+                @if (currentStep > 1) {
+                <button type="button" class="btn btn-outline btn-cancel" (click)="cancel()">
+                    Cancel
+                </button>
+                }
+
+                @if (currentStep < totalSteps) { <button type="button" class="btn btn-primary" (click)="nextStep()">
+                    <span>Next</span>
+                    <span class="material-icons">arrow_forward</span>
+                    </button>
+                    } @else {
+                    <!-- STEP 5 FINAL ACTION -->
+                    @if (isAdmin) {
+                    <!-- ADMIN Submit -->
+                    <button type="submit" class="btn btn-primary btn-submit-action">
+                        <span class="material-icons">check_circle</span>
+                        <span>Submit</span>
+                    </button>
+                    } @else {
+                    <!-- GOVERNMENT SUBMIT FOR APPROVAL -->
+                    <button type="submit" class="btn btn-primary btn-submit-action">
+                        <span class="material-icons">send</span>
+                        <span>Submit for Approval</span>
+                    </button>
+                    }
+                    }
+            </div>
+        </div>
+    </form>
+
+    <!-- =========================================================
+       SUCCESS MODAL
+       ========================================================= -->
+    @if (showSuccessModal) {
+    <div class="modal-backdrop" role="dialog" aria-modal="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-icon-success">
+                    <span class="material-icons">
+                        {{ isAdmin ? 'check_circle' : 'mark_email_read' }}
+                    </span>
+                </div>
+
+                <h3 class="modal-title">
+                    {{ isAdmin ? 'Policy Published Successfully!' : 'Policy Submitted for Approval!' }}
+                </h3>
+
+                <p class="modal-message">
+                    @if (isAdmin) {
+                    The policy <strong>“{{ policyForm.get('title')?.value }}”</strong> has been directly published and
+                    is now live across PolicyGPT.
+                    } @else {
+                    The policy <strong>“{{ policyForm.get('title')?.value }}”</strong> has been submitted to the
+                    administrative board. You will be notified once the review is completed.
+                    }
+                </p>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary modal-btn-confirm" (click)="closeSuccessModal()">
+                        Back to Policies
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    }
+</div>

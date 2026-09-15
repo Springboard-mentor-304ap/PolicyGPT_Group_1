@@ -1,0 +1,847 @@
+<div class="page-wrapper" (click)="closeMenu()">
+
+    <!-- =========================================================
+       BREADCRUMB
+  ========================================================== -->
+
+    <div class="breadcrumb">
+
+        <span class="breadcrumb-link">
+            Admin Dashboard
+        </span>
+
+        <span class="breadcrumb-arrow">
+            ›
+        </span>
+
+        <span class="breadcrumb-link">
+            Policies
+        </span>
+
+        <span class="breadcrumb-arrow">
+            ›
+        </span>
+
+        <span class="breadcrumb-current">
+            Manage Policies
+        </span>
+
+    </div>
+
+
+    <!-- =========================================================
+       PAGE HEADER
+  ========================================================== -->
+
+    <div class="page-header">
+
+        <div>
+
+            <div class="eyebrow">
+                POLICY MANAGEMENT
+            </div>
+
+            <h1>
+                Manage Policies
+            </h1>
+
+            <p>
+                View, filter and manage all policies in the system.
+            </p>
+
+        </div>
+
+
+        <button type="button" class="add-policy-button" (click)="$event.stopPropagation(); addNewPolicy()">
+
+            <span class="plus-icon">
+                +
+            </span>
+
+            Add New Policy
+
+        </button>
+
+    </div>
+
+
+    <!-- =========================================================
+       STATISTICS CARDS
+  ========================================================== -->
+
+    <div class="stats-grid">
+
+
+        <!-- TOTAL -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon blue">
+                <span>▣</span>
+            </div>
+
+            <div class="stat-content">
+
+                <strong>
+                    {{ totalPolicies }}
+                </strong>
+
+                <span>
+                    Total Policies
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- APPROVED -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon green">
+                <span>●</span>
+            </div>
+
+            <div class="stat-content">
+
+                <strong>
+                    {{ approvedCount }}
+                </strong>
+
+                <span>
+                    Approved
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- PENDING -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon orange">
+                <span>◷</span>
+            </div>
+
+            <div class="stat-content">
+
+                <strong>
+                    {{ pendingCount }}
+                </strong>
+
+                <span>
+                    Pending Approval
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- REJECTED -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon red">
+                <span>⊗</span>
+            </div>
+
+            <div class="stat-content">
+
+                <strong>
+                    {{ rejectedCount }}
+                </strong>
+
+                <span>
+                    Rejected
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- ARCHIVED -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon archive">
+                <span>▣</span>
+            </div>
+
+            <div class="stat-content">
+
+                <strong>
+                    {{ archivedCount }}
+                </strong>
+
+                <span>
+                    Archived
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+       FILTER CARD
+  ========================================================== -->
+
+    <section class="filter-card">
+
+        <div class="filter-header">
+
+            <div class="filter-title">
+
+                <div class="filter-icon">
+                    <span>≡</span>
+                </div>
+
+                <div>
+
+                    <h2>
+                        Filter Policies
+                    </h2>
+
+                    <p>
+                        Search and filter policies by various criteria.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button type="button" class="reset-button" (click)="resetFilters()">
+
+                <span>
+                    ↻
+                </span>
+
+                Reset Filters
+
+            </button>
+
+        </div>
+
+
+        <!-- FIRST FILTER ROW -->
+
+        <div class="filters-grid first-row">
+
+
+            <!-- SEARCH -->
+
+            <div class="filter-group search-group">
+
+                <label>
+                    &nbsp;
+                </label>
+
+                <div class="search-wrapper">
+
+                    <span class="search-icon">
+                        ⌕
+                    </span>
+
+                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                        placeholder="Search by title, description or keywords..." />
+
+                </div>
+
+            </div>
+
+
+            <!-- CATEGORY -->
+
+            <div class="filter-group">
+
+                <label>
+                    Category
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        <option *ngFor="let category of categories" [value]="category">
+
+                            {{ category }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- MINISTRY -->
+
+            <div class="filter-group">
+
+                <label>
+                    Ministry
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All Ministries
+                        </option>
+
+                        <option *ngFor="let ministry of ministries" [value]="ministry">
+
+                            {{ ministry }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- DEPARTMENT -->
+
+            <div class="filter-group">
+
+                <label>
+                    Department
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedDepartment" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All Departments
+                        </option>
+
+                        <option *ngFor="let department of departments" [value]="department">
+
+                            {{ department }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SECOND FILTER ROW -->
+
+        <div class="filters-grid second-row">
+
+
+            <!-- STATE -->
+
+            <div class="filter-group">
+
+                <label>
+                    State
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All States
+                        </option>
+
+                        <option *ngFor="let state of states" [value]="state">
+
+                            {{ state }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- SECTOR -->
+
+            <div class="filter-group">
+
+                <label>
+                    Sector
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedSector" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All Sectors
+                        </option>
+
+                        <option *ngFor="let sector of sectors" [value]="sector">
+
+                            {{ sector }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div class="filter-group">
+
+                <label>
+                    Status
+                </label>
+
+                <div class="select-wrapper">
+
+                    <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        <option *ngFor="let status of statuses" [value]="status">
+
+                            {{ status }}
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <!-- DATE -->
+
+            <div class="filter-group date-filter">
+
+                <label>
+                    Publication Date
+                </label>
+
+                <div class="date-range">
+
+                    <div class="date-input">
+
+                        <input type="date" [(ngModel)]="fromDate" (ngModelChange)="applyFilters()"
+                            aria-label="From date" />
+
+                        <span class="date-placeholder">
+                            From date
+                        </span>
+
+                    </div>
+
+
+                    <div class="date-input">
+
+                        <input type="date" [(ngModel)]="toDate" (ngModelChange)="applyFilters()" aria-label="To date" />
+
+                        <span class="date-placeholder">
+                            To date
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+       POLICY TABLE CARD
+  ========================================================== -->
+
+    <section class="table-card">
+
+
+        <!-- TABLE HEADER -->
+
+        <div class="table-header">
+
+            <div class="table-title">
+
+                <div class="table-icon">
+                    <span>▣</span>
+                </div>
+
+                <div>
+
+                    <h2>
+                        Policies ({{ filteredPolicies.length }})
+                    </h2>
+
+                    <p>
+                        All policies in the system
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button type="button" class="export-button" (click)="exportPolicies()">
+
+                <span>
+                    ⇩
+                </span>
+
+                Export
+
+            </button>
+
+        </div>
+
+
+        <!-- =======================================================
+         TABLE
+    ======================================================== -->
+
+        <div class="table-scroll">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th class="number-column">
+                            #
+                        </th>
+
+                        <th class="title-column">
+                            Title
+                        </th>
+
+                        <th class="category-column">
+                            Category
+                        </th>
+
+                        <th class="ministry-column">
+                            Ministry
+                        </th>
+
+                        <th class="state-column">
+                            State
+                        </th>
+
+                        <th class="status-column">
+                            Status
+                        </th>
+
+                        <th class="publication-column">
+                            Publication Date
+                        </th>
+
+                        <th class="actions-column">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    <tr *ngFor="
+              let policy of paginatedPolicies;
+              trackBy: trackByPolicy
+            ">
+
+                        <!-- NUMBER -->
+
+                        <td class="number-column">
+
+                            {{
+                            ((currentPage - 1) * pageSize)
+                            + paginatedPolicies.indexOf(policy)
+                            + 1
+                            }}
+
+                        </td>
+
+
+                        <!-- TITLE -->
+
+                        <td class="title-cell">
+
+                            <div class="policy-title">
+                                {{ policy.title }}
+                            </div>
+
+                            <div class="policy-description">
+                                {{ policy.description }}
+                            </div>
+
+                        </td>
+
+
+                        <!-- CATEGORY -->
+
+                        <td>
+
+                            <span class="category-badge" [ngClass]="getCategoryClass(policy.category)">
+
+                                {{ policy.category }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- MINISTRY -->
+
+                        <td class="ministry-cell">
+
+                            {{ policy.ministry }}
+
+                        </td>
+
+
+                        <!-- STATE -->
+
+                        <td>
+
+                            {{ policy.state }}
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            <span class="status-badge" [ngClass]="policy.status.toLowerCase()">
+
+                                <span class="status-dot"></span>
+
+                                {{ getStatusLabel(policy.status) }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- DATE -->
+
+                        <td>
+
+                            {{ policy.publicationDate }}
+
+                        </td>
+
+
+                        <!-- ACTIONS -->
+
+                        <td class="actions-cell">
+
+                            <div class="actions-wrapper" (click)="$event.stopPropagation()">
+
+
+                                <button type="button" class="view-button" (click)="viewPolicy(policy)">
+
+                                    <span>
+                                        ●
+                                    </span>
+
+                                    View
+
+                                </button>
+
+
+                                <button type="button" class="more-button" (click)="toggleMenu(policy.id)">
+
+                                    ⋮
+
+                                </button>
+
+
+                                <!-- DROPDOWN MENU -->
+
+                                <div class="action-menu" *ngIf="menuOpenId === policy.id">
+
+                                    <button type="button" (click)="editPolicy(policy)">
+
+                                        <span>✎</span>
+                                        Edit
+
+                                    </button>
+
+                                    <button type="button" (click)="archivePolicy(policy)">
+
+                                        <span>▣</span>
+                                        Archive
+
+                                    </button>
+
+                                    <button type="button" class="danger" (click)="deletePolicy(policy)">
+
+                                        <span>×</span>
+                                        Delete
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+
+                    <!-- EMPTY STATE -->
+
+                    <tr *ngIf="paginatedPolicies.length === 0">
+
+                        <td colspan="8" class="empty-state">
+
+                            <div class="empty-icon">
+                                ⌕
+                            </div>
+
+                            <strong>
+                                No policies found
+                            </strong>
+
+                            <span>
+                                Try changing your search or filter criteria.
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- =======================================================
+         PAGINATION
+    ======================================================== -->
+
+        <div class="pagination-bar">
+
+
+            <!-- RESULT COUNT -->
+
+            <div class="result-count">
+
+                Showing
+                <strong>
+                    {{ startItem }}
+                </strong>
+
+                to
+
+                <strong>
+                    {{ endItem }}
+                </strong>
+
+                of
+
+                <strong>
+                    {{ filteredPolicies.length }}
+                </strong>
+
+                policies
+
+            </div>
+
+
+            <!-- PAGINATION CONTROLS -->
+
+            <div class="pagination-controls">
+
+
+                <button type="button" class="page-arrow" [disabled]="currentPage === 1" (click)="previousPage()">
+
+                    ‹
+
+                </button>
+
+
+                <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index" class="page-number"
+                    [class.active]="currentPage === i + 1" (click)="goToPage(i + 1)">
+
+                    {{ i + 1 }}
+
+                </button>
+
+
+                <button type="button" class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()">
+
+                    ›
+
+                </button>
+
+
+                <!-- PAGE SIZE -->
+
+                <div class="page-size-wrapper">
+
+                    <select [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
+
+                        <option [ngValue]="6">
+                            6 per page
+                        </option>
+
+                        <option [ngValue]="10">
+                            10 per page
+                        </option>
+
+                        <option [ngValue]="20">
+                            20 per page
+                        </option>
+
+                        <option [ngValue]="50">
+                            50 per page
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>

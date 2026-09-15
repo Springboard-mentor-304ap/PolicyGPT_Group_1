@@ -37,13 +37,14 @@ $admin-purple: #8b00e8;
 
 .citizen-dashboard {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
 
   // MAIN PADDING
   padding: 28px 32px 40px;
 
   // MAIN MARGIN
-  margin: 0 auto;
+  margin: 0;
 
   box-sizing: border-box;
 

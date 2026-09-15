@@ -64,10 +64,12 @@ export class AdminLayoutComponent implements OnInit {
   mobileMenuOpen = false;
 
   // =======================================================
-  // USERS SUBMENU
+  // SUBMENUS
   // =======================================================
 
   usersMenuOpen = false;
+  policiesMenuOpen = false;
+  schemesMenuOpen = false;
 
   // =======================================================
   // SEARCH
@@ -143,6 +145,10 @@ export class AdminLayoutComponent implements OnInit {
 
     if (this.isUsersRouteActive()) {
       this.usersMenuOpen = true;
+    } else if (this.isPoliciesRouteActive()) {
+      this.policiesMenuOpen = true;
+    } else if (this.isSchemesRouteActive()) {
+      this.schemesMenuOpen = true;
     }
   }
 
@@ -288,7 +294,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // USERS MENU
+  // SUBMENU CONTROLS
   // =======================================================
 
   toggleUsersMenu(): void {
@@ -297,26 +303,80 @@ export class AdminLayoutComponent implements OnInit {
     }
 
     this.usersMenuOpen = !this.usersMenuOpen;
+    if (this.usersMenuOpen) {
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+    }
   }
 
   closeUsersMenu(): void {
+    this.closeAllSubmenus();
+  }
+
+  togglePoliciesMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.policiesMenuOpen = !this.policiesMenuOpen;
+    if (this.policiesMenuOpen) {
+      this.usersMenuOpen = false;
+      this.schemesMenuOpen = false;
+    }
+  }
+
+  closePoliciesMenu(): void {
+    this.policiesMenuOpen = false;
+  }
+
+  toggleSchemesMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.schemesMenuOpen = !this.schemesMenuOpen;
+    if (this.schemesMenuOpen) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+    }
+  }
+
+  closeSchemesMenu(): void {
+    this.schemesMenuOpen = false;
+  }
+
+  closeAllSubmenus(): void {
     this.usersMenuOpen = false;
+    this.policiesMenuOpen = false;
+    this.schemesMenuOpen = false;
   }
 
   // =======================================================
-  // DASHBOARD ACTIVE
+  // ROUTE ACTIVE CHECKS
   // =======================================================
 
   isDashboardRouteActive(): boolean {
-    return !this.usersMenuOpen && this.router.url === "/dashboard/admin";
+    return (
+      !this.usersMenuOpen &&
+      !this.policiesMenuOpen &&
+      !this.schemesMenuOpen &&
+      this.router.url === "/dashboard/admin"
+    );
   }
-
-  // =======================================================
-  // USERS ACTIVE
-  // =======================================================
 
   isUsersRouteActive(): boolean {
     return this.router.url.startsWith("/dashboard/admin/users");
+  }
+
+  isPoliciesRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/admin/policies");
+  }
+
+  isSchemesRouteActive(): boolean {
+    return (
+      this.router.url.startsWith("/dashboard/admin/schemes") ||
+      this.router.url.startsWith("/dashboard/admin/compare")
+    );
   }
 
   // =======================================================

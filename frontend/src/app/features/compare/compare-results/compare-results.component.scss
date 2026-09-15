@@ -1,7 +1,8 @@
 .compare-page {
-  min-height: 100vh;
-  padding: 40px 6%;
-  background: #f7f9fc;
+  width: 100%;
+  min-height: 100%;
+  padding: 28px 32px 40px;
+  background: #f4f7fb;
   box-sizing: border-box;
 }
 
@@ -10,8 +11,9 @@
    ========================= */
 
 .page-header {
-  max-width: 1150px;
-  margin: 0 auto 28px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 28px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -67,8 +69,9 @@
    ========================= */
 
 .selected-items {
-  max-width: 1150px;
-  margin: 0 auto 24px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 24px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
@@ -179,8 +182,9 @@
    ========================= */
 
 .comparison-card {
-  max-width: 1150px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   overflow: hidden;
   background: #ffffff;
   border: 1px solid #dbe2eb;
@@ -291,9 +295,15 @@ td a {
    RESPONSIVE
    ========================= */
 
+@media (max-width: 1050px) {
+  .compare-page {
+    padding: 22px;
+  }
+}
+
 @media (max-width: 900px) {
   .compare-page {
-    padding: 30px 20px;
+    padding: 18px;
   }
 
   .selected-items {
@@ -311,7 +321,7 @@ td a {
 
 @media (max-width: 650px) {
   .compare-page {
-    padding: 22px 14px;
+    padding: 14px;
   }
 
   .page-header {

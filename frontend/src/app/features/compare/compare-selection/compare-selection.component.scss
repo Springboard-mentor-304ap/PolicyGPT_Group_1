@@ -1,7 +1,8 @@
 .compare-page {
-  min-height: 100vh;
-  padding: 40px 6%;
-  background: #f7f9fc;
+  width: 100%;
+  min-height: 100%;
+  padding: 28px 32px 40px;
+  background: #f4f7fb;
   box-sizing: border-box;
 }
 
@@ -10,8 +11,9 @@
    ========================= */
 
 .page-header {
-  max-width: 1050px;
-  margin: 0 auto 28px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 28px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -66,8 +68,9 @@
    ========================= */
 
 .selection-card {
-  max-width: 1050px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 30px;
   background: #ffffff;
   border: 1px solid #e5e9f0;
@@ -436,9 +439,15 @@
    RESPONSIVE
    ========================= */
 
+@media (max-width: 1050px) {
+  .compare-page {
+    padding: 22px;
+  }
+}
+
 @media (max-width: 768px) {
   .compare-page {
-    padding: 25px 18px;
+    padding: 18px;
   }
 
   .page-header {
@@ -461,7 +470,7 @@
 
 @media (max-width: 480px) {
   .compare-page {
-    padding: 20px 12px;
+    padding: 14px;
   }
 
   .page-header h1 {

@@ -1,8 +1,8 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-
+import { PolicyService, Policy, PolicyListResponse } from "../../../core/services/policy.services";
 interface CompareItem {
   id: number;
   title: string;
@@ -20,10 +20,37 @@ interface CompareItem {
   templateUrl: "./compare-selection.component.html",
   styleUrls: ["./compare-selection.component.scss"],
 })
-export class CompareSelectionComponent {
+export class CompareSelectionComponent implements OnInit {
+
+  ngOnInit(): void {
+  this.loadPolicies();
+}
+
+private loadPolicies(): void {
+  this.policyService.getPolicies({
+    status: "APPROVED"
+  }).subscribe({
+    next: (response: PolicyListResponse) => {
+      this.allItems = response.policies.map((policy) => ({
+        id: policy.policy_id,
+        title: policy.title,
+        type: "Policy",
+        ministry: policy.ministry || "-",
+        category: policy.category || "-",
+        state: policy.state || "-",
+        targetGroup: "-"
+      }));
+    },
+
+    error: (error) => {
+      console.error("Failed to load policies:", error);
+    }
+  });
+}
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+private readonly policyService = inject(PolicyService);
 
   selectedItem1: CompareItem | null = null;
   selectedItem2: CompareItem | null = null;
@@ -34,123 +61,6 @@ export class CompareSelectionComponent {
   searchItem3 = "";
 
   allItems: CompareItem[] = [
-    // =======================================================
-    // POLICIES
-    // =======================================================
-
-    {
-      id: 1,
-      title: "National Education Policy 2020",
-      type: "Policy",
-      ministry: "Ministry of Education",
-      category: "Education",
-      state: "Central",
-      targetGroup: "Students",
-    },
-
-    {
-      id: 2,
-      title: "National Health Policy 2017",
-      type: "Policy",
-      ministry: "Ministry of Health & Family Welfare",
-      category: "Health",
-      state: "Central",
-      targetGroup: "Citizens",
-    },
-
-    {
-      id: 3,
-      title: "National Policy on Skill Development and Entrepreneurship 2015",
-      type: "Policy",
-      ministry: "Ministry of Skill Development & Entrepreneurship",
-      category: "Skill Development",
-      state: "Central",
-      targetGroup: "Youth & Entrepreneurs",
-    },
-
-    {
-      id: 4,
-      title: "National Agriculture Policy",
-      type: "Policy",
-      ministry: "Ministry of Agriculture & Farmers Welfare",
-      category: "Agriculture",
-      state: "Central",
-      targetGroup: "Farmers",
-    },
-
-    // =======================================================
-    // SCHEMES
-    // =======================================================
-
-    {
-      id: 101,
-      title: "PM Kisan Samman Nidhi",
-      type: "Scheme",
-      ministry: "Ministry of Agriculture & Farmers Welfare",
-      category: "Agriculture",
-      state: "Central",
-      targetGroup: "Farmers",
-    },
-
-    {
-      id: 102,
-      title: "PM Surya Ghar Muft Bijli Yojana",
-      type: "Scheme",
-      ministry: "Ministry of New & Renewable Energy",
-      category: "Energy",
-      state: "Central",
-      targetGroup: "Citizens",
-    },
-
-    {
-      id: 103,
-      title: "Post Matric Scholarship Scheme",
-      type: "Scheme",
-      ministry: "Ministry of Health & Family Welfare",
-      category: "Education",
-      state: "Central",
-      targetGroup: "Students",
-    },
-
-    {
-      id: 104,
-      title: "PM Vishwakarma Yojana",
-      type: "Scheme",
-      ministry: "Ministry of Micro, Small & Medium Enterprises",
-      category: "Skill Development",
-      state: "Central",
-      targetGroup: "Youth & Entrepreneurs",
-    },
-
-    {
-      id: 105,
-      title: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
-      type: "Scheme",
-      ministry: "Ministry of Health & Family Welfare",
-      category: "Health",
-      state: "Central",
-      targetGroup: "Citizens",
-    },
-
-    {
-      id: 106,
-      title: "Pradhan Mantri Jan Dhan Yojana",
-      type: "Scheme",
-      ministry: "Ministry of Finance",
-      category: "Financial Services",
-      state: "Central",
-      targetGroup: "Citizens",
-    },
-
-    {
-      id: 107,
-      title: "Pradhan Mantri Awas Yojana",
-      type: "Scheme",
-      ministry: "Ministry of Housing and Urban Affairs",
-      category: "Housing",
-      state: "Central",
-      targetGroup: "Citizens",
-    },
   ];
 
   get filteredItem1(): CompareItem[] {

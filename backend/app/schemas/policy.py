@@ -258,3 +258,13 @@ class PolicyListResponse(BaseModel):
     pages: int
 
     policies: list[PolicyResponse]
+
+# ============================================================
+# COMPARISON RESPONSE
+# ============================================================
+
+class PolicyComparisonResponse(BaseModel):
+
+    policy_1: PolicyResponse
+
+    policy_2: PolicyResponse

@@ -4,7 +4,7 @@
   <div class="page-header">
     <div>
       <h1>Compare Results</h1>
-      <p>Here is the comparison of the selected items.</p>
+      <p>Comparison of the selected policies.</p>
     </div>
 
     <button class="back-btn" type="button" (click)="goBack()">
@@ -14,343 +14,140 @@
   </div>
 
 
-  <!-- Selected Items -->
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-message">
+    Loading policy comparison...
+  </div>
+
+
+  <!-- Error -->
+  <div *ngIf="!loading && errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+
+  <!-- Selected Policies -->
   <div
     class="selected-items"
+    *ngIf="!loading && policy1 && policy2"
     [class.three-items]="item3"
   >
 
-    <!-- ITEM 1 -->
-    <div class="selected-item-card" *ngIf="item1">
+    <!-- POLICY 1 -->
+    <div class="selected-item-card">
 
       <div class="item-icon" [ngSwitch]="getIconType(item1)">
 
-        <!-- Education -->
-        <div class="document-icon education-icon" *ngSwitchCase="'education'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 10l9-5 9 5-9 5-9-5z"></path>
-            <path d="M7 12.5V17c3 2 7 2 10 0v-4.5"></path>
-            <path d="M21 10v6"></path>
-          </svg>
+        <div
+          class="document-icon education-icon"
+          *ngSwitchCase="'education'"
+        >
+          🎓
         </div>
 
-        <!-- Health -->
-        <div class="document-icon health-icon" *ngSwitchCase="'health'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21s-7-4.35-9-9.5C1.5 7.5 4 4 7.5 4c2 0 3.5 1.2 4.5 2.8C13 5.2 14.5 4 16.5 4 20 4 22.5 7.5 21 11.5 19 16.65 12 21 12 21z"></path>
-            <path d="M8 12h2l1-2 2 4 1-2h2"></path>
-          </svg>
+        <div
+          class="document-icon health-icon"
+          *ngSwitchCase="'health'"
+        >
+          ❤️
         </div>
 
-        <!-- Agriculture -->
-        <div class="document-icon agriculture-icon" *ngSwitchCase="'agriculture'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21V10"></path>
-            <path d="M12 14c-3.5 0-6-2.5-6-6 3.5 0 6 2.5 6 6z"></path>
-            <path d="M12 11c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6z"></path>
-            <path d="M8 21h8"></path>
-          </svg>
+        <div
+          class="document-icon agriculture-icon"
+          *ngSwitchCase="'agriculture'"
+        >
+          🌱
         </div>
 
-        <!-- Normal Policy -->
-        <div class="document-icon policy-icon" *ngSwitchCase="'policy'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <path d="M9 12l2 2 4-4"></path>
-          </svg>
+        <div
+          class="badge-icon scheme-icon"
+          *ngSwitchCase="'scheme'"
+        >
+          +
         </div>
 
-        <!-- Scheme -->
-        <div class="badge-icon scheme-icon" *ngSwitchCase="'scheme'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 8v8"></path>
-            <path d="M8 12h8"></path>
-          </svg>
+        <div
+          class="document-icon policy-icon"
+          *ngSwitchDefault
+        >
+          ✓
         </div>
 
       </div>
 
       <div class="item-info">
-        <span class="item-type">{{ item1.type }}</span>
-        <h3>{{ item1.title }}</h3>
-        <p>{{ item1.ministry }}</p>
+        <span class="item-type">Policy</span>
+
+        <h3>
+          {{ policy1.title }}
+        </h3>
+
+        <p>
+          {{ policy1.ministry || "-" }}
+        </p>
       </div>
 
     </div>
 
 
     <!-- VS -->
-    <div class="vs-badge" *ngIf="!item3">
+    <div class="vs-badge">
       VS
     </div>
 
 
-    <!-- ITEM 2 -->
-    <div class="selected-item-card" *ngIf="item2">
+    <!-- POLICY 2 -->
+    <div class="selected-item-card">
 
       <div class="item-icon" [ngSwitch]="getIconType(item2)">
 
-        <!-- Education -->
-        <div class="document-icon education-icon" *ngSwitchCase="'education'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 10l9-5 9 5-9 5-9-5z"></path>
-            <path d="M7 12.5V17c3 2 7 2 10 0v-4.5"></path>
-            <path d="M21 10v6"></path>
-          </svg>
+        <div
+          class="document-icon education-icon"
+          *ngSwitchCase="'education'"
+        >
+          🎓
         </div>
 
-        <!-- Health -->
-        <div class="document-icon health-icon" *ngSwitchCase="'health'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21s-7-4.35-9-9.5C1.5 7.5 4 4 7.5 4c2 0 3.5 1.2 4.5 2.8C13 5.2 14.5 4 16.5 4 20 4 22.5 7.5 21 11.5 19 16.65 12 21 12 21z"></path>
-            <path d="M8 12h2l1-2 2 4 1-2h2"></path>
-          </svg>
+        <div
+          class="document-icon health-icon"
+          *ngSwitchCase="'health'"
+        >
+          ❤️
         </div>
 
-        <!-- Agriculture -->
-        <div class="document-icon agriculture-icon" *ngSwitchCase="'agriculture'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21V10"></path>
-            <path d="M12 14c-3.5 0-6-2.5-6-6 3.5 0 6 2.5 6 6z"></path>
-            <path d="M12 11c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6z"></path>
-            <path d="M8 21h8"></path>
-          </svg>
+        <div
+          class="document-icon agriculture-icon"
+          *ngSwitchCase="'agriculture'"
+        >
+          🌱
         </div>
 
-        <!-- Normal Policy -->
-        <div class="document-icon policy-icon" *ngSwitchCase="'policy'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <path d="M9 12l2 2 4-4"></path>
-          </svg>
+        <div
+          class="badge-icon scheme-icon"
+          *ngSwitchCase="'scheme'"
+        >
+          +
         </div>
 
-        <!-- Scheme -->
-        <div class="badge-icon scheme-icon" *ngSwitchCase="'scheme'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 8v8"></path>
-            <path d="M8 12h8"></path>
-          </svg>
+        <div
+          class="document-icon policy-icon"
+          *ngSwitchDefault
+        >
+          ✓
         </div>
 
       </div>
 
       <div class="item-info">
-        <span class="item-type">{{ item2.type }}</span>
-        <h3>{{ item2.title }}</h3>
-        <p>{{ item2.ministry }}</p>
-      </div>
+        <span class="item-type">Policy</span>
 
-    </div>
+        <h3>
+          {{ policy2.title }}
+        </h3>
 
-
-    <!-- ITEM 3 -->
-    <div class="selected-item-card" *ngIf="item3">
-
-      <div class="item-icon" [ngSwitch]="getIconType(item3)">
-
-        <!-- Education -->
-        <div class="document-icon education-icon" *ngSwitchCase="'education'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M3 10l9-5 9 5-9 5-9-5z"></path>
-            <path d="M7 12.5V17c3 2 7 2 10 0v-4.5"></path>
-            <path d="M21 10v6"></path>
-          </svg>
-        </div>
-
-        <!-- Health -->
-        <div class="document-icon health-icon" *ngSwitchCase="'health'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21s-7-4.35-9-9.5C1.5 7.5 4 4 7.5 4c2 0 3.5 1.2 4.5 2.8C13 5.2 14.5 4 16.5 4 20 4 22.5 7.5 21 11.5 19 16.65 12 21 12 21z"></path>
-            <path d="M8 12h2l1-2 2 4 1-2h2"></path>
-          </svg>
-        </div>
-
-        <!-- Agriculture -->
-        <div class="document-icon agriculture-icon" *ngSwitchCase="'agriculture'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 21V10"></path>
-            <path d="M12 14c-3.5 0-6-2.5-6-6 3.5 0 6 2.5 6 6z"></path>
-            <path d="M12 11c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6z"></path>
-            <path d="M8 21h8"></path>
-          </svg>
-        </div>
-
-        <!-- Normal Policy -->
-        <div class="document-icon policy-icon" *ngSwitchCase="'policy'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <path d="M9 12l2 2 4-4"></path>
-          </svg>
-        </div>
-
-        <!-- Scheme -->
-        <div class="badge-icon scheme-icon" *ngSwitchCase="'scheme'">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 8v8"></path>
-            <path d="M8 12h8"></path>
-          </svg>
-        </div>
-
-      </div>
-
-      <div class="item-info">
-        <span class="item-type">{{ item3.type }}</span>
-        <h3>{{ item3.title }}</h3>
-        <p>{{ item3.ministry }}</p>
+        <p>
+          {{ policy2.ministry || "-" }}
+        </p>
       </div>
 
     </div>
@@ -359,45 +156,100 @@
 
 
   <!-- Comparison Table -->
-  <div class="comparison-table-wrapper">
+  <div
+    class="comparison-table-wrapper"
+    *ngIf="!loading && policy1 && policy2"
+  >
 
     <table class="comparison-table">
 
       <thead>
         <tr>
-          <th>Comparison</th>
 
-          <th *ngIf="item1">
-            {{ item1.title }}
+          <th>
+            Comparison
           </th>
 
-          <th *ngIf="item2">
-            {{ item2.title }}
+          <th>
+            {{ policy1.title }}
           </th>
 
-          <th *ngIf="item3">
-            {{ item3.title }}
+          <th>
+            {{ policy2.title }}
           </th>
+
         </tr>
       </thead>
 
 
       <tbody>
 
+        <!-- Policy ID -->
+        <tr>
+          <th>Policy ID</th>
+
+          <td>
+            {{ policy1.policy_id }}
+          </td>
+
+          <td>
+            {{ policy2.policy_id }}
+          </td>
+        </tr>
+
+
+        <!-- Title -->
+        <tr>
+          <th>Title</th>
+
+          <td>
+            {{ getPolicyValue(policy1, "title") }}
+          </td>
+
+          <td>
+            {{ getPolicyValue(policy2, "title") }}
+          </td>
+        </tr>
+
+
+        <!-- Description -->
+        <tr>
+          <th>Description</th>
+
+          <td>
+            {{ getPolicyValue(policy1, "description") }}
+          </td>
+
+          <td>
+            {{ getPolicyValue(policy2, "description") }}
+          </td>
+        </tr>
+
+
         <!-- Ministry -->
         <tr>
           <th>Ministry</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).ministry }}
+          <td>
+            {{ getPolicyValue(policy1, "ministry") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).ministry }}
+          <td>
+            {{ getPolicyValue(policy2, "ministry") }}
+          </td>
+        </tr>
+
+
+        <!-- Department -->
+        <tr>
+          <th>Department</th>
+
+          <td>
+            {{ getPolicyValue(policy1, "department") }}
           </td>
 
-          <td *ngIf="item3">
-            {{ getData(item3).ministry }}
+          <td>
+            {{ getPolicyValue(policy2, "department") }}
           </td>
         </tr>
 
@@ -406,52 +258,54 @@
         <tr>
           <th>Category</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).category }}
+          <td>
+            {{ getPolicyValue(policy1, "category") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).category }}
-          </td>
-
-          <td *ngIf="item3">
-            {{ getData(item3).category }}
+          <td>
+            {{ getPolicyValue(policy2, "category") }}
           </td>
         </tr>
 
 
-        <!-- Target Group -->
+        <!-- State -->
         <tr>
-          <th>Target Group</th>
+          <th>State</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).targetGroup }}
+          <td>
+            {{ getPolicyValue(policy1, "state") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).targetGroup }}
-          </td>
-
-          <td *ngIf="item3">
-            {{ getData(item3).targetGroup }}
+          <td>
+            {{ getPolicyValue(policy2, "state") }}
           </td>
         </tr>
 
 
-        <!-- Objective -->
+        <!-- Sector -->
         <tr>
-          <th>Objective</th>
+          <th>Sector</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).objective }}
+          <td>
+            {{ getPolicyValue(policy1, "sector") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).objective }}
+          <td>
+            {{ getPolicyValue(policy2, "sector") }}
+          </td>
+        </tr>
+
+
+        <!-- Status -->
+        <tr>
+          <th>Status</th>
+
+          <td>
+            {{ getPolicyValue(policy1, "status") }}
           </td>
 
-          <td *ngIf="item3">
-            {{ getData(item3).objective }}
+          <td>
+            {{ getPolicyValue(policy2, "status") }}
           </td>
         </tr>
 
@@ -460,101 +314,124 @@
         <tr>
           <th>Benefits</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).benefits }}
+          <td>
+            {{ getPolicyValue(policy1, "benefits") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).benefits }}
-          </td>
-
-          <td *ngIf="item3">
-            {{ getData(item3).benefits }}
+          <td>
+            {{ getPolicyValue(policy2, "benefits") }}
           </td>
         </tr>
 
 
-        <!-- Eligibility -->
+        <!-- Eligibility Rules -->
         <tr>
-          <th>Eligibility</th>
+          <th>Eligibility Rules</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).eligibility }}
+          <td>
+            {{ getPolicyValue(policy1, "eligibility_rules") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).eligibility }}
-          </td>
-
-          <td *ngIf="item3">
-            {{ getData(item3).eligibility }}
+          <td>
+            {{ getPolicyValue(policy2, "eligibility_rules") }}
           </td>
         </tr>
 
 
-        <!-- Application Process -->
+        <!-- Publication Date -->
         <tr>
-          <th>Application Process</th>
+          <th>Publication Date</th>
 
-          <td *ngIf="item1">
-            {{ getData(item1).application }}
+          <td>
+            {{ getPolicyValue(policy1, "publication_date") }}
           </td>
 
-          <td *ngIf="item2">
-            {{ getData(item2).application }}
-          </td>
-
-          <td *ngIf="item3">
-            {{ getData(item3).application }}
+          <td>
+            {{ getPolicyValue(policy2, "publication_date") }}
           </td>
         </tr>
 
 
-        <!-- Website -->
+        <!-- Effective Date -->
         <tr>
-          <th>Website</th>
+          <th>Effective Date</th>
 
-          <td *ngIf="item1">
+          <td>
+            {{ getPolicyValue(policy1, "effective_date") }}
+          </td>
+
+          <td>
+            {{ getPolicyValue(policy2, "effective_date") }}
+          </td>
+        </tr>
+
+
+        <!-- Document -->
+        <tr>
+          <th>Document</th>
+
+          <td>
             <a
-              *ngIf="getData(item1).website !== '-'"
-              [href]="getData(item1).website"
+              *ngIf="policy1.document_url"
+              [href]="policy1.document_url"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Visit Website
+              View Document
             </a>
 
-            <span *ngIf="getData(item1).website === '-'">
+            <span *ngIf="!policy1.document_url">
               -
             </span>
           </td>
 
-          <td *ngIf="item2">
+          <td>
             <a
-              *ngIf="getData(item2).website !== '-'"
-              [href]="getData(item2).website"
+              *ngIf="policy2.document_url"
+              [href]="policy2.document_url"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Visit Website
+              View Document
             </a>
 
-            <span *ngIf="getData(item2).website === '-'">
+            <span *ngIf="!policy2.document_url">
+              -
+            </span>
+          </td>
+        </tr>
+
+
+        <!-- Source -->
+        <tr>
+          <th>Source</th>
+
+          <td>
+            <a
+              *ngIf="policy1.source_url"
+              [href]="policy1.source_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Visit Source
+            </a>
+
+            <span *ngIf="!policy1.source_url">
               -
             </span>
           </td>
 
-          <td *ngIf="item3">
+          <td>
             <a
-              *ngIf="getData(item3).website !== '-'"
-              [href]="getData(item3).website"
+              *ngIf="policy2.source_url"
+              [href]="policy2.source_url"
               target="_blank"
               rel="noopener noreferrer"
             >
-              Visit Website
+              Visit Source
             </a>
 
-            <span *ngIf="getData(item3).website === '-'">
+            <span *ngIf="!policy2.source_url">
               -
             </span>
           </td>
@@ -564,6 +441,21 @@
 
     </table>
 
+  </div>
+
+
+  <!-- Back to Selection -->
+  <div
+    class="comparison-actions"
+    *ngIf="!loading"
+  >
+    <button
+      type="button"
+      class="back-btn"
+      (click)="goToSelection()"
+    >
+      Compare Different Policies
+    </button>
   </div>
 
 </div>

@@ -16,6 +16,7 @@ from app.models.user import User
 
 from app.schemas.policy import (
     PolicyArchiveRequest,
+    PolicyComparisonResponse,
     PolicyCreate,
     PolicyDeleteRequest,
     PolicyListResponse,
@@ -80,6 +81,63 @@ def create_policy_route(
         current_user=current_user,
     )
 
+
+# ============================================================
+# COMPARE TWO POLICIES
+#
+# ALL AUTHENTICATED USERS
+#
+# Only APPROVED policies can be compared.
+# Data is fetched directly from PostgreSQL.
+# ============================================================
+
+@router.get(
+    "/compare",
+    response_model=PolicyComparisonResponse,
+)
+def compare_policies_route(
+    policy_id_1: int = Query(...),
+    policy_id_2: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+
+    policy_1 = get_policy(
+        db=db,
+        policy_id=policy_id_1,
+    )
+
+    policy_2 = get_policy(
+        db=db,
+        policy_id=policy_id_2,
+    )
+
+    public_roles = {
+        "CITIZEN",
+        "RESEARCHER",
+        "ORGANIZATION",
+    }
+
+    role = str(current_user.role).strip().upper()
+
+    if role in public_roles:
+
+        if policy_1.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy 1 not found.",
+            )
+
+        if policy_2.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy 2 not found.",
+            )
+
+    return {
+        "policy_1": policy_1,
+        "policy_2": policy_2,
+    }
 
 # ============================================================
 # SEARCH / LIST POLICIES

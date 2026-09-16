@@ -3,21 +3,34 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Policy {
-  id: number;
+  policy_id: number;
   title: string;
   description: string;
   category: string;
-  ministry: string;
-  department?: string;
-  state: string;
-  sector?: string;
+  ministry: string | null;
+  department?: string | null;
+  state: string | null;
+  sector?: string | null;
   status: string;
-  publication_date?: string;
-  effective_date?: string;
-  document_url?: string;
-  source_url?: string;
+  publication_date?: string | null;
+  effective_date?: string | null;
+  document_url?: string | null;
+  source_url?: string | null;
+  benefits?: string[] | null;
+  eligibility_rules?: any[] | null;
+}
+export interface PolicyComparison {
+  policy_1: Policy;
+  policy_2: Policy;
 }
 
+export interface PolicyListResponse {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+  policies: Policy[];
+}
 @Injectable({
   providedIn: 'root'
 })
@@ -33,7 +46,7 @@ export class PolicyService {
     ministry?: string;
     state?: string;
     status?: string;
-  }): Observable<Policy[]> {
+  }): Observable<PolicyListResponse> {
 
     let params = new HttpParams();
 
@@ -57,7 +70,7 @@ export class PolicyService {
       params = params.set('status', filters.status);
     }
 
-    return this.http.get<Policy[]>(this.apiUrl, { params });
+    return this.http.get<PolicyListResponse>(this.apiUrl, { params });
   }
 
   getPolicy(id: number): Observable<Policy> {
@@ -75,4 +88,19 @@ export class PolicyService {
   updatePolicy(id: number, data: Partial<Policy>): Observable<Policy> {
     return this.http.put<Policy>(`${this.apiUrl}/${id}`, data);
   }
+
+  comparePolicies(
+  policyId1: number,
+  policyId2: number
+): Observable<PolicyComparison> {
+
+  let params = new HttpParams()
+    .set('policy_id_1', policyId1)
+    .set('policy_id_2', policyId2);
+
+  return this.http.get<PolicyComparison>(
+    `${this.apiUrl}/compare`,
+    { params }
+  );
+}
 }

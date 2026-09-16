@@ -1182,3 +1182,46 @@ def get_archived_policies(
         "pages": pages,
         "policies": policies,
     }
+
+
+def compare_policies(
+    db: Session,
+    policy_id_1: int,
+    policy_id_2: int,
+):
+    policy_1 = db.query(Policy).filter(
+        Policy.policy_id == policy_id_1
+    ).first()
+
+    policy_2 = db.query(Policy).filter(
+        Policy.policy_id == policy_id_2
+    ).first()
+
+    if not policy_1:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Policy {policy_id_1} not found.",
+        )
+
+    if not policy_2:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Policy {policy_id_2} not found.",
+        )
+
+    if policy_1.status != "APPROVED":
+        raise HTTPException(
+            status_code=404,
+            detail=f"Policy {policy_id_1} is not available for comparison.",
+        )
+
+    if policy_2.status != "APPROVED":
+        raise HTTPException(
+            status_code=404,
+            detail=f"Policy {policy_id_2} is not available for comparison.",
+        )
+
+    return {
+        "policy_1": policy_1,
+        "policy_2": policy_2,
+    }

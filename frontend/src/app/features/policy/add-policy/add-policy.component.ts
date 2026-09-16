@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { PolicyService } from '../../../core/services/policy.services';
+
 import {
   FormBuilder,
   FormGroup,
@@ -130,7 +132,8 @@ export class AddPolicyComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private authService: Auth
+    private authService: Auth,
+    private policyService: PolicyService
   ) {}
 
   ngOnInit(): void {
@@ -401,8 +404,16 @@ export class AddPolicyComponent implements OnInit {
       submitted_role: this.isAdmin ? 'ADMINISTRATOR' : 'GOVERNMENT_OFFICIAL',
     };
 
-    console.log('Submitting Policy Payload (PolicyCreate):', payload);
+    this.policyService.createPolicy(payload).subscribe({
+  next: (response) => {
+    console.log('Policy created successfully:', response);
     this.showSuccessModal = true;
+  },
+  error: (error) => {
+    console.error('Policy creation failed:', error);
+    alert(error.error?.detail || 'Failed to create policy');
+  }
+});
   }
 
   closeSuccessModal(): void {

@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { SchemeService } from '../../../core/services/scheme.service';
 import {
   FormBuilder,
   FormGroup,
@@ -138,7 +139,8 @@ export class AddSchemeComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private authService: Auth
+    private authService: Auth,
+    private schemeService: SchemeService
   ) {}
 
   ngOnInit(): void {
@@ -384,8 +386,16 @@ export class AddSchemeComponent implements OnInit {
       submittedRole: this.isAdmin ? 'ADMINISTRATOR' : 'GOVERNMENT_OFFICIAL',
     };
 
-    console.log('Submitting Scheme Payload:', payload);
+    this.schemeService.createScheme(payload).subscribe({
+  next: (response) => {
+    console.log('Scheme created successfully:', response);
     this.showSuccessModal = true;
+  },
+  error: (error) => {
+    console.error('Scheme creation failed:', error);
+    alert(error.error?.detail || 'Failed to create scheme');
+  }
+});
   }
 
   closeSuccessModal(): void {

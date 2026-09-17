@@ -31,6 +31,7 @@ export interface PolicyListResponse {
   pages: number;
   policies: Policy[];
 }
+
 @Injectable({
   providedIn: 'root'
 })
@@ -38,7 +39,28 @@ export class PolicyService {
 
   private readonly apiUrl = 'http://localhost:8000/policies';
 
+  // Simple in-memory cache for repeated requests
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_TTL = 30000; // 30 seconds
+
   constructor(private http: HttpClient) {}
+
+  private getCacheKey(method: string, params?: HttpParams): string {
+    return `${method}:${params?.toString() || ''}`;
+  }
+
+  private getFromCache(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.data;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  private setCache(key: string, data: any): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
 
   getPolicies(filters?: {
     search?: string;
@@ -46,6 +68,8 @@ export class PolicyService {
     ministry?: string;
     state?: string;
     status?: string;
+    page?: number;
+    limit?: number;
   }): Observable<PolicyListResponse> {
 
     let params = new HttpParams();
@@ -70,22 +94,64 @@ export class PolicyService {
       params = params.set('status', filters.status);
     }
 
-    return this.http.get<PolicyListResponse>(this.apiUrl, { params });
+    params = params.set('page', (filters?.page || 1).toString());
+    params = params.set('limit', (filters?.limit || 10).toString());
+
+    const cacheKey = this.getCacheKey('getPolicies', params);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return new Observable(observer => {
+        observer.next(cached);
+        observer.complete();
+      });
+    }
+
+    return new Observable(observer => {
+      this.http.get<PolicyListResponse>(this.apiUrl, { params }).subscribe({
+        next: (response) => {
+          this.setCache(cacheKey, response);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (error) => observer.error(error)
+      });
+    });
   }
 
   getPolicy(id: number): Observable<Policy> {
-    return this.http.get<Policy>(`${this.apiUrl}/${id}`);
+    const cacheKey = this.getCacheKey(`getPolicy:${id}`);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      return new Observable(observer => {
+        observer.next(cached);
+        observer.complete();
+      });
+    }
+
+    return new Observable(observer => {
+      this.http.get<Policy>(`${this.apiUrl}/${id}`).subscribe({
+        next: (response) => {
+          this.setCache(cacheKey, response);
+          observer.next(response);
+          observer.complete();
+        },
+        error: (error) => observer.error(error)
+      });
+    });
   }
 
   createPolicy(data: any): Observable<Policy> {
-  return this.http.post<Policy>(this.apiUrl, data);
-}
+    this.clearCache();
+    return this.http.post<Policy>(this.apiUrl, data);
+  }
 
   deletePolicy(id: number): Observable<any> {
+    this.clearCache();
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
 
   updatePolicy(id: number, data: Partial<Policy>): Observable<Policy> {
+    this.clearCache();
     return this.http.put<Policy>(`${this.apiUrl}/${id}`, data);
   }
 
@@ -103,4 +169,8 @@ export class PolicyService {
     { params }
   );
 }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
 }

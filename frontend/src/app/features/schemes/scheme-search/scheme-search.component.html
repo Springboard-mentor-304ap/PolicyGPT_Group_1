@@ -21,7 +21,7 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
       <input type="text" [(ngModel)]="searchQuery" placeholder="Search by scheme name, keyword, ministry, or benefit..."
-        (keyup.enter)="applyFilters()" />
+        (ngModelChange)="onSearchChange()" />
     </div>
     <button type="button" class="btn-search" (click)="applyFilters()">Search</button>
   </div>
@@ -31,58 +31,56 @@
     <div class="filter-dropdown">
       <label>Category</label>
       <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
-        <option value="All Categories">All Categories</option>
-        <option value="Agriculture">Agriculture</option>
-        <option value="Energy">Energy</option>
-        <option value="Education">Education</option>
-        <option value="Health">Health</option>
-        <option value="Skill Development">Skill Development</option>
+        <option value="">All Categories</option>
+        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
       </select>
     </div>
 
     <div class="filter-dropdown">
       <label>Ministry</label>
       <select [(ngModel)]="selectedMinistry" (change)="applyFilters()">
-        <option value="All Ministries">All Ministries</option>
-        <option value="Ministry of Agriculture & Farmers Welfare">Ministry of Agriculture</option>
-        <option value="Ministry of New & Renewable Energy">Ministry of New & Renewable Energy</option>
-        <option value="Ministry of Health & Family Welfare">Ministry of Health & Family Welfare</option>
-        <option value="Ministry of Micro, Small & Medium Enterprises">Ministry of MSME</option>
+        <option value="">All Ministries</option>
+        <option *ngFor="let min of ministries" [value]="min">{{ min }}</option>
       </select>
     </div>
 
     <div class="filter-dropdown">
       <label>State</label>
       <select [(ngModel)]="selectedState" (change)="applyFilters()">
-        <option value="All States">All States</option>
-        <option value="Central">Central</option>
-        <option value="Delhi">Delhi</option>
-        <option value="Maharashtra">Maharashtra</option>
+        <option value="">All States</option>
+        <option *ngFor="let st of states" [value]="st">{{ st }}</option>
       </select>
     </div>
 
     <div class="filter-dropdown">
-      <label>Target Group</label>
-      <select [(ngModel)]="selectedTargetGroup" (change)="applyFilters()">
-        <option value="All">All</option>
-        <option value="Farmers">Farmers</option>
-        <option value="Citizens">Citizens</option>
-        <option value="Students">Students</option>
-        <option value="Youth & Entrepreneurs">Youth & Entrepreneurs</option>
+      <label>Status</label>
+      <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
+        <option value="">All Statuses</option>
+        <option *ngFor="let st of statuses" [value]="st">{{ getStatusLabel(st) }}</option>
       </select>
     </div>
 
     <button type="button" class="btn-clear" (click)="clearFilters()">Clear Filters</button>
   </div>
 
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Loading Skeleton -->
+  <div class="skeleton-list" *ngIf="loading && schemes.length === 0">
+    <div class="skeleton-card" *ngFor="let _ of [1,2,3,4,5]"></div>
+  </div>
+
   <!-- Results Count -->
-  <div class="results-count">
-    {{ filteredSchemes.length }} results found
+  <div class="results-count" *ngIf="!loading">
+    {{ totalResults }} result{{ totalResults !== 1 ? 's' : '' }} found
   </div>
 
   <!-- Scheme Cards List -->
-  <div class="scheme-list">
-    <div class="scheme-card" *ngFor="let scheme of visibleSchemes">
+  <div class="scheme-list" *ngIf="!loading && schemes.length > 0">
+    <div class="scheme-card" *ngFor="let scheme of schemes">
       <div class="card-left">
         <!-- Emblem/Badge Icon Container -->
         <div class="badge-icon">
@@ -93,20 +91,25 @@
           </svg>
         </div>
         <div class="scheme-info">
-          <h3>{{ scheme.title }}</h3>
-          <p>{{ scheme.ministry }}</p>
+          <h3>{{ scheme.name }}</h3>
+          <p>{{ scheme.ministry || 'N/A' }}</p>
+          <div class="scheme-meta">
+            <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
+            <span class="meta-tag" *ngIf="scheme.state">{{ scheme.state }}</span>
+            <span class="meta-tag status" [ngClass]="'status-' + scheme.status.toLowerCase()">{{ getStatusLabel(scheme.status) }}</span>
+          </div>
         </div>
       </div>
 
       <div class="card-right">
-        <a [routerLink]="[scheme.id]" class="btn-view-details">
+        <a [routerLink]="[scheme.scheme_id]" class="btn-view-details">
           View Details
         </a>
         <button type="button" class="btn-bookmark" (click)="toggleBookmark(scheme)"
-          [title]="scheme.isBookmarked ? 'Remove Bookmark' : 'Bookmark'">
+          [title]="isBookmarked(scheme.scheme_id) ? 'Remove Bookmark' : 'Bookmark'">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-            [attr.fill]="scheme.isBookmarked ? '#1e293b' : 'none'"
-            [attr.stroke]="scheme.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round"
+            [attr.fill]="isBookmarked(scheme.scheme_id) ? '#1e293b' : 'none'"
+            [attr.stroke]="isBookmarked(scheme.scheme_id) ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round"
             stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -115,8 +118,31 @@
     </div>
   </div>
 
-  <!-- View More Action -->
-  <div class="view-more-container" *ngIf="itemsToShow < filteredSchemes.length">
-    <button type="button" class="btn-view-more" (click)="loadMore()">View More</button>
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && schemes.length === 0 && !errorMessage">
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+    <h3>No schemes found</h3>
+    <p>Try adjusting your search or filters</p>
   </div>
+
+  <!-- Pagination -->
+  <nav class="pagination" *ngIf="!loading && totalPages > 1" aria-label="Pagination">
+    <button type="button" class="page-btn" (click)="previousPage()" [disabled]="currentPage === 1" aria-label="Previous page">
+      &laquo; Previous
+    </button>
+
+    <span class="page-numbers">
+      <button *ngFor="let page of pageNumbers" type="button" class="page-btn"
+        [class.active]="page === currentPage" (click)="goToPage(page)" aria-label="Page {{ page }}">
+        {{ page }}
+      </button>
+    </span>
+
+    <button type="button" class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages" aria-label="Next page">
+      Next &raquo;
+    </button>
+  </nav>
 </div>

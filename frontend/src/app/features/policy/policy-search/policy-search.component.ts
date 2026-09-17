@@ -1,78 +1,10 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, OnInit, inject, OnDestroy } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
-import { HttpClient, HttpParams } from "@angular/common/http";
-import { catchError, finalize, of } from "rxjs";
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-// =========================================================
-// POLICY INTERFACE
-// =========================================================
-
-export interface Policy {
-  policy_id: number;
-
-  title: string;
-  description: string;
-  category: string;
-
-  ministry: string | null;
-  department: string | null;
-  state: string | null;
-  sector: string | null;
-
-  publication_date: string | null;
-  effective_date: string | null;
-
-  status:
-    | "DRAFT"
-    | "PENDING_APPROVAL"
-    | "APPROVED"
-    | "REJECTED"
-    | "ARCHIVED"
-    | "ARCHIVE_REQUESTED"
-    | "DELETE_REQUESTED";
-
-  document_url: string | null;
-  source_url: string | null;
-
-  benefits: string[] | null;
-  eligibility_rules: unknown[] | null;
-
-  created_by: number | null;
-  approved_by: number | null;
-
-  rejection_reason: string | null;
-
-  archive_reason: string | null;
-  archive_requested_by: number | null;
-  archive_requested_at: string | null;
-
-  delete_reason: string | null;
-  delete_requested_by: number | null;
-  delete_requested_at: string | null;
-
-  delete_requested_from_status: string | null;
-
-  created_at: string;
-  updated_at: string;
-}
-
-// =========================================================
-// API RESPONSE
-// =========================================================
-
-interface PolicyListResponse {
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-  policies: Policy[];
-}
-
-// =========================================================
-// COMPONENT
-// =========================================================
+import { PolicyService, Policy, PolicyListResponse } from "../../../core/services/policy.services";
 
 @Component({
   selector: "app-policy-search",
@@ -84,20 +16,16 @@ interface PolicyListResponse {
 
   styleUrls: ["./policy-search.component.scss"],
 })
-export class PolicySearchComponent implements OnInit {
+export class PolicySearchComponent implements OnInit, OnDestroy {
   // =======================================================
   // SERVICES
   // =======================================================
 
-  private readonly http = inject(HttpClient);
-
+  private readonly policyService = inject(PolicyService);
   private readonly location = inject(Location);
 
-  // =======================================================
-  // API
-  // =======================================================
-
-  private readonly apiUrl = "http://localhost:8000/policies";
+  private readonly destroy$ = new Subject<void>();
+  private readonly searchSubject = new Subject<string>();
 
   // =======================================================
   // SEARCH
@@ -202,6 +130,15 @@ export class PolicySearchComponent implements OnInit {
     "West Bengal",
   ];
 
+  sectors: string[] = [
+    "Central Government",
+    "State Government",
+    "Public Sector",
+    "Private Sector",
+    "NGO",
+    "International"
+  ];
+
   statuses: string[] = [
     "APPROVED",
     "DRAFT",
@@ -217,7 +154,28 @@ export class PolicySearchComponent implements OnInit {
   // =======================================================
 
   ngOnInit(): void {
+    this.setupDebouncedSearch();
     this.loadPolicies();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private setupDebouncedSearch(): void {
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.currentPage = 1;
+      this.loadPolicies();
+    });
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next(this.searchQuery);
   }
 
   // =======================================================
@@ -226,164 +184,33 @@ export class PolicySearchComponent implements OnInit {
 
   loadPolicies(): void {
     this.loading = true;
-
     this.errorMessage = "";
 
-    let params = new HttpParams()
-      .set("page", this.currentPage.toString())
-      .set("limit", this.pageSize.toString());
-
-    // =====================================================
-    // SEARCH
-    // =====================================================
-
-    if (this.searchQuery.trim()) {
-      params = params.set("search", this.searchQuery.trim());
-    }
-
-    // =====================================================
-    // CATEGORY
-    // =====================================================
-
-    if (this.selectedCategory.trim()) {
-      params = params.set("category", this.selectedCategory.trim());
-    }
-
-    // =====================================================
-    // MINISTRY
-    // =====================================================
-
-    if (this.selectedMinistry.trim()) {
-      params = params.set("ministry", this.selectedMinistry.trim());
-    }
-
-    // =====================================================
-    // DEPARTMENT
-    // =====================================================
-
-    if (this.selectedDepartment.trim()) {
-      params = params.set("department", this.selectedDepartment.trim());
-    }
-
-    // =====================================================
-    // STATE
-    // =====================================================
-
-    if (this.selectedState.trim()) {
-      params = params.set("state", this.selectedState.trim());
-    }
-
-    // =====================================================
-    // SECTOR
-    // =====================================================
-
-    if (this.selectedSector.trim()) {
-      params = params.set("sector", this.selectedSector.trim());
-    }
-
-    // =====================================================
-    // STATUS
-    // =====================================================
-
-    if (this.selectedStatus.trim()) {
-      params = params.set("status", this.selectedStatus.trim());
-    }
-
-    // =====================================================
-    // DEBUG
-    // =====================================================
-
-    console.log("====================================");
-
-    console.log("POLICY API REQUEST");
-
-    console.log("URL:", this.apiUrl);
-
-    console.log("PARAMS:", params.toString());
-
-    console.log("====================================");
-
-    // =====================================================
-    // API REQUEST
-    // =====================================================
-
-    this.http
-      .get<PolicyListResponse>(this.apiUrl, {
-        params,
-      })
-
-      .pipe(
-        catchError((error) => {
-          console.error("Policy API Error:", error);
-
-          this.errorMessage = this.getErrorMessage(error);
-
-          return of<PolicyListResponse>({
-            total: 0,
-            page: 1,
-            limit: this.pageSize,
-            pages: 1,
-            policies: [],
-          });
-        }),
-
-        finalize(() => {
-          this.loading = false;
-        }),
-      )
-
-      // ===================================================
-      // RESPONSE
-      // ===================================================
-
-      .subscribe((response) => {
-        console.log("====================================");
-
-        console.log("POLICY API RESPONSE:", response);
-
-        // -----------------------------------------------
-        // POLICIES
-        // -----------------------------------------------
-
-        this.policies = Array.isArray(response?.policies)
-          ? response.policies
-          : [];
-
-        // -----------------------------------------------
-        // TOTAL
-        // -----------------------------------------------
-
+    this.policyService.getPolicies({
+      search: this.searchQuery.trim() || undefined,
+      category: this.selectedCategory || undefined,
+      ministry: this.selectedMinistry || undefined,
+      state: this.selectedState || undefined,
+      status: this.selectedStatus || undefined,
+      page: this.currentPage,
+      limit: this.pageSize
+    }).subscribe({
+      next: (response: PolicyListResponse) => {
+        this.policies = Array.isArray(response?.policies) ? response.policies : [];
         this.totalResults = Number(response?.total) || 0;
-
-        // -----------------------------------------------
-        // CURRENT PAGE
-        // -----------------------------------------------
-
         this.currentPage = Number(response?.page) || 1;
-
-        // -----------------------------------------------
-        // TOTAL PAGES
-        // -----------------------------------------------
-
-        this.totalPages =
-          Number(response?.pages) > 0 ? Number(response.pages) : 1;
-
-        // -----------------------------------------------
-        // DEBUG
-        // -----------------------------------------------
-
-        console.log("POLICIES:", this.policies);
-
-        console.log("TOTAL RESULTS:", this.totalResults);
-
-        console.log("CURRENT PAGE:", this.currentPage);
-
-        console.log("TOTAL PAGES:", this.totalPages);
-
-        console.log("POLICY COUNT:", this.policies.length);
-
-        console.log("====================================");
-      });
+        this.totalPages = Number(response?.pages) > 0 ? Number(response.pages) : 1;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error("Policy API Error:", error);
+        this.errorMessage = this.getErrorMessage(error);
+        this.policies = [];
+        this.totalResults = 0;
+        this.totalPages = 1;
+        this.loading = false;
+      }
+    });
   }
 
   // =======================================================
@@ -392,7 +219,6 @@ export class PolicySearchComponent implements OnInit {
 
   applyFilters(): void {
     this.currentPage = 1;
-
     this.loadPolicies();
   }
 
@@ -402,21 +228,13 @@ export class PolicySearchComponent implements OnInit {
 
   clearFilters(): void {
     this.searchQuery = "";
-
     this.selectedCategory = "";
-
     this.selectedMinistry = "";
-
     this.selectedDepartment = "";
-
     this.selectedState = "";
-
     this.selectedSector = "";
-
     this.selectedStatus = "";
-
     this.currentPage = 1;
-
     this.loadPolicies();
   }
 
@@ -425,48 +243,24 @@ export class PolicySearchComponent implements OnInit {
   // =======================================================
 
   nextPage(): void {
-    if (this.currentPage >= this.totalPages) {
-      return;
-    }
-
+    if (this.currentPage >= this.totalPages) return;
     this.currentPage++;
-
     this.loadPolicies();
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   previousPage(): void {
-    if (this.currentPage <= 1) {
-      return;
-    }
-
+    if (this.currentPage <= 1) return;
     this.currentPage--;
-
     this.loadPolicies();
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) {
-      return;
-    }
-
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
     this.currentPage = page;
-
     this.loadPolicies();
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // =======================================================
@@ -475,15 +269,11 @@ export class PolicySearchComponent implements OnInit {
 
   get pageNumbers(): number[] {
     const pages: number[] = [];
-
     const start = Math.max(1, this.currentPage - 2);
-
     const end = Math.min(this.totalPages, this.currentPage + 2);
-
     for (let page = start; page <= end; page++) {
       pages.push(page);
     }
-
     return pages;
   }
 
@@ -497,7 +287,6 @@ export class PolicySearchComponent implements OnInit {
 
   toggleBookmark(policy: Policy): void {
     const bookmarks = this.getBookmarks();
-
     const index = bookmarks.indexOf(policy.policy_id);
 
     if (index === -1) {
@@ -512,13 +301,8 @@ export class PolicySearchComponent implements OnInit {
   private getBookmarks(): number[] {
     try {
       const stored = localStorage.getItem(this.bookmarkStorageKey);
-
-      if (!stored) {
-        return [];
-      }
-
+      if (!stored) return [];
       const parsed = JSON.parse(stored);
-
       return Array.isArray(parsed) ? parsed.map(Number) : [];
     } catch {
       return [];
@@ -530,10 +314,7 @@ export class PolicySearchComponent implements OnInit {
   // =======================================================
 
   getStatusLabel(status: string): string {
-    if (!status) {
-      return "";
-    }
-
+    if (!status) return "";
     return status
       .replace(/_/g, " ")
       .toLowerCase()
@@ -556,27 +337,21 @@ export class PolicySearchComponent implements OnInit {
     if (error?.error?.detail) {
       return error.error.detail;
     }
-
     if (error?.status === 401) {
       return "Your session has expired. Please login again.";
     }
-
     if (error?.status === 403) {
       return "You do not have permission to view these policies.";
     }
-
     if (error?.status === 404) {
       return "Policy API endpoint was not found.";
     }
-
     if (error?.status === 0) {
       return "Unable to connect to the backend server.";
     }
-
     if (error?.message) {
       return error.message;
     }
-
     return "Unable to load policies. Please try again.";
   }
 }

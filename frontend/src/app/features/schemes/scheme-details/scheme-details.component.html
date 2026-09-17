@@ -6,148 +6,310 @@
     </button>
   </div>
 
-  <!-- Page Header -->
-  <div class="page-header">
-    <h1>Scheme Details</h1>
-    <p>Details of the selected scheme</p>
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="skeleton-hero"></div>
   </div>
 
-  <!-- Main Scheme Hero Card -->
-  <div class="hero-card">
-    <div class="hero-left">
-      <div class="scheme-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          <path d="M12 8v8M8 12h8"></path>
-        </svg>
+  <!-- Error State -->
+  <div class="error-state" *ngIf="errorMessage && !loading">
+    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444"
+      stroke-width="1.5">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="15" y1="9" x2="9" y2="15"></line>
+      <line x1="9" y1="9" x2="15" y2="15"></line>
+    </svg>
+    <h3>Unable to load scheme</h3>
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="btn-retry" (click)="loadScheme(schemeIdNum!)">Try Again</button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="scheme && !loading">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1>{{ scheme.name }}</h1>
+      <p>{{ scheme.ministry || 'Government Scheme' }}</p>
+    </div>
+
+    <!-- Main Scheme Hero Card -->
+    <div class="hero-card">
+      <div class="hero-left">
+        <div class="scheme-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
+            stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M12 8v8M8 12h8"></path>
+          </svg>
+        </div>
+        <div class="hero-info">
+          <h2>{{ scheme.name }}</h2>
+          <p class="ministry">{{ scheme.ministry || 'N/A' }}</p>
+          <span class="category-tag">{{ scheme.category }}</span>
+          <span class="status-tag" [ngClass]="'status-' + scheme.status.toLowerCase()">{{ getStatusLabel(scheme.status)
+            }}</span>
+          <p class="description">{{ scheme.description }}</p>
+        </div>
       </div>
-      <div class="hero-info">
-        <h2>{{ scheme.title }}</h2>
-        <p class="ministry">{{ scheme.ministry }}</p>
-        <span class="category-tag">{{ scheme.category }}</span>
-        <p class="description">{{ scheme.description }}</p>
+
+      <div class="hero-right">
+        <button type="button" class="btn-bookmark" (click)="toggleBookmark()"
+          [title]="isBookmarked() ? 'Remove Bookmark' : 'Bookmark'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+            [attr.fill]="isBookmarked() ? '#1e293b' : 'none'" [attr.stroke]="isBookmarked() ? '#1e293b' : '#64748b'"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
+        <button type="button" class="btn-share" (click)="shareScheme()" title="Share">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="6.68"></line>
+          </svg>
+        </button>
+        <button type="button" class="btn-apply" (click)="applyNow()" [disabled]="!hasApplicationUrl">
+          {{ hasApplicationUrl ? 'Apply Now' : 'No Application Link' }}
+        </button>
       </div>
     </div>
 
-    <div class="hero-right">
-      <button type="button" class="btn-bookmark" (click)="toggleBookmark()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" [attr.fill]="scheme.isBookmarked ? '#1e293b' : 'none'" [attr.stroke]="scheme.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-        </svg>
-      </button>
-      <button type="button" class="btn-apply" (click)="applyNow()">Apply Now</button>
+    <!-- Navigation Tabs -->
+    <div class="tabs-container">
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'overview'"
+        (click)="setActiveTab('overview')">Overview</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'"
+        (click)="setActiveTab('eligibility')"
+        [disabled]="!hasEligibilityRules && !eligibilityLoading">Eligibility</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'benefits'"
+        (click)="setActiveTab('benefits')">Benefits</button>
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'documents'"
+        (click)="setActiveTab('documents')">Documents</button>
     </div>
-  </div>
 
-  <!-- Navigation Tabs -->
-  <div class="tabs-container">
-    <button type="button" class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">Overview</button>
-    <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'" (click)="setActiveTab('eligibility')">Eligibility</button>
-    <button type="button" class="tab-btn" [class.active]="activeTab === 'benefits'" (click)="setActiveTab('benefits')">Benefits</button>
-    <button type="button" class="tab-btn" [class.active]="activeTab === 'documents'" (click)="setActiveTab('documents')">Documents</button>
-  </div>
+    <!-- Tab Content Section -->
+    <div class="details-grid">
+      <!-- Left Details Card -->
+      <div class="details-card main-details">
+        <!-- Overview Tab -->
+        <div *ngIf="activeTab === 'overview'">
+          <h3>About the Scheme</h3>
+          <p class="about-text">{{ scheme.description }}</p>
 
-  <!-- Tab Content Section -->
-  <div class="details-grid">
-    <!-- Left Details Card -->
-    <div class="details-card main-details">
-      <h3>About the Scheme</h3>
-      <p class="about-text">{{ scheme.aboutText }}</p>
+          <hr class="divider" />
 
-      <hr class="divider" />
+          <div class="info-grid">
+            <div class="info-item" *ngIf="scheme.application_process">
+              <div class="icon">📝</div>
+              <div>
+                <label>Application Process</label>
+                <p>{{ scheme.application_process }}</p>
+              </div>
+            </div>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="icon">🎯</div>
-          <div>
-            <label>Objective</label>
-            <p>{{ scheme.objective }}</p>
+            <div class="info-item" *ngIf="scheme.documents_required">
+              <div class="icon">📄</div>
+              <div>
+                <label>Documents Required</label>
+                <p>{{ scheme.documents_required }}</p>
+              </div>
+            </div>
+
+            <div class="info-item" *ngIf="scheme.state">
+              <div class="icon">🗺️</div>
+              <div>
+                <label>State / Region</label>
+                <p>{{ scheme.state }}</p>
+              </div>
+            </div>
+
+            <div class="info-item" *ngIf="scheme.department">
+              <div class="icon">🏛️</div>
+              <div>
+                <label>Department</label>
+                <p>{{ scheme.department }}</p>
+              </div>
+            </div>
+
+            <div class="info-item" *ngIf="scheme.created_at">
+              <div class="icon">📅</div>
+              <div>
+                <label>Created</label>
+                <p>{{ formatDate(scheme.created_at) }}</p>
+              </div>
+            </div>
+
+            <div class="info-item" *ngIf="scheme.updated_at">
+              <div class="icon">🔄</div>
+              <div>
+                <label>Last Updated</label>
+                <p>{{ formatDate(scheme.updated_at) }}</p>
+              </div>
+            </div>
+
+            <div class="info-item full-width" *ngIf="scheme.source_url">
+              <div class="icon">🔗</div>
+              <div>
+                <label>Source URL</label>
+                <p><a [href]="scheme.source_url" target="_blank">{{ scheme.source_url }}</a></p>
+              </div>
+            </div>
+
+            <div class="info-item full-width" *ngIf="scheme.application_url">
+              <div class="icon">🌐</div>
+              <div>
+                <label>Application URL</label>
+                <p><a [href]="scheme.application_url" target="_blank">{{ scheme.application_url }}</a></p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="info-item">
-          <div class="icon">📅</div>
-          <div>
-            <label>Launch Date</label>
-            <p>{{ scheme.launchDate }}</p>
+        <!-- Eligibility Tab -->
+        <div *ngIf="activeTab === 'eligibility'">
+          <h3>Eligibility Criteria</h3>
+
+          <div class="loading-eligible" *ngIf="eligibilityLoading">
+            <div class="skeleton-eligibility" *ngFor="let _ of [1,2,3]"></div>
+          </div>
+
+          <div class="eligibility-error" *ngIf="eligibilityError && !eligibilityLoading">
+            <p>{{ eligibilityError }}</p>
+          </div>
+
+          <div *ngIf="!eligibilityLoading && !eligibilityError">
+            <div class="eligibility-rules" *ngIf="hasEligibilityRules">
+              <div class="eligibility-rule" *ngFor="let rule of eligibilityRules">
+                <h4>Rule #{{ rule.rule_id }}</h4>
+                <ul>
+                  <li *ngFor="let desc of getRuleDescriptions(rule)">{{ desc }}</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="no-eligibility" *ngIf="!hasEligibilityRules">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                stroke="#94a3b8" stroke-width="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+              </svg>
+              <h4>No specific eligibility rules defined</h4>
+              <p>This scheme may have general eligibility criteria. Please check the official website for details.</p>
+            </div>
           </div>
         </div>
 
-        <div class="info-item">
+        <!-- Benefits Tab -->
+        <div *ngIf="activeTab === 'benefits'">
+          <h3>Benefits</h3>
+
+          <div class="benefits-list" *ngIf="benefits.length > 0">
+            <div class="benefit-item" *ngFor="let benefit of benefits">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>{{ benefit }}</span>
+            </div>
+          </div>
+
+          <div class="no-benefits" *ngIf="benefits.length === 0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="#94a3b8" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+            </svg>
+            <h4>No benefits listed</h4>
+            <p>Benefits information is not available for this scheme.</p>
+          </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div *ngIf="activeTab === 'documents'">
+          <h3>Documents & Links</h3>
+
+          <div class="document-links">
+            <a *ngIf="scheme.application_url" [href]="scheme.application_url" target="_blank" class="doc-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#2563eb" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>Application Portal</span>
+            </a>
+
+            <a *ngIf="scheme.source_url" [href]="scheme.source_url" target="_blank" class="doc-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#2563eb" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+              </svg>
+              <span>Official Source</span>
+            </a>
+          </div>
+
+          <div class="no-documents" *ngIf="!hasDocument">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+              stroke="#94a3b8" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <h4>No documents available</h4>
+            <p>Document links are not available for this scheme.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar Highlights Card -->
+      <div class="details-card highlights-card">
+        <h3>Scheme Highlights</h3>
+
+        <div class="highlight-item" *ngIf="scheme.benefits && scheme.benefits.length > 0">
+          <div class="icon">🎁</div>
+          <div>
+            <label>Key Benefits</label>
+            <p>{{ scheme.benefits.slice(0, 3).join(', ') }}{{ scheme.benefits.length > 3 ? '...' : '' }}</p>
+          </div>
+        </div>
+
+        <div class="highlight-item" *ngIf="scheme.application_url">
+          <div class="icon">🔗</div>
+          <div>
+            <label>Apply Online</label>
+            <p><a [href]="scheme.application_url" target="_blank">Visit Application Portal</a></p>
+          </div>
+        </div>
+
+        <div class="highlight-item" *ngIf="scheme.source_url">
+          <div class="icon">📋</div>
+          <div>
+            <label>Official Source</label>
+            <p><a [href]="scheme.source_url" target="_blank">View Source Document</a></p>
+          </div>
+        </div>
+
+        <div class="highlight-item" *ngIf="scheme.state">
+          <div class="icon">🗺️</div>
+          <div>
+            <label>Applicable In</label>
+            <p>{{ scheme.state }}</p>
+          </div>
+        </div>
+
+        <div class="highlight-item" *ngIf="scheme.department">
           <div class="icon">🏛️</div>
           <div>
-            <label>Nodal Ministry</label>
-            <p>{{ scheme.nodalMinistry }}</p>
+            <label>Department</label>
+            <p>{{ scheme.department }}</p>
           </div>
-        </div>
-
-        <div class="info-item">
-          <div class="icon">👤</div>
-          <div>
-            <label>Target Group</label>
-            <p>{{ scheme.targetGroup }}</p>
-          </div>
-        </div>
-
-        <div class="info-item">
-          <div class="icon">📄</div>
-          <div>
-            <label>Scheme Type</label>
-            <p>{{ scheme.schemeType }}</p>
-          </div>
-        </div>
-
-        <div class="info-item">
-          <div class="icon">💳</div>
-          <div>
-            <label>Mode of Payment</label>
-            <p>{{ scheme.modeOfPayment }}</p>
-          </div>
-        </div>
-
-        <div class="info-item full-width">
-          <div class="icon">🌐</div>
-          <div>
-            <label>Official Website</label>
-            <p><a [href]="scheme.officialWebsite" target="_blank">{{ scheme.officialWebsite }}</a></p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right Sidebar Highlights Card -->
-    <div class="details-card highlights-card">
-      <h3>Scheme Highlights</h3>
-
-      <div class="highlight-item">
-        <div class="icon">👥</div>
-        <div>
-          <label>Beneficiaries</label>
-          <p>{{ scheme.beneficiaries }}</p>
-        </div>
-      </div>
-
-      <div class="highlight-item">
-        <div class="icon">💰</div>
-        <div>
-          <label>Financial Assistance</label>
-          <p>{{ scheme.financialAssistance }}</p>
-        </div>
-      </div>
-
-      <div class="highlight-item">
-        <div class="icon">🔄</div>
-        <div>
-          <label>Frequency</label>
-          <p>{{ scheme.frequency }}</p>
-        </div>
-      </div>
-
-      <div class="highlight-item">
-        <div class="icon">🗺️</div>
-        <div>
-          <label>Applicable Across</label>
-          <p>{{ scheme.applicableAcross }}</p>
         </div>
       </div>
     </div>

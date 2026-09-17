@@ -41,7 +41,7 @@
           🔍
         </span>
 
-        <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="applyFilters()"
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()"
           placeholder="Search by policy name, keyword, ministry, or benefit..." aria-label="Search policies" />
 
       </div>
@@ -189,8 +189,10 @@
           Sector
         </label>
 
-        <input id="sector" type="text" [(ngModel)]="selectedSector" placeholder="Sector"
-          (keyup.enter)="applyFilters()" />
+        <select id="sector" [(ngModel)]="selectedSector" (change)="applyFilters()">
+          <option value="">All Sectors</option>
+          <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
+        </select>
 
       </div>
 
@@ -200,17 +202,11 @@
 
 
   <!-- =====================================================
-       LOADING
+       LOADING SKELETON
   ====================================================== -->
 
-  <div class="state-container" *ngIf="loading">
-
-    <div class="loader"></div>
-
-    <p>
-      Loading policies...
-    </p>
-
+  <div class="skeleton-list" *ngIf="loading && policies.length === 0">
+    <div class="skeleton-card" *ngFor="let _ of [1,2,3,4,5]"></div>
   </div>
 
 

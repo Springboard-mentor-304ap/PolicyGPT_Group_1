@@ -18,9 +18,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("../../../shared/layouts/organization-layout/organization-layout.component").then(
-        (m) => m.OrganizationLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/organization-layout/organization-layout.component"
+      ).then((m) => m.OrganizationLayoutComponent),
 
     children: [
       // HOME
@@ -84,9 +84,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS
@@ -146,9 +146,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("../../../shared/layouts/citizen-layout/citizen-layout.component").then(
-        (m) => m.CitizenLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/citizen-layout/citizen-layout.component"
+      ).then((m) => m.CitizenLayoutComponent),
 
     children: [
       // HOME
@@ -157,7 +157,9 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./citizen/citizen.component").then((m) => m.CitizenComponent),
+          import("./citizen/citizen.component").then(
+            (m) => m.CitizenComponent,
+          ),
       },
 
       // POLICIES
@@ -204,15 +206,39 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // =====================================================
+      // ELIGIBILITY CHECKER
+      // =====================================================
+
+      // /dashboard/citizen/eligibility/check
+      {
+        path: "eligibility/check",
+
+        loadComponent: () =>
+          import(
+            "../../eligibility/eligibility-specific/eligibility-specific"
+          ).then((m) => m.EligibilitySpecific),
+      },
+
+      // /dashboard/citizen/eligibility
+      {
+        path: "eligibility",
+
+        loadComponent: () =>
+          import(
+            "../../eligibility/eligibility-checker/eligibility-checker"
+          ).then((m) => m.EligibilityChecker),
+      },
+
       // COMPARE SELECTION
       // /dashboard/citizen/compare
       {
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS
@@ -268,13 +294,17 @@ export const DASHBOARD_ROUTES: Routes = [
     canActivate: [authGuard, roleGuard],
 
     data: {
-      roles: ["GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"],
+      roles: [
+        "GOVERNMENT_OFFICIAL",
+        "GOVERNMENT_OFFICER",
+        "GOVERNMENT",
+      ],
     },
 
     loadComponent: () =>
-      import("../../../shared/layouts/government-layout/government-layout.component").then(
-        (m) => m.GovernmentLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/government-layout/government-layout.component"
+      ).then((m) => m.GovernmentLayoutComponent),
 
     children: [
       // HOME
@@ -383,9 +413,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS
@@ -444,9 +474,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("../../../shared/layouts/admin-layout/admin-layout.component").then(
-        (m) => m.AdminLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/admin-layout/admin-layout.component"
+      ).then((m) => m.AdminLayoutComponent),
 
     children: [
       // HOME
@@ -455,7 +485,9 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./admin/admin.component").then((m) => m.AdminComponent),
+          import("./admin/admin.component").then(
+            (m) => m.AdminComponent,
+          ),
       },
 
       // POLICIES
@@ -553,9 +585,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS
@@ -634,9 +666,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import("../../../shared/layouts/researcher-layout/researcher-layout.component").then(
-        (m) => m.ResearcherLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/researcher-layout/researcher-layout.component"
+      ).then((m) => m.ResearcherLayoutComponent),
 
     children: [
       // HOME
@@ -695,9 +727,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS
@@ -750,9 +782,9 @@ export const DASHBOARD_ROUTES: Routes = [
     path: "guest",
 
     loadComponent: () =>
-      import("../../../shared/layouts/guest-user-layout/guest-user-layout.component").then(
-        (m) => m.GuestUserLayoutComponent,
-      ),
+      import(
+        "../../../shared/layouts/guest-user-layout/guest-user-layout.component"
+      ).then((m) => m.GuestUserLayoutComponent),
 
     children: [
       // HOME
@@ -761,7 +793,9 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./guest/guest.component").then((m) => m.GuestComponent),
+          import("./guest/guest.component").then(
+            (m) => m.GuestComponent,
+          ),
       },
 
       // POLICIES
@@ -809,9 +843,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import("../../compare/compare-selection/compare-selection.component").then(
-            (m) => m.CompareSelectionComponent,
-          ),
+          import(
+            "../../compare/compare-selection/compare-selection.component"
+          ).then((m) => m.CompareSelectionComponent),
       },
 
       // COMPARE RESULTS

@@ -1,0 +1,868 @@
+<div class="eligibility-page">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span>Citizen Dashboard</span>
+    <span class="separator">›</span>
+    <strong>Eligibility Checker</strong>
+  </div>
+
+
+  <!-- Header -->
+  <div class="page-header">
+
+    <div>
+      <h1>Eligibility Checker</h1>
+
+      <p>
+        Find out which government schemes and policies you are eligible for.
+      </p>
+    </div>
+
+    <div class="help-banner">
+
+      <div class="help-icon">💡</div>
+
+      <div>
+        <strong>Get benefits you deserve!</strong>
+
+        <span>
+          Answer a few simple questions and discover schemes
+          and policies you can apply for.
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Tabs -->
+  <div class="tabs">
+
+    <button
+      type="button"
+      [class.active]="activeTab === 'find'"
+      (click)="setTab('find')"
+    >
+      <span class="tab-icon">👤</span>
+      Find Schemes/Policies for Me
+    </button>
+
+
+    <button
+      type="button"
+      [class.active]="activeTab === 'specific'"
+      (click)="setTab('specific')"
+    >
+      <span class="tab-icon">⌕</span>
+      Check a Specific Scheme/Policy
+    </button>
+
+
+    <button
+      type="button"
+      [class.active]="activeTab === 'saved'"
+      (click)="setTab('saved')"
+    >
+      <span class="tab-icon">🔖</span>
+      My Saved Results
+    </button>
+
+  </div>
+
+
+  <!-- ==========================================
+       FIND TAB
+  =========================================== -->
+
+  <div *ngIf="activeTab === 'find'">
+
+    <div class="main-grid">
+
+
+      <!-- =====================================
+           LEFT COLUMN
+      ====================================== -->
+
+      <div class="left-column">
+
+
+        <!-- PERSONAL DETAILS -->
+        <section class="card profile-card">
+
+          <div class="section-heading">
+
+            <div class="step-number">
+              1
+            </div>
+
+            <div>
+
+              <h2>
+                Tell Us About Yourself
+              </h2>
+
+              <p>
+                Enter your details to find schemes and policies
+                you may be eligible for.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div class="form-grid">
+
+
+            <!-- AGE -->
+            <div class="form-field">
+
+              <label for="age">
+                Age <span>*</span>
+              </label>
+
+              <input
+                id="age"
+                name="age"
+                type="number"
+                min="0"
+                max="120"
+                [(ngModel)]="profile.age"
+                placeholder="Enter age"
+              />
+
+            </div>
+
+
+            <!-- GENDER -->
+            <div class="form-field">
+
+              <label for="gender">
+                Gender <span>*</span>
+              </label>
+
+              <select
+                id="gender"
+                name="gender"
+                [(ngModel)]="profile.gender"
+              >
+
+                <option
+                  *ngFor="let gender of genders"
+                  [value]="gender"
+                >
+                  {{ gender }}
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- INCOME -->
+            <div class="form-field">
+
+              <label for="annualIncome">
+                Annual Income (₹)
+              </label>
+
+              <input
+                id="annualIncome"
+                name="annualIncome"
+                type="number"
+                min="0"
+                [(ngModel)]="profile.annual_income"
+                placeholder="Enter annual income"
+              />
+
+            </div>
+
+
+            <!-- OCCUPATION -->
+            <div class="form-field">
+
+              <label for="occupation">
+                Occupation
+              </label>
+
+              <select
+                id="occupation"
+                name="occupation"
+                [(ngModel)]="profile.occupation"
+              >
+
+                <option value="">
+                  Select occupation
+                </option>
+
+                <option
+                  *ngFor="let occupation of occupations"
+                  [value]="occupation"
+                >
+                  {{ occupation }}
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- EDUCATION -->
+            <div class="form-field">
+
+              <label for="education">
+                Education
+              </label>
+
+              <select
+                id="education"
+                name="education"
+                [(ngModel)]="profile.education"
+              >
+
+                <option value="">
+                  Select education
+                </option>
+
+                <option
+                  *ngFor="let education of educationLevels"
+                  [value]="education"
+                >
+                  {{ education }}
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- STATE -->
+            <div class="form-field">
+
+              <label for="state">
+                State
+              </label>
+
+              <select
+                id="state"
+                name="state"
+                [(ngModel)]="profile.state"
+              >
+
+                <option value="">
+                  Select state
+                </option>
+
+                <option
+                  *ngFor="let state of states"
+                  [value]="state"
+                >
+                  {{ state }}
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- SOCIAL CATEGORY -->
+            <div class="form-field">
+
+              <label for="socialCategory">
+                Social Category
+              </label>
+
+              <select
+                id="socialCategory"
+                name="socialCategory"
+                [(ngModel)]="profile.social_category"
+              >
+
+                <option value="">
+                  Select category
+                </option>
+
+                <option
+                  *ngFor="let category of socialCategories"
+                  [value]="category"
+                >
+                  {{ category }}
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- DISABILITY -->
+            <div class="form-field">
+
+              <label for="disability">
+                Disability Status
+              </label>
+
+              <select
+                id="disability"
+                name="disability"
+                [(ngModel)]="profile.disability_status"
+              >
+
+                <option [ngValue]="false">
+                  No
+                </option>
+
+                <option [ngValue]="true">
+                  Yes
+                </option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <!-- ERROR -->
+          <div
+            class="error-message"
+            *ngIf="errorMessage"
+          >
+
+            <span>⚠</span>
+
+            {{ errorMessage }}
+
+          </div>
+
+
+          <!-- ACTION BUTTON -->
+          <div class="form-actions">
+
+            <button
+              type="button"
+              class="primary-button"
+              [disabled]="loading"
+              (click)="findEligible()"
+            >
+
+              <span *ngIf="!loading">
+                Find Eligible Schemes &amp; Policies →
+              </span>
+
+              <span
+                *ngIf="loading"
+                class="loading-button-content"
+              >
+
+                <span class="small-spinner"></span>
+
+                Checking Eligibility...
+
+              </span>
+
+            </button>
+
+          </div>
+
+        </section>
+
+
+
+        <!-- =================================
+             RESULTS CARD
+        ================================== -->
+
+        <section class="card results-card">
+
+          <div class="results-header">
+
+            <div class="section-heading results-heading">
+
+              <div class="step-number">
+                2
+              </div>
+
+              <div>
+
+                <h2>
+                  Your Eligible Schemes &amp; Policies
+                </h2>
+
+                <p>
+                  Results are based on the information you provided.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <!-- RESULT COUNT -->
+
+            <div
+              class="result-count"
+              *ngIf="!loading && (schemeResponse || policyResponse)"
+            >
+
+              <strong>
+                {{ totalEligibleResults }} Eligible
+              </strong>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- =================================
+               LOADING
+          ================================== -->
+
+          <div
+            class="loading-box"
+            *ngIf="loading"
+          >
+
+            <div class="spinner"></div>
+
+            <p>
+              Checking available schemes and policies...
+            </p>
+
+            <small>
+              Please wait...
+            </small>
+
+          </div>
+
+
+
+          <!-- =================================
+               ERROR
+          ================================== -->
+
+          <div
+            class="results-error"
+            *ngIf="!loading && errorMessage"
+          >
+
+            <div class="error-large-icon">
+              ⚠
+            </div>
+
+            <h3>
+              Unable to load eligibility results
+            </h3>
+
+            <p>
+              {{ errorMessage }}
+            </p>
+
+            <button
+              type="button"
+              class="retry-button"
+              (click)="findEligible()"
+            >
+              Try Again
+            </button>
+
+          </div>
+
+
+
+          <!-- =================================
+               SUCCESS RESULTS
+          ================================== -->
+
+          <div
+            *ngIf="
+              !loading &&
+              !errorMessage &&
+              (schemeResponse || policyResponse)
+            "
+          >
+
+
+            <!-- ===============================
+                 SCHEMES
+            ================================ -->
+
+            <div
+              class="results-list"
+              *ngIf="schemeResults.length > 0"
+            >
+
+              <h3 class="result-group-title">
+                Eligible Schemes
+              </h3>
+
+
+              <article
+                class="result-item"
+                *ngFor="
+                  let item of schemeResults;
+                  trackBy: trackByEntity
+                "
+              >
+
+                <div class="result-type scheme-type">
+                  SCHEME
+                </div>
+
+
+                <div class="result-content">
+
+                  <h3>
+                    {{ item.entity_name }}
+                  </h3>
+
+                  <p>
+                    {{ item.message }}
+                  </p>
+
+                </div>
+
+
+                <div class="eligible-badge">
+                  ✓ Eligible
+                </div>
+
+
+                <button
+                  type="button"
+                  class="view-button"
+                >
+                  View Details →
+                </button>
+
+              </article>
+
+            </div>
+
+
+
+            <!-- ===============================
+                 POLICIES
+            ================================ -->
+
+            <div
+              class="results-list"
+              *ngIf="policyResults.length > 0"
+            >
+
+              <h3 class="result-group-title">
+                Eligible Policies
+              </h3>
+
+
+              <article
+                class="result-item"
+                *ngFor="
+                  let item of policyResults;
+                  trackBy: trackByEntity
+                "
+              >
+
+                <div class="result-type policy-type">
+                  POLICY
+                </div>
+
+
+                <div class="result-content">
+
+                  <h3>
+                    {{ item.entity_name }}
+                  </h3>
+
+                  <p>
+                    {{ item.message }}
+                  </p>
+
+                </div>
+
+
+                <div class="eligible-badge">
+                  ✓ Eligible
+                </div>
+
+
+                <button
+                  type="button"
+                  class="view-button"
+                >
+                  View Details →
+                </button>
+
+              </article>
+
+            </div>
+
+
+
+            <!-- ===============================
+                 NO RESULTS
+            ================================ -->
+
+            <div
+              class="empty-results"
+              *ngIf="
+                schemeResults.length === 0 &&
+                policyResults.length === 0
+              "
+            >
+
+              <div class="empty-icon">
+                🔍
+              </div>
+
+              <h3>
+                No eligible schemes or policies found
+              </h3>
+
+              <p>
+                We could not find any approved schemes or policies
+                matching the information you provided.
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+
+      <!-- =====================================
+           RIGHT COLUMN
+      ====================================== -->
+
+      <aside class="right-column">
+
+
+        <!-- SPECIFIC CHECKER -->
+
+        <section class="card specific-card">
+
+          <div class="card-title">
+
+            <span class="blue-circle">
+              ✓
+            </span>
+
+            <h3>
+              Check a Specific Scheme or Policy
+            </h3>
+
+          </div>
+
+
+          <p class="card-description">
+            Already have a scheme or policy in mind?
+            Check your eligibility directly.
+          </p>
+
+
+          <div class="search-box">
+
+            <span>⌕</span>
+
+            <input
+              type="text"
+              placeholder="Search by name, keyword or category..."
+            />
+
+          </div>
+
+
+          <div class="selected-placeholder">
+
+            <div class="selected-icon">
+              SCHEME
+            </div>
+
+            <div>
+
+              <strong>
+                Select a scheme or policy
+              </strong>
+
+              <span>
+                Choose from available schemes and policies
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="check-button"
+            (click)="openSpecificChecker()"
+          >
+            Check Eligibility
+          </button>
+
+        </section>
+
+
+
+        <!-- INFORMATION -->
+
+        <section class="card info-card">
+
+          <div class="info-icon">
+            ℹ
+          </div>
+
+          <div>
+
+            <h3>
+              How it works
+            </h3>
+
+            <p>
+              Enter your personal details and we will compare
+              them with eligibility rules for approved government
+              schemes and policies.
+            </p>
+
+          </div>
+
+        </section>
+
+
+
+        <!-- SUMMARY -->
+
+        <section
+          class="card summary-card"
+          *ngIf="
+            !loading &&
+            !errorMessage &&
+            (schemeResponse || policyResponse)
+          "
+        >
+
+          <div class="summary-title">
+
+            <span>✓</span>
+
+            Eligibility Search Complete
+
+          </div>
+
+
+          <div class="summary-stat">
+
+            <strong>
+              {{ totalEligibleResults }}
+            </strong>
+
+            <span>
+              Eligible Results
+            </span>
+
+          </div>
+
+
+          <div class="summary-stat">
+
+            <strong>
+              {{ totalChecked }}
+            </strong>
+
+            <span>
+              Schemes &amp; Policies Checked
+            </span>
+
+          </div>
+
+        </section>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       SPECIFIC TAB
+  =========================================== -->
+
+  <div
+    *ngIf="activeTab === 'specific'"
+    class="specific-tab-container"
+  >
+
+    <section class="card tab-placeholder">
+
+      <div class="placeholder-icon">
+        🔎
+      </div>
+
+      <h2>
+        Check a Specific Scheme or Policy
+      </h2>
+
+      <p>
+        Use the dedicated eligibility checker to select a
+        specific scheme or policy and verify your eligibility.
+      </p>
+
+      <button
+        type="button"
+        class="primary-button"
+        (click)="setTab('find')"
+      >
+        Back to Find Eligible Schemes
+      </button>
+
+    </section>
+
+  </div>
+
+
+
+  <!-- ==========================================
+       SAVED TAB
+  =========================================== -->
+
+  <div
+    *ngIf="activeTab === 'saved'"
+    class="saved-tab-container"
+  >
+
+    <section class="card tab-placeholder">
+
+      <div class="placeholder-icon">
+        🔖
+      </div>
+
+      <h2>
+        My Saved Results
+      </h2>
+
+      <p>
+        Your saved eligibility results will appear here.
+      </p>
+
+      <button
+        type="button"
+        class="primary-button"
+        (click)="setTab('find')"
+      >
+        Find Eligible Schemes &amp; Policies
+      </button>
+
+    </section>
+
+  </div>
+
+</div>

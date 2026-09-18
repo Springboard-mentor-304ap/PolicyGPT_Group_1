@@ -1,6 +1,9 @@
 import { CommonModule } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
+import { PolicyService, Policy as ApiPolicy } from "../../../core/services/policy.services";
+import { Auth } from "../../../core/services/auth";
 
 interface Policy {
   id: number;
@@ -8,11 +11,19 @@ interface Policy {
   description: string;
   category: string;
   ministry: string;
+  department: string;
   state: string;
-  status: "APPROVED" | "PENDING" | "REJECTED" | "DRAFT" | "ARCHIVED";
+  sector: string;
+  status:
+    | "APPROVED"
+    | "PENDING"
+    | "REJECTED"
+    | "DRAFT"
+    | "ARCHIVED"
+    | "ARCHIVE_REQUESTED"
+    | "DELETE_REQUESTED";
   publicationDate: string;
 }
-
 @Component({
   selector: "app-manage-policies",
   standalone: true,
@@ -20,11 +31,16 @@ interface Policy {
   templateUrl: "./manage-policies.component.html",
   styleUrls: ["./manage-policies.component.scss"],
 })
-export class ManagePoliciesComponent {
+export class ManagePoliciesComponent implements OnInit {
+
+  constructor(
+  private policyService: PolicyService,
+  private router: Router,
+  private auth: Auth
+) {}
   /* ============================================================
      FILTER VALUES
   ============================================================ */
-
   searchText = "";
   selectedCategory = "";
   selectedMinistry = "";
@@ -39,6 +55,7 @@ export class ManagePoliciesComponent {
   pageSize = 6;
 
   menuOpenId: number | null = null;
+  userRole: string | null = null;
 
   /* ============================================================
      DROPDOWN OPTIONS
@@ -119,230 +136,242 @@ export class ManagePoliciesComponent {
      POLICY DATA
   ============================================================ */
 
-  policies: Policy[] = [
-    {
-      id: 1,
-      title: "National Education Policy 2020",
-      description: "Transforming India's education system...",
-      category: "Education",
-      ministry: "Ministry of Education",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "29 Jul 2020",
+  policies: Policy[] = [];
+
+  get totalPolicies(): number {
+  return this.policies.length;
+}
+
+get approvedCount(): number {
+  return this.policies.filter(
+    policy => policy.status === "APPROVED"
+  ).length;
+}
+
+get pendingCount(): number {
+  return this.policies.filter(
+    policy => policy.status === "PENDING"
+  ).length;
+}
+
+get rejectedCount(): number {
+  return this.policies.filter(
+    policy => policy.status === "REJECTED"
+  ).length;
+}
+
+get archivedCount(): number {
+  return this.policies.filter(
+    policy => policy.status === "ARCHIVED"
+  ).length;
+}
+
+    ngOnInit(): void {
+  this.userRole = this.auth.getUserRole();
+  this.loadPolicies();
+}
+
+loadPolicies(): void {
+  this.policyService.getPolicies({
+    page: 1,
+    limit: 100
+  }).subscribe({
+    next: (response) => {
+
+      this.policies = response.policies.map((policy: ApiPolicy) => ({
+        id: policy.policy_id,
+        title: policy.title,
+        description: policy.description,
+        category: policy.category,
+        ministry: policy.ministry || "",
+        department: policy.department || "",
+        state: policy.state || "",
+        sector: policy.sector || "",
+        status: this.mapStatus(policy.status),
+        publicationDate: policy.publication_date
+          ? this.formatDate(policy.publication_date)
+          : "-"
+      }));
+
+      this.currentPage = 1;
     },
 
-    {
-      id: 2,
-      title: "Digital India Policy",
-      description: "Promoting digital infrastructure...",
-      category: "Technology",
-      ministry: "Ministry of Electronics & IT",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "05 Jan 2018",
-    },
+    error: (error) => {
+      console.error("Failed to load policies:", error);
+    }
+  });
+}mapStatus(status: string): Policy["status"] {
+  switch (status) {
+    case "PENDING_APPROVAL":
+      return "PENDING";
 
-    {
-      id: 3,
-      title: "National Health Policy",
-      description: "Universal access to quality healthcare...",
-      category: "Health",
-      ministry: "Ministry of Health & Family Welfare",
-      state: "All India",
-      status: "PENDING",
-      publicationDate: "15 Aug 2023",
-    },
+    case "APPROVED":
+      return "APPROVED";
 
-    {
-      id: 4,
-      title: "Green Energy Policy",
-      description: "Accelerating clean and renewable energy...",
-      category: "Environment",
-      ministry: "Ministry of New & Renewable Energy",
-      state: "All India",
-      status: "DRAFT",
-      publicationDate: "-",
-    },
+    case "REJECTED":
+      return "REJECTED";
 
-    {
-      id: 5,
-      title: "Agricultural Marketing Policy",
-      description: "Strengthening farmer-centric markets...",
-      category: "Agriculture",
-      ministry: "Ministry of Agriculture",
-      state: "Maharashtra",
-      status: "REJECTED",
-      publicationDate: "12 Mar 2022",
-    },
+    case "DRAFT":
+      return "DRAFT";
 
-    {
-      id: 6,
-      title: "Urban Development Policy",
-      description: "Sustainable and inclusive urban growth...",
-      category: "Urban Development",
-      ministry: "Ministry of Housing & Urban Affairs",
-      state: "All India",
-      status: "ARCHIVED",
-      publicationDate: "01 Apr 2021",
-    },
+    case "ARCHIVED":
+      return "ARCHIVED";
 
-    {
-      id: 7,
-      title: "National Skill Development Policy",
-      description: "Improving skill development opportunities...",
-      category: "Employment",
-      ministry: "Ministry of Labour & Employment",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "15 Jul 2021",
-    },
+    case "ARCHIVE_REQUESTED":
+      return "ARCHIVE_REQUESTED";
 
-    {
-      id: 8,
-      title: "Digital Health Mission Policy",
-      description: "Building a connected digital healthcare ecosystem...",
-      category: "Health",
-      ministry: "Ministry of Health & Family Welfare",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "27 Sep 2021",
-    },
+    case "DELETE_REQUESTED":
+      return "DELETE_REQUESTED";
 
-    {
-      id: 9,
-      title: "National Agriculture Policy",
-      description: "Supporting sustainable agricultural development...",
-      category: "Agriculture",
-      ministry: "Ministry of Agriculture",
-      state: "Punjab",
-      status: "PENDING",
-      publicationDate: "10 Feb 2024",
-    },
+    default:
+      return "DRAFT";
+  }
+}
+formatDate(date: string): string {
+  const parsedDate = new Date(date);
 
-    {
-      id: 10,
-      title: "Renewable Energy Transition Policy",
-      description: "Accelerating renewable energy adoption...",
-      category: "Environment",
-      ministry: "Ministry of New & Renewable Energy",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "18 Jun 2022",
-    },
+  if (isNaN(parsedDate.getTime())) {
+    return "-";
+  }
 
-    {
-      id: 11,
-      title: "Smart Cities Development Policy",
-      description: "Developing sustainable and technology-enabled cities...",
-      category: "Urban Development",
-      ministry: "Ministry of Housing & Urban Affairs",
-      state: "All India",
-      status: "DRAFT",
-      publicationDate: "-",
-    },
-
-    {
-      id: 12,
-      title: "Financial Inclusion Policy",
-      description: "Expanding access to financial services...",
-      category: "Finance",
-      ministry: "Ministry of Finance",
-      state: "All India",
-      status: "APPROVED",
-      publicationDate: "05 Nov 2022",
-    },
-  ];
+  return parsedDate.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
 
   /* ============================================================
      FILTERED POLICIES
   ============================================================ */
 
   get filteredPolicies(): Policy[] {
-    return this.policies.filter((policy) => {
-      const search = this.searchText.toLowerCase().trim();
+  return this.policies.filter((policy) => {
+    const search = this.searchText.toLowerCase().trim();
 
-      const matchesSearch =
-        !search ||
-        policy.title.toLowerCase().includes(search) ||
-        policy.description.toLowerCase().includes(search) ||
-        policy.category.toLowerCase().includes(search) ||
-        policy.ministry.toLowerCase().includes(search);
+    const matchesSearch =
+      !search ||
+      policy.title.toLowerCase().includes(search) ||
+      policy.description.toLowerCase().includes(search) ||
+      policy.category.toLowerCase().includes(search) ||
+      policy.ministry.toLowerCase().includes(search) ||
+      policy.department.toLowerCase().includes(search) ||
+      policy.state.toLowerCase().includes(search) ||
+      policy.sector.toLowerCase().includes(search);
 
-      const matchesCategory =
-        !this.selectedCategory || policy.category === this.selectedCategory;
+    const matchesCategory =
+      !this.selectedCategory ||
+      policy.category === this.selectedCategory;
 
-      const matchesMinistry =
-        !this.selectedMinistry || policy.ministry === this.selectedMinistry;
+    const matchesMinistry =
+      !this.selectedMinistry ||
+      policy.ministry === this.selectedMinistry;
 
-      const matchesState =
-        !this.selectedState || policy.state === this.selectedState;
+    const matchesDepartment =
+      !this.selectedDepartment ||
+      policy.department === this.selectedDepartment;
 
-      const matchesStatus =
-        !this.selectedStatus || policy.status === this.selectedStatus;
+    const matchesState =
+      !this.selectedState ||
+      policy.state === this.selectedState;
 
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesMinistry &&
-        matchesState &&
-        matchesStatus
-      );
-    });
-  }
+    const matchesSector =
+      !this.selectedSector ||
+      policy.sector === this.selectedSector;
 
-  /* ============================================================
-     PAGINATION
-  ============================================================ */
+    const matchesStatus =
+      !this.selectedStatus ||
+      policy.status === this.selectedStatus;
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.filteredPolicies.length / this.pageSize));
-  }
+    let matchesFromDate = true;
+    let matchesToDate = true;
 
-  get paginatedPolicies(): Policy[] {
-    const start = (this.currentPage - 1) * this.pageSize;
+    if (this.fromDate && policy.publicationDate !== "-") {
+      const policyDate = new Date(policy.publicationDate);
+      const fromDate = new Date(this.fromDate);
 
-    return this.filteredPolicies.slice(start, start + this.pageSize);
-  }
+      policyDate.setHours(0, 0, 0, 0);
+      fromDate.setHours(0, 0, 0, 0);
 
-  get startItem(): number {
-    if (this.filteredPolicies.length === 0) {
-      return 0;
+      matchesFromDate = policyDate >= fromDate;
     }
 
-    return (this.currentPage - 1) * this.pageSize + 1;
-  }
+    if (this.toDate && policy.publicationDate !== "-") {
+      const policyDate = new Date(policy.publicationDate);
+      const toDate = new Date(this.toDate);
 
-  get endItem(): number {
-    return Math.min(
-      this.currentPage * this.pageSize,
-      this.filteredPolicies.length,
+      policyDate.setHours(0, 0, 0, 0);
+      toDate.setHours(0, 0, 0, 0);
+
+      matchesToDate = policyDate <= toDate;
+    }
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesMinistry &&
+      matchesDepartment &&
+      matchesState &&
+      matchesSector &&
+      matchesStatus &&
+      matchesFromDate &&
+      matchesToDate
     );
-  }
+  });
+}
 
   /* ============================================================
      STATISTICS
   ============================================================ */
 
-  get totalPolicies(): number {
-    return this.policies.length;
+  get totalPages(): number {
+  return Math.max(
+    1,
+    Math.ceil(this.filteredPolicies.length / this.pageSize)
+  );
+}
+
+get paginatedPolicies(): Policy[] {
+  const start = (this.currentPage - 1) * this.pageSize;
+
+  return this.filteredPolicies.slice(
+    start,
+    start + this.pageSize
+  );
+}
+
+get startItem(): number {
+  if (this.filteredPolicies.length === 0) {
+    return 0;
   }
 
-  get approvedCount(): number {
-    return this.policies.filter((p) => p.status === "APPROVED").length;
-  }
+  return (this.currentPage - 1) * this.pageSize + 1;
+}
 
-  get pendingCount(): number {
-    return this.policies.filter((p) => p.status === "PENDING").length;
-  }
+get endItem(): number {
+  return Math.min(
+    this.currentPage * this.pageSize,
+    this.filteredPolicies.length
+  );
+}
 
-  get rejectedCount(): number {
-    return this.policies.filter((p) => p.status === "REJECTED").length;
+previousPage(): void {
+  if (this.currentPage > 1) {
+    this.currentPage--;
   }
+}
 
-  get archivedCount(): number {
-    return this.policies.filter((p) => p.status === "ARCHIVED").length;
+nextPage(): void {
+  if (this.currentPage < this.totalPages) {
+    this.currentPage++;
   }
+}
 
+goToPage(page: number): void {
+  if (page >= 1 && page <= this.totalPages) {
+    this.currentPage = page;
+  }
+}
   /* ============================================================
      FILTER HANDLING
   ============================================================ */
@@ -377,24 +406,6 @@ export class ManagePoliciesComponent {
      PAGINATION
   ============================================================ */
 
-  previousPage(): void {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-    }
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-    }
-  }
-
-  goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-    }
-  }
-
   /* ============================================================
      MENU
   ============================================================ */
@@ -416,36 +427,260 @@ export class ManagePoliciesComponent {
   ============================================================ */
 
   viewPolicy(policy: Policy): void {
-    console.log("View policy:", policy);
+    // console.log("View policy:", policy);
 
     // Later:
-    // this.router.navigate(['/admin/policies', policy.id]);
+    this.router.navigate(['/policies', policy.id]);
   }
 
   editPolicy(policy: Policy): void {
-    console.log("Edit policy:", policy);
+  this.closeMenu();
 
-    // Later:
-    // this.router.navigate(['/admin/policies/edit', policy.id]);
-  }
+  this.router.navigate([
+    "/admin/policies/edit",
+    policy.id
+  ]);
+}
 
   archivePolicy(policy: Policy): void {
-    console.log("Archive policy:", policy);
+  this.closeMenu();
 
-    this.closeMenu();
+  if (this.userRole === "GOVERNMENT_OFFICIAL") {
+    const reason = window.prompt(
+      "Enter reason for requesting archive:"
+    );
+
+    if (!reason?.trim()) {
+      return;
+    }
+
+    this.policyService.requestArchivePolicy(
+      policy.id,
+      reason.trim()
+    ).subscribe({
+      next: () => {
+        alert("Archive request submitted successfully.");
+        this.loadPolicies();
+      },
+      error: (error) => {
+        console.error("Archive request failed:", error);
+        alert(
+          error?.error?.detail ||
+          "Unable to request archive."
+        );
+      }
+    });
+
+    return;
   }
 
-  deletePolicy(policy: Policy): void {
-    console.log("Delete policy:", policy);
+  if (this.userRole === "ADMIN") {
+    if (policy.status !== "ARCHIVE_REQUESTED") {
+      alert("This policy does not have an archive request.");
+      return;
+    }
 
-    this.closeMenu();
+    if (!confirm("Approve archive for this policy?")) {
+      return;
+    }
+
+    this.policyService.approveArchivePolicy(policy.id).subscribe({
+      next: () => {
+        alert("Policy archived successfully.");
+        this.loadPolicies();
+      },
+      error: (error) => {
+        console.error("Approve archive failed:", error);
+        alert(
+          error?.error?.detail ||
+          "Unable to approve archive."
+        );
+      }
+    });
+
+    return;
   }
+
+  alert("You do not have permission to archive this policy.");
+}
+
+deletePolicy(policy: Policy): void {
+  this.closeMenu();
+
+  if (this.userRole === "GOVERNMENT_OFFICIAL") {
+    const reason = window.prompt(
+      "Enter reason for requesting deletion:"
+    );
+
+    if (!reason?.trim()) {
+      return;
+    }
+
+    this.policyService.requestDeletePolicy(
+      policy.id,
+      reason.trim()
+    ).subscribe({
+      next: () => {
+        alert("Delete request submitted successfully.");
+        this.loadPolicies();
+      },
+      error: (error) => {
+        console.error("Delete request failed:", error);
+        alert(
+          error?.error?.detail ||
+          "Unable to request deletion."
+        );
+      }
+    });
+
+    return;
+  }
+
+  if (this.userRole === "ADMIN") {
+    if (policy.status !== "DELETE_REQUESTED") {
+      if (!confirm(
+        "This will permanently delete the policy. Continue?"
+      )) {
+        return;
+      }
+
+      this.policyService.deletePolicy(policy.id).subscribe({
+        next: () => {
+          alert("Policy permanently deleted.");
+          this.loadPolicies();
+        },
+        error: (error) => {
+          console.error("Delete failed:", error);
+          alert(
+            error?.error?.detail ||
+            "Unable to delete policy."
+          );
+        }
+      });
+
+      return;
+    }
+
+    if (!confirm("Approve this delete request?")) {
+      return;
+    }
+
+    this.policyService.approveDeletePolicy(policy.id).subscribe({
+      next: () => {
+        alert("Delete request approved.");
+        this.loadPolicies();
+      },
+      error: (error) => {
+        console.error("Approve delete failed:", error);
+        alert(
+          error?.error?.detail ||
+          "Unable to approve delete."
+        );
+      }
+    });
+  }
+}
+
+submitPolicy(policy: Policy): void {
+  this.closeMenu();
+
+  if (!confirm("Submit this policy for approval?")) {
+    return;
+  }
+
+  this.policyService.submitPolicy(policy.id).subscribe({
+    next: () => {
+      alert("Policy submitted for approval.");
+      this.loadPolicies();
+    },
+    error: (error) => {
+      console.error("Submit failed:", error);
+      alert(
+        error?.error?.detail ||
+        "Unable to submit policy."
+      );
+    }
+  });
+}
+
+approvePolicy(policy: Policy): void {
+  this.closeMenu();
+
+  if (!confirm("Approve this policy?")) {
+    return;
+  }
+
+  this.policyService.approvePolicy(policy.id).subscribe({
+    next: () => {
+      alert("Policy approved successfully.");
+      this.loadPolicies();
+    },
+    error: (error) => {
+      console.error("Approve failed:", error);
+      alert(
+        error?.error?.detail ||
+        "Unable to approve policy."
+      );
+    }
+  });
+}
+
+rejectPolicy(policy: Policy): void {
+  this.closeMenu();
+
+  const reason = window.prompt(
+    "Enter reason for rejecting this policy:"
+  );
+
+  if (!reason?.trim()) {
+    return;
+  }
+
+  this.policyService.rejectPolicy(
+    policy.id,
+    reason.trim()
+  ).subscribe({
+    next: () => {
+      alert("Policy rejected successfully.");
+      this.loadPolicies();
+    },
+    error: (error) => {
+      console.error("Reject failed:", error);
+      alert(
+        error?.error?.detail ||
+        "Unable to reject policy."
+      );
+    }
+  });
+}
+
+restorePolicy(policy: Policy): void {
+  this.closeMenu();
+
+  if (!confirm("Restore this archived policy?")) {
+    return;
+  }
+
+  this.policyService.restorePolicy(policy.id).subscribe({
+    next: () => {
+      alert("Policy restored successfully.");
+      this.loadPolicies();
+    },
+    error: (error) => {
+      console.error("Restore failed:", error);
+      alert(
+        error?.error?.detail ||
+        "Unable to restore policy."
+      );
+    }
+  });
+}
 
   addNewPolicy(): void {
-    console.log("Add new policy");
+    // console.log("Add new policy");
 
     // Later:
-    // this.router.navigate(['/admin/policies/add']);
+    this.router.navigate(['/admin/policies/add']);
   }
 
   exportPolicies(): void {
@@ -496,26 +731,32 @@ export class ManagePoliciesComponent {
   ============================================================ */
 
   getStatusLabel(status: Policy["status"]): string {
-    switch (status) {
-      case "APPROVED":
-        return "APPROVED";
+  switch (status) {
+    case "APPROVED":
+      return "APPROVED";
 
-      case "PENDING":
-        return "PENDING";
+    case "PENDING":
+      return "PENDING";
 
-      case "REJECTED":
-        return "REJECTED";
+    case "REJECTED":
+      return "REJECTED";
 
-      case "DRAFT":
-        return "DRAFT";
+    case "DRAFT":
+      return "DRAFT";
 
-      case "ARCHIVED":
-        return "ARCHIVED";
+    case "ARCHIVED":
+      return "ARCHIVED";
 
-      default:
-        return status;
-    }
+    case "ARCHIVE_REQUESTED":
+      return "ARCHIVE REQUESTED";
+
+    case "DELETE_REQUESTED":
+      return "DELETE REQUESTED";
+
+    default:
+      return status;
   }
+}
 
   getCategoryClass(category: string): string {
     return category.toLowerCase().replace(/\s+/g, "-");

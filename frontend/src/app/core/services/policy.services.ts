@@ -63,14 +63,16 @@ export class PolicyService {
   }
 
   getPolicies(filters?: {
-    search?: string;
-    category?: string;
-    ministry?: string;
-    state?: string;
-    status?: string;
-    page?: number;
-    limit?: number;
-  }): Observable<PolicyListResponse> {
+  search?: string;
+  category?: string;
+  ministry?: string;
+  department?: string;
+  state?: string;
+  sector?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Observable<PolicyListResponse> {
 
     let params = new HttpParams();
 
@@ -86,9 +88,17 @@ export class PolicyService {
       params = params.set('ministry', filters.ministry);
     }
 
+    if (filters?.department) {
+  params = params.set('department', filters.department);
+}
+
     if (filters?.state) {
       params = params.set('state', filters.state);
     }
+
+    if (filters?.sector) {
+  params = params.set('sector', filters.sector);
+}
 
     if (filters?.status) {
       params = params.set('status', filters.status);
@@ -154,6 +164,102 @@ export class PolicyService {
     this.clearCache();
     return this.http.put<Policy>(`${this.apiUrl}/${id}`, data);
   }
+
+  requestArchivePolicy(id: number, reason?: string): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/request-archive`,
+    {
+      reason: reason || "Archive requested from Manage Policies"
+    }
+  );
+}
+
+requestDeletePolicy(id: number, reason?: string): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/request-delete`,
+    {
+      reason: reason || "Delete requested from Manage Policies"
+    }
+  );
+}
+
+submitPolicy(id: number): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/submit`,
+    {}
+  );
+}
+
+approvePolicy(id: number): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/approve`,
+    {}
+  );
+}
+
+rejectPolicy(id: number, reason?: string): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/reject`,
+    {
+      reason: reason || "Policy rejected"
+    }
+  );
+}
+
+approveArchivePolicy(id: number): Observable<Policy> {
+  this.clearCache();
+
+  return this.http.post<Policy>(
+    `${this.apiUrl}/${id}/approve-archive`,
+    {}
+  );
+}
+
+rejectArchivePolicy(id: number): Observable<Policy> {
+  this.clearCache();
+
+  return this.http.post<Policy>(
+    `${this.apiUrl}/${id}/reject-archive`,
+    {}
+  );
+}
+
+restorePolicy(id: number): Observable<Policy> {
+  this.clearCache();
+
+  return this.http.post<Policy>(
+    `${this.apiUrl}/${id}/restore`,
+    {}
+  );
+}
+
+approveDeletePolicy(id: number): Observable<any> {
+  this.clearCache();
+
+  return this.http.post(
+    `${this.apiUrl}/${id}/approve-delete`,
+    {}
+  );
+}
+
+rejectDeletePolicy(id: number): Observable<Policy> {
+  this.clearCache();
+
+  return this.http.post<Policy>(
+    `${this.apiUrl}/${id}/reject-delete`,
+    {}
+  );
+}
 
   comparePolicies(
   policyId1: number,

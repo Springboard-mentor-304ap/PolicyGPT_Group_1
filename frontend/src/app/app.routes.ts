@@ -100,6 +100,12 @@ export const routes: Routes = [
       ),
   },
   {
+  path: "admin/policies/edit/:id",
+  loadComponent: () =>
+    import("./features/policy/add-policy/add-policy.component")
+      .then((m) => m.AddPolicyComponent),
+},
+  {
     path: "policies",
     loadComponent: () =>
       import("./features/policy/policy-search/policy-search.component").then(

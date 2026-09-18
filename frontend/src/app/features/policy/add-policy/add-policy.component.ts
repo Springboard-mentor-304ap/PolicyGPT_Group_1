@@ -10,7 +10,7 @@ import {
   Validators,
   FormsModule,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Auth, AuthUser } from '../../../core/services/auth';
 
 @Component({
@@ -25,6 +25,8 @@ export class AddPolicyComponent implements OnInit {
   currentStep = 1;
   totalSteps = 5;
   completedSteps = new Set<number>();
+  isEditMode = false;
+editingPolicyId: number | null = null;
 
   // Role detection
   isAdmin = false;
@@ -130,16 +132,111 @@ export class AddPolicyComponent implements OnInit {
   additionalEligibilityConditions: string[] = [];
 
   constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: Auth,
-    private policyService: PolicyService
-  ) {}
+  private fb: FormBuilder,
+  private router: Router,
+  private route: ActivatedRoute,
+  private authService: Auth,
+  private policyService: PolicyService
+) {}
+ngOnInit(): void {
+  this.detectRole();
+  this.initForm();
 
-  ngOnInit(): void {
-    this.detectRole();
-    this.initForm();
+  const policyId = this.route.snapshot.paramMap.get('id');
+
+  if (policyId) {
+    this.isEditMode = true;
+    this.editingPolicyId = Number(policyId);
+    this.loadPolicyForEdit(this.editingPolicyId);
   }
+}
+private loadPolicyForEdit(id: number): void {
+  this.policyService.getPolicy(id).subscribe({
+    next: (policy) => {
+      this.policyForm.patchValue({
+        title: policy.title,
+        category: policy.category,
+        description: policy.description,
+        ministry: policy.ministry || '',
+        department: policy.department || '',
+        state: policy.state || 'All India',
+        sector: policy.sector || '',
+        publicationDate: policy.publication_date || '',
+        effectiveDate: policy.effective_date || '',
+        documentUrl: policy.document_url || '',
+        sourceUrl: policy.source_url || '',
+      });
+
+      this.benefits.clear();
+
+      if (policy.benefits?.length) {
+        policy.benefits.forEach((benefit) => {
+          this.benefits.push(this.fb.control(benefit));
+        });
+      } else {
+        this.benefits.push(this.fb.control(''));
+      }
+
+      this.keyHighlights.clear();
+this.keyHighlights.push(this.fb.control(''));
+
+// Load eligibility information
+const rules = policy.eligibility_rules || [];
+
+this.additionalEligibilityConditions = [];
+
+for (const rule of rules) {
+  switch (rule.rule_type) {
+
+    case 'TARGET_BENEFICIARIES':
+      this.policyForm.patchValue({
+        targetBeneficiaries: rule.value || ''
+      });
+      break;
+
+    case 'AGE_CRITERIA':
+      this.policyForm.patchValue({
+        minAge: rule.min_age || '',
+        maxAge: rule.max_age || ''
+      });
+      break;
+
+    case 'GENDER':
+      this.policyForm.patchValue({
+        gender: rule.value || 'All'
+      });
+      break;
+
+    case 'ANNUAL_INCOME_LIMIT':
+      this.policyForm.patchValue({
+        annualIncome: rule.value || ''
+      });
+      break;
+
+    case 'EDUCATION':
+      this.policyForm.patchValue({
+        education: rule.value || ''
+      });
+      break;
+
+    case 'CUSTOM_CONDITION':
+      if (rule.description) {
+        this.additionalEligibilityConditions.push(rule.description);
+      }
+      break;
+  }
+}
+
+this.currentStep = 1;
+    },
+
+    error: (error) => {
+      console.error('Failed to load policy for editing:', error);
+      alert(error?.error?.detail || 'Unable to load policy.');
+      this.router.navigate(['/dashboard/government/policies']);
+    }
+  });
+}
 
   private detectRole(): void {
     const url = this.router.url;
@@ -387,31 +484,53 @@ export class AddPolicyComponent implements OnInit {
       });
 
     const payload = {
-      title: formVal.title,
-      description: formVal.description,
-      category: formVal.category,
-      ministry: formVal.ministry || null,
-      department: formVal.department || null,
-      state: formVal.state || null,
-      sector: formVal.sector || null,
-      publication_date: formVal.publicationDate || null,
-      effective_date: formVal.effectiveDate || null,
-      document_url: formVal.documentUrl || null,
-      source_url: formVal.sourceUrl || null,
-      benefits: this.filteredBenefits,
-      eligibility_rules: eligibilityRulesPayload,
-      status: this.isAdmin ? 'APPROVED' : 'PENDING_APPROVAL',
-      submitted_role: this.isAdmin ? 'ADMINISTRATOR' : 'GOVERNMENT_OFFICIAL',
-    };
+  title: formVal.title,
+  description: formVal.description,
+  category: formVal.category,
+  ministry: formVal.ministry || null,
+  department: formVal.department || null,
+  state: formVal.state || null,
+  sector: formVal.sector || null,
+  publication_date: formVal.publicationDate || null,
+  effective_date: formVal.effectiveDate || null,
+  document_url: formVal.documentUrl || null,
+  source_url: formVal.sourceUrl || null,
+  benefits: this.filteredBenefits,
+  eligibility_rules: eligibilityRulesPayload,
+};
 
-    this.policyService.createPolicy(payload).subscribe({
+    if (this.isEditMode && this.editingPolicyId !== null) {
+  this.policyService
+    .updatePolicy(this.editingPolicyId, payload)
+    .subscribe({
+      next: (response) => {
+        console.log('Policy updated successfully:', response);
+        alert('Policy updated successfully.');
+        this.router.navigate([`/dashboard/${this.rolePrefix}/policies`]);
+      },
+      error: (error) => {
+        console.error('Policy update failed:', error);
+        alert(
+          error?.error?.detail ||
+          'Failed to update policy'
+        );
+      }
+    });
+
+  return;
+}
+
+this.policyService.createPolicy(payload).subscribe({
   next: (response) => {
     console.log('Policy created successfully:', response);
     this.showSuccessModal = true;
   },
   error: (error) => {
     console.error('Policy creation failed:', error);
-    alert(error.error?.detail || 'Failed to create policy');
+    alert(
+      error?.error?.detail ||
+      'Failed to create policy'
+    );
   }
 });
   }

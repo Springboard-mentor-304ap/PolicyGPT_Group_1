@@ -1,0 +1,34 @@
+from datetime import datetime
+
+from pydantic import BaseModel
+
+
+class FeedbackCreate(BaseModel):
+    user_id: int
+    policy_id: int | None = None
+    scheme_id: int | None = None
+    feedback_type: str
+    subject: str | None = None
+    message: str
+
+
+class FeedbackUpdate(BaseModel):
+    status: str | None = None
+    admin_response: str | None = None
+
+
+class FeedbackResponse(BaseModel):
+    feedback_id: int
+    user_id: int
+    policy_id: int | None
+    scheme_id: int | None
+    feedback_type: str
+    subject: str | None
+    message: str
+    status: str
+    admin_response: str | None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-
+# from app.models.notification import Notification
 from app.core.config import settings
 
 # =========================================================

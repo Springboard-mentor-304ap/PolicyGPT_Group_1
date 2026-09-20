@@ -116,6 +116,7 @@ def compare_policies_route(
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
+        "GUEST",
     }
 
     role = str(current_user.role).strip().upper()
@@ -183,6 +184,7 @@ def search_policy_route(
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
+        "GUEST",
     }
 
     # --------------------------------------------------------
@@ -344,6 +346,7 @@ def get_policy_route(
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
+        "GUEST",
     }
 
     policy = get_policy(

@@ -75,6 +75,24 @@ export class Auth {
   }
 
   // =========================================================
+  // GUEST LOGIN
+  // =========================================================
+
+  loginAsGuest(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.apiUrl}/guest-login`, {}).pipe(
+      tap((response: AuthResponse) => {
+        if (response?.access_token) {
+          this.setToken(response.access_token);
+        }
+
+        if (response?.user) {
+          this.setUser(response.user);
+        }
+      }),
+    );
+  }
+
+  // =========================================================
   // REGISTER
   // =========================================================
 
@@ -201,6 +219,10 @@ export class Auth {
     }
 
     return user.role.toUpperCase().trim();
+  }
+
+  isGuest(): boolean {
+    return this.getUserRole() === "GUEST";
   }
 
   // =========================================================

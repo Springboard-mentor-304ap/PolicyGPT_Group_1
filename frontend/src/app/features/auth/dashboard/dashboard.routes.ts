@@ -2,6 +2,7 @@ import { Routes } from "@angular/router";
 
 import { authGuard } from "../../../core/guards/auth.guard";
 import { roleGuard } from "../../../core/guards/role.guard";
+import { guestGuard } from "../../../core/guards/guest.guard";
 
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
@@ -780,6 +781,8 @@ export const DASHBOARD_ROUTES: Routes = [
 
   {
     path: "guest",
+
+    canActivate: [guestGuard],
 
     loadComponent: () =>
       import(

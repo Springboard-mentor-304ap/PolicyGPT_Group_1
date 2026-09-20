@@ -8,6 +8,7 @@ import {
   RouterOutlet,
 } from "@angular/router";
 import { FooterComponent } from "../../components/footer/footer.component";
+import { Auth } from "../../../core/services/auth";
 
 /* =========================================================
    NAVIGATION ITEM
@@ -97,10 +98,18 @@ export class GuestUserLayoutComponent implements OnInit {
     },
   ];
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly authService: Auth,
+  ) {}
 
   ngOnInit(): void {
-    this.userName = "Guest User";
+    const storedUser = this.authService.getStoredUser();
+    if (storedUser?.full_name) {
+      this.userName = storedUser.full_name;
+    } else {
+      this.userName = "Guest User";
+    }
     this.userRole = "GUEST";
   }
 

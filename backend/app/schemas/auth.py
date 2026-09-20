@@ -20,6 +20,7 @@ ALLOWED_ROLES = {
     "ORGANIZATION",
     "GOVERNMENT_OFFICIAL",
     "ADMIN",
+    "GUEST",
 }
 
 
@@ -97,6 +98,14 @@ ROLE_ALIASES = {
 
     "ORGANIZATION": "ORGANIZATION",
     "ORG": "ORGANIZATION",
+
+    # -----------------------------------------------------
+    # GUEST
+    # -----------------------------------------------------
+
+    "GUEST": "GUEST",
+    "GUEST_USER": "GUEST",
+    "GUEST USER": "GUEST",
 }
 
 
@@ -149,7 +158,7 @@ def normalize_role(value: str) -> str:
         raise ValueError(
             "Invalid role. Allowed roles: "
             "CITIZEN, RESEARCHER, ORGANIZATION, "
-            "GOVERNMENT_OFFICIAL, ADMIN"
+            "GOVERNMENT_OFFICIAL, ADMIN, GUEST"
         )
 
     return value

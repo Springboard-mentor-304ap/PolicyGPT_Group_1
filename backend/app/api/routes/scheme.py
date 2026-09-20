@@ -109,6 +109,7 @@ def list_schemes(
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
+        "GUEST",
     }:
         status_filter = "APPROVED"
 
@@ -186,6 +187,7 @@ def get_scheme_api(
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
+        "GUEST",
     }:
 
         if scheme.status != "APPROVED":

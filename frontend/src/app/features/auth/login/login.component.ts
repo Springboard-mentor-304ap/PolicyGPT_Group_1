@@ -724,34 +724,25 @@ export class LoginComponent {
   // =========================================================
 
   loginAsGuest(): void {
-    // -------------------------------------------------------
-    // Prevent navigation while loading
-    // -------------------------------------------------------
-
     if (this.loading) {
       return;
     }
 
-    // -------------------------------------------------------
-    // Clear previous error
-    // -------------------------------------------------------
-
     this.errorMessage = "";
+    this.loading = true;
 
-    // -------------------------------------------------------
-    // Navigate directly to guest dashboard
-    // -------------------------------------------------------
-
-    console.log("Opening Guest User dashboard...");
-
-    this.router
-      .navigate(["/dashboard/guest"])
-      .then((success) => {
-        console.log("Guest navigation:", success);
-      })
-      .catch((error) => {
-        console.error("Guest navigation error:", error);
-      });
+    this.authService.loginAsGuest().subscribe({
+      next: (response) => {
+        this.loading = false;
+        console.log("Guest login success:", response);
+        this.router.navigate(["/dashboard/guest"]);
+      },
+      error: (error) => {
+        this.loading = false;
+        console.warn("Backend guest login unavailable, proceeding in client guest mode:", error);
+        this.router.navigate(["/dashboard/guest"]);
+      },
+    });
   }
 
   // =========================================================

@@ -2,34 +2,28 @@
    POLICYGPT GUEST USER LAYOUT
    ========================================================= */
 
-/* =========================================================
-   VARIABLES
-   ========================================================= */
+// =========================================================
+// VARIABLES
+// =========================================================
 
 $primary-navy: #073572;
 $primary-navy-dark: #062b5d;
-$primary-navy-light: #19539a;
+$primary-navy-light: #0d4289;
+$accent-orange: #ff821b;
+$accent-orange-hover: #ff9436;
 
 $background: #f4f7fc;
 $white: #ffffff;
-
 $text-dark: #17233b;
 $text-muted: #64748b;
-$border: #e4e9f1;
+$border-light: rgba(255, 255, 255, 0.12);
 
-$sidebar-width: 295px;
-$sidebar-collapsed-width: 76px;
-
-$topbar-height: 80px;
+$topbar-height: 72px;
 $mobile-topbar-height: 64px;
 
-/* =========================================================
-   GLOBAL
-   ========================================================= */
-
-* {
-  box-sizing: border-box;
-}
+// =========================================================
+// HOST & BASE
+// =========================================================
 
 :host {
   display: block;
@@ -37,40 +31,17 @@ $mobile-topbar-height: 64px;
   min-height: 100vh;
 }
 
-button,
-input {
-  font: inherit;
+* {
+  box-sizing: border-box;
 }
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-a {
-  -webkit-tap-highlight-color: transparent;
-}
-
-img {
-  max-width: 100%;
-}
-
-/* =========================================================
-   MAIN LAYOUT
-   ========================================================= */
 
 .dash-layout {
   width: 100%;
   min-height: 100vh;
-
   display: flex;
-
+  flex-direction: column;
   background: $background;
   color: $text-dark;
-
   font-family:
     "Inter",
     -apple-system,
@@ -80,1107 +51,418 @@ img {
     Helvetica,
     Arial,
     sans-serif;
-
   overflow-x: hidden;
 }
 
-/* =========================================================
-   MOBILE OVERLAY
-   ========================================================= */
-
-.dash-overlay {
-  display: none;
-}
-
-/* =========================================================
-   TOP NAVBAR
-   ========================================================= */
+// =========================================================
+// TOPBAR HEADER
+// =========================================================
 
 .dash-topbar {
   position: fixed;
-
   top: 0;
   left: 0;
   right: 0;
-
   width: 100%;
   height: $topbar-height;
-  min-height: $topbar-height;
-
-  display: flex;
-  align-items: center;
-
-  gap: 24px;
-
-  padding: 10px 28px;
-
-  background: $primary-navy;
-
-  color: $white;
-
-  z-index: 2000;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, #052550 0%, #073572 55%, #0c438c 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 18px rgba(3, 25, 60, 0.2);
+  z-index: 1000;
+  transition: all 0.2s ease;
 }
 
-/* =========================================================
-   TOPBAR BRAND
-   ========================================================= */
+.dash-topbar__inner {
+  max-width: 1440px;
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  gap: 24px;
+}
+
+// =========================================================
+// BRAND (LOGO + POLICYGPT)
+// =========================================================
 
 .dash-topbar__brand {
-  width: $sidebar-width;
-  min-width: $sidebar-width;
-
-  height: 100%;
-
-  display: flex;
+  display: inline-flex;
   align-items: center;
-
-  gap: 9px;
-}
-
-.dash-topbar__toggle {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex: 0 0 38px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 7px;
-
-  background: transparent;
-  color: $white;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-topbar__toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-topbar__toggle:active {
-  transform: scale(0.96);
-}
-
-.dash-topbar__toggle .material-icons {
-  font-size: 27px;
-}
-
-/* =========================================================
-   LOGO
-   ========================================================= */
-
-.dash-topbar__logo-link {
-  display: flex;
-  align-items: center;
-
-  flex: 0 0 auto;
-
+  gap: 12px;
   text-decoration: none;
+  user-select: none;
+  flex-shrink: 0;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    opacity: 0.95;
+    transform: translateY(-0.5px);
+  }
 }
 
 .dash-topbar__logo {
-  width: 48px;
-  height: 48px;
-
-  object-fit: contain;
-
-  display: block;
-}
-
-/* =========================================================
-   BRAND TEXT
-   ========================================================= */
-
-.dash-topbar__brand-text {
-  min-width: 0;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dash-topbar__title {
-  color: $white;
-
-  font-size: 19px;
-  line-height: 1;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.dash-topbar__title span {
-  color: #ff821b;
-}
-
-.dash-topbar__tagline {
-  color: rgba(255, 255, 255, 0.76);
-
-  font-size: 7.5px;
-  font-weight: 500;
-
-  white-space: nowrap;
-}
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-.dash-search {
-  width: min(615px, 52vw);
-  height: 48px;
-
-  margin: 0 auto;
-
-  display: flex;
-  align-items: center;
-
-  gap: 12px;
-
-  padding: 0 15px;
-
-  border: 3px solid $white;
-  border-radius: 26px;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  flex-shrink: 1;
-
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.dash-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-}
-
-.dash-search__icon {
-  flex-shrink: 0;
-
-  color: $white;
-
-  font-size: 25px;
-}
-
-.dash-search input {
-  width: 100%;
-  min-width: 0;
-
-  padding: 0;
-
-  border: 0;
-  outline: 0;
-
-  background: transparent;
-  color: $white;
-
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.dash-search input::placeholder {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-/* =========================================================
-   USER AREA
-   ========================================================= */
-
-.dash-user {
-  min-width: 190px;
-
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 10px;
-
-  color: $white;
-}
-
-.dash-user__icon-btn {
-  width: 38px;
-  height: 38px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background: transparent;
-  color: $white;
-
-  text-decoration: none;
-}
-
-.dash-user__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-user__icon-btn .material-icons {
-  font-size: 23px;
-}
-
-/* =========================================================
-   AVATAR
-   ========================================================= */
-
-.dash-user__avatar {
   width: 42px;
   height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
 
+.dash-topbar__brand-name {
+  color: $white;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
+}
+
+.dash-topbar__brand-accent {
+  color: $accent-orange;
+  margin-left: 1px;
+}
+
+// =========================================================
+// DESKTOP NAVIGATION
+// =========================================================
+
+.dash-topbar__nav {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+  max-width: 720px;
+}
+
+.dash-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  line-height: inherit;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #ff9f43;
+  }
+
+  &.dash-nav-link--active {
+    color: $white;
+    font-weight: 600;
+    color: #ff9f43;
+  }
+}
+
+.dash-nav-link--button {
+  border: 0;
+  outline: none;
+}
+
+// =========================================================
+// DESKTOP ACTIONS (LOGIN / SIGNUP)
+// =========================================================
+
+.dash-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.dash-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: #dcecff;
-}
-
-.dash-user__avatar .material-icons {
-  color: #5d7795;
-  font-size: 38px;
-}
-
-/* =========================================================
-   USER INFORMATION
-   ========================================================= */
-
-.dash-user__info {
-  min-width: 90px;
-  max-width: 135px;
-}
-
-.dash-user__name {
-  margin: 0;
-
-  color: $white;
-
-  font-size: 14px;
-  font-weight: 800;
-
-  line-height: 1.2;
-
-  white-space: nowrap;
-
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dash-user__role {
-  margin: 2px 0 0;
-
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* =========================================================
-   SIDEBAR
-   ========================================================= */
-
-.dash-sidebar {
-  position: fixed;
-
-  top: $topbar-height;
-  left: 0;
-  bottom: 0;
-
-  width: $sidebar-width;
-
-  display: flex;
-  flex-direction: column;
-
-  color: $white;
-
-  background-color: #082f68;
-
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(3, 31, 72, 0.94) 0%,
-      rgba(4, 43, 88, 0.89) 48%,
-      rgba(2, 22, 51, 0.84) 100%
-    ),
-    url("/images/flag.png");
-
-  background-position:
-    center,
-    center bottom;
-
-  background-size: cover, cover;
-
-  background-repeat: no-repeat, no-repeat;
-
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
-
-  z-index: 1100;
-
-  overflow: hidden;
-
-  transition:
-    width 0.25s ease,
-    transform 0.25s ease;
-}
-
-/* =========================================================
-   SIDEBAR OVERLAY LAYER
-   ========================================================= */
-
-.dash-sidebar::before {
-  content: "";
-
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    180deg,
-    rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 55%,
-    rgba(3, 25, 60, 0.12) 100%
-  );
-
-  pointer-events: none;
-
-  z-index: 0;
-}
-
-.dash-sidebar > * {
-  position: relative;
-  z-index: 2;
-}
-
-/* =========================================================
-   SIDEBAR NAVIGATION
-   ========================================================= */
-
-.dash-nav {
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
-
-  padding: 43px 16px 12px;
-}
-
-.dash-nav__item {
-  width: 100%;
-  min-height: 41px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 13px;
-
-  padding: 9px 14px;
-
-  border: 1px solid transparent;
-  border-radius: 9px;
-
-  color: rgba(255, 255, 255, 0.94);
-
-  background: transparent;
-
-  text-decoration: none;
-
+  gap: 7px;
+  padding: 8.5px 18px;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 
+  .dash-btn__icon {
+    font-size: 18px;
+  }
+}
+
+.dash-btn--login {
+  background: rgba(255, 255, 255, 0.08);
+  color: $white;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: $white;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.dash-btn--signup {
+  background: linear-gradient(135deg, $accent-orange 0%, #f97316 100%);
+  color: $white;
+  box-shadow: 0 3px 12px rgba(255, 130, 27, 0.38);
+
+  &:hover {
+    background: linear-gradient(135deg, $accent-orange-hover 0%, #fb8533 100%);
+    box-shadow: 0 5px 16px rgba(255, 130, 27, 0.5);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// =========================================================
+// MOBILE MENU TOGGLE BUTTON
+// =========================================================
+
+.dash-topbar__mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: $white;
+  cursor: pointer;
   transition:
     background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease;
+    transform 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .material-icons {
+    font-size: 26px;
+  }
 }
 
-.dash-nav__item:hover {
-  color: $white;
+// =========================================================
+// MOBILE NAVIGATION DROPDOWN
+// =========================================================
 
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-nav__item:active {
-  transform: scale(0.99);
-}
-
-.dash-nav__item--active {
-  color: $white !important;
-
-  background: #19539a;
-
-  border-color: rgba(255, 255, 255, 0.08);
-
-  box-shadow: inset 3px 0 0 #4b91ff;
-}
-
-/* =========================================================
-   NAV ICON
-   ========================================================= */
-
-.dash-nav__icon {
-  width: 22px;
-  min-width: 22px;
-
-  flex-shrink: 0;
-
-  text-align: center;
-
-  font-size: 21px !important;
-}
-
-.dash-nav__label {
-  min-width: 0;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-}
-
-.dash-nav__chevron {
-  margin-left: auto;
-
-  opacity: 0.75;
-
-  font-size: 19px !important;
-}
-
-/* =========================================================
-   SIDEBAR FOOTER
-   ========================================================= */
-
-.dash-sidebar__footer {
-  margin-top: auto;
-
-  padding: 12px 16px 18px;
-
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.dash-nav__logout {
-  appearance: none;
-
-  border: 1px solid transparent;
-
-  text-align: left;
-
-  font-family: inherit;
-}
-
-/* =========================================================
-   COLLAPSED SIDEBAR
-   ========================================================= */
-
-.dash-layout--sidebar-collapsed .dash-sidebar {
-  width: $sidebar-collapsed-width;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__item {
-  justify-content: center;
-
-  padding-left: 8px;
-  padding-right: 8px;
-}
-
-.dash-layout--sidebar-collapsed .dash-nav__label,
-.dash-layout--sidebar-collapsed .dash-nav__chevron {
+.dash-mobile-dropdown {
   display: none;
+  flex-direction: column;
+  background: linear-gradient(180deg, #062b5d 0%, #073572 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  padding: 14px 20px 20px;
+  animation: slideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.dash-layout--sidebar-collapsed .dash-nav__icon {
-  margin: 0;
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.dash-layout--sidebar-collapsed .dash-sidebar__footer {
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
-/* =========================================================
-   MAIN CONTAINER
-   ========================================================= */
-
-.dash-main-container {
-  width: calc(100% - #{$sidebar-width});
-
-  min-width: 0;
-  min-height: 100vh;
-
-  margin-left: $sidebar-width;
-
+.dash-mobile-dropdown__links {
   display: flex;
   flex-direction: column;
+  gap: 4px;
+}
 
+.dash-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.88);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
+
+  .dash-mobile-link__icon {
+    font-size: 20px;
+    color: #93c5fd;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: $white;
+  }
+
+  &.dash-mobile-link--active {
+    background: rgba(255, 255, 255, 0.18);
+    color: $white;
+    font-weight: 600;
+
+    .dash-mobile-link__icon {
+      color: #ff9f43;
+    }
+  }
+}
+
+.dash-mobile-link--button {
+  border: 0;
+  outline: none;
+}
+
+.dash-mobile-dropdown__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 12px 0 16px;
+}
+
+.dash-mobile-dropdown__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dash-btn--full {
+  width: 100%;
+  padding: 11px 18px;
+  font-size: 15px;
+}
+
+// =========================================================
+// MOBILE OVERLAY
+// =========================================================
+
+.dash-mobile-overlay {
+  position: fixed;
+  top: $topbar-height;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(3, 14, 33, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 990;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// =========================================================
+// MAIN CONTAINER (FULL WIDTH, NO SIDEBAR)
+// =========================================================
+
+.dash-main-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
   padding-top: $topbar-height;
-
-  transition:
-    margin-left 0.25s ease,
-    width 0.25s ease;
+  box-sizing: border-box;
 }
-
-.dash-layout--sidebar-collapsed .dash-main-container {
-  width: calc(100% - #{$sidebar-collapsed-width});
-
-  margin-left: $sidebar-collapsed-width;
-}
-
-/* =========================================================
-   MAIN
-   ========================================================= */
 
 .dash-main {
   width: 100%;
   min-width: 0;
-
   flex: 1;
-}
-
-/* =========================================================
-   FOOTER
-   ========================================================= */
-
-.dash-footer {
-  min-height: 61px;
-
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 20px;
-
-  padding: 13px 60px;
-
-  background: #173a70;
-
-  color: rgba(255, 255, 255, 0.92);
+  flex-direction: column;
 }
 
-.dash-footer__copy {
-  margin: 0;
-
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.dash-footer__links {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-}
-
-.dash-footer__links a {
-  color: $white;
-
-  font-size: 10.5px;
-  font-weight: 500;
-
-  text-decoration: none;
-}
-
-.dash-footer__links a:hover {
-  text-decoration: underline;
-}
-
-.dash-footer__dot {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* =========================================================
-   ACCESSIBILITY
-   ========================================================= */
-
-.dash-nav__item:focus-visible,
-.dash-footer__links a:focus-visible,
-.dash-user__icon-btn:focus-visible,
-.dash-topbar__toggle:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 2px;
-}
-
-.dash-search input:focus-visible {
-  outline: none;
-}
-
-/* =========================================================
-   LAPTOP
-   1200px - 1439px
-   ========================================================= */
-
-@media (max-width: 1439px) {
-  .dash-topbar {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
-  .dash-topbar__brand {
-    width: 255px;
-    min-width: 255px;
-  }
-
-  .dash-search {
-    width: min(550px, 48vw);
-  }
-
-  .dash-user {
-    min-width: 175px;
-  }
-
-  .dash-footer {
-    padding-left: 34px;
-    padding-right: 34px;
-  }
-}
-
-/* =========================================================
-   SMALL DESKTOP
-   992px - 1199px
-   ========================================================= */
-
-@media (max-width: 1199px) {
-  .dash-sidebar {
-    width: 240px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 240px);
-    margin-left: 240px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - #{$sidebar-collapsed-width});
-    margin-left: $sidebar-collapsed-width;
-  }
-
-  .dash-topbar__brand {
-    width: 225px;
-    min-width: 225px;
-  }
-
-  .dash-search {
-    width: 43%;
-  }
-
-  .dash-user {
-    min-width: 145px;
-  }
-
-  .dash-user__info {
-    max-width: 100px;
-  }
-
-  .dash-footer {
-    padding-left: 22px;
-    padding-right: 22px;
-  }
-}
-
-/* =========================================================
-   TABLET
-   768px - 991px
-   ========================================================= */
-
-@media (max-width: 991px) {
-  .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: calc(100% - 225px);
-    margin-left: 225px;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: 225px;
-  }
-
-  .dash-topbar {
-    gap: 12px;
-  }
-
-  .dash-topbar__brand {
-    width: 205px;
-    min-width: 205px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  .dash-search {
-    width: 48%;
-    max-width: none;
-  }
-
-  .dash-user {
-    min-width: 125px;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-}
-
-/* =========================================================
-   MOBILE
-   <= 767px
-   ========================================================= */
-
-@media (max-width: 767px) {
-  .dash-layout {
-    display: block;
-    min-height: 100vh;
-  }
-
-  /* ---------------------------------------------------------
-     MOBILE OVERLAY
-     --------------------------------------------------------- */
-
-  .dash-overlay {
-    position: fixed;
-
-    inset: 0;
-
-    display: block;
-
-    background: rgba(3, 17, 38, 0.48);
-
-    opacity: 0;
-    visibility: hidden;
-
-    pointer-events: none;
-
-    transition:
-      opacity 0.25s ease,
-      visibility 0.25s ease;
-
-    z-index: 1150;
-  }
-
-  .dash-layout--mobile-menu-open .dash-overlay {
-    opacity: 1;
-    visibility: visible;
-
-    pointer-events: auto;
-  }
-
-  /* ---------------------------------------------------------
-     SIDEBAR
-     --------------------------------------------------------- */
-
-  .dash-sidebar {
-    top: $mobile-topbar-height;
-    bottom: 0;
-
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-
-    box-shadow: 8px 0 25px rgba(0, 0, 0, 0.25);
-
-    z-index: 1200;
-  }
-
-  .dash-layout--sidebar-collapsed .dash-sidebar {
-    width: min(280px, 86vw);
-
-    transform: translateX(-100%);
-  }
-
-  .dash-sidebar--mobile-open,
-  .dash-layout--mobile-menu-open .dash-sidebar {
-    transform: translateX(0);
-  }
-
-  .dash-nav {
-    padding-top: 25px;
-  }
-
-  /* ---------------------------------------------------------
-     MAIN
-     --------------------------------------------------------- */
-
-  .dash-main-container,
-  .dash-layout--sidebar-collapsed .dash-main-container {
-    width: 100%;
-    margin-left: 0;
-
-    padding-top: $mobile-topbar-height;
-  }
-
-  /* ---------------------------------------------------------
-     TOPBAR
-     --------------------------------------------------------- */
-
-  .dash-topbar,
-  .dash-layout--sidebar-collapsed .dash-topbar {
-    top: 0;
-    left: 0;
-    right: 0;
-
-    width: 100%;
-
-    height: $mobile-topbar-height;
-    min-height: $mobile-topbar-height;
-
-    gap: 8px;
-
-    padding: 8px 11px;
-  }
-
-  .dash-topbar__brand,
-  .dash-layout--sidebar-collapsed .dash-topbar__brand {
-    width: auto;
-    min-width: 0;
-
-    flex: 0 0 auto;
-
-    gap: 6px;
-  }
-
-  .dash-topbar__toggle {
-    width: 34px;
-    height: 34px;
-
-    flex-basis: 34px;
-  }
-
-  .dash-topbar__toggle .material-icons {
-    font-size: 24px;
-  }
-
-  .dash-topbar__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  /* ---------------------------------------------------------
-     SEARCH
-     --------------------------------------------------------- */
-
-  .dash-search {
-    width: auto;
-    max-width: none;
-
-    flex: 1 1 auto;
-
-    margin: 0;
-
-    height: 39px;
-
-    padding: 0 10px;
-
-    border-width: 2px;
-
-    gap: 7px;
-  }
-
-  .dash-search__icon {
-    font-size: 20px;
-  }
-
-  .dash-search input {
-    font-size: 12px;
-  }
-
-  /* ---------------------------------------------------------
-     USER
-     --------------------------------------------------------- */
-
-  .dash-user {
-    min-width: auto;
-
-    flex: 0 0 auto;
-  }
-
-  .dash-user__icon-btn,
-  .dash-user__avatar {
-    display: none;
-  }
-
-  .dash-user__info {
-    display: block;
-
-    min-width: 0;
-    max-width: 78px;
-  }
-
-  .dash-user__name {
-    max-width: 78px;
-
-    font-size: 10px;
-  }
-
-  .dash-user__role {
-    font-size: 8.5px;
-  }
-
-  /* ---------------------------------------------------------
-     FOOTER
-     --------------------------------------------------------- */
-
-  .dash-footer {
-    min-height: auto;
-
-    padding: 15px;
-
-    flex-direction: column;
-
-    gap: 7px;
-
-    text-align: center;
-  }
-}
-
-/* =========================================================
-   SMALL MOBILE
-   <= 480px
-   ========================================================= */
-
-@media (max-width: 480px) {
-  .dash-topbar {
-    height: 62px;
-    min-height: 62px;
-
-    padding: 8px 10px;
-  }
-
-  .dash-main-container {
-    padding-top: 62px;
-  }
-
-  .dash-sidebar {
-    top: 62px;
-  }
-
-  .dash-user__info {
-    display: none;
-  }
-
-  .dash-search {
-    height: 37px;
-  }
-
-  .dash-search input {
-    font-size: 10.5px;
-  }
-
-  .dash-search__icon {
-    font-size: 19px;
-  }
-
-  .dash-footer__links {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-}
-
-/* =========================================================
-   GUEST LOGIN REQUIRED MODAL
-   ========================================================= */
+// =========================================================
+// LOGIN REQUIRED MODAL
+// =========================================================
 
 .guest-login-overlay {
   position: fixed;
   inset: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 24px;
-
-  background: rgba(3, 20, 45, 0.58);
+  background: rgba(3, 20, 45, 0.62);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-
   z-index: 5000;
-
   animation: guest-overlay-in 0.18s ease-out;
 }
 
 .guest-login-modal {
-  width: min(440px, 100%);
-
+  width: min(460px, 100%);
   padding: 32px 30px 28px;
-
   background: #ffffff;
-
   border: 1px solid rgba(7, 53, 114, 0.08);
   border-radius: 18px;
-
   box-shadow:
-    0 24px 70px rgba(4, 28, 63, 0.24),
+    0 24px 70px rgba(4, 28, 63, 0.26),
     0 8px 25px rgba(4, 28, 63, 0.12);
-
   text-align: center;
-
   animation: guest-modal-in 0.2s ease-out;
 }
 
 .guest-login-modal__icon {
   width: 58px;
   height: 58px;
-
-  margin: 0 auto 17px;
-
+  margin: 0 auto 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-
   border-radius: 50%;
-
   background: #eaf2ff;
-  color: #2166f3;
-}
+  color: #073572;
 
-.guest-login-modal__icon .material-icons {
-  font-size: 29px;
+  .material-icons {
+    font-size: 30px;
+  }
 }
 
 .guest-login-modal h2 {
   margin: 0;
-
   color: $primary-navy;
-
   font-size: 22px;
   line-height: 1.25;
   font-weight: 800;
@@ -1188,100 +470,93 @@ img {
 
 .guest-login-modal p {
   margin: 12px auto 0;
-
-  max-width: 360px;
-
+  max-width: 380px;
   color: $text-dark;
-
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   font-weight: 600;
 }
 
 .guest-login-modal__hint {
   margin-top: 7px !important;
-
   color: $text-muted !important;
-
-  font-size: 12px !important;
+  font-size: 12.5px !important;
   font-weight: 500 !important;
 }
 
 .guest-login-modal__actions {
   margin-top: 24px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   gap: 10px;
-}
+  flex-wrap: wrap;
 
-.guest-login-modal__actions button {
-  min-width: 112px;
-  height: 42px;
+  button {
+    min-width: 105px;
+    height: 42px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
 
-  padding: 0 18px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 7px;
-
-  border-radius: 8px;
-
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.2s ease;
+    .material-icons {
+      font-size: 18px;
+    }
+  }
 }
 
 .guest-login-modal__cancel {
   border: 1px solid #d5dce7;
   background: #ffffff;
   color: #52627c;
-}
 
-.guest-login-modal__cancel:hover {
-  background: #f7f9fc;
-  border-color: #bcc8da;
-  transform: translateY(-1px);
+  &:hover {
+    background: #f7f9fc;
+    border-color: #bcc8da;
+    transform: translateY(-1px);
+  }
 }
 
 .guest-login-modal__login {
-  border: 1px solid #2166f3;
-  background: #2166f3;
+  border: 1px solid #073572;
+  background: #073572;
   color: #ffffff;
+  box-shadow: 0 4px 12px rgba(7, 53, 114, 0.22);
 
-  box-shadow: 0 5px 14px rgba(33, 102, 243, 0.18);
+  &:hover {
+    background: #052958;
+    border-color: #052958;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(7, 53, 114, 0.32);
+  }
 }
 
-.guest-login-modal__login:hover {
-  background: #1558d6;
-  border-color: #1558d6;
-  transform: translateY(-1px);
-}
+.guest-login-modal__signup {
+  border: 1px solid $accent-orange;
+  background: linear-gradient(135deg, $accent-orange 0%, #f97316 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(255, 130, 27, 0.25);
 
-.guest-login-modal__login .material-icons {
-  font-size: 18px;
-}
-
-.guest-login-modal__actions button:focus-visible {
-  outline: 2px solid #60a5fa;
-  outline-offset: 3px;
+  &:hover {
+    background: linear-gradient(135deg, $accent-orange-hover 0%, #fb8533 100%);
+    border-color: $accent-orange-hover;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(255, 130, 27, 0.38);
+  }
 }
 
 @keyframes guest-overlay-in {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }
@@ -1292,33 +567,92 @@ img {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-@media (max-width: 480px) {
-  .guest-login-overlay {
-    padding: 16px;
+// =========================================================
+// RESPONSIVE BREAKPOINTS
+// =========================================================
+
+@media (max-width: 1080px) {
+  .dash-topbar__inner {
+    padding: 0 20px;
+    gap: 16px;
+  }
+
+  .dash-nav-link {
+    padding: 7px 10px;
+    font-size: 13.5px;
+  }
+
+  .dash-btn {
+    padding: 7.5px 14px;
+    font-size: 13.5px;
+  }
+}
+
+@media (max-width: 960px) {
+  .dash-topbar__nav {
+    display: none;
+  }
+
+  .dash-topbar__actions {
+    display: none;
+  }
+
+  .dash-topbar__mobile-toggle {
+    display: flex;
+  }
+
+  .dash-layout--mobile-open .dash-mobile-dropdown {
+    display: flex;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash-topbar {
+    height: $mobile-topbar-height;
+  }
+
+  .dash-topbar__inner {
+    padding: 0 16px;
+  }
+
+  .dash-topbar__logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dash-topbar__brand-name {
+    font-size: 19px;
+  }
+
+  .dash-main-container {
+    padding-top: $mobile-topbar-height;
+  }
+
+  .dash-mobile-overlay {
+    top: $mobile-topbar-height;
   }
 
   .guest-login-modal {
-    padding: 27px 20px 23px;
+    padding: 26px 20px 22px;
     border-radius: 15px;
-  }
 
-  .guest-login-modal h2 {
-    font-size: 20px;
-  }
+    h2 {
+      font-size: 20px;
+    }
 
-  .guest-login-modal__actions {
-    flex-direction: column-reverse;
-    width: 100%;
-  }
+    .guest-login-modal__actions {
+      flex-direction: column-reverse;
+      width: 100%;
 
-  .guest-login-modal__actions button {
-    width: 100%;
+      button {
+        width: 100%;
+      }
+    }
   }
 }

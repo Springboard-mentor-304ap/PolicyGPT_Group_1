@@ -1,370 +1,166 @@
-<div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
-    [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
-
-    <!-- =========================================================
-       MOBILE OVERLAY
-       ========================================================== -->
-
-    @if (mobileMenuOpen) {
-
-    <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
-
-    }
-
+<div class="dash-layout" [class.dash-layout--mobile-open]="mobileMenuOpen">
 
     <!-- =========================================================
        TOPBAR
        ========================================================== -->
-
     <header class="dash-topbar" role="banner">
+        <div class="dash-topbar__inner">
 
-        <!-- =======================================================
-         BRAND
-         ======================================================== -->
-
-        <div class="dash-topbar__brand">
-
-            <!-- MENU -->
-
-            <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
-                [attr.aria-expanded]="
-          mobileMenuOpen || !sidebarCollapsed
-        ">
-
-                <span class="material-icons">
-                    menu
+            <!-- BRAND (LOGO + POLICYGPT) -->
+            <a routerLink="/dashboard/guest" class="dash-topbar__brand" (click)="closeMobileMenu()"
+                aria-label="PolicyGPT Home">
+                <img src="/images/logo.png" alt="PolicyGPT Logo" class="dash-topbar__logo" />
+                <span class="dash-topbar__brand-name">
+                    Policy<span class="dash-topbar__brand-accent">GPT</span>
                 </span>
-
-            </button>
-
-
-            <!-- LOGO -->
-
-            <a routerLink="/dashboard/guest" class="dash-topbar__logo-link" aria-label="PolicyGPT Guest Dashboard"
-                (click)="closeMobileMenu()">
-
-                <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-
             </a>
 
+            <!-- DESKTOP NAVIGATION -->
+            <nav class="dash-topbar__nav" aria-label="Main Navigation">
+                @for (item of navItems; track item.label) {
+                @if (item.requiresLogin) {
+                <button type="button" class="dash-nav-link dash-nav-link--button" (click)="requireLogin(item.label)"
+                    [attr.title]="item.label + ' - Login Required'">
+                    <span class="dash-nav-link__text">{{ item.label }}</span>
+                </button>
+                } @else {
+                <a [routerLink]="item.route" routerLinkActive="dash-nav-link--active"
+                    [routerLinkActiveOptions]="{ exact: !!item.exact }" class="dash-nav-link">
+                    <span class="dash-nav-link__text">{{ item.label }}</span>
+                </a>
+                }
+                }
+            </nav>
 
-            <!-- BRAND TEXT -->
+            <!-- DESKTOP ACTIONS (LOGIN / SIGNUP) -->
+            <div class="dash-topbar__actions">
+                <a routerLink="/auth/login" class="dash-btn dash-btn--login" (click)="closeMobileMenu()">
+                    <span class="material-icons dash-btn__icon" aria-hidden="true">login</span>
+                    <span>Login</span>
+                </a>
 
-            <div class="dash-topbar__brand-text">
-
-                <span class="dash-topbar__title">
-                    Policy<span>GPT</span>
-                </span>
-
-                <span class="dash-topbar__tagline">
-                    Government Information. Simplified.
-                </span>
-
+                <a routerLink="/auth/register" class="dash-btn dash-btn--signup" (click)="closeMobileMenu()">
+                    <span class="material-icons dash-btn__icon" aria-hidden="true">person_add</span>
+                    <span>Signup</span>
+                </a>
             </div>
 
-        </div>
-
-
-        <!-- =======================================================
-         SEARCH
-         ======================================================== -->
-
-        <div class="dash-search">
-
-            <span class="material-icons dash-search__icon" aria-hidden="true">
-                search
-            </span>
-
-            <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
-                placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
+            <!-- MOBILE MENU TOGGLE -->
+            <button type="button" class="dash-topbar__mobile-toggle" (click)="toggleMobileMenu()"
+                [attr.aria-expanded]="mobileMenuOpen" aria-label="Toggle navigation menu">
+                <span class="material-icons">
+                    {{ mobileMenuOpen ? 'close' : 'menu' }}
+                </span>
+            </button>
 
         </div>
 
+        <!-- =========================================================
+           MOBILE NAVIGATION DRAWER
+           ========================================================== -->
+        @if (mobileMenuOpen) {
+        <div class="dash-mobile-dropdown" role="navigation" aria-label="Mobile Navigation">
+            <div class="dash-mobile-dropdown__links">
+                @for (item of navItems; track item.label) {
+                @if (item.requiresLogin) {
+                <button type="button" class="dash-mobile-link dash-mobile-link--button"
+                    (click)="requireLogin(item.label)">
+                    <span class="material-icons dash-mobile-link__icon" aria-hidden="true">{{ item.icon }}</span>
+                    <span class="dash-mobile-link__text">{{ item.label }}</span>
+                </button>
+                } @else {
+                <a [routerLink]="item.route" routerLinkActive="dash-mobile-link--active"
+                    [routerLinkActiveOptions]="{ exact: !!item.exact }" class="dash-mobile-link"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons dash-mobile-link__icon" aria-hidden="true">{{ item.icon }}</span>
+                    <span class="dash-mobile-link__text">{{ item.label }}</span>
+                </a>
+                }
+                }
+            </div>
 
-        <!-- =======================================================
-         GUEST ACTIONS
-         ======================================================== -->
+            <div class="dash-mobile-dropdown__divider"></div>
 
-        <div class="dash-user">
+            <div class="dash-mobile-dropdown__actions">
+                <a routerLink="/auth/login" class="dash-btn dash-btn--login dash-btn--full" (click)="closeMobileMenu()">
+                    <span class="material-icons dash-btn__icon" aria-hidden="true">login</span>
+                    <span>Login</span>
+                </a>
 
-            <!-- LOGIN -->
-
-            <a routerLink="/auth/login" class="dash-user__login" (click)="closeMobileMenu()">
-                Login
-            </a>
-
-
-            <!-- SIGN UP -->
-
-            <a routerLink="/auth/signup" class="dash-user__signup" (click)="closeMobileMenu()">
-                Sign Up
-            </a>
-
+                <a routerLink="/auth/register" class="dash-btn dash-btn--signup dash-btn--full"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons dash-btn__icon" aria-hidden="true">person_add</span>
+                    <span>Signup</span>
+                </a>
+            </div>
         </div>
-
+        }
     </header>
 
-
-
-    <!-- =========================================================
-       GUEST SIDEBAR
-       ========================================================== -->
-
-    <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
-        [class.dash-sidebar--mobile-open]="mobileMenuOpen">
-
-        <nav class="dash-nav" aria-label="Guest navigation">
-
-            <!-- =====================================================
-           DASHBOARD
-           ====================================================== -->
-
-            <a routerLink="/dashboard/guest" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
-                [attr.title]="
-          sidebarCollapsed ? 'Dashboard' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    dashboard
-                </span>
-
-                <span class="dash-nav__label">
-                    Dashboard
-                </span>
-
-            </a>
-
-
-
-            <!-- =====================================================
-           POLICY SEARCH
-           ====================================================== -->
-
-            <a routerLink="/dashboard/guest/policies" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
-                [attr.title]="
-          sidebarCollapsed ? 'Policy Search' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    policy
-                </span>
-
-                <span class="dash-nav__label">
-                    Policy Search
-                </span>
-
-            </a>
-
-
-
-            <!-- =====================================================
-           SEARCH SCHEMES
-           ====================================================== -->
-
-            <a routerLink="/dashboard/guest/schemes" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
-                [attr.title]="
-          sidebarCollapsed ? 'Search Scheme' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    account_balance
-                </span>
-
-                <span class="dash-nav__label">
-                    Search Scheme
-                </span>
-
-            </a>
-
-
-
-            <!-- =====================================================
-           ELIGIBILITY CHECKER
-           LOGIN REQUIRED
-           ====================================================== -->
-
-            <a href="javascript:void(0)" class="dash-nav__item" (click)="requireLogin('Eligibility Checker')"
-                [attr.title]="
-          sidebarCollapsed
-            ? 'Eligibility Checker - Login Required'
-            : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    verified_user
-                </span>
-
-                <span class="dash-nav__label">
-                    Eligibility Checker
-                </span>
-
-            </a>
-
-
-
-            <!-- =====================================================
-           COMPARE
-           LOGIN REQUIRED
-           ====================================================== -->
-
-            <a href="javascript:void(0)" class="dash-nav__item" (click)="requireLogin('Compare')" [attr.title]="
-          sidebarCollapsed
-            ? 'Compare - Login Required'
-            : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    compare_arrows
-                </span>
-
-                <span class="dash-nav__label">
-                    Compare
-                </span>
-
-            </a>
-
-        </nav>
-
-
-
-        <!-- =======================================================
-         SIDEBAR FOOTER
-         LOGIN + SIGN UP
-         ======================================================== -->
-
-        <div class="dash-sidebar__footer">
-
-            <!-- LOGIN -->
-
-            <a routerLink="/auth/login" class="dash-nav__item dash-nav__login" (click)="closeMobileMenu()" [attr.title]="
-          sidebarCollapsed ? 'Login' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    login
-                </span>
-
-                <span class="dash-nav__label">
-                    Login
-                </span>
-
-            </a>
-
-
-            <!-- SIGN UP -->
-
-            <a routerLink="/auth/signup" class="dash-nav__item dash-nav__signup" (click)="closeMobileMenu()"
-                [attr.title]="
-          sidebarCollapsed ? 'Sign Up' : null
-        ">
-
-                <span class="material-icons dash-nav__icon">
-                    person_add
-                </span>
-
-                <span class="dash-nav__label">
-                    Sign Up
-                </span>
-
-            </a>
-
-        </div>
-
-    </aside>
-
-
+    <!-- MOBILE OVERLAY BACKDROP -->
+    @if (mobileMenuOpen) {
+    <div class="dash-mobile-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+    }
 
     <!-- =========================================================
-       MAIN CONTAINER
+       MAIN CONTAINER (FULL WIDTH, NO SIDEBAR)
        ========================================================== -->
-
     <div class="dash-main-container">
-
         <main class="dash-main">
-
             <!-- CHILD PAGE RENDERS HERE -->
-
             <router-outlet></router-outlet>
-
         </main>
 
-
         <!-- FOOTER -->
-
         <app-footer></app-footer>
-
     </div>
-
-
 
     <!-- =========================================================
        LOGIN REQUIRED MODAL
        ========================================================== -->
-
     @if (showLoginMessage) {
-
     <div class="guest-login-overlay" (click)="closeLoginMessage()" role="presentation">
-
         <div class="guest-login-modal" role="dialog" aria-modal="true" aria-labelledby="guest-login-title"
             (click)="$event.stopPropagation()">
 
             <!-- ICON -->
-
             <div class="guest-login-modal__icon">
-
-                <span class="material-icons">
-                    lock
-                </span>
-
+                <span class="material-icons">lock</span>
             </div>
 
-
             <!-- TITLE -->
-
             <h2 id="guest-login-title">
                 Login Required
             </h2>
 
-
             <!-- MESSAGE -->
-
             <p>
                 {{ loginMessage }}
             </p>
 
             <p class="guest-login-modal__hint">
-                Please login to continue using this feature.
+                Please login or signup to continue using this feature.
             </p>
 
-
             <!-- ACTIONS -->
-
             <div class="guest-login-modal__actions">
-
                 <button type="button" class="guest-login-modal__cancel" (click)="closeLoginMessage()">
                     Cancel
                 </button>
 
-
                 <button type="button" class="guest-login-modal__login" (click)="goToLogin()">
-
-                    <span class="material-icons">
-                        login
-                    </span>
-
+                    <span class="material-icons">login</span>
                     Login
-
                 </button>
 
+                <button type="button" class="guest-login-modal__signup" (click)="goToSignup()">
+                    <span class="material-icons">person_add</span>
+                    Sign Up
+                </button>
             </div>
 
         </div>
-
     </div>
-
     }
 
 </div>

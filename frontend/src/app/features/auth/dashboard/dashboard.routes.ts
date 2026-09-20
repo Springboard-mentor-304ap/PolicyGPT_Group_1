@@ -857,6 +857,26 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.CompareResultsComponent,
           ),
       },
+
+      // ELIGIBILITY CHECKER
+      {
+        path: "eligibility",
+
+        loadComponent: () =>
+          import(
+            "../../eligibility/eligibility-checker/eligibility-checker"
+          ).then((m) => m.EligibilityChecker),
+      },
+
+      // ELIGIBILITY SPECIFIC
+      {
+        path: "eligibility/check",
+
+        loadComponent: () =>
+          import(
+            "../../eligibility/eligibility-specific/eligibility-specific"
+          ).then((m) => m.EligibilitySpecific),
+      },
     ],
   },
 

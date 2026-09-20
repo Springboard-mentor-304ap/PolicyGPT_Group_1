@@ -1,12 +1,5 @@
 <div class="eligibility-page">
 
-  <!-- Breadcrumb -->
-  <div class="breadcrumb">
-    <span>Citizen Dashboard</span>
-    <span class="separator">›</span>
-    <strong>Eligibility Checker</strong>
-  </div>
-
 
   <!-- Header -->
   <div class="page-header">
@@ -40,31 +33,19 @@
   <!-- Tabs -->
   <div class="tabs">
 
-    <button
-      type="button"
-      [class.active]="activeTab === 'find'"
-      (click)="setTab('find')"
-    >
+    <button type="button" [class.active]="activeTab === 'find'" (click)="setTab('find')">
       <span class="tab-icon">👤</span>
       Find Schemes/Policies for Me
     </button>
 
 
-    <button
-      type="button"
-      [class.active]="activeTab === 'specific'"
-      (click)="setTab('specific')"
-    >
+    <button type="button" [class.active]="activeTab === 'specific'" (click)="setTab('specific')">
       <span class="tab-icon">⌕</span>
       Check a Specific Scheme/Policy
     </button>
 
 
-    <button
-      type="button"
-      [class.active]="activeTab === 'saved'"
-      (click)="setTab('saved')"
-    >
+    <button type="button" [class.active]="activeTab === 'saved'" (click)="setTab('saved')">
       <span class="tab-icon">🔖</span>
       My Saved Results
     </button>
@@ -123,15 +104,8 @@
                 Age <span>*</span>
               </label>
 
-              <input
-                id="age"
-                name="age"
-                type="number"
-                min="0"
-                max="120"
-                [(ngModel)]="profile.age"
-                placeholder="Enter age"
-              />
+              <input id="age" name="age" type="number" min="0" max="120" [(ngModel)]="profile.age"
+                placeholder="Enter age" />
 
             </div>
 
@@ -143,16 +117,9 @@
                 Gender <span>*</span>
               </label>
 
-              <select
-                id="gender"
-                name="gender"
-                [(ngModel)]="profile.gender"
-              >
+              <select id="gender" name="gender" [(ngModel)]="profile.gender">
 
-                <option
-                  *ngFor="let gender of genders"
-                  [value]="gender"
-                >
+                <option *ngFor="let gender of genders" [value]="gender">
                   {{ gender }}
                 </option>
 
@@ -168,14 +135,8 @@
                 Annual Income (₹)
               </label>
 
-              <input
-                id="annualIncome"
-                name="annualIncome"
-                type="number"
-                min="0"
-                [(ngModel)]="profile.annual_income"
-                placeholder="Enter annual income"
-              />
+              <input id="annualIncome" name="annualIncome" type="number" min="0" [(ngModel)]="profile.annual_income"
+                placeholder="Enter annual income" />
 
             </div>
 
@@ -187,20 +148,13 @@
                 Occupation
               </label>
 
-              <select
-                id="occupation"
-                name="occupation"
-                [(ngModel)]="profile.occupation"
-              >
+              <select id="occupation" name="occupation" [(ngModel)]="profile.occupation">
 
                 <option value="">
                   Select occupation
                 </option>
 
-                <option
-                  *ngFor="let occupation of occupations"
-                  [value]="occupation"
-                >
+                <option *ngFor="let occupation of occupations" [value]="occupation">
                   {{ occupation }}
                 </option>
 
@@ -216,20 +170,13 @@
                 Education
               </label>
 
-              <select
-                id="education"
-                name="education"
-                [(ngModel)]="profile.education"
-              >
+              <select id="education" name="education" [(ngModel)]="profile.education">
 
                 <option value="">
                   Select education
                 </option>
 
-                <option
-                  *ngFor="let education of educationLevels"
-                  [value]="education"
-                >
+                <option *ngFor="let education of educationLevels" [value]="education">
                   {{ education }}
                 </option>
 
@@ -245,20 +192,13 @@
                 State
               </label>
 
-              <select
-                id="state"
-                name="state"
-                [(ngModel)]="profile.state"
-              >
+              <select id="state" name="state" [(ngModel)]="profile.state">
 
                 <option value="">
                   Select state
                 </option>
 
-                <option
-                  *ngFor="let state of states"
-                  [value]="state"
-                >
+                <option *ngFor="let state of states" [value]="state">
                   {{ state }}
                 </option>
 
@@ -274,20 +214,13 @@
                 Social Category
               </label>
 
-              <select
-                id="socialCategory"
-                name="socialCategory"
-                [(ngModel)]="profile.social_category"
-              >
+              <select id="socialCategory" name="socialCategory" [(ngModel)]="profile.social_category">
 
                 <option value="">
                   Select category
                 </option>
 
-                <option
-                  *ngFor="let category of socialCategories"
-                  [value]="category"
-                >
+                <option *ngFor="let category of socialCategories" [value]="category">
                   {{ category }}
                 </option>
 
@@ -303,11 +236,7 @@
                 Disability Status
               </label>
 
-              <select
-                id="disability"
-                name="disability"
-                [(ngModel)]="profile.disability_status"
-              >
+              <select id="disability" name="disability" [(ngModel)]="profile.disability_status">
 
                 <option [ngValue]="false">
                   No
@@ -325,10 +254,7 @@
 
 
           <!-- ERROR -->
-          <div
-            class="error-message"
-            *ngIf="errorMessage"
-          >
+          <div class="error-message" *ngIf="errorMessage">
 
             <span>⚠</span>
 
@@ -340,21 +266,13 @@
           <!-- ACTION BUTTON -->
           <div class="form-actions">
 
-            <button
-              type="button"
-              class="primary-button"
-              [disabled]="loading"
-              (click)="findEligible()"
-            >
+            <button type="button" class="primary-button" [disabled]="loading" (click)="findEligible()">
 
               <span *ngIf="!loading">
                 Find Eligible Schemes &amp; Policies →
               </span>
 
-              <span
-                *ngIf="loading"
-                class="loading-button-content"
-              >
+              <span *ngIf="loading" class="loading-button-content">
 
                 <span class="small-spinner"></span>
 
@@ -401,10 +319,7 @@
 
             <!-- RESULT COUNT -->
 
-            <div
-              class="result-count"
-              *ngIf="!loading && (schemeResponse || policyResponse)"
-            >
+            <div class="result-count" *ngIf="!loading && (schemeResponse || policyResponse)">
 
               <strong>
                 {{ totalEligibleResults }} Eligible
@@ -420,10 +335,7 @@
                LOADING
           ================================== -->
 
-          <div
-            class="loading-box"
-            *ngIf="loading"
-          >
+          <div class="loading-box" *ngIf="loading">
 
             <div class="spinner"></div>
 
@@ -443,10 +355,7 @@
                ERROR
           ================================== -->
 
-          <div
-            class="results-error"
-            *ngIf="!loading && errorMessage"
-          >
+          <div class="results-error" *ngIf="!loading && errorMessage">
 
             <div class="error-large-icon">
               ⚠
@@ -460,11 +369,7 @@
               {{ errorMessage }}
             </p>
 
-            <button
-              type="button"
-              class="retry-button"
-              (click)="findEligible()"
-            >
+            <button type="button" class="retry-button" (click)="findEligible()">
               Try Again
             </button>
 
@@ -476,36 +381,28 @@
                SUCCESS RESULTS
           ================================== -->
 
-          <div
-            *ngIf="
+          <div *ngIf="
               !loading &&
               !errorMessage &&
               (schemeResponse || policyResponse)
-            "
-          >
+            ">
 
 
             <!-- ===============================
                  SCHEMES
             ================================ -->
 
-            <div
-              class="results-list"
-              *ngIf="schemeResults.length > 0"
-            >
+            <div class="results-list" *ngIf="schemeResults.length > 0">
 
               <h3 class="result-group-title">
                 Eligible Schemes
               </h3>
 
 
-              <article
-                class="result-item"
-                *ngFor="
+              <article class="result-item" *ngFor="
                   let item of schemeResults;
                   trackBy: trackByEntity
-                "
-              >
+                ">
 
                 <div class="result-type scheme-type">
                   SCHEME
@@ -530,10 +427,7 @@
                 </div>
 
 
-                <button
-                  type="button"
-                  class="view-button"
-                >
+                <button type="button" class="view-button">
                   View Details →
                 </button>
 
@@ -547,23 +441,17 @@
                  POLICIES
             ================================ -->
 
-            <div
-              class="results-list"
-              *ngIf="policyResults.length > 0"
-            >
+            <div class="results-list" *ngIf="policyResults.length > 0">
 
               <h3 class="result-group-title">
                 Eligible Policies
               </h3>
 
 
-              <article
-                class="result-item"
-                *ngFor="
+              <article class="result-item" *ngFor="
                   let item of policyResults;
                   trackBy: trackByEntity
-                "
-              >
+                ">
 
                 <div class="result-type policy-type">
                   POLICY
@@ -588,10 +476,7 @@
                 </div>
 
 
-                <button
-                  type="button"
-                  class="view-button"
-                >
+                <button type="button" class="view-button">
                   View Details →
                 </button>
 
@@ -605,13 +490,10 @@
                  NO RESULTS
             ================================ -->
 
-            <div
-              class="empty-results"
-              *ngIf="
+            <div class="empty-results" *ngIf="
                 schemeResults.length === 0 &&
                 policyResults.length === 0
-              "
-            >
+              ">
 
               <div class="empty-icon">
                 🔍
@@ -670,10 +552,7 @@
 
             <span>⌕</span>
 
-            <input
-              type="text"
-              placeholder="Search by name, keyword or category..."
-            />
+            <input type="text" placeholder="Search by name, keyword or category..." />
 
           </div>
 
@@ -699,11 +578,7 @@
           </div>
 
 
-          <button
-            type="button"
-            class="check-button"
-            (click)="openSpecificChecker()"
-          >
+          <button type="button" class="check-button" (click)="openSpecificChecker()">
             Check Eligibility
           </button>
 
@@ -739,14 +614,11 @@
 
         <!-- SUMMARY -->
 
-        <section
-          class="card summary-card"
-          *ngIf="
+        <section class="card summary-card" *ngIf="
             !loading &&
             !errorMessage &&
             (schemeResponse || policyResponse)
-          "
-        >
+          ">
 
           <div class="summary-title">
 
@@ -796,10 +668,7 @@
        SPECIFIC TAB
   =========================================== -->
 
-  <div
-    *ngIf="activeTab === 'specific'"
-    class="specific-tab-container"
-  >
+  <div *ngIf="activeTab === 'specific'" class="specific-tab-container">
 
     <section class="card tab-placeholder">
 
@@ -816,11 +685,7 @@
         specific scheme or policy and verify your eligibility.
       </p>
 
-      <button
-        type="button"
-        class="primary-button"
-        (click)="setTab('find')"
-      >
+      <button type="button" class="primary-button" (click)="setTab('find')">
         Back to Find Eligible Schemes
       </button>
 
@@ -834,10 +699,7 @@
        SAVED TAB
   =========================================== -->
 
-  <div
-    *ngIf="activeTab === 'saved'"
-    class="saved-tab-container"
-  >
+  <div *ngIf="activeTab === 'saved'" class="saved-tab-container">
 
     <section class="card tab-placeholder">
 
@@ -853,11 +715,7 @@
         Your saved eligibility results will appear here.
       </p>
 
-      <button
-        type="button"
-        class="primary-button"
-        (click)="setTab('find')"
-      >
+      <button type="button" class="primary-button" (click)="setTab('find')">
         Find Eligible Schemes &amp; Policies
       </button>
 

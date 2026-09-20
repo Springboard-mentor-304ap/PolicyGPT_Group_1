@@ -160,6 +160,17 @@ export const routes: Routes = [
   },
 
   // =========================================================
+  // ELIGIBILITY ROUTE
+  // =========================================================
+  {
+    path: "eligibility",
+    loadComponent: () =>
+      import("./features/eligibility/eligibility-checker/eligibility-checker").then(
+        (m) => m.EligibilityChecker,
+      ),
+  },
+
+  // =========================================================
   // FALLBACK
   // =========================================================
   //

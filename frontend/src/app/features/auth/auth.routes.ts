@@ -16,6 +16,11 @@ export const AUTH_ROUTES: Routes = [
   },
 
   {
+    path: "signup",
+    redirectTo: "register",
+    pathMatch: "full",
+  },
+  {
     path: "password-reset",
 
     loadComponent: () =>

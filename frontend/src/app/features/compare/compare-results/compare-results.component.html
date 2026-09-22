@@ -1,432 +1,925 @@
 <div class="compare-page">
 
-  <!-- Header -->
+  <!-- =========================================================
+       HEADER
+       ========================================================= -->
+
   <div class="page-header">
+
     <div>
       <h1>Compare Results</h1>
-      <p>Comparison of the selected schemes and policies.</p>
+
+      <p>
+        Comparison of the selected approved schemes and policies.
+      </p>
     </div>
 
     <button class="back-btn" type="button" (click)="goBack()">
       <span>←</span>
       Back
     </button>
+
   </div>
 
-  <!-- Loading State -->
+
+  <!-- =========================================================
+       LOADING
+       ========================================================= -->
+
   <div *ngIf="loading" class="loading-state">
+
     <div class="loading-card">
+
       <div class="spinner"></div>
-      <p>Loading comparison details...</p>
+
+      <p>
+        Loading comparison details...
+      </p>
+
     </div>
+
   </div>
 
-  <!-- Error State -->
+
+  <!-- =========================================================
+       ERROR
+       ========================================================= -->
+
   <div *ngIf="!loading && errorMessage" class="error-state">
+
     <div class="error-card">
-      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5">
+
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444"
+        stroke-width="1.5">
         <circle cx="12" cy="12" r="10"></circle>
+
         <line x1="15" y1="9" x2="9" y2="15"></line>
+
         <line x1="9" y1="9" x2="15" y2="15"></line>
       </svg>
-      <h3>Comparison Unavailable</h3>
-      <p>{{ errorMessage }}</p>
+
+      <h3>
+        Comparison Unavailable
+      </h3>
+
+      <p>
+        {{ errorMessage }}
+      </p>
+
       <div class="error-actions">
+
         <button type="button" class="retry-btn" *ngIf="items.length >= 2" (click)="loadComparison()">
           Try Again
         </button>
+
         <button type="button" class="back-btn" (click)="goToSelection()">
           Back to Compare
         </button>
+
       </div>
+
     </div>
+
   </div>
 
-  <!-- Selected Items Summary Cards -->
-  <div
-    class="selected-items"
-    *ngIf="!loading && !errorMessage && data1 && data2"
-    [class.three-items]="!!(item3 && data3)"
-  >
+
+  <!-- =========================================================
+       SELECTED ITEM SUMMARY
+       ========================================================= -->
+
+  <div class="selected-items" *ngIf="
+      !loading &&
+      !errorMessage &&
+      data1 &&
+      data2
+    " [class.three-items]="
+      !!(item3 && data3)
+    ">
 
     <!-- ITEM 1 -->
     <div class="item-card">
-      <div class="item-icon" [ngClass]="getIconType(item1, data1) + '-icon'">
-        <span class="icon-symbol">{{ getIconSymbol(item1, data1) }}</span>
+
+      <div class="item-icon" [ngClass]="
+          getIconType(item1, data1) +
+          '-icon'
+        ">
+        <span class="icon-symbol">
+          {{ getIconSymbol(item1, data1) }}
+        </span>
       </div>
 
       <div class="item-content">
-        <span class="type-label">{{ getValue(data1, 'type') }}</span>
-        <strong>{{ getItemTitle(data1, item1) }}</strong>
-        <small>{{ getItemMinistry(data1, item1) }}</small>
+
+        <span class="type-label">
+          {{ getValue(data1, "type") }}
+        </span>
+
+        <strong>
+          {{ getItemTitle(data1, item1) }}
+        </strong>
+
+        <small>
+          {{ getItemMinistry(data1, item1) }}
+        </small>
+
       </div>
+
     </div>
 
-    <!-- VS Badge (rendered for 2 items) -->
+
+    <!-- VS -->
     <div class="vs-badge" *ngIf="!item3 || !data3">
       VS
     </div>
 
+
     <!-- ITEM 2 -->
     <div class="item-card">
-      <div class="item-icon" [ngClass]="getIconType(item2, data2) + '-icon'">
-        <span class="icon-symbol">{{ getIconSymbol(item2, data2) }}</span>
+
+      <div class="item-icon" [ngClass]="
+          getIconType(item2, data2) +
+          '-icon'
+        ">
+        <span class="icon-symbol">
+          {{ getIconSymbol(item2, data2) }}
+        </span>
       </div>
 
       <div class="item-content">
-        <span class="type-label">{{ getValue(data2, 'type') }}</span>
-        <strong>{{ getItemTitle(data2, item2) }}</strong>
-        <small>{{ getItemMinistry(data2, item2) }}</small>
+
+        <span class="type-label">
+          {{ getValue(data2, "type") }}
+        </span>
+
+        <strong>
+          {{ getItemTitle(data2, item2) }}
+        </strong>
+
+        <small>
+          {{ getItemMinistry(data2, item2) }}
+        </small>
+
       </div>
+
     </div>
 
-    <!-- ITEM 3 (optional) -->
+
+    <!-- ITEM 3 -->
     <div class="item-card" *ngIf="item3 && data3">
-      <div class="item-icon" [ngClass]="getIconType(item3, data3) + '-icon'">
-        <span class="icon-symbol">{{ getIconSymbol(item3, data3) }}</span>
+
+      <div class="item-icon" [ngClass]="
+          getIconType(item3, data3) +
+          '-icon'
+        ">
+        <span class="icon-symbol">
+          {{ getIconSymbol(item3, data3) }}
+        </span>
       </div>
 
       <div class="item-content">
-        <span class="type-label">{{ getValue(data3, 'type') }}</span>
-        <strong>{{ getItemTitle(data3, item3) }}</strong>
-        <small>{{ getItemMinistry(data3, item3) }}</small>
+
+        <span class="type-label">
+          {{ getValue(data3, "type") }}
+        </span>
+
+        <strong>
+          {{ getItemTitle(data3, item3) }}
+        </strong>
+
+        <small>
+          {{ getItemMinistry(data3, item3) }}
+        </small>
+
       </div>
+
     </div>
 
   </div>
 
-  <!-- Comparison Table Card -->
-  <div
-    class="comparison-card"
-    *ngIf="!loading && !errorMessage && data1 && data2"
-  >
+
+  <!-- =========================================================
+       COMPARISON TABLE
+       ========================================================= -->
+
+  <div class="comparison-card" *ngIf="
+      !loading &&
+      !errorMessage &&
+      data1 &&
+      data2
+    ">
+
     <div class="table-wrapper">
+
       <table>
+
         <thead>
+
           <tr>
-            <th>Comparison</th>
+
             <th>
-              <div class="column-header">
-                <span class="header-badge" [ngClass]="getValue(data1, 'type') === 'Policy' ? 'policy-badge' : 'scheme-badge'">
-                  {{ getValue(data1, 'type') }}
-                </span>
-                <span class="header-title">{{ getItemTitle(data1, item1) }}</span>
-              </div>
+              Comparison
             </th>
+
+            <!-- ITEM 1 -->
             <th>
+
               <div class="column-header">
-                <span class="header-badge" [ngClass]="getValue(data2, 'type') === 'Policy' ? 'policy-badge' : 'scheme-badge'">
-                  {{ getValue(data2, 'type') }}
+
+                <span class="header-badge" [ngClass]="
+                    getValue(data1, 'type') === 'Policy'
+                      ? 'policy-badge'
+                      : 'scheme-badge'
+                  ">
+                  {{ getValue(data1, "type") }}
                 </span>
-                <span class="header-title">{{ getItemTitle(data2, item2) }}</span>
+
+                <span class="header-title">
+                  {{ getItemTitle(data1, item1) }}
+                </span>
+
               </div>
+
             </th>
+
+
+            <!-- ITEM 2 -->
+            <th>
+
+              <div class="column-header">
+
+                <span class="header-badge" [ngClass]="
+                    getValue(data2, 'type') === 'Policy'
+                      ? 'policy-badge'
+                      : 'scheme-badge'
+                  ">
+                  {{ getValue(data2, "type") }}
+                </span>
+
+                <span class="header-title">
+                  {{ getItemTitle(data2, item2) }}
+                </span>
+
+              </div>
+
+            </th>
+
+
+            <!-- ITEM 3 -->
             <th *ngIf="item3 && data3">
+
               <div class="column-header">
-                <span class="header-badge" [ngClass]="getValue(data3, 'type') === 'Policy' ? 'policy-badge' : 'scheme-badge'">
-                  {{ getValue(data3, 'type') }}
+
+                <span class="header-badge" [ngClass]="
+                    getValue(data3, 'type') === 'Policy'
+                      ? 'policy-badge'
+                      : 'scheme-badge'
+                  ">
+                  {{ getValue(data3, "type") }}
                 </span>
-                <span class="header-title">{{ getItemTitle(data3, item3) }}</span>
+
+                <span class="header-title">
+                  {{ getItemTitle(data3, item3) }}
+                </span>
+
               </div>
+
             </th>
+
           </tr>
+
         </thead>
+
 
         <tbody>
 
-          <!-- Type -->
+          <!-- TYPE -->
           <tr>
-            <th>Type</th>
-            <td><span class="type-pill" [ngClass]="getValue(data1, 'type') === 'Policy' ? 'policy-pill' : 'scheme-pill'">{{ getValue(data1, 'type') }}</span></td>
-            <td><span class="type-pill" [ngClass]="getValue(data2, 'type') === 'Policy' ? 'policy-pill' : 'scheme-pill'">{{ getValue(data2, 'type') }}</span></td>
-            <td *ngIf="item3 && data3"><span class="type-pill" [ngClass]="getValue(data3, 'type') === 'Policy' ? 'policy-pill' : 'scheme-pill'">{{ getValue(data3, 'type') }}</span></td>
+
+            <th>
+              Type
+            </th>
+
+            <td>
+              <span class="type-pill" [ngClass]="
+                  getValue(data1, 'type') === 'Policy'
+                    ? 'policy-pill'
+                    : 'scheme-pill'
+                ">
+                {{ getValue(data1, "type") }}
+              </span>
+            </td>
+
+            <td>
+              <span class="type-pill" [ngClass]="
+                  getValue(data2, 'type') === 'Policy'
+                    ? 'policy-pill'
+                    : 'scheme-pill'
+                ">
+                {{ getValue(data2, "type") }}
+              </span>
+            </td>
+
+            <td *ngIf="item3 && data3">
+              <span class="type-pill" [ngClass]="
+                  getValue(data3, 'type') === 'Policy'
+                    ? 'policy-pill'
+                    : 'scheme-pill'
+                ">
+                {{ getValue(data3, "type") }}
+              </span>
+            </td>
+
           </tr>
+
 
           <!-- ID -->
           <tr>
-            <th>ID</th>
-            <td>{{ getValue(data1, 'id') }}</td>
-            <td>{{ getValue(data2, 'id') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'id') }}</td>
-          </tr>
 
-          <!-- Title / Name -->
-          <tr>
-            <th>Title / Name</th>
-            <td><strong>{{ getItemTitle(data1, item1) }}</strong></td>
-            <td><strong>{{ getItemTitle(data2, item2) }}</strong></td>
-            <td *ngIf="item3 && data3"><strong>{{ getItemTitle(data3, item3) }}</strong></td>
-          </tr>
+            <th>
+              ID
+            </th>
 
-          <!-- Description -->
-          <tr>
-            <th>Description</th>
-            <td><div class="text-cell">{{ getValue(data1, 'description') }}</div></td>
-            <td><div class="text-cell">{{ getValue(data2, 'description') }}</div></td>
-            <td *ngIf="item3 && data3"><div class="text-cell">{{ getValue(data3, 'description') }}</div></td>
-          </tr>
-
-          <!-- Ministry -->
-          <tr>
-            <th>Ministry</th>
-            <td>{{ getValue(data1, 'ministry') }}</td>
-            <td>{{ getValue(data2, 'ministry') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'ministry') }}</td>
-          </tr>
-
-          <!-- Department -->
-          <tr>
-            <th>Department</th>
-            <td>{{ getValue(data1, 'department') }}</td>
-            <td>{{ getValue(data2, 'department') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'department') }}</td>
-          </tr>
-
-          <!-- Category -->
-          <tr>
-            <th>Category</th>
-            <td>{{ getValue(data1, 'category') }}</td>
-            <td>{{ getValue(data2, 'category') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'category') }}</td>
-          </tr>
-
-          <!-- State -->
-          <tr>
-            <th>State</th>
-            <td>{{ getValue(data1, 'state') }}</td>
-            <td>{{ getValue(data2, 'state') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'state') }}</td>
-          </tr>
-
-          <!-- Sector (Policy only) -->
-          <tr>
-            <th>Sector</th>
-            <td>{{ getValue(data1, 'sector') }}</td>
-            <td>{{ getValue(data2, 'sector') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'sector') }}</td>
-          </tr>
-
-          <!-- Status -->
-          <tr>
-            <th>Status</th>
             <td>
-              <span class="status-badge">{{ getValue(data1, 'status') }}</span>
+              {{ getValue(data1, "id") }}
             </td>
+
             <td>
-              <span class="status-badge">{{ getValue(data2, 'status') }}</span>
+              {{ getValue(data2, "id") }}
             </td>
+
             <td *ngIf="item3 && data3">
-              <span class="status-badge">{{ getValue(data3, 'status') }}</span>
+              {{ getValue(data3, "id") }}
             </td>
+
           </tr>
 
-          <!-- Benefits -->
+
+          <!-- TITLE / NAME -->
           <tr>
-            <th>Benefits</th>
+
+            <th>
+              Title / Name
+            </th>
+
             <td>
+              <strong>
+                {{ getItemTitle(data1, item1) }}
+              </strong>
+            </td>
+
+            <td>
+              <strong>
+                {{ getItemTitle(data2, item2) }}
+              </strong>
+            </td>
+
+            <td *ngIf="item3 && data3">
+              <strong>
+                {{ getItemTitle(data3, item3) }}
+              </strong>
+            </td>
+
+          </tr>
+
+
+          <!-- DESCRIPTION -->
+          <tr>
+
+            <th>
+              Description
+            </th>
+
+            <td>
+              <div class="text-cell">
+                {{ getValue(data1, "description") }}
+              </div>
+            </td>
+
+            <td>
+              <div class="text-cell">
+                {{ getValue(data2, "description") }}
+              </div>
+            </td>
+
+            <td *ngIf="item3 && data3">
+              <div class="text-cell">
+                {{ getValue(data3, "description") }}
+              </div>
+            </td>
+
+          </tr>
+
+
+          <!-- MINISTRY -->
+          <tr>
+
+            <th>
+              Ministry
+            </th>
+
+            <td>
+              {{ getValue(data1, "ministry") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "ministry") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "ministry") }}
+            </td>
+
+          </tr>
+
+
+          <!-- DEPARTMENT -->
+          <tr>
+
+            <th>
+              Department
+            </th>
+
+            <td>
+              {{ getValue(data1, "department") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "department") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "department") }}
+            </td>
+
+          </tr>
+
+
+          <!-- CATEGORY -->
+          <tr>
+
+            <th>
+              Category
+            </th>
+
+            <td>
+              {{ getValue(data1, "category") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "category") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "category") }}
+            </td>
+
+          </tr>
+
+
+          <!-- STATE -->
+          <tr>
+
+            <th>
+              State
+            </th>
+
+            <td>
+              {{ getValue(data1, "state") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "state") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "state") }}
+            </td>
+
+          </tr>
+
+
+          <!-- SECTOR -->
+          <tr>
+
+            <th>
+              Sector
+            </th>
+
+            <td>
+              {{ getValue(data1, "sector") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "sector") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "sector") }}
+            </td>
+
+          </tr>
+
+
+          <!-- BENEFITS -->
+          <tr>
+
+            <th>
+              Benefits
+            </th>
+
+            <td>
+
               <ul class="bullet-list" *ngIf="getBenefits(data1).length > 0">
-                <li *ngFor="let benefit of getBenefits(data1)">{{ benefit }}</li>
+                <li *ngFor="
+                    let benefit of getBenefits(data1)
+                  ">
+                  {{ benefit }}
+                </li>
               </ul>
-              <span *ngIf="getBenefits(data1).length === 0">-</span>
+
+              <span *ngIf="getBenefits(data1).length === 0">
+                -
+              </span>
+
             </td>
+
+
             <td>
+
               <ul class="bullet-list" *ngIf="getBenefits(data2).length > 0">
-                <li *ngFor="let benefit of getBenefits(data2)">{{ benefit }}</li>
+                <li *ngFor="
+                    let benefit of getBenefits(data2)
+                  ">
+                  {{ benefit }}
+                </li>
               </ul>
-              <span *ngIf="getBenefits(data2).length === 0">-</span>
+
+              <span *ngIf="getBenefits(data2).length === 0">
+                -
+              </span>
+
             </td>
+
+
             <td *ngIf="item3 && data3">
+
               <ul class="bullet-list" *ngIf="getBenefits(data3).length > 0">
-                <li *ngFor="let benefit of getBenefits(data3)">{{ benefit }}</li>
+                <li *ngFor="
+                    let benefit of getBenefits(data3)
+                  ">
+                  {{ benefit }}
+                </li>
               </ul>
-              <span *ngIf="getBenefits(data3).length === 0">-</span>
+
+              <span *ngIf="getBenefits(data3).length === 0">
+                -
+              </span>
+
             </td>
+
           </tr>
 
-          <!-- Eligibility Rules -->
+
+          <!-- ELIGIBILITY -->
           <tr>
-            <th>Eligibility Rules</th>
+
+            <th>
+              Eligibility Rules
+            </th>
+
             <td>
-              <ul class="bullet-list" *ngIf="getEligibilityRules(data1).length > 0">
-                <li *ngFor="let rule of getEligibilityRules(data1)">{{ rule }}</li>
+
+              <ul class="bullet-list" *ngIf="
+                  getEligibilityRules(data1).length > 0
+                ">
+                <li *ngFor="
+                    let rule of getEligibilityRules(data1)
+                  ">
+                  {{ rule }}
+                </li>
               </ul>
-              <span *ngIf="getEligibilityRules(data1).length === 0">-</span>
+
+              <span *ngIf="
+                  getEligibilityRules(data1).length === 0
+                ">
+                -
+              </span>
+
             </td>
+
+
             <td>
-              <ul class="bullet-list" *ngIf="getEligibilityRules(data2).length > 0">
-                <li *ngFor="let rule of getEligibilityRules(data2)">{{ rule }}</li>
+
+              <ul class="bullet-list" *ngIf="
+                  getEligibilityRules(data2).length > 0
+                ">
+                <li *ngFor="
+                    let rule of getEligibilityRules(data2)
+                  ">
+                  {{ rule }}
+                </li>
               </ul>
-              <span *ngIf="getEligibilityRules(data2).length === 0">-</span>
+
+              <span *ngIf="
+                  getEligibilityRules(data2).length === 0
+                ">
+                -
+              </span>
+
             </td>
+
+
             <td *ngIf="item3 && data3">
-              <ul class="bullet-list" *ngIf="getEligibilityRules(data3).length > 0">
-                <li *ngFor="let rule of getEligibilityRules(data3)">{{ rule }}</li>
+
+              <ul class="bullet-list" *ngIf="
+                  getEligibilityRules(data3).length > 0
+                ">
+                <li *ngFor="
+                    let rule of getEligibilityRules(data3)
+                  ">
+                  {{ rule }}
+                </li>
               </ul>
-              <span *ngIf="getEligibilityRules(data3).length === 0">-</span>
+
+              <span *ngIf="
+                  getEligibilityRules(data3).length === 0
+                ">
+                -
+              </span>
+
             </td>
+
           </tr>
 
-          <!-- Documents Required (Scheme only) -->
-          <tr>
-            <th>Documents Required</th>
-            <td>{{ getValue(data1, 'documents_required') }}</td>
-            <td>{{ getValue(data2, 'documents_required') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'documents_required') }}</td>
-          </tr>
 
-          <!-- Application Process (Scheme only) -->
+          <!-- DOCUMENTS REQUIRED -->
           <tr>
-            <th>Application Process</th>
-            <td><div class="text-cell">{{ getValue(data1, 'application_process') }}</div></td>
-            <td><div class="text-cell">{{ getValue(data2, 'application_process') }}</div></td>
-            <td *ngIf="item3 && data3"><div class="text-cell">{{ getValue(data3, 'application_process') }}</div></td>
-          </tr>
 
-          <!-- Application URL (Scheme only) -->
-          <tr>
-            <th>Application URL</th>
+            <th>
+              Documents Required
+            </th>
+
             <td>
-              <a
-                *ngIf="getApplicationUrl(data1)"
-                [href]="getApplicationUrl(data1)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              {{ getValue(data1, "documents_required") }}
+            </td>
+
+            <td>
+              {{ getValue(data2, "documents_required") }}
+            </td>
+
+            <td *ngIf="item3 && data3">
+              {{ getValue(data3, "documents_required") }}
+            </td>
+
+          </tr>
+
+
+          <!-- APPLICATION PROCESS -->
+          <tr>
+
+            <th>
+              Application Process
+            </th>
+
+            <td>
+              <div class="text-cell">
+                {{ getValue(data1, "application_process") }}
+              </div>
+            </td>
+
+            <td>
+              <div class="text-cell">
+                {{ getValue(data2, "application_process") }}
+              </div>
+            </td>
+
+            <td *ngIf="item3 && data3">
+              <div class="text-cell">
+                {{ getValue(data3, "application_process") }}
+              </div>
+            </td>
+
+          </tr>
+
+
+          <!-- APPLICATION URL -->
+          <tr>
+
+            <th>
+              Application URL
+            </th>
+
+
+            <td>
+
+              <a *ngIf="getApplicationUrl(data1)" [href]="getApplicationUrl(data1)" target="_blank"
+                rel="noopener noreferrer">
                 Apply Online ↗
               </a>
-              <span *ngIf="!getApplicationUrl(data1)">-</span>
+
+              <span *ngIf="!getApplicationUrl(data1)">
+                -
+              </span>
+
             </td>
+
+
             <td>
-              <a
-                *ngIf="getApplicationUrl(data2)"
-                [href]="getApplicationUrl(data2)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+
+              <a *ngIf="getApplicationUrl(data2)" [href]="getApplicationUrl(data2)" target="_blank"
+                rel="noopener noreferrer">
                 Apply Online ↗
               </a>
-              <span *ngIf="!getApplicationUrl(data2)">-</span>
+
+              <span *ngIf="!getApplicationUrl(data2)">
+                -
+              </span>
+
             </td>
+
+
             <td *ngIf="item3 && data3">
-              <a
-                *ngIf="getApplicationUrl(data3)"
-                [href]="getApplicationUrl(data3)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+
+              <a *ngIf="getApplicationUrl(data3)" [href]="getApplicationUrl(data3)" target="_blank"
+                rel="noopener noreferrer">
                 Apply Online ↗
               </a>
-              <span *ngIf="!getApplicationUrl(data3)">-</span>
+
+              <span *ngIf="!getApplicationUrl(data3)">
+                -
+              </span>
+
             </td>
+
           </tr>
 
-          <!-- Publication Date (Policy only) -->
-          <tr>
-            <th>Publication Date</th>
-            <td>{{ getValue(data1, 'publication_date') }}</td>
-            <td>{{ getValue(data2, 'publication_date') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'publication_date') }}</td>
-          </tr>
 
-          <!-- Effective Date (Policy only) -->
+          <!-- PUBLICATION DATE -->
           <tr>
-            <th>Effective Date</th>
-            <td>{{ getValue(data1, 'effective_date') }}</td>
-            <td>{{ getValue(data2, 'effective_date') }}</td>
-            <td *ngIf="item3 && data3">{{ getValue(data3, 'effective_date') }}</td>
-          </tr>
 
-          <!-- Document (Policy only) -->
-          <tr>
-            <th>Document</th>
+            <th>
+              Publication Date
+            </th>
+
             <td>
-              <a
-                *ngIf="getDocumentUrl(data1)"
-                [href]="getDocumentUrl(data1)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Document ↗
-              </a>
-              <span *ngIf="!getDocumentUrl(data1)">-</span>
+              {{ getValue(data1, "publication_date") }}
             </td>
+
             <td>
-              <a
-                *ngIf="getDocumentUrl(data2)"
-                [href]="getDocumentUrl(data2)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Document ↗
-              </a>
-              <span *ngIf="!getDocumentUrl(data2)">-</span>
+              {{ getValue(data2, "publication_date") }}
             </td>
+
             <td *ngIf="item3 && data3">
-              <a
-                *ngIf="getDocumentUrl(data3)"
-                [href]="getDocumentUrl(data3)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Document ↗
-              </a>
-              <span *ngIf="!getDocumentUrl(data3)">-</span>
+              {{ getValue(data3, "publication_date") }}
             </td>
+
           </tr>
 
-          <!-- Source -->
+
+          <!-- EFFECTIVE DATE -->
           <tr>
-            <th>Source</th>
+
+            <th>
+              Effective Date
+            </th>
+
             <td>
-              <a
-                *ngIf="getSourceUrl(data1)"
-                [href]="getSourceUrl(data1)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Visit Source ↗
-              </a>
-              <span *ngIf="!getSourceUrl(data1)">-</span>
+              {{ getValue(data1, "effective_date") }}
             </td>
+
             <td>
-              <a
-                *ngIf="getSourceUrl(data2)"
-                [href]="getSourceUrl(data2)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Visit Source ↗
-              </a>
-              <span *ngIf="!getSourceUrl(data2)">-</span>
+              {{ getValue(data2, "effective_date") }}
             </td>
+
             <td *ngIf="item3 && data3">
-              <a
-                *ngIf="getSourceUrl(data3)"
-                [href]="getSourceUrl(data3)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              {{ getValue(data3, "effective_date") }}
+            </td>
+
+          </tr>
+
+
+          <!-- DOCUMENT -->
+          <tr>
+
+            <th>
+              Document
+            </th>
+
+
+            <td>
+
+              <a *ngIf="getDocumentUrl(data1)" [href]="getDocumentUrl(data1)" target="_blank" rel="noopener noreferrer">
+                View Document ↗
+              </a>
+
+              <span *ngIf="!getDocumentUrl(data1)">
+                -
+              </span>
+
+            </td>
+
+
+            <td>
+
+              <a *ngIf="getDocumentUrl(data2)" [href]="getDocumentUrl(data2)" target="_blank" rel="noopener noreferrer">
+                View Document ↗
+              </a>
+
+              <span *ngIf="!getDocumentUrl(data2)">
+                -
+              </span>
+
+            </td>
+
+
+            <td *ngIf="item3 && data3">
+
+              <a *ngIf="getDocumentUrl(data3)" [href]="getDocumentUrl(data3)" target="_blank" rel="noopener noreferrer">
+                View Document ↗
+              </a>
+
+              <span *ngIf="!getDocumentUrl(data3)">
+                -
+              </span>
+
+            </td>
+
+          </tr>
+
+
+          <!-- SOURCE -->
+          <tr>
+
+            <th>
+              Source
+            </th>
+
+
+            <td>
+
+              <a *ngIf="getSourceUrl(data1)" [href]="getSourceUrl(data1)" target="_blank" rel="noopener noreferrer">
                 Visit Source ↗
               </a>
-              <span *ngIf="!getSourceUrl(data3)">-</span>
+
+              <span *ngIf="!getSourceUrl(data1)">
+                -
+              </span>
+
             </td>
+
+
+            <td>
+
+              <a *ngIf="getSourceUrl(data2)" [href]="getSourceUrl(data2)" target="_blank" rel="noopener noreferrer">
+                Visit Source ↗
+              </a>
+
+              <span *ngIf="!getSourceUrl(data2)">
+                -
+              </span>
+
+            </td>
+
+
+            <td *ngIf="item3 && data3">
+
+              <a *ngIf="getSourceUrl(data3)" [href]="getSourceUrl(data3)" target="_blank" rel="noopener noreferrer">
+                Visit Source ↗
+              </a>
+
+              <span *ngIf="!getSourceUrl(data3)">
+                -
+              </span>
+
+            </td>
+
           </tr>
 
         </tbody>
+
       </table>
+
     </div>
+
   </div>
 
-  <!-- Back to Selection / Actions -->
-  <div class="comparison-actions" *ngIf="!loading && data1 && data2">
-    <button
-      type="button"
-      class="back-btn"
-      (click)="goToSelection()"
-    >
+
+  <!-- =========================================================
+       BACK TO COMPARE
+       ========================================================= -->
+
+  <div class="comparison-actions" *ngIf="
+      !loading &&
+      !errorMessage &&
+      data1 &&
+      data2
+    ">
+
+    <button type="button" class="back-btn" (click)="goToSelection()">
       <span>←</span>
       Back to Compare
     </button>
+
   </div>
 
 </div>

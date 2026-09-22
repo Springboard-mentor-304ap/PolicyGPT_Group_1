@@ -407,17 +407,6 @@ tbody tr:hover td {
   border: 1px solid #bfdbfe;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-block;
-  padding: 3px 9px;
-  border-radius: 6px;
-  background: #ecfdf5;
-  color: #065f46;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 /* Text Cell */
 .text-cell {
   max-height: 180px;
@@ -546,3 +535,5 @@ td a {
     padding: 14px;
   }
 }
+
+

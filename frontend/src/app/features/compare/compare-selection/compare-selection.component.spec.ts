@@ -248,4 +248,11 @@ describe('CompareSelectionComponent', () => {
     component.goBack();
     expect(mockLocation.back).toHaveBeenCalled();
   });
+
+  it('10. should NOT have a Status filter in the UI', () => {
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const filterLabels = Array.from(compiled.querySelectorAll('.filter-group label')).map((l) => l.textContent?.trim());
+    expect(filterLabels).not.toContain('Status');
+  });
 });

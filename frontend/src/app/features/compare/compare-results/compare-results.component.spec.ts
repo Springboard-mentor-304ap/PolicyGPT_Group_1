@@ -355,4 +355,24 @@ describe('CompareResultsComponent', () => {
     component.goBack();
     expect(mockLocation.back).toHaveBeenCalled();
   });
+
+  it('11. should NOT display Status row anywhere in the comparison table', () => {
+    const items: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 201, title: 'PM-KISAN Scheme', type: 'Scheme', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tableHeaders = Array.from(compiled.querySelectorAll('tbody th')).map((th) => th.textContent?.trim());
+    expect(tableHeaders).not.toContain('Status');
+
+    const tableBodyText = compiled.querySelector('tbody')?.textContent || '';
+    expect(tableBodyText).not.toContain('APPROVED');
+    expect(tableBodyText).not.toContain('Approved');
+  });
 });

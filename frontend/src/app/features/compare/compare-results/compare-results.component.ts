@@ -11,8 +11,10 @@ import { Subject, takeUntil, forkJoin, Observable } from "rxjs";
 
 import { PolicyService } from "../../../core/services/policy.services";
 import { SchemeService } from "../../../core/services/scheme.service";
+
 import { PolicyResponse } from "../../../core/models/policy.model";
 import { SchemeResponse } from "../../../core/models/scheme.model";
+
 import { CompareItem } from "../compare-selection/compare-selection.component";
 
 export type CompareEntity = PolicyResponse | SchemeResponse;
@@ -26,11 +28,14 @@ export type CompareEntity = PolicyResponse | SchemeResponse;
 })
 export class CompareResultsComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
+
   private readonly cdr = inject(ChangeDetectorRef);
 
   items: CompareItem[] = [];
@@ -49,20 +54,61 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const navigation = window.history.state;
 
-    if (!navigation?.items || !Array.isArray(navigation.items) || navigation.items.length < 2) {
-      this.errorMessage = "Please select at least two schemes or policies to compare.";
+    if (
+      !navigation?.items ||
+      !Array.isArray(navigation.items) ||
+      navigation.items.length < 2
+    ) {
+      this.errorMessage =
+        "Please select at least two schemes or policies to compare.";
+
       this.loading = false;
+
       this.cdr.detectChanges();
+
+      return;
+    }
+
+    /*
+     * Only two or three comparison items are supported.
+     */
+    if (navigation.items.length > 3) {
+      this.errorMessage =
+        "You can compare a maximum of three schemes or policies.";
+
+      this.loading = false;
+
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    /*
+     * Validate the navigation state before making API requests.
+     */
+    const validItems = navigation.items.every(
+      (item: CompareItem) =>
+        item &&
+        Number.isFinite(item.id) &&
+        (item.type === "Policy" || item.type === "Scheme"),
+    );
+
+    if (!validItems) {
+      this.errorMessage = "The selected comparison items are invalid.";
+
+      this.loading = false;
+
+      this.cdr.detectChanges();
+
       return;
     }
 
     this.items = navigation.items;
+
     this.item1 = this.items[0];
     this.item2 = this.items[1];
 
-    if (this.items.length >= 3) {
-      this.item3 = this.items[2];
-    }
+    this.item3 = this.items.length >= 3 ? this.items[2] : null;
 
     this.loadComparison();
   }
@@ -75,9 +121,9 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   private loadItem(item: CompareItem): Observable<CompareEntity> {
     if (item.type === "Policy") {
       return this.policyService.getPolicy(item.id);
-    } else {
-      return this.schemeService.getScheme(item.id);
     }
+
+    return this.schemeService.getScheme(item.id);
   }
 
   loadComparison(): void {
@@ -87,6 +133,11 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
 
     this.loading = true;
     this.errorMessage = "";
+
+    this.data1 = null;
+    this.data2 = null;
+    this.data3 = null;
+
     this.cdr.detectChanges();
 
     const requests: Observable<CompareEntity>[] = [
@@ -102,25 +153,62 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (results) => {
-          this.data1 = results[0];
-          this.data2 = results[1];
-          if (results.length >= 3) {
-            this.data3 = results[2];
+          const result1 = results[0];
+          const result2 = results[1];
+          const result3 = results.length >= 3 ? results[2] : null;
+
+          /*
+           * Compare must contain approved items only.
+           * This also protects the Results page if someone
+           * manually modifies browser history state.
+           */
+          if (
+            !this.isApprovedEntity(result1) ||
+            !this.isApprovedEntity(result2) ||
+            (result3 !== null && !this.isApprovedEntity(result3))
+          ) {
+            this.data1 = null;
+            this.data2 = null;
+            this.data3 = null;
+
+            this.errorMessage =
+              "Only approved schemes and policies can be compared.";
+
+            this.loading = false;
+
+            this.cdr.detectChanges();
+
+            return;
           }
+
+          this.data1 = result1;
+          this.data2 = result2;
+          this.data3 = result3;
+
           this.loading = false;
+
           this.cdr.detectChanges();
         },
+
         error: (error) => {
           console.error("Failed to load comparison data:", error);
+
           const detail =
             error?.error?.detail ||
             error?.message ||
             "Failed to load details for the selected items.";
+
           this.errorMessage = detail;
+
           this.loading = false;
+
           this.cdr.detectChanges();
         },
       });
+  }
+
+  private isApprovedEntity(data: CompareEntity | null): data is CompareEntity {
+    return !!data && String(data.status).toUpperCase() === "APPROVED";
   }
 
   isPolicy(data: CompareEntity | null): data is PolicyResponse {
@@ -135,13 +223,18 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     if (this.isPolicy(data)) {
       return data.title || item?.title || "-";
     }
+
     if (this.isScheme(data)) {
       return data.name || data.title || item?.title || "-";
     }
+
     return item?.title || "-";
   }
 
-  getItemMinistry(data: CompareEntity | null, item: CompareItem | null): string {
+  getItemMinistry(
+    data: CompareEntity | null,
+    item: CompareItem | null,
+  ): string {
     return data?.ministry || item?.ministry || "-";
   }
 
@@ -149,37 +242,46 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     item: CompareItem | null,
     data: CompareEntity | null,
   ): "education" | "health" | "agriculture" | "scheme" | "policy" {
-    const textToMatch = `${item?.title || ""} ${item?.category || ""} ${data?.category || ""}`.toLowerCase();
+    const textToMatch =
+      `${item?.title || ""} ` +
+      `${item?.category || ""} ` +
+      `${data?.category || ""}`.toLowerCase();
 
     if (textToMatch.includes("education")) {
       return "education";
     }
+
     if (textToMatch.includes("health")) {
       return "health";
     }
+
     if (textToMatch.includes("agriculture")) {
       return "agriculture";
     }
+
     if (item?.type === "Scheme" || this.isScheme(data)) {
       return "scheme";
     }
+
     return "policy";
   }
 
-  getIconSymbol(
-    item: CompareItem | null,
-    data: CompareEntity | null,
-  ): string {
+  getIconSymbol(item: CompareItem | null, data: CompareEntity | null): string {
     const type = this.getIconType(item, data);
+
     switch (type) {
       case "education":
         return "🎓";
+
       case "health":
         return "❤️";
+
       case "agriculture":
         return "🌱";
+
       case "scheme":
         return "📋";
+
       case "policy":
       default:
         return "🏛️";
@@ -187,11 +289,15 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   }
 
   getValue(data: CompareEntity | null, field: string): string {
-    if (!data) return "-";
+    if (!data) {
+      return "-";
+    }
 
     switch (field) {
       case "id":
-        return this.isPolicy(data) ? String(data.policy_id) : String(data.scheme_id);
+        return this.isPolicy(data)
+          ? String(data.policy_id)
+          : String(data.scheme_id);
 
       case "title":
         return this.getItemTitle(data, null);
@@ -200,25 +306,22 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
         return this.isPolicy(data) ? "Policy" : "Scheme";
 
       case "description":
-        return data.description ? data.description.trim() : "-";
+        return data.description?.trim() || "-";
 
       case "ministry":
-        return data.ministry ? data.ministry.trim() : "-";
+        return data.ministry?.trim() || "-";
 
       case "department":
-        return data.department ? data.department.trim() : "-";
+        return data.department?.trim() || "-";
 
       case "category":
-        return data.category ? data.category.trim() : "-";
+        return data.category?.trim() || "-";
 
       case "state":
-        return data.state ? data.state.trim() : "-";
+        return data.state?.trim() || "-";
 
       case "sector":
         return this.isPolicy(data) && data.sector ? data.sector.trim() : "-";
-
-      case "status":
-        return this.formatStatus(data.status);
 
       case "documents_required":
         return this.isScheme(data) && data.documents_required
@@ -231,7 +334,9 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
           : "-";
 
       case "publication_date":
-        return this.isPolicy(data) ? this.formatDate(data.publication_date) : "-";
+        return this.isPolicy(data)
+          ? this.formatDate(data.publication_date)
+          : "-";
 
       case "effective_date":
         return this.isPolicy(data) ? this.formatDate(data.effective_date) : "-";
@@ -242,106 +347,159 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   }
 
   getBenefits(data: CompareEntity | null): string[] {
-    if (!data || !data.benefits) return [];
-    if (Array.isArray(data.benefits)) {
-      return data.benefits.filter((b) => typeof b === "string" && b.trim().length > 0);
+    if (!data?.benefits) {
+      return [];
     }
+
+    if (Array.isArray(data.benefits)) {
+      return data.benefits.filter(
+        (benefit) => typeof benefit === "string" && benefit.trim().length > 0,
+      );
+    }
+
     return [];
   }
 
   getEligibilityRules(data: CompareEntity | null): string[] {
-    if (!data || !data.eligibility_rules) return [];
+    if (!data?.eligibility_rules) {
+      return [];
+    }
+
     const rules = data.eligibility_rules;
-    if (!Array.isArray(rules) || rules.length === 0) return [];
+
+    if (!Array.isArray(rules) || rules.length === 0) {
+      return [];
+    }
 
     const result: string[] = [];
 
     for (const rule of rules) {
-      if (!rule) continue;
+      if (!rule) {
+        continue;
+      }
 
       if (typeof rule === "string") {
         result.push(rule);
         continue;
       }
 
-      if (typeof rule === "object") {
-        const ruleType = rule['rule_type'];
-        if (ruleType) {
-          const typeLabel = String(ruleType).replace(/_/g, " ");
+      if (typeof rule !== "object") {
+        continue;
+      }
 
-          if (ruleType === "AGE_CRITERIA") {
-            const min = rule['min_age'] !== undefined && rule['min_age'] !== null ? rule['min_age'] : 0;
-            const max = rule['max_age'] ? ` - ${rule['max_age']} years` : "+ years";
-            result.push(`Age: ${min}${max}`);
-          } else if (ruleType === "ANNUAL_INCOME_LIMIT") {
-            const val =
-              typeof rule['value'] === "number"
-                ? `₹${Number(rule['value']).toLocaleString("en-IN")}`
-                : rule['value'];
-            result.push(`Income Limit: ${val}`);
-          } else if (ruleType === "TARGET_BENEFICIARIES") {
-            result.push(`Target Beneficiaries: ${rule['value']}`);
-          } else {
-            const val = rule['value'] !== undefined ? `: ${rule['value']}` : "";
-            result.push(`${typeLabel}${val}`);
-          }
+      const ruleType = rule["rule_type"];
+
+      if (ruleType) {
+        const typeLabel = String(ruleType).replace(/_/g, " ");
+
+        if (ruleType === "AGE_CRITERIA") {
+          const min =
+            rule["min_age"] !== undefined && rule["min_age"] !== null
+              ? rule["min_age"]
+              : 0;
+
+          const max =
+            rule["max_age"] !== undefined && rule["max_age"] !== null
+              ? ` - ${rule["max_age"]} years`
+              : "+ years";
+
+          result.push(`Age: ${min}${max}`);
+        } else if (ruleType === "ANNUAL_INCOME_LIMIT") {
+          const value = rule["value"];
+
+          const formattedValue =
+            typeof value === "number"
+              ? `₹${value.toLocaleString("en-IN")}`
+              : String(value ?? "-");
+
+          result.push(`Income Limit: ${formattedValue}`);
+        } else if (ruleType === "TARGET_BENEFICIARIES") {
+          result.push(`Target Beneficiaries: ${String(rule["value"] ?? "-")}`);
         } else {
-          // Schema style criteria
-          const parts: string[] = [];
+          const value =
+            rule["value"] !== undefined ? `: ${String(rule["value"])}` : "";
 
-          const minAge = rule['min_age'];
-          const maxAge = rule['max_age'];
-          if (minAge !== undefined || maxAge !== undefined) {
-            const min = minAge !== undefined && minAge !== null ? minAge : 0;
-            const max = maxAge ? ` - ${maxAge} years` : "+ years";
-            parts.push(`Age: ${min}${max}`);
-          }
+          result.push(`${typeLabel}${value}`);
+        }
 
-          const maxIncome = rule['max_income'];
-          if (maxIncome !== undefined && maxIncome !== null) {
-            const inc =
-              typeof maxIncome === "number"
-                ? `₹${Number(maxIncome).toLocaleString("en-IN")}`
-                : maxIncome;
-            parts.push(`Max Income: ${inc}`);
-          }
+        continue;
+      }
 
-          const education = rule['education'];
-          if (education && education !== "Any") {
-            parts.push(`Education: ${education}`);
-          }
+      const parts: string[] = [];
 
-          const gender = rule['gender'];
-          if (gender && gender !== "Any") {
-            parts.push(`Gender: ${gender}`);
-          }
+      const minAge = rule["min_age"];
+      const maxAge = rule["max_age"];
 
-          const socialCat = rule['social_category'];
-          if (socialCat && socialCat !== "Any") {
-            parts.push(`Category: ${socialCat}`);
-          }
+      if (minAge !== undefined || maxAge !== undefined) {
+        const min = minAge !== undefined && minAge !== null ? minAge : 0;
 
-          const occ = rule['occupation'];
-          if (occ && occ !== "Any") {
-            parts.push(`Occupation: ${occ}`);
-          }
+        const max =
+          maxAge !== undefined && maxAge !== null
+            ? ` - ${maxAge} years`
+            : "+ years";
 
-          const st = rule['state'];
-          if (st && st !== "All India" && st !== "Central") {
-            parts.push(`State: ${st}`);
-          }
+        parts.push(`Age: ${min}${max}`);
+      }
 
-          if (parts.length > 0) {
-            result.push(...parts);
-          } else {
-            // Generic object fallback that avoids [object Object]
-            const genericParts = Object.entries(rule)
-              .filter(([_, v]) => v !== null && v !== undefined && v !== "" && v !== "Any")
-              .map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`);
-            if (genericParts.length > 0) {
-              result.push(genericParts.join(", "));
-            }
-          }
+      const maxIncome = rule["max_income"];
+
+      if (maxIncome !== undefined && maxIncome !== null) {
+        const formattedIncome =
+          typeof maxIncome === "number"
+            ? `₹${maxIncome.toLocaleString("en-IN")}`
+            : String(maxIncome);
+
+        parts.push(`Max Income: ${formattedIncome}`);
+      }
+
+      const education = rule["education"];
+
+      if (education && education !== "Any") {
+        parts.push(`Education: ${education}`);
+      }
+
+      const gender = rule["gender"];
+
+      if (gender && gender !== "Any") {
+        parts.push(`Gender: ${gender}`);
+      }
+
+      const socialCategory = rule["social_category"];
+
+      if (socialCategory && socialCategory !== "Any") {
+        parts.push(`Category: ${socialCategory}`);
+      }
+
+      const occupation = rule["occupation"];
+
+      if (occupation && occupation !== "Any") {
+        parts.push(`Occupation: ${occupation}`);
+      }
+
+      const state = rule["state"];
+
+      if (state && state !== "All India" && state !== "Central") {
+        parts.push(`State: ${state}`);
+      }
+
+      if (parts.length > 0) {
+        result.push(...parts);
+      } else {
+        const genericParts = Object.entries(rule)
+          .filter(
+            ([, value]) =>
+              value !== null &&
+              value !== undefined &&
+              value !== "" &&
+              value !== "Any",
+          )
+          .map(
+            ([key, value]) =>
+              `${key.replace(/_/g, " ")}: ${this.formatObjectValue(value)}`,
+          );
+
+        if (genericParts.length > 0) {
+          result.push(genericParts.join(", "));
         }
       }
     }
@@ -349,10 +507,31 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     return result;
   }
 
+  private formatObjectValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return "-";
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.formatObjectValue(item)).join(", ");
+    }
+
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "-";
+      }
+    }
+
+    return String(value);
+  }
+
   getDocumentUrl(data: CompareEntity | null): string | null {
     if (this.isPolicy(data) && data.document_url && data.document_url.trim()) {
       return data.document_url.trim();
     }
+
     return null;
   }
 
@@ -360,37 +539,38 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     if (data?.source_url && data.source_url.trim()) {
       return data.source_url.trim();
     }
+
     return null;
   }
 
   getApplicationUrl(data: CompareEntity | null): string | null {
-    if (this.isScheme(data) && data.application_url && data.application_url.trim()) {
+    if (
+      this.isScheme(data) &&
+      data.application_url &&
+      data.application_url.trim()
+    ) {
       return data.application_url.trim();
     }
+
     return null;
   }
 
-  formatStatus(status?: string | null): string {
-    if (!status) return "-";
-    return status
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
   formatDate(dateStr?: string | null): string {
-    if (!dateStr || !dateStr.trim()) return "-";
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString("en-IN", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
+    if (!dateStr?.trim()) {
+      return "-";
+    }
+
+    const date = new Date(dateStr);
+
+    if (Number.isNaN(date.getTime())) {
       return dateStr;
     }
+
+    return date.toLocaleDateString("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   }
 
   goBack(): void {

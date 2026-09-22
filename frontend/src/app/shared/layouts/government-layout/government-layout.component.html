@@ -142,8 +142,8 @@
             <!-- POLICIES SUBMENU -->
             @if (policiesMenuOpen && !sidebarCollapsed) {
             <div id="gov-policies-submenu" class="dash-nav__submenu" aria-label="Policies management">
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/policies"
-                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/policies/search"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: false }"
                     (click)="closeMobileMenu()">
                     <span class="material-icons">
                         manage_search

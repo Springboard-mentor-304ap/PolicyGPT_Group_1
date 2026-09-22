@@ -71,7 +71,7 @@ export class GuestUserLayoutComponent implements OnInit {
     {
       icon: "policy",
       label: "Policy",
-      route: "/dashboard/guest/policies",
+      route: "/dashboard/guest/policies/search",
       exact: false,
       requiresLogin: false,
     },

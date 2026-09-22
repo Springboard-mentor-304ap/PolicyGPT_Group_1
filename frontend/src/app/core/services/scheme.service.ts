@@ -2,53 +2,33 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface Scheme {
-  scheme_id: number;
-  name: string;
-  title?: string;
-  description: string;
-  category: string;
-  ministry: string | null;
-  department?: string | null;
-  state: string | null;
-  benefits: string[] | null;
-  documents_required?: string | null;
-  application_process?: string | null;
-  application_url?: string | null;
-  source_url?: string | null;
-  status: string;
-  eligibility_rules?: any[] | null;
-  created_by?: number | null;
-  approved_by?: number | null;
-  rejection_reason?: string | null;
-  archive_reason?: string | null;
-  archive_requested_by?: number | null;
-  archive_requested_at?: string | null;
-  delete_reason?: string | null;
-  delete_requested_by?: number | null;
-  delete_requested_at?: string | null;
-  delete_requested_from_status?: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import {
+  SchemeResponse,
+  SchemeListResponse,
+  SchemeFilters,
+  SchemeCreate,
+  SchemeUpdate,
+  SchemeAnalyticsResponse,
+} from '../models/scheme.model';
 
-export interface SchemeListResponse {
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-  schemes: Scheme[];
-}
+export type Scheme = SchemeResponse;
+export type {
+  SchemeResponse,
+  SchemeListResponse,
+  SchemeFilters,
+  SchemeCreate,
+  SchemeUpdate,
+  SchemeAnalyticsResponse,
+};
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SchemeService {
-
   private readonly apiUrl = 'http://localhost:8000/schemes';
   private readonly eligibilityApiUrl = 'http://localhost:8000/eligibility';
+  private readonly analyticsUrl = 'http://localhost:8000/analytics/schemes';
 
-  // Simple in-memory cache for repeated requests
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 30000; // 30 seconds
 
@@ -71,127 +51,202 @@ export class SchemeService {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
-  getSchemes(filters?: {
-    keyword?: string;
-    category?: string;
-    ministry?: string;
-    department?: string;
-    state?: string;
-    status?: string;
-    page?: number;
-    limit?: number;
-  }): Observable<SchemeListResponse> {
+  clearCache(): void {
+    this.cache.clear();
+  }
 
+  // ============================================================
+  // GET ALL / SEARCH / MANAGE SCHEMES
+  // GET /schemes
+  // ============================================================
+
+  getSchemes(filters?: SchemeFilters): Observable<SchemeListResponse> {
     let params = new HttpParams();
 
-    if (filters?.keyword) {
-      params = params.set('keyword', filters.keyword);
+    if (filters?.keyword && filters.keyword.trim()) {
+      params = params.set('keyword', filters.keyword.trim());
+    }
+    if (filters?.category && filters.category.trim()) {
+      params = params.set('category', filters.category.trim());
+    }
+    if (filters?.ministry && filters.ministry.trim()) {
+      params = params.set('ministry', filters.ministry.trim());
+    }
+    if (filters?.department && filters.department.trim()) {
+      params = params.set('department', filters.department.trim());
+    }
+    if (filters?.state && filters.state.trim()) {
+      params = params.set('state', filters.state.trim());
+    }
+    if (filters?.status && filters.status.trim()) {
+      params = params.set('status', filters.status.trim());
+    }
+    if (filters?.manage !== undefined) {
+      params = params.set('manage', filters.manage.toString());
+    }
+    if (filters?.created_by !== undefined) {
+      params = params.set('created_by', filters.created_by.toString());
     }
 
-    if (filters?.category) {
-      params = params.set('category', filters.category);
-    }
+    const page = filters?.page && filters.page > 0 ? filters.page : 1;
+    const limit = filters?.limit && filters.limit > 0 ? filters.limit : 10;
+    params = params.set('page', page.toString());
+    params = params.set('limit', limit.toString());
 
-    if (filters?.ministry) {
-      params = params.set('ministry', filters.ministry);
-    }
-
-    if (filters?.department) {
-      params = params.set('department', filters.department);
-    }
-
-    if (filters?.state) {
-      params = params.set('state', filters.state);
-    }
-
-    if (filters?.status) {
-      params = params.set('status', filters.status);
-    }
-
-    params = params.set('page', (filters?.page || 1).toString());
-    params = params.set('limit', (filters?.limit || 10).toString());
-
-    const cacheKey = this.getCacheKey('getSchemes', params);
-    const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return new Observable(observer => {
-        observer.next(cached);
-        observer.complete();
-      });
-    }
-
-    return new Observable(observer => {
-      this.http.get<SchemeListResponse>(this.apiUrl, { params }).subscribe({
-        next: (response) => {
-          this.setCache(cacheKey, response);
-          observer.next(response);
-          observer.complete();
-        },
-        error: (error) => observer.error(error)
-      });
-    });
+    return this.http.get<SchemeListResponse>(this.apiUrl, { params });
   }
 
-  getScheme(id: number): Observable<Scheme> {
-    const cacheKey = this.getCacheKey(`getScheme:${id}`);
-    const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return new Observable(observer => {
-        observer.next(cached);
-        observer.complete();
-      });
-    }
+  // ============================================================
+  // GET SINGLE SCHEME
+  // GET /schemes/{id}
+  // ============================================================
 
-    return new Observable(observer => {
-      this.http.get<Scheme>(`${this.apiUrl}/${id}`).subscribe({
-        next: (response) => {
-          this.setCache(cacheKey, response);
-          observer.next(response);
-          observer.complete();
-        },
-        error: (error) => observer.error(error)
-      });
-    });
+  getScheme(id: number): Observable<SchemeResponse> {
+    if (!id || id <= 0) {
+      throw new Error('A valid scheme ID is required.');
+    }
+    return this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`);
   }
+
+  // ============================================================
+  // GET ELIGIBILITY RULES FOR A SCHEME
+  // GET /eligibility/scheme/{scheme_id}
+  // ============================================================
 
   getEligibilityRules(schemeId: number): Observable<any[]> {
-    const cacheKey = this.getCacheKey(`getEligibilityRules:scheme:${schemeId}`);
-    const cached = this.getFromCache(cacheKey);
-    if (cached) {
-      return new Observable(observer => {
-        observer.next(cached);
-        observer.complete();
-      });
+    if (!schemeId || schemeId <= 0) {
+      throw new Error('A valid scheme ID is required.');
     }
-
-    return new Observable(observer => {
-      this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`).subscribe({
-        next: (response) => {
-          this.setCache(cacheKey, response);
-          observer.next(response);
-          observer.complete();
-        },
-        error: (error) => observer.error(error)
-      });
-    });
+    return this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`);
   }
 
-  createScheme(data: any): Observable<any> {
+  // ============================================================
+  // CREATE SCHEME
+  // POST /schemes
+  // ============================================================
+
+  createScheme(data: SchemeCreate | any): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<any>(this.apiUrl, data);
+    return this.http.post<SchemeResponse>(this.apiUrl, data);
   }
 
-  updateScheme(id: number, data: any): Observable<any> {
+  // ============================================================
+  // SAVE DRAFT
+  // POST /schemes/draft
+  // ============================================================
+
+  saveDraft(data: SchemeCreate | any): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.put<any>(`${this.apiUrl}/${id}`, data);
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/draft`, data);
   }
+
+  // ============================================================
+  // UPDATE SCHEME
+  // PUT /schemes/{id}
+  // ============================================================
+
+  updateScheme(id: number, data: SchemeUpdate | any): Observable<SchemeResponse> {
+    if (!id || id <= 0) {
+      throw new Error('A valid scheme ID is required.');
+    }
+    this.clearCache();
+    return this.http.put<SchemeResponse>(`${this.apiUrl}/${id}`, data);
+  }
+
+  // ============================================================
+  // DELETE SCHEME (Admin direct delete)
+  // DELETE /schemes/{id}
+  // ============================================================
 
   deleteScheme(id: number): Observable<any> {
+    if (!id || id <= 0) {
+      throw new Error('A valid scheme ID is required.');
+    }
     this.clearCache();
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
 
-  clearCache(): void {
-    this.cache.clear();
+  // ============================================================
+  // WORKFLOW METHODS
+  // ============================================================
+
+  submitScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/submit`, {});
+  }
+
+  approveScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/approve`, {});
+  }
+
+  rejectScheme(id: number, reason: string): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject`, { reason });
+  }
+
+  archiveScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/archive`, {});
+  }
+
+  requestArchiveScheme(id: number, reason: string): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-archive`, { reason });
+  }
+
+  approveArchiveScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/approve-archive`, {});
+  }
+
+  rejectArchiveScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-archive`, {});
+  }
+
+  restoreScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/restore`, {});
+  }
+
+  requestDeleteScheme(id: number, reason: string): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-delete`, { reason });
+  }
+
+  approveDeleteScheme(id: number): Observable<{ message: string }> {
+    this.clearCache();
+    return this.http.post<{ message: string }>(`${this.apiUrl}/${id}/approve-delete`, {});
+  }
+
+  rejectDeleteScheme(id: number): Observable<SchemeResponse> {
+    this.clearCache();
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-delete`, {});
+  }
+
+  getPendingSchemes(): Observable<SchemeResponse[]> {
+    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/pending-approval`);
+  }
+
+  getArchiveRequests(): Observable<SchemeResponse[]> {
+    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/archive-requests`);
+  }
+
+  getDeleteRequests(): Observable<SchemeResponse[]> {
+    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/delete-requests`);
+  }
+
+  // ============================================================
+  // SCHEME ANALYTICS / STATISTICS
+  // GET /analytics/schemes
+  // ============================================================
+
+  getSchemeStatistics(): Observable<SchemeAnalyticsResponse> {
+    return this.http.get<SchemeAnalyticsResponse>(this.analyticsUrl);
+  }
+
+  getSchemeAnalytics(): Observable<SchemeAnalyticsResponse> {
+    return this.getSchemeStatistics();
   }
 }

@@ -82,7 +82,7 @@ export class CitizenLayoutComponent implements OnInit {
     {
       label: "Search Policies",
       icon: "policy",
-      route: "/dashboard/citizen/policies",
+      route: "/dashboard/citizen/policies/search",
     },
 
     {

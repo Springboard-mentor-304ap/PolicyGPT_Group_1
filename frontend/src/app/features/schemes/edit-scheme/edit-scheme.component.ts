@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -10,6 +10,9 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Auth, AuthUser } from '../../../core/services/auth';
+import { SchemeService } from '../../../core/services/scheme.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { SchemeResponse, SchemeUpdate } from '../../../core/models/scheme.model';
 
 @Component({
   selector: 'app-edit-scheme',
@@ -25,7 +28,8 @@ export class EditSchemeComponent implements OnInit {
   completedSteps = new Set<number>([1, 2, 3, 4]);
 
   // Scheme ID
-  schemeId: string | number = 1;
+  schemeId: number = 0;
+  existingScheme: SchemeResponse | null = null;
 
   // Role
   isAdmin = false;
@@ -39,6 +43,8 @@ export class EditSchemeComponent implements OnInit {
   stepSubmitted: { [key: number]: boolean } = {};
   showSuccessModal = false;
   savedDraftToast = false;
+  isSaving = false;
+  isSubmitting = false;
 
   // Dropdown options
   categories: string[] = [
@@ -136,114 +142,36 @@ export class EditSchemeComponent implements OnInit {
   ];
 
   // Dynamic additional eligibility criteria list
-  additionalCriteriaList: string[] = [
-    'Must possess a valid Aadhaar and Bank Account',
-    'Applicant must be a permanent resident of India',
-  ];
-
-  // Sample data repository to pre-fill scheme based on ID
-  private sampleSchemes: Record<string, any> = {
-    '1': {
-      name: 'PM Kisan Samman Nidhi',
-      category: 'Agriculture',
-      ministry: 'Ministry of Agriculture & Farmers Welfare',
-      department: 'Department of Agriculture & Farmers Welfare',
-      state: 'All India',
-      description: 'A central sector scheme that provides income support of Rs. 6000 per year in three equal installments to all landholding farmer families across India.',
-      benefits: [
-        'Direct financial assistance of ₹6,000 per year',
-        'Direct Benefit Transfer (DBT) directly into bank account',
-        'Helps meet agricultural input costs',
-      ],
-      targetBeneficiaries: 'Small, marginal and all landholding farmer families across India',
-      sourceUrl: 'https://pmkisan.gov.in',
-      keyHighlights: [
-        'Direct income transfer in 3 equal installments of ₹2,000',
-        '100% centrally funded scheme by Government of India',
-        'Aadhaar-seeded direct payment verification',
-      ],
-      additionalInfo: 'Operational guidelines require state governments to verify land records.',
-      importantNotes: 'Institutional landholders and income tax paying individuals are excluded.',
-      minAge: '18',
-      maxAge: '75',
-      gender: 'All',
-      annualIncome: '',
-      education: 'No Formal Education Required',
-      occupation: 'Farmer',
-      socialCategory: 'All Categories',
-      eligibilityState: 'All India',
-      disabilityStatus: 'Both',
-      documentsRequired: 'Aadhaar Card, Land ownership papers (Khatauni/Khasra), Active Bank Account Details, Mobile Number',
-      applicationProcess: '1. Visit official portal (pmkisan.gov.in)\n2. Click on New Farmer Registration\n3. Enter Aadhaar number and captcha\n4. Fill land details and bank account\n5. Submit and check status online',
-      applicationUrl: 'https://pmkisan.gov.in/RegistrationFormNew.aspx',
-      applicationSourceUrl: 'https://pmkisan.gov.in',
-      mediaFileName: 'pm_kisan_guide.mp4',
-    },
-    '2': {
-      name: 'PM Surya Ghar Muft Bijli Yojana',
-      category: 'Energy & Power',
-      ministry: 'Ministry of New & Renewable Energy',
-      department: 'Department of Energy',
-      state: 'All India',
-      description: 'Rooftop solar scheme providing up to 300 units of free electricity every month to 1 crore households across the nation.',
-      benefits: [
-        'Up to 300 units of free clean electricity per month',
-        'Subsidy up to ₹78,000 for rooftop solar systems',
-        'Substantial reduction in monthly electricity bills',
-      ],
-      targetBeneficiaries: 'Residential households with suitable rooftop space',
-      sourceUrl: 'https://pmsuryaghar.gov.in',
-      keyHighlights: [
-        'Generous capital subsidy credited directly to bank account',
-        'National portal for single-window vendor selection and net metering',
-      ],
-      additionalInfo: 'DISCOM approval integrated directly through the National Portal.',
-      importantNotes: 'Applicant household must have an active residential electricity connection.',
-      minAge: '18',
-      maxAge: '',
-      gender: 'All',
-      annualIncome: '',
-      education: 'No Formal Education Required',
-      occupation: 'All Occupations',
-      socialCategory: 'All Categories',
-      eligibilityState: 'All India',
-      disabilityStatus: 'Both',
-      documentsRequired: 'Electricity Bill, Proof of House Ownership, Aadhaar Card, Bank Passbook',
-      applicationProcess: '1. Register on pmsuryaghar.gov.in with Consumer Number\n2. Apply for Rooftop Solar installation\n3. Get technical feasibility approval from DISCOM\n4. Install system through registered vendor\n5. Receive inspection, net meter and subsidy',
-      applicationUrl: 'https://pmsuryaghar.gov.in/apply',
-      applicationSourceUrl: 'https://pmsuryaghar.gov.in',
-      mediaFileName: 'surya_ghar_demo.mp4',
-    },
-  };
+  additionalCriteriaList: string[] = [];
 
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private authService: Auth
+    private authService: Auth,
+    private schemeService: SchemeService,
+    private toastService: ToastService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.detectRole();
-    this.schemeId = this.route.snapshot.paramMap.get('id') || '1';
+    const idParam = this.route.snapshot.paramMap.get('id');
+    this.schemeId = idParam ? parseInt(idParam, 10) : 0;
     this.initForm();
-    this.loadSchemeData();
+    if (this.schemeId > 0) {
+      this.loadSchemeData();
+    }
   }
 
   private detectRole(): void {
-    const url = this.router.url;
-    if (url.includes('/admin')) {
+    const rawRole = String(this.authService.getUserRole() || '').trim().toUpperCase();
+    if (rawRole === 'ADMIN' || rawRole === 'ADMINISTRATOR' || this.router.url.includes('/admin')) {
       this.isAdmin = true;
       this.rolePrefix = 'admin';
     } else {
-      const storedUser: AuthUser | null = this.authService.getStoredUser();
-      if (storedUser && storedUser.role === 'ADMINISTRATOR') {
-        this.isAdmin = true;
-        this.rolePrefix = 'admin';
-      } else {
-        this.isAdmin = false;
-        this.rolePrefix = 'government';
-      }
+      this.isAdmin = false;
+      this.rolePrefix = 'government';
     }
   }
 
@@ -255,19 +183,20 @@ export class EditSchemeComponent implements OnInit {
       ministry: [''],
       department: [''],
       state: ['All India'],
-      description: ['', [Validators.required, Validators.maxLength(1000)]],
-      benefits: this.fb.array([]),
+      description: ['', [Validators.required, Validators.maxLength(5000)]],
+      benefits: this.fb.array([this.fb.control(''), this.fb.control('')]),
 
       // Step 2: Scheme Details
-      targetBeneficiaries: ['', [Validators.required, Validators.maxLength(500)]],
+      targetBeneficiaries: ['', [Validators.maxLength(500)]],
       sourceUrl: ['', [Validators.maxLength(500)]],
-      keyHighlights: this.fb.array([]),
+      keyHighlights: this.fb.array([this.fb.control(''), this.fb.control('')]),
       additionalInfo: ['', [Validators.maxLength(1000)]],
       importantNotes: ['', [Validators.maxLength(1000)]],
+      mediaFileName: [''],
 
       // Step 3: Eligibility Criteria
-      minAge: [''],
-      maxAge: [''],
+      minAge: ['', [Validators.min(0), Validators.max(120)]],
+      maxAge: ['', [Validators.min(0), Validators.max(120)]],
       gender: ['All'],
       annualIncome: [''],
       education: [''],
@@ -277,66 +206,92 @@ export class EditSchemeComponent implements OnInit {
       disabilityStatus: ['Not Applicable'],
 
       // Step 4: Documents & Application
-      documentsRequired: ['', [Validators.required, Validators.maxLength(2000)]],
-      applicationProcess: ['', [Validators.required, Validators.maxLength(2000)]],
+      documentsRequired: ['', [Validators.maxLength(2000)]],
+      applicationProcess: ['', [Validators.maxLength(2000)]],
       applicationUrl: ['', [Validators.maxLength(500)]],
       applicationSourceUrl: ['', [Validators.maxLength(500)]],
 
-      // Step 5: Media & Declaration
-      mediaFileName: ['intro_video.mp4'],
+      // Step 5: Declaration
       declarationAgreed: [true, Validators.requiredTrue],
     });
   }
 
   private loadSchemeData(): void {
-    const data = this.sampleSchemes[String(this.schemeId)] || this.sampleSchemes['1'];
+    this.schemeService.getScheme(this.schemeId).subscribe({
+      next: (scheme: SchemeResponse) => {
+        this.existingScheme = scheme;
 
-    // Patch basic values
-    this.schemeForm.patchValue({
-      name: data.name,
-      category: data.category,
-      ministry: data.ministry,
-      department: data.department,
-      state: data.state,
-      description: data.description,
-      targetBeneficiaries: data.targetBeneficiaries,
-      sourceUrl: data.sourceUrl,
-      additionalInfo: data.additionalInfo,
-      importantNotes: data.importantNotes,
-      minAge: data.minAge,
-      maxAge: data.maxAge,
-      gender: data.gender,
-      annualIncome: data.annualIncome,
-      education: data.education,
-      occupation: data.occupation,
-      socialCategory: data.socialCategory,
-      eligibilityState: data.eligibilityState,
-      disabilityStatus: data.disabilityStatus,
-      documentsRequired: data.documentsRequired,
-      applicationProcess: data.applicationProcess,
-      applicationUrl: data.applicationUrl,
-      applicationSourceUrl: data.applicationSourceUrl,
-      mediaFileName: data.mediaFileName,
-      declarationAgreed: true,
+        // Set form fields
+        this.schemeForm.patchValue({
+          name: scheme.name || '',
+          category: scheme.category || '',
+          ministry: scheme.ministry || '',
+          department: scheme.department || '',
+          state: scheme.state || 'All India',
+          description: scheme.description || '',
+          sourceUrl: scheme.source_url || '',
+          applicationUrl: scheme.application_url || '',
+          applicationProcess: scheme.application_process || '',
+          documentsRequired: scheme.documents_required || '',
+        });
+
+        // Set benefits FormArray
+        if (Array.isArray(scheme.benefits) && scheme.benefits.length > 0) {
+          const benefitsArray = this.fb.array(
+            scheme.benefits.map((b) => this.fb.control(b))
+          );
+          this.schemeForm.setControl('benefits', benefitsArray);
+        }
+
+        // Fetch eligibility rules
+        this.schemeService.getEligibilityRules(this.schemeId).subscribe({
+          next: (rules) => {
+            if (Array.isArray(rules)) {
+              rules.forEach((rule: any) => {
+                if (rule.rule_type === 'AGE_CRITERIA') {
+                  if (rule.min_age !== null && rule.min_age !== undefined) {
+                    this.schemeForm.patchValue({ minAge: rule.min_age });
+                  }
+                  if (rule.max_age !== null && rule.max_age !== undefined) {
+                    this.schemeForm.patchValue({ maxAge: rule.max_age });
+                  }
+                } else if (rule.rule_type === 'GENDER' && rule.value) {
+                  this.schemeForm.patchValue({ gender: rule.value });
+                } else if (rule.rule_type === 'ANNUAL_INCOME_LIMIT' && rule.value !== undefined) {
+                  this.schemeForm.patchValue({ annualIncome: rule.value });
+                } else if (rule.rule_type === 'EDUCATION' && rule.value) {
+                  this.schemeForm.patchValue({ education: rule.value });
+                } else if (rule.rule_type === 'OCCUPATION' && rule.value) {
+                  this.schemeForm.patchValue({ occupation: rule.value });
+                } else if (rule.rule_type === 'SOCIAL_CATEGORY' && rule.value) {
+                  this.schemeForm.patchValue({ socialCategory: rule.value });
+                } else if (rule.rule_type === 'DISABILITY_STATUS') {
+                  this.schemeForm.patchValue({
+                    disabilityStatus: rule.value ? 'Applicable' : 'Not Applicable',
+                  });
+                } else if (rule.rule_type === 'TARGET_BENEFICIARIES' && rule.value) {
+                  this.schemeForm.patchValue({ targetBeneficiaries: rule.value });
+                } else if (rule.rule_type === 'CUSTOM_CONDITION' && rule.description) {
+                  this.additionalCriteriaList.push(rule.description);
+                }
+              });
+            }
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            console.error('Failed to load eligibility rules:', err);
+            this.cdr.detectChanges();
+          },
+        });
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load scheme:', err);
+        this.toastService.error('Failed to load scheme details');
+        this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
+      },
     });
-
-    // Populate Benefits FormArray
-    const benefitsArray = this.benefits;
-    benefitsArray.clear();
-    if (data.benefits && data.benefits.length > 0) {
-      data.benefits.forEach((b: string) => benefitsArray.push(this.fb.control(b)));
-    } else {
-      benefitsArray.push(this.fb.control(''));
-    }
-
-    // Populate Highlights FormArray
-    const highlightsArray = this.keyHighlights;
-    highlightsArray.clear();
-    if (data.keyHighlights && data.keyHighlights.length > 0) {
-      data.keyHighlights.forEach((h: string) => highlightsArray.push(this.fb.control(h)));
-    } else {
-      highlightsArray.push(this.fb.control(''));
-    }
   }
 
   // --- Form Array Getters ---
@@ -385,11 +340,15 @@ export class EditSchemeComponent implements OnInit {
   goToStep(step: number): void {
     if (step < this.currentStep) {
       this.currentStep = step;
+      this.cdr.detectChanges();
     } else if (this.isStepValid(this.currentStep)) {
       this.completedSteps.add(this.currentStep);
       this.currentStep = step;
+      this.cdr.detectChanges();
     } else {
       this.stepSubmitted[this.currentStep] = true;
+      this.markStepFieldsAsTouched(this.currentStep);
+      this.cdr.detectChanges();
     }
   }
 
@@ -398,6 +357,7 @@ export class EditSchemeComponent implements OnInit {
 
     if (!this.isStepValid(this.currentStep)) {
       this.markStepFieldsAsTouched(this.currentStep);
+      this.cdr.detectChanges();
       return;
     }
 
@@ -406,12 +366,14 @@ export class EditSchemeComponent implements OnInit {
       this.currentStep++;
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+    this.cdr.detectChanges();
   }
 
   prevStep(): void {
     if (this.currentStep > 1) {
       this.currentStep--;
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.cdr.detectChanges();
     }
   }
 
@@ -424,14 +386,9 @@ export class EditSchemeComponent implements OnInit {
           !!this.schemeForm.get('description')?.valid
         );
       case 2:
-        return !!this.schemeForm.get('targetBeneficiaries')?.valid;
       case 3:
-        return true;
       case 4:
-        return (
-          !!this.schemeForm.get('documentsRequired')?.valid &&
-          !!this.schemeForm.get('applicationProcess')?.valid
-        );
+        return true;
       case 5:
         return !!this.schemeForm.get('declarationAgreed')?.valid;
       default:
@@ -446,13 +403,6 @@ export class EditSchemeComponent implements OnInit {
         this.schemeForm.get('category')?.markAsTouched();
         this.schemeForm.get('description')?.markAsTouched();
         break;
-      case 2:
-        this.schemeForm.get('targetBeneficiaries')?.markAsTouched();
-        break;
-      case 4:
-        this.schemeForm.get('documentsRequired')?.markAsTouched();
-        this.schemeForm.get('applicationProcess')?.markAsTouched();
-        break;
       case 5:
         this.schemeForm.get('declarationAgreed')?.markAsTouched();
         break;
@@ -462,13 +412,13 @@ export class EditSchemeComponent implements OnInit {
   // --- Values for Step 5 Review ---
   get filteredBenefits(): string[] {
     return this.benefits.controls
-      .map((c) => c.value?.trim())
+      .map((c) => String(c.value ?? '').trim())
       .filter((v) => !!v);
   }
 
   get filteredHighlights(): string[] {
     return this.keyHighlights.controls
-      .map((c) => c.value?.trim())
+      .map((c) => String(c.value ?? '').trim())
       .filter((v) => !!v);
   }
 
@@ -487,12 +437,104 @@ export class EditSchemeComponent implements OnInit {
     return `₹ ${Number(income).toLocaleString('en-IN')} or less`;
   }
 
+  private buildEligibilityRules(): Record<string, any>[] {
+    const rules: Record<string, any>[] = [];
+    const formVal = this.schemeForm.value;
+
+    const targetBeneficiaries = String(formVal.targetBeneficiaries ?? '').trim();
+    if (targetBeneficiaries) {
+      rules.push({
+        rule_type: 'TARGET_BENEFICIARIES',
+        value: targetBeneficiaries,
+      });
+    }
+
+    if (formVal.minAge || formVal.maxAge) {
+      rules.push({
+        rule_type: 'AGE_CRITERIA',
+        min_age: formVal.minAge ? Number(formVal.minAge) : null,
+        max_age: formVal.maxAge ? Number(formVal.maxAge) : null,
+      });
+    }
+
+    if (formVal.gender && formVal.gender !== 'All') {
+      rules.push({ rule_type: 'GENDER', value: formVal.gender });
+    }
+
+    if (formVal.annualIncome) {
+      rules.push({ rule_type: 'ANNUAL_INCOME_LIMIT', value: Number(formVal.annualIncome) });
+    }
+
+    if (formVal.education) {
+      rules.push({ rule_type: 'EDUCATION', value: formVal.education });
+    }
+
+    if (formVal.occupation) {
+      rules.push({ rule_type: 'OCCUPATION', value: formVal.occupation });
+    }
+
+    if (formVal.socialCategory) {
+      rules.push({ rule_type: 'SOCIAL_CATEGORY', value: formVal.socialCategory });
+    }
+
+    if (formVal.disabilityStatus && formVal.disabilityStatus !== 'Not Applicable') {
+      rules.push({ rule_type: 'DISABILITY_STATUS', value: formVal.disabilityStatus === 'Applicable' });
+    }
+
+    this.additionalCriteriaList
+      .filter((c) => !!c.trim())
+      .forEach((c) => {
+        rules.push({ rule_type: 'CUSTOM_CONDITION', description: c.trim() });
+      });
+
+    return rules;
+  }
+
+  private buildSchemePayload(): SchemeUpdate {
+    const formVal = this.schemeForm.value;
+    const eligibilityRules = this.buildEligibilityRules();
+
+    return {
+      name: String(formVal.name ?? '').trim(),
+      description: String(formVal.description ?? '').trim(),
+      category: formVal.category,
+      ministry: formVal.ministry || null,
+      department: formVal.department || null,
+      state: formVal.state || null,
+      benefits: this.filteredBenefits.length > 0 ? this.filteredBenefits : null,
+      source_url: formVal.sourceUrl || null,
+      application_url: formVal.applicationUrl || null,
+      application_process: formVal.applicationProcess || null,
+      documents_required: formVal.documentsRequired || null,
+      eligibility_rules: eligibilityRules.length > 0 ? eligibilityRules : null,
+    };
+  }
+
   // --- Save / Submit Handlers ---
   saveDraft(): void {
-    this.savedDraftToast = true;
-    setTimeout(() => {
-      this.savedDraftToast = false;
-    }, 3500);
+    if (this.isSaving) return;
+
+    this.isSaving = true;
+    const payload = this.buildSchemePayload();
+
+    this.schemeService.updateScheme(this.schemeId, payload).subscribe({
+      next: () => {
+        this.isSaving = false;
+        this.savedDraftToast = true;
+        this.toastService.success('Scheme changes saved as draft.');
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.savedDraftToast = false;
+          this.cdr.detectChanges();
+        }, 3500);
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Failed to save draft:', err);
+        this.toastService.error(this.getErrorMessage(err));
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   onSubmit(): void {
@@ -501,20 +543,55 @@ export class EditSchemeComponent implements OnInit {
 
     if (this.schemeForm.invalid) {
       this.schemeForm.markAllAsTouched();
+      this.toastService.warning('Please complete all required fields and accept the declaration.');
+      this.cdr.detectChanges();
       return;
     }
 
-    const payload = {
-      id: this.schemeId,
-      ...this.schemeForm.value,
-      additionalCriteria: this.additionalCriteriaList.filter((c) => !!c.trim()),
-      status: this.isAdmin ? 'APPROVED' : 'PENDING_APPROVAL',
-      updatedAt: new Date().toISOString(),
-      updatedRole: this.isAdmin ? 'ADMINISTRATOR' : 'GOVERNMENT_OFFICIAL',
-    };
+    this.isSubmitting = true;
+    const payload = this.buildSchemePayload();
 
-    console.log('Updated Scheme Payload:', payload);
-    this.showSuccessModal = true;
+    this.schemeService.updateScheme(this.schemeId, payload).subscribe({
+      next: () => {
+        if (this.isAdmin) {
+          // Admin approves
+          this.schemeService.approveScheme(this.schemeId).subscribe({
+            next: () => {
+              this.isSubmitting = false;
+              this.showSuccessModal = true;
+              this.cdr.detectChanges();
+            },
+            error: (err) => {
+              this.isSubmitting = false;
+              console.error('Approval failed:', err);
+              this.toastService.error(this.getErrorMessage(err));
+              this.cdr.detectChanges();
+            },
+          });
+        } else {
+          // Government Official submits for approval
+          this.schemeService.submitScheme(this.schemeId).subscribe({
+            next: () => {
+              this.isSubmitting = false;
+              this.showSuccessModal = true;
+              this.cdr.detectChanges();
+            },
+            error: (err) => {
+              this.isSubmitting = false;
+              console.error('Submit for approval failed:', err);
+              this.toastService.error(this.getErrorMessage(err));
+              this.cdr.detectChanges();
+            },
+          });
+        }
+      },
+      error: (err) => {
+        this.isSubmitting = false;
+        console.error('Update failed:', err);
+        this.toastService.error(this.getErrorMessage(err));
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   closeSuccessModal(): void {
@@ -524,5 +601,16 @@ export class EditSchemeComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
+  }
+
+  private getErrorMessage(error: any): string {
+    if (typeof error === 'string') return error;
+    if (error?.error?.detail) {
+      if (typeof error.error.detail === 'string') return error.error.detail;
+      if (Array.isArray(error.error.detail)) {
+        return error.error.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+      }
+    }
+    return error?.message || 'An unexpected error occurred.';
   }
 }

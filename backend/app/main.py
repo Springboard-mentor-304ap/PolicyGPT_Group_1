@@ -1,5 +1,10 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.api.routes.feedback import router as feedback_router
 from app.api.routes.reports import router as reports_router
 from app.api.routes.notification_preferences import (
@@ -29,6 +34,56 @@ Base.metadata.create_all(bind=engine)
 
 
 # =========================================================
+# DATABASE CONNECTION POOL MAINTENANCE
+# =========================================================
+
+logger = logging.getLogger("uvicorn.error")
+
+
+def _warm_up_pool() -> None:
+    """
+    Establish one valid database connection before the server
+    starts accepting requests, so the first user request does
+    not pay the cost of creating a cold connection.
+    """
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception:
+        logger.exception("Database warm-up connection failed")
+
+
+async def _keep_pool_warm() -> None:
+    """
+    Periodically ping a pooled connection so idle Supabase /
+    Supavisor connections do not go stale and force a user
+    request to reconnect.
+    """
+    while True:
+        await asyncio.sleep(60)
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception:
+            logger.exception("Database keep-alive ping failed")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _warm_up_pool()
+    keep_alive_task = asyncio.create_task(_keep_pool_warm())
+    try:
+        yield
+    finally:
+        keep_alive_task.cancel()
+        try:
+            await keep_alive_task
+        except asyncio.CancelledError:
+            pass
+        engine.dispose()
+
+
+# =========================================================
 # FASTAPI APPLICATION
 # =========================================================
 
@@ -36,6 +91,7 @@ app = FastAPI(
     title="PolicyGPT API",
     description="Government Policy & Public Scheme Intelligence Platform",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 

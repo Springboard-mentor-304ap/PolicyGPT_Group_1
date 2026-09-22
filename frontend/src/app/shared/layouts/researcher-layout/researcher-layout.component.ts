@@ -95,7 +95,7 @@ export class ResearcherLayoutComponent implements OnInit {
     {
       label: "Search Policies",
       icon: "policy",
-      route: "/dashboard/researcher/policies",
+      route: "/dashboard/researcher/policies/search",
     },
 
     {

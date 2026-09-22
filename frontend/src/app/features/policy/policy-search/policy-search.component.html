@@ -1,66 +1,91 @@
 <div class="policy-search-page">
 
-  <!-- =====================================================
-       HEADER
-  ====================================================== -->
+  <!-- ====================================================== -->
+  <!-- HEADER -->
+  <!-- ====================================================== -->
 
   <header class="page-header">
-
     <div class="header-content">
 
+      <div class="header-main">
+        <h1>Policies</h1>
+
+        <p>
+          Find government policies that match your needs.
+        </p>
+      </div>
+
       <button type="button" class="back-button" (click)="goBack()">
-        ← Back
+        <span class="back-icon" aria-hidden="true">←</span>
+        <span>Back</span>
       </button>
 
-      <h1>
-        Search Policies
-      </h1>
-
-      <p>
-        Find government policies that match your needs.
-      </p>
-
     </div>
-
   </header>
 
 
-  <!-- =====================================================
-       SEARCH SECTION
-  ====================================================== -->
+  <!-- ====================================================== -->
+  <!-- SEARCH -->
+  <!-- ====================================================== -->
 
   <section class="search-section">
 
-    <!-- SEARCH BAR -->
+    <!-- SEARCH ROW -->
 
     <div class="search-row">
 
       <div class="search-input-wrapper">
 
-        <span class="search-icon">
-          🔍
+        <!-- Professional Search Icon -->
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+
+            <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
         </span>
 
-        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()"
-          placeholder="Search by policy name, keyword, ministry, or benefit..." aria-label="Search policies" />
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="applyFilters()"
+          placeholder="Search by policy name, keyword, ministry, or benefit..." autocomplete="off"
+          aria-label="Search policies" />
+
+        <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; applyFilters()"
+          aria-label="Clear search">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+            <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
 
       </div>
 
 
+      <!-- Search Button -->
+
       <button type="button" class="search-button" (click)="applyFilters()">
-        Search
+
+        <svg class="search-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+
+          <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+
+        <span>Search</span>
+
       </button>
 
     </div>
 
 
-    <!-- ===================================================
-         FILTERS
-    ==================================================== -->
+    <!-- ==================================================== -->
+    <!-- FILTER ROW -->
+    <!-- ==================================================== -->
 
     <div class="filters-row">
 
-      <!-- CATEGORY -->
+      <!-- Category -->
 
       <div class="filter-group">
 
@@ -68,22 +93,26 @@
           Category
         </label>
 
-        <select id="category" [(ngModel)]="selectedCategory" (change)="applyFilters()">
+        <div class="select-wrapper">
 
-          <option value="">
-            All Categories
-          </option>
+          <select id="category" [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
 
-          <option *ngFor="let category of categories" [value]="category">
-            {{ category }}
-          </option>
+            <option value="">
+              All Categories
+            </option>
 
-        </select>
+            <option *ngFor="let category of categories" [value]="category">
+              {{ category }}
+            </option>
+
+          </select>
+
+        </div>
 
       </div>
 
 
-      <!-- MINISTRY -->
+      <!-- Ministry -->
 
       <div class="filter-group">
 
@@ -91,22 +120,26 @@
           Ministry
         </label>
 
-        <select id="ministry" [(ngModel)]="selectedMinistry" (change)="applyFilters()">
+        <div class="select-wrapper">
 
-          <option value="">
-            All Ministries
-          </option>
+          <select id="ministry" [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
 
-          <option *ngFor="let ministry of ministries" [value]="ministry">
-            {{ ministry }}
-          </option>
+            <option value="">
+              All Ministries
+            </option>
 
-        </select>
+            <option *ngFor="let ministry of ministries" [value]="ministry">
+              {{ ministry }}
+            </option>
+
+          </select>
+
+        </div>
 
       </div>
 
 
-      <!-- STATE -->
+      <!-- State -->
 
       <div class="filter-group">
 
@@ -114,115 +147,96 @@
           State
         </label>
 
-        <select id="state" [(ngModel)]="selectedState" (change)="applyFilters()">
+        <div class="select-wrapper">
 
-          <option value="">
-            All States
-          </option>
+          <select id="state" [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
 
-          <option *ngFor="let state of states" [value]="state">
-            {{ state }}
-          </option>
+            <option value="">
+              All States
+            </option>
 
-        </select>
+            <option *ngFor="let state of states" [value]="state">
+              {{ state }}
+            </option>
 
-      </div>
+          </select>
 
-
-      <!-- STATUS -->
-
-      <div class="filter-group">
-
-        <label for="status">
-          Status
-        </label>
-
-        <select id="status" [(ngModel)]="selectedStatus" (change)="applyFilters()">
-
-          <option value="">
-            All Statuses
-          </option>
-
-          <option *ngFor="let status of statuses" [value]="status">
-            {{ getStatusLabel(status) }}
-          </option>
-
-        </select>
+        </div>
 
       </div>
 
 
-      <!-- CLEAR -->
+      <!-- Clear -->
 
-      <button type="button" class="clear-button" (click)="clearFilters()">
-        Clear Filters
+      <button type="button" class="clear-filters-button" (click)="clearFilters()">
+
+        <svg class="clear-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 12A8 8 0 0 1 18.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+          <path d="M18 4V8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+          <path d="M20 12A8 8 0 0 1 5.5 17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+          <path d="M6 20V16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+
+        <span>Clear Filters</span>
+
       </button>
-
-    </div>
-
-
-    <!-- ===================================================
-         ADVANCED FILTERS
-    ==================================================== -->
-
-    <div class="advanced-filters">
-
-      <!-- DEPARTMENT -->
-
-      <div class="filter-group">
-
-        <label for="department">
-          Department
-        </label>
-
-        <input id="department" type="text" [(ngModel)]="selectedDepartment" placeholder="Department"
-          (keyup.enter)="applyFilters()" />
-
-      </div>
-
-
-      <!-- SECTOR -->
-
-      <div class="filter-group">
-
-        <label for="sector">
-          Sector
-        </label>
-
-        <select id="sector" [(ngModel)]="selectedSector" (change)="applyFilters()">
-          <option value="">All Sectors</option>
-          <option *ngFor="let sector of sectors" [value]="sector">{{ sector }}</option>
-        </select>
-
-      </div>
 
     </div>
 
   </section>
 
 
-  <!-- =====================================================
-       LOADING SKELETON
-  ====================================================== -->
+  <!-- ====================================================== -->
+  <!-- INITIAL LOADING -->
+  <!-- ====================================================== -->
 
-  <div class="skeleton-list" *ngIf="loading && policies.length === 0">
-    <div class="skeleton-card" *ngFor="let _ of [1,2,3,4,5]"></div>
-  </div>
+  <section class="skeleton-list" *ngIf="loading && policies.length === 0">
 
+    <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5]">
 
-  <!-- =====================================================
-       ERROR
-  ====================================================== -->
+      <div class="skeleton skeleton-icon"></div>
 
-  <div class="state-container error-state" *ngIf="!loading && errorMessage">
+      <div class="skeleton-body">
 
-    <div class="error-icon">
-      ⚠
+        <div class="skeleton skeleton-title"></div>
+
+        <div class="skeleton skeleton-line"></div>
+
+        <div class="skeleton skeleton-small"></div>
+
+      </div>
+
+      <div class="skeleton skeleton-button"></div>
+
     </div>
 
-    <h3>
-      Unable to load policies
-    </h3>
+  </section>
+
+
+  <!-- ====================================================== -->
+  <!-- ERROR -->
+  <!-- ====================================================== -->
+
+  <section class="state-card error-state" *ngIf="!loading && errorMessage">
+
+    <div class="state-icon">
+
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3L21 20H3L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+
+        <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+      </svg>
+
+    </div>
+
+    <h2>
+      Unable to Load Policies
+    </h2>
 
     <p>
       {{ errorMessage }}
@@ -232,93 +246,129 @@
       Try Again
     </button>
 
-  </div>
+  </section>
 
 
-  <!-- =====================================================
-       RESULTS
-  ====================================================== -->
+  <!-- ====================================================== -->
+  <!-- RESULTS -->
+  <!-- ====================================================== -->
 
-  <section class="results-section" *ngIf="!loading && !errorMessage">
+  <section class="results-section" *ngIf="!errorMessage">
 
-    <!-- RESULT COUNT -->
+    <!-- Results Header -->
 
     <div class="results-header">
 
-      <h2>
-        {{ totalResults }}
-        {{ totalResults === 1 ? "result" : "results" }}
-        found
-      </h2>
+      <div>
+
+        <h2>
+          {{ totalResults }}
+          {{ totalResults === 1 ? "Policy" : "Policies" }}
+          Found
+        </h2>
+
+        <p>
+          Browse officially approved government policies.
+        </p>
+
+      </div>
+
+      <div class="updating" *ngIf="loading && policies.length > 0">
+
+        <span></span>
+
+        Updating...
+
+      </div>
 
     </div>
 
 
-    <!-- ===================================================
-         EMPTY STATE
-    ==================================================== -->
+    <!-- ================================================== -->
+    <!-- EMPTY -->
+    <!-- ================================================== -->
 
-    <div class="empty-state" *ngIf="policies.length === 0">
+    <div class="empty-state" *ngIf="!loading && policies.length === 0">
 
       <div class="empty-icon">
-        🔎
+
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+
+          <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+
       </div>
 
-      <h3>
-        No policies found
-      </h3>
+      <h2>
+        No Approved Policies Found
+      </h2>
 
       <p>
-        Try changing your search or filters.
+        No approved policies match your current
+        search or filters.
       </p>
 
-      <button type="button" class="clear-button" (click)="clearFilters()">
-        Clear Filters
+      <button type="button" class="clear-empty-button" (click)="clearFilters()">
+        Clear Search &amp; Filters
       </button>
 
     </div>
 
 
-    <!-- ===================================================
-         POLICY LIST
-    ==================================================== -->
+    <!-- ================================================== -->
+    <!-- POLICY LIST -->
+    <!-- ================================================== -->
 
     <div class="policy-list" *ngIf="policies.length > 0">
 
-      <article class="policy-card" *ngFor="let policy of policies">
+      <article class="policy-card" *ngFor="
+          let policy of policies;
+          trackBy: trackByPolicyId
+        ">
 
-        <!-- ICON -->
+        <!-- Policy Icon -->
 
         <div class="policy-icon">
 
-          <span>
-            ✓
-          </span>
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+
+            <!-- Document -->
+
+            <path d="M7 3.5H14L19 8.5V20.5H7C5.89543 20.5 5 19.6046 5 18.5V5.5C5 4.39543 5.89543 3.5 7 3.5Z"
+              stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+
+            <!-- Folded Corner -->
+
+            <path d="M14 3.5V8.5H19" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+
+            <!-- Document Lines -->
+
+            <path d="M8.5 12H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+
+            <path d="M8.5 15.5H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+
+            <path d="M8.5 8.5H11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+
+          </svg>
 
         </div>
 
 
-        <!-- POLICY CONTENT -->
+        <!-- Content -->
 
         <div class="policy-content">
 
-          <div class="policy-title-row">
+          <div class="title-row">
 
             <h3>
               {{ policy.title }}
             </h3>
 
-            <span class="status-badge" [ngClass]="
-                'status-' +
-                policy.status.toLowerCase()
-              ">
-              {{ getStatusLabel(policy.status) }}
-            </span>
-
           </div>
 
 
-          <p class="policy-ministry">
+          <p class="ministry">
 
             {{
             policy.ministry ||
@@ -328,34 +378,48 @@
           </p>
 
 
-          <div class="policy-meta">
+          <div class="metadata">
 
-            <span *ngIf="policy.category">
+            <span *ngIf="policy.category" class="metadata-item">
               {{ policy.category }}
             </span>
 
-            <span *ngIf="policy.state">
+            <span *ngIf="policy.state" class="metadata-item">
               {{ policy.state }}
             </span>
 
-            <span *ngIf="policy.sector">
+            <span *ngIf="policy.sector" class="metadata-item">
               {{ policy.sector }}
             </span>
 
           </div>
 
+
+          <p class="description" *ngIf="policy.description">
+            {{ policy.description }}
+          </p>
+
         </div>
 
 
-        <!-- ACTIONS -->
+        <!-- Actions -->
 
         <div class="policy-actions">
 
-          <a class="view-details" [routerLink]="[
-              '/policies',
-              policy.policy_id
-            ]">
-            View Details
+          <a class="view-button" [routerLink]="
+              getPolicyDetailsRoute(
+                policy.policy_id
+              )
+            ">
+
+            <span>
+              View Policy
+            </span>
+
+            <span class="view-arrow">
+              →
+            </span>
+
           </a>
 
 
@@ -363,9 +427,7 @@
               isBookmarked(
                 policy.policy_id
               )
-            " (click)="
-              toggleBookmark(policy)
-            " [attr.aria-label]="
+            " (click)="toggleBookmark(policy)" [attr.aria-label]="
               isBookmarked(
                 policy.policy_id
               )
@@ -373,17 +435,13 @@
                 : 'Bookmark policy'
             ">
 
-            <span>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 
-              {{
-              isBookmarked(
-              policy.policy_id
-              )
-              ? "★"
-              : "☆"
-              }}
+              <path
+                d="M6.5 4.5C6.5 3.94772 6.94772 3.5 7.5 3.5H16.5C17.0523 3.5 17.5 3.94772 17.5 4.5V20L12 16.5L6.5 20V4.5Z"
+                stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
 
-            </span>
+            </svg>
 
           </button>
 
@@ -394,39 +452,63 @@
     </div>
 
 
-    <!-- ===================================================
-         PAGINATION
-    ==================================================== -->
+    <!-- ================================================== -->
+    <!-- PAGINATION -->
+    <!-- ================================================== -->
 
-    <div class="pagination" *ngIf="totalPages > 1">
+    <nav class="pagination" *ngIf="
+        policies.length > 0 &&
+        totalPages > 1
+      " aria-label="Policy pagination">
 
-      <button type="button" class="pagination-button" [disabled]="currentPage === 1" (click)="previousPage()">
+      <button type="button" class="pagination-control" [disabled]="
+          loading ||
+          currentPage === 1
+        " (click)="previousPage()">
         ← Previous
       </button>
 
 
-      <button type="button" class="page-number" *ngFor="let page of pageNumbers" [class.active]="
-          page === currentPage
-        " (click)="goToPage(page)">
-        {{ page }}
-      </button>
+      <div class="page-numbers">
+
+        <button type="button" class="page-number" *ngFor="
+            let page of pageNumbers
+          " [class.active]="
+            page === currentPage
+          " [disabled]="loading" (click)="goToPage(page)">
+          {{ page }}
+        </button>
+
+      </div>
 
 
-      <button type="button" class="pagination-button" [disabled]="
+      <button type="button" class="pagination-control" [disabled]="
+          loading ||
           currentPage === totalPages
         " (click)="nextPage()">
         Next →
       </button>
 
-    </div>
+    </nav>
 
 
-    <!-- PAGE INFORMATION -->
+    <div class="pagination-info" *ngIf="
+        policies.length > 0 &&
+        totalPages > 1
+      ">
 
-    <div class="page-info" *ngIf="totalPages > 1">
-      Page {{ currentPage }}
+      Page
+
+      <strong>
+        {{ currentPage }}
+      </strong>
+
       of
-      {{ totalPages }}
+
+      <strong>
+        {{ totalPages }}
+      </strong>
+
     </div>
 
   </section>

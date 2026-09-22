@@ -2,7 +2,11 @@
   <!-- Top Right Navigation -->
   <div class="top-nav">
     <button type="button" class="btn-back" (click)="goBack()">
-      &larr; Back
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"></path>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back
     </button>
   </div>
 
@@ -15,13 +19,11 @@
   <!-- Main Search Box -->
   <div class="search-bar-container">
     <div class="search-input-wrapper">
-      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-        stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
-      <input type="text" [(ngModel)]="searchQuery" placeholder="Search by scheme name, keyword, ministry, or benefit..."
-        (ngModelChange)="onSearchChange()" />
+      <input type="text" [(ngModel)]="searchQuery" placeholder="Search by scheme name, keyword, ministry, or benefit..." (ngModelChange)="onSearchChange()" />
     </div>
     <button type="button" class="btn-search" (click)="applyFilters()">Search</button>
   </div>
@@ -45,6 +47,14 @@
     </div>
 
     <div class="filter-dropdown">
+      <label>Department</label>
+      <select [(ngModel)]="selectedDepartment" (change)="applyFilters()">
+        <option value="">All Departments</option>
+        <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
       <label>State</label>
       <select [(ngModel)]="selectedState" (change)="applyFilters()">
         <option value="">All States</option>
@@ -52,40 +62,31 @@
       </select>
     </div>
 
-    <div class="filter-dropdown">
-      <label>Status</label>
-      <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
-        <option value="">All Statuses</option>
-        <option *ngFor="let st of statuses" [value]="st">{{ getStatusLabel(st) }}</option>
-      </select>
-    </div>
-
     <button type="button" class="btn-clear" (click)="clearFilters()">Clear Filters</button>
   </div>
 
   <!-- Error Message -->
-  <div class="error-message" *ngIf="errorMessage">
-    {{ errorMessage }}
+  <div class="error-message" *ngIf="errorMessage()">
+    {{ errorMessage() }}
   </div>
 
   <!-- Loading Skeleton -->
-  <div class="skeleton-list" *ngIf="loading && schemes.length === 0">
+  <div class="skeleton-list" *ngIf="loading() && schemes().length === 0">
     <div class="skeleton-card" *ngFor="let _ of [1,2,3,4,5]"></div>
   </div>
 
   <!-- Results Count -->
-  <div class="results-count" *ngIf="!loading">
-    {{ totalResults }} result{{ totalResults !== 1 ? 's' : '' }} found
+  <div class="results-count" *ngIf="!loading()">
+    {{ totalResults() }} result{{ totalResults() !== 1 ? 's' : '' }} found
   </div>
 
   <!-- Scheme Cards List -->
-  <div class="scheme-list" *ngIf="!loading && schemes.length > 0">
-    <div class="scheme-card" *ngFor="let scheme of schemes">
+  <div class="scheme-list" *ngIf="!loading() && schemes().length > 0">
+    <div class="scheme-card" *ngFor="let scheme of schemes()">
       <div class="card-left">
         <!-- Emblem/Badge Icon Container -->
         <div class="badge-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M12 8v8M8 12h8"></path>
           </svg>
@@ -96,21 +97,15 @@
           <div class="scheme-meta">
             <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
             <span class="meta-tag" *ngIf="scheme.state">{{ scheme.state }}</span>
-            <span class="meta-tag status" [ngClass]="'status-' + scheme.status.toLowerCase()">{{ getStatusLabel(scheme.status) }}</span>
+            <span class="meta-tag status" [class]="getStatusBadgeClass(scheme.status)">{{ getStatusLabel(scheme.status) }}</span>
           </div>
         </div>
       </div>
 
       <div class="card-right">
-        <a [routerLink]="[scheme.scheme_id]" class="btn-view-details">
-          View Details
-        </a>
-        <button type="button" class="btn-bookmark" (click)="toggleBookmark(scheme)"
-          [title]="isBookmarked(scheme.scheme_id) ? 'Remove Bookmark' : 'Bookmark'">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-            [attr.fill]="isBookmarked(scheme.scheme_id) ? '#1e293b' : 'none'"
-            [attr.stroke]="isBookmarked(scheme.scheme_id) ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round"
-            stroke-linejoin="round">
+        <a [routerLink]="[scheme.scheme_id]" class="btn-view-details">View Details</a>
+        <button type="button" class="btn-bookmark" (click)="toggleBookmark(scheme)" [title]="isBookmarked(scheme.scheme_id) ? 'Remove Bookmark' : 'Bookmark'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
           </svg>
         </button>
@@ -119,7 +114,7 @@
   </div>
 
   <!-- Empty State -->
-  <div class="empty-state" *ngIf="!loading && schemes.length === 0 && !errorMessage">
+  <div class="empty-state" *ngIf="!loading() && schemes().length === 0 && !errorMessage()">
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
       <circle cx="11" cy="11" r="8"></circle>
       <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -129,20 +124,23 @@
   </div>
 
   <!-- Pagination -->
-  <nav class="pagination" *ngIf="!loading && totalPages > 1" aria-label="Pagination">
-    <button type="button" class="page-btn" (click)="previousPage()" [disabled]="currentPage === 1" aria-label="Previous page">
-      &laquo; Previous
+  <nav class="pagination" *ngIf="!loading() && totalPages() > 1" aria-label="Pagination">
+    <button type="button" class="page-btn" (click)="previousPage()" [disabled]="currentPage() === 1" aria-label="Previous page">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Previous
     </button>
 
     <span class="page-numbers">
-      <button *ngFor="let page of pageNumbers" type="button" class="page-btn"
-        [class.active]="page === currentPage" (click)="goToPage(page)" aria-label="Page {{ page }}">
-        {{ page }}
-      </button>
+      <button *ngFor="let page of pageNumbers" type="button" class="page-btn" [class.active]="page === currentPage()" (click)="goToPage(page)" aria-label="Page {{ page }}">{{ page }}</button>
     </span>
 
-    <button type="button" class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages" aria-label="Next page">
-      Next &raquo;
+    <button type="button" class="page-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages()" aria-label="Next page">
+      Next
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
     </button>
   </nav>
 </div>

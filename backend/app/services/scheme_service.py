@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.scheme import Scheme
+from app.models.user import User
 
 
 def current_time() -> datetime:
@@ -127,7 +128,15 @@ def update_scheme(
     db: Session,
     scheme: Scheme,
     data,
+    current_user: User | None = None,
 ) -> Scheme:
+
+    if current_user and current_user.role == "GOVERNMENT_OFFICIAL":
+        if scheme.created_by != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit schemes created by yourself.",
+            )
 
     if scheme.status not in {
         "DRAFT",
@@ -279,7 +288,15 @@ def delete_scheme(
 def submit_scheme(
     db: Session,
     scheme: Scheme,
+    current_user: User | None = None,
 ) -> Scheme:
+
+    if current_user and current_user.role == "GOVERNMENT_OFFICIAL":
+        if scheme.created_by != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only submit schemes created by yourself.",
+            )
 
     if scheme.status not in {
         "DRAFT",
@@ -371,6 +388,12 @@ def request_archive_scheme(
     user_id: int,
     reason: str,
 ) -> Scheme:
+
+    if scheme.created_by != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only request archive for schemes created by yourself.",
+        )
 
     if scheme.status != "APPROVED":
         raise ValueError(
@@ -477,6 +500,12 @@ def request_delete_scheme(
     user_id: int,
     reason: str,
 ) -> Scheme:
+
+    if scheme.created_by != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only request deletion for schemes created by yourself.",
+        )
 
     if scheme.status not in {
         "APPROVED",
@@ -590,9 +619,13 @@ def search_schemes(
     page: int = 1,
     limit: int = 10,
     include_archived: bool = False,
+    created_by: int | None = None,
 ):
 
     query = db.query(Scheme)
+
+    if created_by is not None:
+        query = query.filter(Scheme.created_by == created_by)
 
     if keyword:
         search = f"%{keyword.strip()}%"

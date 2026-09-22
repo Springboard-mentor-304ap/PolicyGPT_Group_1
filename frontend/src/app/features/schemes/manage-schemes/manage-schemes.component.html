@@ -1,5 +1,17 @@
 <div class="page-wrapper" (click)="closeMenu()">
 
+    <!-- TOAST ALERTS -->
+    <div *ngIf="successToastMessage" class="toast-alert toast-alert--success">
+        <span>✓</span>
+        <span>{{ successToastMessage }}</span>
+        <button type="button" class="toast-close" (click)="successToastMessage = null">✕</button>
+    </div>
+    <div *ngIf="errorMessage" class="toast-alert toast-alert--error">
+        <span>⚠</span>
+        <span>{{ errorMessage }}</span>
+        <button type="button" class="toast-close" (click)="errorMessage = ''">✕</button>
+    </div>
+
     <!-- =========================================================
        BREADCRUMB
   ========================================================== -->
@@ -381,33 +393,7 @@
             </div>
 
 
-            <!-- SECTOR -->
 
-            <div class="filter-group">
-
-                <label>
-                    Sector
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedSector" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Sectors
-                        </option>
-
-                        <option *ngFor="let sector of sectors" [value]="sector">
-
-                            {{ sector }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
 
 
             <!-- STATUS -->
@@ -690,29 +676,133 @@
 
 
                                 <!-- DROPDOWN MENU -->
-
                                 <div class="action-menu" *ngIf="menuOpenId === scheme.id">
 
-                                    <button type="button" (click)="editScheme(scheme)">
+                                    <!-- DRAFT / REJECTED: Edit & Submit -->
+                                    @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        <button type="button" (click)="openSubmitModal(scheme)">
+                                            <span>➔</span>
+                                            {{ scheme.status === 'REJECTED' ? 'Re-submit' : 'Submit' }}
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                        <span>✎</span>
-                                        Edit
+                                    <!-- PENDING_APPROVAL: Edit (Both), Admin Approve / Reject / Delete -->
+                                    @if (scheme.status === 'PENDING_APPROVAL') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openApproveModal(scheme)">
+                                                <span>✓</span>
+                                                Approve
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRejectModal(scheme)">
+                                                <span>✕</span>
+                                                Reject
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    </button>
+                                    <!-- APPROVED: Edit (Both), Request Archive/Delete (Gov), Delete (Admin) -->
+                                    @if (scheme.status === 'APPROVED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (!isAdmin) {
+                                            <button type="button" (click)="openRequestArchiveModal(scheme)">
+                                                <span>▣</span>
+                                                Request Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Request Delete
+                                            </button>
+                                        } @else {
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    <button type="button" (click)="archiveScheme(scheme)">
+                                    <!-- ARCHIVED: Edit (Both), Restore (Admin), Request Delete (Gov), Delete (Admin) -->
+                                    @if (scheme.status === 'ARCHIVED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openRestoreModal(scheme)">
+                                                <span>↻</span>
+                                                Restore
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        } @else {
+                                            <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Request Delete
+                                            </button>
+                                        }
+                                    }
 
-                                        <span>▣</span>
-                                        Archive
+                                    <!-- ARCHIVE_REQUESTED: Edit (Both), Admin Approve/Reject Archive, Delete -->
+                                    @if (scheme.status === 'ARCHIVE_REQUESTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openApproveArchiveModal(scheme)">
+                                                <span>✓</span>
+                                                Approve Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRejectArchiveModal(scheme)">
+                                                <span>✕</span>
+                                                Reject Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    </button>
-
-                                    <button type="button" class="danger" (click)="deleteScheme(scheme)">
-
-                                        <span>×</span>
-                                        Delete
-
-                                    </button>
+                                    <!-- DELETE_REQUESTED: Edit (Both), Admin Approve/Reject Delete -->
+                                    @if (scheme.status === 'DELETE_REQUESTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" class="danger" (click)="openApproveDeleteModal(scheme)">
+                                                <span>✓</span>
+                                                Approve Delete
+                                            </button>
+                                            <button type="button" (click)="openRejectDeleteModal(scheme)">
+                                                <span>✕</span>
+                                                Reject Delete
+                                            </button>
+                                        }
+                                    }
 
                                 </div>
 
@@ -843,5 +933,26 @@
         </div>
 
     </section>
+
+    <!-- CONFIRM MODAL -->
+    <app-confirm-modal
+        [isOpen]="confirmModalOpen"
+        [title]="confirmTitle"
+        [message]="confirmMessage"
+        [variant]="confirmVariant"
+        (confirmed)="onConfirmModalConfirmed()"
+        (cancelled)="onConfirmModalCancelled()"
+    ></app-confirm-modal>
+
+    <!-- REASON MODAL -->
+    <app-reason-modal
+        [isOpen]="reasonModalOpen"
+        [title]="reasonTitle"
+        [message]="reasonMessage"
+        [reasonLabel]="reasonLabel"
+        [variant]="reasonVariant"
+        (confirmed)="onReasonModalConfirmed($event)"
+        (cancelled)="onReasonModalCancelled()"
+    ></app-reason-modal>
 
 </div>

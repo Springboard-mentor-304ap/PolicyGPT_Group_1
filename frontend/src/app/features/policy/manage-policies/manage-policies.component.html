@@ -6,15 +6,15 @@
 
     <div class="breadcrumb">
 
-        <span class="breadcrumb-link">
-            Admin Dashboard
+        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]" style="cursor: pointer;">
+            {{ isAdmin ? 'Admin' : 'Government' }} Dashboard
         </span>
 
         <span class="breadcrumb-arrow">
             ›
         </span>
 
-        <span class="breadcrumb-link">
+        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix, 'policies']" style="cursor: pointer;">
             Policies
         </span>
 
@@ -28,6 +28,24 @@
 
     </div>
 
+    <!-- =========================================================
+       SUCCESS / ERROR TOASTS
+  ========================================================== -->
+
+    @if (successToastMessage) {
+    <div class="toast-alert toast-alert--success" role="alert">
+        <span class="material-icons">check_circle</span>
+        <span>{{ successToastMessage }}</span>
+    </div>
+    }
+
+    @if (errorMessage) {
+    <div class="toast-alert toast-alert--error" role="alert">
+        <span class="material-icons">error_outline</span>
+        <span style="flex: 1;">{{ errorMessage }}</span>
+        <button type="button" class="toast-close" (click)="errorMessage = ''" aria-label="Dismiss error">✕</button>
+    </div>
+    }
 
     <!-- =========================================================
        PAGE HEADER
@@ -66,7 +84,7 @@
 
 
     <!-- =========================================================
-       STATISTICS CARDS
+       STATISTICS CARDS (REAL BACKEND ANALYTICS)
   ========================================================== -->
 
     <div class="stats-grid">
@@ -83,7 +101,7 @@
             <div class="stat-content">
 
                 <strong>
-                    {{ totalPolicies }}
+                    {{ stats.total }}
                 </strong>
 
                 <span>
@@ -106,7 +124,7 @@
             <div class="stat-content">
 
                 <strong>
-                    {{ approvedCount }}
+                    {{ stats.approved }}
                 </strong>
 
                 <span>
@@ -129,7 +147,7 @@
             <div class="stat-content">
 
                 <strong>
-                    {{ pendingCount }}
+                    {{ stats.pending }}
                 </strong>
 
                 <span>
@@ -152,7 +170,7 @@
             <div class="stat-content">
 
                 <strong>
-                    {{ rejectedCount }}
+                    {{ stats.rejected }}
                 </strong>
 
                 <span>
@@ -175,7 +193,7 @@
             <div class="stat-content">
 
                 <strong>
-                    {{ archivedCount }}
+                    {{ stats.archived }}
                 </strong>
 
                 <span>
@@ -427,9 +445,7 @@
                         </option>
 
                         <option *ngFor="let status of statuses" [value]="status">
-
-                            {{ status }}
-
+                            {{ getStatusLabel(status) }}
                         </option>
 
                     </select>
@@ -690,29 +706,133 @@
 
 
                                 <!-- DROPDOWN MENU -->
-
                                 <div class="action-menu" *ngIf="menuOpenId === policy.id">
 
-                                    <button type="button" (click)="editPolicy(policy)">
+                                    <!-- DRAFT / REJECTED: Edit & Submit -->
+                                    @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        <button type="button" (click)="openSubmitModal(policy)">
+                                            <span>➔</span>
+                                            {{ policy.status === 'REJECTED' ? 'Re-submit' : 'Submit' }}
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                        <span>✎</span>
-                                        Edit
+                                    <!-- PENDING_APPROVAL: Edit (Both), Admin Approve / Reject / Delete -->
+                                    @if (policy.status === 'PENDING_APPROVAL') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openApproveModal(policy)">
+                                                <span>✓</span>
+                                                Approve
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRejectModal(policy)">
+                                                <span>✕</span>
+                                                Reject
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    </button>
+                                    <!-- APPROVED: Edit (Both), Request Archive/Delete (Gov), Delete (Admin) -->
+                                    @if (policy.status === 'APPROVED') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (!isAdmin) {
+                                            <button type="button" (click)="openRequestArchiveModal(policy)">
+                                                <span>▣</span>
+                                                Request Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
+                                                <span>×</span>
+                                                Request Delete
+                                            </button>
+                                        } @else {
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    <button type="button" (click)="archivePolicy(policy)">
+                                    <!-- ARCHIVED: Edit (Both), Restore (Admin), Request Delete (Gov), Delete (Admin) -->
+                                    @if (policy.status === 'ARCHIVED') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openRestoreModal(policy)">
+                                                <span>↻</span>
+                                                Restore
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        } @else {
+                                            <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
+                                                <span>×</span>
+                                                Request Delete
+                                            </button>
+                                        }
+                                    }
 
-                                        <span>▣</span>
-                                        Archive
+                                    <!-- ARCHIVE_REQUESTED: Edit (Both), Admin Approve/Reject Archive, Delete -->
+                                    @if (policy.status === 'ARCHIVE_REQUESTED') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" (click)="openApproveArchiveModal(policy)">
+                                                <span>✓</span>
+                                                Approve Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openRejectArchiveModal(policy)">
+                                                <span>✕</span>
+                                                Reject Archive
+                                            </button>
+                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
+                                                <span>×</span>
+                                                Delete
+                                            </button>
+                                        }
+                                    }
 
-                                    </button>
-
-                                    <button type="button" class="danger" (click)="deletePolicy(policy)">
-
-                                        <span>×</span>
-                                        Delete
-
-                                    </button>
+                                    <!-- DELETE_REQUESTED: Edit (Both), Admin Approve/Reject Delete -->
+                                    @if (policy.status === 'DELETE_REQUESTED') {
+                                        <button type="button" (click)="editPolicy(policy)">
+                                            <span>✎</span>
+                                            Edit
+                                        </button>
+                                        @if (isAdmin) {
+                                            <button type="button" class="danger" (click)="openApproveDeleteModal(policy)">
+                                                <span>✓</span>
+                                                Approve Delete
+                                            </button>
+                                            <button type="button" (click)="openRejectDeleteModal(policy)">
+                                                <span>✕</span>
+                                                Reject Delete
+                                            </button>
+                                        }
+                                    }
 
                                 </div>
 
@@ -723,9 +843,32 @@
                     </tr>
 
 
+                    <!-- LOADING STATE -->
+
+                    <tr *ngIf="loading">
+
+                        <td colspan="8" class="empty-state">
+
+                            <div class="empty-icon">
+                                ◷
+                            </div>
+
+                            <strong>
+                                Loading policies...
+                            </strong>
+
+                            <span>
+                                Please wait while policies are being fetched.
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+
                     <!-- EMPTY STATE -->
 
-                    <tr *ngIf="paginatedPolicies.length === 0">
+                    <tr *ngIf="!loading && paginatedPolicies.length === 0">
 
                         <td colspan="8" class="empty-state">
 
@@ -843,5 +986,26 @@
         </div>
 
     </section>
+
+    <!-- CONFIRM MODAL -->
+    <app-confirm-modal
+        [isOpen]="confirmModalOpen"
+        [title]="confirmTitle"
+        [message]="confirmMessage"
+        [variant]="confirmVariant"
+        (confirmed)="onConfirmModalConfirmed()"
+        (cancelled)="onConfirmModalCancelled()"
+    ></app-confirm-modal>
+
+    <!-- REASON MODAL -->
+    <app-reason-modal
+        [isOpen]="reasonModalOpen"
+        [title]="reasonTitle"
+        [message]="reasonMessage"
+        [reasonLabel]="reasonLabel"
+        [variant]="reasonVariant"
+        (confirmed)="onReasonModalConfirmed($event)"
+        (cancelled)="onReasonModalCancelled()"
+    ></app-reason-modal>
 
 </div>

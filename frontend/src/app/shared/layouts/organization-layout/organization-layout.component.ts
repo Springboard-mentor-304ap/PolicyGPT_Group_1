@@ -87,7 +87,7 @@ export class OrganizationLayoutComponent implements OnInit {
     {
       icon: "manage_search",
       label: "Policy Search",
-      route: "/dashboard/organization/policies",
+      route: "/dashboard/organization/policies/search",
     },
 
     {

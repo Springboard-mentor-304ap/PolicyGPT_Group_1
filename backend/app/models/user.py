@@ -8,7 +8,6 @@ from app.db.database import Base
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = {"schema": "extensions"}
 
     user_id: Mapped[int] = mapped_column(
         Integer,

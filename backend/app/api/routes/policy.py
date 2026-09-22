@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.routes.auth import (
     get_current_user,
+    normalize_role,
     require_roles,
 )
 from app.db.database import get_db
@@ -91,6 +92,7 @@ def create_policy_route(
 # Data is fetched directly from PostgreSQL.
 # ============================================================
 
+
 @router.get(
     "/compare",
     response_model=PolicyComparisonResponse,
@@ -140,6 +142,7 @@ def compare_policies_route(
         "policy_2": policy_2,
     }
 
+
 # ============================================================
 # SEARCH / LIST POLICIES
 #
@@ -174,11 +177,14 @@ def search_policy_route(
         ge=1,
         le=100,
     ),
+    manage: bool = Query(
+        default=False,
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
 
-    role = str(current_user.role).strip().upper()
+    role = normalize_role(current_user.role)
 
     public_roles = {
         "CITIZEN",
@@ -188,18 +194,46 @@ def search_policy_route(
     }
 
     # --------------------------------------------------------
-    # PUBLIC ROLES
+    # MANAGE POLICIES VIEW
     # --------------------------------------------------------
-
-    if role in public_roles:
-
-        if policy_status is not None and policy_status.upper() != "APPROVED":
+    if manage:
+        if role in public_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=("You can only view approved policies."),
+                detail="You do not have permission to manage policies.",
             )
 
-        policy_status = "APPROVED"
+        if role == "ADMIN":
+            # Administrator: sees ALL policies across all statuses and creators
+            created_by = None
+        elif role == "GOVERNMENT_OFFICIAL":
+            # Government Official: sees ONLY policies created by themselves
+            created_by = current_user.user_id
+        else:
+            created_by = current_user.user_id
+
+    # --------------------------------------------------------
+    # SEARCH / DISCOVERY POLICIES VIEW
+    # --------------------------------------------------------
+    else:
+        if role in public_roles:
+            if policy_status is not None and policy_status.upper() != "APPROVED":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only view approved policies.",
+                )
+
+            policy_status = "APPROVED"
+            created_by = None
+        else:
+            # Staff roles (ADMIN, GOVERNMENT_OFFICIAL)
+            if policy_status == "APPROVED":
+                # Search Policies browsing approved policies shows all approved
+                created_by = None
+            elif role == "GOVERNMENT_OFFICIAL":
+                created_by = current_user.user_id
+            else:
+                created_by = None
 
     return search_policies(
         db=db,
@@ -212,6 +246,7 @@ def search_policy_route(
         policy_status=policy_status,
         page=page,
         limit=limit,
+        created_by=created_by,
     )
 
 
@@ -317,6 +352,42 @@ def delete_requests_route(
         db=db,
         page=page,
         limit=limit,
+    )
+
+
+# ============================================================
+# SAVE POLICY AS DRAFT
+#
+# ADMIN + GOVERNMENT OFFICIAL
+#
+# POST /policies/draft
+#
+# Creates a new policy with DRAFT status.
+#
+# IMPORTANT:
+# This static route must appear before /{policy_id}.
+# ============================================================
+
+
+@router.post(
+    "/draft",
+    response_model=PolicyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_policy_draft_route(
+    data: PolicyCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    return create_policy(
+        db=db,
+        data=data,
+        current_user=current_user,
     )
 
 

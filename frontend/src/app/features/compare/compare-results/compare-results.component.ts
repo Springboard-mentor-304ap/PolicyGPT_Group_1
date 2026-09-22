@@ -1,11 +1,11 @@
 import { CommonModule, Location } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
+import { PolicyService } from "../../../core/services/policy.services";
 import {
-  PolicyService,
-  Policy,
-  PolicyComparison,
-} from "../../../core/services/policy.services";
+  PolicyResponse,
+  PolicyComparisonResponse,
+} from "../../../core/models/policy.model";
 
 interface CompareItem {
   id: number;
@@ -31,8 +31,8 @@ export class CompareResultsComponent implements OnInit {
   item2: CompareItem | null = null;
   item3: CompareItem | null = null;
 
-  policy1: Policy | null = null;
-  policy2: Policy | null = null;
+  policy1: PolicyResponse | null = null;
+  policy2: PolicyResponse | null = null;
 
   loading = false;
   errorMessage = "";
@@ -45,27 +45,27 @@ export class CompareResultsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-  console.log("COMPARE RESULTS INIT");
+    console.log("COMPARE RESULTS INIT");
 
-  const navigation = window.history.state;
+    const navigation = window.history.state;
 
-  if (!navigation?.items || navigation.items.length < 2) {
-    this.errorMessage = "Please select at least two policies to compare.";
-    return;
+    if (!navigation?.items || navigation.items.length < 2) {
+      this.errorMessage = "Please select at least two policies to compare.";
+      return;
+    }
+
+    this.items = navigation.items;
+    this.item1 = navigation.items[0];
+    this.item2 = navigation.items[1];
+
+    if (navigation.items.length >= 3) {
+      this.item3 = navigation.items[2];
+    }
+
+    console.log("Selected policies:", this.item1, this.item2);
+
+    this.loadComparison();
   }
-
-  this.items = navigation.items;
-  this.item1 = navigation.items[0];
-  this.item2 = navigation.items[1];
-
-  if (navigation.items.length >= 3) {
-    this.item3 = navigation.items[2];
-  }
-
-  console.log("Selected policies:", this.item1, this.item2);
-
-  this.loadComparison();
-}
 
   private loadComparison(): void {
     if (!this.item1 || !this.item2) {
@@ -75,31 +75,28 @@ export class CompareResultsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = "";
 
-    this.policyService
-      .comparePolicies(this.item1.id, this.item2.id)
-      .subscribe({
-        next: (response: PolicyComparison) => {
-          this.policy1 = response.policy_1;
-          this.policy2 = response.policy_2;
+    this.policyService.comparePolicies(this.item1.id, this.item2.id).subscribe({
+      next: (response: PolicyComparisonResponse) => {
+        this.policy1 = response.policy_1;
+        this.policy2 = response.policy_2;
 
-          this.loading = false;
-        },
+        this.loading = false;
+      },
 
-        error: (error) => {
-          console.error("Failed to compare policies:", error);
+      error: (error) => {
+        console.error("Failed to compare policies:", error);
 
-          this.errorMessage =
-            error?.error?.detail ||
-            "Failed to load policy comparison.";
+        this.errorMessage =
+          error?.error?.detail || "Failed to load policy comparison.";
 
-          this.loading = false;
-        },
-      });
+        this.loading = false;
+      },
+    });
   }
 
   getPolicyValue(
-    policy: Policy | null,
-    property: keyof Policy,
+    policy: PolicyResponse | null,
+    property: keyof PolicyResponse,
   ): string {
     if (!policy) {
       return "-";
@@ -126,7 +123,7 @@ export class CompareResultsComponent implements OnInit {
     return String(value);
   }
 
-  getWebsite(policy: Policy | null): string {
+  getWebsite(policy: PolicyResponse | null): string {
     if (!policy) {
       return "";
     }

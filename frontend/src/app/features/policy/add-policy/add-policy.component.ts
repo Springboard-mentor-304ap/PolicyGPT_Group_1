@@ -1,357 +1,502 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
-import { PolicyService } from '../../../core/services/policy.services';
+import { CommonModule } from "@angular/common";
+import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
 
 import {
+  FormArray,
   FormBuilder,
   FormGroup,
-  FormArray,
+  FormsModule,
   ReactiveFormsModule,
   Validators,
-  FormsModule,
-} from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Auth, AuthUser } from '../../../core/services/auth';
+} from "@angular/forms";
+
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+
+import { Auth, AuthUser } from "../../../core/services/auth";
+import { PolicyService } from "../../../core/services/policy.services";
+
+import {
+  PolicyCreate,
+  PolicyResponse,
+} from "../../../core/models/policy.model";
+
+/* ============================================================
+   TYPES
+   ============================================================ */
+
+interface EligibilityRule {
+  rule_type?: string;
+  value?: string | number;
+  min_age?: number;
+  max_age?: number;
+  description?: string;
+  [key: string]: unknown;
+}
+
+type PolicyWorkflowStatus =
+  | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "REJECTED"
+  | "ARCHIVE_REQUESTED"
+  | "ARCHIVED"
+  | "DELETE_REQUESTED";
+
+/* ============================================================
+   COMPONENT
+   ============================================================ */
 
 @Component({
-  selector: 'app-add-policy',
+  selector: "app-add-policy",
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
-  templateUrl: './add-policy.component.html',
-  styleUrls: ['./add-policy.component.scss'],
+  templateUrl: "./add-policy.component.html",
+  styleUrls: ["./add-policy.component.scss"],
 })
 export class AddPolicyComponent implements OnInit {
-  // Stepper state
+  /* ============================================================
+     STEPPER
+     ============================================================ */
+
   currentStep = 1;
-  totalSteps = 5;
+  readonly totalSteps = 5;
+
   completedSteps = new Set<number>();
+
+  /* ============================================================
+     EDIT MODE
+     ============================================================ */
+
   isEditMode = false;
-editingPolicyId: number | null = null;
+  editingPolicyId: number | null = null;
 
-  // Role detection
+  /* ============================================================
+     ROLE
+     ============================================================ */
+
   isAdmin = false;
-  rolePrefix = 'government';
+  rolePrefix: "admin" | "government" = "government";
 
-  // Forms
+  /* ============================================================
+     FORM
+     ============================================================ */
+
   policyForm!: FormGroup;
 
-  // Validation / Submission states
+  /* ============================================================
+     UI / VALIDATION STATE
+     ============================================================ */
+
   submitted = false;
-  stepSubmitted: { [key: number]: boolean } = {};
-  showSuccessModal = false;
+
+  stepSubmitted: Record<number, boolean> = {};
+
   savedDraftToast = false;
 
-  // Dropdown options matching Policy Schema
+  isReadOnly = false;
+
+  rejectionReason: string | null = null;
+
+  errorMessage: string | null = null;
+
+  /* ============================================================
+     WORKFLOW STATE
+     ============================================================ */
+
+  currentPolicyStatus: PolicyWorkflowStatus | null = null;
+
+  /*
+   * Backend allows editing only:
+   *
+   * DRAFT
+   * REJECTED
+   * ARCHIVED
+   *
+   * ARCHIVED is converted back to DRAFT by backend update logic.
+   */
+  private readonly editablePolicyStatuses = new Set<PolicyWorkflowStatus>([
+    "DRAFT",
+    "REJECTED",
+    "ARCHIVED",
+  ]);
+
+  /* ============================================================
+     MODAL
+     ============================================================ */
+
+  modalType: "submitted" | "pending" | "add-more" | null = null;
+
+  modalTitle = "";
+  modalMessage = "";
+
+  /* ============================================================
+     REQUEST STATE
+     ============================================================ */
+
+  isSaving = false;
+  isSubmitting = false;
+  isApproving = false;
+
+  /* ============================================================
+     DROPDOWN OPTIONS
+     ============================================================ */
+
   categories: string[] = [
-    'Education',
-    'Health',
-    'Agriculture',
-    'Employment',
-    'Housing',
-    'Finance',
-    'Social Welfare',
-    'Environment',
-    'Technology',
-    'Infrastructure',
-    'Rural Development',
-    'Urban Development',
+    "Education",
+    "Health",
+    "Agriculture",
+    "Employment",
+    "Housing",
+    "Finance",
+    "Social Welfare",
+    "Environment",
+    "Technology",
+    "Infrastructure",
+    "Rural Development",
+    "Urban Development",
   ];
 
   ministries: string[] = [
-    'Ministry of Education',
-    'Ministry of Health & Family Welfare',
-    'Ministry of Agriculture & Farmers Welfare',
-    'Ministry of Rural Development',
-    'Ministry of Housing & Urban Affairs',
-    'Ministry of Finance',
-    'Ministry of Labour & Employment',
-    'Ministry of Environment, Forest & Climate Change',
-    'Ministry of Electronics & Information Technology',
-    'Ministry of Skill Development & Entrepreneurship',
-    'Ministry of Social Justice & Empowerment',
+    "Ministry of Education",
+    "Ministry of Health & Family Welfare",
+    "Ministry of Agriculture & Farmers Welfare",
+    "Ministry of Rural Development",
+    "Ministry of Housing & Urban Affairs",
+    "Ministry of Finance",
+    "Ministry of Labour & Employment",
+    "Ministry of Environment, Forest & Climate Change",
+    "Ministry of Electronics & Information Technology",
+    "Ministry of Skill Development & Entrepreneurship",
+    "Ministry of Social Justice & Empowerment",
   ];
 
   departments: string[] = [
-    'Department of School Education',
-    'Department of Higher Education',
-    'Department of Health & Family Welfare',
-    'Department of Agriculture & Cooperation',
-    'Department of Rural Development',
-    'Department of Social Welfare',
-    'Department of Economic Affairs',
-    'Department of Information Technology',
-    'Department of Financial Services',
+    "Department of School Education",
+    "Department of Higher Education",
+    "Department of Health & Family Welfare",
+    "Department of Agriculture & Cooperation",
+    "Department of Rural Development",
+    "Department of Social Welfare",
+    "Department of Economic Affairs",
+    "Department of Information Technology",
+    "Department of Financial Services",
   ];
 
   states: string[] = [
-    'All India',
-    'Andhra Pradesh',
-    'Assam',
-    'Bihar',
-    'Delhi',
-    'Gujarat',
-    'Haryana',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Tamil Nadu',
-    'Telangana',
-    'Uttar Pradesh',
-    'West Bengal',
+    "All India",
+    "Andhra Pradesh",
+    "Assam",
+    "Bihar",
+    "Delhi",
+    "Gujarat",
+    "Haryana",
+    "Jharkhand",
+    "Karnataka",
+    "Kerala",
+    "Madhya Pradesh",
+    "Maharashtra",
+    "Odisha",
+    "Punjab",
+    "Rajasthan",
+    "Tamil Nadu",
+    "Telangana",
+    "Uttar Pradesh",
+    "West Bengal",
   ];
 
   sectors: string[] = [
-    'Education',
-    'Healthcare',
-    'Agriculture',
-    'Information Technology',
-    'Infrastructure',
-    'Finance & Banking',
-    'Employment & Labour',
-    'Social Welfare',
-    'Environment & Climate',
-    'Energy & Power',
+    "Education",
+    "Healthcare",
+    "Agriculture",
+    "Information Technology",
+    "Infrastructure",
+    "Finance & Banking",
+    "Employment & Labour",
+    "Social Welfare",
+    "Environment & Climate",
+    "Energy & Power",
   ];
 
   educationOptions: string[] = [
-    'No Minimum Qualification',
-    'Primary Education (Class 5th)',
-    'Secondary (Class 10th)',
-    'Higher Secondary (Class 12th)',
-    'Undergraduate / Graduate',
-    'Postgraduate / Research',
-    'All Educational Institutions',
+    "No Minimum Qualification",
+    "Primary Education (Class 5th)",
+    "Secondary (Class 10th)",
+    "Higher Secondary (Class 12th)",
+    "Undergraduate / Graduate",
+    "Postgraduate / Research",
+    "All Educational Institutions",
   ];
 
-  // Dynamic eligibility conditions list (for JSONB eligibility_rules)
+  /* ============================================================
+     ELIGIBILITY
+     ============================================================ */
+
   additionalEligibilityConditions: string[] = [];
 
+  /* ============================================================
+     CONSTRUCTOR
+     ============================================================ */
+
   constructor(
-  private fb: FormBuilder,
-  private router: Router,
-  private route: ActivatedRoute,
-  private authService: Auth,
-  private policyService: PolicyService
-) {}
-ngOnInit(): void {
-  this.detectRole();
-  this.initForm();
+    private readonly fb: FormBuilder,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+    private readonly authService: Auth,
+    private readonly policyService: PolicyService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
-  const policyId = this.route.snapshot.paramMap.get('id');
+  /* ============================================================
+     INIT
+     ============================================================ */
 
-  if (policyId) {
-    this.isEditMode = true;
-    this.editingPolicyId = Number(policyId);
-    this.loadPolicyForEdit(this.editingPolicyId);
-  }
-}
-private loadPolicyForEdit(id: number): void {
-  this.policyService.getPolicy(id).subscribe({
-    next: (policy) => {
-      this.policyForm.patchValue({
-        title: policy.title,
-        category: policy.category,
-        description: policy.description,
-        ministry: policy.ministry || '',
-        department: policy.department || '',
-        state: policy.state || 'All India',
-        sector: policy.sector || '',
-        publicationDate: policy.publication_date || '',
-        effectiveDate: policy.effective_date || '',
-        documentUrl: policy.document_url || '',
-        sourceUrl: policy.source_url || '',
-      });
+  ngOnInit(): void {
+    this.detectRole();
 
-      this.benefits.clear();
+    this.initForm();
 
-      if (policy.benefits?.length) {
-        policy.benefits.forEach((benefit) => {
-          this.benefits.push(this.fb.control(benefit));
-        });
-      } else {
-        this.benefits.push(this.fb.control(''));
+    const policyId = this.route.snapshot.paramMap.get("id");
+
+    if (policyId) {
+      const parsedId = Number(policyId);
+
+      if (Number.isInteger(parsedId) && parsedId > 0) {
+        this.isEditMode = true;
+        this.editingPolicyId = parsedId;
+
+        this.loadPolicyForEdit(parsedId);
       }
-
-      this.keyHighlights.clear();
-this.keyHighlights.push(this.fb.control(''));
-
-// Load eligibility information
-const rules = policy.eligibility_rules || [];
-
-this.additionalEligibilityConditions = [];
-
-for (const rule of rules) {
-  switch (rule.rule_type) {
-
-    case 'TARGET_BENEFICIARIES':
-      this.policyForm.patchValue({
-        targetBeneficiaries: rule.value || ''
-      });
-      break;
-
-    case 'AGE_CRITERIA':
-      this.policyForm.patchValue({
-        minAge: rule.min_age || '',
-        maxAge: rule.max_age || ''
-      });
-      break;
-
-    case 'GENDER':
-      this.policyForm.patchValue({
-        gender: rule.value || 'All'
-      });
-      break;
-
-    case 'ANNUAL_INCOME_LIMIT':
-      this.policyForm.patchValue({
-        annualIncome: rule.value || ''
-      });
-      break;
-
-    case 'EDUCATION':
-      this.policyForm.patchValue({
-        education: rule.value || ''
-      });
-      break;
-
-    case 'CUSTOM_CONDITION':
-      if (rule.description) {
-        this.additionalEligibilityConditions.push(rule.description);
-      }
-      break;
-  }
-}
-
-this.currentStep = 1;
-    },
-
-    error: (error) => {
-      console.error('Failed to load policy for editing:', error);
-      alert(error?.error?.detail || 'Unable to load policy.');
-      this.router.navigate(['/dashboard/government/policies']);
     }
-  });
-}
+  }
+
+  /* ============================================================
+     ROLE DETECTION
+     ============================================================ */
 
   private detectRole(): void {
-    const url = this.router.url;
-    if (url.includes('/admin')) {
+    const storedUser: AuthUser | null = this.authService.getStoredUser();
+
+    const url = this.router.url.toLowerCase();
+
+    const storedRole = String(storedUser?.role ?? "")
+      .trim()
+      .toUpperCase();
+
+    /*
+     * Support both frontend/backend naming.
+     *
+     * Backend:
+     * ADMIN
+     * GOVERNMENT_OFFICIAL
+     *
+     * Some frontend auth implementations may use:
+     * ADMINISTRATOR
+     */
+
+    if (
+      url.includes("/admin") ||
+      storedRole === "ADMIN" ||
+      storedRole === "ADMINISTRATOR"
+    ) {
       this.isAdmin = true;
-      this.rolePrefix = 'admin';
-    } else {
-      const storedUser: AuthUser | null = this.authService.getStoredUser();
-      if (storedUser && storedUser.role === 'ADMINISTRATOR') {
-        this.isAdmin = true;
-        this.rolePrefix = 'admin';
-      } else {
-        this.isAdmin = false;
-        this.rolePrefix = 'government';
-      }
+      this.rolePrefix = "admin";
+      return;
     }
+
+    this.isAdmin = false;
+    this.rolePrefix = "government";
   }
+
+  /* ============================================================
+     FORM INITIALIZATION
+     ============================================================ */
 
   private initForm(): void {
     this.policyForm = this.fb.group({
-      // Step 1: Basic Information
-      title: ['', [Validators.required, Validators.maxLength(300)]],
-      category: ['', Validators.required],
-      description: ['', [Validators.required, Validators.maxLength(1000)]],
-      benefits: this.fb.array([
-        this.fb.control(''),
-        this.fb.control(''),
-      ]),
+      /* --------------------------------------------------------
+         STEP 1
+         -------------------------------------------------------- */
 
-      // Step 2: Classification & Timeline
-      ministry: [''],
-      department: [''],
-      state: ['All India'],
-      sector: [''],
-      publicationDate: [''],
-      effectiveDate: [''],
-      keyHighlights: this.fb.array([
-        this.fb.control(''),
-        this.fb.control(''),
-      ]),
-      additionalInfo: ['', [Validators.maxLength(1000)]],
-      importantNotes: ['', [Validators.maxLength(1000)]],
+      title: ["", [Validators.required, Validators.maxLength(300)]],
 
-      // Step 3: Eligibility & Scope (Mapped to eligibility_rules)
-      targetBeneficiaries: ['', [Validators.required, Validators.maxLength(500)]],
-      minAge: [''],
-      maxAge: [''],
-      gender: ['All'],
-      annualIncome: [''],
-      education: [''],
-      eligibilityState: ['All India'],
+      category: ["", Validators.required],
 
-      // Step 4: Documents & Links
-      documentUrl: ['', [Validators.maxLength(500)]],
-      sourceUrl: ['', [Validators.maxLength(500)]],
-      documentsRequired: ['', [Validators.maxLength(2000)]],
-      implementationProcess: ['', [Validators.maxLength(2000)]],
+      description: ["", [Validators.required, Validators.maxLength(1000)]],
 
-      // Step 5: Declaration
+      benefits: this.fb.array([this.fb.control(""), this.fb.control("")]),
+
+      /* --------------------------------------------------------
+         STEP 2
+         -------------------------------------------------------- */
+
+      ministry: [""],
+
+      department: [""],
+
+      state: ["All India"],
+
+      sector: [""],
+
+      publicationDate: [""],
+
+      effectiveDate: [""],
+
+      /*
+       * These are UI-only fields.
+       *
+       * They are intentionally NOT sent to backend because
+       * the PolicyCreate payload currently supports:
+       *
+       * title
+       * description
+       * category
+       * ministry
+       * department
+       * state
+       * sector
+       * publication_date
+       * effective_date
+       * document_url
+       * source_url
+       * benefits
+       * eligibility_rules
+       */
+      keyHighlights: this.fb.array([this.fb.control(""), this.fb.control("")]),
+
+      additionalInfo: ["", Validators.maxLength(1000)],
+
+      importantNotes: ["", Validators.maxLength(1000)],
+
+      /* --------------------------------------------------------
+         STEP 3
+         -------------------------------------------------------- */
+
+      targetBeneficiaries: [
+        "",
+        [Validators.required, Validators.maxLength(500)],
+      ],
+
+      minAge: [""],
+
+      maxAge: [""],
+
+      gender: ["All"],
+
+      annualIncome: [""],
+
+      education: [""],
+
+      eligibilityState: ["All India"],
+
+      /* --------------------------------------------------------
+         STEP 4
+         -------------------------------------------------------- */
+
+      documentUrl: ["", Validators.maxLength(500)],
+
+      sourceUrl: ["", Validators.maxLength(500)],
+
+      documentsRequired: ["", Validators.maxLength(2000)],
+
+      implementationProcess: ["", Validators.maxLength(2000)],
+
+      /* --------------------------------------------------------
+         STEP 5
+         -------------------------------------------------------- */
+
       declarationAgreed: [false, Validators.requiredTrue],
     });
   }
 
-  // --- Form Array Getters ---
+  /* ============================================================
+     FORM ARRAY GETTERS
+     ============================================================ */
+
   get benefits(): FormArray {
-    return this.policyForm.get('benefits') as FormArray;
+    return this.policyForm.get("benefits") as FormArray;
   }
 
   get keyHighlights(): FormArray {
-    return this.policyForm.get('keyHighlights') as FormArray;
+    return this.policyForm.get("keyHighlights") as FormArray;
   }
 
-  // --- Dynamic Array Controls ---
+  /* ============================================================
+     BENEFITS
+     ============================================================ */
+
   addBenefit(): void {
-    this.benefits.push(this.fb.control(''));
+    this.benefits.push(this.fb.control(""));
   }
 
   removeBenefit(index: number): void {
     if (this.benefits.length > 1) {
       this.benefits.removeAt(index);
     } else {
-      this.benefits.at(0).setValue('');
+      this.benefits.at(0).setValue("");
     }
   }
 
+  /* ============================================================
+     KEY HIGHLIGHTS
+     ============================================================ */
+
   addHighlight(): void {
-    this.keyHighlights.push(this.fb.control(''));
+    this.keyHighlights.push(this.fb.control(""));
   }
 
   removeHighlight(index: number): void {
     if (this.keyHighlights.length > 1) {
       this.keyHighlights.removeAt(index);
     } else {
-      this.keyHighlights.at(0).setValue('');
+      this.keyHighlights.at(0).setValue("");
     }
   }
 
+  /* ============================================================
+     CUSTOM ELIGIBILITY
+     ============================================================ */
+
   addEligibilityCondition(): void {
-    this.additionalEligibilityConditions.push('');
+    this.additionalEligibilityConditions.push("");
   }
 
   removeEligibilityCondition(index: number): void {
-    this.additionalEligibilityConditions.splice(index, 1);
+    if (index >= 0 && index < this.additionalEligibilityConditions.length) {
+      this.additionalEligibilityConditions.splice(index, 1);
+    }
   }
 
-  // --- Stepper Navigation ---
+  /* ============================================================
+     STEPPER
+     ============================================================ */
+
   goToStep(step: number): void {
+    if (step < 1 || step > this.totalSteps) {
+      return;
+    }
+
+    /*
+     * Going backwards is always allowed.
+     */
     if (step < this.currentStep) {
       this.currentStep = step;
-    } else if (this.isStepValid(this.currentStep)) {
-      this.completedSteps.add(this.currentStep);
-      this.currentStep = step;
-    } else {
-      this.stepSubmitted[this.currentStep] = true;
+      return;
     }
+
+    /*
+     * Do not allow skipping invalid steps.
+     */
+    if (step > this.currentStep && !this.isStepValid(this.currentStep)) {
+      this.stepSubmitted[this.currentStep] = true;
+
+      this.markStepFieldsAsTouched(this.currentStep);
+
+      return;
+    }
+
+    this.completedSteps.add(this.currentStep);
+
+    this.currentStep = step;
   }
 
   nextStep(): void {
@@ -359,188 +504,1132 @@ this.currentStep = 1;
 
     if (!this.isStepValid(this.currentStep)) {
       this.markStepFieldsAsTouched(this.currentStep);
+
       return;
     }
 
     this.completedSteps.add(this.currentStep);
+
     if (this.currentStep < this.totalSteps) {
       this.currentStep++;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
   }
 
   prevStep(): void {
     if (this.currentStep > 1) {
       this.currentStep--;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
   }
+
+  /* ============================================================
+     STEP VALIDATION
+     ============================================================ */
 
   isStepValid(step: number): boolean {
     switch (step) {
       case 1:
         return (
-          !!this.policyForm.get('title')?.valid &&
-          !!this.policyForm.get('category')?.valid &&
-          !!this.policyForm.get('description')?.valid
+          !!this.policyForm.get("title")?.valid &&
+          !!this.policyForm.get("category")?.valid &&
+          !!this.policyForm.get("description")?.valid
         );
+
       case 2:
-        return true;
+        return (
+          (!this.policyForm.get("additionalInfo") || this.policyForm.get("additionalInfo")!.valid) &&
+          (!this.policyForm.get("importantNotes") || this.policyForm.get("importantNotes")!.valid)
+        );
+
       case 3:
-        return !!this.policyForm.get('targetBeneficiaries')?.valid;
+        return !!this.policyForm.get("targetBeneficiaries")?.valid;
+
       case 4:
-        return true;
+        return (
+          (!this.policyForm.get("documentUrl") || this.policyForm.get("documentUrl")!.valid) &&
+          (!this.policyForm.get("sourceUrl") || this.policyForm.get("sourceUrl")!.valid) &&
+          (!this.policyForm.get("documentsRequired") || this.policyForm.get("documentsRequired")!.valid) &&
+          (!this.policyForm.get("implementationProcess") || this.policyForm.get("implementationProcess")!.valid)
+        );
+
       case 5:
-        return !!this.policyForm.get('declarationAgreed')?.valid;
+        return !!this.policyForm.get("declarationAgreed")?.valid;
+
       default:
-        return true;
+        return false;
     }
   }
 
   private markStepFieldsAsTouched(step: number): void {
     switch (step) {
       case 1:
-        this.policyForm.get('title')?.markAsTouched();
-        this.policyForm.get('category')?.markAsTouched();
-        this.policyForm.get('description')?.markAsTouched();
+        this.policyForm.get("title")?.markAsTouched();
+        this.policyForm.get("category")?.markAsTouched();
+        this.policyForm.get("description")?.markAsTouched();
         break;
+
+      case 2:
+        this.policyForm.get("additionalInfo")?.markAsTouched();
+        this.policyForm.get("importantNotes")?.markAsTouched();
+        break;
+
       case 3:
-        this.policyForm.get('targetBeneficiaries')?.markAsTouched();
+        this.policyForm.get("targetBeneficiaries")?.markAsTouched();
         break;
+
+      case 4:
+        this.policyForm.get("documentUrl")?.markAsTouched();
+        this.policyForm.get("sourceUrl")?.markAsTouched();
+        this.policyForm.get("documentsRequired")?.markAsTouched();
+        this.policyForm.get("implementationProcess")?.markAsTouched();
+        break;
+
       case 5:
-        this.policyForm.get('declarationAgreed')?.markAsTouched();
+        this.policyForm.get("declarationAgreed")?.markAsTouched();
         break;
     }
   }
 
-  // --- Values for Step 5 Review ---
+  /* ============================================================
+     DISPLAY HELPERS
+     ============================================================ */
+
   get filteredBenefits(): string[] {
     return this.benefits.controls
-      .map((c) => c.value?.trim())
-      .filter((v) => !!v);
+      .map((control) => String(control.value ?? "").trim())
+      .filter((value) => value.length > 0);
   }
 
   get filteredHighlights(): string[] {
     return this.keyHighlights.controls
-      .map((c) => c.value?.trim())
-      .filter((v) => !!v);
+      .map((control) => String(control.value ?? "").trim())
+      .filter((value) => value.length > 0);
   }
 
   get formattedAge(): string {
-    const min = this.policyForm.get('minAge')?.value;
-    const max = this.policyForm.get('maxAge')?.value;
-    if (min && max) return `${min} - ${max} years`;
-    if (min) return `Minimum ${min} years`;
-    if (max) return `Up to ${max} years`;
-    return 'All Ages / Not Restricted';
+    const min = this.policyForm.get("minAge")?.value;
+
+    const max = this.policyForm.get("maxAge")?.value;
+
+    if (min && max) {
+      return `${min} - ${max} years`;
+    }
+
+    if (min) {
+      return `Minimum ${min} years`;
+    }
+
+    if (max) {
+      return `Up to ${max} years`;
+    }
+
+    return "All Ages / Not Restricted";
   }
 
   get formattedIncome(): string {
-    const income = this.policyForm.get('annualIncome')?.value;
-    if (!income) return 'No income restriction specified';
-    return `₹ ${Number(income).toLocaleString('en-IN')} or less`;
+    const income = this.policyForm.get("annualIncome")?.value;
+
+    if (income === "" || income === null || income === undefined) {
+      return "No income restriction specified";
+    }
+
+    const numericIncome = Number(income);
+
+    if (Number.isNaN(numericIncome)) {
+      return "No income restriction specified";
+    }
+
+    return `₹ ${numericIncome.toLocaleString("en-IN")} or less`;
   }
 
-  // --- Save / Submit Handlers ---
+  /* ============================================================
+     WORKFLOW HELPERS
+     ============================================================ */
+
+  private isCurrentPolicyEditable(): boolean {
+    /*
+     * New policy.
+     */
+    if (this.currentPolicyStatus === null) {
+      return true;
+    }
+
+    return this.editablePolicyStatuses.has(this.currentPolicyStatus);
+  }
+
+  private setPolicyStatus(
+    status: unknown,
+    fallback: PolicyWorkflowStatus | null = null,
+  ): void {
+    const normalized = status ? String(status).trim().toUpperCase() : fallback;
+
+    this.currentPolicyStatus = normalized as PolicyWorkflowStatus | null;
+  }
+
+  /* ============================================================
+     LOAD EXISTING POLICY
+     ============================================================ */
+
+  private loadPolicyForEdit(id: number): void {
+    this.policyService.getPolicy(id).subscribe({
+      next: (policy: PolicyResponse) => {
+        this.currentPolicyStatus = policy?.status
+          ? (String(policy.status).trim().toUpperCase() as PolicyWorkflowStatus)
+          : null;
+
+        this.rejectionReason = policy?.rejection_reason ?? null;
+
+        /* ------------------------------------------------------
+             READ ONLY
+             ------------------------------------------------------ */
+
+        if (!this.isCurrentPolicyEditable()) {
+          this.isReadOnly = true;
+
+          this.policyForm.disable();
+        } else {
+          this.isReadOnly = false;
+
+          this.policyForm.enable();
+        }
+
+        /* ------------------------------------------------------
+             BASIC / CLASSIFICATION
+             ------------------------------------------------------ */
+
+        this.policyForm.patchValue({
+          title: policy.title ?? "",
+
+          category: policy.category ?? "",
+
+          description: policy.description ?? "",
+
+          ministry: policy.ministry ?? "",
+
+          department: policy.department ?? "",
+
+          state: policy.state ?? "All India",
+
+          sector: policy.sector ?? "",
+
+          publicationDate: policy.publication_date ?? "",
+
+          effectiveDate: policy.effective_date ?? "",
+
+          documentUrl: policy.document_url ?? "",
+
+          sourceUrl: policy.source_url ?? "",
+        });
+
+        /* ------------------------------------------------------
+             BENEFITS
+             ------------------------------------------------------ */
+
+        this.benefits.clear();
+
+        if (Array.isArray(policy.benefits) && policy.benefits.length > 0) {
+          policy.benefits.forEach((benefit: string) => {
+            this.benefits.push(this.fb.control(benefit ?? ""));
+          });
+        } else {
+          this.benefits.push(this.fb.control(""));
+        }
+
+        /* ------------------------------------------------------
+             KEY HIGHLIGHTS
+             ------------------------------------------------------ */
+
+        this.keyHighlights.clear();
+
+        this.keyHighlights.push(this.fb.control(""));
+
+        /* ------------------------------------------------------
+             ELIGIBILITY RULES
+             ------------------------------------------------------ */
+
+        const rules = Array.isArray(policy.eligibility_rules)
+          ? (policy.eligibility_rules as EligibilityRule[])
+          : [];
+
+        this.additionalEligibilityConditions = [];
+
+        for (const rule of rules) {
+          switch (rule.rule_type) {
+            case "TARGET_BENEFICIARIES":
+              this.policyForm.patchValue({
+                targetBeneficiaries: rule.value ?? "",
+              });
+
+              break;
+
+            case "AGE_CRITERIA":
+              this.policyForm.patchValue({
+                minAge: rule.min_age ?? "",
+
+                maxAge: rule.max_age ?? "",
+              });
+
+              break;
+
+            case "GENDER":
+              this.policyForm.patchValue({
+                gender: rule.value ?? "All",
+              });
+
+              break;
+
+            case "ANNUAL_INCOME_LIMIT":
+              this.policyForm.patchValue({
+                annualIncome: rule.value ?? "",
+              });
+
+              break;
+
+            case "EDUCATION":
+              this.policyForm.patchValue({
+                education: rule.value ?? "",
+              });
+
+              break;
+
+            case "CUSTOM_CONDITION":
+              if (
+                typeof rule.description === "string" &&
+                rule.description.trim()
+              ) {
+                this.additionalEligibilityConditions.push(
+                  rule.description.trim(),
+                );
+              }
+
+              break;
+          }
+        }
+
+        this.currentStep = 1;
+        this.completedSteps = new Set<number>();
+      },
+
+      error: (error) => {
+        console.error("Failed to load policy:", error);
+
+        this.errorMessage = this.getErrorMessage(
+          error,
+          "Unable to load policy.",
+        );
+      },
+    });
+  }
+
+  /* ============================================================
+     BUILD BACKEND PAYLOAD
+     ============================================================ */
+
+  private buildPolicyPayload(): PolicyCreate {
+    /*
+     * getRawValue() is safer than value because it also works
+     * if the form has been disabled during editing.
+     */
+    const formValue = this.policyForm.getRawValue();
+
+    /* ----------------------------------------------------------
+       ELIGIBILITY RULES
+       ---------------------------------------------------------- */
+
+    const eligibilityRules: Array<Record<string, unknown>> = [];
+
+    /* TARGET BENEFICIARIES */
+
+    const targetBeneficiaries = String(
+      formValue.targetBeneficiaries ?? "",
+    ).trim();
+
+    if (targetBeneficiaries) {
+      eligibilityRules.push({
+        rule_type: "TARGET_BENEFICIARIES",
+
+        value: targetBeneficiaries,
+      });
+    }
+
+    /* AGE */
+
+    const hasMinAge =
+      formValue.minAge !== "" &&
+      formValue.minAge !== null &&
+      formValue.minAge !== undefined;
+
+    const hasMaxAge =
+      formValue.maxAge !== "" &&
+      formValue.maxAge !== null &&
+      formValue.maxAge !== undefined;
+
+    if (hasMinAge || hasMaxAge) {
+      const ageRule: Record<string, unknown> = {
+        rule_type: "AGE_CRITERIA",
+      };
+
+      if (hasMinAge) {
+        const minAge = Number(formValue.minAge);
+
+        if (Number.isInteger(minAge) && minAge >= 0) {
+          ageRule["min_age"] = minAge;
+        }
+      }
+
+      if (hasMaxAge) {
+        const maxAge = Number(formValue.maxAge);
+
+        if (Number.isInteger(maxAge) && maxAge >= 0) {
+          ageRule["max_age"] = maxAge;
+        }
+      }
+
+      /*
+       * Only add the age rule if at least one valid
+       * age value was actually supplied.
+       */
+      if (
+        ageRule["min_age"] !== undefined ||
+        ageRule["max_age"] !== undefined
+      ) {
+        eligibilityRules.push(ageRule);
+      }
+    }
+
+    /* GENDER */
+
+    const gender = String(formValue.gender ?? "").trim();
+
+    if (gender && gender.toLowerCase() !== "all") {
+      eligibilityRules.push({
+        rule_type: "GENDER",
+        value: gender,
+      });
+    }
+
+    /* ANNUAL INCOME */
+
+    if (
+      formValue.annualIncome !== "" &&
+      formValue.annualIncome !== null &&
+      formValue.annualIncome !== undefined
+    ) {
+      const income = Number(formValue.annualIncome);
+
+      if (Number.isFinite(income) && income >= 0) {
+        eligibilityRules.push({
+          rule_type: "ANNUAL_INCOME_LIMIT",
+
+          value: income,
+        });
+      }
+    }
+
+    /* EDUCATION */
+
+    const education = String(formValue.education ?? "").trim();
+
+    if (education) {
+      eligibilityRules.push({
+        rule_type: "EDUCATION",
+        value: education,
+      });
+    }
+
+    /* CUSTOM CONDITIONS */
+
+    this.additionalEligibilityConditions
+      .map((condition) => String(condition ?? "").trim())
+      .filter((condition) => condition.length > 0)
+      .forEach((condition) => {
+        eligibilityRules.push({
+          rule_type: "CUSTOM_CONDITION",
+
+          description: condition,
+        });
+      });
+
+    /* ----------------------------------------------------------
+       FINAL POLICY CREATE PAYLOAD
+       ---------------------------------------------------------- */
+
+    const payload: PolicyCreate = {
+      title: String(formValue.title ?? "").trim(),
+
+      description: String(formValue.description ?? "").trim(),
+
+      category: formValue.category,
+
+      ministry: formValue.ministry || null,
+
+      department: formValue.department || null,
+
+      state: formValue.state || null,
+
+      sector: formValue.sector || null,
+
+      publication_date: formValue.publicationDate || null,
+
+      effective_date: formValue.effectiveDate || null,
+
+      document_url: formValue.documentUrl || null,
+
+      source_url: formValue.sourceUrl || null,
+
+      benefits: this.filteredBenefits,
+
+      eligibility_rules: eligibilityRules,
+    };
+
+    return payload;
+  }
+
+  /* ============================================================
+     SAVE AS DRAFT
+     ============================================================ */
+
   saveDraft(): void {
-    this.savedDraftToast = true;
-    setTimeout(() => {
-      this.savedDraftToast = false;
-    }, 3500);
-  }
-
-  onSubmit(): void {
-    this.submitted = true;
-    this.stepSubmitted[5] = true;
-
-    if (this.policyForm.invalid) {
-      this.policyForm.markAllAsTouched();
+    if (
+      this.isReadOnly ||
+      this.isSaving ||
+      this.isSubmitting ||
+      this.isApproving ||
+      this.modalType !== null
+    ) {
       return;
     }
 
-    // Build backend PolicyCreate compatible payload
-    const formVal = this.policyForm.value;
+    /*
+     * Existing policy must be in an editable workflow state.
+     */
+    if (
+      this.isEditMode &&
+      this.editingPolicyId !== null &&
+      !this.isCurrentPolicyEditable()
+    ) {
+      this.errorMessage =
+        `This policy is currently ${this.currentPolicyStatus}. ` +
+        `It cannot be edited in its current workflow state.`;
 
-    const eligibilityRulesPayload: Array<Record<string, any>> = [];
-    if (formVal.targetBeneficiaries) {
-      eligibilityRulesPayload.push({ rule_type: 'TARGET_BENEFICIARIES', value: formVal.targetBeneficiaries });
+      return;
     }
-    if (formVal.minAge || formVal.maxAge) {
-      eligibilityRulesPayload.push({ rule_type: 'AGE_CRITERIA', min_age: formVal.minAge, max_age: formVal.maxAge });
-    }
-    if (formVal.gender && formVal.gender !== 'All') {
-      eligibilityRulesPayload.push({ rule_type: 'GENDER', value: formVal.gender });
-    }
-    if (formVal.annualIncome) {
-      eligibilityRulesPayload.push({ rule_type: 'ANNUAL_INCOME_LIMIT', value: formVal.annualIncome });
-    }
-    if (formVal.education) {
-      eligibilityRulesPayload.push({ rule_type: 'EDUCATION', value: formVal.education });
-    }
-    this.additionalEligibilityConditions
-      .filter((cond) => !!cond.trim())
-      .forEach((cond) => {
-        eligibilityRulesPayload.push({ rule_type: 'CUSTOM_CONDITION', description: cond.trim() });
-      });
 
-    const payload = {
-  title: formVal.title,
-  description: formVal.description,
-  category: formVal.category,
-  ministry: formVal.ministry || null,
-  department: formVal.department || null,
-  state: formVal.state || null,
-  sector: formVal.sector || null,
-  publication_date: formVal.publicationDate || null,
-  effective_date: formVal.effectiveDate || null,
-  document_url: formVal.documentUrl || null,
-  source_url: formVal.sourceUrl || null,
-  benefits: this.filteredBenefits,
-  eligibility_rules: eligibilityRulesPayload,
-};
+    this.isSaving = true;
+    this.errorMessage = null;
+
+    const payload = this.buildPolicyPayload();
+
+    /* ----------------------------------------------------------
+       EXISTING POLICY
+       ---------------------------------------------------------- */
 
     if (this.isEditMode && this.editingPolicyId !== null) {
-  this.policyService
-    .updatePolicy(this.editingPolicyId, payload)
-    .subscribe({
+      this.policyService.updatePolicy(this.editingPolicyId, payload).subscribe({
+        next: (response) => {
+          this.setPolicyStatus(
+            response?.status,
+            this.currentPolicyStatus ?? "DRAFT",
+          );
+
+          this.isSaving = false;
+
+          this.showDraftToast();
+        },
+
+        error: (error) => {
+          console.error("Failed to update policy draft:", error);
+
+          this.isSaving = false;
+
+          this.errorMessage = this.getErrorMessage(
+            error,
+            "Failed to save policy draft.",
+          );
+        },
+      });
+
+      return;
+    }
+
+    /* ----------------------------------------------------------
+       NEW POLICY
+       ---------------------------------------------------------- */
+
+    this.policyService.saveDraft(payload).subscribe({
       next: (response) => {
-        console.log('Policy updated successfully:', response);
-        alert('Policy updated successfully.');
-        this.router.navigate([`/dashboard/${this.rolePrefix}/policies`]);
-      },
-      error: (error) => {
-        console.error('Policy update failed:', error);
-        alert(
-          error?.error?.detail ||
-          'Failed to update policy'
+        const policyId = Number(
+          response?.policy_id ??
+            (response as any)?.id ??
+            (response as any)?.data?.policy_id,
         );
+
+        if (!Number.isInteger(policyId) || policyId <= 0) {
+          this.isSaving = false;
+
+          this.errorMessage =
+            "Draft was created, but the server did not return a valid policy ID.";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          this.cdr.detectChanges();
+
+          return;
+        }
+
+        this.editingPolicyId = policyId;
+
+        this.isEditMode = true;
+
+        this.setPolicyStatus(response?.status, "DRAFT");
+
+        this.isSaving = false;
+
+        this.showDraftToast();
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error("Failed to create draft:", error);
+
+        this.isSaving = false;
+
+        this.errorMessage = this.getErrorMessage(
+          error,
+          "Failed to save policy draft.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /* ============================================================
+     FINAL SUBMIT
+     ============================================================ */
+
+  onSubmit(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    console.log("[ADD POLICY] onSubmit fired");
+
+    if (this.isReadOnly) {
+      console.log("[ADD POLICY] isReadOnly is true, returning early");
+      return;
+    }
+
+    this.submitted = true;
+
+    this.stepSubmitted[5] = true;
+
+    this.errorMessage = null;
+
+    /* ----------------------------------------------------------
+       VALIDATE ENTIRE FORM
+       ---------------------------------------------------------- */
+
+    console.log("[ADD POLICY] form valid:", this.policyForm.valid);
+    console.log("[ADD POLICY] form value:", this.policyForm.getRawValue());
+
+    if (this.policyForm.invalid) {
+      console.warn("[ADD POLICY] Form is INVALID! Control states:");
+      Object.keys(this.policyForm.controls).forEach((key) => {
+        const control = this.policyForm.get(key);
+        console.log(
+          "[ADD POLICY] CONTROL",
+          key,
+          "valid:",
+          control?.valid,
+          "value:",
+          control?.value,
+          "errors:",
+          control?.errors,
+        );
+      });
+
+      this.policyForm.markAllAsTouched();
+
+      /*
+       * Find the first invalid business step.
+       */
+      if (!this.isStepValid(1)) {
+        this.currentStep = 1;
+      } else if (!this.isStepValid(2)) {
+        this.currentStep = 2;
+      } else if (!this.isStepValid(3)) {
+        this.currentStep = 3;
+      } else if (!this.isStepValid(4)) {
+        this.currentStep = 4;
+      } else if (!this.isStepValid(5)) {
+        this.currentStep = 5;
       }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    /* ----------------------------------------------------------
+       PREVENT DUPLICATE REQUESTS
+       ---------------------------------------------------------- */
+
+    if (
+      this.isSubmitting ||
+      this.isApproving ||
+      this.isSaving ||
+      this.modalType !== null
+    ) {
+      console.log("[ADD POLICY] Blocked by duplicate request guard:", {
+        isSubmitting: this.isSubmitting,
+        isApproving: this.isApproving,
+        isSaving: this.isSaving,
+        modalType: this.modalType,
+      });
+      return;
+    }
+
+    /* ----------------------------------------------------------
+       EXISTING POLICY
+       ---------------------------------------------------------- */
+
+    if (this.isEditMode && this.editingPolicyId !== null) {
+      if (!this.isCurrentPolicyEditable()) {
+        this.errorMessage =
+          `This policy is currently ${this.currentPolicyStatus}. ` +
+          `It cannot be submitted from the Add Policy form.`;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        this.cdr.detectChanges();
+
+        return;
+      }
+
+      const payload = this.buildPolicyPayload();
+
+      console.log("[ADD POLICY] updating existing policy then submit:", this.editingPolicyId);
+      this.updateThenSubmit(this.editingPolicyId, payload);
+
+      return;
+    }
+
+    /* ----------------------------------------------------------
+       NEW POLICY
+       ---------------------------------------------------------- */
+
+    this.isSubmitting = true;
+
+    const payload = this.buildPolicyPayload();
+
+    /*
+     * STEP 1:
+     *
+     * Create DRAFT.
+     *
+     * POST /policies/draft
+     */
+    console.log("[ADD POLICY] creating draft");
+    this.policyService.saveDraft(payload).subscribe({
+      next: (response) => {
+        console.log("[ADD POLICY] draft response:", response);
+        const policyId = Number(
+          response?.policy_id ??
+            (response as any)?.id ??
+            (response as any)?.data?.policy_id,
+        );
+        console.log("[ADD POLICY] policy ID:", policyId);
+
+        if (!Number.isInteger(policyId) || policyId <= 0) {
+          this.isSubmitting = false;
+
+          this.errorMessage =
+            "Policy draft was created, but the server did not return a valid policy ID.";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          this.cdr.detectChanges();
+
+          return;
+        }
+
+        this.editingPolicyId = policyId;
+
+        this.isEditMode = true;
+
+        this.setPolicyStatus(response?.status, "DRAFT");
+
+        /*
+         * STEP 2:
+         *
+         * Submit DRAFT -> PENDING_APPROVAL
+         */
+        console.log("[ADD POLICY] calling submit API:", policyId);
+        this.callSubmitApi(policyId);
+      },
+
+      error: (error) => {
+        console.error("[ADD POLICY] saveDraft ERROR:", error);
+
+        this.isSubmitting = false;
+
+        this.errorMessage = this.getErrorMessage(
+          error,
+          "Failed to create policy draft.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /* ============================================================
+     UPDATE THEN SUBMIT
+     ============================================================ */
+
+  private updateThenSubmit(policyId: number, payload: PolicyCreate): void {
+    if (!this.isCurrentPolicyEditable()) {
+      this.isSubmitting = false;
+
+      this.errorMessage = `This policy is currently ${this.currentPolicyStatus}.`;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    /*
+     * First update the editable policy.
+     *
+     * PUT /policies/{id}
+     */
+    this.policyService.updatePolicy(policyId, payload).subscribe({
+      next: (response) => {
+        this.setPolicyStatus(
+          response?.status,
+          this.currentPolicyStatus ?? "DRAFT",
+        );
+
+        /*
+         * Then:
+         *
+         * POST /policies/{id}/submit
+         */
+        this.callSubmitApi(policyId);
+      },
+
+      error: (error) => {
+        console.error("[ADD POLICY] Failed to update policy before submission:", error);
+
+        this.isSubmitting = false;
+
+        this.errorMessage = this.getErrorMessage(
+          error,
+          "Failed to update policy before submission.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /* ============================================================
+     SUBMIT POLICY
+     ============================================================ */
+
+  private callSubmitApi(policyId: number): void {
+    console.log("[ADD POLICY] submitPolicy called:", policyId);
+    this.policyService.submitPolicy(policyId).subscribe({
+      next: (response) => {
+        console.log("[ADD POLICY] submit API SUCCESS:", response);
+        this.setPolicyStatus(response?.status, "PENDING_APPROVAL");
+        this.isSubmitting = false;
+
+        /*
+         * ADMIN FLOW
+         *
+         * The submit request is completed first. We then show the
+         * frontend success popup. The actual /approve request is NOT
+         * made until the Admin clicks OK on this popup.
+         *
+         * GOVERNMENT OFFICIAL FLOW
+         *
+         * The policy remains PENDING_APPROVAL and the OK button only
+         * advances the frontend flow to the Add Another Policy popup.
+         */
+        if (this.isAdmin) {
+          console.log("[ADD POLICY] setting Admin modal");
+          this.modalType = "submitted";
+          this.modalTitle = "Policy Added Successfully";
+          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been added successfully.`;
+        } else {
+          console.log("[ADD POLICY] setting Government modal");
+          this.modalType = "pending";
+          this.modalTitle = "Policy Submitted for Approval";
+          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted to the admin for approval.`;
+        }
+        console.log("[ADD POLICY] modalType is now:", this.modalType);
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error("[ADD POLICY] submit API ERROR:", error);
+
+        this.isSubmitting = false;
+
+        this.errorMessage = this.getErrorMessage(
+          error,
+          "Failed to submit policy for approval.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private getPolicyTitleForModal(): string {
+    const title = String(this.policyForm.get("title")?.value ?? "").trim();
+    return title || "Policy";
+  }
+
+  /* ============================================================
+     MODAL OK
+     ============================================================ */
+
+  onModalOk(): void {
+    if (this.isApproving || this.isSubmitting || this.isSaving) {
+      return;
+    }
+
+    /*
+     * ADMIN:
+     *
+     * First popup:
+     * "Policy ... has been added successfully."
+     *
+     * Only after clicking OK do we call the existing backend
+     * approve endpoint. This is the frontend equivalent of the
+     * requested "work as /approve" behaviour.
+     */
+    if (this.modalType === "submitted" && this.isAdmin) {
+      if (this.editingPolicyId === null) {
+        this.errorMessage =
+          "The policy was submitted, but its policy ID is unavailable for approval.";
+        this.modalType = null;
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.isApproving = true;
+      this.errorMessage = null;
+
+      this.policyService.approvePolicy(this.editingPolicyId).subscribe({
+        next: (response) => {
+          this.isApproving = false;
+          this.setPolicyStatus(response?.status, "APPROVED");
+
+          /*
+           * The approve API is now finished. The next popup is
+           * frontend-only and asks whether another policy should be added.
+           */
+          this.modalType = "add-more";
+          this.modalTitle = "Policy Approved Successfully";
+          this.modalMessage = "Do you want to add another policy?";
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error("Failed to approve policy:", error);
+
+          this.isApproving = false;
+          this.errorMessage = this.getErrorMessage(
+            error,
+            "Policy was submitted, but approval failed. Please try again.",
+          );
+          this.modalType = null;
+          this.cdr.detectChanges();
+        },
+      });
+
+      return;
+    }
+
+    /*
+     * GOVERNMENT OFFICIAL:
+     *
+     * No approval request is made from this form. The policy stays
+     * PENDING_APPROVAL. OK only moves to the frontend-only
+     * "add another policy" popup.
+     */
+    if (this.modalType === "pending" && !this.isAdmin) {
+      this.modalType = "add-more";
+      this.modalTitle = "Policy Submission Complete";
+      this.modalMessage = "Do you want to add another policy?";
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.modalType = null;
+    this.cdr.detectChanges();
+  }
+
+  /* ============================================================
+     RESET FORM
+     ============================================================ */
+
+  private resetToFreshForm(): void {
+    this.modalType = null;
+
+    this.modalTitle = "";
+
+    this.modalMessage = "";
+
+    this.isEditMode = false;
+
+    this.editingPolicyId = null;
+
+    this.currentPolicyStatus = null;
+
+    this.isReadOnly = false;
+
+    this.rejectionReason = null;
+
+    this.errorMessage = null;
+
+    this.isSaving = false;
+
+    this.isSubmitting = false;
+
+    this.isApproving = false;
+
+    this.submitted = false;
+
+    this.savedDraftToast = false;
+
+    this.currentStep = 1;
+
+    this.completedSteps = new Set<number>();
+
+    this.stepSubmitted = {};
+
+    this.additionalEligibilityConditions = [];
+
+    this.initForm();
+
+    this.policyForm.enable();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
 
-  return;
-}
-
-this.policyService.createPolicy(payload).subscribe({
-  next: (response) => {
-    console.log('Policy created successfully:', response);
-    this.showSuccessModal = true;
-  },
-  error: (error) => {
-    console.error('Policy creation failed:', error);
-    alert(
-      error?.error?.detail ||
-      'Failed to create policy'
-    );
+    this.cdr.detectChanges();
   }
-});
+
+  /* ============================================================
+     ADMIN ADD MORE
+     ============================================================ */
+
+  onAddMorePolicy(): void {
+    if (this.isApproving || this.isSubmitting || this.isSaving) {
+      return;
+    }
+
+    this.resetToFreshForm();
+  }
+
+  /* ============================================================
+     FINISH / CANCEL
+     ============================================================ */
+
+  onFinishAddingPolicies(): void {
+    if (this.isApproving || this.isSubmitting || this.isSaving) {
+      return;
+    }
+
+    this.modalType = null;
+    this.cdr.detectChanges();
+
+    this.navigateToPolicyManagement();
   }
 
   closeSuccessModal(): void {
-    this.showSuccessModal = false;
-    this.router.navigate([`/dashboard/${this.rolePrefix}/policies`]);
+    this.modalType = null;
+    this.cdr.detectChanges();
+
+    this.navigateToPolicyManagement();
   }
 
   cancel(): void {
-    this.router.navigate([`/dashboard/${this.rolePrefix}/policies`]);
+    if (this.isSaving || this.isSubmitting || this.isApproving) {
+      return;
+    }
+
+    this.navigateToPolicyManagement();
+  }
+
+  private navigateToPolicyManagement(): void {
+    if (this.isAdmin) {
+      this.router.navigate(["/dashboard", "admin", "policies"]);
+
+      return;
+    }
+
+    this.router.navigate(["/dashboard", "government", "policies", "manage"]);
+  }
+
+  /* ============================================================
+     DRAFT TOAST
+     ============================================================ */
+
+  private showDraftToast(): void {
+    this.savedDraftToast = true;
+
+    window.setTimeout(() => {
+      this.savedDraftToast = false;
+    }, 3000);
+  }
+
+  /* ============================================================
+     ERROR HANDLING
+     ============================================================ */
+
+  private getErrorMessage(error: unknown, fallback: string): string {
+    const apiError = error as {
+      error?: {
+        detail?: unknown;
+      };
+    };
+
+    const detail = apiError?.error?.detail;
+
+    if (typeof detail === "string" && detail.trim()) {
+      return detail;
+    }
+
+    if (Array.isArray(detail)) {
+      const messages = detail
+        .map((item) => {
+          if (item && typeof item === "object" && "msg" in item) {
+            return String(
+              (item as { msg?: unknown }).msg ?? "Validation error",
+            );
+          }
+
+          return "Validation error";
+        })
+        .filter(Boolean);
+
+      if (messages.length > 0) {
+        return messages.join(", ");
+      }
+    }
+
+    return fallback;
   }
 }

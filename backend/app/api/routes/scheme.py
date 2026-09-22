@@ -76,6 +76,29 @@ def create_scheme_api(
     )
 
 
+@router.post(
+    "/draft",
+    response_model=SchemeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_scheme_draft_route(
+    data: SchemeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    return create_scheme(
+        db=db,
+        data=data,
+        user_id=current_user.user_id,
+    )
+
+
+
 @router.get(
     "",
     response_model=SchemeListResponse,
@@ -99,19 +122,57 @@ def list_schemes(
         ge=1,
         le=100,
     ),
+    manage: bool = Query(
+        default=False,
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
 
     role = current_user.role.upper()
 
-    if role in {
+    public_roles = {
         "CITIZEN",
         "RESEARCHER",
         "ORGANIZATION",
         "GUEST",
-    }:
-        status_filter = "APPROVED"
+    }
+
+    if manage:
+        if role in public_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to manage schemes.",
+            )
+
+        if role == "ADMIN":
+            created_by = None
+        elif role == "GOVERNMENT_OFFICIAL":
+            created_by = current_user.user_id
+        else:
+            created_by = current_user.user_id
+
+        include_archived = True
+    else:
+        # Search / discovery
+        if role in public_roles:
+            if status_filter is not None and status_filter.upper() != "APPROVED":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only view approved schemes.",
+                )
+
+            status_filter = "APPROVED"
+            created_by = None
+        else:
+            if status_filter == "APPROVED":
+                created_by = None
+            elif role == "GOVERNMENT_OFFICIAL":
+                created_by = current_user.user_id
+            else:
+                created_by = None
+
+        include_archived = False
 
     return search_schemes(
         db=db,
@@ -123,7 +184,8 @@ def list_schemes(
         status=status_filter,
         page=page,
         limit=limit,
-        include_archived=False,
+        include_archived=include_archived,
+        created_by=created_by,
     )
 
 
@@ -189,8 +251,13 @@ def get_scheme_api(
         "ORGANIZATION",
         "GUEST",
     }:
-
         if scheme.status != "APPROVED":
+            raise HTTPException(
+                status_code=404,
+                detail="Scheme not found",
+            )
+    elif role == "GOVERNMENT_OFFICIAL":
+        if scheme.status != "APPROVED" and scheme.created_by != current_user.user_id:
             raise HTTPException(
                 status_code=404,
                 detail="Scheme not found",
@@ -242,6 +309,7 @@ def update_scheme_api(
         db=db,
         scheme=scheme,
         data=data,
+        current_user=current_user,
     )
 
 
@@ -303,6 +371,7 @@ def submit_scheme_api(
         return submit_scheme(
             db,
             scheme,
+            current_user=current_user,
         )
 
     except ValueError as exc:

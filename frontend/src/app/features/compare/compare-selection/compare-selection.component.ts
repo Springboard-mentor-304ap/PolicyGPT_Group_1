@@ -2,10 +2,24 @@ import { Component, inject, OnInit, OnDestroy } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { Subject, takeUntil, forkJoin, debounceTime, distinctUntilChanged } from "rxjs";
+import {
+  Subject,
+  takeUntil,
+  forkJoin,
+  debounceTime,
+  distinctUntilChanged,
+} from "rxjs";
 
-import { PolicyService, Policy, PolicyListResponse } from "../../../core/services/policy.services";
-import { SchemeService, Scheme, SchemeListResponse } from "../../../core/services/scheme.service";
+import { PolicyService } from "../../../core/services/policy.services";
+import { SchemeService } from "../../../core/services/scheme.service";
+import {
+  PolicyResponse,
+  PolicyListResponse,
+} from "../../../core/models/policy.model";
+import {
+  SchemeResponse,
+  SchemeListResponse,
+} from "../../../core/models/scheme.model";
 
 interface CompareItem {
   id: number;
@@ -48,9 +62,24 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   searchItem3 = "";
 
   // Filter options - same as search components
-  filterItem1: FilterOptions = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
-  filterItem2: FilterOptions = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
-  filterItem3: FilterOptions = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+  filterItem1: FilterOptions = {
+    selectedCategory: "",
+    selectedMinistry: "",
+    selectedState: "",
+    selectedStatus: "",
+  };
+  filterItem2: FilterOptions = {
+    selectedCategory: "",
+    selectedMinistry: "",
+    selectedState: "",
+    selectedStatus: "",
+  };
+  filterItem3: FilterOptions = {
+    selectedCategory: "",
+    selectedMinistry: "",
+    selectedState: "",
+    selectedStatus: "",
+  };
 
   allItems: CompareItem[] = [];
   filteredItemsCache: CompareItem[] = [];
@@ -152,23 +181,17 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   }
 
   private setupDebouncedSearch(): void {
-    this.searchSubject1.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(() => this.applyFilters(1));
+    this.searchSubject1
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => this.applyFilters(1));
 
-    this.searchSubject2.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(() => this.applyFilters(2));
+    this.searchSubject2
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => this.applyFilters(2));
 
-    this.searchSubject3.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(() => this.applyFilters(3));
+    this.searchSubject3
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => this.applyFilters(3));
   }
 
   onSearchChange(itemNum: number): void {
@@ -182,40 +205,53 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
     this.errorMessage = "";
 
     forkJoin({
-      policies: this.policyService.getPolicies({ status: "APPROVED", limit: 100 }),
-      schemes: this.schemeService.getSchemes({ status: "APPROVED", limit: 100 })
-    }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: ({ policies, schemes }) => {
-        const policyItems: CompareItem[] = (policies.policies || []).map((policy) => ({
-          id: policy.policy_id,
-          title: policy.title,
-          type: "Policy" as const,
-          ministry: policy.ministry || "-",
-          category: policy.category || "-",
-          state: policy.state || "-",
-          targetGroup: "-"
-        }));
+      policies: this.policyService.getPolicies({
+        status: "APPROVED",
+        limit: 100,
+      }),
+      schemes: this.schemeService.getSchemes({
+        status: "APPROVED",
+        limit: 100,
+      }),
+    })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: ({ policies, schemes }) => {
+          const policyItems: CompareItem[] = (policies.policies || []).map(
+            (policy: PolicyResponse) => ({
+              id: policy.policy_id,
+              title: policy.title,
+              type: "Policy" as const,
+              ministry: policy.ministry || "-",
+              category: policy.category || "-",
+              state: policy.state || "-",
+              targetGroup: "-",
+            }),
+          );
 
-        const schemeItems: CompareItem[] = (schemes.schemes || []).map((scheme) => ({
-          id: scheme.scheme_id,
-          title: scheme.name,
-          type: "Scheme" as const,
-          ministry: scheme.ministry || "-",
-          category: scheme.category || "-",
-          state: scheme.state || "-",
-          targetGroup: "-"
-        }));
+          const schemeItems: CompareItem[] = (schemes.schemes || []).map(
+            (scheme: SchemeResponse) => ({
+              id: scheme.scheme_id,
+              title: scheme.name,
+              type: "Scheme" as const,
+              ministry: scheme.ministry || "-",
+              category: scheme.category || "-",
+              state: scheme.state || "-",
+              targetGroup: "-",
+            }),
+          );
 
-        this.allItems = [...policyItems, ...schemeItems];
-        this.filteredItemsCache = [...this.allItems];
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error("Failed to load items for comparison:", error);
-        this.errorMessage = "Failed to load items for comparison. Please try again.";
-        this.loading = false;
-      }
-    });
+          this.allItems = [...policyItems, ...schemeItems];
+          this.filteredItemsCache = [...this.allItems];
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error("Failed to load items for comparison:", error);
+          this.errorMessage =
+            "Failed to load items for comparison. Please try again.";
+          this.loading = false;
+        },
+      });
   }
 
   get filteredItem1(): CompareItem[] {
@@ -230,7 +266,10 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
     return this.getFilteredItems(this.searchItem3, this.filterItem3);
   }
 
-  private getFilteredItems(search: string, filters: FilterOptions): CompareItem[] {
+  private getFilteredItems(
+    search: string,
+    filters: FilterOptions,
+  ): CompareItem[] {
     let items = [...this.allItems];
     const query = search.toLowerCase().trim();
 
@@ -248,17 +287,21 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
     // Category filter
     if (filters.selectedCategory) {
-      items = items.filter(item => item.category === filters.selectedCategory);
+      items = items.filter(
+        (item) => item.category === filters.selectedCategory,
+      );
     }
 
     // Ministry filter
     if (filters.selectedMinistry) {
-      items = items.filter(item => item.ministry === filters.selectedMinistry);
+      items = items.filter(
+        (item) => item.ministry === filters.selectedMinistry,
+      );
     }
 
     // State filter
     if (filters.selectedState) {
-      items = items.filter(item => item.state === filters.selectedState);
+      items = items.filter((item) => item.state === filters.selectedState);
     }
 
     // Status filter - we only load APPROVED items, but keeping for consistency
@@ -276,11 +319,26 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
   clearFilters(itemNum: number): void {
     if (itemNum === 1) {
-      this.filterItem1 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+      this.filterItem1 = {
+        selectedCategory: "",
+        selectedMinistry: "",
+        selectedState: "",
+        selectedStatus: "",
+      };
     } else if (itemNum === 2) {
-      this.filterItem2 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+      this.filterItem2 = {
+        selectedCategory: "",
+        selectedMinistry: "",
+        selectedState: "",
+        selectedStatus: "",
+      };
     } else {
-      this.filterItem3 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+      this.filterItem3 = {
+        selectedCategory: "",
+        selectedMinistry: "",
+        selectedState: "",
+        selectedStatus: "",
+      };
     }
   }
 
@@ -302,19 +360,34 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   clearItem1(): void {
     this.selectedItem1 = null;
     this.searchItem1 = "";
-    this.filterItem1 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+    this.filterItem1 = {
+      selectedCategory: "",
+      selectedMinistry: "",
+      selectedState: "",
+      selectedStatus: "",
+    };
   }
 
   clearItem2(): void {
     this.selectedItem2 = null;
     this.searchItem2 = "";
-    this.filterItem2 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+    this.filterItem2 = {
+      selectedCategory: "",
+      selectedMinistry: "",
+      selectedState: "",
+      selectedStatus: "",
+    };
   }
 
   clearItem3(): void {
     this.selectedItem3 = null;
     this.searchItem3 = "";
-    this.filterItem3 = { selectedCategory: "", selectedMinistry: "", selectedState: "", selectedStatus: "" };
+    this.filterItem3 = {
+      selectedCategory: "",
+      selectedMinistry: "",
+      selectedState: "",
+      selectedStatus: "",
+    };
   }
 
   canCompare(): boolean {

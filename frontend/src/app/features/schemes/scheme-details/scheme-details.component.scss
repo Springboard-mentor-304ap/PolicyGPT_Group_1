@@ -13,7 +13,8 @@
   margin: 0;
   padding: 28px 32px 40px;
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #0f172a;
 }
 
@@ -121,9 +122,9 @@
 
   .hero-right {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2.5rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
 
     .btn-bookmark {
       background: transparent;
@@ -173,7 +174,7 @@
       color: #0f172a;
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: -1px;
         left: 0;
@@ -307,13 +308,34 @@
   margin-left: 0.5rem;
 }
 
-.status-approved { background: #dcfce7; color: #166534; }
-.status-draft { background: #fef3c7; color: #92400e; }
-.status-pending_approval { background: #dbeafe; color: #1e40af; }
-.status-rejected { background: #fee2e2; color: #991b1b; }
-.status-archived { background: #f3f4f6; color: #374151; }
-.status-archive_requested { background: #fef3c7; color: #92400e; }
-.status-delete_requested { background: #fee2e2; color: #991b1b; }
+.status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-pending_approval {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.status-archived {
+  background: #f3f4f6;
+  color: #374151;
+}
+.status-archive_requested {
+  background: #fef3c7;
+  color: #92400e;
+}
+.status-delete_requested {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 /* Loading State */
 .loading-state {
@@ -375,7 +397,7 @@
       color: #0f172a;
 
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         bottom: -1px;
         left: 0;
@@ -576,5 +598,300 @@
 @media (max-width: 480px) {
   .page-container {
     padding: 14px;
+  }
+}
+/* ============================================================
+   THREE DOT WORKFLOW MENU
+   ============================================================ */
+
+.hero-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflow-menu-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.btn-workflow-menu {
+  width: 44px;
+  height: 44px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  margin: 0;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: #64748b;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.btn-workflow-menu:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+}
+
+.btn-workflow-menu.active {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.1);
+}
+
+.btn-workflow-menu:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   DROPDOWN
+   ============================================================ */
+
+.workflow-dropdown {
+  position: absolute;
+
+  top: calc(100% + 10px);
+  right: 0;
+
+  width: 285px;
+
+  background: #ffffff;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.14),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+
+  padding: 8px;
+
+  z-index: 1000;
+
+  animation: workflowDropdownIn 0.16s ease-out;
+}
+
+@keyframes workflowDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+   DROPDOWN HEADER
+   ============================================================ */
+
+.workflow-dropdown-header {
+  padding: 10px 12px 9px;
+
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   WORKFLOW OPTION
+   ============================================================ */
+
+.workflow-option {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 11px 12px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: transparent;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  color: #334155;
+
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.workflow-option:hover {
+  background: #f8fafc;
+}
+
+.workflow-option:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.22);
+  outline-offset: -2px;
+}
+
+/* ============================================================
+   OPTION ICON
+   ============================================================ */
+
+.workflow-option-icon {
+  width: 36px;
+  height: 36px;
+
+  flex: 0 0 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+}
+
+/* Edit */
+
+.edit-icon {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+/* Archive */
+
+.archive-icon {
+  color: #d97706;
+  background: #fff7ed;
+}
+
+/* Delete */
+
+.delete-icon {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+/* ============================================================
+   OPTION CONTENT
+   ============================================================ */
+
+.workflow-option-content {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.workflow-option-content strong {
+  font-size: 14px;
+  font-weight: 650;
+
+  line-height: 1.25;
+
+  color: #1e293b;
+}
+
+.workflow-option-content small {
+  font-size: 11px;
+  line-height: 1.35;
+
+  color: #94a3b8;
+}
+
+/* Archive hover */
+
+.archive-option:hover {
+  background: #fffaf0;
+}
+
+.archive-option:hover .workflow-option-content strong {
+  color: #b45309;
+}
+
+/* Delete hover */
+
+.delete-option:hover {
+  background: #fff5f5;
+}
+
+.delete-option:hover .workflow-option-content strong {
+  color: #dc2626;
+}
+
+/* ============================================================
+   DIVIDER
+   ============================================================ */
+
+.workflow-divider {
+  height: 1px;
+
+  margin: 5px 4px;
+
+  background: #eef2f7;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .hero-right {
+    gap: 7px;
+  }
+
+  .btn-workflow-menu {
+    width: 42px;
+    height: 42px;
+  }
+
+  .workflow-dropdown {
+    right: 0;
+    width: 270px;
+  }
+}
+
+@media (max-width: 520px) {
+  .workflow-dropdown {
+    position: fixed;
+
+    top: auto;
+    right: 16px;
+    left: 16px;
+
+    bottom: 16px;
+
+    width: auto;
+
+    border-radius: 16px;
+
+    box-shadow:
+      0 20px 50px rgba(15, 23, 42, 0.2),
+      0 5px 15px rgba(15, 23, 42, 0.08);
   }
 }

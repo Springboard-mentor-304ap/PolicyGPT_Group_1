@@ -46,6 +46,17 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // POLICIES SEARCH (ALIAS)
+      // /dashboard/organization/policies/search
+      {
+        path: "policies/search",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
       // POLICY DETAILS
       // /dashboard/organization/policies/:id
       {
@@ -167,6 +178,17 @@ export const DASHBOARD_ROUTES: Routes = [
       // /dashboard/citizen/policies
       {
         path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICIES SEARCH (ALIAS)
+      // /dashboard/citizen/policies/search
+      {
+        path: "policies/search",
 
         loadComponent: () =>
           import("../../policy/policy-search/policy-search.component").then(
@@ -329,6 +351,16 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // POLICIES SEARCH (ALIAS)
+      {
+        path: "policies/search",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
       // ADD POLICY
       {
         path: "policies/add",
@@ -346,6 +378,16 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../policy/manage-policies/manage-policies.component").then(
             (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
+      // EDIT POLICY
+      {
+        path: "policies/edit/:id",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
           ),
       },
 
@@ -491,9 +533,21 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // POLICIES
+      // POLICIES (MANAGE)
+      // /dashboard/admin/policies
       {
         path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/manage-policies/manage-policies.component").then(
+            (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
+      // POLICIES (SEARCH/VIEW)
+      // /dashboard/admin/policies/search
+      {
+        path: "policies/search",
 
         loadComponent: () =>
           import("../../policy/policy-search/policy-search.component").then(
@@ -511,13 +565,23 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // MANAGE POLICIES
+      // MANAGE POLICIES (ALIAS)
       {
         path: "policies/manage",
 
         loadComponent: () =>
           import("../../policy/manage-policies/manage-policies.component").then(
             (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
+      // EDIT POLICY
+      {
+        path: "policies/edit/:id",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
           ),
       },
 
@@ -693,6 +757,16 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // POLICIES SEARCH (ALIAS)
+      {
+        path: "policies/search",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
       // POLICY DETAILS
       {
         path: "policies/:id",
@@ -804,6 +878,16 @@ export const DASHBOARD_ROUTES: Routes = [
       // POLICIES
       {
         path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICIES SEARCH (ALIAS)
+      {
+        path: "policies/search",
 
         loadComponent: () =>
           import("../../policy/policy-search/policy-search.component").then(

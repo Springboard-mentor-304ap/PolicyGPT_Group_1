@@ -1024,9 +1024,17 @@ def search_policies(
     policy_status: str | None = None,
     page: int = 1,
     limit: int = 10,
+    created_by: int | None = None,
 ) -> dict:
 
     query = db.query(Policy)
+
+    # --------------------------------------------------------
+    # CREATED BY (ROLE-BASED OWNERSHIP FILTER)
+    # --------------------------------------------------------
+
+    if created_by is not None:
+        query = query.filter(Policy.created_by == created_by)
 
     # --------------------------------------------------------
     # SEARCH
@@ -1074,10 +1082,10 @@ def search_policies(
 
         query = query.filter(Policy.status == policy_status.strip().upper())
 
-    else:
-
-        # Normal search does not show archived policies.
-        query = query.filter(Policy.status != "ARCHIVED")
+    # NOTE: When no status filter is given, staff (ADMIN / GOVERNMENT_OFFICIAL)
+    # see ALL statuses including ARCHIVED, so the Manage Policies stats and
+    # archive restore work. Public roles never reach this branch because the
+    # route forces status=APPROVED for them.
 
     # --------------------------------------------------------
     # COUNT
@@ -1189,13 +1197,9 @@ def compare_policies(
     policy_id_1: int,
     policy_id_2: int,
 ):
-    policy_1 = db.query(Policy).filter(
-        Policy.policy_id == policy_id_1
-    ).first()
+    policy_1 = db.query(Policy).filter(Policy.policy_id == policy_id_1).first()
 
-    policy_2 = db.query(Policy).filter(
-        Policy.policy_id == policy_id_2
-    ).first()
+    policy_2 = db.query(Policy).filter(Policy.policy_id == policy_id_2).first()
 
     if not policy_1:
         raise HTTPException(

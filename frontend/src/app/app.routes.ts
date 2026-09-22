@@ -93,18 +93,12 @@ export const routes: Routes = [
   // POLICY ROUTES
   // =========================================================
   {
-    path: "policies/:id",
+    path: "policies/search",
     loadComponent: () =>
-      import("./features/policy/policy-details/policy-details.component").then(
-        (m) => m.PolicyDetailsComponent,
+      import("./features/policy/policy-search/policy-search.component").then(
+        (m) => m.PolicySearchComponent,
       ),
   },
-  {
-  path: "admin/policies/edit/:id",
-  loadComponent: () =>
-    import("./features/policy/add-policy/add-policy.component")
-      .then((m) => m.AddPolicyComponent),
-},
   {
     path: "policies",
     loadComponent: () =>
@@ -112,15 +106,22 @@ export const routes: Routes = [
         (m) => m.PolicySearchComponent,
       ),
   },
+  {
+    path: "policies/:id",
+    loadComponent: () =>
+      import("./features/policy/policy-details/policy-details.component").then(
+        (m) => m.PolicyDetailsComponent,
+      ),
+  },
 
   // =========================================================
   // SCHEMES ROUTES
   // =========================================================
   {
-    path: "schemes/:id",
+    path: "schemes/search",
     loadComponent: () =>
-      import("./features/schemes/scheme-details/scheme-details.component").then(
-        (m) => m.SchemeDetailsComponent,
+      import("./features/schemes/scheme-search/scheme-search.component").then(
+        (m) => m.SchemeSearchComponent,
       ),
   },
   {
@@ -128,6 +129,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import("./features/schemes/scheme-search/scheme-search.component").then(
         (m) => m.SchemeSearchComponent,
+      ),
+  },
+  {
+    path: "schemes/:id",
+    loadComponent: () =>
+      import("./features/schemes/scheme-details/scheme-details.component").then(
+        (m) => m.SchemeDetailsComponent,
       ),
   },
 

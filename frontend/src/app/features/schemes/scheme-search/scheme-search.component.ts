@@ -1,41 +1,50 @@
-import { Component, OnInit, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, OnDestroy, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-import { SchemeService, Scheme, SchemeListResponse } from '../../../core/services/scheme.service';
+import { SchemeService } from '../../../core/services/scheme.service';
+import { ToastService } from '../../../core/services/toast.service';
+import { getStatusLabel, getStatusBadgeClass } from '../../../core/utils/status.utils';
+import { SchemeResponse, SchemeListResponse, SchemeFilters } from '../../../core/models/scheme.model';
 
 @Component({
   selector: 'app-scheme-search',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './scheme-search.component.html',
-  styleUrls: ['./scheme-search.component.scss']
+  styleUrls: ['./scheme-search.component.scss'],
 })
 export class SchemeSearchComponent implements OnInit, OnDestroy {
   private readonly location = inject(Location);
   private readonly schemeService = inject(SchemeService);
+  private readonly toastService = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
+  // Search & Filters
   searchQuery = '';
   selectedCategory = '';
   selectedMinistry = '';
+  selectedDepartment = '';
   selectedState = '';
-  selectedStatus = '';
 
-  schemes: Scheme[] = [];
-  totalResults = 0;
-  currentPage = 1;
-  totalPages = 1;
+  // Data
+  schemes = signal<SchemeResponse[]>([]);
+  totalResults = signal(0);
+  currentPage = signal(1);
+  totalPages = signal(1);
   readonly pageSize = 10;
 
-  loading = false;
-  errorMessage = '';
+  // UI State
+  loading = signal(false);
+  errorMessage = signal('');
 
-  categories: string[] = [
+  // Filter options
+  categories = [
     'Agriculture',
     'Education',
     'Energy',
@@ -50,10 +59,10 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     'Environment',
     'Digital Governance',
     'Rural Development',
-    'Urban Development'
+    'Urban Development',
   ];
 
-  ministries: string[] = [
+  ministries = [
     'Ministry of Agriculture & Farmers Welfare',
     'Ministry of Health & Family Welfare',
     'Ministry of Education',
@@ -67,10 +76,22 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     'Ministry of Social Justice and Empowerment',
     'Ministry of Labour and Employment',
     'Ministry of Environment, Forest and Climate Change',
-    'Ministry of Electronics and Information Technology'
+    'Ministry of Electronics and Information Technology',
   ];
 
-  states: string[] = [
+  departments = [
+    'Department of Agriculture & Farmers Welfare',
+    'Department of School Education & Literacy',
+    'Department of Higher Education',
+    'Department of Health & Family Welfare',
+    'Department of Rural Development',
+    'Department of Financial Services',
+    'Department of Social Justice & Empowerment',
+    'Department of Economic Affairs',
+  ];
+
+  states = [
+    'All India',
     'Central',
     'Andhra Pradesh',
     'Arunachal Pradesh',
@@ -100,21 +121,19 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     'Tripura',
     'Uttar Pradesh',
     'Uttarakhand',
-    'West Bengal'
+    'West Bengal',
   ];
 
-  statuses: string[] = [
-    'APPROVED',
-    'DRAFT',
-    'PENDING_APPROVAL',
-    'REJECTED',
-    'ARCHIVED',
-    'ARCHIVE_REQUESTED',
-    'DELETE_REQUESTED'
-  ];
+  // Bookmarks
+  private bookmarkedIds = signal<Set<number>>(new Set());
+
+  // Computed
+  getStatusLabel = getStatusLabel;
+  getStatusBadgeClass = getStatusBadgeClass;
 
   ngOnInit(): void {
     this.setupDebouncedSearch();
+    this.loadBookmarks();
     this.loadSchemes();
   }
 
@@ -124,14 +143,12 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   }
 
   private setupDebouncedSearch(): void {
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.currentPage = 1;
-      this.loadSchemes();
-    });
+    this.searchSubject
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.currentPage.set(1);
+        this.loadSchemes();
+      });
   }
 
   onSearchChange(): void {
@@ -139,38 +156,45 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   }
 
   loadSchemes(): void {
-    this.loading = true;
-    this.errorMessage = '';
+    this.loading.set(true);
+    this.errorMessage.set('');
+    this.cdr.detectChanges();
 
-    this.schemeService.getSchemes({
+    // SEARCH / VIEW SCHEMES: Only APPROVED schemes are displayed
+    const filters: SchemeFilters = {
       keyword: this.searchQuery.trim() || undefined,
       category: this.selectedCategory || undefined,
       ministry: this.selectedMinistry || undefined,
+      department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
-      status: this.selectedStatus || undefined,
-      page: this.currentPage,
-      limit: this.pageSize
-    }).subscribe({
+      status: 'APPROVED',
+      page: this.currentPage(),
+      limit: this.pageSize,
+    };
+
+    this.schemeService.getSchemes(filters).subscribe({
       next: (response: SchemeListResponse) => {
-        this.schemes = Array.isArray(response?.schemes) ? response.schemes : [];
-        this.totalResults = Number(response?.total) || 0;
-        this.currentPage = Number(response?.page) || 1;
-        this.totalPages = Number(response?.pages) > 0 ? Number(response.pages) : 1;
-        this.loading = false;
+        this.schemes.set(Array.isArray(response?.schemes) ? response.schemes : []);
+        this.totalResults.set(Number(response?.total) || 0);
+        this.currentPage.set(Number(response?.page) || 1);
+        this.totalPages.set(Number(response?.pages) > 0 ? Number(response.pages) : 1);
+        this.loading.set(false);
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Scheme API Error:', error);
-        this.errorMessage = this.getErrorMessage(error);
-        this.schemes = [];
-        this.totalResults = 0;
-        this.totalPages = 1;
-        this.loading = false;
-      }
+        this.errorMessage.set(this.getErrorMessage(error));
+        this.schemes.set([]);
+        this.totalResults.set(0);
+        this.totalPages.set(1);
+        this.loading.set(false);
+        this.cdr.detectChanges();
+      },
     });
   }
 
   applyFilters(): void {
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadSchemes();
   }
 
@@ -178,113 +202,105 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.selectedCategory = '';
     this.selectedMinistry = '';
+    this.selectedDepartment = '';
     this.selectedState = '';
-    this.selectedStatus = '';
-    this.currentPage = 1;
+    this.currentPage.set(1);
     this.loadSchemes();
   }
 
   nextPage(): void {
-    if (this.currentPage >= this.totalPages) return;
-    this.currentPage++;
+    if (this.currentPage() >= this.totalPages()) return;
+    this.currentPage.update((p) => p + 1);
     this.loadSchemes();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   previousPage(): void {
-    if (this.currentPage <= 1) return;
-    this.currentPage--;
+    if (this.currentPage() <= 1) return;
+    this.currentPage.update((p) => p - 1);
     this.loadSchemes();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
-    this.currentPage = page;
+    if (page < 1 || page > this.totalPages() || page === this.currentPage()) return;
+    this.currentPage.set(page);
     this.loadSchemes();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  get pageNumbers(): number[] {
-    const pages: number[] = [];
-    const start = Math.max(1, this.currentPage - 2);
-    const end = Math.min(this.totalPages, this.currentPage + 2);
-    for (let page = start; page <= end; page++) {
-      pages.push(page);
-    }
-    return pages;
-  }
-
-  toggleBookmark(scheme: Scheme): void {
-    const bookmarks = this.getBookmarks();
-    const index = bookmarks.indexOf(scheme.scheme_id);
-
-    if (index === -1) {
-      bookmarks.push(scheme.scheme_id);
-    } else {
-      bookmarks.splice(index, 1);
-    }
-
-    localStorage.setItem('scheme_bookmarks', JSON.stringify(bookmarks));
-  }
-
-  isBookmarked(schemeId: number): boolean {
-    return this.getBookmarks().includes(schemeId);
-  }
-
-  private getBookmarks(): number[] {
-    try {
-      const stored = localStorage.getItem('scheme_bookmarks');
-      if (!stored) return [];
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed.map(Number) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  getStatusLabel(status: string): string {
-    if (!status) return '';
-    return status
-      .replace(/_/g, ' ')
-      .toLowerCase()
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  }
-
-  formatDate(date: string | null | undefined): string {
-    if (!date) return 'Not specified';
-    const parsed = new Date(date);
-    if (isNaN(parsed.getTime())) return date;
-    return parsed.toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
   }
 
   goBack(): void {
     this.location.back();
   }
 
+  get pageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.currentPage();
+    const pages: number[] = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, current - Math.floor(maxVisible / 2));
+    let end = Math.min(total, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  // Bookmarking
+  isBookmarked(schemeId: number): boolean {
+    return this.bookmarkedIds().has(schemeId);
+  }
+
+  toggleBookmark(scheme: SchemeResponse): void {
+    const current = new Set(this.bookmarkedIds());
+    if (current.has(scheme.scheme_id)) {
+      current.delete(scheme.scheme_id);
+      this.toastService.info('Scheme removed from bookmarks');
+    } else {
+      current.add(scheme.scheme_id);
+      this.toastService.success('Scheme bookmarked successfully');
+    }
+    this.bookmarkedIds.set(current);
+    this.saveBookmarks();
+    this.cdr.detectChanges();
+  }
+
+  private loadBookmarks(): void {
+    try {
+      const saved = localStorage.getItem('bookmarked_schemes');
+      if (saved) {
+        this.bookmarkedIds.set(new Set(JSON.parse(saved)));
+      }
+    } catch {
+      this.bookmarkedIds.set(new Set());
+    }
+  }
+
+  private saveBookmarks(): void {
+    try {
+      localStorage.setItem(
+        'bookmarked_schemes',
+        JSON.stringify(Array.from(this.bookmarkedIds()))
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  }
+
   private getErrorMessage(error: any): string {
+    if (typeof error === 'string') return error;
     if (error?.error?.detail) {
-      return error.error.detail;
+      if (typeof error.error.detail === 'string') return error.error.detail;
+      if (Array.isArray(error.error.detail)) {
+        return error.error.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+      }
     }
-    if (error?.status === 401) {
-      return 'Your session has expired. Please login again.';
-    }
-    if (error?.status === 403) {
-      return 'You do not have permission to view these schemes.';
-    }
-    if (error?.status === 404) {
-      return 'Scheme API endpoint was not found.';
-    }
-    if (error?.status === 0) {
-      return 'Unable to connect to the backend server.';
-    }
-    if (error?.message) {
-      return error.message;
-    }
-    return 'Unable to load schemes. Please try again.';
+    return error?.message || 'Failed to load schemes. Please try again.';
   }
 }

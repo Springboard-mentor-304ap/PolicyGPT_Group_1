@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
+
 from app.services.analytics_service import (
     get_dashboard_analytics,
     get_policy_analytics,
@@ -10,6 +11,8 @@ from app.services.analytics_service import (
     get_scheme_usage,
     get_user_analytics,
     get_user_activity,
+    get_department_analytics,
+    get_usage_statistics,
 )
 
 router = APIRouter(
@@ -38,11 +41,13 @@ def scheme_analytics(
 ):
     return get_scheme_analytics(db)
 
+
 @router.get("/policies/trends")
 def policy_trends(
     db: Session = Depends(get_db),
 ):
     return get_policy_trends(db)
+
 
 @router.get("/schemes/usage")
 def scheme_usage(
@@ -63,3 +68,17 @@ def user_activity(
     db: Session = Depends(get_db),
 ):
     return get_user_activity(db)
+
+
+@router.get("/departments")
+def department_analytics(
+    db: Session = Depends(get_db),
+):
+    return get_department_analytics(db)
+
+
+@router.get("/usage")
+def usage_statistics(
+    db: Session = Depends(get_db),
+):
+    return get_usage_statistics(db)

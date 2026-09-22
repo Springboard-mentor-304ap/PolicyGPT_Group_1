@@ -1,66 +1,39 @@
-from datetime import datetime
-
 from sqlalchemy.orm import Session
 
-from app.models.report import Report
-from app.schemas.report import ReportCreate
+from app.services.analytics_service import (
+    get_dashboard_analytics,
+    get_policy_analytics,
+    get_scheme_analytics,
+    get_user_analytics,
+    get_department_analytics,
+    get_usage_statistics,
+)
 
 
-def create_report(
+def generate_report(
     db: Session,
-    data: ReportCreate,
+    report_type: str
 ):
-    report = Report(
-        generated_by=data.generated_by,
-        report_type=data.report_type,
-        report_format=data.report_format,
-        parameters=data.parameters,
-        file_path=data.file_path,
-        generated_at=datetime.utcnow(),
+    report_type = report_type.upper()
+
+    if report_type == "DASHBOARD":
+        return get_dashboard_analytics(db)
+
+    if report_type == "POLICY":
+        return get_policy_analytics(db)
+
+    if report_type == "SCHEME":
+        return get_scheme_analytics(db)
+
+    if report_type == "USER":
+        return get_user_analytics(db)
+
+    if report_type == "DEPARTMENT":
+        return get_department_analytics(db)
+
+    if report_type == "USAGE":
+        return get_usage_statistics(db)
+
+    raise ValueError(
+        f"Unsupported report type: {report_type}"
     )
-
-    db.add(report)
-    db.commit()
-    db.refresh(report)
-
-    return report
-
-
-def get_reports(
-    db: Session,
-    user_id: int | None = None,
-):
-    query = db.query(Report)
-
-    if user_id is not None:
-        query = query.filter(Report.generated_by == user_id)
-
-    return query.order_by(
-        Report.generated_at.desc()
-    ).all()
-
-
-def get_report(
-    db: Session,
-    report_id: int,
-):
-    return (
-        db.query(Report)
-        .filter(Report.report_id == report_id)
-        .first()
-    )
-
-
-def delete_report(
-    db: Session,
-    report_id: int,
-):
-    report = get_report(db, report_id)
-
-    if not report:
-        return None
-
-    db.delete(report)
-    db.commit()
-
-    return report

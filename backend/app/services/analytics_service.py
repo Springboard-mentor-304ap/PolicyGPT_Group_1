@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-
-from sqlalchemy import func,extract
+from sqlalchemy import func, extract
 
 from app.models.policy import Policy
 from app.models.scheme import Scheme
@@ -9,46 +8,49 @@ from app.models.user import User
 
 def get_dashboard_analytics(db: Session):
     return {
-        "total_policies": db.query(Policy).count(),
-
-        "total_schemes": db.query(Scheme).count(),
-
-        "approved_policies": (
-            db.query(Policy)
+        "policies": {
+            "total": db.query(Policy).count(),
+            "approved": db.query(Policy)
             .filter(Policy.status == "APPROVED")
-            .count()
-        ),
-
-        "pending_policies": (
-            db.query(Policy)
+            .count(),
+            "pending": db.query(Policy)
             .filter(Policy.status == "PENDING_APPROVAL")
-            .count()
-        ),
-
-        "rejected_policies": (
-            db.query(Policy)
+            .count(),
+            "rejected": db.query(Policy)
             .filter(Policy.status == "REJECTED")
-            .count()
-        ),
-
-        "archived_policies": (
-            db.query(Policy)
+            .count(),
+            "archived": db.query(Policy)
             .filter(Policy.status == "ARCHIVED")
-            .count()
-        ),
+            .count(),
+        },
 
-        "active_schemes": (
-            db.query(Scheme)
+        "schemes": {
+            "total": db.query(Scheme).count(),
+            "approved": db.query(Scheme)
             .filter(Scheme.status == "APPROVED")
-            .count()
-        ),
+            .count(),
+            "pending": db.query(Scheme)
+            .filter(Scheme.status == "PENDING_APPROVAL")
+            .count(),
+            "rejected": db.query(Scheme)
+            .filter(Scheme.status == "REJECTED")
+            .count(),
+            "archived": db.query(Scheme)
+            .filter(Scheme.status == "ARCHIVED")
+            .count(),
+        },
 
-        "total_users": db.query(User).count(),
-
-        "total_notifications": 0,
-
-        "total_feedback": 0,
+        "users": {
+            "total": db.query(User).count(),
+            "active": db.query(User)
+            .filter(User.is_active == True)
+            .count(),
+            "inactive": db.query(User)
+            .filter(User.is_active == False)
+            .count(),
+        }
     }
+
 
 def get_policy_analytics(db: Session):
     total = db.query(Policy).count()
@@ -82,6 +84,7 @@ def get_policy_analytics(db: Session):
             Policy.category,
             func.count(Policy.policy_id).label("count")
         )
+        .filter(Policy.category.isnot(None))
         .group_by(Policy.category)
         .all()
     )
@@ -112,25 +115,39 @@ def get_policy_analytics(db: Session):
         "pending": pending,
         "rejected": rejected,
         "archived": archived,
+
         "by_category": [
-            {"category": category, "count": count}
+            {
+                "category": category,
+                "count": count
+            }
             for category, count in by_category
         ],
+
         "by_state": [
-            {"state": state, "count": count}
+            {
+                "state": state,
+                "count": count
+            }
             for state, count in by_state
         ],
+
         "by_ministry": [
-            {"ministry": ministry, "count": count}
+            {
+                "ministry": ministry,
+                "count": count
+            }
             for ministry, count in by_ministry
         ],
-        "monthly_trend": [],
+
+        "monthly_trend": get_policy_trends(db)
     }
+
 
 def get_scheme_analytics(db: Session):
     total = db.query(Scheme).count()
 
-    active = (
+    approved = (
         db.query(Scheme)
         .filter(Scheme.status == "APPROVED")
         .count()
@@ -159,6 +176,7 @@ def get_scheme_analytics(db: Session):
             Scheme.category,
             func.count(Scheme.scheme_id).label("count")
         )
+        .filter(Scheme.category.isnot(None))
         .group_by(Scheme.category)
         .all()
     )
@@ -185,39 +203,53 @@ def get_scheme_analytics(db: Session):
 
     return {
         "total": total,
-        "active": active,
+        "approved": approved,
         "pending": pending,
         "rejected": rejected,
         "archived": archived,
+
         "by_category": [
-            {"category": category, "count": count}
+            {
+                "category": category,
+                "count": count
+            }
             for category, count in by_category
         ],
+
         "by_state": [
-            {"state": state, "count": count}
+            {
+                "state": state,
+                "count": count
+            }
             for state, count in by_state
         ],
+
         "by_ministry": [
-            {"ministry": ministry, "count": count}
+            {
+                "ministry": ministry,
+                "count": count
+            }
             for ministry, count in by_ministry
         ],
-        "monthly_trend": [],
+
+        "monthly_trend": get_scheme_trends(db)
     }
+
 
 def get_policy_trends(db: Session):
     trends = (
         db.query(
             extract("year", Policy.created_at).label("year"),
             extract("month", Policy.created_at).label("month"),
-            func.count(Policy.policy_id).label("count"),
+            func.count(Policy.policy_id).label("count")
         )
         .group_by(
             extract("year", Policy.created_at),
-            extract("month", Policy.created_at),
+            extract("month", Policy.created_at)
         )
         .order_by(
             extract("year", Policy.created_at),
-            extract("month", Policy.created_at),
+            extract("month", Policy.created_at)
         )
         .all()
     )
@@ -226,44 +258,61 @@ def get_policy_trends(db: Session):
         {
             "year": int(year),
             "month": int(month),
-            "count": count,
+            "count": count
         }
         for year, month, count in trends
     ]
 
+
+def get_scheme_trends(db: Session):
+    trends = (
+        db.query(
+            extract("year", Scheme.created_at).label("year"),
+            extract("month", Scheme.created_at).label("month"),
+            func.count(Scheme.scheme_id).label("count")
+        )
+        .group_by(
+            extract("year", Scheme.created_at),
+            extract("month", Scheme.created_at)
+        )
+        .order_by(
+            extract("year", Scheme.created_at),
+            extract("month", Scheme.created_at)
+        )
+        .all()
+    )
+
+    return [
+        {
+            "year": int(year),
+            "month": int(month),
+            "count": count
+        }
+        for year, month, count in trends
+    ]
+
+
 def get_scheme_usage(db: Session):
-    total_schemes = db.query(Scheme).count()
-
-    approved_schemes = (
-        db.query(Scheme)
-        .filter(Scheme.status == "APPROVED")
-        .count()
-    )
-
-    pending_schemes = (
-        db.query(Scheme)
-        .filter(Scheme.status == "PENDING_APPROVAL")
-        .count()
-    )
-
-    rejected_schemes = (
-        db.query(Scheme)
-        .filter(Scheme.status == "REJECTED")
-        .count()
-    )
-
-    archived_schemes = (
-        db.query(Scheme)
-        .filter(Scheme.status == "ARCHIVED")
-        .count()
-    )
-
     return {
-        "total_schemes": total_schemes,
-        "approved_schemes": approved_schemes,
-        "pending_schemes": pending_schemes,
-        "rejected_schemes": rejected_schemes,
-        "archived_schemes": archived_schemes,
+        "total_schemes": db.query(Scheme).count(),
+
+        "approved_schemes": db.query(Scheme)
+        .filter(Scheme.status == "APPROVED")
+        .count(),
+
+        "pending_schemes": db.query(Scheme)
+        .filter(Scheme.status == "PENDING_APPROVAL")
+        .count(),
+
+        "rejected_schemes": db.query(Scheme)
+        .filter(Scheme.status == "REJECTED")
+        .count(),
+
+        "archived_schemes": db.query(Scheme)
+        .filter(Scheme.status == "ARCHIVED")
+        .count(),
+
+        "monthly_trend": get_scheme_trends(db)
     }
 
 
@@ -305,6 +354,7 @@ def get_user_analytics(db: Session):
         "total_users": total_users,
         "active_users": active_users,
         "inactive_users": inactive_users,
+
         "by_role": [
             {
                 "role": role,
@@ -312,33 +362,97 @@ def get_user_analytics(db: Session):
             }
             for role, count in by_role
         ],
+
         "by_state": [
             {
                 "state": state,
                 "count": count
             }
             for state, count in by_state
-        ],
+        ]
     }
 
 
 def get_user_activity(db: Session):
-    total_users = db.query(User).count()
+    return {
+        "total_users": db.query(User).count(),
 
-    active_users = (
-        db.query(User)
+        "active_users": db.query(User)
         .filter(User.is_active == True)
-        .count()
-    )
+        .count(),
 
-    inactive_users = (
-        db.query(User)
+        "inactive_users": db.query(User)
         .filter(User.is_active == False)
         .count()
+    }
+
+def get_department_analytics(db: Session):
+    policy_departments = (
+        db.query(
+            Policy.ministry,
+            func.count(Policy.policy_id).label("policy_count")
+        )
+        .filter(Policy.ministry.isnot(None))
+        .group_by(Policy.ministry)
+        .all()
     )
 
+    scheme_departments = (
+        db.query(
+            Scheme.ministry,
+            func.count(Scheme.scheme_id).label("scheme_count")
+        )
+        .filter(Scheme.ministry.isnot(None))
+        .group_by(Scheme.ministry)
+        .all()
+    )
+
+    departments = {}
+
+    for ministry, count in policy_departments:
+        if ministry not in departments:
+            departments[ministry] = {
+                "department": ministry,
+                "policy_count": 0,
+                "scheme_count": 0
+            }
+
+        departments[ministry]["policy_count"] = count
+
+    for ministry, count in scheme_departments:
+        if ministry not in departments:
+            departments[ministry] = {
+                "department": ministry,
+                "policy_count": 0,
+                "scheme_count": 0
+            }
+
+        departments[ministry]["scheme_count"] = count
+
+    return list(departments.values())
+
+
+def get_usage_statistics(db: Session):
     return {
-        "total_users": total_users,
-        "active_users": active_users,
-        "inactive_users": inactive_users,
+        "users": db.query(User).count(),
+        "policies": db.query(Policy).count(),
+        "schemes": db.query(Scheme).count(),
+
+        "approved_policies": (
+            db.query(Policy)
+            .filter(Policy.status == "APPROVED")
+            .count()
+        ),
+
+        "approved_schemes": (
+            db.query(Scheme)
+            .filter(Scheme.status == "APPROVED")
+            .count()
+        ),
+
+        "active_users": (
+            db.query(User)
+            .filter(User.is_active == True)
+            .count()
+        )
     }

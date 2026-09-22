@@ -34,14 +34,27 @@
     </div>
   </div>
 
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!loading && !errorMessage && allItems.length === 0">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; padding: 2rem;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <h3>No items found</h3>
+      <p>No approved policies or schemes are currently available for comparison.</p>
+      <button type="button" class="retry-button" (click)="loadAllItems()">Refresh</button>
+    </div>
+  </div>
+
   <!-- Main Selection Card -->
-  <div class="selection-card" *ngIf="!loading && !errorMessage">
+  <div class="selection-card" *ngIf="!loading && !errorMessage && allItems.length > 0">
 
     <div class="card-header">
       <h2>Select Items to Compare</h2>
       <p>Choose at least two schemes or policies to compare.</p>
     </div>
-
 
     <!-- ITEM 1 -->
     <div class="selection-section">
@@ -58,6 +71,8 @@
           type="text"
           [(ngModel)]="searchItem1"
           (ngModelChange)="onSearchChange(1)"
+          (focus)="onFocus(1)"
+          (blur)="onBlur(1)"
           placeholder="Search schemes or policies..."
         />
 
@@ -109,21 +124,21 @@
 
       <div
         class="suggestions"
-        *ngIf="searchItem1 && !selectedItem1">
+        *ngIf="showSuggestions(1)">
 
         <button
           type="button"
           class="suggestion-item"
           *ngFor="let item of filteredItem1"
-          (click)="selectItem1(item)">
+          (mousedown)="selectItem1(item); $event.preventDefault()">
 
-          <div class="suggestion-icon">
+          <div class="suggestion-icon" [ngClass]="item.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
             {{ item.type === 'Policy' ? 'P' : 'S' }}
           </div>
 
           <div class="suggestion-content">
             <strong>{{ item.title }}</strong>
-            <span>{{ item.type }} · {{ item.category }}</span>
+            <span>{{ item.type }} · {{ item.category }} · {{ item.ministry }}</span>
           </div>
 
         </button>
@@ -136,19 +151,18 @@
 
       </div>
 
-
       <div
         class="selected-item"
         *ngIf="selectedItem1">
 
-        <div class="selected-icon">
+        <div class="selected-icon" [ngClass]="selectedItem1.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
           {{ selectedItem1.type === 'Policy' ? 'P' : 'S' }}
         </div>
 
         <div class="selected-content">
           <span class="type-label">{{ selectedItem1.type }}</span>
           <strong>{{ selectedItem1.title }}</strong>
-          <small>{{ selectedItem1.ministry }}</small>
+          <small>{{ selectedItem1.ministry }} · {{ selectedItem1.category }}</small>
         </div>
 
         <button
@@ -161,7 +175,6 @@
       </div>
 
     </div>
-
 
     <!-- ITEM 2 -->
     <div class="selection-section">
@@ -178,6 +191,8 @@
           type="text"
           [(ngModel)]="searchItem2"
           (ngModelChange)="onSearchChange(2)"
+          (focus)="onFocus(2)"
+          (blur)="onBlur(2)"
           placeholder="Search schemes or policies..."
         />
 
@@ -229,21 +244,21 @@
 
       <div
         class="suggestions"
-        *ngIf="searchItem2 && !selectedItem2">
+        *ngIf="showSuggestions(2)">
 
         <button
           type="button"
           class="suggestion-item"
           *ngFor="let item of filteredItem2"
-          (click)="selectItem2(item)">
+          (mousedown)="selectItem2(item); $event.preventDefault()">
 
-          <div class="suggestion-icon">
+          <div class="suggestion-icon" [ngClass]="item.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
             {{ item.type === 'Policy' ? 'P' : 'S' }}
           </div>
 
           <div class="suggestion-content">
             <strong>{{ item.title }}</strong>
-            <span>{{ item.type }} · {{ item.category }}</span>
+            <span>{{ item.type }} · {{ item.category }} · {{ item.ministry }}</span>
           </div>
 
         </button>
@@ -256,19 +271,18 @@
 
       </div>
 
-
       <div
         class="selected-item"
         *ngIf="selectedItem2">
 
-        <div class="selected-icon">
+        <div class="selected-icon" [ngClass]="selectedItem2.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
           {{ selectedItem2.type === 'Policy' ? 'P' : 'S' }}
         </div>
 
         <div class="selected-content">
           <span class="type-label">{{ selectedItem2.type }}</span>
           <strong>{{ selectedItem2.title }}</strong>
-          <small>{{ selectedItem2.ministry }}</small>
+          <small>{{ selectedItem2.ministry }} · {{ selectedItem2.category }}</small>
         </div>
 
         <button
@@ -281,7 +295,6 @@
       </div>
 
     </div>
-
 
     <!-- ITEM 3 -->
     <div class="selection-section optional-section">
@@ -299,6 +312,8 @@
           type="text"
           [(ngModel)]="searchItem3"
           (ngModelChange)="onSearchChange(3)"
+          (focus)="onFocus(3)"
+          (blur)="onBlur(3)"
           placeholder="Add another scheme or policy..."
         />
 
@@ -350,21 +365,21 @@
 
       <div
         class="suggestions"
-        *ngIf="searchItem3 && !selectedItem3">
+        *ngIf="showSuggestions(3)">
 
         <button
           type="button"
           class="suggestion-item"
           *ngFor="let item of filteredItem3"
-          (click)="selectItem3(item)">
+          (mousedown)="selectItem3(item); $event.preventDefault()">
 
-          <div class="suggestion-icon">
+          <div class="suggestion-icon" [ngClass]="item.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
             {{ item.type === 'Policy' ? 'P' : 'S' }}
           </div>
 
           <div class="suggestion-content">
             <strong>{{ item.title }}</strong>
-            <span>{{ item.type }} · {{ item.category }}</span>
+            <span>{{ item.type }} · {{ item.category }} · {{ item.ministry }}</span>
           </div>
 
         </button>
@@ -377,19 +392,18 @@
 
       </div>
 
-
       <div
         class="selected-item"
         *ngIf="selectedItem3">
 
-        <div class="selected-icon">
+        <div class="selected-icon" [ngClass]="selectedItem3.type === 'Policy' ? 'policy-type-icon' : 'scheme-type-icon'">
           {{ selectedItem3.type === 'Policy' ? 'P' : 'S' }}
         </div>
 
         <div class="selected-content">
           <span class="type-label">{{ selectedItem3.type }}</span>
           <strong>{{ selectedItem3.title }}</strong>
-          <small>{{ selectedItem3.ministry }}</small>
+          <small>{{ selectedItem3.ministry }} · {{ selectedItem3.category }}</small>
         </div>
 
         <button
@@ -403,7 +417,6 @@
 
     </div>
 
-
     <!-- Information -->
     <div class="info-box">
       <div class="info-icon">i</div>
@@ -416,7 +429,6 @@
         </p>
       </div>
     </div>
-
 
     <!-- Compare Button -->
     <button

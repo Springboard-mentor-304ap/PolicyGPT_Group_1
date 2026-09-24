@@ -6,53 +6,110 @@ from app.models.scheme import Scheme
 from app.models.user import User
 
 
-def get_dashboard_analytics(db: Session):
+# ============================================================
+# DASHBOARD ANALYTICS
+# ============================================================
+
+def get_dashboard_analytics(
+    db: Session,
+    user_id: int | None = None,
+    user_role: str | None = None,
+):
+    # Policy and scheme data are shared platform data.
+    # There is currently no owner/user_id column in these tables.
+
+    user_query = db.query(User)
+
+    if user_role == "ADMIN":
+        user_query = user_query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+    elif user_id is not None:
+        user_query = user_query.filter(
+            User.user_id == user_id
+        )
+
     return {
         "policies": {
             "total": db.query(Policy).count(),
-            "approved": db.query(Policy)
-            .filter(Policy.status == "APPROVED")
-            .count(),
-            "pending": db.query(Policy)
-            .filter(Policy.status == "PENDING_APPROVAL")
-            .count(),
-            "rejected": db.query(Policy)
-            .filter(Policy.status == "REJECTED")
-            .count(),
-            "archived": db.query(Policy)
-            .filter(Policy.status == "ARCHIVED")
-            .count(),
+
+            "approved": (
+                db.query(Policy)
+                .filter(Policy.status == "APPROVED")
+                .count()
+            ),
+
+            "pending": (
+                db.query(Policy)
+                .filter(Policy.status == "PENDING_APPROVAL")
+                .count()
+            ),
+
+            "rejected": (
+                db.query(Policy)
+                .filter(Policy.status == "REJECTED")
+                .count()
+            ),
+
+            "archived": (
+                db.query(Policy)
+                .filter(Policy.status == "ARCHIVED")
+                .count()
+            ),
         },
 
         "schemes": {
             "total": db.query(Scheme).count(),
-            "approved": db.query(Scheme)
-            .filter(Scheme.status == "APPROVED")
-            .count(),
-            "pending": db.query(Scheme)
-            .filter(Scheme.status == "PENDING_APPROVAL")
-            .count(),
-            "rejected": db.query(Scheme)
-            .filter(Scheme.status == "REJECTED")
-            .count(),
-            "archived": db.query(Scheme)
-            .filter(Scheme.status == "ARCHIVED")
-            .count(),
+
+            "approved": (
+                db.query(Scheme)
+                .filter(Scheme.status == "APPROVED")
+                .count()
+            ),
+
+            "pending": (
+                db.query(Scheme)
+                .filter(Scheme.status == "PENDING_APPROVAL")
+                .count()
+            ),
+
+            "rejected": (
+                db.query(Scheme)
+                .filter(Scheme.status == "REJECTED")
+                .count()
+            ),
+
+            "archived": (
+                db.query(Scheme)
+                .filter(Scheme.status == "ARCHIVED")
+                .count()
+            ),
         },
 
         "users": {
-            "total": db.query(User).count(),
-            "active": db.query(User)
-            .filter(User.is_active == True)
-            .count(),
-            "inactive": db.query(User)
-            .filter(User.is_active == False)
-            .count(),
+            "total": user_query.count(),
+
+            "active": (
+                user_query
+                .filter(User.is_active == True)
+                .count()
+            ),
+
+            "inactive": (
+                user_query
+                .filter(User.is_active == False)
+                .count()
+            ),
         }
     }
 
 
+# ============================================================
+# POLICY ANALYTICS
+# ============================================================
+
 def get_policy_analytics(db: Session):
+
     total = db.query(Policy).count()
 
     approved = (
@@ -144,7 +201,12 @@ def get_policy_analytics(db: Session):
     }
 
 
+# ============================================================
+# SCHEME ANALYTICS
+# ============================================================
+
 def get_scheme_analytics(db: Session):
+
     total = db.query(Scheme).count()
 
     approved = (
@@ -236,7 +298,12 @@ def get_scheme_analytics(db: Session):
     }
 
 
+# ============================================================
+# POLICY TRENDS
+# ============================================================
+
 def get_policy_trends(db: Session):
+
     trends = (
         db.query(
             extract("year", Policy.created_at).label("year"),
@@ -264,7 +331,12 @@ def get_policy_trends(db: Session):
     ]
 
 
+# ============================================================
+# SCHEME TRENDS
+# ============================================================
+
 def get_scheme_trends(db: Session):
+
     trends = (
         db.query(
             extract("year", Scheme.created_at).label("year"),
@@ -292,47 +364,84 @@ def get_scheme_trends(db: Session):
     ]
 
 
+# ============================================================
+# SCHEME USAGE
+# ============================================================
+
 def get_scheme_usage(db: Session):
+
     return {
         "total_schemes": db.query(Scheme).count(),
 
-        "approved_schemes": db.query(Scheme)
-        .filter(Scheme.status == "APPROVED")
-        .count(),
+        "approved_schemes": (
+            db.query(Scheme)
+            .filter(Scheme.status == "APPROVED")
+            .count()
+        ),
 
-        "pending_schemes": db.query(Scheme)
-        .filter(Scheme.status == "PENDING_APPROVAL")
-        .count(),
+        "pending_schemes": (
+            db.query(Scheme)
+            .filter(Scheme.status == "PENDING_APPROVAL")
+            .count()
+        ),
 
-        "rejected_schemes": db.query(Scheme)
-        .filter(Scheme.status == "REJECTED")
-        .count(),
+        "rejected_schemes": (
+            db.query(Scheme)
+            .filter(Scheme.status == "REJECTED")
+            .count()
+        ),
 
-        "archived_schemes": db.query(Scheme)
-        .filter(Scheme.status == "ARCHIVED")
-        .count(),
+        "archived_schemes": (
+            db.query(Scheme)
+            .filter(Scheme.status == "ARCHIVED")
+            .count()
+        ),
 
         "monthly_trend": get_scheme_trends(db)
     }
 
 
-def get_user_analytics(db: Session):
-    total_users = db.query(User).count()
+# ============================================================
+# USER ANALYTICS
+# ============================================================
+
+def get_user_analytics(
+    db: Session,
+    user_id: int | None = None,
+    user_role: str | None = None,
+):
+
+    query = db.query(User)
+
+    # ADMIN → CITIZEN + ADMIN
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → only themselves
+    elif user_id is not None:
+        query = query.filter(
+            User.user_id == user_id
+        )
+
+    total_users = query.count()
 
     active_users = (
-        db.query(User)
+        query
         .filter(User.is_active == True)
         .count()
     )
 
     inactive_users = (
-        db.query(User)
+        query
         .filter(User.is_active == False)
         .count()
     )
 
     by_role = (
-        db.query(
+        query
+        .with_entities(
             User.role,
             func.count(User.user_id).label("count")
         )
@@ -341,7 +450,8 @@ def get_user_analytics(db: Session):
     )
 
     by_state = (
-        db.query(
+        query
+        .with_entities(
             User.state,
             func.count(User.user_id).label("count")
         )
@@ -373,20 +483,53 @@ def get_user_analytics(db: Session):
     }
 
 
-def get_user_activity(db: Session):
+# ============================================================
+# USER ACTIVITY
+# ============================================================
+
+def get_user_activity(
+    db: Session,
+    user_id: int | None = None,
+    user_role: str | None = None,
+):
+
+    query = db.query(User)
+
+    # ADMIN → CITIZEN + ADMIN
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → only themselves
+    elif user_id is not None:
+        query = query.filter(
+            User.user_id == user_id
+        )
+
     return {
-        "total_users": db.query(User).count(),
+        "total_users": query.count(),
 
-        "active_users": db.query(User)
-        .filter(User.is_active == True)
-        .count(),
+        "active_users": (
+            query
+            .filter(User.is_active == True)
+            .count()
+        ),
 
-        "inactive_users": db.query(User)
-        .filter(User.is_active == False)
-        .count()
+        "inactive_users": (
+            query
+            .filter(User.is_active == False)
+            .count()
+        )
     }
 
+
+# ============================================================
+# DEPARTMENT ANALYTICS
+# ============================================================
+
 def get_department_analytics(db: Session):
+
     policy_departments = (
         db.query(
             Policy.ministry,
@@ -410,6 +553,7 @@ def get_department_analytics(db: Session):
     departments = {}
 
     for ministry, count in policy_departments:
+
         if ministry not in departments:
             departments[ministry] = {
                 "department": ministry,
@@ -420,6 +564,7 @@ def get_department_analytics(db: Session):
         departments[ministry]["policy_count"] = count
 
     for ministry, count in scheme_departments:
+
         if ministry not in departments:
             departments[ministry] = {
                 "department": ministry,
@@ -432,10 +577,36 @@ def get_department_analytics(db: Session):
     return list(departments.values())
 
 
-def get_usage_statistics(db: Session):
+# ============================================================
+# USAGE STATISTICS
+# ============================================================
+
+def get_usage_statistics(
+    db: Session,
+    user_id: int | None = None,
+    user_role: str | None = None,
+):
+
+    user_query = db.query(User)
+
+    # ADMIN → CITIZEN + ADMIN
+    if user_role == "ADMIN":
+        user_query = user_query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → only themselves
+    elif user_id is not None:
+        user_query = user_query.filter(
+            User.user_id == user_id
+        )
+
     return {
-        "users": db.query(User).count(),
+        "users": user_query.count(),
+
+        # Policies and schemes are shared platform data.
         "policies": db.query(Policy).count(),
+
         "schemes": db.query(Scheme).count(),
 
         "approved_policies": (
@@ -451,8 +622,194 @@ def get_usage_statistics(db: Session):
         ),
 
         "active_users": (
-            db.query(User)
+            user_query
             .filter(User.is_active == True)
             .count()
         )
     }
+
+
+# ============================================================
+# ROLE ANALYTICS
+# ============================================================
+
+def get_role_analytics(
+    db: Session,
+    user: User,
+):
+
+    role = str(user.role)
+
+    user_id = user.user_id
+    user_role = user.role
+
+    # ========================================================
+    # ADMIN
+    # ========================================================
+
+    if role == "ADMIN":
+
+        return {
+            "role": "ADMIN",
+
+            "dashboard": get_dashboard_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "policies": get_policy_analytics(db),
+
+            "schemes": get_scheme_analytics(db),
+
+            "users": get_user_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "user_activity": get_user_activity(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "departments": get_department_analytics(db),
+
+            "usage": get_usage_statistics(
+                db,
+                user_id,
+                user_role
+            )
+        }
+
+    # ========================================================
+    # GOVERNMENT OFFICIAL
+    # ========================================================
+
+    elif role == "GOVERNMENT_OFFICIAL":
+
+        return {
+            "role": "GOVERNMENT_OFFICIAL",
+
+            "policies": get_policy_analytics(db),
+
+            "schemes": get_scheme_analytics(db),
+
+            "departments": get_department_analytics(db),
+
+            "policy_trends": get_policy_trends(db),
+
+            "scheme_trends": get_scheme_trends(db),
+
+            "user": get_user_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "activity": get_user_activity(
+                db,
+                user_id,
+                user_role
+            )
+        }
+
+    # ========================================================
+    # ORGANIZATION
+    # ========================================================
+
+    elif role == "ORGANIZATION":
+
+        return {
+            "role": "ORGANIZATION",
+
+            "policies": get_policy_analytics(db),
+
+            "schemes": get_scheme_analytics(db),
+
+            "policy_trends": get_policy_trends(db),
+
+            "scheme_trends": get_scheme_trends(db),
+
+            "user": get_user_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "activity": get_user_activity(
+                db,
+                user_id,
+                user_role
+            )
+        }
+
+    # ========================================================
+    # RESEARCHER
+    # ========================================================
+
+    elif role == "RESEARCHER":
+
+        return {
+            "role": "RESEARCHER",
+
+            "policies": get_policy_analytics(db),
+
+            "schemes": get_scheme_analytics(db),
+
+            "policy_trends": get_policy_trends(db),
+
+            "scheme_trends": get_scheme_trends(db),
+
+            "departments": get_department_analytics(db),
+
+            "user": get_user_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "activity": get_user_activity(
+                db,
+                user_id,
+                user_role
+            )
+        }
+
+    # ========================================================
+    # CITIZEN
+    # ========================================================
+
+    elif role == "CITIZEN":
+
+        return {
+            "role": "CITIZEN",
+
+            "policies": get_policy_analytics(db),
+
+            "schemes": get_scheme_analytics(db),
+
+            "user": get_user_analytics(
+                db,
+                user_id,
+                user_role
+            ),
+
+            "activity": get_user_activity(
+                db,
+                user_id,
+                user_role
+            )
+        }
+
+    # ========================================================
+    # UNKNOWN ROLE
+    # ========================================================
+
+    else:
+
+        return {
+            "role": role,
+            "message": "No analytics available for this role"
+        }

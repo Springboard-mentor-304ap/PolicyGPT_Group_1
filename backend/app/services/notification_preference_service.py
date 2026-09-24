@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.orm import Session
-
+from app.models.user import User
 from app.models.notification_preference import NotificationPreference
 from app.schemas.notification_preference import (
     NotificationPreferenceCreate,
@@ -31,20 +31,41 @@ def create_preferences(
     return preference
 
 
-def get_preferences(db: Session, user_id: int):
-    return (
+def get_preferences(
+    db: Session,
+    user_id: int,
+    user_role: str,
+):
+    query = (
         db.query(NotificationPreference)
-        .filter(NotificationPreference.user_id == user_id)
-        .first()
+        .join(
+            User,
+            NotificationPreference.user_id == User.user_id
+        )
     )
+
+    # ADMIN → Citizen + Admin preferences
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → only their own preferences
+    else:
+        query = query.filter(
+            NotificationPreference.user_id == user_id
+        )
+
+    return query.first()
 
 
 def update_preferences(
     db: Session,
     user_id: int,
+    user_role: str,
     data: NotificationPreferenceUpdate,
 ):
-    preference = get_preferences(db, user_id)
+    preference = get_preferences(db, user_id, user_role,) 
 
     if not preference:
         return None

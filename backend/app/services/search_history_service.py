@@ -54,17 +54,25 @@ def delete_user_search_history(
     }
 
 
-def get_search_history_statistics(db: Session):
-    total_searches = db.query(SearchHistory).count()
+def get_search_history_statistics(
+    db: Session,
+    user_id: int | None = None,
+):
+    query = db.query(SearchHistory)
+
+    if user_id is not None:
+        query = query.filter(SearchHistory.user_id == user_id)
+
+    total_searches = query.count()
 
     policy_searches = (
-        db.query(SearchHistory)
+        query
         .filter(SearchHistory.search_type == "POLICY")
         .count()
     )
 
     scheme_searches = (
-        db.query(SearchHistory)
+        query
         .filter(SearchHistory.search_type == "SCHEME")
         .count()
     )

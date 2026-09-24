@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.routes.auth import get_current_user, require_roles
+from app.models.user import User
 from app.db.database import get_db
-from app.schemas.report import ReportCreate, ReportResponse
+
 from app.services.report_service import (
-    create_report,
-    get_reports,
-    get_report,
-    delete_report,
+    generate_report,
+    get_role_reports,
 )
 
 
@@ -17,61 +17,63 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "",
-    response_model=ReportResponse,
-)
-def create_report_route(
-    data: ReportCreate,
+ALLOWED_ROLES = [
+    "CITIZEN",
+    "RESEARCHER",
+    "ORGANIZATION",
+    "GOVERNMENT_OFFICIAL",
+    "ADMIN",
+]
+
+
+# ============================================================
+# ROLE-BASED REPORTS
+# ============================================================
+
+@router.get("/role")
+def role_reports(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    return create_report(db, data)
+    require_roles(
+        current_user,
+        ALLOWED_ROLES,
+    )
+
+    return get_role_reports(
+        db,
+        current_user,
+    )
 
 
-@router.get(
-    "",
-    response_model=list[ReportResponse],
-)
-def get_reports_route(
-    user_id: int | None = None,
+# ============================================================
+# GENERATE REPORT
+# ============================================================
+
+@router.get("/{report_type}")
+def generate_report_endpoint(
+    report_type: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    return get_reports(db, user_id)
+    require_roles(
+        current_user,
+        ALLOWED_ROLES,
+    )
 
+    try:
+        return {
+            "report_type": report_type.upper(),
 
-@router.get(
-    "/{report_id}",
-    response_model=ReportResponse,
-)
-def get_report_route(
-    report_id: int,
-    db: Session = Depends(get_db),
-):
-    report = get_report(db, report_id)
+            "data": generate_report(
+                db=db,
+                report_type=report_type,
+                user=current_user,
+            ),
+        }
 
-    if not report:
+    except ValueError as e:
         raise HTTPException(
-            status_code=404,
-            detail="Report not found",
+            status_code=400,
+            detail=str(e),
         )
-
-    return report
-
-
-@router.delete("/{report_id}")
-def delete_report_route(
-    report_id: int,
-    db: Session = Depends(get_db),
-):
-    report = delete_report(db, report_id)
-
-    if not report:
-        raise HTTPException(
-            status_code=404,
-            detail="Report not found",
-        )
-
-    return {
-        "message": "Report deleted successfully",
-        "report_id": report_id,
-    }

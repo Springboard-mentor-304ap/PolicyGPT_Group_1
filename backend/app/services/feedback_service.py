@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from app.models.user import User
 from sqlalchemy.orm import Session
 
 from app.models.feedback import Feedback
@@ -33,42 +33,109 @@ def create_feedback(
 def get_feedback(
     db: Session,
     feedback_id: int,
+    user_id: int,
+    user_role: str,
 ):
-    return (
+    query = (
         db.query(Feedback)
-        .filter(Feedback.feedback_id == feedback_id)
-        .first()
+        .join(
+            User,
+            Feedback.user_id == User.user_id
+        )
+        .filter(
+            Feedback.feedback_id == feedback_id
+        )
     )
 
+    # ADMIN → Citizen + Admin feedback
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → own feedback
+    else:
+        query = query.filter(
+            Feedback.user_id == user_id
+        )
+
+    return query.first()
 
 def get_all_feedback(
     db: Session,
+    user_id: int,
+    user_role: str,
 ):
-    return (
+    query = (
         db.query(Feedback)
+        .join(
+            User,
+            Feedback.user_id == User.user_id
+        )
+    )
+
+    # ADMIN → Citizen + Admin
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → own feedback
+    else:
+        query = query.filter(
+            Feedback.user_id == user_id
+        )
+
+    return (
+        query
         .order_by(Feedback.created_at.desc())
         .all()
     )
-
 
 def get_user_feedback(
     db: Session,
     user_id: int,
+    user_role: str,
 ):
-    return (
+    query = (
         db.query(Feedback)
-        .filter(Feedback.user_id == user_id)
+        .join(
+            User,
+            Feedback.user_id == User.user_id
+        )
+    )
+
+    # ADMIN → Citizen + Admin
+    if user_role == "ADMIN":
+        query = query.filter(
+            User.role.in_(["CITIZEN", "ADMIN"])
+        )
+
+    # NORMAL USER → own feedback
+    else:
+        query = query.filter(
+            Feedback.user_id == user_id
+        )
+
+    return (
+        query
         .order_by(Feedback.created_at.desc())
         .all()
     )
 
-
 def update_feedback(
     db: Session,
     feedback_id: int,
+    user_id: int,
+    user_role: str,
     data: FeedbackUpdate,
 ):
-    feedback = get_feedback(db, feedback_id)
+    feedback = get_feedback(
+        db,
+        feedback_id,
+        user_id,
+        user_role,
+    )
 
     if not feedback:
         return None
@@ -89,8 +156,15 @@ def update_feedback(
 def delete_feedback(
     db: Session,
     feedback_id: int,
+    user_id: int,
+    user_role: str,
 ):
-    feedback = get_feedback(db, feedback_id)
+    feedback = get_feedback(
+        db,
+        feedback_id,
+        user_id,
+        user_role,
+    )
 
     if not feedback:
         return None

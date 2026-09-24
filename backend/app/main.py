@@ -22,6 +22,7 @@ from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.policy import router as policy_router
 from app.api.routes.scheme import router as scheme_router
 from app.api.routes.eligibility import router as eligibility_router
+from app.api.routes.role_based import router as role_based_router
 
 from app.db.database import Base, engine
 
@@ -134,6 +135,7 @@ app.include_router(feedback_router)
 app.include_router(faqs_router)
 app.include_router(audit_logs_router)
 app.include_router(search_history_router)
+app.include_router(role_based_router)
 # =========================================================
 # ROOT
 # =========================================================

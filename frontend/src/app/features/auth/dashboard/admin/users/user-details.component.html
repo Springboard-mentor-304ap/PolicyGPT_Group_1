@@ -1,0 +1,648 @@
+<div class="user-details-page">
+
+    <!-- MAIN CONTENT -->
+    <main class="user-details-content">
+
+        <!-- BREADCRUMB -->
+        <div class="user-details-breadcrumb">
+            <button type="button" (click)="goToDashboard()">
+                Admin Dashboard
+            </button>
+            <span class="material-icons">chevron_right</span>
+            <button type="button" (click)="goToViewUsers()">
+                Users
+            </button>
+            <span class="material-icons">chevron_right</span>
+            <button type="button" (click)="goToViewUsers()">
+                View Users
+            </button>
+            <span class="material-icons">chevron_right</span>
+            <strong>
+                User Details
+            </strong>
+        </div>
+
+        <!-- HEADER & BACK ACTION -->
+        <section class="user-details-header">
+            <div>
+                <p class="user-details-header__eyebrow">
+                    USER MANAGEMENT
+                </p>
+                <h1>
+                    User Details
+                </h1>
+                <p>
+                    Comprehensive profile, viewing history, and platform activity records for this user.
+                </p>
+            </div>
+
+            <button type="button" class="back-button" (click)="goToViewUsers()">
+                <span class="material-icons">arrow_back</span>
+                Back to Users
+            </button>
+        </section>
+
+        <!-- LOADING STATE -->
+        @if (isLoadingUser) {
+        <div class="details-state details-state--loading">
+            <div class="details-spinner"></div>
+            <p>Loading user details...</p>
+        </div>
+        }
+
+        <!-- ERROR STATE -->
+        @else if (userError) {
+        <div class="details-state details-state--error">
+            <span class="material-icons">error_outline</span>
+            <h3>Unable to Load User</h3>
+            <p>{{ userError }}</p>
+            <button type="button" class="retry-button" (click)="goToViewUsers()">
+                <span class="material-icons">arrow_back</span>
+                Return to View Users
+            </button>
+        </div>
+        }
+
+        <!-- USER PROFILE LOADED -->
+        @else if (user) {
+
+        <!-- PROFILE CARD -->
+        <section class="profile-card">
+            <div class="profile-card__main">
+                <div class="profile-card__avatar" [ngClass]="getRoleClass(user.role)">
+                    <span class="material-icons">
+                        {{ getRoleIcon(user.role) }}
+                    </span>
+                </div>
+
+                <div class="profile-card__identity">
+                    <div class="profile-card__title-row">
+                        <h2>{{ user.fullName }}</h2>
+                        <span class="user-badge" [ngClass]="getRoleClass(user.role)">
+                            <span class="material-icons">{{ getRoleIcon(user.role) }}</span>
+                            {{ getRoleLabel(user.role) }}
+                        </span>
+                        <span
+                            class="status-pill"
+                            [class.status-pill--active]="user.status === 'Active'"
+                            [class.status-pill--inactive]="user.status === 'Inactive'"
+                        >
+                            <span></span>
+                            {{ user.status }}
+                        </span>
+                    </div>
+
+                    <div class="profile-card__contact-row">
+                        <span class="contact-item">
+                            <span class="material-icons">email</span>
+                            {{ user.email }}
+                        </span>
+                        <span class="contact-item">
+                            <span class="material-icons">call</span>
+                            {{ user.phone }}
+                        </span>
+                        <span class="contact-item">
+                            <span class="material-icons">place</span>
+                            {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' + user.district : '' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- METADATA GRID -->
+            <div class="profile-card__meta-grid">
+                <div class="meta-item">
+                    <span class="meta-item__label">Occupation</span>
+                    <strong class="meta-item__value">{{ user.occupation }}</strong>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item__label">Organization</span>
+                    <strong class="meta-item__value">{{ user.organization }}</strong>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item__label">Member Since</span>
+                    <strong class="meta-item__value">{{ user.joinedDate }}</strong>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-item__label">Last Profile Update</span>
+                    <strong class="meta-item__value">{{ user.updatedDate }}</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUMMARY CARDS: DYNAMIC BY ROLE -->
+        @if (isCreatorRole(user.role)) {
+        <!-- CREATOR ROLES (GOVERNMENT & ADMIN) -->
+        <section class="summary-cards">
+            <!-- POLICIES CREATED -->
+            <article class="summary-card" (click)="setTab('policies')">
+                <div class="summary-card__icon summary-card__icon--blue">
+                    <span class="material-icons">policy</span>
+                </div>
+                <div>
+                    <strong>{{ userPolicies.length }}</strong>
+                    <span>Policies Created</span>
+                </div>
+            </article>
+
+            <!-- SCHEMES CREATED -->
+            <article class="summary-card" (click)="setTab('schemes')">
+                <div class="summary-card__icon summary-card__icon--green">
+                    <span class="material-icons">article</span>
+                </div>
+                <div>
+                    <strong>{{ userSchemes.length }}</strong>
+                    <span>Schemes Created</span>
+                </div>
+            </article>
+
+            <!-- APPROVED ITEMS -->
+            <article class="summary-card">
+                <div class="summary-card__icon summary-card__icon--teal">
+                    <span class="material-icons">verified</span>
+                </div>
+                <div>
+                    <strong>{{ approvedCount }}</strong>
+                    <span>Approved Content</span>
+                </div>
+            </article>
+
+            <!-- PENDING ITEMS -->
+            <article class="summary-card">
+                <div class="summary-card__icon summary-card__icon--orange">
+                    <span class="material-icons">hourglass_top</span>
+                </div>
+                <div>
+                    <strong>{{ pendingCount }}</strong>
+                    <span>Pending Review</span>
+                </div>
+            </article>
+        </section>
+        } @else {
+        <!-- CONSUMER ROLES (CITIZEN, RESEARCHER, ORGANIZATION) -->
+        <section class="summary-cards">
+            <!-- RECENT SEARCHES -->
+            <article class="summary-card" (click)="setTab('searches')">
+                <div class="summary-card__icon summary-card__icon--blue">
+                    <span class="material-icons">search</span>
+                </div>
+                <div>
+                    <strong>{{ userSearches.length }}</strong>
+                    <span>Searches Conducted</span>
+                </div>
+            </article>
+
+            <!-- POLICIES EXPLORED -->
+            <article class="summary-card" (click)="setTab('activity')">
+                <div class="summary-card__icon summary-card__icon--green">
+                    <span class="material-icons">travel_explore</span>
+                </div>
+                <div>
+                    <strong>{{ policySearchesCount }}</strong>
+                    <span>Policies Explored</span>
+                </div>
+            </article>
+
+            <!-- SCHEMES EXPLORED -->
+            <article class="summary-card" (click)="setTab('activity')">
+                <div class="summary-card__icon summary-card__icon--teal">
+                    <span class="material-icons">article</span>
+                </div>
+                <div>
+                    <strong>{{ schemeSearchesCount }}</strong>
+                    <span>Schemes Explored</span>
+                </div>
+            </article>
+
+            <!-- TOTAL ACTIVITY -->
+            <article class="summary-card" (click)="setTab('activity')">
+                <div class="summary-card__icon summary-card__icon--purple">
+                    <span class="material-icons">timeline</span>
+                </div>
+                <div>
+                    <strong>{{ userActivities.length }}</strong>
+                    <span>Recent Activities</span>
+                </div>
+            </article>
+        </section>
+        }
+
+        <!-- TABS CONTAINER -->
+        <section class="details-tabs-panel">
+
+            <!-- TAB HEADERS -->
+            <div class="details-tab-nav" role="tablist">
+                <button
+                    type="button"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab === 'overview'"
+                    (click)="setTab('overview')"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'overview'"
+                >
+                    <span class="material-icons">person_outline</span>
+                    <span>Overview</span>
+                </button>
+
+                <!-- TABS FOR GOVERNMENT & ADMIN -->
+                @if (isCreatorRole(user.role)) {
+                <button
+                    type="button"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab === 'policies'"
+                    (click)="setTab('policies')"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'policies'"
+                >
+                    <span class="material-icons">policy</span>
+                    <span>Policies Created</span>
+                    <span class="tab-badge">{{ userPolicies.length }}</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab === 'schemes'"
+                    (click)="setTab('schemes')"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'schemes'"
+                >
+                    <span class="material-icons">article</span>
+                    <span>Schemes Created</span>
+                    <span class="tab-badge">{{ userSchemes.length }}</span>
+                </button>
+                }
+
+                <!-- TAB FOR RECENT ACTIVITY (ALL USERS) -->
+                <button
+                    type="button"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab === 'activity'"
+                    (click)="setTab('activity')"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'activity'"
+                >
+                    <span class="material-icons">timeline</span>
+                    <span>Recent Activity</span>
+                    <span class="tab-badge">{{ userActivities.length }}</span>
+                </button>
+
+                <!-- SEARCH & INQUIRY HISTORY (CITIZEN, RESEARCHER, ORGANIZATION) -->
+                @if (!isCreatorRole(user.role)) {
+                <button
+                    type="button"
+                    class="tab-btn"
+                    [class.tab-btn--active]="activeTab === 'searches'"
+                    (click)="setTab('searches')"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'searches'"
+                >
+                    <span class="material-icons">search</span>
+                    <span>Search & Exploration History</span>
+                    <span class="tab-badge">{{ userSearches.length }}</span>
+                </button>
+                }
+            </div>
+
+            <!-- TAB CONTENT: OVERVIEW -->
+            @if (activeTab === 'overview') {
+            <div class="tab-content tab-content--overview">
+                <div class="overview-grid">
+
+                    <!-- ACCOUNT INFORMATION -->
+                    <div class="info-block">
+                        <div class="info-block__header">
+                            <span class="material-icons">badge</span>
+                            <h3>Account Information</h3>
+                        </div>
+                        <div class="info-block__body">
+                            <div class="info-row">
+                                <span class="info-label">User ID:</span>
+                                <span class="info-value">#{{ user.id }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Full Name:</span>
+                                <span class="info-value">{{ user.fullName }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email Address:</span>
+                                <span class="info-value">{{ user.email }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Contact Phone:</span>
+                                <span class="info-value">{{ user.phone }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">System Role:</span>
+                                <span class="info-value">{{ getRoleLabel(user.role) }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Account Status:</span>
+                                <span class="info-value">{{ user.status }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROFILE & REGIONAL DETAILS -->
+                    <div class="info-block">
+                        <div class="info-block__header">
+                            <span class="material-icons">location_city</span>
+                            <h3>Professional & Regional Details</h3>
+                        </div>
+                        <div class="info-block__body">
+                            <div class="info-row">
+                                <span class="info-label">Organization:</span>
+                                <span class="info-value">{{ user.organization }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Occupation:</span>
+                                <span class="info-value">{{ user.occupation }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">State / Region:</span>
+                                <span class="info-value">{{ user.state }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">District:</span>
+                                <span class="info-value">{{ user.district }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Registration Date:</span>
+                                <span class="info-value">{{ user.joinedDate }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Last Profile Update:</span>
+                                <span class="info-value">{{ user.updatedDate }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            }
+
+            <!-- TAB CONTENT: POLICIES CREATED (GOVERNMENT & ADMIN ONLY) -->
+            @if (activeTab === 'policies' && isCreatorRole(user.role)) {
+            <div class="tab-content tab-content--policies">
+                @if (isLoadingPolicies) {
+                <div class="details-state details-state--inner-loading">
+                    <div class="details-spinner"></div>
+                    <p>Loading policies...</p>
+                </div>
+                } @else if (policiesError) {
+                <div class="details-state details-state--error">
+                    <span class="material-icons">error_outline</span>
+                    <p>{{ policiesError }}</p>
+                </div>
+                } @else if (userPolicies.length > 0) {
+                <div class="records-table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>POLICY</th>
+                                <th>STATUS</th>
+                                <th>CATEGORY</th>
+                                <th>MINISTRY / DEPT</th>
+                                <th>CREATED</th>
+                                <th class="th-actions">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (policy of userPolicies; track policy.policy_id) {
+                            <tr>
+                                <td>
+                                    <div class="record-title-box">
+                                        <strong>{{ policy.title }}</strong>
+                                        @if (policy.state) {
+                                        <span class="record-location">{{ policy.state }}</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge" [ngClass]="getStatusClass(policy.status)">
+                                        {{ formatStatusLabel(policy.status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="category-pill">{{ policy.category || '-' }}</span>
+                                </td>
+                                <td>
+                                    <span class="ministry-text">{{ policy.ministry || policy.department || '-' }}</span>
+                                </td>
+                                <td>
+                                    <span class="record-date">{{ formatDate(policy.created_at) }}</span>
+                                </td>
+                                <td class="td-actions">
+                                    <button
+                                        type="button"
+                                        class="view-link-btn"
+                                        (click)="viewPolicyDetails(policy.policy_id)"
+                                        aria-label="View policy details"
+                                    >
+                                        <span class="material-icons">visibility</span>
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                } @else {
+                <div class="empty-tab-state">
+                    <span class="material-icons">policy</span>
+                    <h3>No Policies Created</h3>
+                    <p>No policies have been created by this user.</p>
+                </div>
+                }
+            </div>
+            }
+
+            <!-- TAB CONTENT: SCHEMES CREATED (GOVERNMENT & ADMIN ONLY) -->
+            @if (activeTab === 'schemes' && isCreatorRole(user.role)) {
+            <div class="tab-content tab-content--schemes">
+                @if (isLoadingSchemes) {
+                <div class="details-state details-state--inner-loading">
+                    <div class="details-spinner"></div>
+                    <p>Loading schemes...</p>
+                </div>
+                } @else if (schemesError) {
+                <div class="details-state details-state--error">
+                    <span class="material-icons">error_outline</span>
+                    <p>{{ schemesError }}</p>
+                </div>
+                } @else if (userSchemes.length > 0) {
+                <div class="records-table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>SCHEME</th>
+                                <th>STATUS</th>
+                                <th>CATEGORY</th>
+                                <th>MINISTRY / DEPT</th>
+                                <th>CREATED</th>
+                                <th class="th-actions">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (scheme of userSchemes; track scheme.scheme_id) {
+                            <tr>
+                                <td>
+                                    <div class="record-title-box">
+                                        <strong>{{ scheme.name }}</strong>
+                                        @if (scheme.state) {
+                                        <span class="record-location">{{ scheme.state }}</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge" [ngClass]="getStatusClass(scheme.status)">
+                                        {{ formatStatusLabel(scheme.status) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="category-pill">{{ scheme.category || '-' }}</span>
+                                </td>
+                                <td>
+                                    <span class="ministry-text">{{ scheme.ministry || scheme.department || '-' }}</span>
+                                </td>
+                                <td>
+                                    <span class="record-date">{{ formatDate(scheme.created_at) }}</span>
+                                </td>
+                                <td class="td-actions">
+                                    <button
+                                        type="button"
+                                        class="view-link-btn"
+                                        (click)="viewSchemeDetails(scheme.scheme_id)"
+                                        aria-label="View scheme details"
+                                    >
+                                        <span class="material-icons">visibility</span>
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                } @else {
+                <div class="empty-tab-state">
+                    <span class="material-icons">article</span>
+                    <h3>No Schemes Created</h3>
+                    <p>No schemes have been created by this user.</p>
+                </div>
+                }
+            </div>
+            }
+
+            <!-- TAB CONTENT: RECENT ACTIVITY (ALL ROLES) -->
+            @if (activeTab === 'activity') {
+            <div class="tab-content tab-content--activity">
+                @if (isLoadingActivity && isLoadingSearches) {
+                <div class="details-state details-state--inner-loading">
+                    <div class="details-spinner"></div>
+                    <p>Compiling recent activity...</p>
+                </div>
+                } @else if (userActivities.length > 0) {
+                <div class="timeline-container">
+                    <div class="timeline-list">
+                        @for (activity of userActivities; track activity.id) {
+                        <div class="timeline-item">
+                            <div class="timeline-item__badge" [ngClass]="activity.iconClass">
+                                <span class="material-icons">{{ activity.icon }}</span>
+                            </div>
+
+                            <div class="timeline-item__content">
+                                <div class="timeline-item__header">
+                                    <strong class="timeline-item__action">{{ activity.action }}</strong>
+                                    <span class="timeline-item__date">
+                                        <span class="material-icons">schedule</span>
+                                        {{ formatDateTime(activity.timestamp) }}
+                                    </span>
+                                </div>
+
+                                <p class="timeline-item__title">{{ activity.title }}</p>
+
+                                @if (activity.subtitle) {
+                                <span class="timeline-item__subtitle">{{ activity.subtitle }}</span>
+                                }
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+                } @else {
+                <div class="empty-tab-state">
+                    <span class="material-icons">history</span>
+                    <h3>No Recent Activity</h3>
+                    <p>No recent activity or viewed content is available for this user.</p>
+                </div>
+                }
+            </div>
+            }
+
+            <!-- TAB CONTENT: SEARCH & EXPLORATION HISTORY (CITIZEN, RESEARCHER, ORGANIZATION) -->
+            @if (activeTab === 'searches' && !isCreatorRole(user.role)) {
+            <div class="tab-content tab-content--searches">
+                @if (isLoadingSearches) {
+                <div class="details-state details-state--inner-loading">
+                    <div class="details-spinner"></div>
+                    <p>Loading search records...</p>
+                </div>
+                } @else if (userSearches.length > 0) {
+                <div class="records-table-container">
+                    <table class="records-table">
+                        <thead>
+                            <tr>
+                                <th>SEARCH QUERY</th>
+                                <th>CATEGORY / TYPE</th>
+                                <th>APPLIED FILTERS</th>
+                                <th>SEARCHED AT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (search of userSearches; track search.history_id) {
+                            <tr>
+                                <td>
+                                    <div class="search-query-cell">
+                                        <span class="material-icons">search</span>
+                                        <strong>"{{ search.search_query || 'All Items' }}"</strong>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="category-pill">
+                                        {{ search.search_type || 'General' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="filters-text">
+                                        {{ formatSearchFilters(search.filters) }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="record-date">
+                                        {{ formatDateTime(search.searched_at) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                } @else {
+                <div class="empty-tab-state">
+                    <span class="material-icons">manage_search</span>
+                    <h3>No Searches Recorded</h3>
+                    <p>This user has not performed any searches or catalog queries yet.</p>
+                </div>
+                }
+            </div>
+            }
+
+        </section>
+
+        }
+
+    </main>
+
+</div>

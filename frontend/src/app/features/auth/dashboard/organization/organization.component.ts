@@ -1,8 +1,19 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, ChangeDetectorRef, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
+import { forkJoin, of } from "rxjs";
+import { catchError } from "rxjs/operators";
 
 import { Auth, AuthUser } from "../../../../core/services/auth";
+import {
+  AnalyticsService,
+  PolicyAnalyticsResponse,
+  SchemeAnalyticsResponse,
+} from "../../../../core/services/analytics.service";
+import { PolicyService } from "../../../../core/services/policy.service";
+import { SchemeService } from "../../../../core/services/scheme.service";
+import { PolicyResponse } from "../../../../core/models/policy.model";
+import { SchemeResponse } from "../../../../core/models/scheme.model";
 
 /* =========================================================
    STAT CARD
@@ -10,13 +21,9 @@ import { Auth, AuthUser } from "../../../../core/services/auth";
 
 export interface OrganizationStat {
   icon: string;
-
   color: "blue" | "orange" | "green" | "purple";
-
   value: number;
-
   label: string;
-
   sub?: string;
 }
 
@@ -25,14 +32,11 @@ export interface OrganizationStat {
    ========================================================= */
 
 export interface OrganizationActivity {
+  id?: number;
   icon: string;
-
   type: "policy" | "scheme" | "comparison" | "insight";
-
   title: string;
-
   description: string;
-
   date: string;
 }
 
@@ -42,11 +46,8 @@ export interface OrganizationActivity {
 
 export interface OrganizationQuickAction {
   icon: string;
-
   title: string;
-
   description: string;
-
   route: string;
 }
 
@@ -56,9 +57,7 @@ export interface OrganizationQuickAction {
 
 export interface SectorInsight {
   name: string;
-
   percentage: number;
-
   icon: string;
 }
 
@@ -67,12 +66,10 @@ export interface SectorInsight {
    ========================================================= */
 
 export interface SavedOrganizationItem {
+  id?: number;
   type: "policy" | "scheme";
-
   name: string;
-
   ministry: string;
-
   savedOn: string;
 }
 
@@ -82,38 +79,35 @@ export interface SavedOrganizationItem {
 
 @Component({
   selector: "app-organization",
-
   standalone: true,
-
   imports: [CommonModule],
-
   templateUrl: "./organization.component.html",
-
   styleUrl: "./organization.component.scss",
 })
 export class OrganizationComponent implements OnInit {
+  private readonly authService = inject(Auth);
+  private readonly router = inject(Router);
+  private readonly analyticsService = inject(AnalyticsService);
+  private readonly policyService = inject(PolicyService);
+  private readonly schemeService = inject(SchemeService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   /* =======================================================
      USER
      ======================================================= */
 
   user: AuthUser | null = null;
-
   userName = "Organization";
-
   userRole = "ORGANIZATION";
-
   loadingUser = true;
 
   /* =======================================================
      LOADING STATES
      ======================================================= */
 
-  loadingStats = false;
-
-  loadingActivity = false;
-
-  loadingInsights = false;
-
+  loadingStats = true;
+  loadingActivity = true;
+  loadingInsights = true;
   loadingSavedItems = false;
 
   /* =======================================================
@@ -123,50 +117,31 @@ export class OrganizationComponent implements OnInit {
   organizationStats: OrganizationStat[] = [
     {
       icon: "policy",
-
       color: "blue",
-
-      value: 248,
-
-      label: "Policies Viewed",
-
-      sub: "This month",
+      value: 0,
+      label: "Policies Available",
+      sub: "Active public policies",
     },
-
     {
       icon: "account_balance",
-
       color: "orange",
-
-      value: 126,
-
+      value: 0,
       label: "Schemes Explored",
-
-      sub: "This month",
+      sub: "Active public schemes",
     },
-
     {
       icon: "bookmark",
-
       color: "green",
-
-      value: 18,
-
+      value: 0,
       label: "Saved Items",
-
       sub: "Policies & schemes",
     },
-
     {
-      icon: "compare_arrows",
-
+      icon: "category",
       color: "purple",
-
-      value: 32,
-
-      label: "Comparisons",
-
-      sub: "Completed",
+      value: 0,
+      label: "Sectors Covered",
+      sub: "Across development areas",
     },
   ];
 
@@ -174,55 +149,7 @@ export class OrganizationComponent implements OnInit {
      RECENT ORGANIZATION ACTIVITY
      ======================================================= */
 
-  recentActivity: OrganizationActivity[] = [
-    {
-      icon: "policy",
-
-      type: "policy",
-
-      title: "National Education Policy 2020",
-
-      description: "Ministry of Education",
-
-      date: "Today, 10:30 AM",
-    },
-
-    {
-      icon: "account_balance",
-
-      type: "scheme",
-
-      title: "PM Kisan Samman Nidhi",
-
-      description: "Ministry of Agriculture & Farmers Welfare",
-
-      date: "Yesterday, 4:15 PM",
-    },
-
-    {
-      icon: "compare_arrows",
-
-      type: "comparison",
-
-      title: "Education Policy Comparison",
-
-      description: "Compared 3 government policies",
-
-      date: "Sep 4, 2026",
-    },
-
-    {
-      icon: "analytics",
-
-      type: "insight",
-
-      title: "Healthcare Policy Analysis",
-
-      description: "Sector-wise policy analysis",
-
-      date: "Sep 3, 2026",
-    },
-  ];
+  recentActivity: OrganizationActivity[] = [];
 
   /* =======================================================
      QUICK RESEARCH / ORGANIZATION ACTIONS
@@ -231,42 +158,27 @@ export class OrganizationComponent implements OnInit {
   quickActions: OrganizationQuickAction[] = [
     {
       icon: "manage_search",
-
       title: "Search Policies",
-
       description: "Find relevant government policies",
-
-      route: "/policies",
+      route: "/dashboard/organization/policies",
     },
-
     {
       icon: "account_balance",
-
       title: "Search Schemes",
-
       description: "Explore government schemes",
-
-      route: "/schemes",
+      route: "/dashboard/organization/schemes",
     },
-
     {
       icon: "compare_arrows",
-
       title: "Compare Policies",
-
       description: "Compare policies and schemes",
-
-      route: "/compare",
+      route: "/dashboard/organization/compare",
     },
-
     {
-      icon: "analytics",
-
+      icon: "insights",
       title: "Organization Insights",
-
-      description: "View policy and sector insights",
-
-      route: "/analytics",
+      description: "Explore policy repository & trends",
+      route: "/dashboard/organization/policies",
     },
   ];
 
@@ -274,347 +186,334 @@ export class OrganizationComponent implements OnInit {
      SECTOR INSIGHTS
      ======================================================= */
 
-  sectorInsights: SectorInsight[] = [
-    {
-      name: "Education",
-
-      percentage: 42,
-
-      icon: "school",
-    },
-
-    {
-      name: "Healthcare",
-
-      percentage: 27,
-
-      icon: "local_hospital",
-    },
-
-    {
-      name: "Agriculture",
-
-      percentage: 18,
-
-      icon: "agriculture",
-    },
-
-    {
-      name: "Technology",
-
-      percentage: 13,
-
-      icon: "computer",
-    },
-  ];
+  sectorInsights: SectorInsight[] = [];
 
   /* =======================================================
      SAVED ORGANIZATION ITEMS
      ======================================================= */
 
-  savedItems: SavedOrganizationItem[] = [
-    {
-      type: "policy",
-
-      name: "National Education Policy 2020",
-
-      ministry: "Ministry of Education",
-
-      savedOn: "Sep 4, 2026",
-    },
-
-    {
-      type: "policy",
-
-      name: "National Health Policy",
-
-      ministry: "Ministry of Health & Family Welfare",
-
-      savedOn: "Sep 3, 2026",
-    },
-
-    {
-      type: "scheme",
-
-      name: "PM Kisan Samman Nidhi",
-
-      ministry: "Ministry of Agriculture & Farmers Welfare",
-
-      savedOn: "Sep 2, 2026",
-    },
-  ];
-
-  /* =======================================================
-     CONSTRUCTOR
-     ======================================================= */
-
-  constructor(
-    private readonly authService: Auth,
-
-    private readonly router: Router,
-  ) {}
-
-  /* =======================================================
-     INIT
-     ======================================================= */
+  savedItems: SavedOrganizationItem[] = [];
 
   ngOnInit(): void {
     this.loadCurrentUser();
   }
 
-  /* =======================================================
-     DASHBOARD TITLE
-     ======================================================= */
-
   get dashboardTitle(): string {
     return "ORGANIZATION DASHBOARD";
   }
-
-  /* =======================================================
-     DISPLAY ROLE
-     ======================================================= */
 
   get displayRole(): string {
     return "Organization";
   }
 
-  /* =======================================================
-     LOAD CURRENT USER
-     ======================================================= */
-
   private loadCurrentUser(): void {
     this.loadingUser = true;
 
-    /* -----------------------------------------------------
-       GET CACHED USER
-       ----------------------------------------------------- */
-
     const cachedUser = this.authService.getStoredUser();
-
     if (cachedUser) {
       this.setUserDetails(cachedUser);
-
       this.loadingUser = false;
     }
-
-    /* -----------------------------------------------------
-       CHECK TOKEN
-       ----------------------------------------------------- */
 
     const token = this.authService.getToken();
-
     if (!token) {
       this.loadingUser = false;
-
       this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
+      this.router.navigate(["/auth/login"], { replaceUrl: true });
       return;
     }
-
-    /* -----------------------------------------------------
-       GET CURRENT USER
-       ----------------------------------------------------- */
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
-        if (!user) {
-          this.loadingUser = false;
-
-          return;
+        if (user) {
+          this.setUserDetails(user);
         }
-
-        this.setUserDetails(user);
-
         this.loadingUser = false;
+        this.loadDashboardData();
+        this.cdr.detectChanges();
       },
-
-      error: (error: unknown) => {
+      error: () => {
         this.loadingUser = false;
-
-        console.error("GET CURRENT ORGANIZATION USER ERROR:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
+        this.loadDashboardData();
+        this.cdr.detectChanges();
       },
     });
   }
 
-  /* =======================================================
-     SET USER DETAILS
-     ======================================================= */
+  private loadDashboardData(): void {
+    const savedCount = this.getSavedItemsCount();
+
+    forkJoin({
+      policyAnalytics: this.analyticsService
+        .getPolicyAnalytics()
+        .pipe(catchError(() => of({ total: 0, approved: 0, pending: 0, rejected: 0, archived: 0, by_category: [], by_state: [], by_ministry: [], monthly_trend: [] } as PolicyAnalyticsResponse))),
+      schemeAnalytics: this.analyticsService
+        .getSchemeAnalytics()
+        .pipe(catchError(() => of({ total: 0, active: 0, pending: 0, rejected: 0, archived: 0, by_category: [], by_state: [], by_ministry: [], monthly_trend: [] } as SchemeAnalyticsResponse))),
+      policies: this.policyService
+        .getPolicies({ status: "APPROVED", limit: 3 })
+        .pipe(catchError(() => of({ policies: [], total: 0, page: 1, pages: 1, limit: 3 }))),
+      schemes: this.schemeService
+        .getSchemes({ status: "APPROVED", limit: 3 })
+        .pipe(catchError(() => of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }))),
+    }).subscribe({
+      next: ({ policyAnalytics, schemeAnalytics, policies, schemes }) => {
+        const approvedPolicies = policyAnalytics.approved || policyAnalytics.total || 0;
+        const activeSchemes = schemeAnalytics.active || schemeAnalytics.total || 0;
+        const totalCategories = (policyAnalytics.by_category?.length || 0) + (schemeAnalytics.by_category?.length || 0);
+
+        this.organizationStats = [
+          {
+            icon: "policy",
+            color: "blue",
+            value: approvedPolicies,
+            label: "Policies Available",
+            sub: "Active public policies",
+          },
+          {
+            icon: "account_balance",
+            color: "orange",
+            value: activeSchemes,
+            label: "Schemes Explored",
+            sub: "Active public schemes",
+          },
+          {
+            icon: "bookmark",
+            color: "green",
+            value: savedCount,
+            label: "Saved Items",
+            sub: "Policies & schemes",
+          },
+          {
+            icon: "category",
+            color: "purple",
+            value: totalCategories,
+            label: "Sectors Covered",
+            sub: "Development areas",
+          },
+        ];
+        this.loadingStats = false;
+
+        // Process Sector Insights dynamically
+        this.computeSectorInsights(policyAnalytics.by_category || []);
+        this.loadingInsights = false;
+
+        // Populate recent activity
+        const activityList: OrganizationActivity[] = [];
+
+        const policyList: PolicyResponse[] = Array.isArray(policies?.policies) ? policies.policies : [];
+        policyList.forEach((p) => {
+          activityList.push({
+            id: p.policy_id,
+            icon: "policy",
+            type: "policy",
+            title: p.title,
+            description: p.ministry || p.department || "Government Policy",
+            date: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
+          });
+        });
+
+        const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes) ? schemes.schemes : [];
+        schemeList.forEach((s) => {
+          activityList.push({
+            id: s.scheme_id,
+            icon: "account_balance",
+            type: "scheme",
+            title: s.name || (s as any).title || "Government Scheme",
+            description: s.ministry || s.department || "Public Scheme",
+            date: s.created_at ? new Date(s.created_at).toLocaleDateString() : "Recent",
+          });
+        });
+
+        this.recentActivity = activityList.slice(0, 4);
+        this.loadingActivity = false;
+
+        // Load saved items from bookmarks
+        this.loadSavedItemsFromStorage();
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("[ORGANIZATION DASHBOARD] Error loading data:", err);
+        this.loadingStats = false;
+        this.loadingInsights = false;
+        this.loadingActivity = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private computeSectorInsights(categories: { category: string; count: number }[]): void {
+    if (!categories.length) {
+      this.sectorInsights = [];
+      return;
+    }
+
+    const totalCount = categories.reduce((sum, c) => sum + (c.count || 0), 0) || 1;
+    const sorted = [...categories].sort((a, b) => (b.count || 0) - (a.count || 0)).slice(0, 4);
+
+    this.sectorInsights = sorted.map((item) => {
+      const percentage = Math.round(((item.count || 0) / totalCount) * 100);
+      return {
+        name: item.category || "General",
+        percentage: Math.max(percentage, 5),
+        icon: this.getCategoryIcon(item.category),
+      };
+    });
+  }
+
+  private getCategoryIcon(category?: string | null): string {
+    const cat = (category || "").toLowerCase();
+    if (cat.includes("education") || cat.includes("school")) return "school";
+    if (cat.includes("health") || cat.includes("medical")) return "local_hospital";
+    if (cat.includes("agri") || cat.includes("farmer")) return "agriculture";
+    if (cat.includes("tech") || cat.includes("digital")) return "computer";
+    if (cat.includes("finance") || cat.includes("bank")) return "account_balance";
+    return "business";
+  }
+
+  private loadSavedItemsFromStorage(): void {
+    try {
+      const p = localStorage.getItem("policy_bookmarks") || localStorage.getItem("saved_policies");
+      const s = localStorage.getItem("scheme_bookmarks") || localStorage.getItem("bookmarked_schemes");
+      const items: SavedOrganizationItem[] = [];
+
+      if (p) {
+        const parsedPolicies = JSON.parse(p);
+        if (Array.isArray(parsedPolicies)) {
+          parsedPolicies.slice(0, 2).forEach((item: any) => {
+            items.push({
+              id: item.id || item.policy_id,
+              type: "policy",
+              name: item.title || item.name || "Saved Policy",
+              ministry: item.ministry || "Policy Repository",
+              savedOn: "Bookmarked",
+            });
+          });
+        }
+      }
+
+      if (s) {
+        const parsedSchemes = JSON.parse(s);
+        if (Array.isArray(parsedSchemes)) {
+          parsedSchemes.slice(0, 2).forEach((item: any) => {
+            items.push({
+              id: item.id || item.scheme_id,
+              type: "scheme",
+              name: item.name || item.title || "Saved Scheme",
+              ministry: item.ministry || "Scheme Repository",
+              savedOn: "Bookmarked",
+            });
+          });
+        }
+      }
+
+      this.savedItems = items;
+    } catch {
+      this.savedItems = [];
+    }
+  }
+
+  private getSavedItemsCount(): number {
+    try {
+      const p = localStorage.getItem("policy_bookmarks") || localStorage.getItem("saved_policies");
+      const s = localStorage.getItem("scheme_bookmarks") || localStorage.getItem("bookmarked_schemes");
+      const pCount = p ? (JSON.parse(p) as any[]).length : 0;
+      const sCount = s ? (JSON.parse(s) as any[]).length : 0;
+      return pCount + sCount;
+    } catch {
+      return 0;
+    }
+  }
 
   private setUserDetails(user: AuthUser): void {
     this.user = user;
-
     this.userName = user.full_name?.trim() || "Organization";
-
     this.userRole = user.role?.trim().toUpperCase() || "ORGANIZATION";
   }
 
-  /* =======================================================
-     NAVIGATION
-     ======================================================= */
-
   navigateTo(route: string): void {
-    if (!route) {
-      return;
-    }
-
+    if (!route) return;
     this.router.navigate([route]);
   }
 
-  /* =======================================================
-     SEARCH POLICIES
-     ======================================================= */
-
   searchPolicies(): void {
-    this.router.navigate(["/policies"]);
+    this.router.navigate(["/dashboard/organization/policies"]);
   }
-
-  /* =======================================================
-     SEARCH SCHEMES
-     ======================================================= */
 
   searchSchemes(): void {
-    this.router.navigate(["/schemes"]);
+    this.router.navigate(["/dashboard/organization/schemes"]);
   }
-
-  /* =======================================================
-     COMPARE POLICIES
-     ======================================================= */
 
   comparePolicies(): void {
-    this.router.navigate(["/compare"]);
+    this.router.navigate(["/dashboard/organization/compare"]);
   }
-
-  /* =======================================================
-     ORGANIZATION INSIGHTS
-     ======================================================= */
 
   viewInsights(): void {
-    this.router.navigate(["/analytics"]);
+    this.router.navigate(["/dashboard/organization/policies"]);
   }
-
-  /* =======================================================
-     VIEW SAVED ITEMS
-     ======================================================= */
 
   viewSavedItems(): void {
-    this.router.navigate(["/saved"]);
+    this.router.navigate(["/dashboard/organization/policies"]);
   }
-
-  /* =======================================================
-     VIEW HISTORY
-     ======================================================= */
 
   viewHistory(): void {
-    this.router.navigate(["/history"]);
+    this.router.navigate(["/dashboard/organization/schemes"]);
   }
-
-  /* =======================================================
-     VIEW NOTIFICATIONS
-     ======================================================= */
 
   viewNotifications(): void {
-    this.router.navigate(["/notifications"]);
+    this.router.navigate(["/dashboard/organization"]);
   }
 
-  /* =======================================================
-     VIEW POLICY
-     ======================================================= */
-
-  viewPolicy(policyName: string): void {
-    if (!policyName.trim()) {
-      return;
+  viewPolicy(policyTarget?: number | string): void {
+    if (typeof policyTarget === "number") {
+      this.router.navigate(["/dashboard/organization/policies", policyTarget]);
+    } else if (typeof policyTarget === "string" && policyTarget.trim()) {
+      this.router.navigate(["/dashboard/organization/policies"], {
+        queryParams: { search: policyTarget.trim() },
+      });
+    } else {
+      this.router.navigate(["/dashboard/organization/policies"]);
     }
-
-    this.router.navigate(["/policies"], {
-      queryParams: {
-        q: policyName,
-      },
-    });
   }
 
-  /* =======================================================
-     VIEW SCHEME
-     ======================================================= */
-
-  viewScheme(schemeName: string): void {
-    if (!schemeName.trim()) {
-      return;
+  viewScheme(schemeTarget?: number | string): void {
+    if (typeof schemeTarget === "number") {
+      this.router.navigate(["/dashboard/organization/schemes", schemeTarget]);
+    } else if (typeof schemeTarget === "string" && schemeTarget.trim()) {
+      this.router.navigate(["/dashboard/organization/schemes"], {
+        queryParams: { keyword: schemeTarget.trim() },
+      });
+    } else {
+      this.router.navigate(["/dashboard/organization/schemes"]);
     }
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: schemeName,
-      },
-    });
   }
-
-  /* =======================================================
-     VIEW ACTIVITY
-     ======================================================= */
 
   viewActivity(activity: OrganizationActivity): void {
-    if (activity.type === "policy") {
-      this.viewPolicy(activity.title);
-
+    if (activity.type === "policy" && activity.id) {
+      this.viewPolicy(activity.id);
       return;
     }
-
-    if (activity.type === "scheme") {
-      this.viewScheme(activity.title);
-
+    if (activity.type === "scheme" && activity.id) {
+      this.viewScheme(activity.id);
       return;
     }
-
     if (activity.type === "comparison") {
       this.comparePolicies();
-
       return;
     }
-
-    if (activity.type === "insight") {
-      this.viewInsights();
-    }
+    this.viewInsights();
   }
-
-  /* =======================================================
-     GET SECTOR BAR WIDTH
-     ======================================================= */
 
   getSectorWidth(percentage: number): string {
     return `${percentage}%`;
   }
 
-  /* =======================================================
-     GET SAVED ITEM ICON
-     ======================================================= */
-
   getSavedItemIcon(type: "policy" | "scheme"): string {
     return type === "policy" ? "policy" : "account_balance";
   }
 
-  /* =======================================================
-     GET SAVED ITEM ROUTE
-     ======================================================= */
-
   getSavedItemRoute(type: "policy" | "scheme"): string {
-    return type === "policy" ? "/policies" : "/schemes";
+    return type === "policy" ? "/dashboard/organization/policies" : "/dashboard/organization/schemes";
   }
 }

@@ -1,18 +1,17 @@
 <div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
   [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
+
   <!-- =========================================================
        MOBILE OVERLAY
        ========================================================= -->
-
   @if (mobileMenuOpen) {
-  <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+  <button type="button" class="dash-overlay" aria-label="Close navigation menu" (click)="closeMobileMenu()"></button>
   }
 
 
   <!-- =========================================================
        TOPBAR
        ========================================================= -->
-
   <header class="dash-topbar" role="banner">
 
     <!-- BRAND -->
@@ -28,7 +27,7 @@
 
 
       <!-- LOGO -->
-      <a routerLink="/dashboard/user-dashboard" class="dash-topbar__logo-link"
+      <a routerLink="/dashboard/organization" class="dash-topbar__logo-link"
         aria-label="PolicyGPT Organization Dashboard" (click)="closeMobileMenu()">
         <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
       </a>
@@ -50,10 +49,9 @@
     </div>
 
 
-    <!-- =====================================================
+    <!-- =======================================================
          SEARCH
-         ===================================================== -->
-
+         ======================================================= -->
     <div class="dash-search">
 
       <span class="material-icons dash-search__icon" aria-hidden="true">
@@ -66,10 +64,9 @@
     </div>
 
 
-    <!-- =====================================================
+    <!-- =======================================================
          ORGANIZATION USER AREA
-         ===================================================== -->
-
+         ======================================================= -->
     <div class="dash-user">
 
       <!-- NOTIFICATIONS -->
@@ -110,18 +107,16 @@
   <!-- =========================================================
        SIDEBAR
        ========================================================= -->
-
   <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
     [class.dash-sidebar--mobile-open]="mobileMenuOpen">
 
     <!-- =======================================================
          MAIN NAVIGATION
          ======================================================= -->
-
     <nav class="dash-nav" aria-label="Organization navigation">
 
       <!-- DASHBOARD -->
-      <a routerLink="/dashboard/user-dashboard" routerLinkActive="dash-nav__item--active"
+      <a routerLink="/dashboard/organization" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
 
@@ -137,14 +132,13 @@
 
 
       <!-- ORGANIZATION NAVIGATION -->
-
       @for (item of navItems; track item.label) {
 
       <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? item.label : null">
 
-        <span class="material-icons dash-nav__icon">
+        <span class="material-icons dash-nav__icon" aria-hidden="true">
           {{ item.icon }}
         </span>
 
@@ -162,7 +156,6 @@
     <!-- =======================================================
          SIDEBAR FOOTER
          ======================================================= -->
-
     <div class="dash-sidebar__footer">
 
       <!-- PROFILE -->
@@ -219,18 +212,21 @@
   <!-- =========================================================
        MAIN CONTAINER
        ========================================================= -->
-
   <div class="dash-main-container">
 
     <main class="dash-main">
 
-      <router-outlet></router-outlet>
+      <!-- Keep content behavior unchanged -->
+      <div class="dash-content">
+
+        <router-outlet></router-outlet>
+
+      </div>
 
     </main>
 
 
     <!-- FOOTER -->
-
     <app-footer></app-footer>
 
   </div>
@@ -239,7 +235,6 @@
   <!-- =========================================================
        LOGOUT MODAL
        ========================================================= -->
-
   @if (showLogoutModal) {
 
   <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>

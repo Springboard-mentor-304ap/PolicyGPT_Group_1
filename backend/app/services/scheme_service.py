@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import cast, or_, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -291,11 +291,15 @@ def submit_scheme(
     current_user: User | None = None,
 ) -> Scheme:
 
-    if current_user and current_user.role == "GOVERNMENT_OFFICIAL":
+    # Creator-only submission check: only the creator (or Admin) can submit
+    if current_user and current_user.role != "ADMIN":
         if scheme.created_by != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You can only submit schemes created by yourself.",
+                detail=(
+                    "You are not authorized to submit this scheme. "
+                    "Only the user who created it can submit it for approval."
+                ),
             )
 
     if scheme.status not in {
@@ -615,14 +619,31 @@ def search_schemes(
     ministry: str | None = None,
     department: str | None = None,
     state: str | None = None,
+    sector: str | None = None,
+    publication_date: str | None = None,
     status: str | None = None,
     page: int = 1,
     limit: int = 10,
     include_archived: bool = False,
     created_by: int | None = None,
+    current_user: User | None = None,
 ):
 
     query = db.query(Scheme)
+
+    # --------------------------------------------------------
+    # DRAFT & PENDING APPROVAL PRIVACY RULE
+    # Draft schemes can ONLY be seen by the user who created them.
+    # When submitted (PENDING_APPROVAL), only Admin & creator can see them.
+    # --------------------------------------------------------
+    if current_user is not None:
+        query = query.filter(
+            or_(Scheme.status != "DRAFT", Scheme.created_by == current_user.user_id)
+        )
+        if str(current_user.role).strip().upper() != "ADMIN":
+            query = query.filter(
+                or_(Scheme.status != "PENDING_APPROVAL", Scheme.created_by == current_user.user_id)
+            )
 
     if created_by is not None:
         query = query.filter(Scheme.created_by == created_by)
@@ -646,6 +667,9 @@ def search_schemes(
     if category:
         query = query.filter(Scheme.category.ilike(category.strip()))
 
+    if sector:
+        query = query.filter(Scheme.category.ilike(sector.strip()))
+
     if ministry:
         query = query.filter(Scheme.ministry.ilike(ministry.strip()))
 
@@ -655,7 +679,12 @@ def search_schemes(
     if state:
         query = query.filter(Scheme.state.ilike(state.strip()))
 
-    if status:
+    if publication_date:
+        query = query.filter(
+            cast(Scheme.created_at, String).ilike(f"%{publication_date.strip()}%")
+        )
+
+    if status and status.upper() != "ALL":
         query = query.filter(Scheme.status == status.upper())
 
     elif not include_archived:

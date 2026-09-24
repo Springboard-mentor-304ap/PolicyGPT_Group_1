@@ -6,11 +6,18 @@ import { Auth, AuthUser } from '../../../core/services/auth';
 import { SchemeService } from '../../../core/services/scheme.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SchemeCreate } from '../../../core/models/scheme.model';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import {
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+} from '../../../core/constants/government-data.constants';
 
 @Component({
   selector: 'app-add-scheme',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent],
   templateUrl: './add-scheme.component.html',
   styleUrls: ['./add-scheme.component.scss'],
 })
@@ -39,29 +46,10 @@ export class AddSchemeComponent implements OnInit {
   editingSchemeId: number | null = null;
 
   // Dropdown options
-  categories: string[] = [
-    'Agriculture', 'Education', 'Energy', 'Financial Services', 'Health',
-    'Housing', 'Skill Development', 'Social Welfare', 'Women & Child Development',
-    'Employment', 'Infrastructure', 'Environment', 'Digital Governance',
-    'Rural Development', 'Urban Development'
-  ];
-
-  ministries: string[] = [
-    'Ministry of Agriculture & Farmers Welfare', 'Ministry of Health & Family Welfare',
-    'Ministry of Education', 'Ministry of Finance', 'Ministry of Housing and Urban Affairs',
-    'Ministry of New & Renewable Energy', 'Ministry of Micro, Small & Medium Enterprises',
-    'Ministry of Rural Development', 'Ministry of Skill Development & Entrepreneurship',
-    'Ministry of Women and Child Development', 'Ministry of Social Justice and Empowerment',
-    'Ministry of Labour and Employment', 'Ministry of Environment, Forest and Climate Change',
-    'Ministry of Electronics and Information Technology'
-  ];
-
-  departments: string[] = [
-    'Department of Agriculture & Farmers Welfare', 'Department of School Education & Literacy',
-    'Department of Higher Education', 'Department of Health & Family Welfare',
-    'Department of Rural Development', 'Department of Financial Services',
-    'Department of Social Justice & Empowerment', 'Department of Economic Affairs'
-  ];
+  categories: string[] = SCHEME_CATEGORIES;
+  ministries: string[] = MINISTRIES;
+  departmentOptions: string[] = [];
+  departments: string[] = ALL_DEPARTMENTS;
 
   states: string[] = [
     'All India', 'Central', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -156,6 +144,35 @@ export class AddSchemeComponent implements OnInit {
       // Step 5: Declaration
       declarationAgreed: [false, Validators.requiredTrue],
     });
+  }
+
+  updateDepartmentOptions(selectedMinistry: string, clearIfInvalid: boolean = true): void {
+    if (!selectedMinistry) {
+      this.departmentOptions = [];
+      if (clearIfInvalid) {
+        this.schemeForm.get('department')?.setValue('');
+      }
+      return;
+    }
+
+    const specificDepts = MINISTRY_DEPARTMENTS_MAP[selectedMinistry];
+    if (specificDepts && specificDepts.length > 0) {
+      this.departmentOptions = [...specificDepts];
+      const currentDept = this.schemeForm.get('department')?.value;
+      if (clearIfInvalid && currentDept && !specificDepts.includes(currentDept)) {
+        this.schemeForm.get('department')?.setValue('');
+      }
+    } else {
+      this.departmentOptions = [...ALL_DEPARTMENTS];
+      const currentDept = this.schemeForm.get('department')?.value;
+      if (currentDept && !this.departmentOptions.includes(currentDept)) {
+        this.departmentOptions = [currentDept, ...this.departmentOptions];
+      }
+    }
+  }
+
+  onMinistryChange(selectedMinistry: string): void {
+    this.updateDepartmentOptions(selectedMinistry, true);
   }
 
   // --- Form Array Getters ---

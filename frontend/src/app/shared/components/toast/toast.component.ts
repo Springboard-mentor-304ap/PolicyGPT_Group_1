@@ -8,30 +8,102 @@ import { ToastService, Toast } from '../../../core/services/toast.service';
   imports: [CommonModule],
   template: `
     <div 
-      class="flex items-start gap-3 p-4 rounded-lg shadow-lg border animate-slide-in"
-      [ngClass]="toastClass"
+      class="toast-card"
+      [ngClass]="'toast--' + toast.type"
       role="alert"
     >
-      <div class="flex-shrink-0" [innerHTML]="icon"></div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium" [ngClass]="textClass">{{ toast.title }}</p>
+      <div class="toast-icon" [innerHTML]="icon"></div>
+      <div class="toast-content">
+        <p class="toast-title">{{ toast.title }}</p>
         @if (toast.message) {
-          <p class="text-sm mt-1" [ngClass]="messageClass">{{ toast.message }}</p>
+          <p class="toast-message">{{ toast.message }}</p>
         }
       </div>
       <button
-        class="flex-shrink-0 p-1 rounded hover:bg-black/10 transition-colors"
-        [ngClass]="closeClass"
+        class="toast-close"
         (click)="onDismiss()"
-        aria-label="Dismiss"
+        aria-label="Dismiss notification"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>
     </div>
   `,
   styles: [`
+    :host {
+      display: block;
+    }
+    .toast-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      border: 1px solid;
+      background: #ffffff;
+      animation: slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .toast-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .toast-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .toast-message {
+      margin: 4px 0 0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .toast-close {
+      flex-shrink: 0;
+      background: transparent;
+      border: 0;
+      padding: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: inherit;
+      opacity: 0.7;
+      transition: opacity 0.15s ease;
+    }
+    .toast-close:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.05);
+    }
+    .toast--success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .toast--error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .toast--warning {
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
+    }
+    .toast--info {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
     @keyframes slide-in {
       from {
         opacity: 0;
@@ -41,9 +113,6 @@ import { ToastService, Toast } from '../../../core/services/toast.service';
         opacity: 1;
         transform: translateX(0);
       }
-    }
-    .animate-slide-in {
-      animation: slide-in 0.3s ease-out;
     }
   `]
 })
@@ -116,12 +185,29 @@ export class ToastComponent {
   standalone: true,
   imports: [CommonModule, ToastComponent],
   template: `
-    <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-full" role="region" aria-live="polite">
+    <div class="toast-container" role="region" aria-live="polite">
       @for (toast of toasts(); track toast.id) {
         <app-toast [toast]="toast" (dismiss)="dismiss($event)"></app-toast>
       }
     </div>
-  `
+  `,
+  styles: [`
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 999999;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      pointer-events: none;
+    }
+    .toast-container > * {
+      pointer-events: auto;
+    }
+  `]
 })
 export class ToastContainerComponent {
   private toastService = inject(ToastService);

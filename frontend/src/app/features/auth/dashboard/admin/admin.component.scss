@@ -24,6 +24,14 @@ $admin-purple: #8b00e8;
    ROOT
    ========================================================= */
 
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .admin-dashboard {
   width: 100%;
   max-width: 100%;
@@ -33,6 +41,7 @@ $admin-purple: #8b00e8;
   padding: 28px 32px 40px;
 
   background: $admin-bg;
+  box-sizing: border-box;
 }
 
 /* =========================================================
@@ -77,11 +86,12 @@ $admin-purple: #8b00e8;
 
   color: #5073b7;
 
-  font-size: 10px;
+  font-size: 11px;
 
-  font-weight: 800;
+  font-weight: 700;
 
-  letter-spacing: 1.2px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .dash-welcome__title {
@@ -89,11 +99,11 @@ $admin-purple: #8b00e8;
 
   color: #111111;
 
-  font-size: clamp(30px, 2.4vw, 38px);
+  font-size: 30px;
 
-  font-weight: 800;
+  font-weight: 700;
 
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .dash-welcome__sub {
@@ -357,9 +367,9 @@ $admin-purple: #8b00e8;
 
   color: #111827;
 
-  font-size: 20px;
+  font-size: 28px;
 
-  font-weight: 800;
+  font-weight: 700;
 
   line-height: 1;
 }
@@ -369,9 +379,9 @@ $admin-purple: #8b00e8;
 
   color: #172033;
 
-  font-size: 12px;
+  font-size: 13px;
 
-  font-weight: 700;
+  font-weight: 600;
 
   line-height: 1.25;
 }
@@ -381,9 +391,9 @@ $admin-purple: #8b00e8;
 
   color: $admin-muted;
 
-  font-size: 9.5px;
+  font-size: 12px;
 
-  font-weight: 500;
+  font-weight: 400;
 
   white-space: nowrap;
 
@@ -443,11 +453,21 @@ $admin-purple: #8b00e8;
 
   color: #16223d;
 
-  font-size: 14px;
+  font-size: 18px;
 
-  font-weight: 800;
+  font-weight: 600;
 
   line-height: 1.3;
+}
+
+.dash-panel__header-title-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: #075ee8;
+  }
 }
 
 .dash-panel__link {
@@ -455,9 +475,9 @@ $admin-purple: #8b00e8;
 
   color: #075ee8;
 
-  font-size: 11px;
+  font-size: 13px;
 
-  font-weight: 700;
+  font-weight: 600;
 
   text-decoration: none;
 }
@@ -485,9 +505,9 @@ $admin-purple: #8b00e8;
 
   color: #075ee8;
 
-  font-size: 10.5px;
+  font-size: 13px;
 
-  font-weight: 700;
+  font-weight: 600;
 
   text-decoration: none;
 }
@@ -582,9 +602,9 @@ $admin-purple: #8b00e8;
 
   color: #18202f;
 
-  font-size: 11.5px;
+  font-size: 14px;
 
-  font-weight: 750;
+  font-weight: 600;
 
   line-height: 1.35;
 }
@@ -594,9 +614,9 @@ $admin-purple: #8b00e8;
 
   color: #526071;
 
-  font-size: 9.5px;
+  font-size: 12px;
 
-  font-weight: 500;
+  font-weight: 400;
 
   line-height: 1.35;
 }
@@ -610,9 +630,9 @@ $admin-purple: #8b00e8;
 
   color: #075ee8;
 
-  font-size: 9px;
+  font-size: 13px;
 
-  font-weight: 700;
+  font-weight: 600;
 
   text-decoration: none;
 
@@ -662,7 +682,7 @@ $admin-purple: #8b00e8;
   }
 
   .dash-welcome__title {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .dash-stats {
@@ -726,13 +746,13 @@ $admin-purple: #8b00e8;
   }
 
   .dash-welcome__eyebrow {
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .dash-welcome__title {
     max-width: 74%;
 
-    font-size: 22px;
+    font-size: 24px;
   }
 
   .dash-welcome__sub {
@@ -740,7 +760,7 @@ $admin-purple: #8b00e8;
 
     margin-top: 7px;
 
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .dash-welcome__illustration {
@@ -798,15 +818,15 @@ $admin-purple: #8b00e8;
   }
 
   .dash-stat-card__value {
-    font-size: 16px;
+    font-size: 20px;
   }
 
   .dash-stat-card__label {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .dash-stat-card__sub {
-    font-size: 7.5px;
+    font-size: 12px;
   }
 
   /* Panels */
@@ -826,7 +846,7 @@ $admin-purple: #8b00e8;
   }
 
   .dash-panel__header h2 {
-    font-size: 13px;
+    font-size: 16px;
   }
 
   /* Lists */
@@ -848,15 +868,15 @@ $admin-purple: #8b00e8;
   }
 
   .dash-list__title {
-    font-size: 10px;
+    font-size: 13px;
   }
 
   .dash-list__meta {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .dash-list__action {
-    font-size: 7.5px;
+    font-size: 12px;
   }
 }
 
@@ -878,13 +898,13 @@ $admin-purple: #8b00e8;
   .dash-welcome__title {
     max-width: 90%;
 
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .dash-welcome__sub {
     max-width: 87%;
 
-    font-size: 9.5px;
+    font-size: 13px;
   }
 
   .dash-welcome__illustration {
@@ -914,11 +934,11 @@ $admin-purple: #8b00e8;
   }
 
   .dash-stat-card__value {
-    font-size: 15px;
+    font-size: 18px;
   }
 
   .dash-stat-card__label {
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .dash-stat-card__sub {
@@ -958,11 +978,11 @@ $admin-purple: #8b00e8;
   }
 
   .dash-welcome__title {
-    font-size: 19px;
+    font-size: 22px;
   }
 
   .dash-welcome__sub {
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 

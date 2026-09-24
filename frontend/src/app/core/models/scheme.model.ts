@@ -83,6 +83,8 @@ export interface SchemeFilters {
   ministry?: string;
   department?: string;
   state?: string;
+  sector?: string;
+  publication_date?: string;
   status?: string;
   page?: number;
   limit?: number;

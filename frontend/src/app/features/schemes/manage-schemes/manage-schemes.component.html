@@ -1,958 +1,557 @@
-<div class="page-wrapper" (click)="closeMenu()">
-
-    <!-- TOAST ALERTS -->
-    <div *ngIf="successToastMessage" class="toast-alert toast-alert--success">
-        <span>✓</span>
-        <span>{{ successToastMessage }}</span>
-        <button type="button" class="toast-close" (click)="successToastMessage = null">✕</button>
-    </div>
-    <div *ngIf="errorMessage" class="toast-alert toast-alert--error">
-        <span>⚠</span>
-        <span>{{ errorMessage }}</span>
-        <button type="button" class="toast-close" (click)="errorMessage = ''">✕</button>
-    </div>
-
-    <!-- =========================================================
-       BREADCRUMB
-  ========================================================== -->
-
-    <div class="breadcrumb">
-
-        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]" style="cursor: pointer;">
-            {{ isAdmin ? 'Admin' : 'Government' }} Dashboard
-        </span>
-
-        <span class="breadcrumb-arrow">
-            ›
-        </span>
-
-        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix, 'schemes']" style="cursor: pointer;">
-            Schemes
-        </span>
-
-        <span class="breadcrumb-arrow">
-            ›
-        </span>
-
-        <span class="breadcrumb-current">
-            Manage Schemes
-        </span>
-
-    </div>
-
+<div class="manage-page" (click)="closeMenu()">
 
     <!-- =========================================================
        PAGE HEADER
-  ========================================================== -->
+       ========================================================= -->
 
-    <div class="page-header">
-
-        <div>
-
-            <div class="eyebrow">
-                SCHEME MANAGEMENT
-            </div>
-
-            <h1>
-                Manage Schemes
-            </h1>
-
-            <p>
-                View, filter and manage all schemes in the system.
-            </p>
-
-        </div>
-
-
-        <button type="button" class="add-policy-button" (click)="$event.stopPropagation(); addNewScheme()">
-
-            <span class="plus-icon">
-                +
-            </span>
-
-            Add New Scheme
-
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+        <button type="button" class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]"
+            (click)="$event.stopPropagation()">
+            {{ isAdmin ? 'Admin Dashboard' : 'Government Dashboard' }}
         </button>
 
+        <span class="material-icons breadcrumb-chevron">chevron_right</span>
+
+        <span class="breadcrumb-current">Schemes</span>
+
+        <span class="material-icons breadcrumb-chevron">chevron_right</span>
+
+        <span class="breadcrumb-current active">Manage Schemes</span>
+    </nav>
+
+    @if (successToastMessage) {
+    <div class="toast toast-success" role="status">
+        <span class="material-icons">check_circle</span>
+        <div class="toast-copy">
+            <strong>Action completed</strong>
+            <span>{{ successToastMessage }}</span>
+        </div>
     </div>
+    }
 
-
-    <!-- =========================================================
-       STATISTICS CARDS
-  ========================================================== -->
-
-    <div class="stats-grid">
-
-
-        <!-- TOTAL -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon blue">
-                <span>▣</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ totalSchemes }}
-                </strong>
-
-                <span>
-                    Total Schemes
-                </span>
-
-            </div>
-
+    @if (errorMessage) {
+    <div class="toast toast-error" role="alert">
+        <span class="material-icons">error_outline</span>
+        <div class="toast-copy">
+            <strong>Unable to complete action</strong>
+            <span>{{ errorMessage }}</span>
         </div>
-
-
-        <!-- APPROVED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon green">
-                <span>●</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ approvedCount }}
-                </strong>
-
-                <span>
-                    Approved
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- PENDING -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon orange">
-                <span>◷</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ pendingCount }}
-                </strong>
-
-                <span>
-                    Pending Approval
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- REJECTED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon red">
-                <span>⊗</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ rejectedCount }}
-                </strong>
-
-                <span>
-                    Rejected
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- ARCHIVED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon archive">
-                <span>▣</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ archivedCount }}
-                </strong>
-
-                <span>
-                    Archived
-                </span>
-
-            </div>
-
-        </div>
-
+        <button type="button" class="toast-close" aria-label="Dismiss"
+            (click)="errorMessage = ''; $event.stopPropagation()">
+            <span class="material-icons">close</span>
+        </button>
     </div>
+    }
 
+    <header class="page-header">
+        <div class="page-title-area">
+            <h1>Manage Schemes</h1>
+            <p>
+                Review, monitor and manage government schemes through the official
+                scheme administration workflow.
+            </p>
+        </div>
 
-    <!-- =========================================================
-       FILTER CARD
-  ========================================================== -->
-
-    <section class="filter-card">
-
-        <div class="filter-header">
-
-            <div class="filter-title">
-
-                <div class="filter-icon">
-                    <span>≡</span>
-                </div>
-
-                <div>
-
-                    <h2>
-                        Filter Schemes
-                    </h2>
-
-                    <p>
-                        Search and filter schemes by various criteria.
-                    </p>
-
-                </div>
-
+        <div class="header-actions">
+            <div class="role-chip">
+                <span class="material-icons">verified_user</span>
+                {{ isAdmin ? 'Administrator' : 'Government Official' }}
             </div>
 
-
-            <button type="button" class="reset-button" (click)="resetFilters()">
-
-                <span>
-                    ↻
-                </span>
-
-                Reset Filters
-
+            <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewScheme()">
+                <span class="material-icons">add</span>
+                Add New Scheme
             </button>
-
         </div>
+    </header>
 
 
-        <!-- FIRST FILTER ROW -->
+    <!-- =========================================================
+       OVERVIEW
+       ========================================================= -->
 
-        <div class="filters-grid first-row">
-
-
-            <!-- SEARCH -->
-
-            <div class="filter-group search-group">
-
-                <label>
-                    &nbsp;
-                </label>
-
-                <div class="search-wrapper">
-
-                    <span class="search-icon">
-                        ⌕
-                    </span>
-
-                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
-                        placeholder="Search by title, description or keywords..." />
-
+    <section class="overview-section">
+        <div class="stats-grid">
+            <article class="stat-item">
+                <div class="stat-icon blue">
+                    <span class="material-icons">description</span>
                 </div>
-
-            </div>
-
-
-            <!-- CATEGORY -->
-
-            <div class="filter-group">
-
-                <label>
-                    Category
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Categories
-                        </option>
-
-                        <option *ngFor="let category of categories" [value]="category">
-
-                            {{ category }}
-
-                        </option>
-
-                    </select>
-
+                <div class="stat-content">
+                    <span class="stat-label">TOTAL SCHEMES</span>
+                    <strong>{{ stats.total }}</strong>
                 </div>
+            </article>
 
-            </div>
-
-
-            <!-- MINISTRY -->
-
-            <div class="filter-group">
-
-                <label>
-                    Ministry
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Ministries
-                        </option>
-
-                        <option *ngFor="let ministry of ministries" [value]="ministry">
-
-                            {{ ministry }}
-
-                        </option>
-
-                    </select>
-
+            <article class="stat-item">
+                <div class="stat-icon green">
+                    <span class="material-icons">task_alt</span>
                 </div>
-
-            </div>
-
-
-            <!-- DEPARTMENT -->
-
-            <div class="filter-group">
-
-                <label>
-                    Department
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedDepartment" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Departments
-                        </option>
-
-                        <option *ngFor="let department of departments" [value]="department">
-
-                            {{ department }}
-
-                        </option>
-
-                    </select>
-
+                <div class="stat-content">
+                    <span class="stat-label">APPROVED</span>
+                    <strong>{{ stats.approved }}</strong>
                 </div>
+            </article>
 
-            </div>
+            <article class="stat-item">
+                <div class="stat-icon amber">
+                    <span class="material-icons">schedule</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">PENDING REVIEW</span>
+                    <strong>{{ stats.pending }}</strong>
+                </div>
+            </article>
 
+            <article class="stat-item">
+                <div class="stat-icon red">
+                    <span class="material-icons">cancel</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">REJECTED</span>
+                    <strong>{{ stats.rejected }}</strong>
+                </div>
+            </article>
+
+            <article class="stat-item">
+                <div class="stat-icon grey">
+                    <span class="material-icons">inventory_2</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">ARCHIVED</span>
+                    <strong>{{ stats.archived }}</strong>
+                </div>
+            </article>
         </div>
-
-
-        <!-- SECOND FILTER ROW -->
-
-        <div class="filters-grid second-row">
-
-
-            <!-- STATE -->
-
-            <div class="filter-group">
-
-                <label>
-                    State
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All States
-                        </option>
-
-                        <option *ngFor="let state of states" [value]="state">
-
-                            {{ state }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-
-
-
-            <!-- STATUS -->
-
-            <div class="filter-group">
-
-                <label>
-                    Status
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Statuses
-                        </option>
-
-                        <option *ngFor="let status of statuses" [value]="status">
-
-                            {{ status }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- DATE -->
-
-            <div class="filter-group date-filter">
-
-                <label>
-                    Publication Date
-                </label>
-
-                <div class="date-range">
-
-                    <div class="date-input">
-
-                        <input type="date" [(ngModel)]="fromDate" (ngModelChange)="applyFilters()"
-                            aria-label="From date" />
-
-                        <span class="date-placeholder">
-                            From date
-                        </span>
-
-                    </div>
-
-
-                    <div class="date-input">
-
-                        <input type="date" [(ngModel)]="toDate" (ngModelChange)="applyFilters()" aria-label="To date" />
-
-                        <span class="date-placeholder">
-                            To date
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
     </section>
 
+    <!-- =========================================================
+       SEARCH / FILTER
+       ========================================================= -->
+
+    <section class="filter-card">
+        <div class="card-heading">
+            <div class="heading-icon">
+                <span class="material-icons">manage_search</span>
+            </div>
+
+            <div>
+                <h2>Find a Scheme</h2>
+                <p>Search the official scheme register or filter records by status.</p>
+            </div>
+
+            @if (searchText || selectedCategory || selectedStatus) {
+            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
+                <span class="material-icons">restart_alt</span>
+                Clear filters
+            </button>
+            }
+        </div>
+
+        <div class="filter-divider"></div>
+
+        <div class="filter-grid">
+            <div class="form-field search-control">
+                <label for="scheme-search">Search schemes</label>
+
+                <div class="input-box">
+                    <span class="material-icons input-icon">search</span>
+
+                    <input id="scheme-search" type="search" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                        placeholder="Search by scheme title, category, ministry or department" autocomplete="off" />
+
+                    @if (searchText) {
+                    <button type="button" class="input-clear" aria-label="Clear search"
+                        (click)="searchText=''; applyFilters(); $event.stopPropagation()">
+                        <span class="material-icons">close</span>
+                    </button>
+                    }
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="scheme-category">Category</label>
+
+                <div class="input-box select-box">
+                    <span class="material-icons input-icon">category</span>
+
+                    <select id="scheme-category" [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
+                        <option value="">All categories</option>
+
+                        <option *ngFor="let cat of categories" [value]="cat">
+                            {{ cat }}
+                        </option>
+                    </select>
+
+                    <span class="material-icons select-chevron">expand_more</span>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="scheme-status">Workflow status</label>
+
+                <div class="input-box select-box">
+                    <span class="material-icons input-icon">flag</span>
+
+                    <select id="scheme-status" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+                        <option value="">All statuses</option>
+
+                        <option *ngFor="let status of statuses" [value]="status">
+                            {{ getStatusLabel(status) }}
+                        </option>
+                    </select>
+
+                    <span class="material-icons select-chevron">expand_more</span>
+                </div>
+            </div>
+
+            <button type="button" class="export-button" (click)="exportSchemes(); $event.stopPropagation()">
+                <span class="material-icons">file_download</span>
+                Export CSV
+            </button>
+        </div>
+    </section>
 
     <!-- =========================================================
-       SCHEME TABLE CARD
-  ========================================================== -->
+       SCHEME REGISTER
+       ========================================================= -->
 
-    <section class="table-card">
-
-
-        <!-- TABLE HEADER -->
-
-        <div class="table-header">
-
-            <div class="table-title">
-
-                <div class="table-icon">
-                    <span>▣</span>
+    <section class="register-card">
+        <div class="register-header">
+            <div class="register-title">
+                <div class="register-icon">
+                    <span class="material-icons">account_balance</span>
                 </div>
 
                 <div>
-
-                    <h2>
-                        Schemes ({{ filteredSchemes.length }})
-                    </h2>
-
-                    <p>
-                        All schemes in the system
-                    </p>
-
+                    <h2>Government Scheme Register</h2>
+                    <p>Official scheme records available to your current permissions.</p>
                 </div>
-
             </div>
 
+            <div class="register-count">
+                <strong>{{ filteredSchemes.length }}</strong>
+                <span>records</span>
+            </div>
+        </div>
 
-            <button type="button" class="export-button" (click)="exportSchemes()">
+        <div class="register-body">
+            @if (loading) {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <strong>Loading scheme register</strong>
+                <span>Retrieving the latest scheme records.</span>
+            </div>
+            }
+
+            @if (!loading && paginatedSchemes.length === 0) {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <span class="material-icons">find_in_page</span>
+                </div>
+
+                <strong>No matching schemes</strong>
 
                 <span>
-                    ⇩
+                    Try another keyword or clear the workflow status filter.
                 </span>
 
-                Export
-
-            </button>
-
-        </div>
-
-
-        <!-- =======================================================
-         TABLE
-    ======================================================== -->
-
-        <div class="table-scroll">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th class="number-column">
-                            #
-                        </th>
-
-                        <th class="title-column">
-                            Title
-                        </th>
-
-                        <th class="category-column">
-                            Category
-                        </th>
-
-                        <th class="ministry-column">
-                            Ministry
-                        </th>
-
-                        <th class="state-column">
-                            State
-                        </th>
-
-                        <th class="status-column">
-                            Status
-                        </th>
-
-                        <th class="publication-column">
-                            Publication Date
-                        </th>
-
-                        <th class="actions-column">
-                            Actions
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    <tr *ngFor="
-              let scheme of paginatedSchemes;
-              trackBy: trackByScheme
-            ">
-
-                        <!-- NUMBER -->
-
-                        <td class="number-column">
-
-                            {{
-                            ((currentPage - 1) * pageSize)
-                            + paginatedSchemes.indexOf(scheme)
-                            + 1
-                            }}
-
-                        </td>
-
-
-                        <!-- TITLE -->
-
-                        <td class="title-cell">
-
-                            <div class="policy-title">
-                                {{ scheme.title }}
-                            </div>
-
-                            <div class="policy-description">
-                                {{ scheme.description }}
-                            </div>
-
-                        </td>
-
-
-                        <!-- CATEGORY -->
-
-                        <td>
-
-                            <span class="category-badge" [ngClass]="getCategoryClass(scheme.category)">
-
-                                {{ scheme.category }}
-
-                            </span>
-
-                        </td>
-
-
-                        <!-- MINISTRY -->
-
-                        <td class="ministry-cell">
-
-                            {{ scheme.ministry }}
-
-                        </td>
-
-
-                        <!-- STATE -->
-
-                        <td>
-
-                            {{ scheme.state }}
-
-                        </td>
-
-
-                        <!-- STATUS -->
-
-                        <td>
-
-                            <span class="status-badge" [ngClass]="scheme.status.toLowerCase()">
-
-                                <span class="status-dot"></span>
-
-                                {{ getStatusLabel(scheme.status) }}
-
-                            </span>
-
-                        </td>
-
-
-                        <!-- DATE -->
-
-                        <td>
-
-                            {{ scheme.publicationDate }}
-
-                        </td>
-
-
-                        <!-- ACTIONS -->
-
-                        <td class="actions-cell">
-
-                            <div class="actions-wrapper" (click)="$event.stopPropagation()">
-
-
-                                <button type="button" class="view-button" (click)="viewScheme(scheme)">
-
-                                    <span>
-                                        ●
-                                    </span>
-
-                                    View
-
+                @if (searchText || selectedCategory || selectedStatus) {
+                <button type="button" class="secondary-action" (click)="resetFilters(); $event.stopPropagation()">
+                    Clear filters
+                </button>
+                }
+            </div>
+            }
+
+            @if (!loading && paginatedSchemes.length > 0) {
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-number">NO.</th>
+                            <th class="col-policy">SCHEME</th>
+                            <th class="col-status">STATUS</th>
+                            <th class="col-actions">ACTIONS</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngFor="let scheme of paginatedSchemes; let i = index; trackBy: trackByScheme"
+                            class="policy-row">
+
+                            <td class="col-number">
+                                <span class="row-number">
+                                    {{ ((currentPage - 1) * pageSize) + i + 1 }}
+                                </span>
+                            </td>
+
+                            <td class="policy-cell">
+                                <button type="button" class="policy-name"
+                                    (click)="viewScheme(scheme); $event.stopPropagation()">
+                                    {{ scheme.name || scheme.title }}
                                 </button>
 
+                                @if (scheme.description) {
+                                <p>{{ scheme.description }}</p>
+                                }
 
-                                <button type="button" class="more-button" (click)="toggleMenu(scheme.id)">
-
-                                    ⋮
-
-                                </button>
-
-
-                                <!-- DROPDOWN MENU -->
-                                <div class="action-menu" *ngIf="menuOpenId === scheme.id">
-
-                                    <!-- DRAFT / REJECTED: Edit & Submit -->
-                                    @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        <button type="button" (click)="openSubmitModal(scheme)">
-                                            <span>➔</span>
-                                            {{ scheme.status === 'REJECTED' ? 'Re-submit' : 'Submit' }}
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
-
-                                    <!-- PENDING_APPROVAL: Edit (Both), Admin Approve / Reject / Delete -->
-                                    @if (scheme.status === 'PENDING_APPROVAL') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openApproveModal(scheme)">
-                                                <span>✓</span>
-                                                Approve
-                                            </button>
-                                            <button type="button" class="danger" (click)="openRejectModal(scheme)">
-                                                <span>✕</span>
-                                                Reject
-                                            </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
-
-                                    <!-- APPROVED: Edit (Both), Request Archive/Delete (Gov), Delete (Admin) -->
-                                    @if (scheme.status === 'APPROVED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (!isAdmin) {
-                                            <button type="button" (click)="openRequestArchiveModal(scheme)">
-                                                <span>▣</span>
-                                                Request Archive
-                                            </button>
-                                            <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Request Delete
-                                            </button>
-                                        } @else {
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
-
-                                    <!-- ARCHIVED: Edit (Both), Restore (Admin), Request Delete (Gov), Delete (Admin) -->
-                                    @if (scheme.status === 'ARCHIVED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openRestoreModal(scheme)">
-                                                <span>↻</span>
-                                                Restore
-                                            </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        } @else {
-                                            <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Request Delete
-                                            </button>
-                                        }
-                                    }
-
-                                    <!-- ARCHIVE_REQUESTED: Edit (Both), Admin Approve/Reject Archive, Delete -->
-                                    @if (scheme.status === 'ARCHIVE_REQUESTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openApproveArchiveModal(scheme)">
-                                                <span>✓</span>
-                                                Approve Archive
-                                            </button>
-                                            <button type="button" class="danger" (click)="openRejectArchiveModal(scheme)">
-                                                <span>✕</span>
-                                                Reject Archive
-                                            </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
-
-                                    <!-- DELETE_REQUESTED: Edit (Both), Admin Approve/Reject Delete -->
-                                    @if (scheme.status === 'DELETE_REQUESTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" class="danger" (click)="openApproveDeleteModal(scheme)">
-                                                <span>✓</span>
-                                                Approve Delete
-                                            </button>
-                                            <button type="button" (click)="openRejectDeleteModal(scheme)">
-                                                <span>✕</span>
-                                                Reject Delete
-                                            </button>
-                                        }
-                                    }
-
+                                @if (scheme.category || scheme.ministry) {
+                                <div class="scheme-meta-tags">
+                                    <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
+                                    <span class="meta-dot" *ngIf="scheme.category && scheme.ministry">•</span>
+                                    <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry }}</span>
                                 </div>
+                                }
+                            </td>
 
-                            </div>
+                            <td>
+                                <span class="status-pill" [ngClass]="scheme.status.toLowerCase()">
+                                    <span class="status-dot"></span>
+                                    {{ getStatusLabel(scheme.status) }}
+                                </span>
+                            </td>
 
-                        </td>
+                            <td class="actions-cell">
+                                <div class="actions" (click)="$event.stopPropagation()">
+                                    <button type="button" class="view-action" (click)="viewScheme(scheme)">
+                                        <span class="material-icons">visibility</span>
+                                        View
+                                    </button>
 
-                    </tr>
+                                    <button type="button" class="more-action" [class.open]="menuOpenId === scheme.id"
+                                        [attr.aria-expanded]="menuOpenId === scheme.id" aria-label="More scheme actions"
+                                        (click)="toggleMenu(scheme.id)">
+                                        <span class="material-icons">more_horiz</span>
+                                    </button>
 
+                                    <div class="action-menu" *ngIf="menuOpenId === scheme.id">
+                                        <!-- DRAFT / REJECTED -->
+                                        @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
 
-                    <!-- EMPTY STATE -->
+                                        @if (canSubmitScheme(scheme)) {
+                                        <button type="button" (click)="openSubmitModal(scheme)">
+                                            <span class="material-icons">send</span>
+                                            {{ scheme.status === 'REJECTED'
+                                            ? 'Re-submit for approval'
+                                            : 'Submit for approval' }}
+                                        </button>
+                                        }
 
-                    <tr *ngIf="paginatedSchemes.length === 0">
+                                        @if (isAdmin) {
+                                        <div class="menu-separator"></div>
 
-                        <td colspan="8" class="empty-state">
+                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                            <span class="material-icons">delete_outline</span>
+                                            Delete scheme
+                                        </button>
+                                        }
+                                        }
 
-                            <div class="empty-icon">
-                                ⌕
-                            </div>
+                                        <!-- PENDING_APPROVAL -->
+                                        @if (scheme.status === 'PENDING_APPROVAL') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
 
-                            <strong>
-                                No schemes found
-                            </strong>
+                                        @if (isAdmin) {
+                                        <button type="button" class="success" (click)="openApproveModal(scheme)">
+                                            <span class="material-icons">check_circle_outline</span>
+                                            Approve
+                                        </button>
 
-                            <span>
-                                Try changing your search or filter criteria.
-                            </span>
+                                        <button type="button" class="danger" (click)="openRejectModal(scheme)">
+                                            <span class="material-icons">cancel</span>
+                                            Reject
+                                        </button>
 
-                        </td>
+                                        <div class="menu-separator"></div>
 
-                    </tr>
+                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                            <span class="material-icons">delete_outline</span>
+                                            Delete scheme
+                                        </button>
+                                        }
+                                        }
 
-                </tbody>
+                                        <!-- APPROVED -->
+                                        @if (scheme.status === 'APPROVED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
 
-            </table>
+                                        @if (!isAdmin) {
+                                        <button type="button" (click)="openRequestArchiveModal(scheme)">
+                                            <span class="material-icons">archive</span>
+                                            Request archive
+                                        </button>
 
+                                        <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
+                                            <span class="material-icons">delete_sweep</span>
+                                            Request deletion
+                                        </button>
+                                        } @else {
+                                        <div class="menu-separator"></div>
+
+                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                            <span class="material-icons">delete_outline</span>
+                                            Delete scheme
+                                        </button>
+                                        }
+                                        }
+
+                                        <!-- ARCHIVED -->
+                                        @if (scheme.status === 'ARCHIVED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
+
+                                        @if (isAdmin) {
+                                        <button type="button" class="success" (click)="openRestoreModal(scheme)">
+                                            <span class="material-icons">restore</span>
+                                            Restore scheme
+                                        </button>
+
+                                        <div class="menu-separator"></div>
+
+                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                            <span class="material-icons">delete_outline</span>
+                                            Delete scheme
+                                        </button>
+                                        } @else {
+                                        <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
+                                            <span class="material-icons">delete_sweep</span>
+                                            Request deletion
+                                        </button>
+                                        }
+                                        }
+
+                                        <!-- ARCHIVE_REQUESTED -->
+                                        @if (scheme.status === 'ARCHIVE_REQUESTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
+
+                                        @if (isAdmin) {
+                                        <button type="button" class="success" (click)="openApproveArchiveModal(scheme)">
+                                            <span class="material-icons">check_circle_outline</span>
+                                            Approve archive
+                                        </button>
+
+                                        <button type="button" class="danger" (click)="openRejectArchiveModal(scheme)">
+                                            <span class="material-icons">cancel</span>
+                                            Reject archive
+                                        </button>
+
+                                        <div class="menu-separator"></div>
+
+                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
+                                            <span class="material-icons">delete_outline</span>
+                                            Delete scheme
+                                        </button>
+                                        }
+                                        }
+
+                                        <!-- DELETE_REQUESTED -->
+                                        @if (scheme.status === 'DELETE_REQUESTED') {
+                                        <button type="button" (click)="editScheme(scheme)">
+                                            <span class="material-icons">edit</span>
+                                            Edit scheme
+                                        </button>
+
+                                        @if (isAdmin) {
+                                        <button type="button" class="danger" (click)="openApproveDeleteModal(scheme)">
+                                            <span class="material-icons">delete_forever</span>
+                                            Approve deletion
+                                        </button>
+
+                                        <button type="button" (click)="openRejectDeleteModal(scheme)">
+                                            <span class="material-icons">undo</span>
+                                            Reject deletion
+                                        </button>
+                                        }
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            }
         </div>
-
 
         <!-- =======================================================
          PAGINATION
-    ======================================================== -->
+         ======================================================= -->
 
-        <div class="pagination-bar">
-
-
-            <!-- RESULT COUNT -->
-
-            <div class="result-count">
-
+        <footer class="pagination">
+            <div class="pagination-info">
                 Showing
-                <strong>
-                    {{ startItem }}
-                </strong>
-
-                to
-
-                <strong>
-                    {{ endItem }}
-                </strong>
-
+                <strong>{{ startItem }}</strong>
+                –
+                <strong>{{ endItem }}</strong>
                 of
-
-                <strong>
-                    {{ filteredSchemes.length }}
-                </strong>
-
+                <strong>{{ filteredSchemes.length }}</strong>
                 schemes
-
             </div>
 
+            <div class="pagination-right">
+                <div class="page-size">
+                    <label for="page-size">Rows</label>
 
-            <!-- PAGINATION CONTROLS -->
-
-            <div class="pagination-controls">
-
-
-                <button type="button" class="page-arrow" [disabled]="currentPage === 1" (click)="previousPage()">
-
-                    ‹
-
-                </button>
-
-
-                <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index" class="page-number"
-                    [class.active]="currentPage === i + 1" (click)="goToPage(i + 1)">
-
-                    {{ i + 1 }}
-
-                </button>
-
-
-                <button type="button" class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()">
-
-                    ›
-
-                </button>
-
-
-                <!-- PAGE SIZE -->
-
-                <div class="page-size-wrapper">
-
-                    <select [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
-
-                        <option [ngValue]="6">
-                            6 per page
-                        </option>
-
-                        <option [ngValue]="10">
-                            10 per page
-                        </option>
-
-                        <option [ngValue]="20">
-                            20 per page
-                        </option>
-
-                        <option [ngValue]="50">
-                            50 per page
-                        </option>
-
+                    <select id="page-size" [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
+                        <option [ngValue]="5">5</option>
+                        <option [ngValue]="6">6</option>
+                        <option [ngValue]="10">10</option>
+                        <option [ngValue]="20">20</option>
+                        <option [ngValue]="50">50</option>
                     </select>
 
+                    <span>per page</span>
                 </div>
 
+                <div class="page-controls">
+                    <button type="button" class="page-button" [disabled]="currentPage === 1" (click)="previousPage()"
+                        aria-label="Previous page">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+
+                    <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index"
+                        class="page-button page-number" [class.current]="currentPage === i + 1"
+                        (click)="goToPage(i + 1)">
+                        {{ i + 1 }}
+                    </button>
+
+                    <button type="button" class="page-button" [disabled]="currentPage === totalPages"
+                        (click)="nextPage()" aria-label="Next page">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
             </div>
-
-        </div>
-
+        </footer>
     </section>
 
-    <!-- CONFIRM MODAL -->
-    <app-confirm-modal
-        [isOpen]="confirmModalOpen"
-        [title]="confirmTitle"
-        [message]="confirmMessage"
-        [variant]="confirmVariant"
-        (confirmed)="onConfirmModalConfirmed()"
-        (cancelled)="onConfirmModalCancelled()"
-    ></app-confirm-modal>
+    <div class="page-security-note">
+        <span class="material-icons">security</span>
+        Access and workflow actions are controlled by your authenticated role.
+    </div>
 
-    <!-- REASON MODAL -->
-    <app-reason-modal
-        [isOpen]="reasonModalOpen"
-        [title]="reasonTitle"
-        [message]="reasonMessage"
-        [reasonLabel]="reasonLabel"
-        [variant]="reasonVariant"
-        (confirmed)="onReasonModalConfirmed($event)"
-        (cancelled)="onReasonModalCancelled()"
-    ></app-reason-modal>
+    <!-- Workflow modals -->
+    <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+        [variant]="confirmVariant" (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+    </app-confirm-modal>
+
+    <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+        [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="onReasonModalConfirmed($event)"
+        (cancelled)="onReasonModalCancelled()">
+    </app-reason-modal>
 
 </div>

@@ -109,6 +109,8 @@ def list_schemes(
     ministry: str | None = None,
     department: str | None = None,
     state: str | None = None,
+    sector: str | None = None,
+    publication_date: str | None = None,
     status_filter: str | None = Query(
         default=None,
         alias="status",
@@ -165,7 +167,7 @@ def list_schemes(
             status_filter = "APPROVED"
             created_by = None
         else:
-            if status_filter == "APPROVED":
+            if status_filter == "APPROVED" or status_filter == "ALL" or not status_filter:
                 created_by = None
             elif role == "GOVERNMENT_OFFICIAL":
                 created_by = current_user.user_id
@@ -181,11 +183,14 @@ def list_schemes(
         ministry=ministry,
         department=department,
         state=state,
+        sector=sector,
+        publication_date=publication_date,
         status=status_filter,
         page=page,
         limit=limit,
         include_archived=include_archived,
         created_by=created_by,
+        current_user=current_user,
     )
 
 

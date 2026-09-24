@@ -271,20 +271,20 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
 
     switch (type) {
       case "education":
-        return "🎓";
+        return "school";
 
       case "health":
-        return "❤️";
+        return "medical_services";
 
       case "agriculture":
-        return "🌱";
+        return "eco";
 
       case "scheme":
-        return "📋";
+        return "assignment";
 
       case "policy":
       default:
-        return "🏛️";
+        return "account_balance";
     }
   }
 

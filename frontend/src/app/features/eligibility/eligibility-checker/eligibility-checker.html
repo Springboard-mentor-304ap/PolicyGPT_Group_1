@@ -1,726 +1,474 @@
 <div class="eligibility-page">
 
-
-  <!-- Header -->
-  <div class="page-header">
-
-    <div>
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-main">
       <h1>Eligibility Checker</h1>
-
-      <p>
-        Find out which government schemes and policies you are eligible for.
-      </p>
+      <p>Check your eligibility for available government policies and schemes across central and state departments.</p>
     </div>
+  </header>
 
-    <div class="help-banner">
+  <!-- Navigation Tabs (Eligibility Modes) -->
+  <nav class="tabs" aria-label="Eligibility Modes">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'find'" (click)="setTab('find')">
+      <span class="material-icons tab-icon">person_search</span>
+      <span>Find Schemes &amp; Policies for Me</span>
+    </button>
 
-      <div class="help-icon">💡</div>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'specific'" (click)="setTab('specific')">
+      <span class="material-icons tab-icon">search</span>
+      <span>Check Specific Scheme / Policy</span>
+    </button>
 
-      <div>
-        <strong>Get benefits you deserve!</strong>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'saved'" (click)="setTab('saved')">
+      <span class="material-icons tab-icon">bookmark_border</span>
+      <span>Saved Results</span>
+      <span class="tab-badge" *ngIf="savedResults.length > 0">{{ savedResults.length }}</span>
+    </button>
+  </nav>
 
-        <span>
-          Answer a few simple questions and discover schemes
-          and policies you can apply for.
-        </span>
+  <!-- ========================================================
+       1. "FIND SCHEMES & POLICIES FOR ME" MODE
+       ======================================================== -->
+  <div *ngIf="activeTab === 'find'" class="eligibility-content">
+
+    <!-- MAIN ELIGIBILITY PROFILE FORM CONTAINER -->
+    <section class="card profile-card" aria-labelledby="form-heading">
+      <div class="card-header">
+        <div class="step-indicator">1</div>
+        <div class="header-text">
+          <h2 id="form-heading">Eligibility Profile Information</h2>
+          <p>Enter your profile details below to determine applicable government welfare programmes and initiatives.</p>
+        </div>
       </div>
 
-    </div>
+      <form (ngSubmit)="findEligible()" class="eligibility-form">
 
-  </div>
-
-
-  <!-- Tabs -->
-  <div class="tabs">
-
-    <button type="button" [class.active]="activeTab === 'find'" (click)="setTab('find')">
-      <span class="tab-icon">👤</span>
-      Find Schemes/Policies for Me
-    </button>
-
-
-    <button type="button" [class.active]="activeTab === 'specific'" (click)="setTab('specific')">
-      <span class="tab-icon">⌕</span>
-      Check a Specific Scheme/Policy
-    </button>
-
-
-    <button type="button" [class.active]="activeTab === 'saved'" (click)="setTab('saved')">
-      <span class="tab-icon">🔖</span>
-      My Saved Results
-    </button>
-
-  </div>
-
-
-  <!-- ==========================================
-       FIND TAB
-  =========================================== -->
-
-  <div *ngIf="activeTab === 'find'">
-
-    <div class="main-grid">
-
-
-      <!-- =====================================
-           LEFT COLUMN
-      ====================================== -->
-
-      <div class="left-column">
-
-
-        <!-- PERSONAL DETAILS -->
-        <section class="card profile-card">
-
-          <div class="section-heading">
-
-            <div class="step-number">
-              1
-            </div>
-
-            <div>
-
-              <h2>
-                Tell Us About Yourself
-              </h2>
-
-              <p>
-                Enter your details to find schemes and policies
-                you may be eligible for.
-              </p>
-
-            </div>
-
+        <!-- GROUP 1: PERSONAL INFORMATION -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="material-icons section-icon">person</span>
+            <h3>Personal Information</h3>
           </div>
 
-
-          <div class="form-grid">
-
-
-            <!-- AGE -->
+          <div class="form-grid grid-2">
+            <!-- Age -->
             <div class="form-field">
-
               <label for="age">
-                Age <span>*</span>
+                Age <span class="required-star">*</span>
               </label>
-
               <input id="age" name="age" type="number" min="0" max="120" [(ngModel)]="profile.age"
-                placeholder="Enter age" />
-
+                placeholder="Enter age (0-120)" />
             </div>
 
-
-            <!-- GENDER -->
+            <!-- Gender -->
             <div class="form-field">
-
               <label for="gender">
-                Gender <span>*</span>
+                Gender <span class="required-star">*</span>
               </label>
-
               <select id="gender" name="gender" [(ngModel)]="profile.gender">
-
                 <option *ngFor="let gender of genders" [value]="gender">
                   {{ gender }}
                 </option>
-
               </select>
-
             </div>
+          </div>
+        </div>
 
+        <!-- GROUP 2: FINANCIAL INFORMATION -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="material-icons section-icon">payments</span>
+            <h3>Financial Information</h3>
+          </div>
 
-            <!-- INCOME -->
+          <div class="form-grid grid-2">
+            <!-- Annual Income -->
             <div class="form-field">
-
               <label for="annualIncome">
                 Annual Income (₹)
               </label>
-
               <input id="annualIncome" name="annualIncome" type="number" min="0" [(ngModel)]="profile.annual_income"
-                placeholder="Enter annual income" />
-
+                placeholder="e.g. 250000" />
             </div>
 
-
-            <!-- OCCUPATION -->
+            <!-- Occupation -->
             <div class="form-field">
-
               <label for="occupation">
                 Occupation
               </label>
-
               <select id="occupation" name="occupation" [(ngModel)]="profile.occupation">
-
-                <option value="">
-                  Select occupation
-                </option>
-
+                <option value="">Select occupation</option>
                 <option *ngFor="let occupation of occupations" [value]="occupation">
                   {{ occupation }}
                 </option>
-
               </select>
-
             </div>
+          </div>
+        </div>
 
+        <!-- GROUP 3: EDUCATION & SOCIAL INFORMATION -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="material-icons section-icon">school</span>
+            <h3>Education &amp; Social Information</h3>
+          </div>
 
-            <!-- EDUCATION -->
+          <div class="form-grid grid-3">
+            <!-- Education -->
             <div class="form-field">
-
               <label for="education">
-                Education
+                Education Level
               </label>
-
               <select id="education" name="education" [(ngModel)]="profile.education">
-
-                <option value="">
-                  Select education
-                </option>
-
+                <option value="">Select education</option>
                 <option *ngFor="let education of educationLevels" [value]="education">
                   {{ education }}
                 </option>
-
               </select>
-
             </div>
 
-
-            <!-- STATE -->
+            <!-- Social Category -->
             <div class="form-field">
-
-              <label for="state">
-                State
-              </label>
-
-              <select id="state" name="state" [(ngModel)]="profile.state">
-
-                <option value="">
-                  Select state
-                </option>
-
-                <option *ngFor="let state of states" [value]="state">
-                  {{ state }}
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <!-- SOCIAL CATEGORY -->
-            <div class="form-field">
-
               <label for="socialCategory">
                 Social Category
               </label>
-
               <select id="socialCategory" name="socialCategory" [(ngModel)]="profile.social_category">
-
-                <option value="">
-                  Select category
-                </option>
-
+                <option value="">Select category</option>
                 <option *ngFor="let category of socialCategories" [value]="category">
                   {{ category }}
                 </option>
-
               </select>
-
             </div>
 
-
-            <!-- DISABILITY -->
+            <!-- Disability Status -->
             <div class="form-field">
-
               <label for="disability">
                 Disability Status
               </label>
-
               <select id="disability" name="disability" [(ngModel)]="profile.disability_status">
-
-                <option [ngValue]="false">
-                  No
-                </option>
-
-                <option [ngValue]="true">
-                  Yes
-                </option>
-
+                <option [ngValue]="false">No</option>
+                <option [ngValue]="true">Yes</option>
               </select>
-
             </div>
+          </div>
+        </div>
 
+        <!-- GROUP 4: LOCATION INFORMATION -->
+        <div class="form-section">
+          <div class="form-section-header">
+            <span class="material-icons section-icon">location_on</span>
+            <h3>Location</h3>
           </div>
 
-
-          <!-- ERROR -->
-          <div class="error-message" *ngIf="errorMessage">
-
-            <span>⚠</span>
-
-            {{ errorMessage }}
-
-          </div>
-
-
-          <!-- ACTION BUTTON -->
-          <div class="form-actions">
-
-            <button type="button" class="primary-button" [disabled]="loading" (click)="findEligible()">
-
-              <span *ngIf="!loading">
-                Find Eligible Schemes &amp; Policies →
-              </span>
-
-              <span *ngIf="loading" class="loading-button-content">
-
-                <span class="small-spinner"></span>
-
-                Checking Eligibility...
-
-              </span>
-
-            </button>
-
-          </div>
-
-        </section>
-
-
-
-        <!-- =================================
-             RESULTS CARD
-        ================================== -->
-
-        <section class="card results-card">
-
-          <div class="results-header">
-
-            <div class="section-heading results-heading">
-
-              <div class="step-number">
-                2
-              </div>
-
-              <div>
-
-                <h2>
-                  Your Eligible Schemes &amp; Policies
-                </h2>
-
-                <p>
-                  Results are based on the information you provided.
-                </p>
-
-              </div>
-
+          <div class="form-grid grid-2">
+            <!-- State -->
+            <div class="form-field full-width">
+              <label for="state">
+                Location (State / UT)
+              </label>
+              <select id="state" name="state" [(ngModel)]="profile.state">
+                <option value="">Select location (state / UT)</option>
+                <option *ngFor="let state of states" [value]="state">
+                  {{ state }}
+                </option>
+              </select>
             </div>
-
-
-            <!-- RESULT COUNT -->
-
-            <div class="result-count" *ngIf="!loading && (schemeResponse || policyResponse)">
-
-              <strong>
-                {{ totalEligibleResults }} Eligible
-              </strong>
-
-            </div>
-
           </div>
-
-
-
-          <!-- =================================
-               LOADING
-          ================================== -->
-
-          <div class="loading-box" *ngIf="loading">
-
-            <div class="spinner"></div>
-
-            <p>
-              Checking available schemes and policies...
-            </p>
-
-            <small>
-              Please wait...
-            </small>
-
-          </div>
-
-
-
-          <!-- =================================
-               ERROR
-          ================================== -->
-
-          <div class="results-error" *ngIf="!loading && errorMessage">
-
-            <div class="error-large-icon">
-              ⚠
-            </div>
-
-            <h3>
-              Unable to load eligibility results
-            </h3>
-
-            <p>
-              {{ errorMessage }}
-            </p>
-
-            <button type="button" class="retry-button" (click)="findEligible()">
-              Try Again
-            </button>
-
-          </div>
-
-
-
-          <!-- =================================
-               SUCCESS RESULTS
-          ================================== -->
-
-          <div *ngIf="
-              !loading &&
-              !errorMessage &&
-              (schemeResponse || policyResponse)
-            ">
-
-
-            <!-- ===============================
-                 SCHEMES
-            ================================ -->
-
-            <div class="results-list" *ngIf="schemeResults.length > 0">
-
-              <h3 class="result-group-title">
-                Eligible Schemes
-              </h3>
-
-
-              <article class="result-item" *ngFor="
-                  let item of schemeResults;
-                  trackBy: trackByEntity
-                ">
-
-                <div class="result-type scheme-type">
-                  SCHEME
-                </div>
-
-
-                <div class="result-content">
-
-                  <h3>
-                    {{ item.entity_name }}
-                  </h3>
-
-                  <p>
-                    {{ item.message }}
-                  </p>
-
-                </div>
-
-
-                <div class="eligible-badge">
-                  ✓ Eligible
-                </div>
-
-
-                <button type="button" class="view-button">
-                  View Details →
-                </button>
-
-              </article>
-
-            </div>
-
-
-
-            <!-- ===============================
-                 POLICIES
-            ================================ -->
-
-            <div class="results-list" *ngIf="policyResults.length > 0">
-
-              <h3 class="result-group-title">
-                Eligible Policies
-              </h3>
-
-
-              <article class="result-item" *ngFor="
-                  let item of policyResults;
-                  trackBy: trackByEntity
-                ">
-
-                <div class="result-type policy-type">
-                  POLICY
-                </div>
-
-
-                <div class="result-content">
-
-                  <h3>
-                    {{ item.entity_name }}
-                  </h3>
-
-                  <p>
-                    {{ item.message }}
-                  </p>
-
-                </div>
-
-
-                <div class="eligible-badge">
-                  ✓ Eligible
-                </div>
-
-
-                <button type="button" class="view-button">
-                  View Details →
-                </button>
-
-              </article>
-
-            </div>
-
-
-
-            <!-- ===============================
-                 NO RESULTS
-            ================================ -->
-
-            <div class="empty-results" *ngIf="
-                schemeResults.length === 0 &&
-                policyResults.length === 0
-              ">
-
-              <div class="empty-icon">
-                🔍
-              </div>
-
-              <h3>
-                No eligible schemes or policies found
-              </h3>
-
-              <p>
-                We could not find any approved schemes or policies
-                matching the information you provided.
-              </p>
-
-            </div>
-
-          </div>
-
-        </section>
-
-      </div>
-
-
-
-      <!-- =====================================
-           RIGHT COLUMN
-      ====================================== -->
-
-      <aside class="right-column">
-
-
-        <!-- SPECIFIC CHECKER -->
-
-        <section class="card specific-card">
-
-          <div class="card-title">
-
-            <span class="blue-circle">
-              ✓
+        </div>
+
+        <!-- Form Validation Error Message -->
+        <div class="error-banner" *ngIf="errorMessage && !hasChecked">
+          <span class="material-icons">error_outline</span>
+          <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Primary Action -->
+        <div class="form-actions">
+          <button type="button" class="primary-button" [disabled]="loading" (click)="findEligible()">
+            <span *ngIf="!loading" class="btn-content">
+              <span class="material-icons btn-icon">check_circle</span>
+              <span>Check Eligibility</span>
             </span>
-
-            <h3>
-              Check a Specific Scheme or Policy
-            </h3>
-
-          </div>
-
-
-          <p class="card-description">
-            Already have a scheme or policy in mind?
-            Check your eligibility directly.
-          </p>
-
-
-          <div class="search-box">
-
-            <span>⌕</span>
-
-            <input type="text" placeholder="Search by name, keyword or category..." />
-
-          </div>
-
-
-          <div class="selected-placeholder">
-
-            <div class="selected-icon">
-              SCHEME
-            </div>
-
-            <div>
-
-              <strong>
-                Select a scheme or policy
-              </strong>
-
-              <span>
-                Choose from available schemes and policies
-              </span>
-
-            </div>
-
-          </div>
-
-
-          <button type="button" class="check-button" (click)="openSpecificChecker()">
-            Check Eligibility
+            <span *ngIf="loading" class="btn-content loading-content">
+              <span class="spinner-small"></span>
+              <span>Checking Eligibility...</span>
+            </span>
           </button>
+        </div>
 
-        </section>
+      </form>
+    </section>
 
-
-
-        <!-- INFORMATION -->
-
-        <section class="card info-card">
-
-          <div class="info-icon">
-            ℹ
-          </div>
-
+    <!-- 2. ELIGIBILITY RESULT CONTAINER (Rendered only after Check Eligibility is clicked) -->
+    <section class="card results-card" *ngIf="hasChecked" aria-labelledby="results-heading">
+      <div class="results-header">
+        <div class="results-header-text">
+          <div class="step-indicator">2</div>
           <div>
-
-            <h3>
-              How it works
-            </h3>
-
-            <p>
-              Enter your personal details and we will compare
-              them with eligibility rules for approved government
-              schemes and policies.
-            </p>
-
+            <h2 id="results-heading">Eligibility Results</h2>
+            <p>Schemes and policies evaluated based on your submitted profile criteria.</p>
           </div>
+        </div>
 
-        </section>
-
-
-
-        <!-- SUMMARY -->
-
-        <section class="card summary-card" *ngIf="
-            !loading &&
-            !errorMessage &&
-            (schemeResponse || policyResponse)
-          ">
-
-          <div class="summary-title">
-
-            <span>✓</span>
-
-            Eligibility Search Complete
-
-          </div>
-
-
-          <div class="summary-stat">
-
-            <strong>
-              {{ totalEligibleResults }}
-            </strong>
-
-            <span>
-              Eligible Results
-            </span>
-
-          </div>
-
-
-          <div class="summary-stat">
-
-            <strong>
-              {{ totalChecked }}
-            </strong>
-
-            <span>
-              Schemes &amp; Policies Checked
-            </span>
-
-          </div>
-
-        </section>
-
-      </aside>
-
-    </div>
-
-  </div>
-
-
-
-  <!-- ==========================================
-       SPECIFIC TAB
-  =========================================== -->
-
-  <div *ngIf="activeTab === 'specific'" class="specific-tab-container">
-
-    <section class="card tab-placeholder">
-
-      <div class="placeholder-icon">
-        🔎
+        <!-- Result Count Badge -->
+        <div class="result-count-badge" *ngIf="!loading && (schemeResponse || policyResponse)">
+          <span class="count-value">{{ totalEligibleResults }}</span>
+          <span class="count-label">Eligible</span>
+        </div>
       </div>
 
-      <h2>
-        Check a Specific Scheme or Policy
-      </h2>
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="loading">
+        <div class="spinner"></div>
+        <h3>Evaluating Eligibility...</h3>
+        <p>Comparing your profile criteria against active government schemes and policy requirements.</p>
+      </div>
 
-      <p>
-        Use the dedicated eligibility checker to select a
-        specific scheme or policy and verify your eligibility.
-      </p>
+      <!-- Error State -->
+      <div class="results-error" *ngIf="!loading && errorMessage">
+        <div class="error-icon-box">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Unable to Load Results</h3>
+        <p>{{ errorMessage }}</p>
+        <button type="button" class="btn-retry" (click)="findEligible()">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
+        </button>
+      </div>
 
-      <button type="button" class="primary-button" (click)="setTab('find')">
-        Back to Find Eligible Schemes
-      </button>
+      <!-- Results Presentation -->
+      <div *ngIf="!loading && !errorMessage && (schemeResponse || policyResponse)">
+
+        <!-- Eligible Schemes Group -->
+        <div class="results-group" *ngIf="schemeResults.length > 0">
+          <div class="group-header">
+            <span class="material-icons group-icon">account_balance</span>
+            <h3>Eligible Schemes ({{ schemeResults.length }})</h3>
+          </div>
+
+          <div class="results-table-list">
+            <article class="result-row" *ngFor="let item of schemeResults; trackBy: trackByEntity">
+              <div class="result-type-tag scheme-tag">
+                SCHEME
+              </div>
+
+              <div class="result-main-info">
+                <h4 class="entity-title">{{ item.entity_name }}</h4>
+                <p class="entity-desc">{{ item.message }}</p>
+              </div>
+
+              <div class="result-status-tag status-eligible">
+                <span class="material-icons">check_circle</span>
+                <span>Eligible</span>
+              </div>
+
+              <div class="result-actions">
+                <button type="button" class="btn-save" [class.saved]="isSaved('scheme', item.entity_id)"
+                  (click)="toggleSave('scheme', item)"
+                  [attr.aria-label]="isSaved('scheme', item.entity_id) ? 'Saved' : 'Save Result'">
+                  <span class="material-icons btn-save-icon">
+                    {{ isSaved('scheme', item.entity_id) ? 'bookmark' : 'bookmark_border' }}
+                  </span>
+                  <span>{{ isSaved('scheme', item.entity_id) ? 'Saved' : 'Save Result' }}</span>
+                </button>
+
+                <button type="button" class="btn-action" (click)="viewEntity('scheme', item.entity_id)"
+                  [attr.aria-label]="'View details for ' + item.entity_name">
+                  <span>View Details</span>
+                  <span class="material-icons">arrow_forward</span>
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Eligible Policies Group -->
+        <div class="results-group" *ngIf="policyResults.length > 0">
+          <div class="group-header">
+            <span class="material-icons group-icon">policy</span>
+            <h3>Eligible Policies ({{ policyResults.length }})</h3>
+          </div>
+
+          <div class="results-table-list">
+            <article class="result-row" *ngFor="let item of policyResults; trackBy: trackByEntity">
+              <div class="result-type-tag policy-tag">
+                POLICY
+              </div>
+
+              <div class="result-main-info">
+                <h4 class="entity-title">{{ item.entity_name }}</h4>
+                <p class="entity-desc">{{ item.message }}</p>
+              </div>
+
+              <div class="result-status-tag status-eligible">
+                <span class="material-icons">check_circle</span>
+                <span>Eligible</span>
+              </div>
+
+              <div class="result-actions">
+                <button type="button" class="btn-save" [class.saved]="isSaved('policy', item.entity_id)"
+                  (click)="toggleSave('policy', item)"
+                  [attr.aria-label]="isSaved('policy', item.entity_id) ? 'Saved' : 'Save Result'">
+                  <span class="material-icons btn-save-icon">
+                    {{ isSaved('policy', item.entity_id) ? 'bookmark' : 'bookmark_border' }}
+                  </span>
+                  <span>{{ isSaved('policy', item.entity_id) ? 'Saved' : 'Save Result' }}</span>
+                </button>
+
+                <button type="button" class="btn-action" (click)="viewEntity('policy', item.entity_id)"
+                  [attr.aria-label]="'View details for ' + item.entity_name">
+                  <span>View Details</span>
+                  <span class="material-icons">arrow_forward</span>
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Empty Results State -->
+        <div class="empty-state" *ngIf="schemeResults.length === 0 && policyResults.length === 0">
+          <div class="empty-icon-box">
+            <span class="material-icons">search_off</span>
+          </div>
+          <h3>No Eligible Schemes or Policies Found</h3>
+          <p>We could not find active policies or schemes matching the exact demographic and financial profile provided.
+            Adjust your profile parameters above and re-evaluate.</p>
+        </div>
+
+      </div>
 
     </section>
 
   </div>
 
+  <!-- ========================================================
+       3. SPECIFIC TAB PLACEHOLDER
+       ======================================================== -->
+  <div *ngIf="activeTab === 'specific'" class="tab-placeholder-view">
+    <section class="card placeholder-card">
+      <div class="placeholder-icon-circle">
+        <span class="material-icons">manage_search</span>
+      </div>
+      <h2>Specific Programme Eligibility Checker</h2>
+      <p>Evaluate your eligibility for an individual policy or scheme selected directly from the repository.</p>
+      <div class="placeholder-actions">
+        <button type="button" class="primary-button" (click)="openSpecificChecker()">
+          <span class="material-icons">launch</span>
+          <span>Launch Specific Checker</span>
+        </button>
+        <button type="button" class="secondary-button" (click)="setTab('find')">
+          <span>Back to General Checker</span>
+        </button>
+      </div>
+    </section>
+  </div>
 
+  <!-- ========================================================
+       4. "SAVED RESULTS" MODE
+       ======================================================== -->
+  <div *ngIf="activeTab === 'saved'" class="saved-results-container">
 
-  <!-- ==========================================
-       SAVED TAB
-  =========================================== -->
+    <section class="card saved-card" aria-labelledby="saved-heading">
+      <div class="card-header saved-card-header">
+        <div class="header-text">
+          <div class="header-title-row">
+            <span class="material-icons header-title-icon">bookmark</span>
+            <h2 id="saved-heading">Saved Results</h2>
+            <span class="saved-count-pill" *ngIf="savedResults.length > 0">
+              {{ savedResults.length }} {{ savedResults.length === 1 ? 'item' : 'items' }}
+            </span>
+          </div>
+          <p>View your previously saved eligibility results.</p>
+        </div>
 
-  <div *ngIf="activeTab === 'saved'" class="saved-tab-container">
-
-    <section class="card tab-placeholder">
-
-      <div class="placeholder-icon">
-        🔖
+        <button type="button" class="btn-switch-find" *ngIf="savedResults.length > 0" (click)="setTab('find')">
+          <span class="material-icons">search</span>
+          <span>Find More Schemes &amp; Policies</span>
+        </button>
       </div>
 
-      <h2>
-        My Saved Results
-      </h2>
+      <!-- Empty State -->
+      <div class="saved-empty-state" *ngIf="savedResults.length === 0">
+        <div class="empty-icon-circle">
+          <span class="material-icons">bookmark_border</span>
+        </div>
+        <h3>No Saved Results</h3>
+        <p>Your saved eligibility results will appear here.</p>
+        <button type="button" class="primary-button btn-empty-action" (click)="setTab('find')">
+          <span class="material-icons">search</span>
+          <span>Find Schemes &amp; Policies for Me</span>
+        </button>
+      </div>
 
-      <p>
-        Your saved eligibility results will appear here.
-      </p>
+      <!-- List of Saved Results -->
+      <div class="saved-list" *ngIf="savedResults.length > 0">
+        <article class="saved-item-row" *ngFor="let item of savedResults; trackBy: trackBySaved">
+          <!-- Type Tag -->
+          <div class="result-type-tag" [class.scheme-tag]="item.entity_type === 'scheme'"
+            [class.policy-tag]="item.entity_type === 'policy'">
+            {{ item.entity_type === 'scheme' ? 'SCHEME' : 'POLICY' }}
+          </div>
 
-      <button type="button" class="primary-button" (click)="setTab('find')">
-        Find Eligible Schemes &amp; Policies
-      </button>
+          <!-- Main Info -->
+          <div class="saved-item-main">
+            <div class="saved-item-title-row">
+              <h4 class="saved-item-title">{{ item.entity_name }}</h4>
+              <span class="result-status-tag" [class.status-eligible]="item.eligible"
+                [class.status-ineligible]="!item.eligible">
+                <span class="material-icons">{{ item.eligible ? 'check_circle' : 'cancel' }}</span>
+                <span>{{ item.eligible ? 'Eligible' : 'Not Eligible' }}</span>
+              </span>
+            </div>
 
+            <p class="saved-item-desc">{{ item.message }}</p>
+
+            <div class="saved-item-meta">
+              <span class="meta-date" *ngIf="item.saved_at">
+                <span class="material-icons meta-icon">schedule</span>
+                <span>Saved on {{ formatSavedDate(item.saved_at) }}</span>
+              </span>
+              <span class="meta-category" *ngIf="item.category">
+                <span class="material-icons meta-icon">category</span>
+                <span>{{ item.category }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="saved-item-actions">
+            <button type="button" class="btn-view" (click)="viewEntity(item.entity_type, item.entity_id)"
+              [attr.aria-label]="'View details for ' + item.entity_name">
+              <span>View Details</span>
+              <span class="material-icons">arrow_forward</span>
+            </button>
+
+            <button type="button" class="btn-remove" (click)="openDeleteModal(item)"
+              [attr.aria-label]="'Remove ' + item.entity_name + ' from saved results'">
+              <span class="material-icons">delete_outline</span>
+              <span>Remove</span>
+            </button>
+          </div>
+        </article>
+      </div>
     </section>
 
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <app-confirm-modal [isOpen]="deleteModalOpen" title="Remove Saved Result"
+    [message]="'Are you sure you want to remove \'' + (itemToDelete?.entity_name || 'this result') + '\' from your saved eligibility results?'"
+    confirmText="Remove" cancelText="Cancel" variant="danger" (confirmed)="confirmDelete()"
+    (cancelled)="cancelDelete()">
+  </app-confirm-modal>
+
+  <!-- Toast Notification -->
+  <div class="toast-notification" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
+    <span class="material-icons">
+      {{ toastType === 'success' ? 'check_circle' : (toastType === 'error' ? 'error_outline' : 'info') }}
+    </span>
+    <span>{{ toastMessage }}</span>
   </div>
 
 </div>

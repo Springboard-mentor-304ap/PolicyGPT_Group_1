@@ -35,8 +35,16 @@ $mobile-topbar-height: 64px;
   box-sizing: border-box;
 }
 
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .dash-layout {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -146,7 +154,7 @@ $mobile-topbar-height: 64px;
   padding: 8px 14px;
   border-radius: 8px;
   font-family: inherit;
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
@@ -480,7 +488,7 @@ $mobile-topbar-height: 64px;
 .guest-login-modal__hint {
   margin-top: 7px !important;
   color: $text-muted !important;
-  font-size: 12.5px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
 }
 
@@ -502,8 +510,8 @@ $mobile-topbar-height: 64px;
     gap: 7px;
     border-radius: 8px;
     font-family: inherit;
-    font-size: 13.5px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.18s ease;
 
@@ -585,12 +593,12 @@ $mobile-topbar-height: 64px;
 
   .dash-nav-link {
     padding: 7px 10px;
-    font-size: 13.5px;
+    font-size: 13px;
   }
 
   .dash-btn {
     padding: 7.5px 14px;
-    font-size: 13.5px;
+    font-size: 13px;
   }
 }
 

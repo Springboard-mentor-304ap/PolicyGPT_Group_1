@@ -15,7 +15,7 @@
     </div>
 
     <button class="back-btn" type="button" (click)="goBack()">
-      <span>←</span>
+      <span class="material-icons">arrow_back</span>
       Back
     </button>
 
@@ -103,7 +103,7 @@
           getIconType(item1, data1) +
           '-icon'
         ">
-        <span class="icon-symbol">
+        <span class="material-icons icon-symbol">
           {{ getIconSymbol(item1, data1) }}
         </span>
       </div>
@@ -140,7 +140,7 @@
           getIconType(item2, data2) +
           '-icon'
         ">
-        <span class="icon-symbol">
+        <span class="material-icons icon-symbol">
           {{ getIconSymbol(item2, data2) }}
         </span>
       </div>
@@ -171,7 +171,7 @@
           getIconType(item3, data3) +
           '-icon'
         ">
-        <span class="icon-symbol">
+        <span class="material-icons icon-symbol">
           {{ getIconSymbol(item3, data3) }}
         </span>
       </div>
@@ -714,7 +714,7 @@
 
               <a *ngIf="getApplicationUrl(data1)" [href]="getApplicationUrl(data1)" target="_blank"
                 rel="noopener noreferrer">
-                Apply Online ↗
+                Apply Online <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getApplicationUrl(data1)">
@@ -728,7 +728,7 @@
 
               <a *ngIf="getApplicationUrl(data2)" [href]="getApplicationUrl(data2)" target="_blank"
                 rel="noopener noreferrer">
-                Apply Online ↗
+                Apply Online <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getApplicationUrl(data2)">
@@ -742,7 +742,7 @@
 
               <a *ngIf="getApplicationUrl(data3)" [href]="getApplicationUrl(data3)" target="_blank"
                 rel="noopener noreferrer">
-                Apply Online ↗
+                Apply Online <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getApplicationUrl(data3)">
@@ -809,7 +809,7 @@
             <td>
 
               <a *ngIf="getDocumentUrl(data1)" [href]="getDocumentUrl(data1)" target="_blank" rel="noopener noreferrer">
-                View Document ↗
+                View Document <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getDocumentUrl(data1)">
@@ -822,7 +822,7 @@
             <td>
 
               <a *ngIf="getDocumentUrl(data2)" [href]="getDocumentUrl(data2)" target="_blank" rel="noopener noreferrer">
-                View Document ↗
+                View Document <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getDocumentUrl(data2)">
@@ -835,7 +835,7 @@
             <td *ngIf="item3 && data3">
 
               <a *ngIf="getDocumentUrl(data3)" [href]="getDocumentUrl(data3)" target="_blank" rel="noopener noreferrer">
-                View Document ↗
+                View Document <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getDocumentUrl(data3)">
@@ -858,7 +858,7 @@
             <td>
 
               <a *ngIf="getSourceUrl(data1)" [href]="getSourceUrl(data1)" target="_blank" rel="noopener noreferrer">
-                Visit Source ↗
+                Visit Source <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getSourceUrl(data1)">
@@ -871,7 +871,7 @@
             <td>
 
               <a *ngIf="getSourceUrl(data2)" [href]="getSourceUrl(data2)" target="_blank" rel="noopener noreferrer">
-                Visit Source ↗
+                Visit Source <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getSourceUrl(data2)">
@@ -884,7 +884,7 @@
             <td *ngIf="item3 && data3">
 
               <a *ngIf="getSourceUrl(data3)" [href]="getSourceUrl(data3)" target="_blank" rel="noopener noreferrer">
-                Visit Source ↗
+                Visit Source <span class="material-icons link-icon">open_in_new</span>
               </a>
 
               <span *ngIf="!getSourceUrl(data3)">
@@ -916,7 +916,7 @@
     ">
 
     <button type="button" class="back-btn" (click)="goToSelection()">
-      <span>←</span>
+      <span class="material-icons">arrow_back</span>
       Back to Compare
     </button>
 

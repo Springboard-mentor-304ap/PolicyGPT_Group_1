@@ -152,12 +152,12 @@ $login-error: #dc3545;
 
   color: #fff;
 
-  font-size: 31px;
+  font-size: 30px;
   line-height: 1;
 
-  font-weight: 800;
+  font-weight: 700;
 
-  letter-spacing: -0.6px;
+  letter-spacing: -0.5px;
 }
 
 .login-hero__title span {
@@ -171,7 +171,7 @@ $login-error: #dc3545;
 
   color: rgba(255, 255, 255, 0.92);
 
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.3;
 
   font-weight: 500;
@@ -194,10 +194,10 @@ $login-error: #dc3545;
 
   color: #fff;
 
-  font-size: clamp(31px, 2.25vw, 39px);
-  line-height: 1.18;
+  font-size: clamp(28px, 2.25vw, 34px);
+  line-height: 1.2;
 
-  font-weight: 800;
+  font-weight: 700;
 
   letter-spacing: -0.5px;
 }
@@ -216,8 +216,8 @@ $login-error: #dc3545;
 
   color: rgba(255, 255, 255, 0.88);
 
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.6;
 
   font-weight: 400;
 }
@@ -308,9 +308,9 @@ $login-error: #dc3545;
   color: #fff;
 
   font-size: 15px;
-  line-height: 1.2;
+  line-height: 1.25;
 
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* FEATURE DESCRIPTION */
@@ -323,8 +323,8 @@ $login-error: #dc3545;
 
   color: rgba(255, 255, 255, 0.76);
 
-  font-size: 11.5px;
-  line-height: 1.4;
+  font-size: 13px;
+  line-height: 1.45;
 
   font-weight: 400;
 }
@@ -364,9 +364,9 @@ $login-error: #dc3545;
   color: rgba(255, 255, 255, 0.95);
 
   font-size: 14px;
-  line-height: 1.35;
+  line-height: 1.4;
 
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* =========================================================
@@ -460,10 +460,10 @@ $login-error: #dc3545;
 
   font-family: inherit;
 
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
 
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -518,10 +518,10 @@ $login-error: #dc3545;
 
   color: $text;
 
-  font-size: 29px;
+  font-size: 28px;
   line-height: 1.2;
 
-  font-weight: 800;
+  font-weight: 700;
 
   letter-spacing: -0.4px;
 }
@@ -536,7 +536,7 @@ $login-error: #dc3545;
   font-size: 14px;
   line-height: 1.4;
 
-  font-weight: 600;
+  font-weight: 400;
 }
 
 /* =========================================================
@@ -567,7 +567,7 @@ $login-error: #dc3545;
   font-size: 13px;
   line-height: 1.2;
 
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* =========================================================
@@ -600,7 +600,7 @@ $login-error: #dc3545;
 
   font-family: inherit;
 
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
 
   font-weight: 500;
@@ -628,7 +628,7 @@ $login-error: #dc3545;
 
 .login-input::placeholder {
   color: #9ba8bd;
-
+  font-size: 14px;
   opacity: 1;
 }
 
@@ -730,10 +730,10 @@ $login-error: #dc3545;
 
   color: #26375b;
 
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.2;
 
-  font-weight: 600;
+  font-weight: 500;
 
   cursor: pointer;
 }
@@ -801,10 +801,10 @@ $login-error: #dc3545;
 
   font-family: inherit;
 
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.2;
 
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -831,7 +831,7 @@ $login-error: #dc3545;
 
   color: $login-error;
 
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 
   font-weight: 500;
@@ -865,7 +865,7 @@ $login-error: #dc3545;
 
   color: #c62828;
 
-  font-size: 12px;
+  font-size: 13px;
 
   font-weight: 600;
 
@@ -931,7 +931,7 @@ $login-error: #dc3545;
   font-size: 14px;
   line-height: 1;
 
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -1041,7 +1041,7 @@ $login-error: #dc3545;
 
   white-space: nowrap;
 
-  font-size: 11px;
+  font-size: 12px;
 
   line-height: 1;
 
@@ -1087,7 +1087,7 @@ $login-error: #dc3545;
 
   font-family: inherit;
 
-  font-size: 12px;
+  font-size: 13px;
 
   line-height: 1;
 
@@ -1179,11 +1179,11 @@ $login-error: #dc3545;
 
   text-align: center;
 
-  font-size: 12px;
+  font-size: 13px;
 
   line-height: 1.5;
 
-  font-weight: 600;
+  font-weight: 500;
 
   flex-shrink: 0;
 }
@@ -1359,17 +1359,17 @@ $login-error: #dc3545;
 
   .login-feature p,
   .login-feature__desc {
-    font-size: 10.5px;
+    font-size: 12px;
   }
 
   .login-input {
     height: 48px;
 
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .login-field-label {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .login-submit {
@@ -1405,11 +1405,11 @@ $login-error: #dc3545;
   }
 
   .login-hero__title {
-    font-size: 22px;
+    font-size: 24px;
   }
 
   .login-hero__tagline {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .login-hero__intro {
@@ -1417,11 +1417,11 @@ $login-error: #dc3545;
   }
 
   .login-hero__headline {
-    font-size: 25px;
+    font-size: 24px;
   }
 
   .login-hero__subtext {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .login-features {
@@ -1447,18 +1447,18 @@ $login-error: #dc3545;
 
   .login-feature h3,
   .login-feature__title {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .login-feature p,
   .login-feature__desc {
     max-width: 170px;
 
-    font-size: 8.5px;
+    font-size: 12px;
   }
 
   .login-hero__quote p {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .login-form-panel__top {
@@ -1466,11 +1466,11 @@ $login-error: #dc3545;
 
     gap: 8px;
 
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .login-form-panel__new {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .login-form-panel__cta {
@@ -1480,7 +1480,7 @@ $login-error: #dc3545;
 
     padding: 0 13px;
 
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .login-card {
@@ -1498,7 +1498,7 @@ $login-error: #dc3545;
   }
 
   .login-card__subtitle {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .login-field {
@@ -1506,13 +1506,13 @@ $login-error: #dc3545;
   }
 
   .login-field-label {
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .login-input {
     height: 44px;
 
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .login-input-icon {
@@ -1527,7 +1527,7 @@ $login-error: #dc3545;
 
   .login-remember,
   .login-forgot {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .login-remember input {
@@ -1538,7 +1538,7 @@ $login-error: #dc3545;
   .login-submit {
     height: 46px;
 
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .login-divider {
@@ -1546,7 +1546,7 @@ $login-error: #dc3545;
   }
 
   .login-divider p {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .login-social {
@@ -1556,13 +1556,13 @@ $login-error: #dc3545;
   .login-social__button {
     height: 39px;
 
-    font-size: 10px;
+    font-size: 13px;
   }
 
   .login-support {
     margin-top: 16px;
 
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 
@@ -1629,11 +1629,11 @@ $login-error: #dc3545;
 
     gap: 9px;
 
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .login-form-panel__new {
-    font-size: 12px;
+    font-size: 13px;
 
     white-space: nowrap;
   }
@@ -1645,7 +1645,7 @@ $login-error: #dc3545;
 
     padding: 0 13px;
 
-    font-size: 11px;
+    font-size: 13px;
   }
 
   /* CARD */
@@ -1669,11 +1669,11 @@ $login-error: #dc3545;
   }
 
   .login-card__title {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .login-card__subtitle {
-    font-size: 12px;
+    font-size: 13px;
 
     line-height: 1.5;
   }
@@ -1685,7 +1685,7 @@ $login-error: #dc3545;
   }
 
   .login-field-label {
-    font-size: 12px;
+    font-size: 13px;
 
     margin-bottom: 8px;
   }
@@ -1693,7 +1693,7 @@ $login-error: #dc3545;
   .login-input {
     height: 48px;
 
-    font-size: 12px;
+    font-size: 14px;
 
     padding-left: 40px;
     padding-right: 40px;
@@ -1721,7 +1721,7 @@ $login-error: #dc3545;
 
   .login-remember,
   .login-forgot {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .login-remember input {
@@ -1734,7 +1734,7 @@ $login-error: #dc3545;
   /* ERROR */
 
   .login-server-error {
-    font-size: 11px;
+    font-size: 12px;
 
     padding: 9px 11px;
   }
@@ -1756,7 +1756,7 @@ $login-error: #dc3545;
   }
 
   .login-divider p {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   /* SOCIAL */
@@ -1770,7 +1770,7 @@ $login-error: #dc3545;
   .login-social__button {
     height: 43px;
 
-    font-size: 11px;
+    font-size: 13px;
   }
 
   /* SUPPORT */
@@ -1782,7 +1782,7 @@ $login-error: #dc3545;
 
     margin-top: 25px;
 
-    font-size: 11px;
+    font-size: 12px;
 
     line-height: 1.5;
   }
@@ -1804,11 +1804,11 @@ $login-error: #dc3545;
 
     gap: 7px;
 
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .login-form-panel__new {
-    font-size: 10.5px;
+    font-size: 12px;
   }
 
   .login-form-panel__cta {
@@ -1818,7 +1818,7 @@ $login-error: #dc3545;
 
     padding: 0 10px;
 
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .login-card {
@@ -1834,11 +1834,11 @@ $login-error: #dc3545;
   }
 
   .login-card__title {
-    font-size: 23px;
+    font-size: 22px;
   }
 
   .login-card__subtitle {
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .login-field {
@@ -1846,7 +1846,7 @@ $login-error: #dc3545;
   }
 
   .login-field-label {
-    font-size: 11px;
+    font-size: 13px;
 
     margin-bottom: 7px;
   }
@@ -1854,7 +1854,7 @@ $login-error: #dc3545;
   .login-input {
     height: 46px;
 
-    font-size: 11.5px;
+    font-size: 14px;
 
     padding-left: 38px;
     padding-right: 38px;
@@ -1868,7 +1868,7 @@ $login-error: #dc3545;
 
   .login-remember,
   .login-forgot {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .login-remember input {
@@ -1879,7 +1879,7 @@ $login-error: #dc3545;
   .login-submit {
     height: 47px;
 
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .login-divider {
@@ -1887,19 +1887,19 @@ $login-error: #dc3545;
   }
 
   .login-divider p {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .login-social__button {
     height: 41px;
 
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .login-support {
     margin-top: 24px;
 
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
@@ -1931,7 +1931,7 @@ $login-error: #dc3545;
   }
 
   .login-form-panel__new {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .login-form-panel__cta {
@@ -1941,7 +1941,7 @@ $login-error: #dc3545;
 
     padding: 0 8px;
 
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .login-card {
@@ -1957,11 +1957,11 @@ $login-error: #dc3545;
   }
 
   .login-card__title {
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .login-card__subtitle {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .login-field {
@@ -1969,7 +1969,7 @@ $login-error: #dc3545;
   }
 
   .login-field-label {
-    font-size: 10px;
+    font-size: 13px;
 
     margin-bottom: 6px;
   }
@@ -1977,7 +1977,7 @@ $login-error: #dc3545;
   .login-input {
     height: 43px;
 
-    font-size: 10.5px;
+    font-size: 14px;
 
     padding-left: 36px;
     padding-right: 36px;
@@ -2007,7 +2007,7 @@ $login-error: #dc3545;
 
   .login-remember,
   .login-forgot {
-    font-size: 9.5px;
+    font-size: 12px;
   }
 
   .login-remember input {
@@ -2020,7 +2020,7 @@ $login-error: #dc3545;
 
     padding: 8px 10px;
 
-    font-size: 10px;
+    font-size: 12px;
 
     gap: 7px;
   }
@@ -2032,7 +2032,7 @@ $login-error: #dc3545;
   .login-submit {
     height: 44px;
 
-    font-size: 11.5px;
+    font-size: 14px;
   }
 
   .login-submit-icon {
@@ -2046,7 +2046,7 @@ $login-error: #dc3545;
   }
 
   .login-divider p {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .login-social {
@@ -2058,72 +2058,12 @@ $login-error: #dc3545;
   .login-social__button {
     height: 40px;
 
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .login-support {
     margin-top: 21px;
 
-    font-size: 9.5px;
-  }
-}
-
-/* =========================================================
-   EXTRA SMALL
-   320px AND BELOW
-   ========================================================= */
-
-@media (max-width: 320px) {
-  .login-form-panel {
-    padding-left: 7px;
-    padding-right: 7px;
-  }
-
-  .login-form-panel__top {
-    left: 7px;
-    right: 7px;
-  }
-
-  .login-form-panel__new {
-    font-size: 9px;
-  }
-
-  .login-form-panel__cta {
-    min-width: 64px;
-
-    height: 32px;
-
-    padding: 0 7px;
-
-    font-size: 9px;
-  }
-
-  .login-card {
-    padding-left: 11px;
-    padding-right: 11px;
-  }
-
-  .login-card__title {
-    font-size: 19px;
-  }
-
-  .login-card__subtitle {
-    font-size: 9px;
-  }
-
-  .login-input {
-    height: 41px;
-
-    font-size: 10px;
-  }
-
-  .login-submit {
-    height: 42px;
-
-    font-size: 11px;
-  }
-
-  .login-support {
-    font-size: 9px;
+    font-size: 12px;
   }
 }

@@ -1,0 +1,222 @@
+// ============================================================
+// GOVERNMENT MASTER DATA CONSTANTS
+// Standardized values for Policy and Scheme forms
+// ============================================================
+
+export const SCHEME_CATEGORIES: string[] = [
+  'Scholarships',
+  'Farmer Welfare',
+  'Healthcare',
+  'Housing',
+  'Business Support',
+  'Women Empowerment',
+  'Senior Citizen Welfare',
+  'Student Schemes',
+  'Employment Programs',
+  'Social Security',
+];
+
+export const POLICY_CATEGORIES: string[] = [
+  'Education',
+  'Healthcare',
+  'Agriculture',
+  'Employment',
+  'Finance',
+  'Women & Child Welfare',
+  'Housing',
+  'Environment',
+  'Digital Governance',
+  'Infrastructure',
+];
+
+export const MINISTRIES: string[] = [
+  'Ministry of Agriculture and Farmers Welfare',
+  'Ministry of Fisheries, Animal Husbandry and Dairying',
+  'Ministry of Rural Development',
+  'Ministry of Panchayati Raj',
+  'Ministry of Environment, Forest and Climate Change',
+  'Ministry of Jal Shakti',
+  'Ministry of Cooperation',
+  'Ministry of Finance',
+  'Ministry of Corporate Affairs',
+  'Ministry of Commerce and Industry',
+  'Ministry of Micro, Small and Medium Enterprises',
+  'Ministry of Consumer Affairs, Food and Public Distribution',
+  'Ministry of Statistics and Programme Implementation',
+  'Ministry of Planning',
+  'Ministry of Education',
+  'Ministry of Skill Development and Entrepreneurship',
+  'Ministry of Health and Family Welfare',
+  'Ministry of AYUSH',
+  'Ministry of Chemicals and Fertilizers',
+  'Ministry of Women and Child Development',
+  'Ministry of Social Justice and Empowerment',
+  'Ministry of Tribal Affairs',
+  'Ministry of Minority Affairs',
+  'Ministry of Labour and Employment',
+  'Ministry of Road Transport and Highways',
+  'Ministry of Railways',
+  'Ministry of Civil Aviation',
+  'Ministry of Ports, Shipping and Waterways',
+  'Ministry of Housing and Urban Affairs',
+  'Ministry of Power',
+  'Ministry of New and Renewable Energy',
+  'Ministry of Petroleum and Natural Gas',
+  'Ministry of Coal',
+  'Ministry of Mines',
+  'Ministry of Electronics and Information Technology',
+  'Ministry of Communications',
+  'Ministry of Science and Technology',
+  'Ministry of Earth Sciences',
+  'Ministry of Defence',
+  'Ministry of Home Affairs',
+  'Ministry of Law and Justice',
+  'Ministry of Personnel, Public Grievances and Pensions',
+  'Ministry of Parliamentary Affairs',
+  'Ministry of Culture',
+  'Ministry of Tourism',
+  'Ministry of Information and Broadcasting',
+  'Ministry of Youth Affairs and Sports',
+  'Ministry of Textiles',
+  'Ministry of Food Processing Industries',
+  'Ministry of External Affairs',
+  'Ministry of Development of North Eastern Region',
+  'Department of Atomic Energy',
+  'Department of Space',
+];
+
+export const MINISTRY_DEPARTMENTS_MAP: Record<string, string[]> = {
+  'Ministry of Education': [
+    'Department of School Education and Literacy',
+    'Department of Higher Education',
+  ],
+  'Ministry of Agriculture and Farmers Welfare': [
+    'Department of Agriculture and Farmers Welfare',
+    'Department of Agricultural Research and Education',
+  ],
+  'Ministry of Chemicals and Fertilizers': [
+    'Department of Chemicals and Petrochemicals',
+    'Department of Fertilizers',
+    'Department of Pharmaceuticals',
+  ],
+  'Ministry of Commerce and Industry': [
+    'Department of Commerce',
+    'Department for Promotion of Industry and Internal Trade',
+  ],
+  'Ministry of Communications': [
+    'Department of Telecommunications',
+    'Department of Posts',
+  ],
+  'Ministry of Consumer Affairs, Food and Public Distribution': [
+    'Department of Consumer Affairs',
+    'Department of Food and Public Distribution',
+  ],
+  'Ministry of Defence': [
+    'Department of Defence',
+    'Department of Defence Production',
+    'Department of Defence Research and Development',
+    'Department of Ex-Servicemen Welfare',
+    'Department of Military Affairs',
+  ],
+  'Ministry of Finance': [
+    'Department of Economic Affairs',
+    'Department of Expenditure',
+    'Department of Financial Services',
+    'Department of Investment and Public Asset Management',
+    'Department of Revenue',
+  ],
+  'Ministry of Health and Family Welfare': [
+    'Department of Health and Family Welfare',
+    'Department of Health Research',
+  ],
+  'Ministry of Home Affairs': [
+    'Department of Border Management',
+    'Department of Internal Security',
+    'Department of Official Language',
+    'Department of States',
+  ],
+  'Ministry of Jal Shakti': [
+    'Department of Water Resources, River Development and Ganga Rejuvenation',
+    'Department of Drinking Water and Sanitation',
+  ],
+  'Ministry of Law and Justice': [
+    'Department of Legal Affairs',
+    'Legislative Department',
+    'Department of Justice',
+  ],
+  'Ministry of Personnel, Public Grievances and Pensions': [
+    'Department of Personnel and Training',
+    'Department of Administrative Reforms and Public Grievances',
+    'Department of Pension and Pensioners\' Welfare',
+  ],
+  'Ministry of Science and Technology': [
+    'Department of Science and Technology',
+    'Department of Biotechnology',
+    'Department of Scientific and Industrial Research',
+  ],
+  'Ministry of Social Justice and Empowerment': [
+    'Department of Social Justice and Empowerment',
+    'Department of Empowerment of Persons with Disabilities',
+  ],
+  'Ministry of Rural Development': [
+    'Department of Rural Development',
+    'Department of Land Resources',
+  ],
+  'Ministry of Youth Affairs and Sports': [
+    'Department of Youth Affairs',
+    'Department of Sports',
+  ],
+};
+
+export const ALL_DEPARTMENTS: string[] = Array.from(
+  new Set(Object.values(MINISTRY_DEPARTMENTS_MAP).flat())
+).sort();
+
+export const POLICY_SECTORS: string[] = [
+  'Education',
+  'Healthcare',
+  'Agriculture',
+  'Employment',
+  'Finance',
+  'Women & Child Welfare',
+  'Housing',
+  'Environment',
+  'Digital Governance',
+  'Infrastructure',
+];
+
+export const STATES: string[] = [
+  'All India',
+  'Central',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jammu & Kashmir',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Ladakh',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+];

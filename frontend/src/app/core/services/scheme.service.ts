@@ -78,6 +78,12 @@ export class SchemeService {
     if (filters?.state && filters.state.trim()) {
       params = params.set('state', filters.state.trim());
     }
+    if (filters?.sector && filters.sector.trim()) {
+      params = params.set('sector', filters.sector.trim());
+    }
+    if (filters?.publication_date && filters.publication_date.trim()) {
+      params = params.set('publication_date', filters.publication_date.trim());
+    }
     if (filters?.status && filters.status.trim()) {
       params = params.set('status', filters.status.trim());
     }

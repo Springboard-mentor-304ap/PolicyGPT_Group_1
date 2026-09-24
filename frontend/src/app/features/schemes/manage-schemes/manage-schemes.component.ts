@@ -9,6 +9,13 @@ import {
   SchemeListResponse,
   SchemeStatus,
 } from '../../../core/models/scheme.model';
+import {
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  STATES,
+} from '../../../core/constants/government-data.constants';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import { ReasonModalComponent } from '../../../shared/components/reason-modal/reason-modal.component';
 
@@ -90,64 +97,27 @@ export class ManageSchemesComponent implements OnInit {
   reasonVariant: 'primary' | 'danger' | 'warning' = 'danger';
   reasonAction: ((reason: string) => void) | null = null;
 
-  categories = [
-    'Agriculture',
-    'Education',
-    'Health & Wellness',
-    'Skill Development',
-    'Housing & Shelter',
-    'Social Welfare',
-    'Financial Services',
-    'Energy & Power',
-    'Infrastructure',
-    'Employment',
-  ];
+  categories = SCHEME_CATEGORIES;
+  ministries = MINISTRIES;
+  states = STATES;
 
-  ministries = [
-    'Ministry of Agriculture & Farmers Welfare',
-    'Ministry of Education',
-    'Ministry of Health & Family Welfare',
-    'Ministry of New & Renewable Energy',
-    'Ministry of Micro, Small & Medium Enterprises',
-    'Ministry of Housing and Urban Affairs',
-    'Ministry of Finance',
-    'Ministry of Labour & Employment',
-    'Ministry of Electronics & IT',
-  ];
+  get departments(): string[] {
+    if (!this.selectedMinistry) {
+      return ALL_DEPARTMENTS;
+    }
+    const specific = MINISTRY_DEPARTMENTS_MAP[this.selectedMinistry];
+    return specific && specific.length > 0 ? specific : ALL_DEPARTMENTS;
+  }
 
-  departments = [
-    'Department of Agriculture & Farmers Welfare',
-    'Department of School Education & Literacy',
-    'Department of Higher Education',
-    'Department of Health & Family Welfare',
-    'Department of Renewable Energy',
-    'Department of MSME',
-    'Department of Housing',
-    'Department of Financial Services',
-    'Department of Rural Development',
-  ];
-
-  states = [
-    'All India',
-    'Andhra Pradesh',
-    'Assam',
-    'Bihar',
-    'Delhi',
-    'Gujarat',
-    'Haryana',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Tamil Nadu',
-    'Telangana',
-    'Uttar Pradesh',
-    'West Bengal',
-  ];
+  onMinistryChange(): void {
+    if (this.selectedMinistry && this.selectedDepartment) {
+      const specific = MINISTRY_DEPARTMENTS_MAP[this.selectedMinistry];
+      if (specific && specific.length > 0 && !specific.includes(this.selectedDepartment)) {
+        this.selectedDepartment = '';
+      }
+    }
+    this.applyFilters();
+  }
 
   statuses = [
     'APPROVED',
@@ -451,12 +421,21 @@ export class ManageSchemesComponent implements OnInit {
     this.router.navigate(['/dashboard', this.rolePrefix, 'schemes', 'add']);
   }
 
-  // ============================================================
-  // WORKFLOW ACTION MODALS
-  // ============================================================
+  canSubmitScheme(scheme: SchemeTableItem): boolean {
+    if (!['DRAFT', 'REJECTED'].includes(scheme.status)) return false;
+    if (this.isAdmin) return true;
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    return Boolean(currentUserId && scheme.createdBy === currentUserId);
+  }
 
   openSubmitModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.canSubmitScheme(scheme)) {
+      this.errorMessage =
+        'You are not authorized to submit this scheme. Only the user who created it can submit it for approval.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Submit Scheme';
     this.confirmMessage = `Submit "${scheme.title}" for approval?`;
     this.confirmVariant = 'primary';
@@ -738,15 +717,14 @@ export class ManageSchemesComponent implements OnInit {
   exportSchemes(): void {
     const data = this.filteredSchemes;
     const csv = [
-      ['ID', 'Title', 'Category', 'Ministry', 'State', 'Status', 'Publication Date'],
+      ['ID', 'Title', 'Category', 'Ministry', 'Department', 'Status'],
       ...data.map((scheme) => [
         scheme.id,
         `"${scheme.title.replace(/"/g, '""')}"`,
         `"${scheme.category}"`,
         `"${scheme.ministry}"`,
-        `"${scheme.state}"`,
+        `"${scheme.department}"`,
         scheme.status,
-        scheme.publicationDate,
       ]),
     ]
       .map((row) => row.join(','))
@@ -762,7 +740,24 @@ export class ManageSchemesComponent implements OnInit {
   }
 
   getStatusLabel(status: string): string {
-    return status.replace(/_/g, ' ');
+    switch (status) {
+      case 'PENDING_APPROVAL':
+        return 'Pending Approval';
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Rejected';
+      case 'DRAFT':
+        return 'Draft';
+      case 'ARCHIVED':
+        return 'Archived';
+      case 'ARCHIVE_REQUESTED':
+        return 'Archive Requested';
+      case 'DELETE_REQUESTED':
+        return 'Delete Requested';
+      default:
+        return status ? status.replace(/_/g, ' ') : '';
+    }
   }
 
   getCategoryClass(category: string): string {

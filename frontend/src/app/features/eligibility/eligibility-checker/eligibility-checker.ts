@@ -1,24 +1,27 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { forkJoin, timeout, finalize } from "rxjs";
 
 import {
   EligibilityMatchResponse,
   EligibilityProfile,
   EligibilityService,
+  EntityType,
   MatchedEntity,
+  SavedEligibilityResult,
 } from "../eligibility.service";
+import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 
 @Component({
   selector: "app-eligibility-checker",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent],
   templateUrl: "./eligibility-checker.html",
   styleUrl: "./eligibility-checker.scss",
 })
-export class EligibilityChecker {
+export class EligibilityChecker implements OnInit {
   activeTab: "find" | "specific" | "saved" = "find";
 
   profile: EligibilityProfile = {
@@ -105,6 +108,7 @@ export class EligibilityChecker {
 
   loading = false;
   errorMessage = "";
+  hasChecked = false;
 
   schemeResults: MatchedEntity[] = [];
   policyResults: MatchedEntity[] = [];
@@ -112,11 +116,36 @@ export class EligibilityChecker {
   schemeResponse: EligibilityMatchResponse | null = null;
   policyResponse: EligibilityMatchResponse | null = null;
 
+  savedResults: SavedEligibilityResult[] = [];
+  deleteModalOpen = false;
+  itemToDelete: SavedEligibilityResult | null = null;
+
+  toastMessage: string | null = null;
+  toastType: "success" | "info" | "error" = "success";
+  private toastTimeout: any = null;
+
+  private readonly route = inject(ActivatedRoute, { optional: true });
+
   constructor(
     private eligibilityService: EligibilityService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
+
+  ngOnInit(): void {
+    this.loadSavedResults();
+
+    this.route?.queryParams.subscribe((params) => {
+      if (params && params["tab"] === "saved") {
+        this.activeTab = "saved";
+        this.loadSavedResults();
+        this.cdr.detectChanges();
+      } else if (params && params["tab"] === "find") {
+        this.activeTab = "find";
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   /**
    * Find schemes and policies matching the user's profile.
@@ -137,6 +166,7 @@ export class EligibilityChecker {
       return;
     }
 
+    this.hasChecked = true;
     this.loading = true;
 
     // Clear previous results
@@ -299,13 +329,142 @@ export class EligibilityChecker {
   ): void {
     this.activeTab = tab;
 
-    /*
-     * The Specific Checker is now a separate page,
-     * so navigate there when that tab is selected.
-     */
-    if (tab === "specific") {
+    if (tab === "saved") {
+      this.loadSavedResults();
+    } else if (tab === "specific") {
       this.openSpecificChecker();
     }
+  }
+
+  /**
+   * Load saved eligibility results from localStorage.
+   */
+  loadSavedResults(): void {
+    this.savedResults = this.eligibilityService.getSavedResults();
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Check whether an entity is saved in localStorage.
+   */
+  isSaved(type: EntityType, id: number): boolean {
+    return this.eligibilityService.isResultSaved(type, id);
+  }
+
+  /**
+   * Toggle or save an eligibility result.
+   */
+  toggleSave(type: EntityType, entity: MatchedEntity, category?: string): void {
+    const isAlreadySaved = this.isSaved(type, entity.entity_id);
+    if (isAlreadySaved) {
+      this.openDeleteModal({
+        id: `${type}_${entity.entity_id}`,
+        entity_id: entity.entity_id,
+        entity_name: entity.entity_name,
+        entity_type: type,
+        eligible: entity.eligible,
+        message: entity.message,
+        category: category,
+        saved_at: new Date().toISOString(),
+      });
+    } else {
+      const success = this.eligibilityService.saveResult({
+        id: `${type}_${entity.entity_id}`,
+        entity_id: entity.entity_id,
+        entity_name: entity.entity_name,
+        entity_type: type,
+        eligible: entity.eligible,
+        message: entity.message,
+        category: category,
+        saved_at: new Date().toISOString(),
+      });
+      if (success) {
+        this.loadSavedResults();
+        this.showToast(`Saved '${entity.entity_name}' to Saved Results.`, "success");
+      }
+    }
+  }
+
+  /**
+   * Open the confirmation modal to delete a saved result.
+   */
+  openDeleteModal(item: SavedEligibilityResult): void {
+    this.itemToDelete = item;
+    this.deleteModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Confirm deletion of the saved result.
+   */
+  confirmDelete(): void {
+    if (this.itemToDelete) {
+      this.eligibilityService.removeSavedResult(this.itemToDelete.id);
+      this.loadSavedResults();
+      this.showToast(`Removed '${this.itemToDelete.entity_name}' from Saved Results.`, "info");
+    }
+    this.deleteModalOpen = false;
+    this.itemToDelete = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Cancel deletion modal.
+   */
+  cancelDelete(): void {
+    this.deleteModalOpen = false;
+    this.itemToDelete = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Navigate to the details page for a scheme or policy.
+   */
+  viewEntity(type: EntityType, id: number): void {
+    if (type === "scheme") {
+      this.router.navigate(["/dashboard/citizen/schemes", id]);
+    } else {
+      this.router.navigate(["/dashboard/citizen/policies", id]);
+    }
+  }
+
+  /**
+   * Format saved date for display.
+   */
+  formatSavedDate(isoDate: string): string {
+    if (!isoDate) return "";
+    const d = new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  /**
+   * Track by saved item id.
+   */
+  trackBySaved(index: number, item: SavedEligibilityResult): string {
+    return item.id;
+  }
+
+  /**
+   * Display temporary toast alert.
+   */
+  showToast(message: string, type: "success" | "info" | "error" = "success"): void {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.cdr.detectChanges();
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+    this.toastTimeout = setTimeout(() => {
+      this.toastMessage = null;
+      this.cdr.detectChanges();
+    }, 3500);
   }
 
   /**

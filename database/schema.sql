@@ -13,6 +13,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(30) NOT NULL,
     phone VARCHAR(20) UNIQUE,
+    gender VARCHAR(30),
     date_of_birth DATE,
     state VARCHAR(100),
     district VARCHAR(100),

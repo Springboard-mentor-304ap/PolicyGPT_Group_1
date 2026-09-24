@@ -19,6 +19,14 @@ import {
   PolicyCreate,
   PolicyResponse,
 } from "../../../core/models/policy.model";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import {
+  POLICY_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  POLICY_SECTORS,
+} from "../../../core/constants/government-data.constants";
 
 /* ============================================================
    TYPES
@@ -49,7 +57,13 @@ type PolicyWorkflowStatus =
 @Component({
   selector: "app-add-policy",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    RouterLink,
+    SearchableSelectComponent,
+  ],
   templateUrl: "./add-policy.component.html",
   styleUrls: ["./add-policy.component.scss"],
 })
@@ -141,46 +155,10 @@ export class AddPolicyComponent implements OnInit {
      DROPDOWN OPTIONS
      ============================================================ */
 
-  categories: string[] = [
-    "Education",
-    "Health",
-    "Agriculture",
-    "Employment",
-    "Housing",
-    "Finance",
-    "Social Welfare",
-    "Environment",
-    "Technology",
-    "Infrastructure",
-    "Rural Development",
-    "Urban Development",
-  ];
-
-  ministries: string[] = [
-    "Ministry of Education",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Rural Development",
-    "Ministry of Housing & Urban Affairs",
-    "Ministry of Finance",
-    "Ministry of Labour & Employment",
-    "Ministry of Environment, Forest & Climate Change",
-    "Ministry of Electronics & Information Technology",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Social Justice & Empowerment",
-  ];
-
-  departments: string[] = [
-    "Department of School Education",
-    "Department of Higher Education",
-    "Department of Health & Family Welfare",
-    "Department of Agriculture & Cooperation",
-    "Department of Rural Development",
-    "Department of Social Welfare",
-    "Department of Economic Affairs",
-    "Department of Information Technology",
-    "Department of Financial Services",
-  ];
+  categories: string[] = POLICY_CATEGORIES;
+  ministries: string[] = MINISTRIES;
+  departmentOptions: string[] = [];
+  sectors: string[] = POLICY_SECTORS;
 
   states: string[] = [
     "All India",
@@ -202,19 +180,6 @@ export class AddPolicyComponent implements OnInit {
     "Telangana",
     "Uttar Pradesh",
     "West Bengal",
-  ];
-
-  sectors: string[] = [
-    "Education",
-    "Healthcare",
-    "Agriculture",
-    "Information Technology",
-    "Infrastructure",
-    "Finance & Banking",
-    "Employment & Labour",
-    "Social Welfare",
-    "Environment & Climate",
-    "Energy & Power",
   ];
 
   educationOptions: string[] = [
@@ -406,6 +371,38 @@ export class AddPolicyComponent implements OnInit {
 
       declarationAgreed: [false, Validators.requiredTrue],
     });
+  }
+
+  updateDepartmentOptions(
+    selectedMinistry: string,
+    clearIfInvalid: boolean = true,
+  ): void {
+    if (!selectedMinistry) {
+      this.departmentOptions = [];
+      if (clearIfInvalid) {
+        this.policyForm.get("department")?.setValue("");
+      }
+      return;
+    }
+
+    const specificDepts = MINISTRY_DEPARTMENTS_MAP[selectedMinistry];
+    if (specificDepts && specificDepts.length > 0) {
+      this.departmentOptions = [...specificDepts];
+      const currentDept = this.policyForm.get("department")?.value;
+      if (clearIfInvalid && currentDept && !specificDepts.includes(currentDept)) {
+        this.policyForm.get("department")?.setValue("");
+      }
+    } else {
+      this.departmentOptions = [...ALL_DEPARTMENTS];
+      const currentDept = this.policyForm.get("department")?.value;
+      if (currentDept && !this.departmentOptions.includes(currentDept)) {
+        this.departmentOptions = [currentDept, ...this.departmentOptions];
+      }
+    }
+  }
+
+  onMinistryChange(selectedMinistry: string): void {
+    this.updateDepartmentOptions(selectedMinistry, true);
   }
 
   /* ============================================================
@@ -706,6 +703,17 @@ export class AddPolicyComponent implements OnInit {
              BASIC / CLASSIFICATION
              ------------------------------------------------------ */
 
+        this.updateDepartmentOptions(policy.ministry ?? "", false);
+        if (
+          policy.department &&
+          !this.departmentOptions.includes(policy.department)
+        ) {
+          this.departmentOptions = [
+            policy.department,
+            ...this.departmentOptions,
+          ];
+        }
+
         this.policyForm.patchValue({
           title: policy.title ?? "",
 
@@ -729,6 +737,7 @@ export class AddPolicyComponent implements OnInit {
 
           sourceUrl: policy.source_url ?? "",
         });
+        this.cdr.detectChanges();
 
         /* ------------------------------------------------------
              BENEFITS

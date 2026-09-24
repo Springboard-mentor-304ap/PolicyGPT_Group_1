@@ -28,7 +28,7 @@
 
   margin-bottom: 18px;
 
-  font-size: 12px;
+  font-size: 13px;
 
   color: #71809a;
 }
@@ -44,7 +44,7 @@
 
   font: inherit;
 
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 }
@@ -55,6 +55,7 @@
 
 .add-user-breadcrumb strong {
   color: #202b3f;
+  font-weight: 600;
 }
 
 .add-user-breadcrumb .material-icons {
@@ -82,11 +83,13 @@
 
   color: #5478b7;
 
-  font-size: 10px;
+  font-size: 11px;
 
-  font-weight: 800;
+  font-weight: 700;
 
-  letter-spacing: 1.5px;
+  letter-spacing: 0.05em;
+
+  text-transform: uppercase;
 }
 
 .add-user-header h1 {
@@ -96,9 +99,9 @@
 
   font-size: 30px;
 
-  line-height: 1.15;
+  line-height: 1.2;
 
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .add-user-header > div > p:last-child {
@@ -106,7 +109,7 @@
 
   color: #687993;
 
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* =========================================================
@@ -142,7 +145,7 @@
 
   font-size: 18px;
 
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .add-user-card__header p {
@@ -150,7 +153,7 @@
 
   color: #71809a;
 
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* =========================================================
@@ -170,7 +173,7 @@
 
   border-radius: 8px;
 
-  font-size: 12px;
+  font-size: 13px;
 
   font-weight: 600;
 }
@@ -240,9 +243,9 @@
 
   color: #172033;
 
-  font-size: 15px;
+  font-size: 16px;
 
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .add-user-section__title p {
@@ -250,7 +253,7 @@
 
   color: #7a899f;
 
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* =========================================================
@@ -350,15 +353,15 @@
 .user-type-card__content strong {
   color: #172033;
 
-  font-size: 12px;
+  font-size: 14px;
 
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .user-type-card__content span {
   color: #74839a;
 
-  font-size: 9px;
+  font-size: 12px;
 
   line-height: 1.35;
 }
@@ -400,9 +403,9 @@
 .add-user-field label {
   color: #53647d;
 
-  font-size: 11px;
+  font-size: 13px;
 
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .add-user-field label span {
@@ -433,7 +436,7 @@
 
   font: inherit;
 
-  font-size: 12px;
+  font-size: 14px;
 
   transition: 0.2s ease;
 }
@@ -538,9 +541,9 @@
 
   font: inherit;
 
-  font-size: 12px;
+  font-size: 14px;
 
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -634,7 +637,7 @@
   }
 
   .add-user-header h1 {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .add-user-card__header,
@@ -659,11 +662,11 @@
   }
 
   .add-user-breadcrumb {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .add-user-header h1 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .user-type-card {
@@ -760,9 +763,9 @@
   padding: 0 !important;
   color: #172033 !important;
   font-family: inherit !important;
-  font-size: 21px !important;
+  font-size: 20px !important;
   line-height: 1.3 !important;
-  font-weight: 800 !important;
+  font-weight: 700 !important;
   text-align: center !important;
 }
 
@@ -773,7 +776,7 @@
   padding: 0 !important;
   color: #71809a !important;
   font-family: inherit !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   line-height: 1.55 !important;
   font-weight: 400 !important;
   text-align: center !important;
@@ -794,8 +797,8 @@
   background: #0878e8 !important;
   color: #ffffff !important;
   font-family: inherit !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
   text-align: center !important;
   cursor: pointer !important;
   outline: none !important;
@@ -858,11 +861,12 @@
   }
 
   .popup-card p {
-    font-size: 12px !important;
+    font-size: 13px !important;
   }
 
   .popup-card__button {
     height: 40px !important;
     min-height: 40px !important;
+    font-size: 13px !important;
   }
 }

@@ -1,141 +1,104 @@
 <div class="organization-dashboard">
 
-  <!-- =========================================================
-       WELCOME / HERO
-       ========================================================= -->
+  <!-- =====================================================
+       WELCOME SECTION
+  ====================================================== -->
 
-  <section class="organization-hero">
+  <section class="dash-welcome">
 
-    <div class="organization-hero__content">
+    <div class="dash-welcome__text">
 
-      <p class="organization-hero__eyebrow">
-        {{ dashboardTitle }}
+      <p class="dash-welcome__eyebrow">
+        ORGANIZATION DASHBOARD
       </p>
 
-      <h1 class="organization-hero__title">
-        Make better decisions with
-        <span>PolicyGPT</span>
+      <h1 class="dash-welcome__title">
+        Welcome back, {{ userName }}!
       </h1>
 
-      <p class="organization-hero__description">
-        Discover policies, schemes and insights that help
-        your organization make informed decisions.
+      <p class="dash-welcome__sub">
+        Discover policies, schemes and insights that help your organization make informed decisions.
       </p>
-
-      <div class="organization-hero__actions">
-
-        <button type="button" class="organization-hero__button organization-hero__button--primary"
-          (click)="searchPolicies()">
-          <span class="material-icons">
-            search
-          </span>
-
-          Search Policies
-        </button>
-
-        <button type="button" class="organization-hero__button organization-hero__button--secondary"
-          (click)="searchSchemes()">
-          <span class="material-icons">
-            account_balance
-          </span>
-
-          Explore Schemes
-        </button>
-
-      </div>
 
     </div>
 
 
-    <!-- HERO VISUAL -->
+    <!-- GOVERNMENT BUILDING ILLUSTRATION -->
 
-    <div class="organization-hero__visual" aria-hidden="true">
+    <div class="dash-welcome__illustration" aria-hidden="true">
 
-      <div class="organization-hero__circle">
+      <div class="welcome-building welcome-building--large">
 
-        <span class="material-icons">
-          analytics
-        </span>
+        <div class="welcome-building__dome"></div>
 
-      </div>
+        <div class="welcome-building__roof"></div>
 
-      <div class="organization-hero__card organization-hero__card--one">
-
-        <span class="material-icons">
-          policy
-        </span>
-
-      </div>
-
-      <div class="organization-hero__card organization-hero__card--two">
-
-        <span class="material-icons">
-          account_balance
-        </span>
+        <div class="welcome-building__columns">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
 
       </div>
 
-      <div class="organization-hero__card organization-hero__card--three">
 
-        <span class="material-icons">
-          compare_arrows
-        </span>
+      <div class="welcome-building welcome-building--small">
+
+        <div class="welcome-building__tower"></div>
+
+        <div class="welcome-building__body"></div>
 
       </div>
+
+
+      <span class="welcome-bird welcome-bird--one">
+        ︿
+      </span>
+
+      <span class="welcome-bird welcome-bird--two">
+        ︿
+      </span>
 
     </div>
 
   </section>
 
 
-  <!-- =========================================================
-       ORGANIZATION STATISTICS
-       ========================================================= -->
+  <!-- =====================================================
+       STATISTICS (4 Standard KPI Cards)
+  ====================================================== -->
 
-  <section class="organization-stats" aria-label="Organization statistics">
+  <section class="dash-stats" aria-label="Organization dashboard statistics">
 
-    @for (
-    stat of organizationStats;
-    track stat.label
-    ) {
+    @for (stat of organizationStats; track stat.label) {
 
-    <article class="organization-stat" [ngClass]="'organization-stat--' + stat.color">
+    <article class="dash-stat-card">
 
-      <div class="organization-stat__icon">
-
+      <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + stat.color">
         <span class="material-icons" aria-hidden="true">
           {{ stat.icon }}
         </span>
-
       </div>
 
-
-      <div class="organization-stat__content">
-
+      <div class="dash-stat-card__content">
         @if (loadingStats) {
-
-        <div class="organization-skeleton organization-skeleton--number"></div>
-
+        <p class="dash-stat-card__value">—</p>
         } @else {
-
-        <strong>
-          {{ stat.value }}
-        </strong>
-
+        <p class="dash-stat-card__value">{{ stat.value ?? 0 }}</p>
         }
 
-        <span class="organization-stat__label">
-          {{ stat.label }}
-        </span>
+        <p class="dash-stat-card__label">{{ stat.label }}</p>
 
         @if (!loadingStats && stat.sub) {
-
-        <small>
-          {{ stat.sub }}
-        </small>
-
+        <p class="dash-stat-card__sub">{{ stat.sub }}</p>
         }
-
       </div>
 
     </article>
@@ -145,128 +108,71 @@
   </section>
 
 
-  <!-- =========================================================
-       MAIN WORKSPACE
-       ========================================================= -->
+  <!-- =====================================================
+       ROW 1 PANELS: RECENT ACTIVITY & QUICK ACTIONS
+  ====================================================== -->
 
-  <section class="organization-workspace">
+  <section class="dash-panels">
 
 
-    <!-- =======================================================
-         RECENT ACTIVITY
-         ======================================================= -->
+    <!-- RECENT ACTIVITY PANEL -->
 
-    <article class="organization-card organization-card--activity">
+    <article class="dash-panel">
 
-      <div class="organization-card__header">
+      <div class="dash-panel__header">
 
-        <div>
+        <h2>
+          Recent Activity
+        </h2>
 
-          <span class="organization-card__eyebrow">
-            WORKSPACE
-          </span>
-
-          <h2>
-            Recent Activity
-          </h2>
-
-        </div>
-
-        <button type="button" class="organization-card__link" (click)="viewHistory()">
+        <button type="button" class="dash-panel__link" (click)="viewHistory()">
           View All
         </button>
 
       </div>
 
-
-      <!-- LOADING -->
-
       @if (loadingActivity) {
-
-      <div class="organization-loader">
-
-        <div class="organization-spinner"></div>
-
-        <span>
-          Loading activity...
-        </span>
-
+      <div class="dash-panel-loading">
+        <p>Loading activity...</p>
       </div>
-
-      }
-
-
-      <!-- EMPTY -->
-
-      @else if (recentActivity.length === 0) {
-
-      <div class="organization-empty">
-
-        <span class="material-icons">
-          history
-        </span>
-
-        <p>
-          No recent activity
-        </p>
-
-        <small>
-          Your policy and scheme activity will appear here.
-        </small>
-
+      } @else if (recentActivity.length === 0) {
+      <div class="dash-panel-empty">
+        <span class="material-icons">history</span>
+        <p>No recent activity</p>
+        <small>Your policy and scheme activity will appear here.</small>
       </div>
+      } @else {
 
-      }
+      <ul class="dash-list">
 
+        @for (activity of recentActivity; track activity.title) {
 
-      <!-- ACTIVITY LIST -->
+        <li class="dash-list__item" (click)="viewActivity(activity)" style="cursor: pointer;">
 
-      @else {
+          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--health]="activity.type === 'scheme'"
+            [class.dash-list__icon-wrap--edu]="activity.type === 'policy'"
+            [class.dash-list__icon-wrap--work]="activity.type === 'comparison'">
 
-      <ul class="organization-activity-list">
-
-        @for (
-        activity of recentActivity;
-        track activity.title
-        ) {
-
-        <li class="organization-activity">
-
-          <button type="button" class="organization-activity__button" (click)="viewActivity(activity)">
-
-            <span class="organization-activity__icon" [ngClass]="
-                    'organization-activity__icon--' +
-                    activity.type
-                  ">
-
-              <span class="material-icons">
-                {{ activity.icon }}
-              </span>
-
+            <span class="material-icons">
+              {{ activity.icon }}
             </span>
 
+          </div>
 
-            <span class="organization-activity__content">
+          <div class="dash-list__details">
 
-              <strong>
-                {{ activity.title }}
-              </strong>
+            <p class="dash-list__title">
+              {{ activity.title }}
+            </p>
 
-              <span>
-                {{ activity.description }}
-              </span>
+            <p class="dash-list__meta">
+              {{ activity.description }} • <small>{{ activity.date }}</small>
+            </p>
 
-              <small>
-                {{ activity.date }}
-              </small>
+          </div>
 
-            </span>
-
-
-            <span class="material-icons organization-activity__arrow">
-              arrow_forward
-            </span>
-
+          <button type="button" class="dash-list__action" (click)="viewActivity(activity); $event.stopPropagation()">
+            View Details
           </button>
 
         </li>
@@ -277,64 +183,50 @@
 
       }
 
+      <button type="button" class="dash-panel__footer-link" (click)="viewHistory()">
+        View Full History
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
+
     </article>
 
 
-    <!-- =======================================================
-         QUICK ACTIONS
-         ======================================================= -->
+    <!-- QUICK ACTIONS PANEL -->
 
-    <article class="organization-card organization-card--actions">
+    <article class="dash-panel">
 
-      <div class="organization-card__header">
+      <div class="dash-panel__header">
 
-        <div>
+        <h2>
+          Quick Actions
+        </h2>
 
-          <span class="organization-card__eyebrow">
-            SHORTCUTS
-          </span>
-
-          <h2>
-            Quick Actions
-          </h2>
-
-        </div>
+        <span class="dash-panel__link" style="opacity: 0.7;">
+          Shortcuts
+        </span>
 
       </div>
 
+      <div class="dash-quick-actions-grid">
 
-      <div class="organization-quick-actions">
+        @for (action of quickActions; track action.title) {
 
-        @for (
-        action of quickActions;
-        track action.title
-        ) {
+        <button type="button" class="dash-quick-action-card" (click)="navigateTo(action.route)">
 
-        <button type="button" class="organization-quick-action" (click)="navigateTo(action.route)">
-
-          <span class="organization-quick-action__icon">
-
+          <div class="dash-quick-action-card__icon">
             <span class="material-icons">
               {{ action.icon }}
             </span>
+          </div>
 
-          </span>
+          <div class="dash-quick-action-card__content">
+            <strong>{{ action.title }}</strong>
+            <small>{{ action.description }}</small>
+          </div>
 
-
-          <span class="organization-quick-action__content">
-
-            <strong>
-              {{ action.title }}
-            </strong>
-
-            <small>
-              {{ action.description }}
-            </small>
-
-          </span>
-
-
-          <span class="material-icons organization-quick-action__arrow">
+          <span class="material-icons dash-quick-action-card__arrow">
             arrow_forward
           </span>
 
@@ -344,210 +236,66 @@
 
       </div>
 
+      <button type="button" class="dash-panel__footer-link" (click)="searchPolicies()">
+        Explore Platform Tools
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
+
     </article>
 
   </section>
 
 
-  <!-- =========================================================
-       ORGANIZATION INSIGHTS
-       ========================================================= -->
+  <!-- =====================================================
+       ROW 2 PANELS: SECTOR INSIGHTS & SAVED ITEMS
+  ====================================================== -->
 
-  <section class="organization-insights">
+  <section class="dash-panels dash-panels--bottom">
 
-    <div class="organization-insights__header">
 
-      <div>
+    <!-- ORGANIZATION INSIGHTS PANEL -->
 
-        <span class="organization-card__eyebrow">
-          ANALYTICS
-        </span>
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
 
         <h2>
           Organization Insights
         </h2>
 
-        <p>
-          Understand the areas your organization researches most.
-        </p>
+        <button type="button" class="dash-panel__link" (click)="viewInsights()">
+          View Analytics
+        </button>
 
       </div>
 
-      <button type="button" class="organization-insights__button" (click)="viewInsights()">
+      <p class="dash-panel-subtext">
+        Understand key development sectors your organization accesses most.
+      </p>
 
-        View Analytics
+      <div class="dash-insights-body">
 
-        <span class="material-icons">
-          arrow_forward
-        </span>
+        <div class="dash-sector-list">
 
-      </button>
+          @for (sector of sectorInsights; track sector.name) {
 
-    </div>
+          <div class="dash-sector-item">
 
+            <div class="dash-sector-item__top">
 
-    <!-- INSIGHT BODY -->
-
-    <div class="organization-insights__body">
-
-
-      <!-- =====================================================
-           ACTIVITY CHART
-           ===================================================== -->
-
-      <div class="organization-chart">
-
-        <div class="organization-chart__header">
-
-          <strong>
-            Policy &amp; Scheme Activity
-          </strong>
-
-          <span>
-            Last 6 months
-          </span>
-
-        </div>
-
-
-        <div class="organization-chart__area">
-
-          <div class="organization-chart__grid organization-chart__grid--1"></div>
-
-          <div class="organization-chart__grid organization-chart__grid--2"></div>
-
-          <div class="organization-chart__grid organization-chart__grid--3"></div>
-
-          <div class="organization-chart__grid organization-chart__grid--4"></div>
-
-
-          <div class="organization-chart__bars">
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--1"></div>
-
-              <span>
-                Apr
-              </span>
-
-            </div>
-
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--2"></div>
-
-              <span>
-                May
-              </span>
-
-            </div>
-
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--3"></div>
-
-              <span>
-                Jun
-              </span>
-
-            </div>
-
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--4"></div>
-
-              <span>
-                Jul
-              </span>
-
-            </div>
-
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--5"></div>
-
-              <span>
-                Aug
-              </span>
-
-            </div>
-
-
-            <div class="organization-chart__bar-group">
-
-              <div class="organization-chart__bar organization-chart__bar--6"></div>
-
-              <span>
-                Sep
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- =====================================================
-           SECTOR INSIGHTS
-           ===================================================== -->
-
-      <div class="organization-sector-insights">
-
-        <div class="organization-sector-insights__header">
-
-          <strong>
-            Most Viewed Sectors
-          </strong>
-
-          <span>
-            Current activity
-          </span>
-
-        </div>
-
-
-        <div class="organization-sector-list">
-
-          @for (
-          sector of sectorInsights;
-          track sector.name
-          ) {
-
-          <div class="organization-sector">
-
-            <div class="organization-sector__top">
-
-              <div class="organization-sector__name">
-
-                <span class="material-icons">
-                  {{ sector.icon }}
-                </span>
-
-                <span>
-                  {{ sector.name }}
-                </span>
-
+              <div class="dash-sector-item__name">
+                <span class="material-icons">{{ sector.icon }}</span>
+                <span>{{ sector.name }}</span>
               </div>
 
-              <strong>
-                {{ sector.percentage }}%
-              </strong>
+              <strong>{{ sector.percentage }}%</strong>
 
             </div>
 
-
-            <div class="organization-sector__track">
-
-              <div class="organization-sector__progress" [style.width]="getSectorWidth(sector.percentage)"></div>
-
+            <div class="dash-sector-item__track">
+              <div class="dash-sector-item__progress" [style.width]="getSectorWidth(sector.percentage)"></div>
             </div>
 
           </div>
@@ -558,173 +306,92 @@
 
       </div>
 
-    </div>
-
-  </section>
-
-
-  <!-- =========================================================
-       SAVED ORGANIZATION ITEMS
-       ========================================================= -->
-
-  <section class="organization-saved">
-
-    <div class="organization-saved__icon">
-
-      <span class="material-icons">
-        bookmark
-      </span>
-
-    </div>
-
-
-    <div class="organization-saved__content">
-
-      <span>
-        ORGANIZATION WORKSPACE
-      </span>
-
-      <h2>
-        Saved for Your Organization
-      </h2>
-
-      <p>
-        Keep important policies and schemes organized
-        for future reference.
-      </p>
-
-    </div>
-
-
-    <button type="button" class="organization-saved__button" (click)="viewSavedItems()">
-
-      View Saved Items
-
-      <span class="material-icons">
-        arrow_forward
-      </span>
-
-    </button>
-
-  </section>
-
-
-  <!-- =========================================================
-       SAVED ITEMS LIST
-       ========================================================= -->
-
-  <section class="organization-saved-list">
-
-    <div class="organization-saved-list__header">
-
-      <div>
-
-        <span class="organization-card__eyebrow">
-          SAVED RESEARCH
+      <button type="button" class="dash-panel__footer-link" (click)="viewInsights()">
+        View Detailed Analytics
+        <span class="material-icons">
+          arrow_forward
         </span>
+      </button>
+
+    </article>
+
+
+    <!-- RECENTLY SAVED ITEMS PANEL -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
 
         <h2>
           Recently Saved
         </h2>
 
+        <button type="button" class="dash-panel__link" (click)="viewSavedItems()">
+          View All
+        </button>
+
       </div>
 
-      <button type="button" class="organization-card__link" (click)="viewSavedItems()">
-        View All
-      </button>
+      @if (loadingSavedItems) {
+      <div class="dash-panel-loading">
+        <p>Loading saved items...</p>
+      </div>
+      } @else if (savedItems.length === 0) {
+      <div class="dash-panel-empty">
+        <span class="material-icons">bookmark_border</span>
+        <p>No saved items yet</p>
+        <small>Save policies and schemes to access them quickly later.</small>
+      </div>
+      } @else {
 
-    </div>
+      <ul class="dash-list">
 
+        @for (item of savedItems; track item.name) {
 
-    @if (loadingSavedItems) {
+        <li class="dash-list__item" (click)="item.type === 'policy' ? viewPolicy(item.name) : viewScheme(item.name)" style="cursor: pointer;">
 
-    <div class="organization-loader">
+          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--edu]="item.type === 'policy'"
+            [class.dash-list__icon-wrap--health]="item.type === 'scheme'">
 
-      <div class="organization-spinner"></div>
+            <span class="material-icons">
+              {{ getSavedItemIcon(item.type) }}
+            </span>
 
-      <span>
-        Loading saved items...
-      </span>
+          </div>
 
-    </div>
+          <div class="dash-list__details">
 
-    }
+            <p class="dash-list__title">
+              {{ item.name }}
+            </p>
 
-    @else if (savedItems.length === 0) {
+            <p class="dash-list__meta">
+              {{ item.ministry }} • Saved on {{ item.savedOn }}
+            </p>
 
-    <div class="organization-empty">
+          </div>
 
-      <span class="material-icons">
-        bookmark_border
-      </span>
+          <button type="button" class="dash-list__action"
+            (click)="item.type === 'policy' ? viewPolicy(item.name) : viewScheme(item.name); $event.stopPropagation()">
+            View
+          </button>
 
-      <p>
-        No saved items yet
-      </p>
+        </li>
 
-      <small>
-        Save policies and schemes to access them quickly later.
-      </small>
+        }
 
-    </div>
-
-    }
-
-    @else {
-
-    <div class="organization-saved-items">
-
-      @for (
-      item of savedItems;
-      track item.name
-      ) {
-
-      <button type="button" class="organization-saved-item" (click)="
-              item.type === 'policy'
-                ? viewPolicy(item.name)
-                : viewScheme(item.name)
-            ">
-
-        <span class="organization-saved-item__icon" [ngClass]="
-                'organization-saved-item__icon--' +
-                item.type
-              ">
-
-          <span class="material-icons">
-            {{ getSavedItemIcon(item.type) }}
-          </span>
-
-        </span>
-
-
-        <span class="organization-saved-item__content">
-
-          <strong>
-            {{ item.name }}
-          </strong>
-
-          <small>
-            {{ item.ministry }}
-          </small>
-
-          <span>
-            Saved on {{ item.savedOn }}
-          </span>
-
-        </span>
-
-
-        <span class="material-icons organization-saved-item__arrow">
-          arrow_forward
-        </span>
-
-      </button>
+      </ul>
 
       }
 
-    </div>
+      <button type="button" class="dash-panel__footer-link" (click)="viewSavedItems()">
+        Manage All Saved Items
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
 
-    }
+    </article>
 
   </section>
 

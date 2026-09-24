@@ -30,6 +30,12 @@ import {
   SchemeResponse,
   SchemeListResponse,
 } from "../../../core/models/scheme.model";
+import {
+  POLICY_CATEGORIES,
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  STATES,
+} from "../../../core/constants/government-data.constants";
 
 export interface CompareItem {
   id: number;
@@ -97,75 +103,13 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   loading = false;
   errorMessage = "";
 
-  categories: string[] = [
-    "Agriculture",
-    "Education",
-    "Energy",
-    "Financial Services",
-    "Health",
-    "Healthcare",
-    "Housing",
-    "Infrastructure",
-    "Rural Development",
-    "Urban Development",
-    "Social Welfare",
-    "Women & Child Welfare",
-    "Employment",
-    "Skill Development",
-    "Environment",
-    "Digital Governance",
-  ];
+  categories: string[] = Array.from(
+    new Set([...POLICY_CATEGORIES, ...SCHEME_CATEGORIES]),
+  ).sort();
 
-  ministries: string[] = [
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Education",
-    "Ministry of Finance",
-    "Ministry of Housing and Urban Affairs",
-    "Ministry of New & Renewable Energy",
-    "Ministry of Micro, Small & Medium Enterprises",
-    "Ministry of Rural Development",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Women and Child Development",
-    "Ministry of Social Justice and Empowerment",
-    "Ministry of Labour and Employment",
-    "Ministry of Environment, Forest and Climate Change",
-    "Ministry of Electronics and Information Technology",
-  ];
+  ministries: string[] = MINISTRIES;
 
-  states: string[] = [
-    "All India",
-    "Central",
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Meghalaya",
-    "Mizoram",
-    "Nagaland",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Sikkim",
-    "Tamil Nadu",
-    "Telangana",
-    "Tripura",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-  ];
+  states: string[] = STATES;
 
   private readonly searchSubject1 = new Subject<string>();
   private readonly searchSubject2 = new Subject<string>();

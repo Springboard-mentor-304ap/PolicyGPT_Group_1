@@ -164,6 +164,7 @@ def search_policy_route(
     department: str | None = Query(default=None),
     state: str | None = Query(default=None),
     sector: str | None = Query(default=None),
+    publication_date: str | None = Query(default=None),
     policy_status: str | None = Query(
         default=None,
         alias="status",
@@ -227,8 +228,7 @@ def search_policy_route(
             created_by = None
         else:
             # Staff roles (ADMIN, GOVERNMENT_OFFICIAL)
-            if policy_status == "APPROVED":
-                # Search Policies browsing approved policies shows all approved
+            if policy_status == "APPROVED" or policy_status == "ALL" or not policy_status:
                 created_by = None
             elif role == "GOVERNMENT_OFFICIAL":
                 created_by = current_user.user_id
@@ -243,10 +243,12 @@ def search_policy_route(
         department=department,
         state=state,
         sector=sector,
+        publication_date=publication_date,
         policy_status=policy_status,
         page=page,
         limit=limit,
         created_by=created_by,
+        current_user=current_user,
     )
 
 

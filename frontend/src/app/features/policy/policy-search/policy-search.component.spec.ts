@@ -48,9 +48,9 @@ describe('PolicySearchComponent', () => {
     };
 
     authService = {
-      getUserRole: vi.fn().mockReturnValue('ADMIN'),
+      getUserRole: vi.fn().mockReturnValue('CITIZEN'),
       isLoggedIn: vi.fn().mockReturnValue(true),
-      getStoredUser: vi.fn().mockReturnValue({ id: 1, role: 'ADMIN' }),
+      getStoredUser: vi.fn().mockReturnValue({ id: 1, role: 'CITIZEN' }),
     };
 
     await TestBed.configureTestingModule({

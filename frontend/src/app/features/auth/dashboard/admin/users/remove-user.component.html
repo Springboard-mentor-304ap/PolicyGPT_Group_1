@@ -1,0 +1,410 @@
+<div class="users-page">
+
+    <!-- MAIN CONTENT -->
+    <main class="users-content">
+
+        <!-- BREADCRUMB -->
+        <div class="users-breadcrumb">
+            <button type="button" (click)="goToDashboard()">
+                Admin Dashboard
+            </button>
+            <span class="material-icons">chevron_right</span>
+            <button type="button" (click)="goToViewUsers()">
+                Users
+            </button>
+            <span class="material-icons">chevron_right</span>
+            <strong>
+                Remove User
+            </strong>
+        </div>
+
+        <!-- PAGE HEADER -->
+        <section class="users-page-header">
+            <div>
+                <p class="users-page-header__eyebrow">
+                    USER MANAGEMENT
+                </p>
+                <h1>
+                    Remove User
+                </h1>
+                <p>
+                    Remove or deactivate registered PolicyGPT users.
+                </p>
+            </div>
+
+            <!-- USER COUNT -->
+            <div class="users-page-header__count">
+                <span class="material-icons">
+                    group_remove
+                </span>
+                <div>
+                    <strong>
+                        {{ filteredUsers.length }}
+                    </strong>
+                    <span>
+                        Users Available
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SUMMARY CARDS -->
+        <section class="users-summary">
+            <!-- TOTAL USERS -->
+            <article class="users-summary__card">
+                <div class="users-summary__icon users-summary__icon--blue">
+                    <span class="material-icons">groups</span>
+                </div>
+                <div>
+                    <strong>{{ users.length }}</strong>
+                    <span>Total Users</span>
+                </div>
+            </article>
+
+            <!-- ACTIVE USERS -->
+            <article class="users-summary__card">
+                <div class="users-summary__icon users-summary__icon--green">
+                    <span class="material-icons">check_circle</span>
+                </div>
+                <div>
+                    <strong>{{ activeUsers }}</strong>
+                    <span>Active Users</span>
+                </div>
+            </article>
+
+            <!-- INACTIVE USERS -->
+            <article class="users-summary__card">
+                <div class="users-summary__icon users-summary__icon--orange">
+                    <span class="material-icons">pause_circle_outline</span>
+                </div>
+                <div>
+                    <strong>{{ inactiveUsers }}</strong>
+                    <span>Inactive Users</span>
+                </div>
+            </article>
+
+            <!-- ADMINISTRATORS -->
+            <article class="users-summary__card">
+                <div class="users-summary__icon users-summary__icon--purple">
+                    <span class="material-icons">admin_panel_settings</span>
+                </div>
+                <div>
+                    <strong>{{ administratorUsers }}</strong>
+                    <span>Administrators</span>
+                </div>
+            </article>
+        </section>
+
+        <!-- MAIN USERS PANEL -->
+        <section class="users-panel">
+            <div class="users-panel__header">
+                <div>
+                    <h2>
+                        User Deletion Registry
+                    </h2>
+                    <p>
+                        Select a user below to permanently remove their account from PolicyGPT.
+                    </p>
+                </div>
+
+                <button type="button" class="users-reset-button" (click)="clearFilters()">
+                    <span class="material-icons">refresh</span>
+                    Reset
+                </button>
+            </div>
+
+            <!-- FILTERS -->
+            <div class="users-filters">
+                <!-- SEARCH -->
+                <div class="users-filter users-filter--search">
+                    <span class="material-icons">search</span>
+                    <input
+                        type="text"
+                        [(ngModel)]="searchText"
+                        (ngModelChange)="applyFilters()"
+                        placeholder="Search by name, email, phone, location..."
+                        aria-label="Search users"
+                    />
+                </div>
+
+                <!-- ROLE -->
+                <div class="users-filter">
+                    <label for="removeRoleFilter">Role</label>
+                    <select id="removeRoleFilter" [(ngModel)]="selectedRole" (ngModelChange)="applyFilters()">
+                        <option value="ALL">All Roles</option>
+                        <option value="CITIZEN">Citizen</option>
+                        <option value="RESEARCHER">Researcher</option>
+                        <option value="ORGANIZATION">Organization</option>
+                        <option value="GOVERNMENT_OFFICIAL">Government Official</option>
+                        <option value="ADMINISTRATOR">Administrator</option>
+                    </select>
+                </div>
+
+                <!-- STATUS -->
+                <div class="users-filter">
+                    <label for="removeStatusFilter">Status</label>
+                    <select id="removeStatusFilter" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+                        <option value="ALL">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- TABLE CONTAINER -->
+            <div class="users-table-container">
+
+                <!-- LOADING -->
+                @if (isLoading) {
+                <div class="users-state users-state--loading">
+                    <div class="users-spinner"></div>
+                    <p>Loading registered users...</p>
+                </div>
+                }
+
+                <!-- LOAD ERROR -->
+                @else if (loadError) {
+                <div class="users-state users-state--error">
+                    <span class="material-icons">error_outline</span>
+                    <h3>Failed to load users</h3>
+                    <p>{{ loadError }}</p>
+                    <button type="button" class="users-retry-button" (click)="loadUsers()">
+                        <span class="material-icons">refresh</span>
+                        Retry
+                    </button>
+                </div>
+                }
+
+                <!-- TABLE -->
+                @else if (filteredUsers.length > 0) {
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>USER</th>
+                            <th>ROLE</th>
+                            <th>LOCATION</th>
+                            <th>STATUS</th>
+                            <th>JOINED</th>
+                            <th class="th-actions">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (user of paginatedUsers; track user.id) {
+                        <tr>
+                            <!-- USER INFO -->
+                            <td>
+                                <div class="users-profile">
+                                    <div class="users-avatar" [ngClass]="getRoleClass(user.role)">
+                                        <span class="material-icons">
+                                            {{ getRoleIcon(user.role) }}
+                                        </span>
+                                    </div>
+                                    <div class="users-meta">
+                                        <strong>{{ user.fullName }}</strong>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- ROLE -->
+                            <td>
+                                <span class="users-badge" [ngClass]="getRoleClass(user.role)">
+                                    <span class="material-icons">
+                                        {{ getRoleIcon(user.role) }}
+                                    </span>
+                                    {{ getRoleLabel(user.role) }}
+                                </span>
+                            </td>
+
+                            <!-- LOCATION -->
+                            <td>
+                                <span class="users-location">
+                                    {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' + user.district : '' }}
+                                </span>
+                            </td>
+
+                            <!-- STATUS -->
+                            <td>
+                                <span
+                                    class="users-status"
+                                    [class.users-status--active]="user.status === 'Active'"
+                                    [class.users-status--inactive]="user.status === 'Inactive'"
+                                >
+                                    <span></span>
+                                    {{ user.status }}
+                                </span>
+                            </td>
+
+                            <!-- JOINED -->
+                            <td>
+                                <span class="users-date">
+                                    {{ user.joinedDate }}
+                                </span>
+                            </td>
+
+                            <!-- ACTION -->
+                            <td class="td-actions">
+                                @if (isSelf(user)) {
+                                <button
+                                    type="button"
+                                    class="users-remove-button users-remove-button--disabled"
+                                    disabled
+                                    title="Current user account cannot be removed"
+                                >
+                                    <span class="material-icons">shield</span>
+                                    Self (Protected)
+                                </button>
+                                } @else {
+                                <button
+                                    type="button"
+                                    class="users-remove-button"
+                                    (click)="openRemoveModal(user)"
+                                    [attr.aria-label]="'Remove ' + user.fullName"
+                                >
+                                    <span class="material-icons">person_remove</span>
+                                    Remove
+                                </button>
+                                }
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+                }
+
+                <!-- EMPTY STATE -->
+                @else {
+                <div class="users-empty">
+                    <div class="users-empty__icon">
+                        <span class="material-icons">person_off</span>
+                    </div>
+                    <h3>No users found</h3>
+                    <p>No registered users match your search criteria.</p>
+                    <button type="button" class="users-empty__button" (click)="clearFilters()">
+                        Clear Filters
+                    </button>
+                </div>
+                }
+            </div>
+
+            <!-- PAGINATION -->
+            @if (!isLoading && !loadError && filteredUsers.length > 0) {
+            <div class="users-pagination">
+                <span class="users-pagination__info">
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ currentPage * pageSize > filteredUsers.length ? filteredUsers.length : currentPage * pageSize }} of {{ filteredUsers.length }} users
+                </span>
+
+                <div class="users-pagination__actions">
+                    <button
+                        type="button"
+                        class="users-pagination__button"
+                        [disabled]="currentPage === 1"
+                        (click)="previousPage()"
+                        aria-label="Previous page"
+                    >
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+
+                    <span class="users-pagination__page">
+                        Page {{ currentPage }} of {{ totalPages }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="users-pagination__button"
+                        [disabled]="currentPage === totalPages"
+                        (click)="nextPage()"
+                        aria-label="Next page"
+                    >
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+            }
+        </section>
+
+    </main>
+
+    <!-- =====================================================
+         REMOVE CONFIRMATION MODAL
+         ===================================================== -->
+    @if (isModalOpen && selectedUser) {
+    <div class="modal-overlay" (click)="closeModal()" role="presentation">
+        <div
+            class="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="removeModalTitle"
+            (click)="$event.stopPropagation()"
+        >
+            <!-- DANGER ICON -->
+            <div class="modal-icon modal-icon--danger">
+                <span class="material-icons">warning</span>
+            </div>
+
+            <h3 id="removeModalTitle" class="modal-title">
+                Remove User?
+            </h3>
+
+            <p class="modal-intro">
+                You are about to remove this user from PolicyGPT.
+            </p>
+
+            <!-- USER DETAILS CARD -->
+            <div class="modal-user-box">
+                <div class="modal-user-row">
+                    <span class="modal-user-label">User:</span>
+                    <strong class="modal-user-value">{{ selectedUser.fullName }}</strong>
+                </div>
+                <div class="modal-user-row">
+                    <span class="modal-user-label">Email:</span>
+                    <span class="modal-user-value">{{ selectedUser.email }}</span>
+                </div>
+                <div class="modal-user-row">
+                    <span class="modal-user-label">Role:</span>
+                    <span class="modal-user-value">{{ getRoleLabel(selectedUser.role) }}</span>
+                </div>
+            </div>
+
+            <p class="modal-warning">
+                This action cannot be undone.
+            </p>
+
+            <!-- ERROR ALERT IN MODAL IF ANY -->
+            @if (deleteError) {
+            <div class="modal-error-box">
+                <span class="material-icons">error_outline</span>
+                <span>{{ deleteError }}</span>
+            </div>
+            }
+
+            <!-- MODAL ACTIONS -->
+            <div class="modal-actions">
+                <button
+                    type="button"
+                    class="modal-btn modal-btn--cancel"
+                    (click)="closeModal()"
+                    [disabled]="isDeleting"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    class="modal-btn modal-btn--danger"
+                    (click)="confirmRemoval()"
+                    [disabled]="isDeleting"
+                >
+                    @if (isDeleting) {
+                    <span class="modal-spinner"></span>
+                    <span>Removing...</span>
+                    } @else {
+                    <span class="material-icons">delete_forever</span>
+                    <span>Remove User</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+</div>

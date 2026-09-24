@@ -72,8 +72,16 @@ img {
    MAIN LAYOUT
    ========================================================= */
 
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .dash-layout {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
 
   display: flex;
@@ -92,6 +100,7 @@ img {
     sans-serif;
 
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* =========================================================
@@ -306,9 +315,19 @@ img {
 
   flex-shrink: 0;
 
+  padding: 2px 4px;
+
+  border-radius: 4px;
+
   transition:
     transform 0.22s ease,
-    opacity 0.2s ease;
+    opacity 0.2s ease,
+    background 0.18s ease;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.18);
+  }
 }
 
 .dash-nav__chevron--open {
@@ -487,8 +506,10 @@ img {
 
 .dash-main-container {
   width: calc(100% - #{$sidebar-width});
+  max-width: calc(100% - #{$sidebar-width});
 
   min-width: 0;
+  flex: 1 1 0%;
 
   min-height: 100vh;
 
@@ -499,14 +520,17 @@ img {
   flex-direction: column;
 
   padding-top: $topbar-height;
+  box-sizing: border-box;
 
   transition:
     margin-left 0.25s ease,
-    width 0.25s ease;
+    width 0.25s ease,
+    max-width 0.25s ease;
 }
 
 .dash-layout--sidebar-collapsed .dash-main-container {
   width: calc(100% - #{$sidebar-collapsed-width});
+  max-width: calc(100% - #{$sidebar-collapsed-width});
 
   margin-left: $sidebar-collapsed-width;
 }
@@ -661,7 +685,7 @@ img {
   display: block;
   margin-top: 5px;
   color: rgba(255, 255, 255, 0.72);
-  font-size: 7.5px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1;
 }
@@ -685,7 +709,7 @@ img {
 
   padding: 0 15px;
 
-  border: 3px solid $admin-white;
+  border: 2px solid $admin-white;
 
   border-radius: 26px;
 
@@ -972,6 +996,7 @@ img {
 
   .dash-main-container {
     width: calc(100% - 250px);
+    max-width: calc(100% - 250px);
 
     margin-left: 250px;
   }
@@ -1084,7 +1109,7 @@ img {
   }
 
   .dash-user__avatar .material-icons {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .dash-user__info {
@@ -1157,12 +1182,14 @@ img {
 
   .dash-main-container {
     width: 100%;
+    max-width: 100%;
 
     margin-left: 0;
 
     padding-top: $mobile-topbar-height;
 
     min-height: 100vh;
+    box-sizing: border-box;
   }
 
   /* -----------------------------------------

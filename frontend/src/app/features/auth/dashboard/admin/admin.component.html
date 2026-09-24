@@ -82,7 +82,7 @@
 
     @for (card of statCards; track card.label) {
 
-    <article class="dash-stat-card">
+    <article class="dash-stat-card" [routerLink]="card.route" [style.cursor]="card.route ? 'pointer' : 'default'">
 
       <div class="dash-stat-card__icon" [class.dash-stat-card__icon--blue]="card.color === 'blue'"
         [class.dash-stat-card__icon--orange]="card.color === 'orange'"
@@ -99,7 +99,7 @@
       <div class="dash-stat-card__content">
 
         <p class="dash-stat-card__value">
-          {{ card.value }}
+          {{ loadingStats ? '—' : (card.value ?? 0) }}
         </p>
 
         <p class="dash-stat-card__label">
@@ -135,15 +135,29 @@
       <div class="dash-panel__header">
 
         <h2>
-          Schemes
+          <a routerLink="/dashboard/admin/schemes" class="dash-panel__header-title-link">Schemes</a>
         </h2>
 
-        <a routerLink="/admin/schemes" class="dash-panel__link">
+        <a routerLink="/dashboard/admin/schemes" class="dash-panel__link">
           View All
         </a>
 
       </div>
 
+      @if (loadingSchemes) {
+      <div class="dash-panel-loading" style="padding: 24px; text-align: center; color: #64748b;">
+        <p>Loading schemes...</p>
+      </div>
+      } @else if (schemesError) {
+      <div class="dash-panel-error" style="padding: 24px; text-align: center; color: #dc2626;">
+        <p>{{ schemesError }}</p>
+        <button type="button" (click)="loadRecentSchemes()" style="margin-top: 8px; cursor: pointer; padding: 4px 12px; border-radius: 4px; border: 1px solid #cbd5e1;">Retry</button>
+      </div>
+      } @else if (schemes.length === 0) {
+      <div class="dash-panel-empty" style="padding: 24px; text-align: center; color: #64748b;">
+        <p>No schemes found in the system.</p>
+      </div>
+      } @else {
 
       <ul class="dash-list">
 
@@ -159,7 +173,7 @@
               ">
 
             <span class="material-icons">
-              {{ scheme.icon }}
+              {{ scheme.icon || 'article' }}
             </span>
 
           </div>
@@ -178,7 +192,7 @@
           </div>
 
 
-          <a routerLink="/admin/schemes" class="dash-list__action">
+          <a [routerLink]="['/dashboard/admin/schemes', scheme.id]" class="dash-list__action">
             View Details
           </a>
 
@@ -188,8 +202,9 @@
 
       </ul>
 
+      }
 
-      <a routerLink="/admin/schemes" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/admin/schemes" class="dash-panel__footer-link">
 
         See More Schemes
 
@@ -211,15 +226,29 @@
       <div class="dash-panel__header">
 
         <h2>
-          Policies
+          <a routerLink="/dashboard/admin/policies/search" class="dash-panel__header-title-link">Policies</a>
         </h2>
 
-        <a routerLink="/admin/policies" class="dash-panel__link">
+        <a routerLink="/dashboard/admin/policies/search" class="dash-panel__link">
           View All
         </a>
 
       </div>
 
+      @if (loadingPolicies) {
+      <div class="dash-panel-loading" style="padding: 24px; text-align: center; color: #64748b;">
+        <p>Loading policies...</p>
+      </div>
+      } @else if (policiesError) {
+      <div class="dash-panel-error" style="padding: 24px; text-align: center; color: #dc2626;">
+        <p>{{ policiesError }}</p>
+        <button type="button" (click)="loadRecentPolicies()" style="margin-top: 8px; cursor: pointer; padding: 4px 12px; border-radius: 4px; border: 1px solid #cbd5e1;">Retry</button>
+      </div>
+      } @else if (policies.length === 0) {
+      <div class="dash-panel-empty" style="padding: 24px; text-align: center; color: #64748b;">
+        <p>No policies found in the system.</p>
+      </div>
+      } @else {
 
       <ul class="dash-list">
 
@@ -241,7 +270,7 @@
           </div>
 
 
-          <a routerLink="/admin/policies" class="dash-list__action">
+          <a [routerLink]="['/dashboard/admin/policies', policy.id]" class="dash-list__action">
             View Details
           </a>
 
@@ -251,8 +280,9 @@
 
       </ul>
 
+      }
 
-      <a routerLink="/admin/policies" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/admin/policies/search" class="dash-panel__footer-link">
 
         See More Policies
 

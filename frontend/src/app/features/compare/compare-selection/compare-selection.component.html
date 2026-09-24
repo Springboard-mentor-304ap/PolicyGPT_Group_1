@@ -8,7 +8,7 @@
     </div>
 
     <button class="back-btn" type="button" (click)="goBack()">
-      <span class="back-icon">←</span>
+      <span class="material-icons back-icon">arrow_back</span>
       Back
     </button>
   </div>
@@ -118,7 +118,7 @@
 
       <div class="search-box">
 
-        <span class="search-icon">⌕</span>
+        <span class="material-icons search-icon">search</span>
 
         <input type="text" [(ngModel)]="searchItem1" (ngModelChange)="onSearchChange(1)" (focus)="onFocus(1)"
           (blur)="onBlur(1)" placeholder="Search approved schemes or policies..." />
@@ -270,7 +270,7 @@
 
       <div class="search-box">
 
-        <span class="search-icon">⌕</span>
+        <span class="material-icons search-icon">search</span>
 
         <input type="text" [(ngModel)]="searchItem2" (ngModelChange)="onSearchChange(2)" (focus)="onFocus(2)"
           (blur)="onBlur(2)" placeholder="Search approved schemes or policies..." />
@@ -432,7 +432,7 @@
 
       <div class="search-box">
 
-        <span class="search-icon">⌕</span>
+        <span class="material-icons search-icon">search</span>
 
         <input type="text" [(ngModel)]="searchItem3" (ngModelChange)="onSearchChange(3)" (focus)="onFocus(3)"
           (blur)="onBlur(3)" placeholder="Add another approved scheme or policy..." />
@@ -601,9 +601,7 @@
         Compare Now
       </span>
 
-      <span class="arrow">
-        →
-      </span>
+      <span class="material-icons arrow">arrow_forward</span>
 
     </button>
 

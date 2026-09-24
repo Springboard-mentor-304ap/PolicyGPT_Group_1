@@ -6,13 +6,22 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { SchemeService } from '../../../core/services/scheme.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { getStatusLabel, getStatusBadgeClass } from '../../../core/utils/status.utils';
+import { Auth } from '../../../core/services/auth';
 import { SchemeResponse, SchemeListResponse, SchemeFilters } from '../../../core/models/scheme.model';
+import { getStatusLabel, getStatusBadgeClass } from '../../../core/utils/status.utils';
+import {
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  STATES,
+} from '../../../core/constants/government-data.constants';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-scheme-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent],
   templateUrl: './scheme-search.component.html',
   styleUrls: ['./scheme-search.component.scss'],
 })
@@ -20,17 +29,21 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   private readonly location = inject(Location);
   private readonly schemeService = inject(SchemeService);
   private readonly toastService = inject(ToastService);
+  private readonly auth = inject(Auth);
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
-  // Search & Filters
+  // Search & Filters (Scheme Name, Department, State, Sector, Publication Date, Status)
   searchQuery = '';
-  selectedCategory = '';
-  selectedMinistry = '';
   selectedDepartment = '';
   selectedState = '';
+  selectedSector = '';
+  selectedPublicationDate = '';
+  selectedStatus = '';
+  selectedCategory = '';
+  selectedMinistry = '';
 
   // Data
   schemes = signal<SchemeResponse[]>([]);
@@ -44,85 +57,76 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   errorMessage = signal('');
 
   // Filter options
-  categories = [
-    'Agriculture',
-    'Education',
-    'Energy',
-    'Financial Services',
-    'Health',
-    'Housing',
-    'Skill Development',
-    'Social Welfare',
-    'Women & Child Welfare',
-    'Employment',
-    'Infrastructure',
-    'Environment',
-    'Digital Governance',
-    'Rural Development',
-    'Urban Development',
+  categories = SCHEME_CATEGORIES;
+  sectors = SCHEME_CATEGORIES;
+  ministries = MINISTRIES;
+  states = STATES;
+  departments = ALL_DEPARTMENTS;
+
+  statusOptions = [
+    { label: 'All Statuses', value: '' },
+    { label: 'Approved', value: 'APPROVED' },
+    { label: 'Pending Approval', value: 'PENDING_APPROVAL' },
+    { label: 'Draft', value: 'DRAFT' },
+    { label: 'Rejected', value: 'REJECTED' },
+    { label: 'Archived', value: 'ARCHIVED' },
   ];
 
-  ministries = [
-    'Ministry of Agriculture & Farmers Welfare',
-    'Ministry of Health & Family Welfare',
-    'Ministry of Education',
-    'Ministry of Finance',
-    'Ministry of Housing and Urban Affairs',
-    'Ministry of New & Renewable Energy',
-    'Ministry of Micro, Small & Medium Enterprises',
-    'Ministry of Rural Development',
-    'Ministry of Skill Development & Entrepreneurship',
-    'Ministry of Women and Child Development',
-    'Ministry of Social Justice and Empowerment',
-    'Ministry of Labour and Employment',
-    'Ministry of Environment, Forest and Climate Change',
-    'Ministry of Electronics and Information Technology',
+  readonly statusDisplayOptions: string[] = [
+    'Approved',
+    'Pending Approval',
+    'Draft',
+    'Rejected',
+    'Archived',
   ];
 
-  departments = [
-    'Department of Agriculture & Farmers Welfare',
-    'Department of School Education & Literacy',
-    'Department of Higher Education',
-    'Department of Health & Family Welfare',
-    'Department of Rural Development',
-    'Department of Financial Services',
-    'Department of Social Justice & Empowerment',
-    'Department of Economic Affairs',
-  ];
+  selectedStatusDisplay = '';
 
-  states = [
-    'All India',
-    'Central',
-    'Andhra Pradesh',
-    'Arunachal Pradesh',
-    'Assam',
-    'Bihar',
-    'Chhattisgarh',
-    'Delhi',
-    'Goa',
-    'Gujarat',
-    'Haryana',
-    'Himachal Pradesh',
-    'Jharkhand',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Manipur',
-    'Meghalaya',
-    'Mizoram',
-    'Nagaland',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Sikkim',
-    'Tamil Nadu',
-    'Telangana',
-    'Tripura',
-    'Uttar Pradesh',
-    'Uttarakhand',
-    'West Bengal',
-  ];
+  onStatusDisplayChange(displayVal: string): void {
+    const map: Record<string, string> = {
+      'Approved': 'APPROVED',
+      'Pending Approval': 'PENDING_APPROVAL',
+      'Draft': 'DRAFT',
+      'Rejected': 'REJECTED',
+      'Archived': 'ARCHIVED',
+    };
+    this.selectedStatus = map[displayVal] || '';
+    this.applyFilters();
+  }
+
+  get activeFiltersCount(): number {
+    let count = 0;
+    if (this.selectedDepartment) count++;
+    if (this.selectedState) count++;
+    if (this.selectedSector) count++;
+    if (this.selectedPublicationDate) count++;
+    if (this.isAdminOrGov && this.selectedStatus) count++;
+    return count;
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.activeFiltersCount > 0 || !!this.searchQuery.trim();
+  }
+
+  get hasActiveFilterChips(): boolean {
+    return this.activeFiltersCount > 0;
+  }
+
+  clearPublicationDate(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.selectedPublicationDate = '';
+    this.applyFilters();
+  }
+
+  onMinistryChange(): void {
+    if (this.selectedMinistry && this.selectedDepartment) {
+      const specific = MINISTRY_DEPARTMENTS_MAP[this.selectedMinistry];
+      if (specific && specific.length > 0 && !specific.includes(this.selectedDepartment)) {
+        this.selectedDepartment = '';
+      }
+    }
+    this.applyFilters();
+  }
 
   // Bookmarks
   private bookmarkedIds = signal<Set<number>>(new Set());
@@ -130,6 +134,55 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   // Computed
   getStatusLabel = getStatusLabel;
   getStatusBadgeClass = getStatusBadgeClass;
+
+  get userRole(): string {
+    return String(this.auth?.getUserRole() || '')
+      .trim()
+      .toUpperCase();
+  }
+
+  get isAdminOrGov(): boolean {
+    const role = this.userRole;
+    return (
+      role === 'ADMIN' ||
+      role === 'ADMINISTRATOR' ||
+      role === 'GOVERNMENT' ||
+      role === 'GOVERNMENT_OFFICIAL'
+    );
+  }
+
+  get rolePrefix(): string {
+    switch (this.userRole) {
+      case 'ADMIN':
+      case 'ADMINISTRATOR':
+        return 'admin';
+      case 'GOVERNMENT':
+      case 'GOVERNMENT_OFFICIAL':
+        return 'government';
+      case 'RESEARCHER':
+        return 'researcher';
+      case 'ORGANIZATION':
+      case 'ORGANISATION':
+        return 'organization';
+      case 'GUEST':
+        return 'guest';
+      case 'CITIZEN':
+      default:
+        return 'citizen';
+    }
+  }
+
+  getSchemeDetailsRoute(schemeId: number | string): any[] {
+    const id = Number(schemeId);
+    if (!Number.isFinite(id) || id <= 0) {
+      return ['/'];
+    }
+    return ['/dashboard', this.rolePrefix, 'schemes', id];
+  }
+
+  trackBySchemeId(index: number, scheme: SchemeResponse): number {
+    return Number(scheme.scheme_id);
+  }
 
   ngOnInit(): void {
     this.setupDebouncedSearch();
@@ -160,21 +213,37 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     this.cdr.detectChanges();
 
-    // SEARCH / VIEW SCHEMES: Only APPROVED schemes are displayed
+    const status = this.isAdminOrGov
+      ? (this.selectedStatus && this.selectedStatus.toUpperCase() !== 'ALL' ? this.selectedStatus : undefined)
+      : 'APPROVED';
+
     const filters: SchemeFilters = {
       keyword: this.searchQuery.trim() || undefined,
-      category: this.selectedCategory || undefined,
-      ministry: this.selectedMinistry || undefined,
       department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
-      status: 'APPROVED',
+      sector: this.selectedSector || undefined,
+      publication_date: this.selectedPublicationDate || undefined,
+      status,
       page: this.currentPage(),
       limit: this.pageSize,
     };
 
     this.schemeService.getSchemes(filters).subscribe({
       next: (response: SchemeListResponse) => {
-        this.schemes.set(Array.isArray(response?.schemes) ? response.schemes : []);
+        const rawSchemes = Array.isArray(response?.schemes) ? response.schemes : [];
+        let filtered = rawSchemes;
+
+        if (!this.isAdminOrGov) {
+          filtered = rawSchemes.filter(
+            (s) => String(s?.status || '').trim().toUpperCase() === 'APPROVED'
+          );
+        } else if (this.selectedStatus && this.selectedStatus.toUpperCase() !== 'ALL') {
+          filtered = rawSchemes.filter(
+            (s) => String(s?.status || '').trim().toUpperCase() === this.selectedStatus.toUpperCase()
+          );
+        }
+
+        this.schemes.set(filtered);
         this.totalResults.set(Number(response?.total) || 0);
         this.currentPage.set(Number(response?.page) || 1);
         this.totalPages.set(Number(response?.pages) > 0 ? Number(response.pages) : 1);
@@ -200,10 +269,14 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.searchQuery = '';
-    this.selectedCategory = '';
-    this.selectedMinistry = '';
     this.selectedDepartment = '';
     this.selectedState = '';
+    this.selectedSector = '';
+    this.selectedPublicationDate = '';
+    this.selectedStatus = '';
+    this.selectedStatusDisplay = '';
+    this.selectedCategory = '';
+    this.selectedMinistry = '';
     this.currentPage.set(1);
     this.loadSchemes();
   }

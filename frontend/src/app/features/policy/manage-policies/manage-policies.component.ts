@@ -19,10 +19,8 @@ export interface PolicyTableItem {
   category: string;
   ministry: string;
   department: string;
-  state: string;
   sector: string;
   status: string;
-  publicationDate: string;
   createdBy?: number | null;
   rejectionReason?: string;
   archiveReason?: string;
@@ -51,14 +49,7 @@ export class ManagePoliciesComponent implements OnInit {
   ) {}
 
   searchText = "";
-  selectedCategory = "";
-  selectedMinistry = "";
-  selectedDepartment = "";
-  selectedState = "";
-  selectedSector = "";
   selectedStatus = "";
-  fromDate = "";
-  toDate = "";
 
   currentPage = 1;
   pageSize = 6;
@@ -91,70 +82,6 @@ export class ManagePoliciesComponent implements OnInit {
   reasonVariant: "primary" | "danger" | "warning" = "danger";
   reasonAction: ((reason: string) => void) | null = null;
 
-  categories = [
-    "Education",
-    "Technology",
-    "Health",
-    "Environment",
-    "Agriculture",
-    "Urban Development",
-    "Employment",
-    "Finance",
-    "Infrastructure",
-    "Social Welfare",
-  ];
-  ministries = [
-    "Ministry of Education",
-    "Ministry of Electronics & IT",
-    "Ministry of Health & Family Welfare",
-    "Ministry of New & Renewable Energy",
-    "Ministry of Agriculture",
-    "Ministry of Housing & Urban Affairs",
-    "Ministry of Labour & Employment",
-    "Ministry of Finance",
-  ];
-  departments = [
-    "Department of School Education",
-    "Department of Higher Education",
-    "Department of Health",
-    "Department of Electronics & IT",
-    "Department of Agriculture",
-    "Department of Renewable Energy",
-    "Department of Urban Development",
-    "Department of Economic Affairs",
-  ];
-  states = [
-    "All India",
-    "Andhra Pradesh",
-    "Assam",
-    "Bihar",
-    "Delhi",
-    "Gujarat",
-    "Haryana",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Tamil Nadu",
-    "Telangana",
-    "Uttar Pradesh",
-    "West Bengal",
-  ];
-  sectors = [
-    "Agriculture",
-    "Education",
-    "Healthcare",
-    "Information Technology",
-    "Infrastructure",
-    "Finance",
-    "Employment",
-    "Social Welfare",
-    "Environment",
-  ];
   statuses = [
     "APPROVED",
     "PENDING_APPROVAL",
@@ -182,7 +109,9 @@ export class ManagePoliciesComponent implements OnInit {
     this.userRole =
       rawRole === "ADMINISTRATOR" || rawRole === "ADMIN"
         ? "ADMIN"
-        : rawRole === "GOVERNMENT_OFFICIAL" || rawRole === "GOVERNMENT OFFICIAL" || rawRole === "GOVERNMENT"
+        : rawRole === "GOVERNMENT_OFFICIAL" ||
+            rawRole === "GOVERNMENT OFFICIAL" ||
+            rawRole === "GOVERNMENT"
           ? "GOVERNMENT_OFFICIAL"
           : rawRole || null;
 
@@ -205,52 +134,52 @@ export class ManagePoliciesComponent implements OnInit {
 
     this.policyService.clearCache();
 
-    this.policyService.getPolicies({ page: 1, limit: 100, manage: true }).subscribe({
-      next: (response: PolicyListResponse) => {
-        const currentUser = this.auth.getStoredUser();
-        const currentUserId = currentUser?.user_id;
+    this.policyService
+      .getPolicies({ page: 1, limit: 100, manage: true })
+      .subscribe({
+        next: (response: PolicyListResponse) => {
+          const currentUser = this.auth.getStoredUser();
+          const currentUserId = currentUser?.user_id;
 
-        let source = Array.isArray(response?.policies)
-          ? response.policies
-          : [];
+          let source = Array.isArray(response?.policies)
+            ? response.policies
+            : [];
 
-        // Role-based creator filtering rule:
-        // Admin: sees ALL policies.
-        // Government Official: sees ONLY policies created by the authenticated Government Official.
-        if (!this.isAdmin && currentUserId) {
-          source = source.filter((policy: PolicyResponse) => policy.created_by === currentUserId);
-        }
+          // Role-based creator filtering rule:
+          // Admin: sees ALL policies except DRAFTs created by others.
+          // Government Official: sees ONLY policies created by the authenticated Government Official.
+          if (!this.isAdmin && currentUserId) {
+            source = source.filter(
+              (policy: PolicyResponse) => policy.created_by === currentUserId,
+            );
+          }
 
-        this.policies = source.map((policy: PolicyResponse) => ({
-          id: Number(policy.policy_id),
-          title: policy.title || "Untitled policy",
-          description: policy.description || "",
-          category: policy.category || "",
-          ministry: policy.ministry || "",
-          department: policy.department || "",
-          state: policy.state || "",
-          sector: policy.sector || "",
-          status: String(policy.status || "DRAFT").toUpperCase(),
-          publicationDate: policy.publication_date
-            ? this.formatDate(policy.publication_date)
-            : "-",
-          createdBy: policy.created_by,
-          rejectionReason: policy.rejection_reason || undefined,
-          archiveReason: policy.archive_reason || undefined,
-          deleteReason: policy.delete_reason || undefined,
-        }));
-        this.currentPage = Math.min(this.currentPage, this.totalPages);
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error("Failed to load policies:", error);
-        this.policies = [];
-        this.errorMessage = this.getErrorMessage(error);
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-    });
+          this.policies = source.map((policy: PolicyResponse) => ({
+            id: Number(policy.policy_id),
+            title: policy.title || "Untitled policy",
+            description: policy.description || "",
+            category: policy.category || "",
+            ministry: policy.ministry || "",
+            department: policy.department || "",
+            sector: policy.sector || "",
+            status: String(policy.status || "DRAFT").toUpperCase(),
+            createdBy: policy.created_by,
+            rejectionReason: policy.rejection_reason || undefined,
+            archiveReason: policy.archive_reason || undefined,
+            deleteReason: policy.delete_reason || undefined,
+          }));
+          this.currentPage = Math.min(this.currentPage, this.totalPages);
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error("Failed to load policies:", error);
+          this.policies = [];
+          this.errorMessage = this.getErrorMessage(error);
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+      });
 
     this.loadStats();
   }
@@ -273,16 +202,6 @@ export class ManagePoliciesComponent implements OnInit {
     });
   }
 
-  formatDate(date: string): string {
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return "-";
-    return parsed.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
-
   get filteredPolicies(): PolicyTableItem[] {
     const search = this.searchText.toLowerCase().trim();
     return this.policies.filter((policy) => {
@@ -292,49 +211,16 @@ export class ManagePoliciesComponent implements OnInit {
         policy.category,
         policy.ministry,
         policy.department,
-        policy.state,
         policy.sector,
       ]
         .join(" ")
         .toLowerCase();
       const matchesSearch = !search || haystack.includes(search);
-      const matchesCategory =
-        !this.selectedCategory || policy.category === this.selectedCategory;
-      const matchesMinistry =
-        !this.selectedMinistry || policy.ministry === this.selectedMinistry;
-      const matchesDepartment =
-        !this.selectedDepartment ||
-        policy.department === this.selectedDepartment;
-      const matchesState =
-        !this.selectedState || policy.state === this.selectedState;
-      const matchesSector =
-        !this.selectedSector || policy.sector === this.selectedSector;
       const matchesStatus =
         !this.selectedStatus || policy.status === this.selectedStatus;
-      const policyDate = this.toDateOnly(policy.publicationDate);
-      const matchesFrom =
-        !this.fromDate || (policyDate !== null && policyDate >= this.fromDate);
-      const matchesTo =
-        !this.toDate || (policyDate !== null && policyDate <= this.toDate);
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesMinistry &&
-        matchesDepartment &&
-        matchesState &&
-        matchesSector &&
-        matchesStatus &&
-        matchesFrom &&
-        matchesTo
-      );
-    });
-  }
 
-  private toDateOnly(value: string): string | null {
-    if (!value || value === "-") return null;
-    const parts = value.split("/");
-    if (parts.length !== 3) return null;
-    return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+      return matchesSearch && matchesStatus;
+    });
   }
 
   get totalPages(): number {
@@ -382,14 +268,10 @@ export class ManagePoliciesComponent implements OnInit {
   }
 
   resetFilters(): void {
-    this.searchText =
-      this.selectedCategory =
-      this.selectedMinistry =
-      this.selectedDepartment =
-        "";
-    this.selectedState = this.selectedSector = this.selectedStatus = "";
-    this.fromDate = this.toDate = "";
+    this.searchText = "";
+    this.selectedStatus = "";
     this.currentPage = 1;
+    this.closeMenu();
     this.cdr.detectChanges();
   }
 
@@ -430,12 +312,21 @@ export class ManagePoliciesComponent implements OnInit {
     this.router.navigate(["/dashboard", this.rolePrefix, "policies", "add"]);
   }
 
-  // ============================================================
-  // WORKFLOW ACTION MODALS
-  // ============================================================
+  canSubmitPolicy(policy: PolicyTableItem): boolean {
+    if (!["DRAFT", "REJECTED"].includes(policy.status)) return false;
+    if (this.isAdmin) return true;
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    return Boolean(currentUserId && policy.createdBy === currentUserId);
+  }
 
   openSubmitModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.canSubmitPolicy(policy)) {
+      this.errorMessage =
+        "You are not authorized to submit this policy. Only the user who created it can submit it for approval.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Submit Policy";
     this.confirmMessage = `Submit "${policy.title}" for approval?`;
     this.confirmVariant = "primary";
@@ -560,7 +451,9 @@ export class ManagePoliciesComponent implements OnInit {
       this.policyService.rejectArchive(policy.id).subscribe({
         next: () => {
           this.confirmModalOpen = false;
-          this.showSuccessToast("Archive request rejected. Policy reverted to APPROVED.");
+          this.showSuccessToast(
+            "Archive request rejected. Policy reverted to APPROVED.",
+          );
           this.loadPolicies();
         },
         error: (err) => {
@@ -718,27 +611,15 @@ export class ManagePoliciesComponent implements OnInit {
     const escapeCsv = (value: unknown): string =>
       `"${String(value ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      [
-        "ID",
-        "Title",
-        "Category",
-        "Ministry",
-        "Department",
-        "State",
-        "Sector",
-        "Status",
-        "Publication Date",
-      ],
+      ["ID", "Title", "Category", "Ministry", "Department", "Sector", "Status"],
       ...this.filteredPolicies.map((p) => [
         p.id,
         p.title,
         p.category,
         p.ministry,
         p.department,
-        p.state,
         p.sector,
         p.status,
-        p.publicationDate,
       ]),
     ];
     const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");

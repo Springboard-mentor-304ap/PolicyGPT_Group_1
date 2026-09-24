@@ -1,18 +1,28 @@
 import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
+
 import {
   AdminUsersService,
   AdminUserApi,
 } from "../../../../../core/services/admin-user.service";
+
+/* =======================================================
+   ALLOWED USER ROLES
+   ======================================================= */
+
 export type UserRole =
   | "CITIZEN"
   | "RESEARCHER"
   | "ORGANIZATION"
   | "GOVERNMENT_OFFICIAL"
   | "ADMINISTRATOR";
+
+/* =======================================================
+   ADMIN USER MODEL
+   ======================================================= */
 
 export interface AdminUser {
   id: number;
@@ -28,6 +38,10 @@ export interface AdminUser {
   joinedDate: string;
 }
 
+/* =======================================================
+   VIEW USERS COMPONENT
+   ======================================================= */
+
 @Component({
   selector: "app-view-users",
   standalone: true,
@@ -36,31 +50,79 @@ export interface AdminUser {
   styleUrls: ["./view-users.component.scss"],
 })
 export class ViewUsersComponent implements OnInit {
+  /* =======================================================
+     SEARCH / FILTERS
+     ======================================================= */
+
   searchText = "";
   selectedRole = "ALL";
   selectedStatus = "ALL";
 
+  /* =======================================================
+     PAGINATION
+     ======================================================= */
+
   currentPage = 1;
-  pageSize = 6;
+  pageSize = 5;
+
+  /* =======================================================
+     USERS
+     ======================================================= */
 
   users: AdminUser[] = [];
+
+  /*
+   * Total number of users loaded from the backend.
+   *
+   * This is intentionally separate from filteredUsers.length.
+   *
+   * Example:
+   * Backend has 7 users.
+   * Search/filter shows only 3.
+   *
+   * Total Users will still show 7.
+   */
+  totalUsers = 0;
+
+  /* =======================================================
+     LOADING / ERROR
+     ======================================================= */
 
   isLoading = true;
   loadError = "";
 
+  /* =======================================================
+     CONSTRUCTOR
+     ======================================================= */
+
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private adminUsersService: AdminUsersService,
     private cdr: ChangeDetectorRef,
   ) {}
 
+  /* =======================================================
+     INITIALIZATION
+     ======================================================= */
+
   ngOnInit(): void {
+    /*
+     * If the user opened the remove section,
+     * redirect to the remove-user page.
+     */
+    if (this.route.snapshot.queryParams["section"] === "remove") {
+      this.router.navigate(["/dashboard/admin/users/remove"]);
+
+      return;
+    }
+
     this.loadUsers();
   }
 
-  // =======================================================
-  // LOAD USERS FROM BACKEND
-  // =======================================================
+  /* =======================================================
+     LOAD USERS FROM BACKEND
+     ======================================================= */
 
   loadUsers(): void {
     this.isLoading = true;
@@ -70,30 +132,65 @@ export class ViewUsersComponent implements OnInit {
       next: (backendUsers: AdminUserApi[]) => {
         console.log("PolicyGPT users received from backend:", backendUsers);
 
+        /*
+         * Convert backend users into our AdminUser model.
+         *
+         * Users with roles outside the five allowed roles
+         * are ignored by mapBackendUser().
+         */
         this.users = Array.isArray(backendUsers)
-          ? backendUsers.map((user: AdminUserApi) => this.mapBackendUser(user))
+          ? backendUsers
+              .map((user: AdminUserApi) => this.mapBackendUser(user))
+              .filter((user): user is AdminUser => user !== null)
           : [];
 
+        /*
+         * TOTAL USERS
+         *
+         * This is the number of valid users loaded from
+         * the backend.
+         *
+         * It does NOT change when search/filter is applied.
+         */
+        this.totalUsers = this.users.length;
+
+        /*
+         * Reset pagination after loading users.
+         */
         this.currentPage = 1;
+
         this.isLoading = false;
         this.loadError = "";
 
-        // Ensure the UI updates immediately after the HTTP response.
+        /*
+         * Ensure UI updates immediately after HTTP response.
+         */
         this.cdr.detectChanges();
       },
+
       error: (error: HttpErrorResponse) => {
         console.error("Unable to load users:", error);
 
+        /*
+         * Reset users and total count when loading fails.
+         */
         this.users = [];
+        this.totalUsers = 0;
         this.isLoading = false;
 
         if (error?.status === 401) {
           this.loadError = "Your session has expired. Please login again.";
+
+          this.cdr.detectChanges();
+
           return;
         }
 
         if (error?.status === 403) {
           this.loadError = "Only an administrator can view users.";
+
+          this.cdr.detectChanges();
+
           return;
         }
 
@@ -105,49 +202,94 @@ export class ViewUsersComponent implements OnInit {
     });
   }
 
-  // =======================================================
-  // MAP BACKEND USER TO TABLE USER
-  // =======================================================
+  /* =======================================================
+     MAP BACKEND USER TO TABLE USER
+     ======================================================= */
 
-  private mapBackendUser(user: AdminUserApi): AdminUser {
+  private mapBackendUser(user: AdminUserApi): AdminUser | null {
     const role = this.normalizeRole(user.role);
+
+    /*
+     * Only these five roles are accepted:
+     *
+     * ADMINISTRATOR
+     * GOVERNMENT_OFFICIAL
+     * CITIZEN
+     * RESEARCHER
+     * ORGANIZATION
+     *
+     * Any other backend role is ignored.
+     */
+    if (!role) {
+      return null;
+    }
 
     return {
       id: user.user_id,
       fullName: user.full_name || "Unknown User",
       email: user.email || "-",
       phone: user.phone || "-",
+
       role,
+
       state: user.state || "-",
       district: user.district || "-",
       occupation: user.occupation || "-",
       organization: user.organization || "-",
+
       status: user.is_active ? "Active" : "Inactive",
+
       joinedDate: this.formatDate(user.created_at),
     };
   }
 
-  private normalizeRole(role: string): UserRole {
+  /* =======================================================
+     NORMALIZE ROLE
+     ======================================================= */
+
+  private normalizeRole(role: string): UserRole | null {
     const normalized = (role || "").trim().toUpperCase();
 
     switch (normalized) {
+      /* CITIZEN */
+
       case "CITIZEN":
         return "CITIZEN";
+
+      /* RESEARCHER */
+
       case "RESEARCHER":
         return "RESEARCHER";
+
+      /* ORGANIZATION */
+
       case "ORGANIZATION":
       case "ORGANISATION":
         return "ORGANIZATION";
+
+      /* GOVERNMENT OFFICIAL */
+
       case "GOVERNMENT_OFFICIAL":
       case "GOVERNMENT OFFICER":
         return "GOVERNMENT_OFFICIAL";
+
+      /* ADMINISTRATOR */
+
       case "ADMINISTRATOR":
       case "ADMIN":
         return "ADMINISTRATOR";
+
+      /*
+       * Any role not listed above is ignored.
+       */
       default:
-        return "CITIZEN";
+        return null;
     }
   }
+
+  /* =======================================================
+     FORMAT DATE
+     ======================================================= */
 
   private formatDate(value: string): string {
     if (!value) {
@@ -167,9 +309,9 @@ export class ViewUsersComponent implements OnInit {
     }).format(date);
   }
 
-  // =======================================================
-  // FILTERED USERS
-  // =======================================================
+  /* =======================================================
+     FILTERED USERS
+     ======================================================= */
 
   get filteredUsers(): AdminUser[] {
     const query = this.searchText.trim().toLowerCase();
@@ -197,28 +339,29 @@ export class ViewUsersComponent implements OnInit {
     });
   }
 
-  // =======================================================
-  // PAGINATED USERS
-  // =======================================================
+  /* =======================================================
+     PAGINATED USERS
+     ======================================================= */
 
   get paginatedUsers(): AdminUser[] {
     const start = (this.currentPage - 1) * this.pageSize;
+
     const end = start + this.pageSize;
 
     return this.filteredUsers.slice(start, end);
   }
 
-  // =======================================================
-  // TOTAL PAGES
-  // =======================================================
+  /* =======================================================
+     TOTAL PAGES
+     ======================================================= */
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize));
   }
 
-  // =======================================================
-  // DISPLAY END
-  // =======================================================
+  /* =======================================================
+     DISPLAY END
+     ======================================================= */
 
   get displayEnd(): number {
     return Math.min(
@@ -227,17 +370,22 @@ export class ViewUsersComponent implements OnInit {
     );
   }
 
-  // =======================================================
-  // PAGE NUMBERS
-  // =======================================================
+  /* =======================================================
+     PAGE NUMBERS
+     ======================================================= */
 
   get pageNumbers(): number[] {
-    return Array.from({ length: this.totalPages }, (_, index) => index + 1);
+    return Array.from(
+      {
+        length: this.totalPages,
+      },
+      (_, index) => index + 1,
+    );
   }
 
-  // =======================================================
-  // USER COUNTS
-  // =======================================================
+  /* =======================================================
+     USER COUNTS
+     ======================================================= */
 
   get activeUsers(): number {
     return this.users.filter((user) => user.status === "Active").length;
@@ -247,49 +395,75 @@ export class ViewUsersComponent implements OnInit {
     return this.users.filter((user) => user.status === "Inactive").length;
   }
 
+  /* =======================================================
+     CITIZEN COUNT
+     ======================================================= */
+
   get citizenUsers(): number {
     return this.users.filter((user) => user.role === "CITIZEN").length;
   }
+
+  /* =======================================================
+     RESEARCHER COUNT
+     ======================================================= */
 
   get researcherUsers(): number {
     return this.users.filter((user) => user.role === "RESEARCHER").length;
   }
 
+  /* =======================================================
+     ORGANIZATION COUNT
+     ======================================================= */
+
   get organizationUsers(): number {
     return this.users.filter((user) => user.role === "ORGANIZATION").length;
   }
+
+  /* =======================================================
+     GOVERNMENT OFFICIAL COUNT
+     ======================================================= */
 
   get governmentUsers(): number {
     return this.users.filter((user) => user.role === "GOVERNMENT_OFFICIAL")
       .length;
   }
 
+  /* =======================================================
+     ADMINISTRATOR COUNT
+     ======================================================= */
+
   get administratorUsers(): number {
     return this.users.filter((user) => user.role === "ADMINISTRATOR").length;
   }
 
-  // =======================================================
-  // SEARCH / FILTER CHANGE
-  // =======================================================
+  /* =======================================================
+     SEARCH / FILTER CHANGE
+     ======================================================= */
 
   applyFilters(): void {
+    /*
+     * Filtering should only affect the table.
+     *
+     * totalUsers remains unchanged.
+     */
     this.currentPage = 1;
   }
 
-  // =======================================================
-  // CLEAR FILTERS
-  // =======================================================
+  /* =======================================================
+     CLEAR FILTERS
+     ======================================================= */
 
   clearFilters(): void {
     this.searchText = "";
     this.selectedRole = "ALL";
     this.selectedStatus = "ALL";
+
     this.currentPage = 1;
   }
 
-  // =======================================================
-  // PAGE NAVIGATION
-  // =======================================================
+  /* =======================================================
+     PAGE NAVIGATION
+     ======================================================= */
 
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages) {
@@ -299,88 +473,113 @@ export class ViewUsersComponent implements OnInit {
     this.currentPage = page;
   }
 
+  /* =======================================================
+     PREVIOUS PAGE
+     ======================================================= */
+
   previousPage(): void {
     this.goToPage(this.currentPage - 1);
   }
+
+  /* =======================================================
+     NEXT PAGE
+     ======================================================= */
 
   nextPage(): void {
     this.goToPage(this.currentPage + 1);
   }
 
-  // =======================================================
-  // ROLE LABEL
-  // =======================================================
+  /* =======================================================
+     ROLE LABEL
+     ======================================================= */
 
   getRoleLabel(role: AdminUser["role"]): string {
     switch (role) {
       case "CITIZEN":
         return "Citizen";
+
       case "RESEARCHER":
         return "Researcher";
+
       case "ORGANIZATION":
         return "Organization";
+
       case "GOVERNMENT_OFFICIAL":
         return "Government Official";
+
       case "ADMINISTRATOR":
         return "Administrator";
+
       default:
         return role;
     }
   }
 
-  // =======================================================
-  // ROLE ICON
-  // =======================================================
+  /* =======================================================
+     ROLE ICON
+     ======================================================= */
 
   getRoleIcon(role: AdminUser["role"]): string {
     switch (role) {
       case "CITIZEN":
         return "person";
+
       case "RESEARCHER":
         return "science";
+
       case "ORGANIZATION":
         return "business";
+
       case "GOVERNMENT_OFFICIAL":
         return "account_balance";
+
       case "ADMINISTRATOR":
         return "admin_panel_settings";
+
       default:
         return "person";
     }
   }
 
-  // =======================================================
-  // ROLE CSS CLASS
-  // =======================================================
+  /* =======================================================
+     ROLE CSS CLASS
+     ======================================================= */
 
   getRoleClass(role: AdminUser["role"]): string {
     switch (role) {
       case "CITIZEN":
         return "users-role--citizen";
+
       case "RESEARCHER":
         return "users-role--researcher";
+
       case "ORGANIZATION":
         return "users-role--organization";
+
       case "GOVERNMENT_OFFICIAL":
         return "users-role--government";
+
       case "ADMINISTRATOR":
         return "users-role--administrator";
+
       default:
         return "";
     }
   }
 
-  // =======================================================
-  // VIEW USER
-  // =======================================================
+  /* =======================================================
+     VIEW USER
+     ======================================================= */
 
   viewUser(user: AdminUser): void {
-    console.log("View user:", user);
+    if (user?.id) {
+      this.router.navigate(["/dashboard/admin/users", user.id]);
+    }
   }
 
-  // =======================================================
-  // ADMIN DASHBOARD
-  // =======================================================
+  /* =======================================================
+     ADMIN DASHBOARD
+     ======================================================= */
 
   goToDashboard(): void {
     this.router.navigate(["/dashboard/admin"]);

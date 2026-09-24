@@ -188,67 +188,62 @@
             <label class="form-label" for="edit-scheme-category">
               Category <span class="required">*</span>
             </label>
-            <div class="input-with-icon select-wrapper">
-              <span class="material-icons input-icon">grid_view</span>
-              <select id="edit-scheme-category" class="form-control form-select" formControlName="category"
-                [class.is-invalid]="
-                    stepSubmitted[1] && schemeForm.get('category')?.invalid
-                  ">
-                <option value="" disabled selected>Select category</option>
-                @for (cat of categories; track cat) {
-                <option [value]="cat">{{ cat }}</option>
-                }
-              </select>
-              <span class="material-icons select-arrow">expand_more</span>
-            </div>
+            <app-searchable-select
+              id="edit-scheme-category"
+              formControlName="category"
+              [options]="categories"
+              placeholder="Select category"
+              searchPlaceholder="Search or select category..."
+              icon="grid_view"
+              [isInvalid]="!!(stepSubmitted[1] && schemeForm.get('category')?.invalid)">
+            </app-searchable-select>
             <p class="form-helper">Category classification.</p>
+            @if (stepSubmitted[1] && schemeForm.get('category')?.invalid) {
+            <span class="form-error">Category is required.</span>
+            }
           </div>
 
           <!-- MINISTRY -->
           <div class="form-group">
             <label class="form-label" for="edit-scheme-ministry">Ministry</label>
-            <div class="input-with-icon select-wrapper">
-              <span class="material-icons input-icon">account_balance</span>
-              <select id="edit-scheme-ministry" class="form-control form-select" formControlName="ministry">
-                <option value="" selected>Select ministry</option>
-                @for (min of ministries; track min) {
-                <option [value]="min">{{ min }}</option>
-                }
-              </select>
-              <span class="material-icons select-arrow">expand_more</span>
-            </div>
+            <app-searchable-select
+              id="edit-scheme-ministry"
+              formControlName="ministry"
+              [options]="ministries"
+              placeholder="Select ministry"
+              searchPlaceholder="Search or select ministry..."
+              icon="account_balance"
+              (selectionChange)="onMinistryChange($event)">
+            </app-searchable-select>
             <p class="form-helper">Nodal ministry responsible.</p>
           </div>
 
           <!-- DEPARTMENT -->
           <div class="form-group">
             <label class="form-label" for="edit-scheme-dept">Department</label>
-            <div class="input-with-icon select-wrapper">
-              <span class="material-icons input-icon">apartment</span>
-              <select id="edit-scheme-dept" class="form-control form-select" formControlName="department">
-                <option value="" selected>Select department</option>
-                @for (dept of departments; track dept) {
-                <option [value]="dept">{{ dept }}</option>
-                }
-              </select>
-              <span class="material-icons select-arrow">expand_more</span>
-            </div>
+            <app-searchable-select
+              id="edit-scheme-dept"
+              formControlName="department"
+              [options]="departmentOptions"
+              [placeholder]="schemeForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
+              searchPlaceholder="Search or select department..."
+              icon="apartment"
+              [disabled]="!schemeForm.get('ministry')?.value">
+            </app-searchable-select>
             <p class="form-helper">Nodal department.</p>
           </div>
 
           <!-- STATE / REGION -->
           <div class="form-group form-group--half">
             <label class="form-label" for="edit-scheme-state">State / Region</label>
-            <div class="input-with-icon select-wrapper">
-              <span class="material-icons input-icon">location_on</span>
-              <select id="edit-scheme-state" class="form-control form-select" formControlName="state">
-                <option value="" disabled>Select state / region</option>
-                @for (st of states; track st) {
-                <option [value]="st">{{ st }}</option>
-                }
-              </select>
-              <span class="material-icons select-arrow">expand_more</span>
-            </div>
+            <app-searchable-select
+              id="edit-scheme-state"
+              formControlName="state"
+              [options]="states"
+              placeholder="Select state / region"
+              searchPlaceholder="Search or select state..."
+              icon="location_on">
+            </app-searchable-select>
             <p class="form-helper">Applicable region.</p>
           </div>
 

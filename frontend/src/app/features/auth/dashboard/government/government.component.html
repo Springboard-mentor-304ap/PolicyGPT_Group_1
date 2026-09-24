@@ -46,6 +46,7 @@
           <span></span>
           <span></span>
           <span></span>
+          <span></span>
 
         </div>
 
@@ -89,7 +90,7 @@
     track card.label
     ) {
 
-    <article class="dash-stat-card">
+    <article class="dash-stat-card" [routerLink]="card.route" [style.cursor]="card.route ? 'pointer' : 'default'">
 
       <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + card.color">
 
@@ -110,7 +111,7 @@
         } @else {
 
         <p class="dash-stat-card__value">
-          {{ card.value }}
+          {{ card.value ?? 0 }}
         </p>
 
         }
@@ -149,7 +150,7 @@
 
 
     <!-- =======================================================
-         UPCOMING SCHEMES
+         MY SCHEMES
          ======================================================= -->
 
     <article class="dash-panel">
@@ -157,10 +158,10 @@
       <div class="dash-panel__header">
 
         <h2>
-          Upcoming Schemes
+          <a routerLink="/dashboard/government/schemes" class="dash-panel__header-title-link">My Schemes</a>
         </h2>
 
-        <a routerLink="/government/schemes" class="dash-panel__link">
+        <a routerLink="/dashboard/government/schemes" class="dash-panel__link">
           View All
         </a>
 
@@ -190,7 +191,7 @@
         </span>
 
         <span>
-          No upcoming schemes
+          No schemes created yet
         </span>
 
       </div>
@@ -224,12 +225,15 @@
 
             <p class="dash-list__meta">
               {{ scheme.ministry }}
+              @if (scheme.status) {
+                • <strong style="font-size: 0.8rem;">{{ scheme.status }}</strong>
+              }
             </p>
 
           </div>
 
 
-          <a routerLink="/government/schemes" class="dash-list__action">
+          <a [routerLink]="scheme.id ? ['/dashboard/government/schemes', scheme.id] : '/dashboard/government/schemes/manage'" class="dash-list__action">
             View Details
           </a>
 
@@ -242,7 +246,7 @@
       }
 
 
-      <a routerLink="/government/schemes" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/schemes" class="dash-panel__footer-link">
 
         View All Schemes
 
@@ -264,10 +268,10 @@
       <div class="dash-panel__header">
 
         <h2>
-          Uploaded Policies
+          <a routerLink="/dashboard/government/policies/search" class="dash-panel__header-title-link">Uploaded Policies</a>
         </h2>
 
-        <a routerLink="/government/policies" class="dash-panel__link">
+        <a routerLink="/dashboard/government/policies/search" class="dash-panel__link">
           View All
         </a>
 
@@ -331,17 +335,19 @@
 
             <p class="dash-list__meta">
               {{ policy.ministry }}
+              @if (policy.status) {
+                • <strong style="font-size: 0.8rem;">{{ policy.status }}</strong>
+              }
             </p>
 
             <p class="dash-list__submeta">
-              Uploaded on
-              {{ policy.savedOn }}
+              Uploaded on {{ policy.savedOn }}
             </p>
 
           </div>
 
 
-          <a routerLink="/government/policies" class="dash-list__action">
+          <a [routerLink]="policy.id ? ['/dashboard/government/policies', policy.id] : '/dashboard/government/policies/manage'" class="dash-list__action">
             View Details
           </a>
 
@@ -354,9 +360,9 @@
       }
 
 
-      <a routerLink="/government/policies" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/policies/search" class="dash-panel__footer-link">
 
-        Manage Policies
+        View All Policies
 
         <span class="material-icons">
           arrow_forward
@@ -389,7 +395,7 @@
           Search History
         </h2>
 
-        <a routerLink="/history" class="dash-panel__link">
+        <a routerLink="/dashboard/government/schemes" class="dash-panel__link">
           View All
         </a>
 
@@ -452,17 +458,17 @@
             </p>
 
             <p class="dash-list__meta">
-              Filters:
+              Type:
               {{ history.filters }}
             </p>
 
           </div>
 
 
-          <a routerLink="/schemes" [queryParams]="{
-                  q: history.name
+          <a routerLink="/dashboard/government/schemes" [queryParams]="{
+                  keyword: history.name
                 }" class="dash-list__action">
-            View Details
+            Search Again
           </a>
 
         </li>
@@ -474,9 +480,9 @@
       }
 
 
-      <a routerLink="/history" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/schemes" class="dash-panel__footer-link">
 
-        View Search History
+        Explore Schemes
 
         <span class="material-icons">
           arrow_forward
@@ -499,9 +505,9 @@
           Application Status
         </h2>
 
-        <a routerLink="/government/applications" class="dash-panel__link">
-          View All
-        </a>
+        <span class="dash-panel__link" style="opacity: 0.7;">
+          System Overview
+        </span>
 
       </div>
 
@@ -529,7 +535,7 @@
         </span>
 
         <span>
-          No applications yet
+          No public applications pending review
         </span>
 
       </div>
@@ -569,9 +575,9 @@
           </div>
 
 
-          <a routerLink="/government/applications" class="dash-list__action">
+          <span class="dash-list__action">
             View Details
-          </a>
+          </span>
 
         </li>
 
@@ -582,9 +588,9 @@
       }
 
 
-      <a routerLink="/government/applications" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/schemes/manage" class="dash-panel__footer-link">
 
-        View All Applications
+        Manage Government Schemes
 
         <span class="material-icons">
           arrow_forward

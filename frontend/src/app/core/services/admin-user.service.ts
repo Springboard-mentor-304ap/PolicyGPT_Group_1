@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 export interface AdminUserApi {
   user_id: number;
@@ -18,15 +19,51 @@ export interface AdminUserApi {
   updated_at: string;
 }
 
+export interface UserAuditLogApi {
+  audit_id: number;
+  user_id: number | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: number | null;
+  description: string | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
 @Injectable({
   providedIn: "root",
 })
 export class AdminUsersService {
   private readonly apiUrl = "http://localhost:8000/admin/users";
+  private readonly authUsersUrl = "http://localhost:8000/auth/users";
+  private readonly auditLogsUrl = "http://localhost:8000/audit-logs";
 
   constructor(private http: HttpClient) {}
 
   getUsers(): Observable<AdminUserApi[]> {
     return this.http.get<AdminUserApi[]>(this.apiUrl);
+  }
+
+  getUserById(id: number): Observable<AdminUserApi | null> {
+    return this.getUsers().pipe(
+      map((users: AdminUserApi[]) => {
+        if (!Array.isArray(users)) {
+          return null;
+        }
+        return users.find((u) => u.user_id === id) || null;
+      })
+    );
+  }
+
+  deleteUser(email: string): Observable<{ message: string; email?: string }> {
+    return this.http.delete<{ message: string; email?: string }>(
+      `${this.authUsersUrl}/email/${encodeURIComponent(email)}`
+    );
+  }
+
+  getAuditLogsForUser(userId: number): Observable<UserAuditLogApi[]> {
+    return this.http.get<UserAuditLogApi[]>(this.auditLogsUrl, {
+      params: { user_id: userId.toString() },
+    });
   }
 }

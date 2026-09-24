@@ -18,12 +18,22 @@ import {
   PolicyListResponse,
   PolicyResponse,
 } from "../../../core/models/policy.model";
+import {
+  POLICY_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  POLICY_SECTORS,
+  STATES,
+} from "../../../core/constants/government-data.constants";
+
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-policy-search",
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent],
 
   templateUrl: "./policy-search.component.html",
 
@@ -57,7 +67,8 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   searchQuery = "";
 
   // ============================================================
-  // FILTERS
+  // ============================================================
+  // FILTERS (Policy Name, Department, State, Sector, Publication Date, Status)
   // ============================================================
 
   selectedCategory = "";
@@ -69,6 +80,10 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   selectedState = "";
 
   selectedSector = "";
+
+  selectedPublicationDate = "";
+
+  selectedStatus = "";
 
   // ============================================================
   // POLICY DATA
@@ -102,74 +117,76 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // FILTER OPTIONS
   // ============================================================
 
-  categories = [
-    "Education",
-    "Healthcare",
-    "Agriculture",
-    "Employment",
-    "Finance",
-    "Women & Child Welfare",
-    "Housing",
-    "Environment",
-    "Digital Governance",
-    "Infrastructure",
+  categories = POLICY_CATEGORIES;
+  ministries = MINISTRIES;
+  states = STATES;
+  sectors = POLICY_CATEGORIES;
+  departments = ALL_DEPARTMENTS;
+
+  statusOptions = [
+    { label: "All Statuses", value: "" },
+    { label: "Approved", value: "APPROVED" },
+    { label: "Pending Approval", value: "PENDING_APPROVAL" },
+    { label: "Draft", value: "DRAFT" },
+    { label: "Rejected", value: "REJECTED" },
+    { label: "Archived", value: "ARCHIVED" },
   ];
 
-  ministries = [
-    "Ministry of Education",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Finance",
-    "Ministry of Housing and Urban Affairs",
+  readonly statusDisplayOptions: string[] = [
+    "Approved",
+    "Pending Approval",
+    "Draft",
+    "Rejected",
+    "Archived",
   ];
 
-  departments = [
-    "Department of School Education",
-    "Department of Higher Education",
-    "Department of Health",
-    "Department of Electronics & IT",
-    "Department of Agriculture",
-    "Department of Renewable Energy",
-    "Department of Urban Development",
-    "Department of Economic Affairs",
-  ];
+  selectedStatusDisplay = "";
 
-  states = [
-    "Central",
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Tamil Nadu",
-    "Telangana",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-  ];
+  onStatusDisplayChange(displayVal: string): void {
+    const map: Record<string, string> = {
+      Approved: "APPROVED",
+      "Pending Approval": "PENDING_APPROVAL",
+      Draft: "DRAFT",
+      Rejected: "REJECTED",
+      Archived: "ARCHIVED",
+    };
+    this.selectedStatus = map[displayVal] || "";
+    this.applyFilters();
+  }
 
-  sectors = [
-    "Central Government",
-    "State Government",
-    "Public Sector",
-    "Private Sector",
-    "NGO",
-    "International",
-  ];
+  get activeFiltersCount(): number {
+    let count = 0;
+    if (this.selectedDepartment) count++;
+    if (this.selectedState) count++;
+    if (this.selectedSector) count++;
+    if (this.selectedPublicationDate) count++;
+    if (this.isAdminOrGov && this.selectedStatus) count++;
+    return count;
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.activeFiltersCount > 0 || !!this.searchQuery.trim();
+  }
+
+  get hasActiveFilterChips(): boolean {
+    return this.activeFiltersCount > 0;
+  }
+
+  clearPublicationDate(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.selectedPublicationDate = "";
+    this.applyFilters();
+  }
+
+  onMinistryChange(): void {
+    if (this.selectedMinistry && this.selectedDepartment) {
+      const specific = MINISTRY_DEPARTMENTS_MAP[this.selectedMinistry];
+      if (specific && specific.length > 0 && !specific.includes(this.selectedDepartment)) {
+        this.selectedDepartment = "";
+      }
+    }
+    this.applyFilters();
+  }
 
   // ============================================================
   // ROLE
@@ -179,6 +196,16 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     return String(this.auth.getUserRole() || "")
       .trim()
       .toUpperCase();
+  }
+
+  get isAdminOrGov(): boolean {
+    const role = this.userRole;
+    return (
+      role === "ADMIN" ||
+      role === "ADMINISTRATOR" ||
+      role === "GOVERNMENT" ||
+      role === "GOVERNMENT_OFFICIAL"
+    );
   }
 
   get rolePrefix(): string {
@@ -296,15 +323,16 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
      * ORGANIZATION
      * GUEST
      */
-    const status = "APPROVED";
+    const status = this.isAdminOrGov
+      ? (this.selectedStatus && this.selectedStatus.toUpperCase() !== "ALL" ? this.selectedStatus : undefined)
+      : "APPROVED";
 
     const params: PolicyFilters = {
       search,
-      category: this.selectedCategory || undefined,
-      ministry: this.selectedMinistry || undefined,
       department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
       sector: this.selectedSector || undefined,
+      publication_date: this.selectedPublicationDate || undefined,
       status,
       page: this.currentPage,
       limit: this.pageSize,
@@ -337,18 +365,23 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
             ? response.policies
             : [];
 
-          /*
-           * Safety filter.
-           *
-           * Even if backend accidentally returns
-           * another status, don't display it here.
-           */
-          this.policies = responsePolicies.filter(
-            (policy) =>
-              String(policy?.status || "")
-                .trim()
-                .toUpperCase() === "APPROVED",
-          );
+          if (!this.isAdminOrGov) {
+            this.policies = responsePolicies.filter(
+              (policy) =>
+                String(policy?.status || "")
+                  .trim()
+                  .toUpperCase() === "APPROVED",
+            );
+          } else if (this.selectedStatus && this.selectedStatus.toUpperCase() !== "ALL") {
+            this.policies = responsePolicies.filter(
+              (policy) =>
+                String(policy?.status || "")
+                  .trim()
+                  .toUpperCase() === this.selectedStatus.toUpperCase(),
+            );
+          } else {
+            this.policies = responsePolicies;
+          }
 
           this.totalResults = Number(response?.total) || 0;
           this.currentPage = Math.max(
@@ -363,7 +396,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
             responsePolicies.length,
           );
           console.log(
-            "[POLICY SEARCH] Approved policies displayed:",
+            "[POLICY SEARCH] Filtered policies displayed:",
             this.policies.length,
           );
           console.log("[POLICY SEARCH] Total:", this.totalResults);
@@ -403,6 +436,9 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.selectedDepartment = "";
     this.selectedState = "";
     this.selectedSector = "";
+    this.selectedPublicationDate = "";
+    this.selectedStatus = "";
+    this.selectedStatusDisplay = "";
     this.currentPage = 1;
 
     this.loadPolicies();

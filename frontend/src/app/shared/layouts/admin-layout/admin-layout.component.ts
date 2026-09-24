@@ -313,6 +313,31 @@ export class AdminLayoutComponent implements OnInit {
     this.closeAllSubmenus();
   }
 
+  onPoliciesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.togglePoliciesMenu();
+      return;
+    }
+
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.policiesMenuOpen = true;
+    this.usersMenuOpen = false;
+    this.schemesMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/admin/policies/search']);
+  }
+
+  togglePoliciesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.togglePoliciesMenu();
+  }
+
   togglePoliciesMenu(): void {
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
@@ -327,6 +352,31 @@ export class AdminLayoutComponent implements OnInit {
 
   closePoliciesMenu(): void {
     this.policiesMenuOpen = false;
+  }
+
+  onSchemesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleSchemesMenu();
+      return;
+    }
+
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.schemesMenuOpen = true;
+    this.usersMenuOpen = false;
+    this.policiesMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/admin/schemes']);
+  }
+
+  toggleSchemesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleSchemesMenu();
   }
 
   toggleSchemesMenu(): void {

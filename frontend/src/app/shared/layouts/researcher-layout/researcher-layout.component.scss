@@ -75,8 +75,16 @@ img {
    MAIN LAYOUT
    ========================================================= */
 
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .dash-layout {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
 
   display: flex;
@@ -387,8 +395,11 @@ img {
 
 .dash-main-container {
   width: calc(100% - #{$sidebar-width});
+  max-width: calc(100% - #{$sidebar-width});
 
   min-width: 0;
+  flex: 1 1 0%;
+
   min-height: 100vh;
 
   margin-left: $sidebar-width;
@@ -397,14 +408,17 @@ img {
   flex-direction: column;
 
   padding-top: $topbar-height;
+  box-sizing: border-box;
 
   transition:
     margin-left 0.25s ease,
-    width 0.25s ease;
+    width 0.25s ease,
+    max-width 0.25s ease;
 }
 
 .dash-layout--sidebar-collapsed .dash-main-container {
   width: calc(100% - #{$sidebar-collapsed-width});
+  max-width: calc(100% - #{$sidebar-collapsed-width});
 
   margin-left: $sidebar-collapsed-width;
 }
@@ -554,7 +568,7 @@ img {
 
   color: rgba(255, 255, 255, 0.72);
 
-  font-size: 7.5px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1;
 }
@@ -577,7 +591,7 @@ img {
 
   padding: 0 15px;
 
-  border: 3px solid $researcher-white;
+  border: 2px solid $researcher-white;
   border-radius: 26px;
 
   background: rgba(255, 255, 255, 0.03);
@@ -856,11 +870,13 @@ img {
 
   .dash-main-container {
     width: calc(100% - 250px);
+    max-width: calc(100% - 250px);
     margin-left: 250px;
   }
 
   .dash-layout--sidebar-collapsed .dash-main-container {
     width: calc(100% - #{$sidebar-collapsed-width});
+    max-width: calc(100% - #{$sidebar-collapsed-width});
     margin-left: $sidebar-collapsed-width;
   }
 }
@@ -964,7 +980,7 @@ img {
   }
 
   .dash-user__avatar .material-icons {
-    font-size: 32px;
+    font-size: 30px;
   }
 
   .dash-user__info {
@@ -1027,12 +1043,14 @@ img {
 
   .dash-main-container {
     width: 100%;
+    max-width: 100%;
 
     margin-left: 0;
 
     padding-top: $mobile-topbar-height;
 
     min-height: 100vh;
+    box-sizing: border-box;
   }
 
   /* -------------------------------------------------------

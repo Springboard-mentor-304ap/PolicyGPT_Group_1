@@ -102,15 +102,15 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: $text-dark;
     margin: 0;
     line-height: 1.25;
   }
 
   &__subtitle {
-    font-size: 13.5px;
+    font-size: 14px;
     color: $text-muted;
     margin: 0;
   }
@@ -131,7 +131,7 @@ $success-border: #bbf7d0;
     border: 1.5px solid $primary-blue;
     background: #ffffff;
     color: $primary-blue;
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -241,7 +241,7 @@ $success-border: #bbf7d0;
   }
 
   &__label {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 500;
     color: #64748b;
     text-align: center;
@@ -345,7 +345,7 @@ $success-border: #bbf7d0;
     border: 1px solid #e2e8f0;
     padding: 8px 14px;
     border-radius: 8px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #475569;
     max-width: 380px;
 
@@ -411,7 +411,7 @@ $success-border: #bbf7d0;
 }
 
 .form-label {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #1e293b;
   margin-bottom: 6px;
@@ -566,7 +566,7 @@ $success-border: #bbf7d0;
 }
 
 .char-counter {
-  font-size: 11.5px;
+  font-size: 12px;
   color: #94a3b8;
   white-space: nowrap;
 }
@@ -633,7 +633,7 @@ $success-border: #bbf7d0;
   border-radius: 8px;
   background: #f8fafc;
   color: $primary-blue;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -739,7 +739,7 @@ $success-border: #bbf7d0;
   }
 
   .quote-text {
-    font-size: 12.5px;
+    font-size: 13px;
     font-style: italic;
     color: #475569;
     margin: 0;
@@ -775,7 +775,7 @@ $success-border: #bbf7d0;
   }
 
   &__name {
-    font-size: 13.5px;
+    font-size: 13px;
     font-style: italic;
     font-weight: 600;
     color: #15803d;
@@ -789,7 +789,7 @@ $success-border: #bbf7d0;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #1e293b;
 
     strong {
@@ -838,7 +838,7 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #1e3a8a;
     font-weight: 500;
 
@@ -914,7 +914,7 @@ $success-border: #bbf7d0;
 }
 
 .sub-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #475569;
   margin-bottom: 5px;
@@ -981,7 +981,7 @@ $success-border: #bbf7d0;
   }
 
   &__sub {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
   }
@@ -1035,7 +1035,7 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 6px;
     color: #1e40af;
-    font-size: 13.5px;
+    font-size: 13px;
     margin-bottom: 8px;
 
     .material-icons {
@@ -1090,7 +1090,7 @@ $success-border: #bbf7d0;
   }
 
   &__desc {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
   }
@@ -1109,7 +1109,7 @@ $success-border: #bbf7d0;
   color: #1e40af;
   border-radius: 8px;
   padding: 10px 16px;
-  font-size: 12.5px;
+  font-size: 13px;
   max-width: 440px;
 
   .material-icons {
@@ -1209,7 +1209,7 @@ $success-border: #bbf7d0;
 .review-item {
   display: flex;
   align-items: flex-start;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.45;
 
   &--full {
@@ -1319,7 +1319,7 @@ $success-border: #bbf7d0;
   }
 
   &__text {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
     line-height: 1.4;
@@ -1515,7 +1515,7 @@ $success-border: #bbf7d0;
   .modal-btn-confirm {
     width: 100%;
     height: 44px;
-    font-size: 14.5px;
+    font-size: 14px;
   }
 }
 
@@ -1717,7 +1717,7 @@ $success-border: #bbf7d0;
 }
 
 .review-block__title {
-  font-size: 14.5px;
+  font-size: 15px;
 }
 
 .review-grid {
@@ -1974,7 +1974,7 @@ $success-border: #bbf7d0;
   }
 
   .scheme-create__subtitle {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .scheme-card {

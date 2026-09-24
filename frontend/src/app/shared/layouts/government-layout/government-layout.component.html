@@ -126,7 +126,7 @@
             <!-- POLICIES -->
             <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
                 policiesMenuOpen || isPoliciesRouteActive()
-            " (click)="togglePoliciesMenu()" [attr.title]="sidebarCollapsed ? 'Policies' : null"
+            " (click)="onPoliciesNavClick($event)" [attr.title]="sidebarCollapsed ? 'Policies' : null"
                 [attr.aria-expanded]="policiesMenuOpen" aria-controls="gov-policies-submenu">
                 <span class="material-icons dash-nav__icon">
                     policy
@@ -134,7 +134,8 @@
                 <span class="dash-nav__label">
                     Policies
                 </span>
-                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="policiesMenuOpen">
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="policiesMenuOpen"
+                    (click)="togglePoliciesMenuOnly($event)" title="Toggle Policies submenu">
                     chevron_right
                 </span>
             </button>
@@ -180,7 +181,7 @@
             <!-- SCHEMES -->
             <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
                 schemesMenuOpen || isSchemesRouteActive()
-            " (click)="toggleSchemesMenu()" [attr.title]="sidebarCollapsed ? 'Schemes' : null"
+            " (click)="onSchemesNavClick($event)" [attr.title]="sidebarCollapsed ? 'Schemes' : null"
                 [attr.aria-expanded]="schemesMenuOpen" aria-controls="gov-schemes-submenu">
                 <span class="material-icons dash-nav__icon">
                     account_balance
@@ -188,7 +189,8 @@
                 <span class="dash-nav__label">
                     Schemes
                 </span>
-                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="schemesMenuOpen">
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="schemesMenuOpen"
+                    (click)="toggleSchemesMenuOnly($event)" title="Toggle Schemes submenu">
                     chevron_right
                 </span>
             </button>

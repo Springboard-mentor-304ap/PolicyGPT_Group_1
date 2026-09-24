@@ -236,19 +236,15 @@
                         <label class="form-label" for="policy-category">
                             Category <span class="required">*</span>
                         </label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">grid_view</span>
-                            <select id="policy-category" class="form-control form-select" formControlName="category"
-                                [class.is-invalid]="
-                    stepSubmitted[1] && policyForm.get('category')?.invalid
-                  ">
-                                <option value="" disabled selected>Select category</option>
-                                @for (cat of categories; track cat) {
-                                <option [value]="cat">{{ cat }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select
+                            id="policy-category"
+                            formControlName="category"
+                            [options]="categories"
+                            placeholder="Select category"
+                            searchPlaceholder="Search or select category..."
+                            icon="grid_view"
+                            [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Choose the primary category that best fits this policy.</p>
                         @if (stepSubmitted[1] && policyForm.get('category')?.invalid) {
                         <span class="form-error">Category is required.</span>
@@ -399,65 +395,58 @@
                     <!-- MINISTRY -->
                     <div class="form-group">
                         <label class="form-label" for="policy-ministry">Ministry</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">account_balance</span>
-                            <select id="policy-ministry" class="form-control form-select" formControlName="ministry">
-                                <option value="" selected>Select ministry</option>
-                                @for (min of ministries; track min) {
-                                <option [value]="min">{{ min }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select
+                            id="policy-ministry"
+                            formControlName="ministry"
+                            [options]="ministries"
+                            placeholder="Select ministry"
+                            searchPlaceholder="Search or select ministry..."
+                            icon="account_balance"
+                            (selectionChange)="onMinistryChange($event)">
+                        </app-searchable-select>
                         <p class="form-helper">Select the concerned government ministry.</p>
                     </div>
 
                     <!-- DEPARTMENT -->
                     <div class="form-group">
                         <label class="form-label" for="policy-department">Department</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">apartment</span>
-                            <select id="policy-department" class="form-control form-select"
-                                formControlName="department">
-                                <option value="" selected>Select department</option>
-                                @for (dept of departments; track dept) {
-                                <option [value]="dept">{{ dept }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select
+                            id="policy-department"
+                            formControlName="department"
+                            [options]="departmentOptions"
+                            [placeholder]="policyForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
+                            searchPlaceholder="Search or select department..."
+                            icon="apartment"
+                            [disabled]="!policyForm.get('ministry')?.value">
+                        </app-searchable-select>
                         <p class="form-helper">Select the nodal department managing this policy.</p>
                     </div>
 
                     <!-- STATE / REGION -->
                     <div class="form-group">
                         <label class="form-label" for="policy-state">State / Geographic Scope</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">location_on</span>
-                            <select id="policy-state" class="form-control form-select" formControlName="state">
-                                <option value="" disabled>Select state / region</option>
-                                @for (st of states; track st) {
-                                <option [value]="st">{{ st }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select
+                            id="policy-state"
+                            formControlName="state"
+                            [options]="states"
+                            placeholder="Select state / region"
+                            searchPlaceholder="Search or select state..."
+                            icon="location_on">
+                        </app-searchable-select>
                         <p class="form-helper">Applicable state or region (or All India).</p>
                     </div>
 
                     <!-- SECTOR -->
                     <div class="form-group">
                         <label class="form-label" for="policy-sector">Sector</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">business_center</span>
-                            <select id="policy-sector" class="form-control form-select" formControlName="sector">
-                                <option value="" selected>Select sector</option>
-                                @for (sec of sectors; track sec) {
-                                <option [value]="sec">{{ sec }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select
+                            id="policy-sector"
+                            formControlName="sector"
+                            [options]="sectors"
+                            placeholder="Select sector"
+                            searchPlaceholder="Search or select sector..."
+                            icon="business_center">
+                        </app-searchable-select>
                         <p class="form-helper">Economic or administrative sector category.</p>
                     </div>
 

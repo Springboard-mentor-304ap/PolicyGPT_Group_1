@@ -54,10 +54,18 @@ a {
 // MAIN LAYOUT
 // =========================================================
 
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .dash-layout {
   position: relative;
 
   width: 100%;
+  max-width: 100%;
 
   min-height: 100vh;
 
@@ -66,6 +74,7 @@ a {
   background: $background;
 
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 // =========================================================
@@ -244,7 +253,7 @@ a {
 
   color: rgba(255, 255, 255, 0.72);
 
-  font-size: 7.5px;
+  font-size: 11px;
 
   font-weight: 500;
 
@@ -263,7 +272,7 @@ a {
   align-items: center;
   gap: 12px;
   padding: 0 15px;
-  border: 3px solid #ffffff;
+  border: 2px solid #ffffff;
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.03);
   flex-shrink: 1;
@@ -459,9 +468,9 @@ a {
 
   color: rgba(255, 255, 255, 0.76);
 
-  font-size: 11px;
+  font-size: 12px;
 
-  font-weight: 600;
+  font-weight: 500;
 
   line-height: 1.2;
 
@@ -642,9 +651,17 @@ a {
   opacity: 0.75;
   font-size: 19px !important;
   flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
   transition:
     transform 0.22s ease,
-    opacity 0.2s ease;
+    opacity 0.2s ease,
+    background 0.18s ease;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.18);
+  }
 }
 
 .dash-nav__chevron--open {
@@ -752,8 +769,10 @@ a {
 
 .dash-main-container {
   width: calc(100% - #{$sidebar-width});
+  max-width: calc(100% - #{$sidebar-width});
 
   min-width: 0;
+  flex: 1 1 0%;
 
   min-height: 100vh;
 
@@ -764,14 +783,17 @@ a {
   flex-direction: column;
 
   padding-top: $topbar-height;
+  box-sizing: border-box;
 
   transition:
     margin-left 0.25s ease,
-    width 0.25s ease;
+    width 0.25s ease,
+    max-width 0.25s ease;
 }
 
 .dash-layout--sidebar-collapsed .dash-main-container {
   width: calc(100% - #{$sidebar-collapsed-width});
+  max-width: calc(100% - #{$sidebar-collapsed-width});
 
   margin-left: $sidebar-collapsed-width;
 }
@@ -860,7 +882,7 @@ a {
   }
 
   .dash-user__role {
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 
@@ -967,11 +989,11 @@ a {
   .dash-user__name {
     max-width: 78px;
 
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .dash-user__role {
-    font-size: 8.5px;
+    font-size: 11px;
   }
 
   // -------------------------------------------------------
@@ -1010,14 +1032,17 @@ a {
 
   .dash-main-container {
     width: 100%;
+    max-width: 100%;
 
     margin-left: 0;
 
     padding-top: 64px;
+    box-sizing: border-box;
   }
 
   .dash-layout--sidebar-collapsed .dash-main-container {
     width: 100%;
+    max-width: 100%;
 
     margin-left: 0;
   }
@@ -1063,7 +1088,7 @@ a {
   }
 
   .dash-search input {
-    font-size: 10.5px;
+    font-size: 13px;
   }
 
   .dash-search__icon {
@@ -1097,7 +1122,7 @@ a {
   }
 
   .dash-search input {
-    font-size: 9.5px;
+    font-size: 13px;
   }
 
   .dash-search__icon {

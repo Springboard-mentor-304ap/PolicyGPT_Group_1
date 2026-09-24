@@ -1,220 +1,273 @@
 <div class="page-container">
 
-  <!-- Top Right Navigation -->
-  <div class="top-nav">
-    <button type="button" class="btn-back" (click)="goBack()">
-      &larr; Back
-    </button>
+  <!-- =====================================================
+       LOADING STATE
+       ===================================================== -->
+  <div class="state-card" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading scheme details...</p>
   </div>
 
-  <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="skeleton-hero"></div>
-  </div>
-
-  <!-- Error State -->
-  <div class="error-state" *ngIf="errorMessage && !loading">
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ef4444"
-      stroke-width="1.5">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="15" y1="9" x2="9" y2="15"></line>
-      <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-
+  <!-- =====================================================
+       ERROR STATE
+       ===================================================== -->
+  <div class="state-card error-state" *ngIf="!loading && errorMessage">
+    <div class="state-icon"><span class="material-icons">error_outline</span></div>
     <h3>Unable to load scheme</h3>
-
     <p>{{ errorMessage }}</p>
-
-    <button type="button" class="btn-retry" (click)="loadScheme(schemeIdNum!)">
+    <button type="button" class="retry-btn" (click)="loadScheme(schemeIdNum!)">
       Try Again
     </button>
   </div>
 
-  <!-- Main Content -->
+  <!-- =====================================================
+       MAIN PAGE CONTENT
+       ===================================================== -->
   <div *ngIf="scheme && !loading">
 
-    <!-- Page Header -->
+    <!-- ===================================================
+         PAGE HEADER
+         =================================================== -->
     <div class="page-header">
-      <h1>{{ scheme.name }}</h1>
-      <p>{{ scheme.ministry || 'Government Scheme' }}</p>
+      <div class="header-content">
+        <h1>Scheme Details</h1>
+        <p class="subtitle">Comprehensive overview, eligibility criteria, and governance metadata.</p>
+      </div>
+
+      <button type="button" class="btn-back" (click)="goBack()">
+        <span class="material-icons">arrow_back</span>
+        <span>Back</span>
+      </button>
     </div>
 
-    <!-- Main Scheme Hero Card -->
+    <!-- ===================================================
+         WORKFLOW STATUS ALERTS (No raw IDs)
+         =================================================== -->
+    <!-- REJECTED BANNER -->
+    <div class="workflow-alert alert-rejected" *ngIf="scheme.status === 'REJECTED'">
+      <div class="alert-icon"><span class="material-icons">warning</span></div>
+      <div class="alert-content">
+        <div class="alert-heading">
+          <strong>Scheme Rejected</strong>
+          <span *ngIf="scheme.approved_by">Reviewed by {{ getApproverDisplayName(scheme.approved_by) }}</span>
+        </div>
+        <p *ngIf="scheme.rejection_reason" class="alert-reason">
+          <strong>Reason:</strong> {{ scheme.rejection_reason }}
+        </p>
+        <p *ngIf="!scheme.rejection_reason" class="alert-reason">
+          This scheme was reviewed and rejected. Please revise the details and re-submit for approval.
+        </p>
+      </div>
+      <div class="alert-actions" *ngIf="canEdit">
+        <button type="button" class="btn-alert-action" (click)="editScheme()">
+          <span class="material-icons">edit</span> Edit Scheme
+        </button>
+      </div>
+    </div>
+
+    <!-- ARCHIVE REQUESTED BANNER -->
+    <div class="workflow-alert alert-archive-requested" *ngIf="scheme.status === 'ARCHIVE_REQUESTED'">
+      <div class="alert-icon"><span class="material-icons">archive</span></div>
+      <div class="alert-content">
+        <div class="alert-heading">
+          <strong>Archive Requested</strong>
+          <span *ngIf="scheme.archive_requested_by">
+            Requested by {{ getRequesterDisplayName(scheme.archive_requested_by) }}
+            <ng-container *ngIf="scheme.archive_requested_at">on {{ formatDate(scheme.archive_requested_at)
+              }}</ng-container>
+          </span>
+        </div>
+        <p *ngIf="scheme.archive_reason" class="alert-reason">
+          <strong>Reason:</strong> {{ scheme.archive_reason }}
+        </p>
+      </div>
+    </div>
+
+    <!-- DELETE REQUESTED BANNER -->
+    <div class="workflow-alert alert-delete-requested" *ngIf="scheme.status === 'DELETE_REQUESTED'">
+      <div class="alert-icon"><span class="material-icons">delete_forever</span></div>
+      <div class="alert-content">
+        <div class="alert-heading">
+          <strong>Deletion Requested</strong>
+          <span *ngIf="scheme.delete_requested_by">
+            Requested by {{ getRequesterDisplayName(scheme.delete_requested_by) }}
+            <ng-container *ngIf="scheme.delete_requested_at">on {{ formatDate(scheme.delete_requested_at)
+              }}</ng-container>
+          </span>
+        </div>
+        <p *ngIf="scheme.delete_reason" class="alert-reason">
+          <strong>Reason:</strong> {{ scheme.delete_reason }}
+        </p>
+        <p *ngIf="scheme.delete_requested_from_status" class="alert-subtext">
+          Original Status: {{ getStatusLabel(scheme.delete_requested_from_status) }}
+        </p>
+      </div>
+    </div>
+
+    <!-- PENDING APPROVAL BANNER -->
+    <div class="workflow-alert alert-pending" *ngIf="scheme.status === 'PENDING_APPROVAL'">
+      <div class="alert-icon"><span class="material-icons">schedule</span></div>
+      <div class="alert-content">
+        <div class="alert-heading">
+          <strong>Pending Approval</strong>
+          <span>This scheme has been submitted and is awaiting administrator review.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         MAIN HERO / INFORMATION CARD
+         =================================================== -->
     <div class="hero-card">
-
-      <div class="hero-left">
-
-        <div class="scheme-logo">
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
-            stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-
-            <path d="M6 3h9l3 3v15H6z"></path>
-            <path d="M14 3v4h4"></path>
-            <path d="M9 12h6"></path>
-            <path d="M9 16h6"></path>
-            <path d="M9 8h2"></path>
-
-          </svg>
+      <div class="hero-header-row">
+        <!-- LEFT: Entity Icon -->
+        <div class="hero-avatar">
+          <span class="material-icons">account_balance</span>
         </div>
 
-        <div class="hero-info">
+        <!-- CENTER: Entity Name, Ministry, Category, Status, Description -->
+        <div class="hero-center">
+          <h2 class="hero-title">{{ scheme.name }}</h2>
 
-          <h2>{{ scheme.name }}</h2>
+          <div class="hero-ministry">
+            <span class="material-icons">account_balance</span>
+            <span>{{ scheme.ministry || "Ministry not specified" }}</span>
+          </div>
 
-          <p class="ministry">
-            {{ scheme.ministry || 'N/A' }}
-          </p>
+          <div class="hero-meta">
+            <span class="category-badge">
+              <span class="material-icons">category</span>
+              {{ scheme.category }}
+            </span>
 
-          <span class="category-tag">
-            {{ scheme.category }}
-          </span>
+            <span class="status-badge" [ngClass]="'status-' + scheme.status.toLowerCase()">
+              {{ getStatusLabel(scheme.status) }}
+            </span>
+          </div>
 
-          <span class="status-tag" [ngClass]="'status-' + scheme.status.toLowerCase()">
-            {{ getStatusLabel(scheme.status) }}
-          </span>
-
-          <p class="description">
+          <p class="hero-description">
             {{ scheme.description }}
           </p>
-
         </div>
-      </div>
 
-      <!-- =====================================================
-           TOP RIGHT ACTIONS
-           ===================================================== -->
-      <div class="hero-right">
-
-        <!-- Bookmark -->
-        <button type="button" class="btn-bookmark" (click)="toggleBookmark()" [title]="
-            isBookmarked()
-              ? 'Remove Bookmark'
-              : 'Bookmark'
-          ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" [attr.fill]="
-              isBookmarked()
-                ? '#1e293b'
-                : 'none'
-            " [attr.stroke]="
-              isBookmarked()
-                ? '#1e293b'
-                : '#64748b'
-            " stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </button>
-
-        <!-- =================================================
-             THREE DOT WORKFLOW MENU
-             ================================================= -->
-        <div class="workflow-menu-wrapper" (click)="$event.stopPropagation()">
-
-          <button type="button" class="btn-workflow-menu" [class.active]="workflowMenuOpen"
-            (click)="toggleWorkflowMenu($event)" title="More actions" aria-label="More workflow actions"
-            [attr.aria-expanded]="workflowMenuOpen">
-
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-              stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="5" cy="12" r="1.5"></circle>
-              <circle cx="12" cy="12" r="1.5"></circle>
-              <circle cx="19" cy="12" r="1.5"></circle>
-            </svg>
-
+        <!-- RIGHT: Bookmark, Share & Workflow Action Menu -->
+        <div class="hero-actions">
+          <!-- Bookmark Button -->
+          <button type="button" class="btn-action-icon" (click)="toggleBookmark()" [title]="
+              isBookmarked() ? 'Remove Bookmark' : 'Bookmark Scheme'
+            " [class.active]="isBookmarked()">
+            <span class="material-icons">
+              {{ isBookmarked() ? 'bookmark' : 'bookmark_border' }}
+            </span>
           </button>
 
-          <!-- Dropdown -->
-          <div class="workflow-dropdown" *ngIf="workflowMenuOpen">
+          <!-- Share Button -->
+          <button type="button" class="btn-action-icon" (click)="shareScheme()" title="Share Scheme">
+            <span class="material-icons">share</span>
+          </button>
 
-            <div class="workflow-dropdown-header">
-              <span>Workflow Actions</span>
+          <!-- Three-Dot Workflow Action Menu -->
+          <div class="workflow-menu-wrapper" *ngIf="hasWorkflowActions" (click)="$event.stopPropagation()">
+            <button type="button" class="btn-action-icon btn-workflow" [class.active]="workflowMenuOpen"
+              (click)="toggleWorkflowMenu($event)" title="More workflow actions" aria-label="More workflow actions"
+              [attr.aria-expanded]="workflowMenuOpen">
+              <span class="material-icons">more_vert</span>
+            </button>
+
+            <div class="workflow-dropdown" *ngIf="workflowMenuOpen" (click)="workflowMenuOpen = false">
+              <div class="workflow-dropdown-header">Workflow Actions</div>
+
+              <button type="button" class="workflow-option" *ngIf="canEdit" (click)="editScheme()">
+                <span class="material-icons">edit</span>
+                <span>Edit Scheme</span>
+              </button>
+
+              <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
+                <span class="material-icons">publish</span>
+                <span>{{ scheme.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval' }}</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--success" *ngIf="canApprove"
+                (click)="openApproveModal()">
+                <span class="material-icons">check_circle</span>
+                <span>Approve Scheme</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canReject"
+                (click)="openRejectModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Scheme</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canArchive"
+                (click)="openDirectArchiveModal()">
+                <span class="material-icons">archive</span>
+                <span>Archive Scheme</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canRequestArchive"
+                (click)="openRequestArchiveModal()">
+                <span class="material-icons">archive</span>
+                <span>Request Archive</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--success" *ngIf="canApproveArchive"
+                (click)="openApproveArchiveModal()">
+                <span class="material-icons">check_circle</span>
+                <span>Approve Archive</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canRejectArchive"
+                (click)="openRejectArchiveModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Archive Request</span>
+              </button>
+
+              <button type="button" class="workflow-option" *ngIf="canRestore" (click)="openRestoreModal()">
+                <span class="material-icons">restore</span>
+                <span>Restore to Draft</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canRequestDelete"
+                (click)="openRequestDeleteModal()">
+                <span class="material-icons">delete_forever</span>
+                <span>Request Deletion</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canApproveDelete"
+                (click)="openApproveDeleteModal()">
+                <span class="material-icons">delete_forever</span>
+                <span>Approve Deletion</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canRejectDelete"
+                (click)="openRejectDeleteModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Delete Request</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canDirectDelete"
+                (click)="openDirectDeleteModal()">
+                <span class="material-icons">delete</span>
+                <span>Delete Scheme</span>
+              </button>
             </div>
-
-            <!-- Edit -->
-            <button type="button" class="workflow-option" (click)="editScheme()">
-              <span class="workflow-option-icon edit-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                </svg>
-              </span>
-
-              <span class="workflow-option-content">
-                <strong>Edit Scheme</strong>
-                <small>Modify scheme information</small>
-              </span>
-            </button>
-
-            <!-- Divider -->
-            <div class="workflow-divider"></div>
-
-            <!-- Archive -->
-            <button type="button" class="workflow-option archive-option" (click)="requestArchive()">
-              <span class="workflow-option-icon archive-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 8v13H3V8"></path>
-                  <path d="M1 3h22v5H1z"></path>
-                  <path d="M10 12h4"></path>
-                </svg>
-              </span>
-
-              <span class="workflow-option-content">
-                <strong>Request Archive</strong>
-                <small>Request scheme archival</small>
-              </span>
-            </button>
-
-            <!-- Delete -->
-            <button type="button" class="workflow-option delete-option" (click)="requestDelete()">
-              <span class="workflow-option-icon delete-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
-                  <path d="M10 11v6"></path>
-                  <path d="M14 11v6"></path>
-                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-                </svg>
-              </span>
-
-              <span class="workflow-option-content">
-                <strong>Request Deletion</strong>
-                <small>Request scheme deletion</small>
-              </span>
-            </button>
-
           </div>
         </div>
-
-        <!-- Share -->
-        <button type="button" class="btn-share" (click)="shareScheme()" title="Share">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="18" cy="5" r="3"></circle>
-
-            <circle cx="6" cy="19" r="3"></circle>
-
-            <line x1="8.59" y1="13.51" x2="15.42" y2="6.68"></line>
-          </svg>
-        </button>
-
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
+    <!-- ===================================================
+         TABS
+         ================================================== -->
     <div class="tabs-container">
-
       <button type="button" class="tab-btn" [class.active]="activeTab === 'overview'"
         (click)="setActiveTab('overview')">
         Overview
       </button>
 
       <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'"
-        (click)="setActiveTab('eligibility')" [disabled]="
-          !hasEligibilityRules &&
-          !eligibilityLoading
-        ">
+        (click)="setActiveTab('eligibility')">
         Eligibility
       </button>
 
@@ -227,365 +280,410 @@
         (click)="setActiveTab('documents')">
         Documents
       </button>
-
     </div>
 
-    <!-- Tab Content Section -->
-    <div class="details-grid">
+    <!-- ===================================================
+         TAB CONTENT: OVERVIEW TAB (2-Column Layout)
+         =================================================== -->
+    <div class="content-grid" *ngIf="activeTab === 'overview'">
 
-      <!-- Left Details Card -->
-      <div class="details-card main-details">
-
-        <!-- Overview -->
-        <div *ngIf="activeTab === 'overview'">
-
+      <!-- LEFT: About the Scheme -->
+      <div class="detail-card left-panel">
+        <section class="section-block">
           <h3>About the Scheme</h3>
+          <p class="section-desc">{{ scheme.description }}</p>
+        </section>
 
-          <p class="about-text">
-            {{ scheme.description }}
-          </p>
+        <hr class="divider" />
 
-          <hr class="divider" />
-
-          <div class="info-grid">
-
-            <div class="info-item" *ngIf="scheme.application_process">
-              <div class="icon">📝</div>
-
-              <div>
-                <label>Application Process</label>
-                <p>{{ scheme.application_process }}</p>
-              </div>
+        <div class="meta-grid">
+          <!-- APPLICATION PROCESS -->
+          <div class="meta-item full-width" *ngIf="scheme.application_process">
+            <div class="meta-icon">
+              <span class="material-icons">description</span>
             </div>
-
-            <div class="info-item" *ngIf="scheme.documents_required">
-              <div class="icon">📄</div>
-
-              <div>
-                <label>Documents Required</label>
-                <p>{{ scheme.documents_required }}</p>
-              </div>
+            <div class="meta-content">
+              <label>Application Process</label>
+              <p>{{ scheme.application_process }}</p>
             </div>
-
-            <div class="info-item" *ngIf="scheme.state">
-              <div class="icon">🗺️</div>
-
-              <div>
-                <label>State / Region</label>
-                <p>{{ scheme.state }}</p>
-              </div>
-            </div>
-
-            <div class="info-item" *ngIf="scheme.department">
-              <div class="icon">🏛️</div>
-
-              <div>
-                <label>Department</label>
-                <p>{{ scheme.department }}</p>
-              </div>
-            </div>
-
-            <div class="info-item" *ngIf="scheme.created_at">
-              <div class="icon">📅</div>
-
-              <div>
-                <label>Created</label>
-                <p>
-                  {{ formatDate(scheme.created_at) }}
-                </p>
-              </div>
-            </div>
-
-            <div class="info-item" *ngIf="scheme.updated_at">
-              <div class="icon">🔄</div>
-
-              <div>
-                <label>Last Updated</label>
-                <p>
-                  {{ formatDate(scheme.updated_at) }}
-                </p>
-              </div>
-            </div>
-
-            <div class="info-item full-width" *ngIf="scheme.source_url">
-              <div class="icon">🔗</div>
-
-              <div>
-                <label>Source URL</label>
-
-                <p>
-                  <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer">
-                    {{ scheme.source_url }}
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            <div class="info-item full-width" *ngIf="scheme.application_url">
-              <div class="icon">🌐</div>
-
-              <div>
-                <label>Application URL</label>
-
-                <p>
-                  <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer">
-                    {{ scheme.application_url }}
-                  </a>
-                </p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Eligibility -->
-        <div *ngIf="activeTab === 'eligibility'">
-
-          <h3>Eligibility Criteria</h3>
-
-          <div class="loading-eligible" *ngIf="eligibilityLoading">
-            <div class="skeleton-eligibility" *ngFor="let _ of [1, 2, 3]"></div>
           </div>
 
-          <div class="eligibility-error" *ngIf="
-              eligibilityError &&
-              !eligibilityLoading
-            ">
-            <p>{{ eligibilityError }}</p>
+          <!-- DOCUMENTS REQUIRED -->
+          <div class="meta-item full-width" *ngIf="scheme.documents_required">
+            <div class="meta-icon">
+              <span class="material-icons">article</span>
+            </div>
+            <div class="meta-content">
+              <label>Documents Required</label>
+              <p>{{ scheme.documents_required }}</p>
+            </div>
           </div>
 
-          <div *ngIf="
-              !eligibilityLoading &&
-              !eligibilityError
-            ">
-
-            <div class="eligibility-rules" *ngIf="hasEligibilityRules">
-
-              <div class="eligibility-rule" *ngFor="let rule of eligibilityRules">
-
-                <h4>
-                  Rule #{{ rule.rule_id }}
-                </h4>
-
-                <ul>
-                  <li *ngFor="
-                      let desc of
-                      getRuleDescriptions(rule)
-                    ">
-                    {{ desc }}
-                  </li>
-                </ul>
-
-              </div>
+          <!-- STATE / REGION -->
+          <div class="meta-item">
+            <div class="meta-icon">
+              <span class="material-icons">public</span>
             </div>
+            <div class="meta-content">
+              <label>State / Region</label>
+              <p>{{ scheme.state || "All India" }}</p>
+            </div>
+          </div>
 
-            <div class="no-eligibility" *ngIf="!hasEligibilityRules">
+          <!-- DEPARTMENT -->
+          <div class="meta-item">
+            <div class="meta-icon">
+              <span class="material-icons">account_balance</span>
+            </div>
+            <div class="meta-content">
+              <label>Department</label>
+              <p>{{ scheme.department || "Not specified" }}</p>
+            </div>
+          </div>
 
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
-                stroke="#94a3b8" stroke-width="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+          <!-- CREATED -->
+          <div class="meta-item">
+            <div class="meta-icon">
+              <span class="material-icons">calendar_today</span>
+            </div>
+            <div class="meta-content">
+              <label>Created</label>
+              <p>{{ formatDate(scheme.created_at) }}</p>
+            </div>
+          </div>
 
-                <line x1="9" y1="9" x2="15" y2="15"></line>
+          <!-- LAST UPDATED -->
+          <div class="meta-item">
+            <div class="meta-icon">
+              <span class="material-icons">update</span>
+            </div>
+            <div class="meta-content">
+              <label>Last Updated</label>
+              <p>{{ formatDate(scheme.updated_at) }}</p>
+            </div>
+          </div>
 
-                <line x1="15" y1="9" x2="9" y2="15"></line>
-              </svg>
-
-              <h4>
-                No specific eligibility rules defined
-              </h4>
-
+          <!-- SOURCE URL -->
+          <div class="meta-item full-width" *ngIf="scheme.source_url">
+            <div class="meta-icon">
+              <span class="material-icons">link</span>
+            </div>
+            <div class="meta-content">
+              <label>Source URL</label>
               <p>
-                This scheme may have general eligibility
-                criteria. Please check the official website
-                for details.
+                <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  {{ scheme.source_url }}
+                  <span class="material-icons link-icon">open_in_new</span>
+                </a>
               </p>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- Benefits -->
-        <div *ngIf="activeTab === 'benefits'">
-
-          <h3>Benefits</h3>
-
-          <div class="benefits-list" *ngIf="benefits.length > 0">
-
-            <div class="benefit-item" *ngFor="let benefit of benefits">
-
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-
-              <span>{{ benefit }}</span>
-
             </div>
           </div>
 
-          <div class="no-benefits" *ngIf="benefits.length === 0">
-
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
-              stroke="#94a3b8" stroke-width="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-
-              <line x1="9" y1="9" x2="15" y2="15"></line>
-
-              <line x1="15" y1="9" x2="9" y2="15"></line>
-            </svg>
-
-            <h4>No benefits listed</h4>
-
-            <p>
-              Benefits information is not available
-              for this scheme.
-            </p>
-
+          <!-- APPLICATION URL -->
+          <div class="meta-item full-width" *ngIf="scheme.application_url">
+            <div class="meta-icon">
+              <span class="material-icons">language</span>
+            </div>
+            <div class="meta-content">
+              <label>Application URL</label>
+              <p>
+                <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  {{ scheme.application_url }}
+                  <span class="material-icons link-icon">open_in_new</span>
+                </a>
+              </p>
+            </div>
           </div>
         </div>
-
-        <!-- Documents -->
-        <div *ngIf="activeTab === 'documents'">
-
-          <h3>Documents & Links</h3>
-
-          <div class="document-links">
-
-            <a *ngIf="scheme.application_url" [href]="scheme.application_url" target="_blank" rel="noopener noreferrer"
-              class="doc-link">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#2563eb" stroke-width="2">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-
-                <polyline points="15 3 21 3 21 9"></polyline>
-
-                <line x1="10" y1="14" x2="21" y2="3"></line>
-              </svg>
-
-              <span>Application Portal</span>
-            </a>
-
-            <a *ngIf="scheme.source_url" [href]="scheme.source_url" target="_blank" rel="noopener noreferrer"
-              class="doc-link">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#2563eb" stroke-width="2">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-
-                <polyline points="15 3 21 3 21 9"></polyline>
-
-                <line x1="10" y1="14" x2="21" y2="3"></line>
-              </svg>
-
-              <span>Official Source</span>
-            </a>
-
-          </div>
-
-          <div class="no-documents" *ngIf="!hasDocument">
-
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
-              stroke="#94a3b8" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-
-              <polyline points="14 2 14 8 20 8"></polyline>
-
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-
-            <h4>No documents available</h4>
-
-            <p>
-              Document links are not available
-              for this scheme.
-            </p>
-
-          </div>
-        </div>
-
       </div>
 
-      <!-- Right Sidebar -->
-      <div class="details-card highlights-card">
+      <!-- RIGHT: Scheme Highlights -->
+      <div class="right-stack">
+        <div class="detail-card highlights-card">
+          <h3>Scheme Highlights</h3>
 
-        <h3>Scheme Highlights</h3>
+          <div class="highlight-item" *ngIf="scheme.benefits && scheme.benefits.length > 0">
+            <div class="highlight-icon"><span class="material-icons">card_giftcard</span></div>
+            <div>
+              <label>Key Benefits</label>
+              <p>
+                {{ scheme.benefits.slice(0, 3).join(', ') }}{{ scheme.benefits.length > 3 ? '...' : '' }}
+              </p>
+            </div>
+          </div>
 
-        <div class="highlight-item" *ngIf="
-            scheme.benefits &&
-            scheme.benefits.length > 0
-          ">
-          <div class="icon">🎁</div>
+          <div class="highlight-item" *ngIf="scheme.application_url">
+            <div class="highlight-icon"><span class="material-icons">link</span></div>
+            <div>
+              <label>Apply Online</label>
+              <p>
+                <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  Visit Application Portal
+                </a>
+              </p>
+            </div>
+          </div>
 
-          <div>
-            <label>Key Benefits</label>
+          <div class="highlight-item" *ngIf="scheme.source_url">
+            <div class="highlight-icon"><span class="material-icons">open_in_new</span></div>
+            <div>
+              <label>Official Source</label>
+              <p>
+                <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  View Source Document
+                </a>
+              </p>
+            </div>
+          </div>
 
-            <p>
-              {{
-              scheme.benefits
-              .slice(0, 3)
-              .join(', ')
-              }}{{
-              scheme.benefits.length > 3
-              ? '...'
-              : ''
-              }}
-            </p>
+          <div class="highlight-item" *ngIf="scheme.state">
+            <div class="highlight-icon"><span class="material-icons">public</span></div>
+            <div>
+              <label>Applicable In</label>
+              <p>{{ scheme.state }}</p>
+            </div>
+          </div>
+
+          <div class="highlight-item" *ngIf="scheme.department">
+            <div class="highlight-icon"><span class="material-icons">corporate_fare</span></div>
+            <div>
+              <label>Department</label>
+              <p>{{ scheme.department }}</p>
+            </div>
           </div>
         </div>
-
-        <div class="highlight-item" *ngIf="scheme.application_url">
-          <div class="icon">🔗</div>
-
-          <div>
-            <label>Apply Online</label>
-
-            <p>
-              <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer">
-                Visit Application Portal
-              </a>
-            </p>
-          </div>
-        </div>
-
-        <div class="highlight-item" *ngIf="scheme.source_url">
-          <div class="icon">📋</div>
-
-          <div>
-            <label>Official Source</label>
-
-            <p>
-              <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer">
-                View Source Document
-              </a>
-            </p>
-          </div>
-        </div>
-
-        <div class="highlight-item" *ngIf="scheme.state">
-          <div class="icon">🗺️</div>
-
-          <div>
-            <label>Applicable In</label>
-
-            <p>{{ scheme.state }}</p>
-          </div>
-        </div>
-
-        <div class="highlight-item" *ngIf="scheme.department">
-          <div class="icon">🏛️</div>
-
-          <div>
-            <label>Department</label>
-
-            <p>{{ scheme.department }}</p>
-          </div>
-        </div>
-
       </div>
 
     </div>
+
+    <!-- ===================================================
+         TAB CONTENT: ELIGIBILITY TAB
+         =================================================== -->
+    <div class="detail-card tab-content-card" *ngIf="activeTab === 'eligibility'">
+      <div class="tab-heading">
+        <h3>Eligibility Criteria</h3>
+        <p class="tab-subtitle">Specific conditions and beneficiary qualifications configured for this scheme.</p>
+      </div>
+
+      <!-- Loading -->
+      <div class="tab-state" *ngIf="eligibilityLoading">
+        <div class="small-spinner"></div>
+        <span>Loading eligibility criteria...</span>
+      </div>
+
+      <!-- Error -->
+      <div class="tab-state error-tab" *ngIf="!eligibilityLoading && eligibilityError">
+        <span>{{ eligibilityError }}</span>
+        <button type="button" (click)="loadEligibilityRules(scheme.scheme_id)">
+          Try Again
+        </button>
+      </div>
+
+      <!-- Rules List -->
+      <div *ngIf="!eligibilityLoading && !eligibilityError">
+        <div class="eligibility-rules" *ngIf="hasEligibilityRules">
+          <div class="eligibility-rule-card" *ngFor="let rule of eligibilityRules; let index = index">
+            <div class="rule-content">
+              <h4>Rule Condition #{{ index + 1 }}</h4>
+
+              <div class="rule-list" *ngIf="getRuleDescriptions(rule).length > 0">
+                <div class="rule-row" *ngFor="let desc of getRuleDescriptions(rule)">
+                  <span class="material-icons check-icon">check_circle</span>
+                  <span>{{ desc }}</span>
+                </div>
+              </div>
+
+              <div class="rule-empty" *ngIf="getRuleDescriptions(rule).length === 0">
+                No specific parameters configured for this rule.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Rules -->
+        <div class="no-rules" *ngIf="!hasEligibilityRules">
+          <h4>No Restrictions</h4>
+          <p>
+            This scheme is openly applicable to citizens without specialized eligibility restrictions.
+            Please consult the official website for additional details.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         TAB CONTENT: BENEFITS TAB
+         =================================================== -->
+    <div class="detail-card tab-content-card" *ngIf="activeTab === 'benefits'">
+      <div class="tab-heading">
+        <h3>Benefits</h3>
+        <p class="tab-subtitle">Key provisions, financial assistance, and training provided under this scheme.</p>
+      </div>
+
+      <div class="benefits-list" *ngIf="benefits.length > 0">
+        <div class="benefit-item" *ngFor="let benefit of benefits">
+          <span class="material-icons check-icon">check_circle</span>
+          <span>{{ benefit }}</span>
+        </div>
+      </div>
+
+      <div class="no-content" *ngIf="benefits.length === 0">
+        <div class="no-content-icon"><span class="material-icons">info</span></div>
+        <h4>No Benefits Listed</h4>
+        <p>Specific benefits information has not yet been cataloged for this scheme.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         TAB CONTENT: DOCUMENTS TAB
+         =================================================== -->
+    <div class="detail-card tab-content-card" *ngIf="activeTab === 'documents'">
+      <div class="tab-heading">
+        <h3>Documents & Links</h3>
+        <p class="tab-subtitle">Application portals, guidelines, and official government publications.</p>
+      </div>
+
+      <div class="documents-grid" *ngIf="hasDocument">
+        <!-- Application Portal -->
+        <div class="document-resource-card" *ngIf="scheme.application_url">
+          <div class="document-resource-icon">
+            <span class="material-icons">language</span>
+          </div>
+
+          <div class="document-resource-content">
+            <h4>Online Application Portal</h4>
+            <p>Access the official digital portal to submit applications and register for this scheme.</p>
+            <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer" class="link-external">
+              <span>Open Application Portal</span>
+              <span class="material-icons link-icon">open_in_new</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Official Source -->
+        <div class="document-resource-card" *ngIf="scheme.source_url">
+          <div class="document-resource-icon">
+            <span class="material-icons">description</span>
+          </div>
+
+          <div class="document-resource-content">
+            <h4>Official Source Documentation</h4>
+            <p>View the original government publication, circular, or guidelines for this scheme.</p>
+            <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+              <span>View Source Document</span>
+              <span class="material-icons link-icon">open_in_new</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="no-content" *ngIf="!hasDocument">
+        <div class="no-content-icon"><span class="material-icons">attachment</span></div>
+        <h4>No Documents Available</h4>
+        <p>Document and application links are not currently provided for this scheme.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         WORKFLOW & AUDIT INFORMATION
+         (Visible ONLY to Admin & Government Official)
+         (Placed AFTER main tab content)
+         =================================================== -->
+    <div class="audit-card" *ngIf="canViewAudit">
+      <div class="audit-header">
+        <div class="audit-title-group">
+          <span class="material-icons audit-header-icon">admin_panel_settings</span>
+          <div>
+            <h3>Workflow & Audit Information</h3>
+            <p>Internal governance metadata, lifecycle status, and administrative audit trail.</p>
+          </div>
+        </div>
+        <span class="audit-badge">Restricted Access</span>
+      </div>
+
+      <div class="audit-grid">
+        <div class="audit-item">
+          <span class="audit-label">Workflow Status</span>
+          <div>
+            <span class="status-badge" [ngClass]="'status-' + scheme.status.toLowerCase()">
+              {{ getStatusLabel(scheme.status) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Created By</span>
+          <strong class="audit-value">{{ getCreatorDisplayName(scheme.created_by) }}</strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Created Date</span>
+          <strong class="audit-value">{{ formatDate(scheme.created_at) }}</strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Approved By</span>
+          <strong class="audit-value">
+            {{ scheme.approved_by ? getApproverDisplayName(scheme.approved_by) : 'Pending Review' }}
+          </strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Last Modified</span>
+          <strong class="audit-value">{{ formatDate(scheme.updated_at) }}</strong>
+        </div>
+      </div>
+
+      <!-- Audit Callouts (Rejection / Archive / Delete without raw IDs) -->
+      <div class="audit-callout audit-callout--danger" *ngIf="scheme.rejection_reason">
+        <div class="callout-icon"><span class="material-icons">error_outline</span></div>
+        <div class="callout-body">
+          <strong>Rejection Reason</strong>
+          <p>{{ scheme.rejection_reason }}</p>
+        </div>
+      </div>
+
+      <div class="audit-callout audit-callout--warning" *ngIf="scheme.archive_reason || scheme.archive_requested_by">
+        <div class="callout-icon"><span class="material-icons">archive</span></div>
+        <div class="callout-body">
+          <strong>Archive Information</strong>
+          <p *ngIf="scheme.archive_reason">Reason: {{ scheme.archive_reason }}</p>
+          <p class="callout-subtext" *ngIf="scheme.archive_requested_by">
+            Requested by {{ getRequesterDisplayName(scheme.archive_requested_by) }}
+            <ng-container *ngIf="scheme.archive_requested_at">on {{ formatDate(scheme.archive_requested_at)
+              }}</ng-container>
+          </p>
+        </div>
+      </div>
+
+      <div class="audit-callout audit-callout--danger" *ngIf="scheme.delete_reason || scheme.delete_requested_by">
+        <div class="callout-icon"><span class="material-icons">delete_outline</span></div>
+        <div class="callout-body">
+          <strong>Deletion Request Information</strong>
+          <p *ngIf="scheme.delete_reason">Reason: {{ scheme.delete_reason }}</p>
+          <p class="callout-subtext" *ngIf="scheme.delete_requested_by">
+            Requested by {{ getRequesterDisplayName(scheme.delete_requested_by) }}
+            <ng-container *ngIf="scheme.delete_requested_at">on {{ formatDate(scheme.delete_requested_at)
+              }}</ng-container>
+          </p>
+        </div>
+      </div>
+    </div>
+
   </div>
+
+  <!-- =====================================================
+       SHARED CONFIRM MODAL
+       ===================================================== -->
+  <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+    [variant]="confirmVariant" (confirmed)="confirmAction && confirmAction()"
+    (cancelled)="confirmModalOpen = false"></app-confirm-modal>
+
+  <!-- =====================================================
+       SHARED REASON MODAL
+       ===================================================== -->
+  <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+    [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="reasonAction && reasonAction($event)"
+    (cancelled)="reasonModalOpen = false"></app-reason-modal>
+
 </div>

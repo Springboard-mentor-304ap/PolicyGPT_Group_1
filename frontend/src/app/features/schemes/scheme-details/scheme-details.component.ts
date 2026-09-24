@@ -5,14 +5,15 @@ import {
   ChangeDetectorRef,
   HostListener,
 } from "@angular/core";
-
 import { CommonModule, Location } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { catchError, finalize, of } from "rxjs";
 
 import { SchemeService, Scheme } from "../../../core/services/scheme.service";
-
 import { ToastService } from "../../../core/services/toast.service";
+import { Auth } from "../../../core/services/auth";
+import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 
 interface EligibilityRule {
   rule_id: number;
@@ -34,7 +35,11 @@ interface EligibilityRule {
 @Component({
   selector: "app-scheme-details",
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    ConfirmModalComponent,
+    ReasonModalComponent,
+  ],
   templateUrl: "./scheme-details.component.html",
   styleUrls: ["./scheme-details.component.scss"],
 })
@@ -44,20 +49,18 @@ export class SchemeDetailsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly schemeService = inject(SchemeService);
   private readonly toastService = inject(ToastService);
+  private readonly auth = inject(Auth);
   private readonly cdr = inject(ChangeDetectorRef);
 
   activeTab: "overview" | "eligibility" | "benefits" | "documents" = "overview";
 
   schemeId: string | null = null;
   schemeIdNum: number | null = null;
-
   scheme: Scheme | null = null;
-
   eligibilityRules: EligibilityRule[] = [];
 
   loading = false;
   eligibilityLoading = false;
-
   errorMessage = "";
   eligibilityError = "";
 
@@ -65,6 +68,175 @@ export class SchemeDetailsComponent implements OnInit {
    * Workflow three-dot menu
    */
   workflowMenuOpen = false;
+
+  /*
+   * Workflow confirmation and reason modals
+   */
+  confirmModalOpen = false;
+  confirmTitle = "";
+  confirmMessage = "";
+  confirmVariant: "primary" | "danger" | "warning" | "success" = "primary";
+  confirmAction: (() => void) | null = null;
+
+  reasonModalOpen = false;
+  reasonTitle = "";
+  reasonMessage = "";
+  reasonLabel = "Reason";
+  reasonVariant: "primary" | "danger" | "warning" = "danger";
+  reasonAction: ((reason: string) => void) | null = null;
+
+  get userRole(): string {
+    return String(this.auth.getUserRole() || "").trim().toUpperCase();
+  }
+
+  get isAdmin(): boolean {
+    return this.userRole === "ADMIN" || this.userRole === "ADMINISTRATOR";
+  }
+
+  get isGov(): boolean {
+    return (
+      this.userRole === "GOVERNMENT_OFFICIAL" ||
+      this.userRole === "GOVERNMENT OFFICIAL" ||
+      this.userRole === "GOVERNMENT"
+    );
+  }
+
+  get canViewAudit(): boolean {
+    return this.isAdmin || this.isGov;
+  }
+
+  get rolePrefix(): string {
+    if (this.isAdmin) return "admin";
+    if (this.isGov) return "government";
+    const r = this.userRole;
+    if (r === "RESEARCHER") return "researcher";
+    if (r === "ORGANIZATION" || r === "ORGANISATION") return "organization";
+    if (r === "GUEST") return "guest";
+    return "citizen";
+  }
+
+  getCreatorDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Official Author";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Government Official";
+  }
+
+  getApproverDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Authorized Administrator";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Authorized Administrator";
+  }
+
+  getRequesterDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Government Official";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Government Official";
+  }
+
+  /*
+   * Workflow permissions
+   */
+  get canEdit(): boolean {
+    if (!this.scheme) return false;
+    if (this.isAdmin) {
+      return ["DRAFT", "REJECTED", "ARCHIVED", "APPROVED"].includes(
+        this.scheme.status,
+      );
+    }
+    if (this.isGov) {
+      return ["DRAFT", "REJECTED", "ARCHIVED"].includes(this.scheme.status);
+    }
+    return false;
+  }
+
+  get canSubmit(): boolean {
+    if (!this.scheme) return false;
+    if (!["DRAFT", "REJECTED"].includes(this.scheme.status)) return false;
+    if (this.isAdmin) return true;
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    return Boolean(
+      this.isGov && currentUserId && this.scheme.created_by === currentUserId,
+    );
+  }
+
+  get canApprove(): boolean {
+    return this.isAdmin && this.scheme?.status === "PENDING_APPROVAL";
+  }
+
+  get canReject(): boolean {
+    return this.isAdmin && this.scheme?.status === "PENDING_APPROVAL";
+  }
+
+  get canArchive(): boolean {
+    return this.isAdmin && this.scheme?.status === "APPROVED";
+  }
+
+  get canRequestArchive(): boolean {
+    return this.isGov && this.scheme?.status === "APPROVED";
+  }
+
+  get canApproveArchive(): boolean {
+    return this.isAdmin && this.scheme?.status === "ARCHIVE_REQUESTED";
+  }
+
+  get canRejectArchive(): boolean {
+    return this.isAdmin && this.scheme?.status === "ARCHIVE_REQUESTED";
+  }
+
+  get canRestore(): boolean {
+    return this.isAdmin && this.scheme?.status === "ARCHIVED";
+  }
+
+  get canRequestDelete(): boolean {
+    return (
+      this.isGov &&
+      (this.scheme?.status === "APPROVED" || this.scheme?.status === "ARCHIVED")
+    );
+  }
+
+  get canApproveDelete(): boolean {
+    return this.isAdmin && this.scheme?.status === "DELETE_REQUESTED";
+  }
+
+  get canRejectDelete(): boolean {
+    return this.isAdmin && this.scheme?.status === "DELETE_REQUESTED";
+  }
+
+  get canDirectDelete(): boolean {
+    return (
+      this.isAdmin &&
+      ["DRAFT", "REJECTED", "APPROVED", "ARCHIVED"].includes(
+        this.scheme?.status || "",
+      )
+    );
+  }
+
+  get hasWorkflowActions(): boolean {
+    return (
+      this.canEdit ||
+      this.canSubmit ||
+      this.canApprove ||
+      this.canReject ||
+      this.canArchive ||
+      this.canRequestArchive ||
+      this.canApproveArchive ||
+      this.canRejectArchive ||
+      this.canRestore ||
+      this.canRequestDelete ||
+      this.canApproveDelete ||
+      this.canRejectDelete ||
+      this.canDirectDelete
+    );
+  }
 
   ngOnInit(): void {
     this.schemeId = this.route.snapshot.paramMap.get("id");
@@ -75,7 +247,6 @@ export class SchemeDetailsComponent implements OnInit {
     }
 
     const id = Number(this.schemeId);
-
     this.schemeIdNum = id;
 
     if (isNaN(id) || id <= 0) {
@@ -95,12 +266,9 @@ export class SchemeDetailsComponent implements OnInit {
       .pipe(
         catchError((error) => {
           console.error("Scheme details API error:", error);
-
           this.errorMessage = this.getErrorMessage(error);
-
           return of(null);
         }),
-
         finalize(() => {
           this.loading = false;
           this.cdr.detectChanges();
@@ -112,9 +280,7 @@ export class SchemeDetailsComponent implements OnInit {
         }
 
         this.scheme = scheme;
-
         this.cdr.detectChanges();
-
         this.loadEligibilityRules(scheme.scheme_id);
       });
   }
@@ -128,12 +294,9 @@ export class SchemeDetailsComponent implements OnInit {
       .pipe(
         catchError((error) => {
           console.error("Eligibility API error:", error);
-
           this.eligibilityError = this.getErrorMessage(error);
-
           return of([]);
         }),
-
         finalize(() => {
           this.eligibilityLoading = false;
           this.cdr.detectChanges();
@@ -141,7 +304,6 @@ export class SchemeDetailsComponent implements OnInit {
       )
       .subscribe((rules) => {
         this.eligibilityRules = rules || [];
-
         this.cdr.detectChanges();
       });
   }
@@ -150,6 +312,7 @@ export class SchemeDetailsComponent implements OnInit {
     tab: "overview" | "eligibility" | "benefits" | "documents",
   ): void {
     this.activeTab = tab;
+    this.cdr.detectChanges();
   }
 
   /*
@@ -157,14 +320,11 @@ export class SchemeDetailsComponent implements OnInit {
    * THREE-DOT WORKFLOW MENU
    * ============================================================
    */
-
   toggleWorkflowMenu(event?: Event): void {
     if (event) {
       event.stopPropagation();
     }
-
     this.workflowMenuOpen = !this.workflowMenuOpen;
-
     this.cdr.detectChanges();
   }
 
@@ -172,7 +332,6 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.workflowMenuOpen) {
       return;
     }
-
     this.workflowMenuOpen = false;
     this.cdr.detectChanges();
   }
@@ -189,55 +348,311 @@ export class SchemeDetailsComponent implements OnInit {
 
   /*
    * Edit Scheme
-   *
-   * The existing application route is used here.
-   * If your project uses a different edit route, change only
-   * this navigation line.
    */
   editScheme(): void {
     if (!this.scheme) {
       return;
     }
-
     this.closeWorkflowMenu();
-
-    this.router.navigate(["/schemes/edit", this.scheme.scheme_id]);
+    if (this.isAdmin || this.isGov) {
+      this.router.navigate([
+        "/dashboard",
+        this.rolePrefix,
+        "schemes",
+        "edit",
+        this.scheme.scheme_id,
+      ]);
+    } else {
+      this.router.navigate(["/schemes/edit", this.scheme.scheme_id]);
+    }
   }
 
   /*
-   * Request Archive
-   *
-   * This intentionally only closes the menu and shows a message
-   * if the workflow API is not available in this component.
-   *
-   * The actual archive workflow should continue to use your
-   * existing SchemeService implementation.
+   * Workflow Action Handlers
    */
-  requestArchive(): void {
-    if (!this.scheme) {
+  openSubmitModal(): void {
+    if (!this.scheme) return;
+    if (!this.canSubmit) {
+      this.toastService.error(
+        "You are not authorized to submit this scheme. Only the user who created it can submit it for approval.",
+      );
       return;
     }
-
-    this.closeWorkflowMenu();
-
-    this.toastService.info(
-      "Archive request action is available from Scheme Management.",
-    );
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Submit Scheme";
+    this.confirmMessage = `Submit "${this.scheme.name}" for administrator approval?`;
+    this.confirmVariant = "primary";
+    this.confirmAction = () => {
+      this.schemeService.submitScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme submitted for approval.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
   }
 
-  /*
-   * Request Delete
-   */
-  requestDelete(): void {
-    if (!this.scheme) {
-      return;
-    }
+  openApproveModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Approve Scheme";
+    this.confirmMessage = `Are you sure you want to approve "${this.scheme.name}"?`;
+    this.confirmVariant = "success";
+    this.confirmAction = () => {
+      this.schemeService.approveScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme successfully approved.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
 
-    this.closeWorkflowMenu();
+  openRejectModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.reasonTitle = "Reject Scheme";
+    this.reasonMessage = `Please provide a reason for rejecting "${this.scheme.name}". This feedback will be visible to the official who submitted the scheme.`;
+    this.reasonLabel = "Rejection Reason";
+    this.reasonVariant = "danger";
+    this.reasonAction = (reason: string) => {
+      this.schemeService.rejectScheme(schemeId, reason).subscribe({
+        next: () => {
+          this.reasonModalOpen = false;
+          this.toastService.success("Scheme rejected.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.reasonModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.reasonModalOpen = true;
+    this.cdr.detectChanges();
+  }
 
-    this.toastService.info(
-      "Delete request action is available from Scheme Management.",
-    );
+  openDirectArchiveModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Archive Scheme";
+    this.confirmMessage = `Are you sure you want to archive "${this.scheme.name}"?`;
+    this.confirmVariant = "warning";
+    this.confirmAction = () => {
+      this.schemeService.archiveScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme successfully archived.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openRequestArchiveModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.reasonTitle = "Request Scheme Archival";
+    this.reasonMessage = `Enter the reason for requesting archival of "${this.scheme.name}".`;
+    this.reasonLabel = "Archival Reason";
+    this.reasonVariant = "warning";
+    this.reasonAction = (reason: string) => {
+      this.schemeService.requestArchiveScheme(schemeId, reason).subscribe({
+        next: () => {
+          this.reasonModalOpen = false;
+          this.toastService.success("Archive request submitted for review.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.reasonModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.reasonModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openApproveArchiveModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Approve Archival";
+    this.confirmMessage = `Approve archival request for "${this.scheme.name}"?`;
+    this.confirmVariant = "warning";
+    this.confirmAction = () => {
+      this.schemeService.approveArchiveScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme archived.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openRejectArchiveModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Reject Archival Request";
+    this.confirmMessage = `Reject archival request for "${this.scheme.name}" and keep scheme active?`;
+    this.confirmVariant = "danger";
+    this.confirmAction = () => {
+      this.schemeService.rejectArchiveScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.info("Archival request rejected.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openRestoreModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Restore Scheme";
+    this.confirmMessage = `Restore "${this.scheme.name}" to Draft status?`;
+    this.confirmVariant = "primary";
+    this.confirmAction = () => {
+      this.schemeService.restoreScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme restored to draft.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openRequestDeleteModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.reasonTitle = "Request Scheme Deletion";
+    this.reasonMessage = `Enter the reason for requesting deletion of "${this.scheme.name}".`;
+    this.reasonLabel = "Deletion Reason";
+    this.reasonVariant = "danger";
+    this.reasonAction = (reason: string) => {
+      this.schemeService.requestDeleteScheme(schemeId, reason).subscribe({
+        next: () => {
+          this.reasonModalOpen = false;
+          this.toastService.success("Deletion request submitted.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.reasonModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.reasonModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openApproveDeleteModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Approve Deletion";
+    this.confirmMessage = `Permanently delete "${this.scheme.name}"? This action cannot be undone.`;
+    this.confirmVariant = "danger";
+    this.confirmAction = () => {
+      this.schemeService.approveDeleteScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme permanently deleted.");
+          this.goBack();
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openRejectDeleteModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Reject Deletion Request";
+    this.confirmMessage = `Reject deletion request for "${this.scheme.name}"?`;
+    this.confirmVariant = "warning";
+    this.confirmAction = () => {
+      this.schemeService.rejectDeleteScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.info("Deletion request rejected.");
+          this.loadScheme(schemeId);
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openDirectDeleteModal(): void {
+    if (!this.scheme) return;
+    const schemeId = this.scheme.scheme_id;
+    this.confirmTitle = "Delete Scheme";
+    this.confirmMessage = `Are you sure you want to permanently delete "${this.scheme.name}"?`;
+    this.confirmVariant = "danger";
+    this.confirmAction = () => {
+      this.schemeService.deleteScheme(schemeId).subscribe({
+        next: () => {
+          this.confirmModalOpen = false;
+          this.toastService.success("Scheme deleted.");
+          this.goBack();
+        },
+        error: (err) => {
+          this.confirmModalOpen = false;
+          this.toastService.error(this.getErrorMessage(err));
+        },
+      });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
   }
 
   /*
@@ -250,17 +665,17 @@ export class SchemeDetailsComponent implements OnInit {
 
     const bookmarks = this.getBookmarks();
     const id = this.scheme.scheme_id;
-
     const index = bookmarks.indexOf(id);
 
     if (index === -1) {
       bookmarks.push(id);
+      this.toastService.info("Scheme added to bookmarks.");
     } else {
       bookmarks.splice(index, 1);
+      this.toastService.info("Scheme removed from bookmarks.");
     }
 
     localStorage.setItem("scheme_bookmarks", JSON.stringify(bookmarks));
-
     this.cdr.detectChanges();
   }
 
@@ -268,20 +683,16 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.scheme) {
       return false;
     }
-
     return this.getBookmarks().includes(this.scheme.scheme_id);
   }
 
   private getBookmarks(): number[] {
     try {
       const stored = localStorage.getItem("scheme_bookmarks");
-
       if (!stored) {
         return [];
       }
-
       const parsed = JSON.parse(stored);
-
       return Array.isArray(parsed) ? parsed.map(Number) : [];
     } catch {
       return [];
@@ -323,7 +734,6 @@ export class SchemeDetailsComponent implements OnInit {
           this.toastService.success("Scheme URL copied to clipboard!"),
         )
         .catch(() => this.toastService.error("Unable to copy scheme URL."));
-
       return;
     }
 
@@ -334,8 +744,8 @@ export class SchemeDetailsComponent implements OnInit {
    * Status
    */
   getStatusLabel(status: string): string {
-    return status
-      .replace(/\_/g, " ")
+    return (status || "")
+      .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
@@ -349,7 +759,6 @@ export class SchemeDetailsComponent implements OnInit {
     }
 
     const parsed = new Date(date);
-
     if (isNaN(parsed.getTime())) {
       return date;
     }
@@ -368,7 +777,6 @@ export class SchemeDetailsComponent implements OnInit {
     if (income === null || income === undefined) {
       return "";
     }
-
     return `₹${income.toLocaleString("en-IN")}`;
   }
 
@@ -468,7 +876,18 @@ export class SchemeDetailsComponent implements OnInit {
    * Back
    */
   goBack(): void {
-    this.location.back();
+    if (window.history.length > 1) {
+      this.location.back();
+    } else if (this.auth.isLoggedIn()) {
+      const target = this.isAdmin
+        ? ["/dashboard", "admin", "schemes", "search"]
+        : this.isGov
+          ? ["/dashboard", "government", "schemes", "search"]
+          : ["/dashboard", this.rolePrefix, "schemes"];
+      this.router.navigate(target);
+    } else {
+      this.router.navigate(["/schemes"]);
+    }
   }
 
   /*

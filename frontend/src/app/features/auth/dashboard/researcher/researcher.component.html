@@ -1,491 +1,360 @@
 <div class="researcher-page">
 
-    <!-- =====================================================
-       HERO / WELCOME
-       ===================================================== -->
+  <!-- =====================================================
+       WELCOME SECTION
+  ====================================================== -->
 
-    <section class="researcher-hero">
+  <section class="dash-welcome">
 
-        <div class="researcher-hero__content">
+    <div class="dash-welcome__text">
 
-            <span class="researcher-hero__eyebrow">
-                RESEARCHER DASHBOARD
+      <p class="dash-welcome__eyebrow">
+        RESEARCHER DASHBOARD
+      </p>
+
+      <h1 class="dash-welcome__title">
+        Welcome back, {{ userName }}!
+      </h1>
+
+      <p class="dash-welcome__sub">
+        Discover, compare and analyze government policies and schemes from your research workspace.
+      </p>
+
+      <div class="dash-welcome__actions">
+        <button type="button" class="dash-welcome-btn dash-welcome-btn--primary" (click)="searchPolicies()">
+          <span class="material-icons">search</span>
+          Search Policies
+        </button>
+
+        <button type="button" class="dash-welcome-btn dash-welcome-btn--secondary" (click)="searchSchemes()">
+          <span class="material-icons">account_balance</span>
+          Explore Schemes
+        </button>
+      </div>
+
+    </div>
+
+
+    <!-- GOVERNMENT BUILDING ILLUSTRATION -->
+
+    <div class="dash-welcome__illustration" aria-hidden="true">
+
+      <div class="welcome-building welcome-building--large">
+
+        <div class="welcome-building__dome"></div>
+
+        <div class="welcome-building__roof"></div>
+
+        <div class="welcome-building__columns">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+      </div>
+
+
+      <div class="welcome-building welcome-building--small">
+
+        <div class="welcome-building__tower"></div>
+
+        <div class="welcome-building__body"></div>
+
+      </div>
+
+
+      <span class="welcome-bird welcome-bird--one">
+        ︿
+      </span>
+
+      <span class="welcome-bird welcome-bird--two">
+        ︿
+      </span>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       STATISTICS (4 Standard KPI Cards)
+  ====================================================== -->
+
+  <section class="dash-stats" aria-label="Researcher dashboard statistics">
+
+    @for (stat of researchStats; track stat.label) {
+
+    <article class="dash-stat-card">
+
+      <div class="dash-stat-card__icon" [class.dash-stat-card__icon--blue]="stat.type === 'blue'"
+        [class.dash-stat-card__icon--orange]="stat.type === 'orange'"
+        [class.dash-stat-card__icon--green]="stat.type === 'green'"
+        [class.dash-stat-card__icon--purple]="stat.type === 'purple'">
+
+        <span class="material-icons" aria-hidden="true">
+          {{ stat.icon }}
+        </span>
+
+      </div>
+
+
+      <div class="dash-stat-card__content">
+
+        <p class="dash-stat-card__value">
+          {{ loading ? '—' : (stat.value ?? 0) }}
+        </p>
+
+        <p class="dash-stat-card__label">
+          {{ stat.label }}
+        </p>
+
+        <p class="dash-stat-card__sub">
+          {{ stat.description }}
+        </p>
+
+      </div>
+
+    </article>
+
+    }
+
+  </section>
+
+
+  <!-- =====================================================
+       ROW 1 PANELS: RECENT RESEARCH & QUICK RESEARCH
+  ====================================================== -->
+
+  <section class="dash-panels">
+
+
+    <!-- RECENT RESEARCH PANEL -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Recent Research
+        </h2>
+
+        <button type="button" class="dash-panel__link" (click)="viewAllResearch()">
+          View All
+        </button>
+
+      </div>
+
+      @if (loading) {
+      <div class="dash-panel-loading">
+        <p>Loading recent research...</p>
+      </div>
+      } @else if (recentResearch.length === 0) {
+      <div class="dash-panel-empty">
+        <span class="material-icons">history</span>
+        <p>No recent policies or schemes found</p>
+        <small>Explore policies and schemes to start your research history.</small>
+      </div>
+      } @else {
+
+      <ul class="dash-list">
+
+        @for (item of recentResearch; track item.title) {
+
+        <li class="dash-list__item" (click)="openResearchItem(item)" style="cursor: pointer;">
+
+          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--edu]="item.type === 'policy'"
+            [class.dash-list__icon-wrap--health]="item.type === 'scheme'"
+            [class.dash-list__icon-wrap--work]="item.type === 'compare' || item.type === 'analytics'">
+
+            <span class="material-icons">
+              {{ item.icon }}
             </span>
 
-            <h1>
-                Research smarter with PolicyGPT
-            </h1>
+          </div>
 
-            <p>
-                Discover, compare and analyze government policies and schemes
-                from one research workspace.
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ item.title }}
             </p>
 
-            <div class="researcher-hero__actions">
+            <p class="dash-list__meta">
+              {{ item.description }} • <small>{{ item.date }}</small>
+            </p>
 
-                <button type="button" class="hero-action hero-action--primary" (click)="searchPolicies()">
-                    <span class="material-icons">
-                        search
-                    </span>
+          </div>
 
-                    Search Policies
-                </button>
+          <button type="button" class="dash-list__action" (click)="openResearchItem(item); $event.stopPropagation()">
+            View Details
+          </button>
 
-                <button type="button" class="hero-action hero-action--secondary" (click)="searchSchemes()">
-                    <span class="material-icons">
-                        account_balance
-                    </span>
-
-                    Explore Schemes
-                </button>
-
-            </div>
-
-        </div>
-
-        <div class="researcher-hero__visual">
-
-            <div class="researcher-hero__visual-circle">
-
-                <span class="material-icons">
-                    insights
-                </span>
-
-            </div>
-
-            <div class="researcher-hero__visual-card researcher-hero__visual-card--one">
-                <span class="material-icons">
-                    policy
-                </span>
-            </div>
-
-            <div class="researcher-hero__visual-card researcher-hero__visual-card--two">
-                <span class="material-icons">
-                    analytics
-                </span>
-            </div>
-
-            <div class="researcher-hero__visual-card researcher-hero__visual-card--three">
-                <span class="material-icons">
-                    compare_arrows
-                </span>
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-       STATISTICS
-       ===================================================== -->
-
-    <section class="researcher-stats">
-
-        @for (
-        stat of researchStats;
-        track stat.label
-        ) {
-
-        <article class="research-stat" [class.research-stat--blue]="stat.type === 'blue'"
-            [class.research-stat--orange]="stat.type === 'orange'" [class.research-stat--green]="stat.type === 'green'"
-            [class.research-stat--purple]="stat.type === 'purple'">
-
-            <div class="research-stat__icon">
-
-                <span class="material-icons">
-                    {{ stat.icon }}
-                </span>
-
-            </div>
-
-            <div class="research-stat__content">
-
-                <strong>
-                    {{ stat.value }}
-                </strong>
-
-                <span class="research-stat__label">
-                    {{ stat.label }}
-                </span>
-
-                <small>
-                    {{ stat.description }}
-                </small>
-
-            </div>
-
-        </article>
+        </li>
 
         }
 
-    </section>
+      </ul>
 
+      }
 
-    <!-- =====================================================
-       MAIN GRID
-       ===================================================== -->
+      <button type="button" class="dash-panel__footer-link" (click)="viewAllResearch()">
+        See All Research Documents
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
 
-    <section class="researcher-grid">
+    </article>
 
 
-        <!-- ===================================================
-         RECENT RESEARCH
-         =================================================== -->
+    <!-- QUICK RESEARCH PANEL -->
 
-        <article class="research-card research-card--recent">
+    <article class="dash-panel">
 
-            <div class="research-card__header">
+      <div class="dash-panel__header">
 
-                <div>
+        <h2>
+          Quick Research
+        </h2>
 
-                    <span class="research-card__eyebrow">
-                        WORKSPACE
-                    </span>
+      </div>
 
-                    <h2>
-                        Recent Research
-                    </h2>
+      <div class="dash-quick-actions-grid">
 
-                </div>
+        @for (action of quickActions; track action.title) {
 
-                <button type="button" class="research-card__view-all" (click)="viewAllResearch()">
-                    View All
-                </button>
+        <button type="button" class="dash-quick-action-card" (click)="navigateTo(action.route)">
 
-            </div>
-
-
-            <div class="research-list">
-
-                @for (
-                item of recentResearch;
-                track item.title
-                ) {
-
-                <div class="research-item">
-
-                    <div class="research-item__icon" [class.research-item__icon--policy]="item.type === 'policy'"
-                        [class.research-item__icon--scheme]="item.type === 'scheme'"
-                        [class.research-item__icon--compare]="item.type === 'compare'"
-                        [class.research-item__icon--analytics]="item.type === 'analytics'">
-
-                        <span class="material-icons">
-                            {{ item.icon }}
-                        </span>
-
-                    </div>
-
-                    <div class="research-item__content">
-
-                        <h3>
-                            {{ item.title }}
-                        </h3>
-
-                        <p>
-                            {{ item.description }}
-                        </p>
-
-                        <span class="research-item__date">
-                            {{ item.date }}
-                        </span>
-
-                    </div>
-
-                    <button type="button" class="research-item__arrow" aria-label="Open research"
-                        (click)="viewAllResearch()">
-                        <span class="material-icons">
-                            arrow_forward
-                        </span>
-                    </button>
-
-                </div>
-
-                }
-
-            </div>
-
-        </article>
-
-
-        <!-- ===================================================
-         QUICK ACTIONS
-         =================================================== -->
-
-        <article class="research-card research-card--actions">
-
-            <div class="research-card__header">
-
-                <div>
-
-                    <span class="research-card__eyebrow">
-                        SHORTCUTS
-                    </span>
-
-                    <h2>
-                        Quick Research
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-            <div class="quick-actions">
-
-                @for (
-                action of quickActions;
-                track action.title
-                ) {
-
-                <button type="button" class="quick-action" (click)="navigateTo(action.route)">
-
-                    <div class="quick-action__icon">
-
-                        <span class="material-icons">
-                            {{ action.icon }}
-                        </span>
-
-                    </div>
-
-                    <div class="quick-action__content">
-
-                        <h3>
-                            {{ action.title }}
-                        </h3>
-
-                        <p>
-                            {{ action.description }}
-                        </p>
-
-                    </div>
-
-                    <span class="material-icons quick-action__arrow">
-                        arrow_forward
-                    </span>
-
-                </button>
-
-                }
-
-            </div>
-
-        </article>
-
-    </section>
-
-
-    <!-- =====================================================
-       ANALYTICS / RESEARCH INSIGHTS
-       ===================================================== -->
-
-    <section class="insights-card">
-
-        <div class="insights-card__header">
-
-            <div>
-
-                <span class="research-card__eyebrow">
-                    RESEARCH INSIGHTS
-                </span>
-
-                <h2>
-                    Policy Activity Overview
-                </h2>
-
-                <p>
-                    Track your research activity and explore policy trends.
-                </p>
-
-            </div>
-
-            <button type="button" class="insights-card__button" (click)="viewAnalytics()">
-                View Analytics
-
-                <span class="material-icons">
-                    arrow_forward
-                </span>
-            </button>
-
-        </div>
-
-
-        <div class="insights-content">
-
-            <!-- CHART -->
-
-            <div class="activity-chart">
-
-                <div class="activity-chart__header">
-
-                    <span>
-                        Research Activity
-                    </span>
-
-                    <span class="activity-chart__period">
-                        Last 6 months
-                    </span>
-
-                </div>
-
-                <div class="activity-chart__area">
-
-                    <div class="chart-grid chart-grid--one"></div>
-                    <div class="chart-grid chart-grid--two"></div>
-                    <div class="chart-grid chart-grid--three"></div>
-                    <div class="chart-grid chart-grid--four"></div>
-
-                    <div class="chart-bars">
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--1"></div>
-                            <span>Apr</span>
-                        </div>
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--2"></div>
-                            <span>May</span>
-                        </div>
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--3"></div>
-                            <span>Jun</span>
-                        </div>
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--4"></div>
-                            <span>Jul</span>
-                        </div>
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--5"></div>
-                            <span>Aug</span>
-                        </div>
-
-                        <div class="chart-bar-group">
-                            <div class="chart-bar chart-bar--6"></div>
-                            <span>Sep</span>
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- INSIGHT SUMMARY -->
-
-            <div class="insight-summary">
-
-                <div class="insight-summary__item">
-
-                    <div class="insight-summary__icon">
-                        <span class="material-icons">
-                            trending_up
-                        </span>
-                    </div>
-
-                    <div>
-                        <strong>
-                            +24%
-                        </strong>
-
-                        <span>
-                            Research activity
-                        </span>
-                    </div>
-
-                </div>
-
-
-                <div class="insight-summary__item">
-
-                    <div class="insight-summary__icon">
-                        <span class="material-icons">
-                            policy
-                        </span>
-                    </div>
-
-                    <div>
-                        <strong>
-                            42
-                        </strong>
-
-                        <span>
-                            Policies this month
-                        </span>
-                    </div>
-
-                </div>
-
-
-                <div class="insight-summary__item">
-
-                    <div class="insight-summary__icon">
-                        <span class="material-icons">
-                            compare_arrows
-                        </span>
-                    </div>
-
-                    <div>
-                        <strong>
-                            8
-                        </strong>
-
-                        <span>
-                            Comparisons this month
-                        </span>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-       SAVED RESEARCH CTA
-       ===================================================== -->
-
-    <section class="saved-research">
-
-        <div class="saved-research__icon">
-
+          <div class="dash-quick-action-card__icon">
             <span class="material-icons">
-                bookmark
+              {{ action.icon }}
             </span>
+          </div>
 
-        </div>
+          <div class="dash-quick-action-card__content">
+            <strong>{{ action.title }}</strong>
+            <small>{{ action.description }}</small>
+          </div>
 
-        <div class="saved-research__content">
-
-            <span>
-                YOUR RESEARCH LIBRARY
-            </span>
-
-            <h2>
-                Continue where you left off
-            </h2>
-
-            <p>
-                Access your saved policies, schemes and previous research.
-            </p>
-
-        </div>
-
-        <button type="button" class="saved-research__button" (click)="viewSavedResearch()">
-            Open Saved Research
-
-            <span class="material-icons">
-                arrow_forward
-            </span>
+          <span class="material-icons dash-quick-action-card__arrow">
+            arrow_forward
+          </span>
 
         </button>
 
-    </section>
+        }
+
+      </div>
+
+    </article>
+
+  </section>
+
+
+  <!-- =====================================================
+       ROW 2 PANELS: RESEARCH INSIGHTS & SAVED RESEARCH
+  ====================================================== -->
+
+  <section class="dash-panels dash-panels--bottom">
+
+
+    <!-- RESEARCH INSIGHTS (TREND BARS) PANEL -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Research Insights
+        </h2>
+
+        <button type="button" class="dash-panel__link" (click)="viewAnalytics()">
+          View Analytics
+        </button>
+
+      </div>
+
+      <p class="dash-panel-subtext">
+        Monthly policy release trends across monitored government ministries.
+      </p>
+
+      <div class="dash-trends-body">
+
+        <div class="dash-trends-bars">
+
+          @for (bar of trendBars; track bar.monthName) {
+
+          <div class="dash-trend-col">
+
+            <div class="dash-trend-track">
+              <div class="dash-trend-fill" [style.height.%]="bar.heightPercent" [title]="bar.count + ' policies'"></div>
+            </div>
+
+            <span class="dash-trend-label">{{ bar.monthName }}</span>
+
+          </div>
+
+          }
+
+        </div>
+
+      </div>
+
+      <button type="button" class="dash-panel__footer-link" (click)="viewAnalytics()">
+        Explore Advanced Trends &amp; Analytics
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
+
+    </article>
+
+
+    <!-- SAVED RESEARCH PANEL -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Saved Research
+        </h2>
+
+        <button type="button" class="dash-panel__link" (click)="viewSavedResearch()">
+          Explore
+        </button>
+
+      </div>
+
+      <div class="dash-saved-placeholder">
+
+        <div class="dash-saved-icon-circle">
+          <span class="material-icons">bookmark</span>
+        </div>
+
+        <p class="dash-saved-title">Your Research Bookmarks</p>
+
+        <p class="dash-saved-sub">
+          Keep important policies, schemes, and comparisons organized for easy access during your research.
+        </p>
+
+      </div>
+
+      <button type="button" class="dash-panel__footer-link" (click)="searchPolicies()">
+        Browse Government Repository
+        <span class="material-icons">
+          arrow_forward
+        </span>
+      </button>
+
+    </article>
+
+  </section>
 
 </div>

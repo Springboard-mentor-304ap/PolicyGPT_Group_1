@@ -3,7 +3,7 @@ from math import ceil
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, or_
+from sqlalchemy import cast, func, or_, String
 from sqlalchemy.orm import Session
 
 from app.models.policy import Policy
@@ -491,6 +491,16 @@ def submit_policy(
         db=db,
         policy_id=policy_id,
     )
+
+    # Creator-only submission check: only the creator (or Admin) can submit
+    if current_user.role != "ADMIN" and policy.created_by != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You are not authorized to submit this policy. "
+                "Only the user who created it can submit it for approval."
+            ),
+        )
 
     if policy.status not in {
         "DRAFT",
@@ -1021,13 +1031,29 @@ def search_policies(
     department: str | None = None,
     state: str | None = None,
     sector: str | None = None,
+    publication_date: str | None = None,
     policy_status: str | None = None,
     page: int = 1,
     limit: int = 10,
     created_by: int | None = None,
+    current_user: User | None = None,
 ) -> dict:
 
     query = db.query(Policy)
+
+    # --------------------------------------------------------
+    # DRAFT & PENDING APPROVAL PRIVACY RULE
+    # Draft policies can ONLY be seen by the user who created them.
+    # When submitted (PENDING_APPROVAL), only Admin & creator can see them.
+    # --------------------------------------------------------
+    if current_user is not None:
+        query = query.filter(
+            or_(Policy.status != "DRAFT", Policy.created_by == current_user.user_id)
+        )
+        if str(current_user.role).strip().upper() != "ADMIN":
+            query = query.filter(
+                or_(Policy.status != "PENDING_APPROVAL", Policy.created_by == current_user.user_id)
+            )
 
     # --------------------------------------------------------
     # CREATED BY (ROLE-BASED OWNERSHIP FILTER)
@@ -1072,13 +1098,23 @@ def search_policies(
         query = query.filter(Policy.state.ilike(state.strip()))
 
     if sector:
-        query = query.filter(Policy.sector.ilike(sector.strip()))
+        query = query.filter(
+            or_(
+                Policy.sector.ilike(sector.strip()),
+                Policy.category.ilike(sector.strip()),
+            )
+        )
+
+    if publication_date:
+        query = query.filter(
+            cast(Policy.publication_date, String).ilike(f"%{publication_date.strip()}%")
+        )
 
     # --------------------------------------------------------
     # STATUS
     # --------------------------------------------------------
 
-    if policy_status:
+    if policy_status and policy_status.strip().upper() != "ALL":
 
         query = query.filter(Policy.status == policy_status.strip().upper())
 

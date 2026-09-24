@@ -1,671 +1,406 @@
 <div class="eligibility-page">
 
-  <!-- Breadcrumb -->
-  <div class="breadcrumb">
-    <span>Citizen Dashboard</span>
-    <span class="separator">›</span>
-    <span>Eligibility Checker</span>
-    <span class="separator">›</span>
-    <span class="current">Check Specific Scheme / Policy</span>
-  </div>
-
-  <!-- Header -->
-  <div class="page-header">
-    <div>
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-main">
       <h1>Check a Specific Scheme or Policy</h1>
       <p>
-        Check whether you are eligible for a particular
-        government scheme or policy.
+        Check whether you are eligible for a particular government scheme or policy.
       </p>
     </div>
+  </header>
 
-    <button
-      type="button"
-      class="back-button"
-      (click)="goBackToChecker()"
-    >
-      ← Back to Eligibility Checker
+  <!-- Navigation Tabs (Eligibility Modes) -->
+  <nav class="tabs" aria-label="Eligibility Modes">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'find'" (click)="setTab('find')">
+      <span class="material-icons tab-icon">person_search</span>
+      <span>Find Schemes &amp; Policies for Me</span>
     </button>
-  </div>
 
-  <!-- Main Layout -->
-  <div class="main-layout">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'specific'" (click)="setTab('specific')">
+      <span class="material-icons tab-icon">search</span>
+      <span>Check Specific Scheme / Policy</span>
+    </button>
 
-    <!-- LEFT CONTENT -->
-    <main class="main-content">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'saved'" (click)="setTab('saved')">
+      <span class="material-icons tab-icon">bookmark_border</span>
+      <span>Saved Results</span>
+    </button>
+  </nav>
 
-      <!-- Step 1 -->
-      <section class="card">
+  <!-- Main Single-Column Content -->
+  <main class="single-column-content">
 
+    <!-- ========================================================
+         MAIN ELIGIBILITY CARD (Sections 1 & 2 + Action)
+         ======================================================== -->
+    <section class="card main-form-card" aria-label="Check Specific Eligibility Form">
+
+      <!-- ----------------------------------------------------
+           SECTION 1: SELECT SCHEME OR POLICY
+           ---------------------------------------------------- -->
+      <div class="form-section">
         <div class="section-heading">
-          <div class="step-number">1</div>
-
-          <div>
+          <div class="step-indicator">1</div>
+          <div class="heading-text">
             <h2>Select Scheme or Policy</h2>
-            <p>
-              Choose the type and specific program you want
-              to check.
-            </p>
+            <p>Choose the type and specific program you want to check.</p>
           </div>
         </div>
 
-        <!-- Entity Type -->
-        <div class="type-selector">
-
-          <button
-            type="button"
-            class="type-option"
-            [class.active]="entityType === 'scheme'"
-            (click)="entityType = 'scheme'; onEntityTypeChange()"
-          >
-            <span class="type-icon">▣</span>
-
-            <span>
+        <!-- Entity Type Selector -->
+        <div class="type-selector" role="radiogroup" aria-label="Select entity type">
+          <button type="button" class="type-option" [class.active]="entityType === 'scheme'"
+            (click)="entityType = 'scheme'; onEntityTypeChange()">
+            <span class="material-icons type-icon">assignment</span>
+            <span class="type-info">
               <strong>Schemes</strong>
               <small>Government welfare schemes</small>
             </span>
           </button>
 
-          <button
-            type="button"
-            class="type-option"
-            [class.active]="entityType === 'policy'"
-            (click)="entityType = 'policy'; onEntityTypeChange()"
-          >
-            <span class="type-icon">▤</span>
-
-            <span>
+          <button type="button" class="type-option" [class.active]="entityType === 'policy'"
+            (click)="entityType = 'policy'; onEntityTypeChange()">
+            <span class="material-icons type-icon">account_balance</span>
+            <span class="type-info">
               <strong>Policies</strong>
               <small>Government policies</small>
             </span>
           </button>
-
         </div>
 
         <!-- Entity Dropdown -->
-        <div class="form-group">
-
+        <div class="form-group entity-select-group">
           <label for="entity">
             Select {{ entityType === 'scheme' ? 'Scheme' : 'Policy' }}
             <span class="required">*</span>
           </label>
 
-          <div
-            *ngIf="loadingEntities"
-            class="loading-box"
-          >
+          <div *ngIf="loadingEntities" class="loading-box">
             <div class="spinner"></div>
-            <span>
-              Loading
-              {{ entityType === 'scheme' ? 'schemes' : 'policies' }}...
-            </span>
+            <span>Loading {{ entityType === 'scheme' ? 'schemes' : 'policies' }}...</span>
           </div>
 
-          <select
-            *ngIf="!loadingEntities"
-            id="entity"
-            [(ngModel)]="selectedEntityId"
-            (ngModelChange)="onEntitySelected()"
-            class="form-control"
-          >
-            <option [ngValue]="null">
-              Select a
-              {{ entityType === 'scheme' ? 'scheme' : 'policy' }}
-            </option>
+          <div class="select-wrapper" *ngIf="!loadingEntities">
+            <select id="entity" [(ngModel)]="selectedEntityId" (ngModelChange)="onEntitySelected()"
+              class="form-control">
+              <option [ngValue]="null">
+                Select a {{ entityType === 'scheme' ? 'scheme' : 'policy' }}
+              </option>
+              <option *ngFor="let entity of entities" [ngValue]="entity.id">
+                {{ entity.name }}
+              </option>
+            </select>
+            <span class="material-icons select-arrow">expand_more</span>
+          </div>
 
-            <option
-              *ngFor="let entity of entities"
-              [ngValue]="entity.id"
-            >
-              {{ entity.name }}
-            </option>
-          </select>
-
-          <p
-            *ngIf="!loadingEntities && entities.length === 0"
-            class="empty-text"
-          >
-            No
-            {{ entityType === 'scheme' ? 'schemes' : 'policies' }}
-            are currently available.
+          <p *ngIf="!loadingEntities && entities.length === 0" class="empty-text">
+            No {{ entityType === 'scheme' ? 'schemes' : 'policies' }} are currently available.
           </p>
-
         </div>
 
-      </section>
-
-
-      <!-- Selected Entity Details -->
-      <section
-        class="card selected-card"
-        *ngIf="selectedEntity"
-      >
-
-        <div class="section-heading compact">
-          <div class="entity-icon">
-            {{ entityType === 'scheme' ? '▣' : '▤' }}
+        <!-- Selected Entity Summary Preview (when an entity is chosen) -->
+        <div class="selected-preview" *ngIf="selectedEntity">
+          <div class="preview-header">
+            <div class="preview-icon-badge">
+              <span class="material-icons">{{ entityType === 'scheme' ? 'assignment' : 'account_balance' }}</span>
+            </div>
+            <div class="preview-title-block">
+              <span class="preview-eyebrow">
+                Selected {{ entityType === 'scheme' ? 'Scheme' : 'Policy' }}
+              </span>
+              <h3>{{ selectedEntity.name }}</h3>
+            </div>
           </div>
 
-          <div>
-            <span class="eyebrow">
-              Selected {{ entityType === 'scheme' ? 'Scheme' : 'Policy' }}
-            </span>
-
-            <h2>{{ selectedEntity.name }}</h2>
-          </div>
-        </div>
-
-        <div
-          class="entity-details"
-          *ngIf="selectedEntity.description"
-        >
-          <h3>Description</h3>
-
-          <p>
+          <p class="preview-desc" *ngIf="selectedEntity.description">
             {{ selectedEntity.description }}
           </p>
+
+          <div class="preview-meta-row">
+            <div class="meta-pill" *ngIf="selectedEntity.ministry">
+              <span class="meta-label">Ministry:</span>
+              <strong class="meta-value">{{ selectedEntity.ministry }}</strong>
+            </div>
+
+            <div class="meta-pill" *ngIf="selectedEntity.category">
+              <span class="meta-label">Category:</span>
+              <strong class="meta-value">{{ selectedEntity.category }}</strong>
+            </div>
+
+            <div class="meta-pill" *ngIf="selectedEntity.status">
+              <span class="meta-label">Status:</span>
+              <strong class="meta-value status-active">{{ selectedEntity.status }}</strong>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="metadata-grid">
+      <!-- Section Divider -->
+      <hr class="section-divider" />
 
-          <div
-            class="metadata-item"
-            *ngIf="selectedEntity.ministry"
-          >
-            <span class="metadata-label">Ministry</span>
-            <strong>{{ selectedEntity.ministry }}</strong>
-          </div>
-
-          <div
-            class="metadata-item"
-            *ngIf="selectedEntity.category"
-          >
-            <span class="metadata-label">Category</span>
-            <strong>{{ selectedEntity.category }}</strong>
-          </div>
-
-          <div
-            class="metadata-item"
-            *ngIf="selectedEntity.status"
-          >
-            <span class="metadata-label">Status</span>
-            <strong>{{ selectedEntity.status }}</strong>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- Step 2 -->
-      <section class="card">
-
+      <!-- ----------------------------------------------------
+           SECTION 2: YOUR DETAILS
+           ---------------------------------------------------- -->
+      <div class="form-section">
         <div class="section-heading">
-          <div class="step-number">2</div>
-
-          <div>
+          <div class="step-indicator">2</div>
+          <div class="heading-text">
             <h2>Your Details</h2>
-            <p>
-              Enter your information to check your eligibility.
-            </p>
+            <p>Enter your information to check your eligibility.</p>
           </div>
         </div>
 
         <div class="form-grid">
-
           <!-- Age -->
           <div class="form-group">
             <label for="age">
               Age <span class="required">*</span>
             </label>
-
-            <input
-              id="age"
-              type="number"
-              min="0"
-              max="120"
-              [(ngModel)]="profile.age"
-              class="form-control"
-              placeholder="Enter your age"
-            />
+            <input id="age" type="number" min="0" max="120" [(ngModel)]="profile.age" class="form-control"
+              placeholder="Enter your age (0-120)" />
           </div>
-
 
           <!-- Gender -->
           <div class="form-group">
             <label for="gender">
               Gender <span class="required">*</span>
             </label>
-
-            <select
-              id="gender"
-              [(ngModel)]="profile.gender"
-              class="form-control"
-            >
-              <option
-                *ngFor="let gender of genders"
-                [value]="gender"
-              >
-                {{ gender }}
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="gender" [(ngModel)]="profile.gender" class="form-control">
+                <option *ngFor="let gender of genders" [value]="gender">
+                  {{ gender }}
+                </option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
 
-
-          <!-- Income -->
+          <!-- Annual Income -->
           <div class="form-group">
             <label for="income">
               Annual Income
             </label>
-
             <div class="input-prefix">
-              <span>₹</span>
-
-              <input
-                id="income"
-                type="number"
-                min="0"
-                [(ngModel)]="profile.annual_income"
-                class="form-control"
-                placeholder="Annual income"
-              />
+              <span class="prefix-symbol">₹</span>
+              <input id="income" type="number" min="0" [(ngModel)]="profile.annual_income"
+                class="form-control with-prefix" placeholder="e.g. 250000" />
             </div>
           </div>
-
 
           <!-- Occupation -->
           <div class="form-group">
             <label for="occupation">
               Occupation
             </label>
-
-            <select
-              id="occupation"
-              [(ngModel)]="profile.occupation"
-              class="form-control"
-            >
-              <option [ngValue]="null">
-                Select occupation
-              </option>
-
-              <option
-                *ngFor="let occupation of occupations"
-                [value]="occupation"
-              >
-                {{ occupation }}
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="occupation" [(ngModel)]="profile.occupation" class="form-control">
+                <option [ngValue]="null">Select occupation</option>
+                <option *ngFor="let occupation of occupations" [value]="occupation">
+                  {{ occupation }}
+                </option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
-
 
           <!-- Education -->
           <div class="form-group">
             <label for="education">
               Education
             </label>
-
-            <select
-              id="education"
-              [(ngModel)]="profile.education"
-              class="form-control"
-            >
-              <option [ngValue]="null">
-                Select education
-              </option>
-
-              <option
-                *ngFor="let education of educationLevels"
-                [value]="education"
-              >
-                {{ education }}
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="education" [(ngModel)]="profile.education" class="form-control">
+                <option [ngValue]="null">Select education</option>
+                <option *ngFor="let education of educationLevels" [value]="education">
+                  {{ education }}
+                </option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
 
-
-          <!-- State -->
+          <!-- Location (State / UT) -->
           <div class="form-group">
             <label for="state">
-              State
+              Location (State / UT)
             </label>
-
-            <select
-              id="state"
-              [(ngModel)]="profile.state"
-              class="form-control"
-            >
-              <option [ngValue]="null">
-                Select state
-              </option>
-
-              <option
-                *ngFor="let state of states"
-                [value]="state"
-              >
-                {{ state }}
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="state" [(ngModel)]="profile.state" class="form-control">
+                <option [ngValue]="null">Select location (state / UT)</option>
+                <option *ngFor="let state of states" [value]="state">
+                  {{ state }}
+                </option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
-
 
           <!-- Social Category -->
           <div class="form-group">
             <label for="category">
               Social Category
             </label>
-
-            <select
-              id="category"
-              [(ngModel)]="profile.social_category"
-              class="form-control"
-            >
-              <option [ngValue]="null">
-                Select category
-              </option>
-
-              <option
-                *ngFor="let category of socialCategories"
-                [value]="category"
-              >
-                {{ category }}
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="category" [(ngModel)]="profile.social_category" class="form-control">
+                <option [ngValue]="null">Select category</option>
+                <option *ngFor="let category of socialCategories" [value]="category">
+                  {{ category }}
+                </option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
 
-
-          <!-- Disability -->
+          <!-- Disability Status -->
           <div class="form-group">
             <label for="disability">
               Disability Status
             </label>
-
-            <select
-              id="disability"
-              [(ngModel)]="profile.disability_status"
-              class="form-control"
-            >
-              <option [ngValue]="false">
-                No
-              </option>
-
-              <option [ngValue]="true">
-                Yes
-              </option>
-            </select>
+            <div class="select-wrapper">
+              <select id="disability" [(ngModel)]="profile.disability_status" class="form-control">
+                <option [ngValue]="false">No</option>
+                <option [ngValue]="true">Yes</option>
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
           </div>
-
         </div>
+      </div>
 
-        <!-- Buttons -->
-        <div class="action-row">
-
-          <button
-            type="button"
-            class="secondary-button"
-            (click)="reset()"
-          >
-            Reset
-          </button>
-
-          <button
-            type="button"
-            class="primary-button"
-            [disabled]="checking || !selectedEntityId"
-            (click)="checkEligibility()"
-          >
-
-            <span
-              class="button-spinner"
-              *ngIf="checking"
-            ></span>
-
-            <span *ngIf="!checking">
-              Check Eligibility
-            </span>
-
-            <span *ngIf="checking">
-              Checking Eligibility...
-            </span>
-
-          </button>
-
-        </div>
-
-      </section>
-
-
-      <!-- Error -->
-      <div
-        class="error-box"
-        *ngIf="errorMessage"
-      >
-        <div class="error-icon">!</div>
-
-        <div>
+      <!-- Error Box -->
+      <div class="error-banner" *ngIf="errorMessage">
+        <span class="material-icons error-banner-icon">error_outline</span>
+        <div class="error-banner-content">
           <strong>Unable to complete the check</strong>
           <p>{{ errorMessage }}</p>
         </div>
       </div>
 
+      <!-- Action Area -->
+      <div class="action-area">
+        <button type="button" class="secondary-button" (click)="reset()">
+          <span class="material-icons">restart_alt</span>
+          <span>Reset</span>
+        </button>
 
-      <!-- Result -->
-      <section
-        class="result-card"
-        *ngIf="result"
-        [class.eligible]="result.eligible"
-        [class.not-eligible]="!result.eligible"
-      >
-
-        <!-- Result Header -->
-        <div class="result-header">
-
-          <div
-            class="result-icon"
-            [class.success]="result.eligible"
-            [class.failure]="!result.eligible"
-          >
-            <span *ngIf="result.eligible">✓</span>
-            <span *ngIf="!result.eligible">×</span>
-          </div>
-
-          <div class="result-title">
-
-            <span class="result-label">
-              Eligibility Result
-            </span>
-
-            <h2>
-              {{ result.eligible ? 'You are Eligible' : 'You are Not Eligible' }}
-            </h2>
-
-            <p>
-              {{ result.entity_name }}
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <!-- Message -->
-        <div class="result-message">
-          {{ result.message }}
-        </div>
-
-
-        <!-- Criteria -->
-        <div class="criteria-section">
-
-          <div
-            class="criteria-column matched"
-            *ngIf="result.matched_rules?.length"
-          >
-
-            <h3>
-              <span>✓</span>
-              Matched Criteria
-            </h3>
-
-            <ul>
-              <li
-                *ngFor="let rule of result.matched_rules"
-              >
-                {{ rule }}
-              </li>
-            </ul>
-
-          </div>
-
-
-          <div
-            class="criteria-column failed"
-            *ngIf="result.failed_rules?.length"
-          >
-
-            <h3>
-              <span>×</span>
-              Criteria Not Met
-            </h3>
-
-            <ul>
-              <li
-                *ngFor="let rule of result.failed_rules"
-              >
-                {{ rule }}
-              </li>
-            </ul>
-
-          </div>
-
-        </div>
-
-
-        <!-- Next Steps -->
-        <div class="next-steps">
-
-          <h3>Next Steps</h3>
-
-          <p *ngIf="result.eligible">
-            You meet the eligibility criteria for this
-            {{ entityType }}. You can now review the
-            application requirements and proceed with the
-            application process.
-          </p>
-
-          <p *ngIf="!result.eligible">
-            Review the criteria that were not met above.
-            You may also check other schemes and policies
-            that may be available for your profile.
-          </p>
-
-        </div>
-
-      </section>
-
-    </main>
-
-
-    <!-- RIGHT SIDEBAR -->
-    <aside class="side-content">
-
-      <!-- Information Card -->
-      <div class="info-card">
-
-        <div class="info-icon">i</div>
-
-        <h3>How Eligibility Checking Works</h3>
-
-        <p>
-          We compare the information you provide with the
-          eligibility criteria configured for the selected
-          government program.
-        </p>
-
-        <div class="info-step">
-          <span>1</span>
-          <p>Select a scheme or policy.</p>
-        </div>
-
-        <div class="info-step">
-          <span>2</span>
-          <p>Enter your personal details.</p>
-        </div>
-
-        <div class="info-step">
-          <span>3</span>
-          <p>Click Check Eligibility.</p>
-        </div>
-
-        <div class="info-step">
-          <span>4</span>
-          <p>Review your eligibility result.</p>
-        </div>
-
+        <button type="button" class="primary-button" [disabled]="checking || !selectedEntityId"
+          (click)="checkEligibility()">
+          <span class="spinner-small" *ngIf="checking"></span>
+          <span *ngIf="!checking" class="btn-text-content">
+            <span class="material-icons">check_circle</span>
+            <span>Check Eligibility</span>
+          </span>
+          <span *ngIf="checking">Checking Eligibility...</span>
+        </button>
       </div>
 
+    </section>
 
-      <!-- Selected Program Card -->
-      <div
-        class="summary-card"
-        *ngIf="selectedEntity"
-      >
+    <!-- ========================================================
+         ELIGIBILITY RESULT CARD (Appears only after checking)
+         ======================================================== -->
+    <section class="card result-card" *ngIf="result" [class.eligible]="result.eligible"
+      [class.not-eligible]="!result.eligible" aria-labelledby="result-title-heading">
 
-        <div class="summary-top">
-          <span class="summary-type">
-            {{ entityType === 'scheme' ? 'SCHEME' : 'POLICY' }}
+      <!-- Result Header -->
+      <div class="result-header">
+        <div class="result-icon-badge" [class.success]="result.eligible" [class.failure]="!result.eligible">
+          <span class="material-icons" *ngIf="result.eligible">check</span>
+          <span class="material-icons" *ngIf="!result.eligible">close</span>
+        </div>
+
+        <div class="result-title-content">
+          <span class="result-badge" [class.eligible]="result.eligible" [class.ineligible]="!result.eligible">
+            {{ result.eligible ? 'ELIGIBLE' : 'NOT ELIGIBLE' }}
           </span>
 
-          <span
-            class="status-dot"
-            [class.active]="!!selectedEntity"
-          ></span>
-        </div>
+          <h2 id="result-title-heading">
+            {{ result.eligible ? 'You are Eligible' : 'You are Not Eligible' }}
+          </h2>
 
-        <h3>
-          {{ selectedEntity.name }}
-        </h3>
-
-        <div
-          class="summary-row"
-          *ngIf="selectedEntity.category"
-        >
-          <span>Category</span>
-          <strong>
-            {{ selectedEntity.category }}
-          </strong>
-        </div>
-
-        <div
-          class="summary-row"
-          *ngIf="selectedEntity.ministry"
-        >
-          <span>Ministry</span>
-          <strong>
-            {{ selectedEntity.ministry }}
-          </strong>
-        </div>
-
-      </div>
-
-
-      <!-- Privacy Card -->
-      <div class="privacy-card">
-
-        <div class="privacy-icon">🔒</div>
-
-        <div>
-          <h3>Your Information</h3>
-
-          <p>
-            Your information is used only to perform the
-            eligibility check.
+          <p class="result-entity-subtitle">
+            {{ result.entity_name }}
           </p>
         </div>
 
+        <button type="button" class="btn-save-specific" [class.saved]="isResultSaved()" (click)="toggleSaveResult()"
+          [attr.aria-label]="isResultSaved() ? 'Saved' : 'Save Result'">
+          <span class="material-icons">
+            {{ isResultSaved() ? 'bookmark' : 'bookmark_border' }}
+          </span>
+          <span>{{ isResultSaved() ? 'Saved' : 'Save Result' }}</span>
+        </button>
       </div>
 
-    </aside>
+      <!-- Result Message / Evaluation Reason -->
+      <div class="result-message-box" [class.box-success]="result.eligible" [class.box-failure]="!result.eligible">
+        <div class="message-label">
+          <span class="material-icons">info</span>
+          <strong>Evaluation Result</strong>
+        </div>
+        <p>{{ result.message }}</p>
+      </div>
 
+      <!-- Criteria Section -->
+      <div class="criteria-grid" *ngIf="result.matched_rules?.length || result.failed_rules?.length">
+        <!-- Matched Criteria -->
+        <div class="criteria-card matched" *ngIf="result.matched_rules?.length">
+          <div class="criteria-header">
+            <span class="material-icons criteria-header-icon">check_circle</span>
+            <h3>Matched Criteria ({{ result.matched_rules.length }})</h3>
+          </div>
+          <ul class="criteria-list">
+            <li *ngFor="let rule of result.matched_rules">
+              <span class="material-icons rule-icon">check</span>
+              <span>{{ rule }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Criteria Not Met -->
+        <div class="criteria-card failed" *ngIf="result.failed_rules?.length">
+          <div class="criteria-header">
+            <span class="material-icons criteria-header-icon">cancel</span>
+            <h3>Criteria Not Met ({{ result.failed_rules.length }})</h3>
+          </div>
+          <ul class="criteria-list">
+            <li *ngFor="let rule of result.failed_rules">
+              <span class="material-icons rule-icon">close</span>
+              <span>{{ rule }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Next Steps & Guidance -->
+      <div class="next-steps-card">
+        <div class="next-steps-header">
+          <span class="material-icons">lightbulb</span>
+          <h3>Next Steps</h3>
+        </div>
+
+        <p *ngIf="result.eligible">
+          You meet the eligibility criteria for this {{ entityType }}. You can now review the application requirements
+          and proceed with the application process.
+        </p>
+
+        <p *ngIf="!result.eligible">
+          Review the criteria that were not met above. You may also check other schemes and policies that may be
+          available for your profile.
+        </p>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast-notification" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
+    <span class="material-icons">
+      {{ toastType === 'success' ? 'check_circle' : (toastType === 'error' ? 'error_outline' : 'info') }}
+    </span>
+    <span>{{ toastMessage }}</span>
   </div>
 
 </div>

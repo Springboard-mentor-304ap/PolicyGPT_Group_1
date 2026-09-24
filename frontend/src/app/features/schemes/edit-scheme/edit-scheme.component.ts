@@ -13,11 +13,18 @@ import { Auth, AuthUser } from '../../../core/services/auth';
 import { SchemeService } from '../../../core/services/scheme.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SchemeResponse, SchemeUpdate } from '../../../core/models/scheme.model';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import {
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+} from '../../../core/constants/government-data.constants';
 
 @Component({
   selector: 'app-edit-scheme',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent],
   templateUrl: './edit-scheme.component.html',
   styleUrls: ['./edit-scheme.component.scss'],
 })
@@ -47,45 +54,10 @@ export class EditSchemeComponent implements OnInit {
   isSubmitting = false;
 
   // Dropdown options
-  categories: string[] = [
-    'Education',
-    'Agriculture',
-    'Health & Wellness',
-    'Skill Development',
-    'Housing & Shelter',
-    'Social Welfare',
-    'Financial Services',
-    'Women & Child Development',
-    'Employment',
-    'Energy & Power',
-    'Environment & Forests',
-    'Science & Technology',
-  ];
-
-  ministries: string[] = [
-    'Ministry of Education',
-    'Ministry of Agriculture & Farmers Welfare',
-    'Ministry of Health & Family Welfare',
-    'Ministry of Skill Development & Entrepreneurship',
-    'Ministry of Housing & Urban Affairs',
-    'Ministry of Finance',
-    'Ministry of Rural Development',
-    'Ministry of Social Justice & Empowerment',
-    'Ministry of Women & Child Development',
-    'Ministry of Labour & Employment',
-    'Ministry of New & Renewable Energy',
-  ];
-
-  departments: string[] = [
-    'Department of Higher Education',
-    'Department of School Education & Literacy',
-    'Department of Agriculture & Farmers Welfare',
-    'Department of Health & Family Welfare',
-    'Department of Rural Development',
-    'Department of Financial Services',
-    'Department of Social Justice & Empowerment',
-    'Department of Economic Affairs',
-  ];
+  categories: string[] = SCHEME_CATEGORIES;
+  ministries: string[] = MINISTRIES;
+  departmentOptions: string[] = [];
+  departments: string[] = ALL_DEPARTMENTS;
 
   states: string[] = [
     'All India',
@@ -216,10 +188,42 @@ export class EditSchemeComponent implements OnInit {
     });
   }
 
+  updateDepartmentOptions(selectedMinistry: string, clearIfInvalid: boolean = true): void {
+    if (!selectedMinistry) {
+      this.departmentOptions = [];
+      if (clearIfInvalid) {
+        this.schemeForm.get('department')?.setValue('');
+      }
+      return;
+    }
+
+    const specificDepts = MINISTRY_DEPARTMENTS_MAP[selectedMinistry];
+    if (specificDepts && specificDepts.length > 0) {
+      this.departmentOptions = [...specificDepts];
+      const currentDept = this.schemeForm.get('department')?.value;
+      if (clearIfInvalid && currentDept && !specificDepts.includes(currentDept)) {
+        this.schemeForm.get('department')?.setValue('');
+      }
+    } else {
+      this.departmentOptions = [...ALL_DEPARTMENTS];
+      const currentDept = this.schemeForm.get('department')?.value;
+      if (currentDept && !this.departmentOptions.includes(currentDept)) {
+        this.departmentOptions = [currentDept, ...this.departmentOptions];
+      }
+    }
+  }
+
+  onMinistryChange(selectedMinistry: string): void {
+    this.updateDepartmentOptions(selectedMinistry, true);
+  }
+
   private loadSchemeData(): void {
     this.schemeService.getScheme(this.schemeId).subscribe({
       next: (scheme: SchemeResponse) => {
         this.existingScheme = scheme;
+
+        // Set department options before patching form values, preserving existing department
+        this.updateDepartmentOptions(scheme.ministry || '', false);
 
         // Set form fields
         this.schemeForm.patchValue({

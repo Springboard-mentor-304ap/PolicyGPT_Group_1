@@ -102,6 +102,10 @@ export class PolicyDetailsComponent implements OnInit {
     );
   }
 
+  get canViewAudit(): boolean {
+    return this.isAdmin || this.isGov;
+  }
+
   get rolePrefix(): string {
     if (this.isAdmin) return "admin";
     if (this.isGov) return "government";
@@ -110,6 +114,33 @@ export class PolicyDetailsComponent implements OnInit {
     if (r === "ORGANIZATION" || r === "ORGANISATION") return "organization";
     if (r === "GUEST") return "guest";
     return "citizen";
+  }
+
+  getCreatorDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Official Author";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Government Official";
+  }
+
+  getApproverDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Authorized Administrator";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Authorized Administrator";
+  }
+
+  getRequesterDisplayName(userId: number | null | undefined): string {
+    if (!userId) return "Government Official";
+    const current = this.auth.getStoredUser();
+    if (current && current.user_id === userId && current.full_name) {
+      return current.full_name;
+    }
+    return "Government Official";
   }
 
   get isOwner(): boolean {
@@ -134,9 +165,11 @@ export class PolicyDetailsComponent implements OnInit {
 
   get canSubmit(): boolean {
     if (!this.policy) return false;
-    return (
-      (this.isAdmin || this.isGov) &&
-      ["DRAFT", "REJECTED"].includes(this.policy.status)
+    if (!["DRAFT", "REJECTED"].includes(this.policy.status)) return false;
+    if (this.isAdmin) return true;
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    return Boolean(
+      this.isGov && currentUserId && this.policy.created_by === currentUserId,
     );
   }
 
@@ -471,6 +504,13 @@ export class PolicyDetailsComponent implements OnInit {
 
   openSubmitModal(): void {
     if (!this.policy) return;
+    if (!this.canSubmit) {
+      this.showToast(
+        "You are not authorized to submit this policy. Only the user who created it can submit it for approval.",
+        "error",
+      );
+      return;
+    }
     const policyId = this.policy.policy_id;
     this.confirmTitle = "Submit Policy";
     this.confirmMessage = `Submit "${this.policy.title}" for approval?`;

@@ -122,7 +122,24 @@ export class EligibilitySpecific {
   checking = false;
   errorMessage = "";
 
+  activeTab: "find" | "specific" | "saved" = "specific";
+
   result: EligibilityCheckResponse | null = null;
+
+  toastMessage: string | null = null;
+  toastType: "success" | "info" | "error" = "success";
+  private toastTimeout: any = null;
+
+  setTab(tab: "find" | "specific" | "saved"): void {
+    this.activeTab = tab;
+    if (tab === "find") {
+      this.router.navigate(["/dashboard/citizen/eligibility"]);
+    } else if (tab === "saved") {
+      this.router.navigate(["/dashboard/citizen/eligibility"], {
+        queryParams: { tab: "saved" },
+      });
+    }
+  }
 
   constructor(
     private eligibilityService: EligibilityService,
@@ -375,5 +392,49 @@ export class EligibilitySpecific {
       age >= 0 &&
       age <= 120
     );
+  }
+
+  isResultSaved(): boolean {
+    if (!this.result) return false;
+    return this.eligibilityService.isResultSaved(
+      this.result.entity_type,
+      this.result.entity_id
+    );
+  }
+
+  toggleSaveResult(): void {
+    if (!this.result) return;
+    const id = `${this.result.entity_type}_${this.result.entity_id}`;
+    if (this.isResultSaved()) {
+      this.eligibilityService.removeSavedResult(id);
+      this.showToast(`Removed '${this.result.entity_name}' from Saved Results.`, "info");
+    } else {
+      const success = this.eligibilityService.saveResult({
+        id: id,
+        entity_id: this.result.entity_id,
+        entity_name: this.result.entity_name,
+        entity_type: this.result.entity_type,
+        eligible: this.result.eligible,
+        message: this.result.message,
+        category: this.selectedEntity?.category,
+        saved_at: new Date().toISOString(),
+      });
+      if (success) {
+        this.showToast(`Saved '${this.result.entity_name}' to Saved Results.`, "success");
+      }
+    }
+  }
+
+  showToast(message: string, type: "success" | "info" | "error" = "success"): void {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.cdr.detectChanges();
+    if (this.toastTimeout) {
+      clearTimeout(this.toastTimeout);
+    }
+    this.toastTimeout = setTimeout(() => {
+      this.toastMessage = null;
+      this.cdr.detectChanges();
+    }, 3500);
   }
 }

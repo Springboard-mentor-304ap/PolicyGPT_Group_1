@@ -1,7 +1,7 @@
 <div class="page-container">
 
   <!-- =====================================================
-       LOADING
+       LOADING STATE
        ===================================================== -->
   <div class="state-card" *ngIf="loading">
     <div class="spinner"></div>
@@ -9,10 +9,10 @@
   </div>
 
   <!-- =====================================================
-       ERROR
+       ERROR STATE
        ===================================================== -->
   <div class="state-card error-state" *ngIf="!loading && errorMessage">
-    <div class="state-icon">!</div>
+    <div class="state-icon"><span class="material-icons">error_outline</span></div>
     <h3>Unable to load policy</h3>
     <p>{{ errorMessage }}</p>
     <button type="button" class="retry-btn" (click)="goBack()">
@@ -26,24 +26,30 @@
   <ng-container *ngIf="!loading && !errorMessage && policy">
 
     <!-- ===================================================
-         BACK & TOP NAV
+         PAGE HEADER
          =================================================== -->
-    <div class="top-nav">
+    <div class="page-header">
+      <div class="header-content">
+        <h1>Policy Details</h1>
+        <p class="subtitle">Comprehensive overview, eligibility criteria, and governance metadata.</p>
+      </div>
+
       <button type="button" class="btn-back" (click)="goBack()">
-        &larr; Back to Policies
+        <span class="material-icons">arrow_back</span>
+        <span>Back</span>
       </button>
     </div>
 
     <!-- ===================================================
-         WORKFLOW STATUS ALERTS
+         WORKFLOW STATUS ALERTS (No raw IDs)
          =================================================== -->
     <!-- REJECTED BANNER -->
     <div class="workflow-alert alert-rejected" *ngIf="policy.status === 'REJECTED'">
-      <div class="alert-icon">⚠️</div>
+      <div class="alert-icon"><span class="material-icons">warning</span></div>
       <div class="alert-content">
         <div class="alert-heading">
           <strong>Policy Rejected</strong>
-          <span *ngIf="policy.approved_by">Reviewed by Administrator #{{ policy.approved_by }}</span>
+          <span *ngIf="policy.approved_by">Reviewed by {{ getApproverDisplayName(policy.approved_by) }}</span>
         </div>
         <p *ngIf="policy.rejection_reason" class="alert-reason">
           <strong>Reason:</strong> {{ policy.rejection_reason }}
@@ -54,20 +60,21 @@
       </div>
       <div class="alert-actions" *ngIf="canEdit">
         <button type="button" class="btn-alert-action" (click)="editPolicy()">
-          ✎ Edit Policy
+          <span class="material-icons">edit</span> Edit Policy
         </button>
       </div>
     </div>
 
     <!-- ARCHIVE REQUESTED BANNER -->
     <div class="workflow-alert alert-archive-requested" *ngIf="policy.status === 'ARCHIVE_REQUESTED'">
-      <div class="alert-icon">📦</div>
+      <div class="alert-icon"><span class="material-icons">archive</span></div>
       <div class="alert-content">
         <div class="alert-heading">
           <strong>Archive Requested</strong>
           <span *ngIf="policy.archive_requested_by">
-            Requested by User #{{ policy.archive_requested_by }}
-            <ng-container *ngIf="policy.archive_requested_at">on {{ formatDate(policy.archive_requested_at) }}</ng-container>
+            Requested by {{ getRequesterDisplayName(policy.archive_requested_by) }}
+            <ng-container *ngIf="policy.archive_requested_at">on {{ formatDate(policy.archive_requested_at)
+              }}</ng-container>
           </span>
         </div>
         <p *ngIf="policy.archive_reason" class="alert-reason">
@@ -78,13 +85,14 @@
 
     <!-- DELETE REQUESTED BANNER -->
     <div class="workflow-alert alert-delete-requested" *ngIf="policy.status === 'DELETE_REQUESTED'">
-      <div class="alert-icon">🗑️</div>
+      <div class="alert-icon"><span class="material-icons">delete_forever</span></div>
       <div class="alert-content">
         <div class="alert-heading">
           <strong>Deletion Requested</strong>
           <span *ngIf="policy.delete_requested_by">
-            Requested by User #{{ policy.delete_requested_by }}
-            <ng-container *ngIf="policy.delete_requested_at">on {{ formatDate(policy.delete_requested_at) }}</ng-container>
+            Requested by {{ getRequesterDisplayName(policy.delete_requested_by) }}
+            <ng-container *ngIf="policy.delete_requested_at">on {{ formatDate(policy.delete_requested_at)
+              }}</ng-container>
           </span>
         </div>
         <p *ngIf="policy.delete_reason" class="alert-reason">
@@ -98,7 +106,7 @@
 
     <!-- PENDING APPROVAL BANNER -->
     <div class="workflow-alert alert-pending" *ngIf="policy.status === 'PENDING_APPROVAL'">
-      <div class="alert-icon">⏳</div>
+      <div class="alert-icon"><span class="material-icons">schedule</span></div>
       <div class="alert-content">
         <div class="alert-heading">
           <strong>Pending Approval</strong>
@@ -108,99 +116,145 @@
     </div>
 
     <!-- ===================================================
-         HEADER
-         =================================================== -->
-    <div class="page-header">
-      <h1>Policy Details</h1>
-      <p>Comprehensive overview, eligibility criteria, and governance metadata.</p>
-    </div>
-
-    <!-- ===================================================
-         HERO CARD
+         MAIN HERO / INFORMATION CARD
          =================================================== -->
     <div class="hero-card">
       <div class="hero-header-row">
-        <div class="hero-left">
-          <div class="policy-avatar">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
-              stroke="#1e293b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
-            </svg>
-          </div>
-
-          <div class="policy-main-info">
-            <h2>{{ policy.title }}</h2>
-            <span class="ministry-name">
-              {{ policy.ministry || "Ministry not specified" }}
-            </span>
-
-            <div class="hero-meta">
-              <span class="category-badge">
-                {{ policy.category }}
-              </span>
-
-              <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
-                {{ getStatusLabel(policy.status) }}
-              </span>
-            </div>
-          </div>
+        <!-- LEFT: Entity Icon -->
+        <div class="hero-avatar">
+          <span class="material-icons">article</span>
         </div>
 
-        <!-- ACTIONS & BOOKMARK -->
-        <div class="hero-actions-top">
-          <button type="button" class="btn-bookmark" (click)="toggleBookmark()" [title]="
-              isBookmarked() ? 'Remove Bookmark' : 'Bookmark'
-            ">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" [attr.fill]="
-                isBookmarked() ? '#1e293b' : 'none'
-              " [attr.stroke]="
-                isBookmarked() ? '#1e293b' : '#64748b'
-              " stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-            </svg>
+        <!-- CENTER: Entity Name, Ministry, Category, Status, Description -->
+        <div class="hero-center">
+          <h2 class="hero-title">{{ policy.title }}</h2>
+
+          <div class="hero-ministry">
+            <span class="material-icons">account_balance</span>
+            <span>{{ policy.ministry || "Ministry not specified" }}</span>
+          </div>
+
+          <div class="hero-meta">
+            <span class="category-badge">
+              <span class="material-icons">category</span>
+              {{ policy.category }}
+            </span>
+
+            <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
+              {{ getStatusLabel(policy.status) }}
+            </span>
+          </div>
+
+          <p class="hero-description">
+            {{ policy.description }}
+          </p>
+        </div>
+
+        <!-- RIGHT: Bookmark, Share & Workflow Action Menu -->
+        <div class="hero-actions">
+          <!-- Bookmark Button -->
+          <button type="button" class="btn-action-icon" (click)="toggleBookmark()" [title]="
+              isBookmarked() ? 'Remove Bookmark' : 'Bookmark Policy'
+            " [class.active]="isBookmarked()">
+            <span class="material-icons">
+              {{ isBookmarked() ? 'bookmark' : 'bookmark_border' }}
+            </span>
           </button>
 
+          <!-- Share Button -->
+          <button type="button" class="btn-action-icon" (click)="sharePolicy()" title="Share Policy">
+            <span class="material-icons">share</span>
+          </button>
+
+          <!-- Three-Dot Workflow Action Menu -->
           <div class="workflow-menu-wrapper" *ngIf="hasWorkflowActions" (click)="$event.stopPropagation()">
-            <button type="button" class="btn-workflow-menu" [class.active]="workflowMenuOpen"
-              (click)="toggleWorkflowMenu($event)" title="More actions" aria-label="More workflow actions"
+            <button type="button" class="btn-action-icon btn-workflow" [class.active]="workflowMenuOpen"
+              (click)="toggleWorkflowMenu($event)" title="More workflow actions" aria-label="More workflow actions"
               [attr.aria-expanded]="workflowMenuOpen">
-              <span aria-hidden="true">•••</span>
+              <span class="material-icons">more_vert</span>
             </button>
 
             <div class="workflow-dropdown" *ngIf="workflowMenuOpen" (click)="workflowMenuOpen = false">
               <div class="workflow-dropdown-header">Workflow Actions</div>
 
-              <button type="button" class="workflow-option" *ngIf="canEdit" (click)="editPolicy()">Edit Policy</button>
-              <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
-                {{ policy.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval' }}
+              <button type="button" class="workflow-option" *ngIf="canEdit" (click)="editPolicy()">
+                <span class="material-icons">edit</span>
+                <span>Edit Policy</span>
               </button>
-              <button type="button" class="workflow-option" *ngIf="canApprove" (click)="openApproveModal()">Approve Policy</button>
-              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canReject" (click)="openRejectModal()">Reject Policy</button>
-              <button type="button" class="workflow-option" *ngIf="canArchive" (click)="openDirectArchiveModal()">Archive Policy</button>
-              <button type="button" class="workflow-option" *ngIf="canRequestArchive" (click)="openRequestArchiveModal()">Request Archive</button>
-              <button type="button" class="workflow-option" *ngIf="canApproveArchive" (click)="openApproveArchiveModal()">Approve Archive</button>
-              <button type="button" class="workflow-option" *ngIf="canRejectArchive" (click)="openRejectArchiveModal()">Reject Archive Request</button>
-              <button type="button" class="workflow-option" *ngIf="canRestore" (click)="openRestoreModal()">Restore to Draft</button>
-              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canRequestDelete" (click)="openRequestDeleteModal()">Request Deletion</button>
-              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canApproveDelete" (click)="openApproveDeleteModal()">Approve Deletion</button>
-              <button type="button" class="workflow-option" *ngIf="canRejectDelete" (click)="openRejectDeleteModal()">Reject Delete Request</button>
-              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canDirectDelete" (click)="openDirectDeleteModal()">Delete Policy</button>
+
+              <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
+                <span class="material-icons">publish</span>
+                <span>{{ policy.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval' }}</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--success" *ngIf="canApprove"
+                (click)="openApproveModal()">
+                <span class="material-icons">check_circle</span>
+                <span>Approve Policy</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canReject"
+                (click)="openRejectModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Policy</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canArchive"
+                (click)="openDirectArchiveModal()">
+                <span class="material-icons">archive</span>
+                <span>Archive Policy</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canRequestArchive"
+                (click)="openRequestArchiveModal()">
+                <span class="material-icons">archive</span>
+                <span>Request Archive</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--success" *ngIf="canApproveArchive"
+                (click)="openApproveArchiveModal()">
+                <span class="material-icons">check_circle</span>
+                <span>Approve Archive</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canRejectArchive"
+                (click)="openRejectArchiveModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Archive Request</span>
+              </button>
+
+              <button type="button" class="workflow-option" *ngIf="canRestore" (click)="openRestoreModal()">
+                <span class="material-icons">restore</span>
+                <span>Restore to Draft</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canRequestDelete"
+                (click)="openRequestDeleteModal()">
+                <span class="material-icons">delete_forever</span>
+                <span>Request Deletion</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canApproveDelete"
+                (click)="openApproveDeleteModal()">
+                <span class="material-icons">delete_forever</span>
+                <span>Approve Deletion</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--warning" *ngIf="canRejectDelete"
+                (click)="openRejectDeleteModal()">
+                <span class="material-icons">cancel</span>
+                <span>Reject Delete Request</span>
+              </button>
+
+              <button type="button" class="workflow-option workflow-option--danger" *ngIf="canDirectDelete"
+                (click)="openDirectDeleteModal()">
+                <span class="material-icons">delete</span>
+                <span>Delete Policy</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="hero-footer-row">
-        <p class="description-text">
-          {{ policy.description }}
-        </p>
-
-        <button type="button" class="btn-share" (click)="sharePolicy()">
-          Share Policy
-        </button>
-      </div>
-
     </div>
 
     <!-- ===================================================
@@ -229,11 +283,11 @@
     </div>
 
     <!-- ===================================================
-         OVERVIEW TAB
+         TAB CONTENT: OVERVIEW TAB (2-Column Layout)
          =================================================== -->
     <div class="content-grid" *ngIf="activeTab === 'overview'">
 
-      <!-- LEFT: Policy Info & Meta -->
+      <!-- LEFT: About the Policy -->
       <div class="detail-card left-panel">
         <section class="section-block">
           <h3>About the Policy</h3>
@@ -246,16 +300,10 @@
           <!-- CATEGORY -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+              <span class="material-icons">category</span>
             </div>
             <div class="meta-content">
-              <h4>Category</h4>
+              <label>Category</label>
               <p>{{ policy.category }}</p>
             </div>
           </div>
@@ -263,13 +311,10 @@
           <!-- MINISTRY -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"></path>
-              </svg>
+              <span class="material-icons">account_balance</span>
             </div>
             <div class="meta-content">
-              <h4>Ministry</h4>
+              <label>Ministry</label>
               <p>{{ policy.ministry || "Not specified" }}</p>
             </div>
           </div>
@@ -277,14 +322,10 @@
           <!-- DEPARTMENT -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
+              <span class="material-icons">corporate_fare</span>
             </div>
             <div class="meta-content">
-              <h4>Department</h4>
+              <label>Department</label>
               <p>{{ policy.department || "Not specified" }}</p>
             </div>
           </div>
@@ -292,15 +333,10 @@
           <!-- STATE -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-              </svg>
+              <span class="material-icons">public</span>
             </div>
             <div class="meta-content">
-              <h4>State / Region</h4>
+              <label>State / Region</label>
               <p>{{ policy.state || "All India / Not specified" }}</p>
             </div>
           </div>
@@ -308,14 +344,10 @@
           <!-- SECTOR -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M8 12h8M12 8v8"></path>
-              </svg>
+              <span class="material-icons">business</span>
             </div>
             <div class="meta-content">
-              <h4>Sector</h4>
+              <label>Sector</label>
               <p>{{ policy.sector || "Not specified" }}</p>
             </div>
           </div>
@@ -323,16 +355,10 @@
           <!-- PUBLICATION DATE -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
+              <span class="material-icons">calendar_today</span>
             </div>
             <div class="meta-content">
-              <h4>Publication Date</h4>
+              <label>Publication Date</label>
               <p>{{ formatDate(policy.publication_date) }}</p>
             </div>
           </div>
@@ -340,153 +366,100 @@
           <!-- EFFECTIVE DATE -->
           <div class="meta-item">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
+              <span class="material-icons">event_available</span>
             </div>
             <div class="meta-content">
-              <h4>Effective Date</h4>
+              <label>Effective Date</label>
               <p>{{ formatDate(policy.effective_date) }}</p>
             </div>
           </div>
 
-          <!-- SOURCE -->
+          <!-- SOURCE URL -->
           <div class="meta-item full-width" *ngIf="policy.source_url">
             <div class="meta-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                stroke="#475569" stroke-width="1.8">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-              </svg>
+              <span class="material-icons">link</span>
             </div>
             <div class="meta-content">
-              <h4>Source URL</h4>
-              <a [href]="policy.source_url" target="_blank" rel="noopener noreferrer">
-                {{ policy.source_url }}
-              </a>
+              <label>Source URL</label>
+              <p>
+                <a [href]="policy.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  {{ policy.source_url }}
+                  <span class="material-icons link-icon">open_in_new</span>
+                </a>
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- RIGHT: Lifecycle & Audit Details -->
+      <!-- RIGHT: Policy Highlights & Official Resources -->
       <div class="right-stack">
+        <div class="detail-card highlights-card">
+          <h3>Policy Highlights</h3>
 
-        <!-- POLICY LIFECYCLE & AUDIT TRAIL -->
-        <div class="detail-card">
-          <h3>Workflow & Audit Information</h3>
+          <div class="highlight-item">
+            <div class="highlight-icon"><span class="material-icons">verified</span></div>
+            <div>
+              <label>Current Status</label>
+              <p>
+                <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
+                  {{ getStatusLabel(policy.status) }}
+                </span>
+              </p>
+            </div>
+          </div>
 
-          <div class="summary-list">
-            <div class="summary-row">
-              <span>Policy ID</span>
-              <strong>#{{ policy.policy_id }}</strong>
+          <div class="highlight-item" *ngIf="policy.category">
+            <div class="highlight-icon"><span class="material-icons">category</span></div>
+            <div>
+              <label>Primary Focus</label>
+              <p>{{ policy.category }}</p>
             </div>
+          </div>
 
-            <div class="summary-row">
-              <span>Workflow Status</span>
-              <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
-                {{ getStatusLabel(policy.status) }}
-              </span>
+          <div class="highlight-item" *ngIf="policy.state">
+            <div class="highlight-icon"><span class="material-icons">public</span></div>
+            <div>
+              <label>Jurisdiction</label>
+              <p>{{ policy.state }}</p>
             </div>
+          </div>
 
-            <div class="summary-row">
-              <span>Created By</span>
-              <strong>
-                {{ policy.created_by ? ('User #' + policy.created_by) : 'System' }}
-              </strong>
+          <div class="highlight-item" *ngIf="policy.source_url">
+            <div class="highlight-icon"><span class="material-icons">open_in_new</span></div>
+            <div>
+              <label>Source Portal</label>
+              <p>
+                <a [href]="policy.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  Official Gazette / Portal
+                </a>
+              </p>
             </div>
+          </div>
 
-            <div class="summary-row">
-              <span>Created Date</span>
-              <strong>{{ formatDate(policy.created_at) }}</strong>
-            </div>
-
-            <div class="summary-row">
-              <span>Approval Status</span>
-              <strong>
-                {{ policy.approved_by ? ('Approved by Admin #' + policy.approved_by) : 'Not Approved' }}
-              </strong>
-            </div>
-
-            <div class="summary-row">
-              <span>Last Modified</span>
-              <strong>{{ formatDate(policy.updated_at) }}</strong>
-            </div>
-
-            <!-- REJECTION AUDIT -->
-            <div class="summary-row audit-highlight danger" *ngIf="policy.rejection_reason">
-              <span>Rejection Reason</span>
-              <strong class="reason-text">{{ policy.rejection_reason }}</strong>
-            </div>
-
-            <!-- ARCHIVE AUDIT -->
-            <div class="summary-row audit-highlight warning" *ngIf="policy.archive_reason">
-              <span>Archive Reason</span>
-              <strong class="reason-text">{{ policy.archive_reason }}</strong>
-            </div>
-            <div class="summary-row" *ngIf="policy.archive_requested_by">
-              <span>Archive Requester</span>
-              <strong>User #{{ policy.archive_requested_by }}</strong>
-            </div>
-            <div class="summary-row" *ngIf="policy.archive_requested_at">
-              <span>Archive Date</span>
-              <strong>{{ formatDate(policy.archive_requested_at) }}</strong>
-            </div>
-
-            <!-- DELETE AUDIT -->
-            <div class="summary-row audit-highlight danger" *ngIf="policy.delete_reason">
-              <span>Delete Reason</span>
-              <strong class="reason-text">{{ policy.delete_reason }}</strong>
-            </div>
-            <div class="summary-row" *ngIf="policy.delete_requested_by">
-              <span>Delete Requester</span>
-              <strong>User #{{ policy.delete_requested_by }}</strong>
-            </div>
-            <div class="summary-row" *ngIf="policy.delete_requested_at">
-              <span>Delete Date</span>
-              <strong>{{ formatDate(policy.delete_requested_at) }}</strong>
+          <div class="highlight-item" *ngIf="policy.document_url">
+            <div class="highlight-icon"><span class="material-icons">description</span></div>
+            <div>
+              <label>Official Document</label>
+              <p>
+                <a [href]="policy.document_url" target="_blank" rel="noopener noreferrer" class="link-external">
+                  View Full Document
+                </a>
+              </p>
             </div>
           </div>
         </div>
-
-        <!-- OFFICIAL RESOURCES -->
-        <div class="detail-card">
-          <h3>Official Resources</h3>
-
-          <div class="resource-list">
-            <a *ngIf="policy.source_url" [href]="policy.source_url" target="_blank" rel="noopener noreferrer"
-              class="resource-link">
-              <span>View Source Portal</span>
-              <span>↗</span>
-            </a>
-
-            <a *ngIf="policy.document_url" [href]="policy.document_url" target="_blank" rel="noopener noreferrer"
-              class="resource-link">
-              <span>View Policy Document</span>
-              <span>↗</span>
-            </a>
-
-            <div class="resource-empty" *ngIf="!policy.source_url && !policy.document_url">
-              No external resources provided.
-            </div>
-          </div>
-        </div>
-
       </div>
 
     </div>
 
     <!-- ===================================================
-         ELIGIBILITY CRITERIA TAB
+         TAB CONTENT: ELIGIBILITY CRITERIA TAB
          =================================================== -->
     <div class="detail-card tab-content-card" *ngIf="activeTab === 'eligibility'">
       <div class="tab-heading">
-        <div>
-          <h3>Eligibility Criteria</h3>
-          <p>Specific conditions and beneficiary qualifications configured for this policy.</p>
-        </div>
+        <h3>Eligibility Criteria</h3>
+        <p class="tab-subtitle">Specific conditions and beneficiary qualifications configured for this policy.</p>
       </div>
 
       <!-- Loading -->
@@ -505,22 +478,19 @@
 
       <!-- No Rules -->
       <div class="no-rules" *ngIf="!eligibilityLoading && !eligibilityError && eligibilityRules.length === 0">
-        <div class="no-rules-icon">✓</div>
-        <h4>Universal Eligibility / No Restrictions</h4>
+        <h4>No Restrictions</h4>
         <p>This policy is openly applicable to citizens without specialized eligibility restrictions.</p>
       </div>
 
       <!-- Rules -->
       <div class="eligibility-rules" *ngIf="!eligibilityLoading && !eligibilityError && eligibilityRules.length > 0">
         <div class="eligibility-rule-card" *ngFor="let rule of eligibilityRules; let index = index">
-          <div class="rule-number">{{ index + 1 }}</div>
-
           <div class="rule-content">
             <h4>Rule Condition #{{ index + 1 }}</h4>
 
             <div class="rule-list" *ngIf="getRuleDescriptions(rule).length > 0">
               <div class="rule-row" *ngFor="let description of getRuleDescriptions(rule)">
-                <span class="rule-check">✓</span>
+                <span class="material-icons check-icon">check_circle</span>
                 <span>{{ description }}</span>
               </div>
             </div>
@@ -534,49 +504,160 @@
     </div>
 
     <!-- ===================================================
-         BENEFITS TAB
+         TAB CONTENT: BENEFITS TAB
          =================================================== -->
     <div class="detail-card tab-content-card" *ngIf="activeTab === 'benefits'">
-      <h3>Policy Benefits</h3>
-
-      <div class="no-content" *ngIf="benefits.length === 0">
-        No specific benefits have been cataloged for this policy yet.
+      <div class="tab-heading">
+        <h3>Benefits</h3>
+        <p class="tab-subtitle">Specific welfare, programmatic, and developmental provisions offered under this policy.
+        </p>
       </div>
 
-      <ul class="simple-list" *ngIf="benefits.length > 0">
-        <li *ngFor="let benefit of benefits">
-          <span class="benefit-check">✓</span>
+      <div class="no-content" *ngIf="benefits.length === 0">
+        <div class="no-content-icon"><span class="material-icons">info</span></div>
+        <p>No specific benefits have been cataloged for this policy yet.</p>
+      </div>
+
+      <div class="benefits-list" *ngIf="benefits.length > 0">
+        <div class="benefit-item" *ngFor="let benefit of benefits">
+          <span class="material-icons check-icon">check_circle</span>
           <span>{{ benefit }}</span>
-        </li>
-      </ul>
+        </div>
+      </div>
     </div>
 
     <!-- ===================================================
-         DOCUMENTS TAB
+         TAB CONTENT: DOCUMENTS & LINKS TAB
          =================================================== -->
     <div class="detail-card tab-content-card" *ngIf="activeTab === 'documents'">
-      <h3>Policy Documents & Gazette Notifications</h3>
+      <div class="tab-heading">
+        <h3>Documents & Links</h3>
+        <p class="tab-subtitle">Official gazette notifications, documentation files, and affiliated web portals.</p>
+      </div>
 
-      <div class="document-resource" *ngIf="policy.document_url">
-        <div class="document-resource-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-          </svg>
+      <div class="documents-grid" *ngIf="policy.document_url || policy.source_url">
+        <!-- Policy Document -->
+        <div class="document-resource-card" *ngIf="policy.document_url">
+          <div class="document-resource-icon">
+            <span class="material-icons">description</span>
+          </div>
+
+          <div class="document-resource-content">
+            <h4>Official Policy Documentation</h4>
+            <p>Access the official government notification, guidelines, or gazette document.</p>
+            <a [href]="policy.document_url" target="_blank" rel="noopener noreferrer" class="link-external">
+              <span>Open Document</span>
+              <span class="material-icons link-icon">open_in_new</span>
+            </a>
+          </div>
         </div>
 
-        <div class="document-resource-content">
-          <h4>Official Policy Documentation</h4>
-          <p>Access the official government notification, guidelines, or gazette document.</p>
-          <a [href]="policy.document_url" target="_blank" rel="noopener noreferrer">
-            Open Document ↗
-          </a>
+        <!-- Source Portal -->
+        <div class="document-resource-card" *ngIf="policy.source_url">
+          <div class="document-resource-icon">
+            <span class="material-icons">language</span>
+          </div>
+
+          <div class="document-resource-content">
+            <h4>Official Source Portal</h4>
+            <p>Visit the official government authority portal or ministry page for this policy.</p>
+            <a [href]="policy.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+              <span>Visit Portal</span>
+              <span class="material-icons link-icon">open_in_new</span>
+            </a>
+          </div>
         </div>
       </div>
 
-      <div class="no-content" *ngIf="!policy.document_url">
-        No uploaded policy document or file attached to this record.
+      <div class="no-content" *ngIf="!policy.document_url && !policy.source_url">
+        <div class="no-content-icon"><span class="material-icons">attachment</span></div>
+        <p>No uploaded policy document or file attached to this record.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         WORKFLOW & AUDIT INFORMATION
+         (Visible ONLY to Admin & Government Official)
+         (Placed AFTER main tab content)
+         =================================================== -->
+    <div class="audit-card" *ngIf="canViewAudit">
+      <div class="audit-header">
+        <div class="audit-title-group">
+          <span class="material-icons audit-header-icon">admin_panel_settings</span>
+          <div>
+            <h3>Workflow & Audit Information</h3>
+            <p>Internal governance metadata, lifecycle status, and administrative audit trail.</p>
+          </div>
+        </div>
+        <span class="audit-badge">Restricted Access</span>
+      </div>
+
+      <div class="audit-grid">
+        <div class="audit-item">
+          <span class="audit-label">Workflow Status</span>
+          <div>
+            <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
+              {{ getStatusLabel(policy.status) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Created By</span>
+          <strong class="audit-value">{{ getCreatorDisplayName(policy.created_by) }}</strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Created Date</span>
+          <strong class="audit-value">{{ formatDate(policy.created_at) }}</strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Approved By</span>
+          <strong class="audit-value">
+            {{ policy.approved_by ? getApproverDisplayName(policy.approved_by) : 'Pending Review' }}
+          </strong>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Last Modified</span>
+          <strong class="audit-value">{{ formatDate(policy.updated_at) }}</strong>
+        </div>
+      </div>
+
+      <!-- Audit Callouts (Rejection / Archive / Delete without raw IDs) -->
+      <div class="audit-callout audit-callout--danger" *ngIf="policy.rejection_reason">
+        <div class="callout-icon"><span class="material-icons">error_outline</span></div>
+        <div class="callout-body">
+          <strong>Rejection Reason</strong>
+          <p>{{ policy.rejection_reason }}</p>
+        </div>
+      </div>
+
+      <div class="audit-callout audit-callout--warning" *ngIf="policy.archive_reason || policy.archive_requested_by">
+        <div class="callout-icon"><span class="material-icons">archive</span></div>
+        <div class="callout-body">
+          <strong>Archive Information</strong>
+          <p *ngIf="policy.archive_reason">Reason: {{ policy.archive_reason }}</p>
+          <p class="callout-subtext" *ngIf="policy.archive_requested_by">
+            Requested by {{ getRequesterDisplayName(policy.archive_requested_by) }}
+            <ng-container *ngIf="policy.archive_requested_at">on {{ formatDate(policy.archive_requested_at)
+              }}</ng-container>
+          </p>
+        </div>
+      </div>
+
+      <div class="audit-callout audit-callout--danger" *ngIf="policy.delete_reason || policy.delete_requested_by">
+        <div class="callout-icon"><span class="material-icons">delete_outline</span></div>
+        <div class="callout-body">
+          <strong>Deletion Request Information</strong>
+          <p *ngIf="policy.delete_reason">Reason: {{ policy.delete_reason }}</p>
+          <p class="callout-subtext" *ngIf="policy.delete_requested_by">
+            Requested by {{ getRequesterDisplayName(policy.delete_requested_by) }}
+            <ng-container *ngIf="policy.delete_requested_at">on {{ formatDate(policy.delete_requested_at)
+              }}</ng-container>
+          </p>
+        </div>
       </div>
     </div>
 
@@ -585,34 +666,23 @@
   <!-- =====================================================
        SHARED CONFIRM MODAL
        ===================================================== -->
-  <app-confirm-modal
-    [isOpen]="confirmModalOpen"
-    [title]="confirmTitle"
-    [message]="confirmMessage"
-    [variant]="confirmVariant"
-    (confirmed)="confirmAction && confirmAction()"
-    (cancelled)="confirmModalOpen = false"
-  ></app-confirm-modal>
+  <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+    [variant]="confirmVariant" (confirmed)="confirmAction && confirmAction()"
+    (cancelled)="confirmModalOpen = false"></app-confirm-modal>
 
   <!-- =====================================================
        SHARED REASON MODAL
        ===================================================== -->
-  <app-reason-modal
-    [isOpen]="reasonModalOpen"
-    [title]="reasonTitle"
-    [message]="reasonMessage"
-    [reasonLabel]="reasonLabel"
-    [variant]="reasonVariant"
-    (confirmed)="reasonAction && reasonAction($event)"
-    (cancelled)="reasonModalOpen = false"
-  ></app-reason-modal>
+  <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+    [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="reasonAction && reasonAction($event)"
+    (cancelled)="reasonModalOpen = false"></app-reason-modal>
 
   <!-- =====================================================
        TOAST NOTIFICATION
        ===================================================== -->
   <div class="toast-popup" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
-    <span class="toast-icon">
-      {{ toastType === 'success' ? '✓' : toastType === 'error' ? '✕' : 'ℹ' }}
+    <span class="toast-icon material-icons">
+      {{ toastType === 'success' ? 'check_circle' : toastType === 'error' ? 'cancel' : 'info' }}
     </span>
     <span class="toast-text">{{ toastMessage }}</span>
   </div>

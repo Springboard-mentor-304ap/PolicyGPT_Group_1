@@ -73,7 +73,7 @@
                     </strong>
 
                     <span>
-                        Users Found
+                        Total Users
                     </span>
 
                 </div>
@@ -89,111 +89,39 @@
 
         <section class="users-summary">
 
-            <!-- TOTAL USERS -->
-
             <article class="users-summary__card">
-
-                <div class="users-summary__icon users-summary__icon--blue">
-
-                    <span class="material-icons">
-                        groups
-                    </span>
-
+                <div class="users-summary__icon users-summary__icon--administrator">
+                    <span class="material-icons">admin_panel_settings</span>
                 </div>
-
-                <div>
-
-                    <strong>
-                        {{ users.length }}
-                    </strong>
-
-                    <span>
-                        Total Users
-                    </span>
-
-                </div>
-
+                <div><strong>{{ administratorUsers }}</strong><span>Administrator</span></div>
             </article>
 
-
-            <!-- ACTIVE USERS -->
-
             <article class="users-summary__card">
-
-                <div class="users-summary__icon users-summary__icon--green">
-
-                    <span class="material-icons">
-                        check_circle
-                    </span>
-
+                <div class="users-summary__icon users-summary__icon--government">
+                    <span class="material-icons">account_balance</span>
                 </div>
-
-                <div>
-
-                    <strong>
-                        {{ activeUsers }}
-                    </strong>
-
-                    <span>
-                        Active Users
-                    </span>
-
-                </div>
-
+                <div><strong>{{ governmentUsers }}</strong><span>Government Official</span></div>
             </article>
 
-
-            <!-- CITIZENS -->
-
             <article class="users-summary__card">
-
-                <div class="users-summary__icon users-summary__icon--orange">
-
-                    <span class="material-icons">
-                        person
-                    </span>
-
+                <div class="users-summary__icon users-summary__icon--citizen">
+                    <span class="material-icons">person</span>
                 </div>
-
-                <div>
-
-                    <strong>
-                        {{ citizenUsers }}
-                    </strong>
-
-                    <span>
-                        Citizens
-                    </span>
-
-                </div>
-
+                <div><strong>{{ citizenUsers }}</strong><span>Citizen</span></div>
             </article>
 
-
-            <!-- RESEARCHERS -->
+            <article class="users-summary__card">
+                <div class="users-summary__icon users-summary__icon--researcher">
+                    <span class="material-icons">science</span>
+                </div>
+                <div><strong>{{ researcherUsers }}</strong><span>Researcher</span></div>
+            </article>
 
             <article class="users-summary__card">
-
-                <div class="users-summary__icon users-summary__icon--purple">
-
-                    <span class="material-icons">
-                        science
-                    </span>
-
+                <div class="users-summary__icon users-summary__icon--organization">
+                    <span class="material-icons">business</span>
                 </div>
-
-                <div>
-
-                    <strong>
-                        {{ researcherUsers }}
-                    </strong>
-
-                    <span>
-                        Researchers
-                    </span>
-
-                </div>
-
+                <div><strong>{{ organizationUsers }}</strong><span>Organization</span></div>
             </article>
 
         </section>
@@ -287,29 +215,12 @@
 
                     <select id="roleFilter" [(ngModel)]="selectedRole" (ngModelChange)="applyFilters()">
 
-                        <option value="ALL">
-                            All Roles
-                        </option>
-
-                        <option value="CITIZEN">
-                            Citizen
-                        </option>
-
-                        <option value="RESEARCHER">
-                            Researcher
-                        </option>
-
-                        <option value="ORGANIZATION">
-                            Organization
-                        </option>
-
-                        <option value="GOVERNMENT_OFFICIAL">
-                            Government Official
-                        </option>
-
-                        <option value="ADMINISTRATOR">
-                            Administrator
-                        </option>
+                        <option value="ALL">All Roles</option>
+                        <option value="ADMINISTRATOR">Administrator</option>
+                        <option value="GOVERNMENT_OFFICIAL">Government Official</option>
+                        <option value="CITIZEN">Citizen</option>
+                        <option value="RESEARCHER">Researcher</option>
+                        <option value="ORGANIZATION">Organization</option>
 
                     </select>
 

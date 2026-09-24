@@ -53,11 +53,11 @@
 
     color: #17233d;
 
-    font-size: 32px;
-    font-weight: 800;
+    font-size: 30px;
+    font-weight: 700;
 
     line-height: 1.2;
-    letter-spacing: -0.7px;
+    letter-spacing: -0.5px;
   }
 
   .subtitle {
@@ -65,7 +65,7 @@
 
     color: #71829d;
 
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 400;
 
     line-height: 1.5;
@@ -106,8 +106,8 @@
   color: #475569;
 
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -150,7 +150,7 @@
 
   font-family: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -261,7 +261,7 @@
   color: #17233d;
 
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
 
   line-height: 1.3;
 
@@ -313,8 +313,10 @@
   background: #dbeafe;
   color: #3b82f6;
 
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 
   line-height: 1;
 }
@@ -373,7 +375,7 @@
     color: #1e293b;
 
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 600;
 
     line-height: 1.3;
   }
@@ -429,7 +431,7 @@
   font-family: inherit;
 
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -529,8 +531,8 @@
 
   color: #17233d;
 
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
 
   line-height: 1.4;
 }
@@ -567,8 +569,8 @@
 
     font-family: inherit;
 
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 14px;
+    font-weight: 600;
 
     cursor: pointer;
 
@@ -631,8 +633,8 @@
 
   color: #17233d;
 
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
 
   line-height: 1.35;
 
@@ -958,7 +960,7 @@
   font-family: inherit;
 
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -1091,7 +1093,7 @@
 
   .title-group {
     h1 {
-      font-size: 28px;
+      font-size: 26px;
     }
 
     .subtitle {

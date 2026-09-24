@@ -16,7 +16,7 @@
       </div>
 
       <button type="button" class="back-button" (click)="goBack()">
-        <span class="back-icon" aria-hidden="true">←</span>
+        <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
         <span>Back</span>
       </button>
 
@@ -46,8 +46,7 @@
         </span>
 
         <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="applyFilters()"
-          placeholder="Search by policy name, keyword, ministry, or benefit..." autocomplete="off"
-          aria-label="Search policies" />
+          placeholder="Search by policy name..." autocomplete="off" aria-label="Search by policy name" />
 
         <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; applyFilters()"
           aria-label="Clear search">
@@ -79,110 +78,112 @@
     </div>
 
 
-    <!-- ==================================================== -->
-    <!-- FILTER ROW -->
-    <!-- ==================================================== -->
+    <!-- FILTER PANEL (Zone 2) -->
+    <div class="filter-panel">
 
-    <div class="filters-row">
+      <!-- Filter Panel Header -->
+      <div class="filter-panel-header">
 
-      <!-- Category -->
+        <button *ngIf="hasActiveFilters" type="button" class="reset-filters-btn" (click)="clearFilters()">
+          <span class="material-icons">refresh</span>
+          <span>Reset Filters</span>
+        </button>
+      </div>
 
-      <div class="filter-group">
+      <!-- Filter Controls Grid -->
+      <div class="filters-grid" [class.has-status]="isAdminOrGov">
 
-        <label for="category">
-          Category
-        </label>
+        <!-- Department -->
+        <div class="filter-field">
+          <label for="department">
+            <span>Department</span>
+          </label>
+          <app-searchable-select id="department" [options]="departments" [(ngModel)]="selectedDepartment"
+            (ngModelChange)="applyFilters()" placeholder="All Departments" allOptionLabel="All Departments"
+            searchPlaceholder="Search departments..." icon="apartment">
+          </app-searchable-select>
+        </div>
 
-        <div class="select-wrapper">
+        <!-- State -->
+        <div class="filter-field">
+          <label for="state">
+            <span>State / UT</span>
+          </label>
+          <app-searchable-select id="state" [options]="states" [(ngModel)]="selectedState"
+            (ngModelChange)="applyFilters()" placeholder="All States" allOptionLabel="All States"
+            searchPlaceholder="Search states..." icon="location_on">
+          </app-searchable-select>
+        </div>
 
-          <select id="category" [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
+        <!-- Sector -->
+        <div class="filter-field">
+          <label for="sector">
+            <span>Sector</span>
+          </label>
+          <app-searchable-select id="sector" [options]="sectors" [(ngModel)]="selectedSector"
+            (ngModelChange)="applyFilters()" placeholder="All Sectors" allOptionLabel="All Sectors"
+            searchPlaceholder="Search sectors..." icon="grid_view">
+          </app-searchable-select>
+        </div>
 
-            <option value="">
-              All Categories
-            </option>
-
-            <option *ngFor="let category of categories" [value]="category">
-              {{ category }}
-            </option>
-
-          </select>
-
+        <!-- Publication Date -->
+        <div class="filter-field">
+          <label for="publicationDate">
+            <span>Publication Date</span>
+          </label>
+          <div class="custom-date-box" [class.has-value]="!!selectedPublicationDate">
+            <span class="material-icons date-icon">calendar_today</span>
+            <input type="date" id="publicationDate" [(ngModel)]="selectedPublicationDate"
+              (ngModelChange)="applyFilters()" class="custom-date-input" aria-label="Filter by publication date" />
+            <button *ngIf="selectedPublicationDate" type="button" class="date-clear-btn"
+              (click)="clearPublicationDate($event)" title="Clear date" aria-label="Clear date">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
         </div>
 
       </div>
 
+      <!-- Active Filter Badges / Chips Row -->
+      <div class="active-chips-row" *ngIf="hasActiveFilterChips">
+        <span class="active-chips-title">Active:</span>
 
-      <!-- Ministry -->
+        <button *ngIf="selectedDepartment" type="button" class="filter-chip"
+          (click)="selectedDepartment = ''; applyFilters()">
+          <span class="chip-label">Dept:</span>
+          <span class="chip-value">{{ selectedDepartment }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-      <div class="filter-group">
+        <button *ngIf="selectedState" type="button" class="filter-chip" (click)="selectedState = ''; applyFilters()">
+          <span class="chip-label">State:</span>
+          <span class="chip-value">{{ selectedState }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-        <label for="ministry">
-          Ministry
-        </label>
+        <button *ngIf="selectedSector" type="button" class="filter-chip" (click)="selectedSector = ''; applyFilters()">
+          <span class="chip-label">Sector:</span>
+          <span class="chip-value">{{ selectedSector }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-        <div class="select-wrapper">
+        <button *ngIf="selectedPublicationDate" type="button" class="filter-chip" (click)="clearPublicationDate()">
+          <span class="chip-label">Date:</span>
+          <span class="chip-value">{{ selectedPublicationDate }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-          <select id="ministry" [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
+        <button *ngIf="isAdminOrGov && selectedStatusDisplay" type="button" class="filter-chip"
+          (click)="selectedStatusDisplay = ''; selectedStatus = ''; applyFilters()">
+          <span class="chip-label">Status:</span>
+          <span class="chip-value">{{ selectedStatusDisplay }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-            <option value="">
-              All Ministries
-            </option>
-
-            <option *ngFor="let ministry of ministries" [value]="ministry">
-              {{ ministry }}
-            </option>
-
-          </select>
-
-        </div>
-
+        <button type="button" class="chip-clear-all" (click)="clearFilters()">
+          Clear all
+        </button>
       </div>
-
-
-      <!-- State -->
-
-      <div class="filter-group">
-
-        <label for="state">
-          State
-        </label>
-
-        <div class="select-wrapper">
-
-          <select id="state" [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
-
-            <option value="">
-              All States
-            </option>
-
-            <option *ngFor="let state of states" [value]="state">
-              {{ state }}
-            </option>
-
-          </select>
-
-        </div>
-
-      </div>
-
-
-      <!-- Clear -->
-
-      <button type="button" class="clear-filters-button" (click)="clearFilters()">
-
-        <svg class="clear-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M4 12A8 8 0 0 1 18.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-
-          <path d="M18 4V8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-
-          <path d="M20 12A8 8 0 0 1 5.5 17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-
-          <path d="M6 20V16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-
-        <span>Clear Filters</span>
-
-      </button>
 
     </div>
 
@@ -416,9 +417,7 @@
               View Policy
             </span>
 
-            <span class="view-arrow">
-              →
-            </span>
+            <span class="material-icons view-arrow" aria-hidden="true">arrow_forward</span>
 
           </a>
 
@@ -465,7 +464,8 @@
           loading ||
           currentPage === 1
         " (click)="previousPage()">
-        ← Previous
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_left</span>
+        <span>Previous</span>
       </button>
 
 
@@ -486,7 +486,8 @@
           loading ||
           currentPage === totalPages
         " (click)="nextPage()">
-        Next →
+        <span>Next</span>
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_right</span>
       </button>
 
     </nav>

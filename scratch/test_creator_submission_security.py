@@ -27,8 +27,20 @@ def test_creator_submission_security():
     gov1_headers = {"Authorization": f"Bearer {gov1_token}"}
     log(f"Gov Official 1 logged in: ID={gov1_id}")
 
-    log("Logging in Government Official 2 (test@gov.com)...")
-    res = requests.post(f"{BASE_URL}/auth/login", json={"identifier": "test@gov.com", "password": "Gov2@1234"})
+    log("Logging in Government Official 2 (gov2_unique@gov.com)...")
+    res = requests.post(f"{BASE_URL}/auth/login", json={"identifier": "gov2_unique@gov.com", "password": "Password@123"})
+    if res.status_code != 200:
+        log("Registering Government Official 2...")
+        requests.post(f"{BASE_URL}/auth/register", json={
+            "full_name": "Test Gov Officer 2",
+            "email": "gov2_unique@gov.com",
+            "password": "Password@123",
+            "confirm_password": "Password@123",
+            "role": "GOVERNMENT_OFFICIAL",
+            "organization": "Ministry of Agriculture",
+            "occupation": "Policy Analyst"
+        })
+        res = requests.post(f"{BASE_URL}/auth/login", json={"identifier": "gov2_unique@gov.com", "password": "Password@123"})
     assert res.status_code == 200, f"Gov 2 login failed: {res.text}"
     gov2_token = res.json()["access_token"]
     gov2_user = res.json()["user"]

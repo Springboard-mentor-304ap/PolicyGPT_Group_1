@@ -18,7 +18,7 @@ class Notification(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("extensions.users.user_id"),
+        ForeignKey("users.user_id"),
         nullable=True
     )
 

@@ -82,11 +82,8 @@
                             <span class="material-icons">{{ getRoleIcon(user.role) }}</span>
                             {{ getRoleLabel(user.role) }}
                         </span>
-                        <span
-                            class="status-pill"
-                            [class.status-pill--active]="user.status === 'Active'"
-                            [class.status-pill--inactive]="user.status === 'Inactive'"
-                        >
+                        <span class="status-pill" [class.status-pill--active]="user.status === 'Active'"
+                            [class.status-pill--inactive]="user.status === 'Inactive'">
                             <span></span>
                             {{ user.status }}
                         </span>
@@ -103,7 +100,8 @@
                         </span>
                         <span class="contact-item">
                             <span class="material-icons">place</span>
-                            {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' + user.district : '' }}
+                            {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' + user.district
+                            : '' }}
                         </span>
                     </div>
                 </div>
@@ -232,41 +230,23 @@
 
             <!-- TAB HEADERS -->
             <div class="details-tab-nav" role="tablist">
-                <button
-                    type="button"
-                    class="tab-btn"
-                    [class.tab-btn--active]="activeTab === 'overview'"
-                    (click)="setTab('overview')"
-                    role="tab"
-                    [attr.aria-selected]="activeTab === 'overview'"
-                >
+                <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab === 'overview'"
+                    (click)="setTab('overview')" role="tab" [attr.aria-selected]="activeTab === 'overview'">
                     <span class="material-icons">person_outline</span>
                     <span>Overview</span>
                 </button>
 
                 <!-- TABS FOR GOVERNMENT & ADMIN -->
                 @if (isCreatorRole(user.role)) {
-                <button
-                    type="button"
-                    class="tab-btn"
-                    [class.tab-btn--active]="activeTab === 'policies'"
-                    (click)="setTab('policies')"
-                    role="tab"
-                    [attr.aria-selected]="activeTab === 'policies'"
-                >
+                <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab === 'policies'"
+                    (click)="setTab('policies')" role="tab" [attr.aria-selected]="activeTab === 'policies'">
                     <span class="material-icons">policy</span>
                     <span>Policies Created</span>
                     <span class="tab-badge">{{ userPolicies.length }}</span>
                 </button>
 
-                <button
-                    type="button"
-                    class="tab-btn"
-                    [class.tab-btn--active]="activeTab === 'schemes'"
-                    (click)="setTab('schemes')"
-                    role="tab"
-                    [attr.aria-selected]="activeTab === 'schemes'"
-                >
+                <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab === 'schemes'"
+                    (click)="setTab('schemes')" role="tab" [attr.aria-selected]="activeTab === 'schemes'">
                     <span class="material-icons">article</span>
                     <span>Schemes Created</span>
                     <span class="tab-badge">{{ userSchemes.length }}</span>
@@ -274,14 +254,8 @@
                 }
 
                 <!-- TAB FOR RECENT ACTIVITY (ALL USERS) -->
-                <button
-                    type="button"
-                    class="tab-btn"
-                    [class.tab-btn--active]="activeTab === 'activity'"
-                    (click)="setTab('activity')"
-                    role="tab"
-                    [attr.aria-selected]="activeTab === 'activity'"
-                >
+                <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab === 'activity'"
+                    (click)="setTab('activity')" role="tab" [attr.aria-selected]="activeTab === 'activity'">
                     <span class="material-icons">timeline</span>
                     <span>Recent Activity</span>
                     <span class="tab-badge">{{ userActivities.length }}</span>
@@ -289,14 +263,8 @@
 
                 <!-- SEARCH & INQUIRY HISTORY (CITIZEN, RESEARCHER, ORGANIZATION) -->
                 @if (!isCreatorRole(user.role)) {
-                <button
-                    type="button"
-                    class="tab-btn"
-                    [class.tab-btn--active]="activeTab === 'searches'"
-                    (click)="setTab('searches')"
-                    role="tab"
-                    [attr.aria-selected]="activeTab === 'searches'"
-                >
+                <button type="button" class="tab-btn" [class.tab-btn--active]="activeTab === 'searches'"
+                    (click)="setTab('searches')" role="tab" [attr.aria-selected]="activeTab === 'searches'">
                     <span class="material-icons">search</span>
                     <span>Search & Exploration History</span>
                     <span class="tab-badge">{{ userSearches.length }}</span>
@@ -316,10 +284,6 @@
                             <h3>Account Information</h3>
                         </div>
                         <div class="info-block__body">
-                            <div class="info-row">
-                                <span class="info-label">User ID:</span>
-                                <span class="info-value">#{{ user.id }}</span>
-                            </div>
                             <div class="info-row">
                                 <span class="info-label">Full Name:</span>
                                 <span class="info-value">{{ user.fullName }}</span>
@@ -433,12 +397,8 @@
                                     <span class="record-date">{{ formatDate(policy.created_at) }}</span>
                                 </td>
                                 <td class="td-actions">
-                                    <button
-                                        type="button"
-                                        class="view-link-btn"
-                                        (click)="viewPolicyDetails(policy.policy_id)"
-                                        aria-label="View policy details"
-                                    >
+                                    <button type="button" class="view-link-btn"
+                                        (click)="viewPolicyDetails(policy.policy_id)" aria-label="View policy details">
                                         <span class="material-icons">visibility</span>
                                         View Details
                                     </button>
@@ -510,12 +470,8 @@
                                     <span class="record-date">{{ formatDate(scheme.created_at) }}</span>
                                 </td>
                                 <td class="td-actions">
-                                    <button
-                                        type="button"
-                                        class="view-link-btn"
-                                        (click)="viewSchemeDetails(scheme.scheme_id)"
-                                        aria-label="View scheme details"
-                                    >
+                                    <button type="button" class="view-link-btn"
+                                        (click)="viewSchemeDetails(scheme.scheme_id)" aria-label="View scheme details">
                                         <span class="material-icons">visibility</span>
                                         View Details
                                     </button>

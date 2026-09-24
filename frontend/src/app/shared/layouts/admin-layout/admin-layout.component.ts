@@ -297,6 +297,31 @@ export class AdminLayoutComponent implements OnInit {
   // SUBMENU CONTROLS
   // =======================================================
 
+  onUsersNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleUsersMenu();
+      return;
+    }
+
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.usersMenuOpen = true;
+    this.policiesMenuOpen = false;
+    this.schemesMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(["/dashboard/admin/users"]);
+  }
+
+  toggleUsersMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleUsersMenu();
+  }
+
   toggleUsersMenu(): void {
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;

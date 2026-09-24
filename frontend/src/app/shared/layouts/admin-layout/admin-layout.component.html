@@ -184,8 +184,8 @@
 
             <!-- USERS -->
             <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
-          usersMenuOpen || isUsersRouteActive()
-        " (click)="toggleUsersMenu()" [attr.title]="sidebarCollapsed ? 'Users' : null"
+                usersMenuOpen || isUsersRouteActive()
+            " (click)="onUsersNavClick($event)" [attr.title]="sidebarCollapsed ? 'Users' : null"
                 [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
 
                 <span class="material-icons dash-nav__icon">
@@ -196,7 +196,8 @@
                     Users
                 </span>
 
-                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="usersMenuOpen">
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="usersMenuOpen"
+                    (click)="toggleUsersMenuOnly($event)" title="Toggle Users submenu">
                     chevron_right
                 </span>
 

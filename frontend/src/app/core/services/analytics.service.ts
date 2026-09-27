@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
 
 export interface DashboardAnalyticsResponse {
   total_policies: number;
@@ -13,6 +13,30 @@ export interface DashboardAnalyticsResponse {
   total_users: number;
   total_notifications: number;
   total_feedback: number;
+}
+
+export interface DashboardAnalytics {
+  policies: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    archived: number;
+  };
+
+  schemes: {
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    archived: number;
+  };
+
+  users: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
 }
 
 export interface PolicyCategoryCount {
@@ -39,6 +63,31 @@ export interface PolicyAnalyticsResponse {
   by_category: PolicyCategoryCount[];
   by_state: PolicyStateCount[];
   by_ministry: PolicyMinistryCount[];
+  monthly_trend: any[];
+}
+
+export interface PolicyAnalytics {
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  archived: number;
+
+  by_category: {
+    category: string;
+    count: number;
+  }[];
+
+  by_state: {
+    state: string;
+    count: number;
+  }[];
+
+  by_ministry: {
+    ministry: string;
+    count: number;
+  }[];
+
   monthly_trend: any[];
 }
 
@@ -69,6 +118,31 @@ export interface SchemeAnalyticsResponse {
   monthly_trend: any[];
 }
 
+export interface SchemeAnalytics {
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  archived: number;
+
+  by_category: {
+    category: string;
+    count: number;
+  }[];
+
+  by_state: {
+    state: string;
+    count: number;
+  }[];
+
+  by_ministry: {
+    ministry: string;
+    count: number;
+  }[];
+
+  monthly_trend: any[];
+}
+
 export interface PolicyTrendItem {
   year: number;
   month: number;
@@ -91,35 +165,95 @@ export interface UserAnalyticsResponse {
   by_state: { state: string; count: number }[];
 }
 
+export interface UserAnalytics {
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+
+  by_role: {
+    role: string;
+    count: number;
+  }[];
+
+  by_state: {
+    state: string;
+    count: number;
+  }[];
+}
+
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AnalyticsService {
-  private readonly baseUrl = 'http://localhost:8000/analytics';
+  private readonly baseUrl = "http://localhost:8000/analytics";
+
+  private readonly notificationsUrl = "http://localhost:8000/notifications";
 
   constructor(private readonly http: HttpClient) {}
 
-  getDashboardAnalytics(): Observable<DashboardAnalyticsResponse> {
-    return this.http.get<DashboardAnalyticsResponse>(`${this.baseUrl}/dashboard`);
+  // --------------------------------------------------
+  // DASHBOARD
+  // --------------------------------------------------
+
+  getDashboardAnalytics(): Observable<DashboardAnalyticsResponse & DashboardAnalytics & any> {
+    return this.http.get<any>(`${this.baseUrl}/dashboard`);
   }
 
-  getPolicyAnalytics(): Observable<PolicyAnalyticsResponse> {
-    return this.http.get<PolicyAnalyticsResponse>(`${this.baseUrl}/policies`);
+  // --------------------------------------------------
+  // POLICY ANALYTICS
+  // --------------------------------------------------
+
+  getPolicyAnalytics(): Observable<PolicyAnalyticsResponse & PolicyAnalytics & any> {
+    return this.http.get<any>(`${this.baseUrl}/policies`);
   }
 
-  getSchemeAnalytics(): Observable<SchemeAnalyticsResponse> {
-    return this.http.get<SchemeAnalyticsResponse>(`${this.baseUrl}/schemes`);
+  getPolicyTrends(): Observable<PolicyTrendItem[] | any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/policies/trends`);
   }
 
-  getPolicyTrends(): Observable<PolicyTrendItem[]> {
-    return this.http.get<PolicyTrendItem[]>(`${this.baseUrl}/policies/trends`);
+  // --------------------------------------------------
+  // SCHEME ANALYTICS
+  // --------------------------------------------------
+
+  getSchemeAnalytics(): Observable<SchemeAnalyticsResponse & SchemeAnalytics & any> {
+    return this.http.get<any>(`${this.baseUrl}/schemes`);
   }
 
   getSchemeUsage(): Observable<SchemeUsageResponse> {
     return this.http.get<SchemeUsageResponse>(`${this.baseUrl}/schemes/usage`);
   }
 
-  getUserAnalytics(): Observable<UserAnalyticsResponse> {
-    return this.http.get<UserAnalyticsResponse>(`${this.baseUrl}/users`);
+  // --------------------------------------------------
+  // USER ANALYTICS
+  // --------------------------------------------------
+
+  getUserAnalytics(): Observable<UserAnalyticsResponse & UserAnalytics & any> {
+    return this.http.get<any>(`${this.baseUrl}/users`);
+  }
+
+  getUserActivity(): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/users/activity`);
+  }
+
+  // --------------------------------------------------
+  // DEPARTMENT ANALYTICS
+  // --------------------------------------------------
+
+  getDepartments(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/departments`);
+  }
+
+  getDepartmentAnalytics(department: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.baseUrl}/departments/${encodeURIComponent(department)}`
+    );
+  }
+
+  // --------------------------------------------------
+  // NOTIFICATIONS
+  // --------------------------------------------------
+
+  getNotifications(): Observable<any[]> {
+    return this.http.get<any[]>(this.notificationsUrl);
   }
 }

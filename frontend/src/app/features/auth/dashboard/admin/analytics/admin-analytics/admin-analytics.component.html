@@ -1,0 +1,844 @@
+<div class="analytics-page">
+
+  <!-- ================= HEADER ================= -->
+
+  <div class="analytics-header">
+
+    <div class="title-section">
+
+      <div class="breadcrumb">
+        <span>Home</span>
+        <span class="separator">›</span>
+        <span>Analytics</span>
+      </div>
+
+      <h1>Admin Analytics Dashboard</h1>
+
+      <p>
+        Overview of platform statistics and key insights
+      </p>
+
+    </div>
+
+    <div class="header-actions">
+
+      <button class="date-selector">
+        <span class="material-icons">
+          calendar_today
+        </span>
+
+        <span>
+          Sep 1, 2024 - Sep 30, 2024
+        </span>
+
+        <span class="material-icons arrow">
+          expand_more
+        </span>
+      </button>
+
+      <button
+        class="refresh-button"
+        (click)="refresh()"
+      >
+        <span class="material-icons">
+          refresh
+        </span>
+
+        Refresh
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- ================= LOADING ================= -->
+
+  <div class="loading-state" *ngIf="false">
+  <div class="spinner"></div>
+  <span>Loading analytics...</span>
+</div>
+
+
+  <!-- ================= ERROR ================= -->
+
+  <div
+    class="error-state"
+    *ngIf="!loading && errorMessage"
+  >
+
+    <span class="material-icons">
+      error_outline
+    </span>
+
+    <p>{{ errorMessage }}</p>
+
+    <button (click)="refresh()">
+      Try Again
+    </button>
+
+  </div>
+
+
+  <!-- ================= MAIN DASHBOARD ================= -->
+
+  <div
+    class="dashboard-content"
+    *ngIf="!loading && !errorMessage"
+  >
+
+
+    <!-- ================= KPI CARDS ================= -->
+
+    <section class="stats-grid">
+
+
+      <!-- Total Users -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon users">
+          <span class="material-icons">
+            groups
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Total Users
+          </span>
+
+          <strong>
+            {{ totalUsers | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              Active: {{ activeUsers }}
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Total Policies -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon policies">
+          <span class="material-icons">
+            description
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Total Policies
+          </span>
+
+          <strong>
+            {{ totalPolicies | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              {{ approvedPolicies }} approved
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Total Schemes -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon schemes">
+          <span class="material-icons">
+            inventory_2
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Total Schemes
+          </span>
+
+          <strong>
+            {{ totalSchemes | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              {{ approvedSchemes }} approved
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Approved Policies -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon approved">
+          <span class="material-icons">
+            check_circle
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Approved Policies
+          </span>
+
+          <strong>
+            {{ approvedPolicies | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              Current approved
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Pending Policies -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon pending">
+          <span class="material-icons">
+            schedule
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Pending Policies
+          </span>
+
+          <strong>
+            {{ pendingPolicies | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="orange">
+              Awaiting review
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Rejected Policies -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon rejected">
+          <span class="material-icons">
+            close
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Rejected Policies
+          </span>
+
+          <strong>
+            {{ rejectedPolicies | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="red">
+              Current rejected
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Active Schemes -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon active">
+          <span class="material-icons">
+            settings
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Active Schemes
+          </span>
+
+          <strong>
+            {{ activeSchemes | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              Approved schemes
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- Total Notifications -->
+
+      <div class="stat-card">
+
+        <div class="stat-icon notification">
+          <span class="material-icons">
+            notifications
+          </span>
+        </div>
+
+        <div class="stat-info">
+
+          <span class="stat-label">
+            Total Notifications
+          </span>
+
+          <strong>
+            {{ totalNotifications | number }}
+          </strong>
+
+          <div class="stat-description">
+            <span class="green">
+              Available notifications
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= CHART ROW ================= -->
+
+    <section class="chart-grid">
+
+
+      <!-- POLICIES TREND -->
+
+      <div class="panel trend-panel">
+
+        <div class="panel-header">
+
+          <div>
+            <h2>Policies Trend</h2>
+
+            <p>
+              Policy status over time
+            </p>
+          </div>
+
+          <button class="period-button">
+            Last 9 Months
+
+            <span class="material-icons">
+              expand_more
+            </span>
+          </button>
+
+        </div>
+
+
+        <div class="line-chart">
+
+          <div class="y-axis">
+
+            <span>200</span>
+            <span>150</span>
+            <span>100</span>
+            <span>50</span>
+            <span>0</span>
+
+          </div>
+
+
+          <div class="chart-body">
+
+            <div class="horizontal-line line-1"></div>
+            <div class="horizontal-line line-2"></div>
+            <div class="horizontal-line line-3"></div>
+            <div class="horizontal-line line-4"></div>
+            <div class="horizontal-line line-5"></div>
+
+
+            <svg
+              class="trend-svg"
+              viewBox="0 0 290 120"
+              preserveAspectRatio="none"
+            >
+
+              <polyline
+                *ngIf="policyTrend.length > 0"
+                [attr.points]="getApprovedTrendPoints()"
+                fill="none"
+                stroke="#55bd91"
+                stroke-width="2"
+              ></polyline>
+
+              <polyline
+                *ngIf="policyTrend.length > 0"
+                [attr.points]="getPendingTrendPoints()"
+                fill="none"
+                stroke="#e6b24d"
+                stroke-width="2"
+              ></polyline>
+
+              <polyline
+                *ngIf="policyTrend.length > 0"
+                [attr.points]="getRejectedTrendPoints()"
+                fill="none"
+                stroke="#e95e67"
+                stroke-width="2"
+              ></polyline>
+
+              <circle
+                *ngFor="
+                  let item of policyTrend;
+                  let i = index
+                "
+                [attr.cx]="getTrendX(i)"
+                [attr.cy]="getTrendY(item)"
+                r="2.5"
+                fill="#55bd91"
+              ></circle>
+
+            </svg>
+
+
+            <div class="x-axis">
+
+              <span
+                *ngFor="
+                  let item of policyTrend;
+                  let i = index
+                "
+              >
+                {{ getTrendMonth(item, i) }}
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div
+          class="chart-empty"
+          *ngIf="policyTrend.length === 0"
+        >
+          No monthly trend data available
+        </div>
+
+
+        <div class="chart-legend">
+
+          <span>
+            <i class="approved-dot"></i>
+            Approved
+          </span>
+
+          <span>
+            <i class="pending-dot"></i>
+            Pending
+          </span>
+
+          <span>
+            <i class="rejected-dot"></i>
+            Rejected
+          </span>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- SCHEMES BY CATEGORY -->
+
+      <div class="panel">
+
+        <div class="panel-header">
+
+          <div>
+            <h2>Schemes by Category</h2>
+
+            <p>
+              Distribution of schemes
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="donut-section">
+
+          <div
+            class="donut"
+            [style.background]="
+              getSchemeDonutBackground()
+            "
+          >
+
+            <div class="donut-hole">
+
+              <strong>
+                {{ totalSchemes }}
+              </strong>
+
+              <span>
+                Total
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="legend-list">
+
+            <div
+              class="legend-item"
+              *ngFor="
+                let category of schemeCategories;
+                let i = index
+              "
+            >
+
+              <span
+                class="legend-color"
+                [ngClass]="'color-' + (i % 6)"
+              ></span>
+
+              <span class="legend-name">
+                {{ category.category }}
+              </span>
+
+              <strong>
+                {{ getCategoryPercentage(category.count) }}%
+              </strong>
+
+            </div>
+
+
+            <div
+              class="no-data"
+              *ngIf="
+                schemeCategories.length === 0
+              "
+            >
+              No category data available
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- USER DISTRIBUTION -->
+
+      <div class="panel">
+
+        <div class="panel-header">
+
+          <div>
+            <h2>User Distribution</h2>
+
+            <p>
+              Users by role
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="donut-section">
+
+          <div
+            class="donut"
+            [style.background]="
+              getUserDonutBackground()
+            "
+          >
+
+            <div class="donut-hole">
+
+              <strong>
+                {{ totalUsers }}
+              </strong>
+
+              <span>
+                Users
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div class="legend-list">
+
+            <div
+              class="legend-item"
+              *ngFor="
+                let role of userRoles;
+                let i = index
+              "
+            >
+
+              <span
+                class="legend-color"
+                [ngClass]="'color-' + (i % 5)"
+              ></span>
+
+              <span class="legend-name">
+                {{ role.role }}
+              </span>
+
+              <strong>
+                {{ getRolePercentage(role.count) }}%
+              </strong>
+
+            </div>
+
+
+            <div
+              class="no-data"
+              *ngIf="userRoles.length === 0"
+            >
+              No role data available
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= BOTTOM ROW ================= -->
+
+    <section class="bottom-grid">
+
+
+      <!-- RECENT USER ACTIVITY -->
+
+      <div class="panel activity-panel">
+
+        <div class="panel-header">
+
+          <div>
+            <h2>Recent User Activity</h2>
+          </div>
+
+          <button class="view-all">
+            View All
+          </button>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>User</th>
+                <th>Action</th>
+                <th>Time</th>
+                <th>Status</th>
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngIf="!activityAvailable"
+                class="empty-row"
+              >
+
+                <td colspan="4">
+
+                  Activity event details are not
+                  available from the current analytics API.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- LATEST NOTIFICATIONS -->
+
+      <div class="panel notification-panel">
+
+        <div class="panel-header">
+
+          <div>
+            <h2>Latest Notifications</h2>
+          </div>
+
+          <button class="view-all">
+            View All
+          </button>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+
+            </thead>
+
+
+            <tbody>
+
+              <tr
+                *ngFor="
+                  let notification
+                  of recentNotifications
+                "
+              >
+
+                <td class="notification-title">
+
+                  {{
+                    getNotificationTitle(
+                      notification
+                    )
+                  }}
+
+                </td>
+
+                <td>
+
+                  <span class="type-badge">
+
+                    {{
+                      getNotificationType(
+                        notification
+                      )
+                    }}
+
+                  </span>
+
+                </td>
+
+                <td>
+
+                  {{
+                    getNotificationDate(
+                      notification
+                    )
+                  }}
+
+                </td>
+
+                <td>
+
+                  <span class="status-badge">
+
+                    {{
+                      getNotificationStatus(
+                        notification
+                      )
+                    }}
+
+                  </span>
+
+                </td>
+
+              </tr>
+
+
+              <tr
+                *ngIf="
+                  recentNotifications.length === 0
+                "
+                class="empty-row"
+              >
+
+                <td colspan="4">
+
+                  No recent notifications available.
+
+                </td>
+
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+</div>

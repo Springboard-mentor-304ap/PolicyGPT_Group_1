@@ -535,6 +535,20 @@ export const DASHBOARD_ROUTES: Routes = [
           import("./admin/admin.component").then((m) => m.AdminComponent),
       },
 
+      // =====================================================
+      // ADMIN ANALYTICS
+      // /dashboard/admin/analytics
+      // =====================================================
+
+      {
+        path: "analytics",
+
+        loadComponent: () =>
+          import(
+            "./admin/analytics/admin-analytics/admin-analytics.component"
+          ).then((m) => m.AdminAnalyticsComponent),
+      },
+
       // POLICIES (SEARCH/VIEW)
       // /dashboard/admin/policies
       {

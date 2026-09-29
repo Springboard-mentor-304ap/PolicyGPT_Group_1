@@ -3,7 +3,6 @@
 # ==========================================
 
 .DS_Store
-.DS_Store?
 Thumbs.db
 Desktop.ini
 
@@ -70,7 +69,7 @@ dist/
 # Node dependencies
 node_modules/
 
-# Angular generated files
+# Angular cache
 .angular/
 
 # Frontend build output
@@ -110,8 +109,15 @@ docker-compose.override.yml
 *.tmp
 *.temp
 *.cache
-*.pid.DS_Store
+*.pid
 
 
-# Angular cache
-.angular/
+# ==========================================
+# GENERATED REPORT FILES
+# ==========================================
+
+# Generated PDF / Excel reports
+backend/storage/reports/
+
+# Alternative if storage contains only generated files:
+# backend/storage/

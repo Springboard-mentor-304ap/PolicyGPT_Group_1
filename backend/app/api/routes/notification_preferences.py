@@ -1,20 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import get_current_user, normalize_role
 from app.models.user import User
-
 from app.schemas.notification_preference import (
-    NotificationPreferenceCreate,
     NotificationPreferenceUpdate,
     NotificationPreferenceResponse,
 )
-
 from app.services.notification_preference_service import (
-    create_preferences,
-    get_preferences,
+    get_or_create_preferences,
     update_preferences,
+    reset_preferences,
 )
 
 router = APIRouter(
@@ -23,119 +20,364 @@ router = APIRouter(
 )
 
 
-@router.post(
+def _verify_not_guest(current_user: User):
+    role = normalize_role(current_user.role)
+    if role in ("GUEST", "GUEST_USER"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Guest users cannot manage notification "
+                "preferences. Please sign in."
+            ),
+        )
+
+
+# ============================================================
+# GET MY PREFERENCES
+# ============================================================
+
+@router.get(
     "",
     response_model=NotificationPreferenceResponse,
 )
-def create_notification_preferences(
-    data: NotificationPreferenceCreate,
+@router.get(
+    "/me",
+    response_model=NotificationPreferenceResponse,
+)
+def get_my_preferences(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
+    _verify_not_guest(current_user)
+    return get_or_create_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
     )
 
-    if current_user.role != "ADMIN" and current_user.user_id != data.user_id:
-        raise HTTPException(
-            status_code=403,
-            detail="You can only create preferences for your own account",
-        )
 
-    existing = get_preferences(db, data.user_id,current_user.role)
+# ============================================================
+# UPDATE MY PREFERENCES
+# ============================================================
 
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="Notification preferences already exist for this user",
-        )
+@router.put(
+    "",
+    response_model=NotificationPreferenceResponse,
+)
+@router.patch(
+    "",
+    response_model=NotificationPreferenceResponse,
+)
+@router.put(
+    "/me",
+    response_model=NotificationPreferenceResponse,
+)
+@router.patch(
+    "/me",
+    response_model=NotificationPreferenceResponse,
+)
+def update_my_preferences(
+    data: NotificationPreferenceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _verify_not_guest(current_user)
+    return update_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+        data=data,
+    )
 
-    return create_preferences(db, data)
 
+# ============================================================
+# RESET PREFERENCES TO DEFAULT
+# ============================================================
+
+@router.post(
+    "/reset",
+    response_model=NotificationPreferenceResponse,
+)
+@router.post(
+    "/me/reset",
+    response_model=NotificationPreferenceResponse,
+)
+def reset_my_preferences(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _verify_not_guest(current_user)
+    return reset_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+    )
+
+
+# ============================================================
+# LEGACY ROUTES (PRESERVING COMPATIBILITY)
+# ============================================================
 
 @router.get(
     "/{user_id}",
     response_model=NotificationPreferenceResponse,
 )
-def get_notification_preferences(
+def get_preferences_by_id(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
+    _verify_not_guest(current_user)
     if (
         current_user.user_id != user_id
-        and current_user.role != "ADMIN"
+        and current_user.role not in ["ADMIN", "ADMINISTRATOR"]
     ):
         raise HTTPException(
-            status_code=403,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only access your own notification preferences",
         )
-
-    preference = get_preferences(db, user_id,current_user.role)
-
-    if not preference:
-        raise HTTPException(
-            status_code=404,
-            detail="Notification preferences not found",
-        )
-
-    return preference
+    return get_or_create_preferences(
+        db=db,
+        user_id=user_id,
+        user_role=current_user.role,
+    )
 
 
 @router.patch(
     "/{user_id}",
     response_model=NotificationPreferenceResponse,
 )
-def update_notification_preferences(
+def update_preferences_by_id(
     user_id: int,
     data: NotificationPreferenceUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
+    _verify_not_guest(current_user)
     if (
         current_user.user_id != user_id
-        and current_user.role != "ADMIN"
+        and current_user.role not in ["ADMIN", "ADMINISTRATOR"]
     ):
         raise HTTPException(
-            status_code=403,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only update your own notification preferences",
         )
+    return update_preferences(
+        db=db,
+        user_id=user_id,
+        user_role=current_user.role,
+        data=data,
+    )
 
-    preference = update_preferences(db, user_id, current_user.role, data)
+# ============================================================
+# PER-NOTIFICATION-TYPE CHANNEL MATRIX
+#
+# The backend is the authority on which preference groups a role may view and
+# edit. The preferences screen renders whatever these endpoints return; it does
+# not decide visibility itself.
+# ============================================================
 
-    if not preference:
+from app.schemas.notification_preference import (  # noqa: E402
+    NotificationMatrixResponse,
+    NotificationMatrixUpdate,
+    NotificationTypeRuleUpdate,
+)
+from app.services import notification_taxonomy as tax  # noqa: E402
+from app.services.notification_preference_rule_service import (  # noqa: E402
+    delete_rules,
+    effective_matrix,
+    replace_rules,
+    upsert_rule,
+)
+from app.services.notification_preference_service import (  # noqa: E402
+    update_preferences as _update_preferences,
+)
+from app.services.notification_service import (  # noqa: E402
+    invalidate_preference_cache,
+)
+
+
+@router.get(
+    "/me/matrix",
+    response_model=NotificationMatrixResponse,
+)
+def get_my_notification_matrix(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """The full per-type x channel matrix, scoped to the caller's role."""
+    _verify_not_guest(current_user)
+    role = normalize_role(current_user.role)
+    preference = get_or_create_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+    )
+    return {
+        "user_id": current_user.user_id,
+        "role": role,
+        "global_settings": preference,
+        "groups": effective_matrix(
+            db, current_user.user_id, role, preference=preference
+        ),
+    }
+
+
+@router.put(
+    "/me/matrix",
+    response_model=NotificationMatrixResponse,
+)
+def save_my_notification_matrix(
+    data: NotificationMatrixUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Save master switches and/or per-type rules in one transaction.
+
+    Rejects any type the caller's role is not allowed to configure, so a
+    crafted request cannot turn on internal workflow alerts for a citizen.
+
+    Authorisation is checked *before* anything is written and the whole save
+    commits once at the end. Otherwise a request that mixes valid master
+    switches with a forbidden rule type would return 403 while leaving the
+    master switches already persisted.
+    """
+    _verify_not_guest(current_user)
+    role = normalize_role(current_user.role)
+
+    rejected = [
+        rule.notification_type
+        for rule in data.rules
+        if not tax.role_can_configure_type(role, rule.notification_type)
+    ]
+    if rejected:
         raise HTTPException(
-            status_code=404,
-            detail="Notification preferences not found",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Your role cannot configure notifications of type: "
+                + ", ".join(sorted(set(rejected)))
+            ),
         )
 
-    return preference
+    if data.global_settings is not None:
+        _update_preferences(
+            db=db,
+            user_id=current_user.user_id,
+            user_role=current_user.role,
+            data=data.global_settings,
+            commit=False,
+        )
+
+    if data.rules:
+        replace_rules(
+            db,
+            current_user.user_id,
+            [rule.model_dump() for rule in data.rules],
+        )
+
+    db.commit()
+
+    # The resolved-channel cache is now stale.
+    invalidate_preference_cache(current_user.user_id)
+
+    preference = get_or_create_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+    )
+    return {
+        "user_id": current_user.user_id,
+        "role": role,
+        "global_settings": preference,
+        "groups": effective_matrix(
+            db, current_user.user_id, role, preference=preference
+        ),
+    }
+
+
+@router.patch(
+    "/me/types/{notification_type}",
+    response_model=NotificationMatrixResponse,
+)
+def set_single_type(
+    notification_type: str,
+    data: NotificationTypeRuleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Toggle one notification type's channels without touching the rest."""
+    _verify_not_guest(current_user)
+    role = normalize_role(current_user.role)
+
+    if not tax.role_can_configure_type(role, notification_type):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                f"Your role cannot configure notifications of type "
+                f"'{notification_type}'."
+            ),
+        )
+
+    upsert_rule(
+        db=db,
+        user_id=current_user.user_id,
+        notification_type=notification_type,
+        in_app_enabled=data.in_app_enabled,
+        email_enabled=data.email_enabled,
+        sms_enabled=data.sms_enabled,
+    )
+    db.commit()
+    invalidate_preference_cache(current_user.user_id)
+
+    preference = get_or_create_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+    )
+    return {
+        "user_id": current_user.user_id,
+        "role": role,
+        "global_settings": preference,
+        "groups": effective_matrix(
+            db, current_user.user_id, role, preference=preference
+        ),
+    }
+
+
+@router.delete(
+    "/me/types",
+    response_model=NotificationMatrixResponse,
+)
+def reset_types_to_defaults(
+    types: list[str] = Query(
+        default_factory=list,
+        description="Notification types to reset. Omit to reset every type.",
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete explicit per-type rules, falling back to the group defaults."""
+    _verify_not_guest(current_user)
+    role = normalize_role(current_user.role)
+    if types:
+        targets = [t for t in types if tax.role_can_configure_type(role, t)]
+    else:
+        targets = [t for group in tax.groups_for_role(
+            role) for t in group.types]
+    delete_rules(db, current_user.user_id, targets)
+    db.commit()
+    invalidate_preference_cache(current_user.user_id)
+
+    preference = get_or_create_preferences(
+        db=db,
+        user_id=current_user.user_id,
+        user_role=current_user.role,
+    )
+    return {
+        "user_id": current_user.user_id,
+        "role": role,
+        "global_settings": preference,
+        "groups": effective_matrix(
+            db, current_user.user_id, role, preference=preference
+        ),
+    }

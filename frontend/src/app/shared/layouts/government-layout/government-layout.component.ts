@@ -15,6 +15,8 @@ import { Auth, AuthUser } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 // =========================================================
 // NAVIGATION ITEM
@@ -42,6 +44,8 @@ export interface GovernmentNavItem {
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    NotificationBellComponent,
+    ToastContainerComponent,
   ],
 
   templateUrl: "./government-layout.component.html",
@@ -126,6 +130,12 @@ export class GovernmentLayoutComponent implements OnInit {
       icon: "fact_check",
       label: "Audit Logs",
       route: "/government/audit-logs",
+    },
+
+    {
+      icon: "support_agent",
+      label: "Support",
+      route: "/dashboard/government/faqs",
     },
   ];
 

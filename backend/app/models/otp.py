@@ -14,10 +14,10 @@ from sqlalchemy.orm import (
 
 from app.db.database import Base
 
-
 # =========================================================
 # OTP VERIFICATION MODEL
 # =========================================================
+
 
 class OTPVerification(Base):
 
@@ -53,6 +53,16 @@ class OTPVerification(Base):
     otp_hash: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+    )
+
+    # =====================================================
+    # CHANNEL (email or sms)
+    # =====================================================
+
+    channel: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="email",
     )
 
     # =====================================================

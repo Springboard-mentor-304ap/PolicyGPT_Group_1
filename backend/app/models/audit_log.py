@@ -19,7 +19,14 @@ class AuditLog(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("extensions.users.user_id"),
+        # Unqualified on purpose. `User.__tablename__` is "users" with no
+        # explicit schema, so SQLAlchemy's metadata holds it under "users"; a
+        # qualified "extensions.users.user_id" here fails to resolve at flush
+        # time with NoReferencedTableError, which made every audit write fail
+        # silently. The connection's search_path already points at
+        # `extensions`,
+        # so the emitted DDL and the live constraint both resolve correctly.
+        ForeignKey("users.user_id"),
         nullable=True
     )
 

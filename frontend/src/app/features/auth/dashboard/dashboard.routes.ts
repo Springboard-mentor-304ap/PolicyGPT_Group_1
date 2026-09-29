@@ -3,6 +3,7 @@ import { Routes } from "@angular/router";
 import { authGuard } from "../../../core/guards/auth.guard";
 import { roleGuard } from "../../../core/guards/role.guard";
 import { guestGuard } from "../../../core/guards/guest.guard";
+import { supportRoleGuard } from "../../../core/guards/support.guard";
 
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
@@ -139,6 +140,54 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
           ),
       },
     ],
@@ -300,6 +349,54 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
           ),
       },
     ],
@@ -502,6 +599,61 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/delivery",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
           ),
       },
     ],
@@ -760,6 +912,64 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.UserDetailsComponent,
           ),
       },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/delivery",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // FAQS (ADMIN MANAGEMENT)
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../faq/faq-list/faq-list.component").then(
+            (m) => m.FaqListComponent,
+          ),
+      },
+
+      // ADMIN CANNOT ACCESS USER SUPPORT PAGE - REDIRECT TO ADMIN FAQS
+      {
+        path: "support",
+        canActivate: [supportRoleGuard],
+        loadComponent: () =>
+          import("../../faq/faq-list/faq-list.component").then(
+            (m) => m.FaqListComponent,
+          ),
+      },
+
+      // FEEDBACK (ADMIN MANAGEMENT)
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/admin-feedback/admin-feedback.component").then(
+            (m) => m.AdminFeedbackComponent,
+          ),
+      },
     ],
   },
 
@@ -892,6 +1102,54 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ChangePasswordComponent,
           ),
       },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
+          ),
+      },
     ],
   },
 
@@ -1006,6 +1264,40 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../eligibility/eligibility-specific/eligibility-specific").then(
             (m) => m.EligibilitySpecific,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT (GUEST VIEW)
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
           ),
       },
     ],

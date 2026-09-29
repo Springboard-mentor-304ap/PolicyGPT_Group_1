@@ -1,0 +1,370 @@
+<div class="feedback-page">
+
+  <!-- =========================================================
+     PAGE HEADER (PolicyGPT Standard)
+     ========================================================= -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <h1>Feedback & Grievance Desk</h1>
+        <p>
+          Submit your queries, report technical issues, or share constructive feedback. Official responses will appear directly under your submissions.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <!-- BACK BUTTON -->
+        <button type="button" class="back-button" (click)="goBack()">
+          <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
+          <span>Back</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TABS BAR -->
+    <div class="feedback-tabs-nav" role="tablist">
+      <button
+        type="button"
+        class="nav-tab-btn"
+        [class.active]="activeTab() === 'submit'"
+        (click)="setTab('submit')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'submit'"
+      >
+        <span class="material-icons">edit_note</span>
+        <span>Submit Feedback</span>
+      </button>
+
+      <button
+        type="button"
+        class="nav-tab-btn"
+        [class.active]="activeTab() === 'history'"
+        (click)="setTab('history')"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'history'"
+      >
+        <span class="material-icons">history</span>
+        <span>My Submissions</span>
+        <span class="tab-count-badge" *ngIf="userFeedbacks().length > 0">
+          {{ userFeedbacks().length }}
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+     TAB 1: SUBMIT FEEDBACK
+     ========================================================= -->
+  <main *ngIf="activeTab() === 'submit'" class="tab-content">
+    <div class="form-container">
+
+      <!-- STEP 1: CATEGORY SELECTION -->
+      <section class="form-section-card">
+        <div class="section-title-wrap">
+          <div class="step-badge">1</div>
+          <div>
+            <h2>Select Feedback Category</h2>
+            <p>Choose the category that best represents your submission</p>
+          </div>
+        </div>
+
+        <div class="type-grid">
+          <div
+            *ngFor="let t of feedbackTypes"
+            class="type-card"
+            [class.selected]="feedbackType === t.value"
+            (click)="selectFeedbackType(t.value)"
+            tabindex="0"
+            role="radio"
+            [attr.aria-checked]="feedbackType === t.value"
+          >
+            <div class="type-icon-box">
+              <span class="material-icons">{{ t.icon }}</span>
+            </div>
+            <div class="type-info">
+              <h3>{{ t.label }}</h3>
+              <p>{{ t.description }}</p>
+            </div>
+            <div class="type-radio-indicator">
+              <span class="material-icons" *ngIf="feedbackType === t.value">check_circle</span>
+              <span class="radio-circle" *ngIf="feedbackType !== t.value"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: DETAILS -->
+      <section class="form-section-card">
+        <div class="section-title-wrap">
+          <div class="step-badge">2</div>
+          <div>
+            <h2>Submission Details</h2>
+            <p>Please provide specific information so our administrative team can review and respond accurately</p>
+          </div>
+        </div>
+
+        <div class="form-body">
+          <!-- SUBJECT -->
+          <div class="form-group">
+            <label for="feedbackSubject">Subject / Topic Summary</label>
+            <input
+              id="feedbackSubject"
+              type="text"
+              placeholder="e.g. Inconsistency in PM Kisan document eligibility checklist"
+              [(ngModel)]="subject"
+              maxlength="200"
+            />
+          </div>
+
+          <!-- OPTIONAL REFERENCES (POLICY & SCHEME IDS) -->
+          <div class="form-row">
+            <div class="form-group col-half">
+              <label for="policyId">Related Policy ID <span class="optional-tag">(Optional)</span></label>
+              <input
+                id="policyId"
+                type="number"
+                placeholder="e.g. 101"
+                [(ngModel)]="policyId"
+              />
+            </div>
+            <div class="form-group col-half">
+              <label for="schemeId">Related Scheme ID <span class="optional-tag">(Optional)</span></label>
+              <input
+                id="schemeId"
+                type="number"
+                placeholder="e.g. 204"
+                [(ngModel)]="schemeId"
+              />
+            </div>
+          </div>
+
+          <!-- MESSAGE -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="feedbackMessage">Message / Description <span class="required">*</span></label>
+              <span class="char-counter">{{ message.length }} characters</span>
+            </div>
+            <textarea
+              id="feedbackMessage"
+              rows="6"
+              placeholder="Describe your question, observation, or grievance in clear detail..."
+              [(ngModel)]="message"
+            ></textarea>
+          </div>
+
+          <!-- OFFICIAL VERIFICATION NOTICE -->
+          <div class="user-verification-banner" *ngIf="currentUser()">
+            <span class="material-icons verify-icon">verified_user</span>
+            <div class="verify-text">
+              <span>Officially logged as: <strong>{{ currentUser()?.full_name }}</strong> ({{ currentUser()?.email }})</span>
+              <span class="role-pill">{{ userRole() }}</span>
+            </div>
+          </div>
+
+          <!-- ACTIONS -->
+          <div class="form-actions">
+            <button
+              type="button"
+              class="btn-primary-action submit-action-btn"
+              (click)="submitFeedback()"
+              [disabled]="submitting() || !message.trim()"
+            >
+              <span class="material-icons" *ngIf="!submitting()">send</span>
+              <span class="spinner" *ngIf="submitting()"></span>
+              <span>{{ submitting() ? 'Submitting...' : 'Submit Feedback' }}</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- =========================================================
+     TAB 2: SUBMISSIONS HISTORY
+     ========================================================= -->
+  <main *ngIf="activeTab() === 'history'" class="tab-content">
+    <div class="history-container">
+
+      <!-- FILTER CONTROLS BAR -->
+      <section class="history-filter-card">
+        <!-- SEARCH -->
+        <div class="history-search-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+              <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Search within your submissions..."
+            [ngModel]="historySearch()"
+            (ngModelChange)="historySearch.set($event)"
+            autocomplete="off"
+            aria-label="Search submissions"
+          />
+          <button
+            *ngIf="historySearch()"
+            type="button"
+            class="clear-search"
+            (click)="historySearch.set('')"
+            aria-label="Clear search"
+          >
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- STATUS CHIPS -->
+        <div class="status-chips-group">
+          <button
+            type="button"
+            class="status-chip"
+            [class.active]="historyStatusFilter() === 'ALL'"
+            (click)="historyStatusFilter.set('ALL')"
+          >
+            All
+          </button>
+          <button
+            type="button"
+            class="status-chip"
+            [class.active]="historyStatusFilter() === 'OPEN'"
+            (click)="historyStatusFilter.set('OPEN')"
+          >
+            Under Review
+          </button>
+          <button
+            type="button"
+            class="status-chip"
+            [class.active]="historyStatusFilter() === 'IN_PROGRESS'"
+            (click)="historyStatusFilter.set('IN_PROGRESS')"
+          >
+            In Progress
+          </button>
+          <button
+            type="button"
+            class="status-chip"
+            [class.active]="historyStatusFilter() === 'RESOLVED'"
+            (click)="historyStatusFilter.set('RESOLVED')"
+          >
+            Resolved
+          </button>
+        </div>
+      </section>
+
+      <!-- LOADING SKELETON -->
+      <div *ngIf="loadingHistory()" class="skeleton-list">
+        <div class="skeleton-card" *ngFor="let i of [1, 2, 3]"></div>
+      </div>
+
+      <!-- ERROR STATE -->
+      <div *ngIf="!loadingHistory() && historyError()" class="error-card">
+        <div class="error-icon-wrap">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Failed to load submissions</h3>
+        <p>{{ historyError() }}</p>
+        <button type="button" class="btn-primary-action" (click)="loadHistory()">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="!loadingHistory() && !historyError() && filteredHistory().length === 0" class="empty-card">
+        <div class="empty-icon-wrap">
+          <span class="material-icons">inbox</span>
+        </div>
+        <h3>No submissions found</h3>
+        <p *ngIf="userFeedbacks().length === 0">
+          You haven't submitted any feedback or grievances yet. Let us know how we can assist you!
+        </p>
+        <p *ngIf="userFeedbacks().length > 0">
+          No submissions matched your search or status filter.
+        </p>
+        <div class="empty-actions">
+          <button
+            type="button"
+            class="btn-primary-action"
+            (click)="setTab('submit')"
+            *ngIf="userFeedbacks().length === 0"
+          >
+            <span class="material-icons">rate_review</span>
+            <span>Submit Your First Feedback</span>
+          </button>
+          <button
+            type="button"
+            class="back-button"
+            (click)="historySearch.set(''); historyStatusFilter.set('ALL')"
+            *ngIf="userFeedbacks().length > 0"
+          >
+            <span class="material-icons back-icon">clear_all</span>
+            <span>Clear Filters</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS LIST -->
+      <div *ngIf="!loadingHistory() && !historyError() && filteredHistory().length > 0" class="submissions-list">
+        <article *ngFor="let item of filteredHistory()" class="submission-card">
+          <!-- CARD HEADER -->
+          <header class="submission-card-header">
+            <div class="header-leading-tags">
+              <span class="category-type-pill">
+                {{ item.feedback_type }}
+              </span>
+              <span class="status-badge" [ngClass]="getStatusClass(item.status)">
+                {{ getStatusLabel(item.status) }}
+              </span>
+            </div>
+            <time class="submission-timestamp">
+              <span class="material-icons">calendar_today</span>
+              <span>{{ item.created_at | date: 'medium' }}</span>
+            </time>
+          </header>
+
+          <!-- CARD BODY -->
+          <div class="submission-card-body">
+            <h3 class="submission-title">{{ item.subject || 'General Submission' }}</h3>
+            <p class="submission-text">{{ item.message }}</p>
+
+            <div class="ref-tags-row" *ngIf="item.policy_id || item.scheme_id">
+              <span class="ref-pill" *ngIf="item.policy_id">
+                <span class="material-icons">policy</span> Policy #{{ item.policy_id }}
+              </span>
+              <span class="ref-pill" *ngIf="item.scheme_id">
+                <span class="material-icons">account_balance</span> Scheme #{{ item.scheme_id }}
+              </span>
+            </div>
+          </div>
+
+          <!-- ADMIN OFFICIAL RESPONSE -->
+          <footer class="admin-response-block" *ngIf="item.admin_response">
+            <div class="admin-response-card">
+              <div class="admin-response-header">
+                <span class="material-icons verified-seal-icon">verified</span>
+                <strong>Official Administrative Response</strong>
+                <span class="response-date" *ngIf="item.updated_at">
+                  &bull; {{ item.updated_at | date: 'mediumDate' }}
+                </span>
+              </div>
+              <p class="admin-response-content">{{ item.admin_response }}</p>
+            </div>
+          </footer>
+
+          <!-- PENDING RESPONSE BANNER -->
+          <footer class="pending-review-banner" *ngIf="!item.admin_response">
+            <span class="material-icons">hourglass_empty</span>
+            <span>Awaiting administrative review. You will receive an in-app notification when an official response is posted.</span>
+          </footer>
+        </article>
+      </div>
+
+    </div>
+  </main>
+
+</div>

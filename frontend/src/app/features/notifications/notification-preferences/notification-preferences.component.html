@@ -1,0 +1,522 @@
+<div class="preferences-page">
+
+  <!-- =========================================================
+     BREADCRUMB
+     ========================================================= -->
+  <nav class="preferences-breadcrumb" aria-label="Breadcrumb">
+    <button type="button" (click)="navigateToHome()">Home</button>
+    <span class="material-icons" aria-hidden="true">chevron_right</span>
+    <button type="button" (click)="navigateToNotifications()">Notifications</button>
+    <span class="material-icons" aria-hidden="true">chevron_right</span>
+    <strong>Notification Preferences</strong>
+  </nav>
+
+  <!-- =========================================================
+     GUEST VIEW (PROMPT)
+     ========================================================= -->
+  <div *ngIf="isGuest" class="guest-prompt-card">
+    <div class="guest-prompt-icon">
+      <span class="material-icons">lock</span>
+    </div>
+    <h2>Sign in to configure notification preferences</h2>
+    <p>Sign in to customize your policy alerts, scheme updates, delivery channels and notification frequency.</p>
+    <div class="guest-prompt-actions">
+      <a routerLink="/auth/login" class="btn btn-primary">
+        <span class="material-icons">login</span>
+        <span>Sign In</span>
+      </a>
+      <a routerLink="/auth/register" class="btn btn-outline">
+        <span class="material-icons">person_add</span>
+        <span>Create Account</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- =========================================================
+     AUTHENTICATED PREFERENCES VIEW
+     ========================================================= -->
+  <div *ngIf="!isGuest">
+
+    <!-- PAGE HEADER -->
+    <header class="preferences-header">
+      <div class="header-content">
+        <div class="title-with-role">
+          <h1>Notification Preferences</h1>
+          <span class="role-badge" title="Preferences for {{ roleDisplayName }}">{{ roleBadgeLabel }}</span>
+        </div>
+        <p>Choose how you receive PolicyGPT updates, alerts, and workflow notifications.</p>
+      </div>
+
+      <div class="header-status-area">
+        <div *ngIf="autoSaving || saving" class="status-indicator status-indicator--saving" role="status">
+          <span class="btn-spinner btn-spinner--dark"></span>
+          <span>Saving changes...</span>
+        </div>
+
+        <div *ngIf="autoSaved && !autoSaving && !saving" class="status-indicator status-indicator--saved" role="status">
+          <span class="material-icons">check_circle</span>
+          <span>All changes saved</span>
+        </div>
+
+        <div *ngIf="hasUnsavedChanges && !autoSaving && !saving && !autoSaved" class="unsaved-badge" role="status">
+          <span class="pulse-dot"></span>
+          <span>Unsaved Changes</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- INTRO CARD -->
+    <section class="banner-card" aria-label="Notification Overview">
+      <div class="banner-icon">
+        <span class="material-icons">tune</span>
+      </div>
+      <div class="banner-content">
+        <h2>Stay informed with PolicyGPT</h2>
+        <p>Configure channel delivery across notifications tailored for your role as <strong>{{ roleDisplayName }}</strong>.</p>
+      </div>
+    </section>
+
+    <!-- ERROR STATE -->
+    <div *ngIf="errorMessage && !loading" class="alert-box alert-error" role="alert">
+      <span class="material-icons">error_outline</span>
+      <div class="alert-content">
+        <strong>Error Loading Preferences</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline" (click)="loadMatrix()">
+        <span class="material-icons">refresh</span>
+        <span>Try Again</span>
+      </button>
+    </div>
+
+    <!-- SKELETON LOADING STATE (Only if no initial data) -->
+    <div *ngIf="loading && workingGroups.length === 0" class="preferences-grid skeleton-loading" aria-busy="true" aria-label="Loading notification preferences">
+      <div class="skeleton-card skeleton-card--left">
+        <div class="skeleton-line skeleton-line--title"></div>
+        <div class="skeleton-line skeleton-line--sub"></div>
+        <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
+      </div>
+      <div class="skeleton-card skeleton-card--right">
+        <div class="skeleton-line skeleton-line--title"></div>
+        <div class="skeleton-row" *ngFor="let i of [1, 2, 3]"></div>
+      </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN PREFERENCES GRID -->
+    <div *ngIf="workingGroups.length > 0 && !errorMessage" class="preferences-grid">
+
+      <!-- =======================================================
+           LEFT COLUMN: NOTIFICATION CARDS
+           ======================================================= -->
+      <section class="pref-left-column" aria-labelledby="notification-categories-heading">
+        <div class="column-header">
+          <div>
+            <h2 id="notification-categories-heading">Notification Categories</h2>
+            <p>Customize channel delivery for each category of interest</p>
+          </div>
+          <span class="categories-count-badge">{{ workingGroups.length }} categories</span>
+        </div>
+
+        <div class="pref-types-list">
+          <article
+            *ngFor="let group of workingGroups; trackBy: trackByGroupKey"
+            class="pref-group-card"
+            [class.pref-group-card--expanded]="group.isExpanded"
+            [class.pref-group-card--custom]="group.hasCustomOverrides"
+          >
+            <!-- ROW 1: HEADER (Icon + Title + Status Badge) -->
+            <div class="group-header-row">
+              <div class="group-title-group">
+                <div class="group-icon-wrap" [ngClass]="group.iconClass">
+                  <span class="material-icons" aria-hidden="true">{{ group.icon }}</span>
+                </div>
+                <div class="group-title-text">
+                  <h3 class="group-title">{{ group.label }}</h3>
+                  <span *ngIf="group.hasCustomOverrides" class="chip chip--custom" title="Custom individual alert settings applied">Custom</span>
+                </div>
+              </div>
+
+              <!-- STATUS BADGE -->
+              <span
+                class="status-badge"
+                [ngClass]="'status-badge--' + getGroupStatus(group)"
+                title="Current status of channels"
+              >
+                {{ getGroupStatus(group) === 'enabled' ? 'Enabled' : getGroupStatus(group) === 'partial' ? 'Partially Active' : 'Disabled' }}
+              </span>
+            </div>
+
+            <!-- ROW 2: DESCRIPTION (Full Width) -->
+            <p class="group-desc">{{ group.description }}</p>
+
+            <!-- ROW 3: CHANNEL TOOLBAR -->
+            <div class="group-channels-bar" role="group" [attr.aria-label]="group.label + ' channels'">
+              <div class="channels-toggles-cluster">
+
+                <!-- IN-APP TOGGLE -->
+                <div class="channel-toggle-pill">
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      [checked]="group.in_app_enabled"
+                      (change)="toggleGroupChannel(group, 'in_app_enabled', $event)"
+                      [attr.aria-label]="'Enable In-App notifications for ' + group.label"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span class="channel-name">In-App</span>
+                </div>
+
+                <!-- EMAIL TOGGLE -->
+                <div class="channel-toggle-pill">
+                  <label class="switch">
+                    <input
+                      type="checkbox"
+                      [checked]="group.email_enabled"
+                      (change)="toggleGroupChannel(group, 'email_enabled', $event)"
+                      [attr.aria-label]="'Enable Email notifications for ' + group.label"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span class="channel-name">Email</span>
+                </div>
+
+                <!-- SMS TOGGLE (COMING SOON) -->
+                <div class="channel-toggle-pill channel-toggle-pill--disabled" title="SMS delivery is currently unavailable">
+                  <label class="switch switch--disabled">
+                    <input
+                      type="checkbox"
+                      [checked]="false"
+                      disabled
+                      aria-disabled="true"
+                      [attr.aria-label]="group.label + ' SMS notifications (Coming Soon)'"
+                    />
+                    <span class="slider"></span>
+                  </label>
+                  <span class="channel-name">SMS</span>
+                  <span class="coming-soon-badge">Coming Soon</span>
+                </div>
+
+              </div>
+
+              <!-- SUB-TYPES EXPAND BUTTON -->
+              <button
+                *ngIf="group.type_preferences.length > 1"
+                type="button"
+                class="btn-subtypes-toggle"
+                (click)="toggleGroupExpansion(group)"
+                [attr.aria-expanded]="group.isExpanded"
+                [attr.aria-label]="(group.isExpanded ? 'Hide ' : 'Configure ') + group.label + ' individual alerts'"
+              >
+                <span>{{ group.type_preferences.length }} alert types</span>
+                <span class="material-icons expand-arrow" [class.rotated]="group.isExpanded">
+                  expand_more
+                </span>
+              </button>
+            </div>
+
+            <!-- GRANULAR SUB-TYPES DRAWER -->
+            <div *ngIf="group.isExpanded" class="subtypes-drawer">
+              <div class="subtypes-header">
+                <span class="subtypes-title">Individual Alert Types:</span>
+                <span class="subtypes-hint">Fine-tune channel delivery per event</span>
+              </div>
+
+              <div class="subtypes-table-wrap">
+                <table class="subtypes-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Event Alert</th>
+                      <th scope="col" class="th-center">In-App</th>
+                      <th scope="col" class="th-center">Email</th>
+                      <th scope="col" class="th-center">SMS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let tp of group.type_preferences; trackBy: trackByNotificationType">
+                      <td class="subtype-name">
+                        <span class="material-icons subtype-dot" aria-hidden="true">arrow_right</span>
+                        <span class="subtype-label">{{ formatTypeLabel(tp.notification_type) }}</span>
+                        <span *ngIf="tp.explicit" class="chip chip--custom-mini">Custom</span>
+                      </td>
+
+                      <td class="td-center">
+                        <label class="switch switch--mini">
+                          <input
+                            type="checkbox"
+                            [checked]="tp.in_app_enabled"
+                            (change)="toggleSingleTypeChannel(group, tp, 'in_app_enabled', $event)"
+                            [attr.aria-label]="'Enable In-App for ' + formatTypeLabel(tp.notification_type)"
+                          />
+                          <span class="slider"></span>
+                        </label>
+                      </td>
+
+                      <td class="td-center">
+                        <label class="switch switch--mini">
+                          <input
+                            type="checkbox"
+                            [checked]="tp.email_enabled"
+                            (change)="toggleSingleTypeChannel(group, tp, 'email_enabled', $event)"
+                            [attr.aria-label]="'Enable Email for ' + formatTypeLabel(tp.notification_type)"
+                          />
+                          <span class="slider"></span>
+                        </label>
+                      </td>
+
+                      <td class="td-center">
+                        <label class="switch switch--mini switch--disabled" title="SMS delivery is coming soon">
+                          <input
+                            type="checkbox"
+                            [checked]="false"
+                            disabled
+                            aria-disabled="true"
+                            [attr.aria-label]="'SMS for ' + formatTypeLabel(tp.notification_type) + ' is coming soon'"
+                          />
+                          <span class="slider"></span>
+                        </label>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </article>
+        </div>
+      </section>
+
+      <!-- =======================================================
+           RIGHT COLUMN: DELIVERY SUMMARY & CONTROLS
+           ======================================================= -->
+      <aside class="pref-side-column" aria-label="Notification Delivery Settings">
+
+        <!-- NOTIFICATION CHANNELS SUMMARY CARD -->
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <h3>Notification Channels</h3>
+            <p>Convenience toggles across all categories</p>
+          </div>
+
+          <div class="channel-summary-list">
+            <!-- Email -->
+            <div class="channel-summary-item">
+              <div class="channel-summary-icon channel-summary-icon--email">
+                <span class="material-icons" aria-hidden="true">mail</span>
+              </div>
+              <div class="channel-summary-info">
+                <div class="channel-summary-title-row">
+                  <h4>Email Notifications</h4>
+                  <span
+                    class="channel-status-pill"
+                    [class.pill--all]="globalEmailState === 'allOn'"
+                    [class.pill--mixed]="globalEmailState === 'mixed'"
+                    [class.pill--off]="globalEmailState === 'allOff'"
+                  >
+                    {{ globalEmailState === 'allOn' ? 'All Active' : globalEmailState === 'mixed' ? (emailEnabledCount + ' of ' + totalTypeCount) : 'Disabled' }}
+                  </span>
+                </div>
+                <p>Deliver alerts and digests directly to your verified email</p>
+              </div>
+              <label class="switch" title="Toggle email delivery across all notification categories">
+                <input
+                  type="checkbox"
+                  [checked]="globalEmailState !== 'allOff'"
+                  (change)="onGlobalChannelToggle('email', $event)"
+                  aria-label="Toggle Email notifications across all types"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- In-App -->
+            <div class="channel-summary-item">
+              <div class="channel-summary-icon channel-summary-icon--inapp">
+                <span class="material-icons" aria-hidden="true">notifications</span>
+              </div>
+              <div class="channel-summary-info">
+                <div class="channel-summary-title-row">
+                  <h4>In-App Notifications</h4>
+                  <span
+                    class="channel-status-pill"
+                    [class.pill--all]="globalInAppState === 'allOn'"
+                    [class.pill--mixed]="globalInAppState === 'mixed'"
+                    [class.pill--off]="globalInAppState === 'allOff'"
+                  >
+                    {{ globalInAppState === 'allOn' ? 'All Active' : globalInAppState === 'mixed' ? (inAppEnabledCount + ' of ' + totalTypeCount) : 'Disabled' }}
+                  </span>
+                </div>
+                <p>Real-time alerts inside the PolicyGPT application</p>
+              </div>
+              <label class="switch" title="Toggle in-app delivery across all notification categories">
+                <input
+                  type="checkbox"
+                  [checked]="globalInAppState !== 'allOff'"
+                  (change)="onGlobalChannelToggle('in_app', $event)"
+                  aria-label="Toggle In-App notifications across all types"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <!-- SMS (COMING SOON) -->
+            <div class="channel-summary-item channel-summary-item--disabled">
+              <div class="channel-summary-icon channel-summary-icon--sms">
+                <span class="material-icons" aria-hidden="true">sms</span>
+              </div>
+              <div class="channel-summary-info">
+                <div class="channel-summary-title-row">
+                  <h4>SMS Notifications</h4>
+                  <span class="channel-status-pill pill--pending">Coming Soon</span>
+                </div>
+                <p>SMS delivery is currently unavailable</p>
+              </div>
+              <label class="switch switch--disabled" title="SMS delivery is currently unavailable">
+                <input
+                  type="checkbox"
+                  [checked]="false"
+                  disabled
+                  aria-disabled="true"
+                  aria-label="SMS delivery currently unavailable"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATION FREQUENCY CARD -->
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <h3>Notification Frequency</h3>
+            <p>Choose when digests and updates are delivered</p>
+          </div>
+
+          <div class="frequency-list" role="radiogroup" aria-label="Notification Frequency">
+            <!-- Instantly -->
+            <label
+              class="frequency-option"
+              [class.selected]="frequency === 'INSTANT'"
+              (click)="setFrequency('INSTANT')"
+            >
+              <input
+                type="radio"
+                name="frequency"
+                [checked]="frequency === 'INSTANT'"
+                value="INSTANT"
+                aria-label="Instantly"
+              />
+              <div class="freq-text">
+                <strong>Instantly</strong>
+                <span>Receive notifications immediately as events occur</span>
+              </div>
+            </label>
+
+            <!-- Daily Digest -->
+            <label
+              class="frequency-option"
+              [class.selected]="frequency === 'DAILY_DIGEST'"
+              (click)="setFrequency('DAILY_DIGEST')"
+            >
+              <input
+                type="radio"
+                name="frequency"
+                [checked]="frequency === 'DAILY_DIGEST'"
+                value="DAILY_DIGEST"
+                aria-label="Daily Digest"
+              />
+              <div class="freq-text">
+                <strong>Daily Digest</strong>
+                <span>Receive a consolidated daily summary at 08:00 AM</span>
+              </div>
+            </label>
+
+            <!-- Weekly Digest -->
+            <label
+              class="frequency-option"
+              [class.selected]="frequency === 'WEEKLY_DIGEST'"
+              (click)="setFrequency('WEEKLY_DIGEST')"
+            >
+              <input
+                type="radio"
+                name="frequency"
+                [checked]="frequency === 'WEEKLY_DIGEST'"
+                value="WEEKLY_DIGEST"
+                aria-label="Weekly Digest"
+              />
+              <div class="freq-text">
+                <strong>Weekly Digest</strong>
+                <span>Receive a comprehensive weekly summary report</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- SUCCESS ALERT BANNER -->
+        <div *ngIf="savedSuccessfully" class="success-banner" role="status">
+          <div class="success-icon">
+            <span class="material-icons">check_circle</span>
+          </div>
+          <div class="success-content">
+            <h4>Preferences Saved</h4>
+            <p>Your notification preferences have been saved to the database.</p>
+          </div>
+        </div>
+
+        <!-- ACTIONS (RESET & SAVE) -->
+        <div class="actions-card">
+          <button
+            type="button"
+            class="btn btn-outline"
+            [disabled]="saving || resetting"
+            (click)="promptResetToDefault()"
+            title="Restore default notification settings for {{ roleDisplayName }}"
+          >
+            <span *ngIf="resetting" class="btn-spinner"></span>
+            <span>{{ resetting ? 'Resetting...' : 'Reset to Default' }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="saving || resetting"
+            (click)="savePreferences()"
+            title="Save changes to PostgreSQL"
+          >
+            <span *ngIf="saving || autoSaving" class="btn-spinner"></span>
+            <span>{{ saving ? 'Saving...' : autoSaving ? 'Saving...' : (hasUnsavedChanges ? 'Save Preferences' : 'Saved') }}</span>
+          </button>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+  <!-- =========================================================
+     CONFIRMATION MODALS
+     ========================================================= -->
+  <app-confirm-modal
+    [isOpen]="showResetModal"
+    title="Reset Notification Preferences?"
+    message="This will remove your custom overrides and restore standard system defaults for your role. Are you sure you want to proceed?"
+    confirmText="Reset to Default"
+    cancelText="Cancel"
+    variant="warning"
+    (confirm)="confirmReset()"
+    (cancel)="cancelReset()"
+  ></app-confirm-modal>
+
+  <app-confirm-modal
+    [isOpen]="showDisableChannelModal"
+    title="Disable Channel Across All Categories?"
+    [message]="'Disable ' + (pendingChannelToDisable === 'email' ? 'email' : 'in-app') + ' notifications for all available notification categories?'"
+    confirmText="Disable for All"
+    cancelText="Cancel"
+    variant="danger"
+    (confirm)="confirmDisableChannelAction()"
+    (cancel)="cancelDisableChannelAction()"
+  ></app-confirm-modal>
+
+</div>

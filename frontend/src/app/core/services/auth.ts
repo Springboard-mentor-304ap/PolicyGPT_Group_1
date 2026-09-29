@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, tap } from "rxjs";
+import { Observable, Subject, tap } from "rxjs";
 
 export interface AuthUser {
   user_id: number;
@@ -47,6 +47,9 @@ export class Auth {
   private readonly tokenKey = "policygpt_token";
 
   private readonly userKey = "policygpt_user";
+
+  /** Emits on logout so live connections (notification WebSocket) can close. */
+  private readonly loggedOutSubject = new Subject<void>();
 
   constructor(private http: HttpClient) {}
 
@@ -241,11 +244,36 @@ export class Auth {
   // FORGOT PASSWORD
   // =========================================================
 
-  requestPasswordReset(email: string): Observable<{ message: string }> {
+  requestPasswordReset(
+    email: string,
+    phone: string | null = null,
+    channel: string = "email",
+  ): Observable<{ message: string }> {
     return this.http.post<{
       message: string;
     }>(`${this.apiUrl}/forgot-password`, {
       email: email.trim().toLowerCase(),
+      phone,
+      channel,
+    });
+  }
+
+  // =========================================================
+  // SEND OTP (EMAIL + SMS)
+  // =========================================================
+
+  sendOtp(
+    email: string,
+    phone: string | null = null,
+    channel: string = "email",
+  ): Observable<{ message: string; channel: string }> {
+    return this.http.post<{
+      message: string;
+      channel: string;
+    }>(`${this.apiUrl}/send-otp`, {
+      email: email.trim().toLowerCase(),
+      phone,
+      channel,
     });
   }
 
@@ -256,6 +284,7 @@ export class Auth {
   verifyOtp(
     email: string,
     otp: string,
+    channel: string = "email",
   ): Observable<{
     message: string;
     verified: boolean;
@@ -268,6 +297,7 @@ export class Auth {
     }>(`${this.apiUrl}/verify-otp`, {
       email: email.trim().toLowerCase(),
       otp: otp.trim(),
+      channel,
     });
   }
 
@@ -321,9 +351,20 @@ export class Auth {
   // LOGOUT
   // =========================================================
 
+  /**
+   * Clear the session. The notification socket is authenticated with the token
+   * we are about to delete, so subscribers (notably the notification realtime
+   * service) are told to close it - otherwise the live connection would keep
+   * pushing frames for a user who is no longer signed in.
+   */
   logout(): void {
     localStorage.removeItem(this.tokenKey);
-
     localStorage.removeItem(this.userKey);
+    this.loggedOutSubject.next();
+  }
+
+  /** Fires on every logout so live connections can be torn down. */
+  onLoggedOut(callback: () => void): void {
+    this.loggedOutSubject.subscribe(callback);
   }
 }

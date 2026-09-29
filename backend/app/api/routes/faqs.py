@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import require_roles
 from app.models.user import User
 
 from app.schemas.faq import (
@@ -33,16 +33,8 @@ router = APIRouter(
 def create_faq_route(
     data: FAQCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     return create_faq(db, data)
 
 
@@ -52,19 +44,7 @@ def create_faq_route(
 )
 def get_all_faqs_route(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     return get_all_faqs(db)
 
 
@@ -75,19 +55,7 @@ def get_all_faqs_route(
 def get_faq_route(
     faq_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     faq = get_faq(db, faq_id)
 
     if not faq:
@@ -107,16 +75,8 @@ def update_faq_route(
     faq_id: int,
     data: FAQUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     faq = update_faq(db, faq_id, data)
 
     if not faq:
@@ -132,16 +92,8 @@ def update_faq_route(
 def delete_faq_route(
     faq_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     faq = delete_faq(db, faq_id)
 
     if not faq:

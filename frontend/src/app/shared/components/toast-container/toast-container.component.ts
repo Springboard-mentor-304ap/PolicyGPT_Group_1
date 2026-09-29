@@ -1,0 +1,96 @@
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+
+import { ToastService } from '../../../core/services/toast.service';
+import { ToastComponent } from '../toast/toast.component';
+import { NotificationService } from '../../../core/services/notification.service';
+import { Auth } from '../../../core/services/auth';
+import { NotificationItem } from '../../../core/models/notification.model';
+
+/** How long a live-notification toast stays on screen. */
+const LIVE_TOAST_MS = 6000;
+
+/**
+ * Renders the app-wide toast stack.
+ *
+ * This was previously dead code: `ToastService` was called from a dozen
+ * components but no template ever mounted a `ToastComponent`, so none of those
+ * messages were visible. Mounting the container makes every existing call site
+ * work and gives live notifications a surface at the same time.
+ *
+ * Accessibility: the stack is an `aria-live` region so a screen reader announces
+ * each toast without focus being stolen, and every toast has a keyboard-
+ * reachable dismiss button.
+ */
+@Component({
+  selector: 'app-toast-container',
+  standalone: true,
+  imports: [CommonModule, ToastComponent],
+  template: `
+    <div class="toast-stack" role="region" aria-label="Notifications" aria-live="polite" aria-relevant="additions">
+      <app-toast
+        *ngFor="let toast of toastService.toasts()"
+        [toast]="toast"
+        (dismiss)="toastService.remove($event)"
+      ></app-toast>
+    </div>
+  `,
+  styles: [
+    `
+      .toast-stack {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1400;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        width: min(22rem, calc(100vw - 2rem));
+        pointer-events: none;
+      }
+
+      .toast-stack app-toast {
+        pointer-events: auto;
+      }
+
+      @media (max-width: 480px) {
+        .toast-stack {
+          left: 1rem;
+          right: 1rem;
+          width: auto;
+        }
+      }
+    `,
+  ],
+})
+export class ToastContainerComponent implements OnInit, OnDestroy {
+  readonly toastService = inject(ToastService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly auth = inject(Auth);
+
+  private sub?: Subscription;
+
+  ngOnInit(): void {
+    if (!this.auth.isLoggedIn() || this.auth.isGuest()) {
+      return;
+    }
+    // A live frame is surfaced as a toast as well as in the bell/centre, so a
+    // user on another tab of the dashboard still learns about it immediately.
+    this.sub = this.notificationService.liveNotification$.subscribe((item) => {
+      this.announce(item);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  private announce(item: NotificationItem): void {
+    // `HIGH`/`URGENT` map to `warning` so they stand out from routine info.
+    // The backend's canonical priorities are LOW/NORMAL/HIGH/URGENT.
+    const type = item.priority === 'URGENT' || item.priority === 'HIGH' ? 'warning' : 'info';
+
+    this.toastService.show(type, item.title, item.message, LIVE_TOAST_MS);
+  }
+}

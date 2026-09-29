@@ -2,6 +2,8 @@ import { Routes } from "@angular/router";
 
 import { authGuard } from "./core/guards/auth.guard";
 import { roleGuard } from "./core/guards/role.guard";
+import { notificationRedirectGuard } from "./core/guards/notification-redirect.guard";
+import { supportRedirectGuard } from "./core/guards/support.guard";
 
 export const routes: Routes = [
   // =========================================================
@@ -176,6 +178,161 @@ export const routes: Routes = [
       import("./features/eligibility/eligibility-checker/eligibility-checker").then(
         (m) => m.EligibilityChecker,
       ),
+  },
+
+  // =========================================================
+  // NOTIFICATIONS ROUTES (Redirects to role-based dashboard layout)
+  // =========================================================
+  {
+    path: "notifications/preferences",
+    canActivate: [notificationRedirectGuard],
+    loadComponent: () =>
+      import("./features/notifications/notification-preferences/notification-preferences.component").then(
+        (m) => m.NotificationPreferencesComponent,
+      ),
+  },
+  {
+    path: "notifications/:id",
+    canActivate: [notificationRedirectGuard],
+    loadComponent: () =>
+      import("./features/notifications/notification-list/notification-list.component").then(
+        (m) => m.NotificationListComponent,
+      ),
+  },
+  {
+    path: "notifications",
+    canActivate: [notificationRedirectGuard],
+    loadComponent: () =>
+      import("./features/notifications/notification-list/notification-list.component").then(
+        (m) => m.NotificationListComponent,
+      ),
+  },
+  {
+    path: "admin/notifications",
+    redirectTo: "dashboard/admin/notifications",
+    pathMatch: "full",
+  },
+  {
+    path: "admin/notifications/preferences",
+    redirectTo: "dashboard/admin/notifications/preferences",
+    pathMatch: "full",
+  },
+  {
+    path: "citizen/notifications",
+    redirectTo: "dashboard/citizen/notifications",
+    pathMatch: "full",
+  },
+  {
+    path: "citizen/notifications/preferences",
+    redirectTo: "dashboard/citizen/notifications/preferences",
+    pathMatch: "full",
+  },
+  {
+    path: "government/notifications",
+    redirectTo: "dashboard/government/notifications",
+    pathMatch: "full",
+  },
+  {
+    path: "government/notifications/preferences",
+    redirectTo: "dashboard/government/notifications/preferences",
+    pathMatch: "full",
+  },
+  {
+    path: "researcher/notifications",
+    redirectTo: "dashboard/researcher/notifications",
+    pathMatch: "full",
+  },
+  {
+    path: "researcher/notifications/preferences",
+    redirectTo: "dashboard/researcher/notifications/preferences",
+    pathMatch: "full",
+  },
+  {
+    path: "organization/notifications",
+    redirectTo: "dashboard/organization/notifications",
+    pathMatch: "full",
+  },
+  {
+    path: "organization/notifications/preferences",
+    redirectTo: "dashboard/organization/notifications/preferences",
+    pathMatch: "full",
+  },
+
+  // =========================================================
+  // SUPPORT & FAQS TOP-LEVEL ROUTES
+  // =========================================================
+  {
+    path: "support",
+    canActivate: [supportRedirectGuard],
+    loadComponent: () =>
+      import("./features/support/support.component").then(
+        (m) => m.SupportComponent,
+      ),
+  },
+  {
+    path: "faqs",
+    canActivate: [supportRedirectGuard],
+    loadComponent: () =>
+      import("./features/support/support.component").then(
+        (m) => m.SupportComponent,
+      ),
+  },
+  {
+    path: "admin/support",
+    redirectTo: "dashboard/admin/faqs",
+    pathMatch: "full",
+  },
+  {
+    path: "citizen/support",
+    redirectTo: "dashboard/citizen/support",
+    pathMatch: "full",
+  },
+  {
+    path: "government/support",
+    redirectTo: "dashboard/government/support",
+    pathMatch: "full",
+  },
+  {
+    path: "researcher/support",
+    redirectTo: "dashboard/researcher/support",
+    pathMatch: "full",
+  },
+  {
+    path: "organization/support",
+    redirectTo: "dashboard/organization/support",
+    pathMatch: "full",
+  },
+  {
+    path: "feedback",
+    loadComponent: () =>
+      import("./features/feedback/feedback-form/feedback-form.component").then(
+        (m) => m.FeedbackFormComponent,
+      ),
+  },
+  {
+    path: "admin/feedback",
+    redirectTo: "dashboard/admin/feedback",
+    pathMatch: "full",
+  },
+  {
+    path: "citizen/feedback",
+    redirectTo: "dashboard/citizen/feedback",
+    pathMatch: "full",
+  },
+  {
+    path: "government/feedback",
+    redirectTo: "dashboard/government/feedback",
+    pathMatch: "full",
+  },
+  {
+    path: "researcher/feedback",
+    redirectTo: "dashboard/researcher/feedback",
+    pathMatch: "full",
+  },
+  {
+    path: "organization/feedback",
+    redirectTo: "dashboard/organization/feedback",
+    pathMatch: "full",
   },
 
   // =========================================================

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ReportCreate(BaseModel):
@@ -20,5 +20,4 @@ class ReportResponse(BaseModel):
     file_path: str | None
     generated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

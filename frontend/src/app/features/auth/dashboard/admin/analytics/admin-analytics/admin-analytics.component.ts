@@ -82,6 +82,7 @@ export class AdminAnalyticsComponent implements OnInit {
   recentNotifications: any[] = [];
 
   activityAvailable = false;
+  recentUserActivity: any[] = [];
 
   constructor(private readonly http: HttpClient) {}
 
@@ -183,6 +184,50 @@ export class AdminAnalyticsComponent implements OnInit {
         error: (error) => {
           console.error(
             "❌ USERS ERROR:",
+            error
+          );
+        },
+      });
+
+    // -------------------------
+    // Notifications
+    // -------------------------
+    this.http
+      .get<any>(
+        `${this.apiUrl}/notifications?page=1&page_size=5`
+      )
+      .subscribe({
+        next: (data) => {
+          console.log("🔥 NOTIFICATIONS:", data);
+          this.totalNotifications = data?.total ?? (Array.isArray(data) ? data.length : 0);
+          this.recentNotifications = data?.items ?? (Array.isArray(data) ? data : []);
+        },
+        error: (error) => {
+          console.error(
+            "❌ NOTIFICATIONS ERROR:",
+            error
+          );
+        },
+      });
+
+    // -------------------------
+    // Audit Logs / Activity
+    // -------------------------
+    this.http
+      .get<any[]>(
+        `${this.apiUrl}/audit-logs`
+      )
+      .subscribe({
+        next: (logs) => {
+          console.log("🔥 AUDIT LOGS:", logs);
+          if (Array.isArray(logs) && logs.length > 0) {
+            this.activityAvailable = true;
+            this.recentUserActivity = logs.slice(0, 5);
+          }
+        },
+        error: (error) => {
+          console.error(
+            "❌ AUDIT LOGS ERROR:",
             error
           );
         },

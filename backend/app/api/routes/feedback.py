@@ -36,18 +36,9 @@ def create_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    if current_user.role != "ADMIN" and current_user.user_id != data.user_id:
+    if not data.user_id:
+        data.user_id = current_user.user_id
+    elif current_user.role != "ADMIN" and current_user.user_id != data.user_id:
         raise HTTPException(
             status_code=403,
             detail="You can only submit feedback for your own account",
@@ -64,17 +55,6 @@ def get_all_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     return get_all_feedback(db, current_user.user_id, current_user.role)
 
 
@@ -87,21 +67,7 @@ def get_user_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    if (
-        current_user.user_id != user_id
-        and current_user.role != "ADMIN"
-    ):
+    if current_user.user_id != user_id and current_user.role != "ADMIN":
         raise HTTPException(
             status_code=403,
             detail="You can only access your own feedback",
@@ -109,7 +75,7 @@ def get_user_feedback_route(
 
     return get_user_feedback(
         db,
-        current_user.user_id,
+        user_id,
         current_user.role,
     )
 
@@ -123,18 +89,8 @@ def get_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    feedback = get_feedback(db, feedback_id,current_user.user_id, current_user.role)
+    feedback = get_feedback(
+        db, feedback_id, current_user.user_id, current_user.role)
 
     if not feedback:
         raise HTTPException(
@@ -153,19 +109,8 @@ def update_feedback_route(
     feedback_id: int,
     data: FeedbackUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     feedback = update_feedback(
         db,
         feedback_id,
@@ -187,19 +132,8 @@ def update_feedback_route(
 def delete_feedback_route(
     feedback_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     feedback = delete_feedback(
         db,
         feedback_id,

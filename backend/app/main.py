@@ -15,7 +15,15 @@ from app.api.routes.audit_logs import router as audit_logs_router
 from app.api.routes.faqs import router as faqs_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.usage import router as usage_router
-from app.api.routes.notifications import router as notifications_router
+from app.api.routes.notifications import (
+    router as notifications_router,
+    admin_router as notifications_admin_router,
+    webhook_router as notifications_webhook_router,
+)
+from app.api.routes.notifications_ws import (
+    router as notifications_ws_router,
+)
+from app.api.routes.support import router as support_router
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.admin_users import router as admin_users_router
@@ -24,7 +32,11 @@ from app.api.routes.scheme import router as scheme_router
 from app.api.routes.eligibility import router as eligibility_router
 from app.api.routes.role_based import router as role_based_router
 
+from app.core.config import settings
 from app.db.database import Base, engine
+from app.services.notification_delivery_service import (
+    NotificationDeliveryService,
+)
 
 # =========================================================
 # CREATE DATABASE TABLES
@@ -68,13 +80,100 @@ async def _keep_pool_warm() -> None:
             logger.exception("Database keep-alive ping failed")
 
 
+# How often the scheme expiry / deadline reminder processors run. There is no
+# Celery or APScheduler in this project, so these run as a lifespan task in the
+# same style as the pool warmer. Both processors are idempotent, so a missed or
+# duplicated run is harmless - a real scheduler calling the admin endpoints
+# instead would work equally well.
+REMINDER_SWEEP_SECONDS = 3600
+
+
+async def _reminder_sweep_loop() -> None:
+    """Hourly pass over scheme deadlines. Never crashes the app."""
+    from contextlib import contextmanager
+
+    from app.db.database import SessionLocal
+    from app.services.deadline_service import DeadlineReminderService
+    from app.services.scheme_expiry_service import process_scheme_expiry
+
+    @contextmanager
+    def _sweep_session():
+        """One short-lived session per sweep step.
+
+        These run off the event loop in a worker thread, so the session has to
+        be closed by the same step that opened it. Leaking one per hour would
+        quietly exhaust the connection pool.
+        """
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    # let the app finish starting before touching the DB
+    await asyncio.sleep(30)
+    while True:
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(
+                    DeadlineReminderService
+                    .check_and_trigger_deadline_reminders,
+                    db,
+                )
+        except Exception:
+            logger.exception("Deadline reminder sweep failed")
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(process_scheme_expiry, db)
+        except Exception:
+            logger.exception("Scheme expiry sweep failed")
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(
+                    NotificationDeliveryService.retry_failed_deliveries, db, 50
+                )
+        except Exception:
+            logger.exception("Delivery retry sweep failed")
+        await asyncio.sleep(REMINDER_SWEEP_SECONDS)
+
+
+_reminder_task: asyncio.Task | None = None
+
+
+def _seed_reminder_schedule() -> None:
+    global _reminder_task
+    if _reminder_task is not None and not _reminder_task.done():
+        return
+    _reminder_task = asyncio.create_task(_reminder_sweep_loop())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _warm_up_pool()
     keep_alive_task = asyncio.create_task(_keep_pool_warm())
+
+    # Notification creation runs in sync endpoint threads while the
+    # WebSocket connections live here on the event loop, so the realtime
+    # manager needs a handle on this loop to publish.
+    from app.services.notification_realtime import (
+    manager as _notification_manager,
+)
+
+    if settings.NOTIFICATIONS_REALTIME_ENABLED:
+        _notification_manager.bind_loop(asyncio.get_running_loop())
+
+    _seed_reminder_schedule()
+
     try:
         yield
     finally:
+        _notification_manager.unbind_loop()
+        if _reminder_task is not None:
+            _reminder_task.cancel()
+            try:
+                await _reminder_task
+            except asyncio.CancelledError:
+                pass
         keep_alive_task.cancel()
         try:
             await keep_alive_task
@@ -127,6 +226,9 @@ app.include_router(eligibility_router)
 app.include_router(analytics_router)
 app.include_router(usage_router)
 app.include_router(notifications_router)
+app.include_router(notifications_admin_router)
+app.include_router(notifications_webhook_router)
+app.include_router(notifications_ws_router)
 app.include_router(notification_preferences_router)
 
 app.include_router(reports_router)
@@ -134,6 +236,7 @@ app.include_router(reports_router)
 app.include_router(feedback_router)
 app.include_router(faqs_router)
 app.include_router(audit_logs_router)
+app.include_router(support_router)
 app.include_router(search_history_router)
 app.include_router(role_based_router)
 # =========================================================

@@ -218,7 +218,10 @@ def search_policy_route(
     # --------------------------------------------------------
     else:
         if role in public_roles:
-            if policy_status is not None and policy_status.upper() != "APPROVED":
+            if (
+                policy_status is not None
+                and policy_status.upper() != "APPROVED"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You can only view approved policies.",
@@ -228,7 +231,11 @@ def search_policy_route(
             created_by = None
         else:
             # Staff roles (ADMIN, GOVERNMENT_OFFICIAL)
-            if policy_status == "APPROVED" or policy_status == "ALL" or not policy_status:
+            if (
+                policy_status == "APPROVED"
+                or policy_status == "ALL"
+                or not policy_status
+            ):
                 created_by = None
             elif role == "GOVERNMENT_OFFICIAL":
                 created_by = current_user.user_id

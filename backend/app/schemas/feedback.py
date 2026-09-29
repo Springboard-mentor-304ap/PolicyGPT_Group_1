@@ -1,10 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class FeedbackCreate(BaseModel):
-    user_id: int
+    user_id: int | None = None
     policy_id: int | None = None
     scheme_id: int | None = None
     feedback_type: str
@@ -20,15 +20,17 @@ class FeedbackUpdate(BaseModel):
 class FeedbackResponse(BaseModel):
     feedback_id: int
     user_id: int
-    policy_id: int | None
-    scheme_id: int | None
+    policy_id: int | None = None
+    scheme_id: int | None = None
     feedback_type: str
-    subject: str | None
+    subject: str | None = None
     message: str
     status: str
-    admin_response: str | None
+    admin_response: str | None = None
     created_at: datetime
     updated_at: datetime
+    user_name: str | None = None
+    user_email: str | None = None
+    user_role: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

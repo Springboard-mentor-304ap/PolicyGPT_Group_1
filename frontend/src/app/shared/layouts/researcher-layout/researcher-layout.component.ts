@@ -13,6 +13,8 @@ import {
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 /* =========================================================
    RESEARCHER NAVIGATION ITEM
@@ -41,6 +43,8 @@ export interface ResearcherNavItem {
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    NotificationBellComponent,
+    ToastContainerComponent,
   ],
 
   templateUrl: "./researcher-layout.component.html",
@@ -132,6 +136,12 @@ export class ResearcherLayoutComponent implements OnInit {
       label: "Notifications",
       icon: "notifications_none",
       route: "/dashboard/researcher/notifications",
+    },
+
+    {
+      label: "Support",
+      icon: "support_agent",
+      route: "/dashboard/researcher/faqs",
     },
   ];
 

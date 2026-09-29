@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import hashlib
+import logging
 import secrets
 import re
 import random
@@ -8,7 +9,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger("uvicorn.error")
 from app.services.email_service import send_otp_email
+from app.services.sms_service import normalize_indian_phone, send_otp_sms
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -147,7 +151,10 @@ def get_current_user(
     # TOKEN VERSION CHECK
     # -----------------------------------------------------
 
-    if token_version != user.token_version:
+    if (
+        (token_version if token_version is not None else 0)
+        != (user.token_version or 0)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -265,6 +272,26 @@ def create_user_token(user: User) -> str:
         role=user.role,
         token_version=user.token_version
     )
+
+
+def find_user_by_phone(db: Session, phone_raw: str | None) -> User | None:
+    if not phone_raw:
+        return None
+    normalized = normalize_indian_phone(phone_raw)
+    digits = re.sub(r"\D", "", str(phone_raw))
+    ten_digits = digits[-10:] if len(digits) >= 10 else digits
+
+    variants = {str(phone_raw).strip()}
+    if normalized:
+        variants.add(normalized)
+    if digits:
+        variants.add(digits)
+    if ten_digits:
+        variants.add(ten_digits)
+        variants.add(f"+91{ten_digits}")
+        variants.add(f"91{ten_digits}")
+
+    return db.query(User).filter(User.phone.in_(variants)).first()
 
 
 # =========================================================
@@ -388,6 +415,20 @@ def register(
         db.add(user)
         db.commit()
         db.refresh(user)
+
+        # Initialize default notification preferences and dispatch
+        # registration alerts
+        try:
+            from app.services.notification_preference_service import (
+                get_or_create_preferences,
+            )
+            from app.services.notification_service import NotificationService
+            get_or_create_preferences(db, user.user_id, user.role)
+            NotificationService.notify_new_user(db, user)
+        except Exception as notif_err:
+            logger.error(
+                f"Error initializing user notification preferences or alert: "
+                f"{notif_err}")
 
     except IntegrityError:
 
@@ -539,7 +580,10 @@ def login(
     "/guest-login",
     response_model=AuthResponse,
     summary="Guest User Login",
-    description="Authenticates as a guest user, returning a guest session token and user profile."
+    description=(
+        "Authenticates as a guest user, returning a guest session "
+        "token and user profile."
+    )
 )
 @router.post(
     "/guest",
@@ -576,7 +620,8 @@ def guest_login(
             db.refresh(guest_user)
         except IntegrityError:
             db.rollback()
-            guest_user = db.query(User).filter(User.email == guest_email).first()
+            guest_user = db.query(User).filter(
+                User.email == guest_email).first()
 
     token = create_user_token(guest_user)
 
@@ -805,7 +850,7 @@ def logout(
 
 
 # =========================================================
-# SEND EMAIL OTP
+# SEND OTP (EMAIL + SMS - EXPLICIT CHANNEL ONLY)
 # =========================================================
 
 @router.post(
@@ -817,35 +862,62 @@ def send_otp(
 ):
 
     # -----------------------------------------------------
-    # CLEAN EMAIL
+    # CLEAN EMAIL + RESOLVE CHANNEL
     # -----------------------------------------------------
 
-    email = str(
-        data.email
-    ).lower().strip()
+    email = str(data.email).lower().strip() if data.email else None
 
-    # -----------------------------------------------------
-    # FIND USER
-    # -----------------------------------------------------
-
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
-
-    if not user:
+    channel = (data.channel or "email").lower().strip()
+    if channel not in ("email", "sms"):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invalid email address"
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid channel. Allowed values: email, sms"
         )
 
     # -----------------------------------------------------
-    # INVALIDATE PREVIOUS OTP
+    # VALIDATE AND FIND USER
+    # -----------------------------------------------------
+
+    normalized_phone: str | None = None
+    user: User | None = None
+
+    if channel == "sms":
+        normalized_phone = normalize_indian_phone(data.phone)
+        if not normalized_phone:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Valid phone number is required when channel is sms"
+            )
+        user = find_user_by_phone(db, data.phone)
+        if not user and email:
+            user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No account found with this phone number"
+            )
+    else:
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Email address is required when channel is email"
+            )
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid email address"
+            )
+
+    # -----------------------------------------------------
+    # INVALIDATE PREVIOUS UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
 
     db.query(
         OTPVerification
     ).filter(
         OTPVerification.user_id == user.user_id,
+        OTPVerification.channel == channel,
         OTPVerification.used.is_(False)
     ).update({
         "used": True
@@ -883,12 +955,13 @@ def send_otp(
     )
 
     # -----------------------------------------------------
-    # CREATE OTP RECORD
+    # CREATE OTP RECORD (EXPLICIT CHANNEL)
     # -----------------------------------------------------
 
     otp_record = OTPVerification(
         user_id=user.user_id,
         otp_hash=otp_hash,
+        channel=channel,
         expires_at=now + timedelta(
             minutes=5
         ),
@@ -904,23 +977,66 @@ def send_otp(
     db.commit()
 
     # -----------------------------------------------------
-    # SEND EMAIL
+    # SEND VIA EXPLICIT CHANNEL (CHECK SUCCESS DICT)
     # -----------------------------------------------------
 
     try:
+        if channel == "sms":
+            result = send_otp_sms(
+                recipient_phone=normalized_phone or normalize_indian_phone(
+                    user.phone) or "",
+                otp=otp,
+            )
+            provider_error = result.get(
+                "error") if isinstance(result, dict) else None
+            if not isinstance(result, dict) or not result.get("success"):
+                try:
+                    otp_record.used = True
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                    f"SMS delivery failed: "
+                    f"{provider_error or 'unknown error'}"
+                ),
+                )
+        else:
+            result = send_otp_email(
+                recipient_email=email or user.email,
+                otp=otp,
+            )
+            provider_error = result.get(
+                "error") if isinstance(result, dict) else None
+            if isinstance(result, dict) and not result.get("success"):
+                try:
+                    otp_record.used = True
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=(
+                    f"Email delivery failed: "
+                    f"{provider_error or 'unknown error'}"
+                ),
+                )
 
-        send_otp_email(
-            recipient_email=email,
-            otp=otp
-        )
+    except HTTPException:
+        raise
 
-    except Exception:
-
-        db.rollback()
+    except Exception as exc:
+        logger.error(f"OTP delivery error ({channel}): {exc}")
+        try:
+            otp_record.used = True
+            db.commit()
+        except Exception:
+            db.rollback()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to send OTP email"
+            detail="Unable to send OTP"
         )
 
     # -----------------------------------------------------
@@ -928,7 +1044,8 @@ def send_otp(
     # -----------------------------------------------------
 
     return {
-        "message": "OTP sent successfully"
+        "message": "OTP sent successfully",
+        "channel": channel,
     }
 
 
@@ -945,32 +1062,35 @@ def verify_otp(
 ):
 
     # -----------------------------------------------------
-    # CLEAN EMAIL
+    # CLEAN IDENTIFIER AND FIND USER
     # -----------------------------------------------------
 
-    email = str(
-        data.email
-    ).lower().strip()
+    channel = (data.channel or "email").lower().strip()
+    email = str(data.email).lower().strip() if data.email else None
+    user: User | None = None
 
-    # -----------------------------------------------------
-    # FIND USER
-    # -----------------------------------------------------
-
-    user = db.query(
-        User
-    ).filter(
-        User.email == email
-    ).first()
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=status.HTTP_404_NOT_FOUND,
-
-            detail="Invalid email address"
-
-        )
+    if channel == "sms":
+        if data.phone:
+            user = find_user_by_phone(db, data.phone)
+        if not user and email:
+            user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No account found with this phone number"
+            )
+    else:
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Email address is required when channel is email"
+            )
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid email address"
+            )
 
     # -----------------------------------------------------
     # FIND LATEST ACTIVE OTP
@@ -980,6 +1100,7 @@ def verify_otp(
         OTPVerification
     ).filter(
         OTPVerification.user_id == user.user_id,
+        OTPVerification.channel == data.channel,
         OTPVerification.used.is_(False)
     ).order_by(
         OTPVerification.created_at.desc()
@@ -1160,32 +1281,47 @@ def forgot_password(
 ):
 
     # -----------------------------------------------------
-    # CLEAN EMAIL
+    # RESOLVE CHANNEL AND FIND USER
     # -----------------------------------------------------
 
-    email = str(
-        data.email
-    ).lower().strip()
+    channel = (data.channel or "email").lower().strip()
+    if channel not in ("email", "sms"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid channel. Allowed values: email, sms"
+        )
 
-    # -----------------------------------------------------
-    # FIND USER
-    # -----------------------------------------------------
+    user: User | None = None
+    normalized_phone: str | None = None
+    email = str(data.email).lower().strip() if data.email else None
 
-    user = db.query(
-        User
-    ).filter(
-        User.email == email
-    ).first()
-
-    # -----------------------------------------------------
-    # GENERIC RESPONSE
-    # -----------------------------------------------------
-
-    generic_response = {
-        "message":
-            "If an account exists with this email, "
-            "a verification code has been sent."
-    }
+    if channel == "sms":
+        normalized_phone = normalize_indian_phone(data.phone)
+        if not normalized_phone:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Valid phone number is required when channel is sms"
+            )
+        user = find_user_by_phone(db, data.phone)
+        if not user and email:
+            user = db.query(User).filter(User.email == email).first()
+        generic_response = {
+            "message":
+                "If an account exists with this phone number, "
+                "a verification code has been sent."
+        }
+    else:
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Email address is required when channel is email"
+            )
+        user = db.query(User).filter(User.email == email).first()
+        generic_response = {
+            "message":
+                "If an account exists with this email, "
+                "a verification code has been sent."
+        }
 
     # -----------------------------------------------------
     # DO NOT REVEAL ACCOUNT EXISTENCE
@@ -1196,13 +1332,14 @@ def forgot_password(
         return generic_response
 
     # -----------------------------------------------------
-    # INVALIDATE OLD OTPs
+    # INVALIDATE OLD UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
 
     db.query(
         OTPVerification
     ).filter(
         OTPVerification.user_id == user.user_id,
+        OTPVerification.channel == channel,
         OTPVerification.used.is_(False)
     ).update(
         {
@@ -1257,7 +1394,7 @@ def forgot_password(
     )
 
     # -----------------------------------------------------
-    # CREATE OTP RECORD
+    # CREATE OTP RECORD (EXPLICIT CHANNEL)
     # -----------------------------------------------------
 
     otp_record = OTPVerification(
@@ -1265,6 +1402,8 @@ def forgot_password(
         user_id=user.user_id,
 
         otp_hash=otp_hash,
+
+        channel=channel,
 
         expires_at=now + timedelta(
             minutes=5
@@ -1301,29 +1440,74 @@ def forgot_password(
         )
 
     # -----------------------------------------------------
-    # SEND OTP EMAIL
+    # SEND OTP VIA EXPLICIT CHANNEL ONLY
     # -----------------------------------------------------
 
     try:
 
-        send_otp_email(
+        if channel == "sms":
 
-            recipient_email=email,
+            result = send_otp_sms(
 
-            otp=otp
+                recipient_phone=normalized_phone or "",
 
-        )
+                otp=otp,
+
+            )
+            provider_error = result.get(
+                "error") if isinstance(result, dict) else None
+            if not isinstance(result, dict) or not result.get("success"):
+                try:
+                    otp_record.used = True
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                raise HTTPException(
+
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+
+                    detail=(
+                    f"SMS delivery failed: "
+                    f"{provider_error or 'unknown error'}"
+                )
+
+                )
+
+        else:
+
+            result = send_otp_email(
+
+                recipient_email=email,
+
+                otp=otp,
+
+            )
+            provider_error = result.get(
+                "error") if isinstance(result, dict) else None
+            if isinstance(result, dict) and not result.get("success"):
+                try:
+                    otp_record.used = True
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                raise HTTPException(
+
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+
+                    detail=(
+                    f"Email delivery failed: "
+                    f"{provider_error or 'unknown error'}"
+                )
+
+                )
+
+    except HTTPException:
+
+        raise
 
     except Exception as exc:
 
-        print(
-            "PASSWORD RESET OTP EMAIL ERROR:",
-            exc
-        )
-
-        # -------------------------------------------------
-        # Invalidate the OTP if email failed
-        # -------------------------------------------------
+        logger.error(f"Forgot-password delivery error ({channel}): {exc}")
 
         try:
 
@@ -1344,7 +1528,7 @@ def forgot_password(
         )
 
     # -----------------------------------------------------
-    # SUCCESS
+    # SUCCESS (GENERIC TO PRESERVE ANTI-ENUMERATION)
     # -----------------------------------------------------
 
     return generic_response

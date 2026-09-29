@@ -1,14 +1,70 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectorRef, Component, OnDestroy } from "@angular/core";
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 
 import { Auth } from "../../../core/services/auth";
+
+type IdentifierType = "email" | "phone";
+
+function normalizePhone(phone: string | null | undefined): string | null {
+  if (!phone) {
+    return null;
+  }
+
+  const cleaned = String(phone)
+    .trim()
+    .replace(/[\s\-().]/g, "");
+
+  if (/^\+91\d{10}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  if (/^91\d{10}$/.test(cleaned)) {
+    return `+${cleaned}`;
+  }
+
+  if (/^\d{10}$/.test(cleaned)) {
+    return `+91${cleaned}`;
+  }
+
+  if (/^\+\d{7,15}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  return null;
+}
+
+function identifierValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const raw = String(control.value || "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (emailPattern.test(raw)) {
+    return null;
+  }
+
+  if (normalizePhone(raw)) {
+    return null;
+  }
+
+  return {
+    invalidIdentifier: true,
+  };
+}
 
 @Component({
   selector: "app-password-reset",
@@ -18,49 +74,22 @@ import { Auth } from "../../../core/services/auth";
   styleUrl: "./password-reset.component.scss",
 })
 export class PasswordResetComponent implements OnDestroy {
-  /* =========================================================
-     CURRENT STEP
-
-     1 = EMAIL
-     2 = OTP
-     3 = NEW PASSWORD
-     4 = SUCCESS
-
-     ========================================================= */
-
   currentStep = 1;
-
-  /* =========================================================
-     STATE
-     ========================================================= */
 
   loading = false;
   errorMessage = "";
   successMessage = "";
 
-  emailSubmitted = false;
+  identifierType: IdentifierType = "email";
 
-  /* =========================================================
-     RESET TOKEN
-
-     This token is kept only in component memory.
-
-     We do NOT store it in localStorage.
-
-     ========================================================= */
+  submittedIdentifier = "";
+  submittedEmail = "";
+  submittedPhone = "";
 
   private resetToken = "";
 
-  /* =========================================================
-     PASSWORD VISIBILITY
-     ========================================================= */
-
   hideNewPassword = true;
   hideConfirmPassword = true;
-
-  /* =========================================================
-     OTP
-     ========================================================= */
 
   otp: string[] = ["", "", "", "", "", ""];
 
@@ -69,16 +98,8 @@ export class PasswordResetComponent implements OnDestroy {
 
   private countdownTimer: ReturnType<typeof setInterval> | null = null;
 
-  /* =========================================================
-     FORMS
-     ========================================================= */
-
-  emailForm: FormGroup;
+  identifierForm: FormGroup;
   passwordForm: FormGroup;
-
-  /* =========================================================
-     CONSTRUCTOR
-     ========================================================= */
 
   constructor(
     private fb: FormBuilder,
@@ -86,17 +107,9 @@ export class PasswordResetComponent implements OnDestroy {
     private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
-    /* =======================================================
-       EMAIL FORM
-       ======================================================= */
-
-    this.emailForm = this.fb.group({
-      email: ["", [Validators.required, Validators.email]],
+    this.identifierForm = this.fb.group({
+      identifier: ["", [Validators.required, identifierValidator]],
     });
-
-    /* =======================================================
-       PASSWORD FORM
-       ======================================================= */
 
     this.passwordForm = this.fb.group(
       {
@@ -111,7 +124,6 @@ export class PasswordResetComponent implements OnDestroy {
             ),
           ],
         ],
-
         confirmPassword: [
           "",
           [
@@ -121,18 +133,19 @@ export class PasswordResetComponent implements OnDestroy {
           ],
         ],
       },
-
       {
         validators: this.passwordMatchValidator,
       },
     );
   }
 
-  /* =========================================================
-     PASSWORD MATCH VALIDATOR
-     ========================================================= */
+  ngOnDestroy(): void {
+    this.clearCountdown();
+  }
 
-  private passwordMatchValidator(form: FormGroup) {
+  private passwordMatchValidator(
+    form: AbstractControl,
+  ): ValidationErrors | null {
     const password = form.get("newPassword")?.value;
     const confirmPassword = form.get("confirmPassword")?.value;
 
@@ -140,19 +153,45 @@ export class PasswordResetComponent implements OnDestroy {
       return null;
     }
 
-    return password === confirmPassword
-      ? null
-      : {
-          passwordMismatch: true,
-        };
+    return password === confirmPassword ? null : { passwordMismatch: true };
   }
 
-  /* =========================================================
-     STEP 1
-     SEND OTP
-     ========================================================= */
+  onIdentifierInput(): void {
+    this.errorMessage = "";
 
-  submitEmail(): void {
+    const value = String(
+      this.identifierForm.get("identifier")?.value || "",
+    ).trim();
+
+    this.identifierType = this.detectIdentifierType(value);
+    this.cdr.detectChanges();
+  }
+
+  private detectIdentifierType(value: string): IdentifierType {
+    const trimmed = value.trim();
+
+    if (trimmed.includes("@")) {
+      return "email";
+    }
+
+    if (normalizePhone(trimmed)) {
+      return "phone";
+    }
+
+    const digits = trimmed.replace(/\D/g, "");
+
+    if (digits.length > 0 && !trimmed.includes("@")) {
+      return "phone";
+    }
+
+    return "email";
+  }
+
+  // =========================================================
+  // STEP 1 — SEND OTP
+  // =========================================================
+
+  submitIdentifier(): void {
     if (this.loading) {
       return;
     }
@@ -160,196 +199,96 @@ export class PasswordResetComponent implements OnDestroy {
     this.errorMessage = "";
     this.successMessage = "";
 
-    /* -------------------------------------------------------
-       VALIDATE EMAIL
-       ------------------------------------------------------- */
-
-    if (this.emailForm.invalid) {
-      this.emailForm.markAllAsTouched();
+    if (this.identifierForm.invalid) {
+      this.identifierForm.markAllAsTouched();
+      this.cdr.detectChanges();
       return;
     }
 
-    const email = String(this.emailForm.get("email")?.value || "")
-      .trim()
-      .toLowerCase();
+    const rawIdentifier = String(
+      this.identifierForm.get("identifier")?.value || "",
+    ).trim();
 
-    if (!email) {
+    if (!rawIdentifier) {
       return;
     }
 
-    /* -------------------------------------------------------
-       START LOADING
-       ------------------------------------------------------- */
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmail = emailPattern.test(rawIdentifier);
+    const normalizedPhone = normalizePhone(rawIdentifier);
+
+    if (!isEmail && !normalizedPhone) {
+      this.identifierForm
+        .get("identifier")
+        ?.setErrors({ invalidIdentifier: true });
+      this.identifierForm.get("identifier")?.markAsTouched();
+      return;
+    }
+
+    this.submittedIdentifier = rawIdentifier;
+
+    if (isEmail) {
+      this.identifierType = "email";
+      this.submittedEmail = rawIdentifier.toLowerCase();
+      this.submittedPhone = "";
+    } else {
+      this.identifierType = "phone";
+      this.submittedEmail = "";
+      this.submittedPhone = normalizedPhone as string;
+    }
 
     this.loading = true;
+    this.cdr.detectChanges();
 
-    /* -------------------------------------------------------
-       REQUEST PASSWORD RESET
-       ------------------------------------------------------- */
+    this.sendResetRequest();
+  }
 
-    this.auth.requestPasswordReset(email).subscribe({
+  private sendResetRequest(): void {
+    const channel: "email" | "sms" =
+      this.identifierType === "phone" ? "sms" : "email";
+
+    const email = this.identifierType === "email" ? this.submittedEmail : "";
+
+    const phone = this.identifierType === "phone" ? this.submittedPhone : null;
+
+    this.auth.requestPasswordReset(email, phone, channel).subscribe({
       next: (response) => {
         this.loading = false;
-
-        this.emailSubmitted = true;
-
-        this.currentStep = 2;
-
         this.otp = ["", "", "", "", "", ""];
-
         this.resetToken = "";
 
         this.successMessage =
           response?.message ||
-          "A verification code has been sent to your email.";
+          `A verification code has been sent by ${
+            channel === "sms" ? "SMS" : "email"
+          }.`;
 
+        this.currentStep = 2;
         this.startResendCountdown();
-
         this.cdr.detectChanges();
 
-        /* ---------------------------------------------------
-           FOCUS FIRST OTP INPUT
-           --------------------------------------------------- */
-
         setTimeout(() => {
-          const firstOtpInput = document.getElementById(
+          const firstInput = document.getElementById(
             "otp-0",
           ) as HTMLInputElement | null;
 
-          firstOtpInput?.focus();
+          firstInput?.focus();
         });
       },
-
       error: (err: any) => {
         this.loading = false;
-
-        const backendMessage =
-          typeof err?.error === "string"
-            ? err.error
-            : err?.error?.detail || err?.error?.message || "";
-
-        this.errorMessage =
-          backendMessage ||
-          "Unable to send verification code. Please try again.";
-
+        this.errorMessage = this.extractErrorMessage(
+          err,
+          "Unable to send verification code. Please try again.",
+        );
         this.cdr.detectChanges();
       },
     });
   }
 
-  /* =========================================================
-     OTP INPUT
-     ========================================================= */
-
-  onOtpInput(event: Event, index: number): void {
-    const input = event.target as HTMLInputElement;
-
-    let value = input.value.replace(/\D/g, "");
-
-    if (value.length > 1) {
-      value = value.charAt(value.length - 1);
-    }
-
-    this.otp[index] = value;
-
-    input.value = value;
-
-    /* -------------------------------------------------------
-       MOVE TO NEXT INPUT
-       ------------------------------------------------------- */
-
-    if (value && index < 5) {
-      const nextInput = document.getElementById(
-        `otp-${index + 1}`,
-      ) as HTMLInputElement | null;
-
-      nextInput?.focus();
-    }
-
-    this.errorMessage = "";
-  }
-
-  /* =========================================================
-     OTP KEYBOARD CONTROL
-     ========================================================= */
-
-  onOtpKeydown(event: KeyboardEvent, index: number): void {
-    const input = event.target as HTMLInputElement;
-
-    /* -------------------------------------------------------
-       BACKSPACE
-       ------------------------------------------------------- */
-
-    if (event.key === "Backspace" && !input.value && index > 0) {
-      const previousInput = document.getElementById(
-        `otp-${index - 1}`,
-      ) as HTMLInputElement | null;
-
-      previousInput?.focus();
-    }
-
-    /* -------------------------------------------------------
-       ARROW LEFT
-       ------------------------------------------------------- */
-
-    if (event.key === "ArrowLeft" && index > 0) {
-      const previousInput = document.getElementById(
-        `otp-${index - 1}`,
-      ) as HTMLInputElement | null;
-
-      previousInput?.focus();
-    }
-
-    /* -------------------------------------------------------
-       ARROW RIGHT
-       ------------------------------------------------------- */
-
-    if (event.key === "ArrowRight" && index < 5) {
-      const nextInput = document.getElementById(
-        `otp-${index + 1}`,
-      ) as HTMLInputElement | null;
-
-      nextInput?.focus();
-    }
-  }
-
-  /* =========================================================
-     OTP PASTE
-     ========================================================= */
-
-  onOtpPaste(event: ClipboardEvent): void {
-    event.preventDefault();
-
-    const pastedText = event.clipboardData
-      ?.getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    if (!pastedText) {
-      return;
-    }
-
-    for (let i = 0; i < 6; i++) {
-      this.otp[i] = pastedText[i] || "";
-    }
-
-    setTimeout(() => {
-      const nextEmptyIndex = this.otp.findIndex((value) => !value);
-
-      const focusIndex = nextEmptyIndex === -1 ? 5 : nextEmptyIndex;
-
-      const input = document.getElementById(
-        `otp-${focusIndex}`,
-      ) as HTMLInputElement | null;
-
-      input?.focus();
-    });
-  }
-
-  /* =========================================================
-     STEP 2
-     VERIFY OTP
-     ========================================================= */
+  // =========================================================
+  // STEP 2 — VERIFY OTP
+  // =========================================================
 
   verifyOtp(): void {
     if (this.loading) {
@@ -357,188 +296,189 @@ export class PasswordResetComponent implements OnDestroy {
     }
 
     this.errorMessage = "";
-    this.successMessage = "";
 
-    /* -------------------------------------------------------
-       VALIDATE OTP
-       ------------------------------------------------------- */
+    const code = this.otp.join("");
 
-    const enteredOtp = this.otp.join("");
-
-    if (enteredOtp.length !== 6) {
-      this.errorMessage = "Please enter the complete 6-digit OTP.";
-
+    if (!/^\d{6}$/.test(code)) {
+      this.errorMessage = "Enter the 6-digit verification code.";
+      this.cdr.detectChanges();
       return;
     }
 
-    /* -------------------------------------------------------
-       GET EMAIL
-       ------------------------------------------------------- */
-
-    const email = String(this.emailForm.get("email")?.value || "")
-      .trim()
-      .toLowerCase();
-
-    if (!email) {
-      this.errorMessage = "Email address is required.";
+    if (!this.submittedIdentifier) {
+      this.errorMessage = "Session expired. Please request a new code.";
+      this.currentStep = 1;
+      this.cdr.detectChanges();
       return;
     }
-
-    /* -------------------------------------------------------
-       START LOADING
-       ------------------------------------------------------- */
 
     this.loading = true;
 
-    /* -------------------------------------------------------
-       VERIFY OTP WITH BACKEND
-       ------------------------------------------------------- */
+    const channel: "email" | "sms" =
+      this.identifierType === "phone" ? "sms" : "email";
 
-    this.auth.verifyOtp(email, enteredOtp).subscribe({
+    const verificationIdentifier =
+      this.identifierType === "phone"
+        ? this.submittedPhone
+        : this.submittedEmail;
+
+    this.auth.verifyOtp(verificationIdentifier, code, channel).subscribe({
       next: (response) => {
         this.loading = false;
-
-        /* -------------------------------------------------
-           STORE RESET TOKEN IN MEMORY
-           ------------------------------------------------- */
-
-        this.resetToken = response.reset_token;
+        this.resetToken = response?.reset_token || "";
 
         if (!this.resetToken) {
-          this.errorMessage =
-            "Reset session could not be created. Please try again.";
-
+          this.errorMessage = "Verification failed. Please try again.";
+          this.cdr.detectChanges();
           return;
         }
 
-        /* -------------------------------------------------
-           MOVE TO PASSWORD SCREEN
-           ------------------------------------------------- */
-
-        this.successMessage = response.message || "OTP verified successfully.";
-
+        this.successMessage = "";
         this.currentStep = 3;
-
         this.cdr.detectChanges();
       },
-
       error: (err: any) => {
         this.loading = false;
-
-        const backendMessage =
-          typeof err?.error === "string"
-            ? err.error
-            : err?.error?.detail || err?.error?.message || "";
-
-        this.errorMessage = backendMessage || "Invalid OTP. Please try again.";
-
+        this.errorMessage = this.extractErrorMessage(
+          err,
+          "Invalid OTP. Please try again.",
+        );
         this.cdr.detectChanges();
       },
     });
   }
 
-  /* =========================================================
-     RESEND OTP
-     ========================================================= */
+  // =========================================================
+  // RESEND OTP
+  // =========================================================
 
   resendOtp(): void {
-    if (this.resendDisabled || this.loading || !this.emailSubmitted) {
+    if (this.loading || this.resendDisabled) {
       return;
     }
 
-    const email = String(this.emailForm.get("email")?.value || "")
-      .trim()
-      .toLowerCase();
-
-    if (!email) {
+    if (!this.submittedIdentifier) {
+      this.currentStep = 1;
       return;
     }
 
     this.loading = true;
-
     this.errorMessage = "";
-    this.successMessage = "";
 
-    /* -------------------------------------------------------
-       REQUEST NEW OTP
-       ------------------------------------------------------- */
-
-    this.auth.requestPasswordReset(email).subscribe({
-      next: (response) => {
-        this.loading = false;
-
-        this.otp = ["", "", "", "", "", ""];
-
-        this.resetToken = "";
-
-        this.successMessage =
-          response?.message || "A new verification code has been sent.";
-
-        this.startResendCountdown();
-
-        this.cdr.detectChanges();
-
-        /* ---------------------------------------------------
-           FOCUS FIRST OTP INPUT
-           --------------------------------------------------- */
-
-        setTimeout(() => {
-          const firstOtpInput = document.getElementById(
-            "otp-0",
-          ) as HTMLInputElement | null;
-
-          firstOtpInput?.focus();
-        });
-      },
-
-      error: (err: any) => {
-        this.loading = false;
-
-        const backendMessage =
-          typeof err?.error === "string"
-            ? err.error
-            : err?.error?.detail || err?.error?.message || "";
-
-        this.errorMessage =
-          backendMessage || "Unable to resend OTP. Please try again.";
-
-        this.cdr.detectChanges();
-      },
-    });
+    this.sendResetRequest();
   }
 
-  /* =========================================================
-     RESEND COUNTDOWN
-     ========================================================= */
-
   private startResendCountdown(): void {
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-    }
+    this.clearCountdown();
 
-    this.resendDisabled = true;
     this.resendCountdown = 30;
+    this.resendDisabled = true;
 
     this.countdownTimer = setInterval(() => {
-      this.resendCountdown--;
+      this.resendCountdown -= 1;
 
       if (this.resendCountdown <= 0) {
+        this.clearCountdown();
         this.resendDisabled = false;
-
-        if (this.countdownTimer) {
-          clearInterval(this.countdownTimer);
-          this.countdownTimer = null;
-        }
+        this.resendCountdown = 0;
       }
 
       this.cdr.detectChanges();
     }, 1000);
   }
 
-  /* =========================================================
-     STEP 3
-     RESET PASSWORD
-     ========================================================= */
+  private clearCountdown(): void {
+    if (this.countdownTimer) {
+      clearInterval(this.countdownTimer);
+      this.countdownTimer = null;
+    }
+  }
+
+  // =========================================================
+  // OTP INPUT
+  // =========================================================
+
+  onOtpInput(event: Event, index: number): void {
+    const input = event.target as HTMLInputElement;
+    const digit = input.value.replace(/\D/g, "").slice(-1);
+
+    this.otp[index] = digit;
+    input.value = digit;
+    this.errorMessage = "";
+
+    if (digit && index < this.otp.length - 1) {
+      const next = document.getElementById(
+        `otp-${index + 1}`,
+      ) as HTMLInputElement | null;
+
+      next?.focus();
+    }
+  }
+
+  onOtpKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === "Backspace" && !this.otp[index] && index > 0) {
+      const previous = document.getElementById(
+        `otp-${index - 1}`,
+      ) as HTMLInputElement | null;
+
+      previous?.focus();
+    }
+
+    if (event.key === "ArrowLeft" && index > 0) {
+      const previous = document.getElementById(
+        `otp-${index - 1}`,
+      ) as HTMLInputElement | null;
+
+      previous?.focus();
+    }
+
+    if (event.key === "ArrowRight" && index < this.otp.length - 1) {
+      const next = document.getElementById(
+        `otp-${index + 1}`,
+      ) as HTMLInputElement | null;
+
+      next?.focus();
+    }
+  }
+
+  onOtpPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+
+    const pasted =
+      event.clipboardData?.getData("text").replace(/\D/g, "").slice(0, 6) || "";
+
+    if (!pasted) {
+      return;
+    }
+
+    this.otp = ["", "", "", "", "", ""];
+
+    pasted.split("").forEach((digit: string, index: number) => {
+      this.otp[index] = digit;
+
+      const input = document.getElementById(
+        `otp-${index}`,
+      ) as HTMLInputElement | null;
+
+      if (input) {
+        input.value = digit;
+      }
+    });
+
+    const focusIndex = Math.min(pasted.length, 6) - 1;
+
+    if (focusIndex >= 0) {
+      const target = document.getElementById(
+        `otp-${focusIndex}`,
+      ) as HTMLInputElement | null;
+
+      target?.focus();
+    }
+  }
+
+  // =========================================================
+  // STEP 3 — RESET PASSWORD
+  // =========================================================
 
   resetPassword(): void {
     if (this.loading) {
@@ -546,27 +486,17 @@ export class PasswordResetComponent implements OnDestroy {
     }
 
     this.errorMessage = "";
-    this.successMessage = "";
-
-    /* -------------------------------------------------------
-       CHECK RESET TOKEN
-       ------------------------------------------------------- */
-
-    if (!this.resetToken) {
-      this.errorMessage =
-        "Your password reset session has expired. Please start again.";
-
-      this.currentStep = 1;
-
-      return;
-    }
-
-    /* -------------------------------------------------------
-       VALIDATE PASSWORD FORM
-       ------------------------------------------------------- */
 
     if (this.passwordForm.invalid) {
       this.passwordForm.markAllAsTouched();
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (!this.resetToken) {
+      this.errorMessage = "Session expired. Please verify OTP again.";
+      this.currentStep = 2;
+      this.cdr.detectChanges();
       return;
     }
 
@@ -578,189 +508,132 @@ export class PasswordResetComponent implements OnDestroy {
       this.passwordForm.get("confirmPassword")?.value || "",
     );
 
-    /* -------------------------------------------------------
-       PASSWORD MATCH
-       ------------------------------------------------------- */
-
-    if (newPassword !== confirmPassword) {
-      this.errorMessage = "Passwords do not match.";
-      return;
-    }
-
-    /* -------------------------------------------------------
-       START LOADING
-       ------------------------------------------------------- */
-
     this.loading = true;
-
-    /* -------------------------------------------------------
-       CALL BACKEND
-       ------------------------------------------------------- */
 
     this.auth
       .resetPassword(this.resetToken, newPassword, confirmPassword)
       .subscribe({
-        next: (response) => {
+        next: () => {
           this.loading = false;
-
-          this.successMessage =
-            response?.message || "Password reset successfully.";
-
-          /* -----------------------------------------------
-             REMOVE RESET TOKEN FROM MEMORY
-             ----------------------------------------------- */
-
-          this.resetToken = "";
-
-          /* -----------------------------------------------
-             MOVE TO SUCCESS
-             ----------------------------------------------- */
-
+          this.errorMessage = "";
+          this.successMessage = "";
           this.currentStep = 4;
-
+          this.clearCountdown();
           this.cdr.detectChanges();
         },
-
         error: (err: any) => {
           this.loading = false;
-
-          const backendMessage =
-            typeof err?.error === "string"
-              ? err.error
-              : err?.error?.detail || err?.error?.message || "";
-
-          this.errorMessage =
-            backendMessage || "Unable to reset password. Please try again.";
-
+          this.errorMessage = this.extractErrorMessage(
+            err,
+            "Unable to reset password. Please try again.",
+          );
           this.cdr.detectChanges();
         },
       });
   }
 
-  /* =========================================================
-     PASSWORD STRENGTH
-     ========================================================= */
+  // =========================================================
+  // PASSWORD REQUIREMENTS
+  // =========================================================
+
+  private getPassword(): string {
+    return String(this.passwordForm.get("newPassword")?.value || "");
+  }
 
   hasMinLength(): boolean {
-    const password = this.passwordForm.get("newPassword")?.value || "";
-
-    return password.length >= 8;
+    return this.getPassword().length >= 8;
   }
 
   hasUppercase(): boolean {
-    const password = this.passwordForm.get("newPassword")?.value || "";
-
-    return /[A-Z]/.test(password);
+    return /[A-Z]/.test(this.getPassword());
   }
 
   hasLowercase(): boolean {
-    const password = this.passwordForm.get("newPassword")?.value || "";
-
-    return /[a-z]/.test(password);
+    return /[a-z]/.test(this.getPassword());
   }
 
   hasNumber(): boolean {
-    const password = this.passwordForm.get("newPassword")?.value || "";
-
-    return /\d/.test(password);
+    return /\d/.test(this.getPassword());
   }
 
   hasSpecialCharacter(): boolean {
-    const password = this.passwordForm.get("newPassword")?.value || "";
-
-    return /[@$!%*?&]/.test(password);
+    return /[@$!%*?&]/.test(this.getPassword());
   }
 
-  /* =========================================================
-     GO BACK
-     ========================================================= */
+  // =========================================================
+  // MASK IDENTIFIER
+  // =========================================================
 
-  goBack(): void {
-    this.errorMessage = "";
-    this.successMessage = "";
-
-    /* -------------------------------------------------------
-       STEP 2 → STEP 1
-       ------------------------------------------------------- */
-
-    if (this.currentStep === 2) {
-      this.currentStep = 1;
-
-      this.otp = ["", "", "", "", "", ""];
-
-      this.resetToken = "";
-
-      this.stopCountdown();
-
-      return;
-    }
-
-    /* -------------------------------------------------------
-       STEP 3 → STEP 2
-       ------------------------------------------------------- */
-
-    if (this.currentStep === 3) {
-      this.currentStep = 2;
-
-      this.resetToken = "";
-
-      this.passwordForm.reset();
-
-      return;
-    }
-
-    /* -------------------------------------------------------
-       STEP 4 → LOGIN
-       ------------------------------------------------------- */
-
-    this.router.navigate(["/auth/login"]);
+  getMaskedIdentifier(): string {
+    return this.identifierType === "phone"
+      ? this.getMaskedPhone()
+      : this.getMaskedEmail();
   }
-
-  /* =========================================================
-     MASK EMAIL
-     ========================================================= */
 
   getMaskedEmail(): string {
-    const email = String(this.emailForm.get("email")?.value || "").trim();
+    const email = this.submittedEmail;
 
-    const parts = email.split("@");
-
-    if (parts.length !== 2) {
+    if (!email || !email.includes("@")) {
       return email;
     }
 
-    const username = parts[0];
-    const domain = parts[1];
+    const [name, domain] = email.split("@");
 
-    if (username.length <= 2) {
-      return `${username.charAt(0)}***@${domain}`;
+    if (name.length <= 2) {
+      return `${name[0] || ""}***@${domain}`;
     }
 
-    return `${username.charAt(0)}${"*".repeat(
-      Math.max(username.length - 2, 2),
-    )}${username.charAt(username.length - 1)}@${domain}`;
+    return `${name.slice(0, 2)}***@${domain}`;
   }
 
-  /* =========================================================
-     STOP COUNTDOWN
-     ========================================================= */
+  getMaskedPhone(): string {
+    const digits = this.submittedPhone.replace(/\D/g, "");
 
-  private stopCountdown(): void {
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-      this.countdownTimer = null;
+    if (digits.length < 4) {
+      return this.submittedPhone;
     }
 
-    this.resendDisabled = false;
+    return `******${digits.slice(-4)}`;
   }
 
-  /* =========================================================
-     DESTROY
-     ========================================================= */
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
 
-  ngOnDestroy(): void {
-    this.stopCountdown();
+  goBack(): void {
+    if (this.currentStep === 1) {
+      this.goToLogin();
+      return;
+    }
 
+    this.clearCountdown();
+    this.currentStep = 1;
+    this.errorMessage = "";
+    this.successMessage = "";
+    this.otp = ["", "", "", "", "", ""];
     this.resetToken = "";
+    this.cdr.detectChanges();
+  }
+
+  goToLogin(): void {
+    this.router.navigate(["/auth/login"]);
+  }
+
+  // =========================================================
+  // ERROR HANDLER
+  // =========================================================
+
+  private extractErrorMessage(err: any, fallback: string): string {
+    if (typeof err?.error === "string") {
+      return err.error.trim() || fallback;
+    }
+
+    const message = err?.error?.detail ?? err?.error?.message ?? err?.message;
+
+    if (typeof message === "string" && message.trim()) {
+      return message.trim();
+    }
+
+    return fallback;
   }
 }

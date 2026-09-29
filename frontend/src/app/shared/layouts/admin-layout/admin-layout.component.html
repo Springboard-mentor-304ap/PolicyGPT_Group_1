@@ -169,7 +169,7 @@
 
 
             <!-- NOTIFICATIONS -->
-            <a class="dash-nav__item" routerLink="/admin/notifications" routerLinkActive="dash-nav__item--active"
+            <a class="dash-nav__item" routerLink="/dashboard/admin/notifications" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Notifications' : null">
                 <span class="material-icons dash-nav__icon">
@@ -178,6 +178,34 @@
 
                 <span class="dash-nav__label">
                     Notifications
+                </span>
+            </a>
+
+
+            <!-- FAQS -->
+            <a class="dash-nav__item" routerLink="/dashboard/admin/faqs" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'FAQs' : null">
+                <span class="material-icons dash-nav__icon">
+                    quiz
+                </span>
+
+                <span class="dash-nav__label">
+                    FAQs
+                </span>
+            </a>
+
+
+            <!-- FEEDBACK & GRIEVANCES -->
+            <a class="dash-nav__item" routerLink="/dashboard/admin/feedback" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Feedback' : null">
+                <span class="material-icons dash-nav__icon">
+                    rate_review
+                </span>
+
+                <span class="dash-nav__label">
+                    Feedback
                 </span>
             </a>
 
@@ -399,12 +427,8 @@
             <!-- USER -->
             <div class="dash-user">
 
-                <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
-                    title="Notifications">
-                    <span class="material-icons">
-                        notifications_none
-                    </span>
-                </button>
+                <app-notification-bell></app-notification-bell>
+            <app-toast-container></app-toast-container>
 
 
                 <div class="dash-user__avatar" aria-hidden="true">

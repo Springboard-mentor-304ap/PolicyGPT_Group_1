@@ -31,6 +31,18 @@ class FAQ(Base):
         nullable=True
     )
 
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="PUBLISHED",
+    )
+
+    display_order: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False

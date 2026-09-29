@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -789,7 +790,30 @@ class ChangePasswordRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: Literal["email", "sms"] = Field(
+        default="email",
+    )
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self
 
 
 # =========================================================
@@ -888,7 +912,30 @@ class DeleteAccountRequest(BaseModel):
 
 class SendOTPRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: Literal["email", "sms"] = Field(
+        default="email",
+    )
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self
 
 
 # =========================================================
@@ -897,7 +944,18 @@ class SendOTPRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: str = Field(
+        default="email",
+        pattern="^(email|sms)$",
+    )
 
     otp: str = Field(
         min_length=6,
@@ -921,3 +979,16 @@ class VerifyOTPRequest(BaseModel):
             )
 
         return value
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone and not self.email:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import cast, or_, String
@@ -10,7 +10,7 @@ from app.models.user import User
 
 
 def current_time() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def create_scheme(
@@ -106,6 +106,27 @@ def create_scheme(
     try:
         db.commit()
         db.refresh(scheme)
+
+        try:
+            creator = db.query(User).filter(User.user_id == user_id).first()
+            creator_role = str(getattr(creator, "role", "")
+                               or "").strip().upper()
+            if creator_role in (
+                "GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"
+            ):
+                from app.services.notification_service import (
+                    notify_scheme_created,
+                )
+                notify_scheme_created(
+                    db=db,
+                    scheme_id=scheme.scheme_id,
+                    scheme_title=scheme.name,
+                    created_by_id=user_id,
+                    ministry=scheme.ministry,
+                )
+        except Exception as e:
+            print(f"Notification error on scheme create: {e}")
+
         return scheme
 
     except IntegrityError:
@@ -138,15 +159,17 @@ def update_scheme(
                 detail="You can only edit schemes created by yourself.",
             )
 
-    if scheme.status not in {
-        "DRAFT",
-        "REJECTED",
-        "ARCHIVED",
-    }:
+    allowed_statuses = (
+        {"DRAFT", "REJECTED", "ARCHIVED", "APPROVED"}
+        if (current_user and current_user.role == "ADMIN")
+        else {"DRAFT", "REJECTED", "ARCHIVED"}
+    )
+    if scheme.status not in allowed_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                "Only DRAFT, REJECTED, or ARCHIVED " "schemes can be edited."
+                "Only DRAFT, REJECTED, ARCHIVED, or APPROVED schemes "
+                "(by Admin) can be edited."
             ),
         )
 
@@ -254,6 +277,22 @@ def update_scheme(
     try:
         db.commit()
         db.refresh(scheme)
+
+        if scheme.status == "APPROVED":
+            try:
+                from app.services.notification_service import (
+                    notify_scheme_updated,
+                )
+                notify_scheme_updated(
+                    db=db,
+                    scheme_id=scheme.scheme_id,
+                    scheme_title=scheme.name,
+                    ministry=scheme.ministry,
+                    action="updated",
+                )
+            except Exception as e:
+                print(f"Notification error on scheme update: {e}")
+
         return scheme
 
     except IntegrityError:
@@ -317,6 +356,19 @@ def submit_scheme(
     db.commit()
     db.refresh(scheme)
 
+    try:
+        from app.services.notification_service import notify_scheme_submitted
+        notify_scheme_submitted(
+            db=db,
+            scheme_id=scheme.scheme_id,
+            scheme_title=getattr(scheme, "name", getattr(
+                scheme, "scheme_name", "Public Scheme")),
+            submitted_by_id=scheme.created_by or 0,
+            ministry=scheme.ministry,
+        )
+    except Exception as e:
+        print(f"Notification error on scheme submit: {e}")
+
     return scheme
 
 
@@ -324,6 +376,7 @@ def approve_scheme(
     db: Session,
     scheme: Scheme,
     admin_user_id: int,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
@@ -337,6 +390,21 @@ def approve_scheme(
     db.commit()
     db.refresh(scheme)
 
+    try:
+        from app.services.notification_service import notify_scheme_approved
+        notify_scheme_approved(
+            db=db,
+            scheme_id=scheme.scheme_id,
+            scheme_title=getattr(scheme, "name", getattr(
+                scheme, "scheme_name", "Public Scheme")),
+            creator_id=scheme.created_by,
+            ministry=scheme.ministry,
+            actor_id=admin_user_id,
+            actor_name=actor_name,
+        )
+    except Exception as e:
+        print(f"Notification error on scheme approve: {e}")
+
     return scheme
 
 
@@ -344,6 +412,8 @@ def reject_scheme(
     db: Session,
     scheme: Scheme,
     reason: str,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
@@ -361,16 +431,37 @@ def reject_scheme(
     db.commit()
     db.refresh(scheme)
 
+    try:
+        from app.services.notification_service import notify_scheme_rejected
+        notify_scheme_rejected(
+            db=db,
+            scheme_id=scheme.scheme_id,
+            scheme_title=getattr(scheme, "name", getattr(
+                scheme, "scheme_name", "Public Scheme")),
+            creator_id=scheme.created_by or 0,
+            reason=reason,
+            actor_id=actor_id,
+            actor_name=actor_name,
+        )
+    except Exception as e:
+        print(f"Notification error on scheme reject: {e}")
+
     return scheme
 
 
 def archive_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "APPROVED":
         raise ValueError("Only APPROVED schemes can be archived.")
+
+    req_user = scheme.archive_requested_by
+    title = getattr(scheme, "name", getattr(
+        scheme, "scheme_name", "Public Scheme"))
 
     scheme.status = "ARCHIVED"
 
@@ -382,6 +473,25 @@ def archive_scheme(
 
     db.commit()
     db.refresh(scheme)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Scheme Archive Request",
+                decision="APPROVED",
+                entity_type="SCHEME",
+                entity_id=scheme.scheme_id,
+                entity_title=title,
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme archive approve: {e}")
 
     return scheme
 
@@ -396,7 +506,10 @@ def request_archive_scheme(
     if scheme.created_by != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only request archive for schemes created by yourself.",
+            detail=(
+                "You can only request archive for schemes created "
+                "by yourself."
+            ),
         )
 
     if scheme.status != "APPROVED":
@@ -420,6 +533,21 @@ def request_archive_scheme(
     db.commit()
     db.refresh(scheme)
 
+    try:
+        from app.services.notification_service import (
+            notify_scheme_archive_requested,
+        )
+        notify_scheme_archive_requested(
+            db=db,
+            scheme_id=scheme.scheme_id,
+            scheme_title=getattr(scheme, "name", getattr(
+                scheme, "scheme_name", "Public Scheme")),
+            requested_by_id=user_id,
+            reason=reason,
+        )
+    except Exception as e:
+        print(f"Notification error on scheme archive request: {e}")
+
     return scheme
 
 
@@ -438,6 +566,8 @@ def get_archive_requests(
 def approve_archive_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "ARCHIVE_REQUESTED":
@@ -445,12 +575,37 @@ def approve_archive_scheme(
             "Only ARCHIVE_REQUESTED schemes " "can be approved for archive."
         )
 
-    scheme.status = "ARCHIVED"
+    req_user = scheme.archive_requested_by
+    title = getattr(scheme, "name", getattr(
+        scheme, "scheme_name", "Public Scheme"))
 
+    scheme.status = "ARCHIVED"
+    scheme.archive_reason = None
+    scheme.archive_requested_by = None
+    scheme.archive_requested_at = None
     scheme.updated_at = current_time()
 
     db.commit()
     db.refresh(scheme)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Scheme Archive Request",
+                decision="APPROVED",
+                entity_type="SCHEME",
+                entity_id=scheme.scheme_id,
+                entity_title=title,
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme archive approve: {e}")
 
     return scheme
 
@@ -458,6 +613,8 @@ def approve_archive_scheme(
 def reject_archive_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "ARCHIVE_REQUESTED":
@@ -465,6 +622,9 @@ def reject_archive_scheme(
             "Only ARCHIVE_REQUESTED schemes "
             "can have their archive request rejected."
         )
+
+    req_user = scheme.archive_requested_by
+    title = scheme.name
 
     scheme.status = "APPROVED"
 
@@ -477,12 +637,33 @@ def reject_archive_scheme(
     db.commit()
     db.refresh(scheme)
 
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Scheme Archive Request",
+                decision="REJECTED",
+                entity_type="SCHEME",
+                entity_id=scheme.scheme_id,
+                entity_title=title,
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme archive reject: {e}")
+
     return scheme
 
 
 def restore_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "ARCHIVED":
@@ -494,6 +675,26 @@ def restore_scheme(
 
     db.commit()
     db.refresh(scheme)
+
+    if scheme.created_by:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=scheme.created_by,
+                request_type="Scheme Restoration",
+                decision="APPROVED",
+                entity_type="SCHEME",
+                entity_id=scheme.scheme_id,
+                entity_title=scheme.name,
+                reason="Scheme has been restored to active status.",
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme restore: {e}")
 
     return scheme
 
@@ -508,7 +709,10 @@ def request_delete_scheme(
     if scheme.created_by != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only request deletion for schemes created by yourself.",
+            detail=(
+                "You can only request deletion for schemes created "
+                "by yourself."
+            ),
         )
 
     if scheme.status not in {
@@ -537,6 +741,21 @@ def request_delete_scheme(
     db.commit()
     db.refresh(scheme)
 
+    try:
+        from app.services.notification_service import (
+            notify_scheme_delete_requested,
+        )
+        notify_scheme_delete_requested(
+            db=db,
+            scheme_id=scheme.scheme_id,
+            scheme_title=getattr(scheme, "name", getattr(
+                scheme, "scheme_name", "Public Scheme")),
+            requested_by_id=user_id,
+            reason=reason,
+        )
+    except Exception as e:
+        print(f"Notification error on scheme delete request: {e}")
+
     return scheme
 
 
@@ -555,6 +774,8 @@ def get_delete_requests(
 def approve_delete_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> None:
 
     if scheme.status != "DELETE_REQUESTED":
@@ -562,9 +783,47 @@ def approve_delete_scheme(
             "Only DELETE_REQUESTED schemes " "can be permanently deleted."
         )
 
+    req_user = scheme.delete_requested_by
+    title = getattr(scheme, "name", getattr(
+        scheme, "scheme_name", "Public Scheme"))
+    scheme_id = scheme.scheme_id
+
     try:
+        # Notifications for this scheme hold a related_scheme_id FK, so
+        # they must go first or the delete below is always refused. They are
+        # transient UI messages about a row that is about to disappear, so
+        # removing them loses nothing. Any *other* referencing table
+        # (feedback, saved_schemes, scheme_applications, scheme_documents,
+        # eligibility_rules) still blocks the delete and still surfaces
+        # the 400 below, which is the intended behaviour.
+        from app.models.notification import Notification
+
+        db.query(Notification).filter(
+            Notification.related_scheme_id == scheme_id
+        ).delete(synchronize_session=False)
+
         db.delete(scheme)
         db.commit()
+
+        if req_user:
+            try:
+                from app.services.notification_service import (
+                    notify_request_decision,
+                )
+                notify_request_decision(
+                    db=db,
+                    user_id=req_user,
+                    request_type="Scheme Deletion Request",
+                    decision="APPROVED",
+                    entity_type="SCHEME",
+                    entity_id=scheme_id,
+                    entity_title=title,
+                    decision_by=actor_name or "Administrator",
+                    actor_id=actor_id,
+                    link_entity=False,
+                )
+            except Exception as e:
+                print(f"Notification error on scheme delete approve: {e}")
 
     except IntegrityError:
         db.rollback()
@@ -581,6 +840,8 @@ def approve_delete_scheme(
 def reject_delete_scheme(
     db: Session,
     scheme: Scheme,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
 ) -> Scheme:
 
     if scheme.status != "DELETE_REQUESTED":
@@ -597,6 +858,10 @@ def reject_delete_scheme(
     }:
         raise ValueError("Previous scheme status is invalid.")
 
+    req_user = scheme.delete_requested_by
+    title = getattr(scheme, "name", getattr(
+        scheme, "scheme_name", "Public Scheme"))
+
     scheme.status = previous_status
 
     scheme.delete_reason = None
@@ -608,6 +873,25 @@ def reject_delete_scheme(
 
     db.commit()
     db.refresh(scheme)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Scheme Deletion Request",
+                decision="REJECTED",
+                entity_type="SCHEME",
+                entity_id=scheme.scheme_id,
+                entity_title=title,
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme delete reject: {e}")
 
     return scheme
 
@@ -638,11 +922,15 @@ def search_schemes(
     # --------------------------------------------------------
     if current_user is not None:
         query = query.filter(
-            or_(Scheme.status != "DRAFT", Scheme.created_by == current_user.user_id)
+            or_(
+                    Scheme.status != "DRAFT",
+                    Scheme.created_by == current_user.user_id,
+                )
         )
         if str(current_user.role).strip().upper() != "ADMIN":
             query = query.filter(
-                or_(Scheme.status != "PENDING_APPROVAL", Scheme.created_by == current_user.user_id)
+                or_(Scheme.status != "PENDING_APPROVAL",
+                    Scheme.created_by == current_user.user_id)
             )
 
     if created_by is not None:
@@ -681,7 +969,8 @@ def search_schemes(
 
     if publication_date:
         query = query.filter(
-            cast(Scheme.created_at, String).ilike(f"%{publication_date.strip()}%")
+            cast(Scheme.created_at, String).ilike(
+                f"%{publication_date.strip()}%")
         )
 
     if status and status.upper() != "ALL":

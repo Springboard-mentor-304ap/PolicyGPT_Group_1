@@ -1,0 +1,391 @@
+<div class="faq-page">
+
+  <!-- =========================================================
+     PAGE HEADER (PolicyGPT Standard)
+     ========================================================= -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <h1>Frequently Asked Questions</h1>
+        <p>
+          Find verified answers regarding policies, government schemes, eligibility criteria, and portal assistance.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <!-- ADMIN ONLY: ADD FAQ -->
+        <button
+          *ngIf="isAdmin()"
+          type="button"
+          class="btn-primary-action"
+          (click)="openAddModal()"
+        >
+          <span class="material-icons">add_circle_outline</span>
+          <span>Add New FAQ</span>
+        </button>
+
+        <!-- BACK BUTTON -->
+        <button type="button" class="back-button" (click)="goBack()">
+          <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
+          <span>Back</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+     SEARCH & CATEGORIES FILTER BAR
+     ========================================================= -->
+  <section class="search-section">
+    <!-- SEARCH ROW (Matching policy-search) -->
+    <div class="search-row">
+      <div class="search-input-wrapper">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+            <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <input
+          type="text"
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          placeholder="Search questions by topic, keyword, or policy name..."
+          autocomplete="off"
+          aria-label="Search questions"
+        />
+        <button
+          *ngIf="searchQuery()"
+          type="button"
+          class="clear-search"
+          (click)="searchQuery.set('')"
+          aria-label="Clear search"
+        >
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CATEGORY CHIPS BAR -->
+    <div class="category-chips-bar" role="tablist" aria-label="FAQ Categories">
+      <button
+        *ngFor="let cat of categories()"
+        type="button"
+        class="category-chip"
+        [class.active]="selectedCategory() === cat"
+        (click)="selectCategory(cat)"
+      >
+        <span>{{ cat }}</span>
+      </button>
+    </div>
+
+    <!-- CONTROLS META (Count + Expand/Collapse) -->
+    <div class="controls-meta">
+      <span class="result-count">
+        Showing <strong>{{ filteredFaqs().length }}</strong> of {{ faqs().length }} questions
+      </span>
+      <div class="toggle-actions" *ngIf="filteredFaqs().length > 0">
+        <button type="button" class="meta-action-btn" (click)="expandAll()">
+          <span class="material-icons">unfold_more</span>
+          <span>Expand All</span>
+        </button>
+        <span class="divider">|</span>
+        <button type="button" class="meta-action-btn" (click)="collapseAll()">
+          <span class="material-icons">unfold_less</span>
+          <span>Collapse All</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+     FAQ CONTENT
+     ========================================================= -->
+  <main class="faq-content">
+
+    <!-- LOADING SKELETON -->
+    <div *ngIf="loading()" class="skeleton-container">
+      <div class="skeleton-card" *ngFor="let i of [1, 2, 3, 4]"></div>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div *ngIf="!loading() && error()" class="error-card">
+      <div class="error-icon-wrap">
+        <span class="material-icons">error_outline</span>
+      </div>
+      <h3>Unable to load FAQs</h3>
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-primary-action" (click)="loadFaqs()">
+        <span class="material-icons">refresh</span>
+        <span>Try Again</span>
+      </button>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div *ngIf="!loading() && !error() && filteredFaqs().length === 0" class="empty-card">
+      <div class="empty-icon-wrap">
+        <span class="material-icons">quiz</span>
+      </div>
+      <h3>No matching questions found</h3>
+      <p *ngIf="searchQuery() || selectedCategory() !== 'All'">
+        We couldn't find any questions matching your current filters. Try searching with different keywords or clear your filters.
+      </p>
+      <p *ngIf="!searchQuery() && selectedCategory() === 'All'">
+        No FAQs have been added to the knowledge base yet.
+      </p>
+      <div class="empty-actions">
+        <button
+          *ngIf="searchQuery() || selectedCategory() !== 'All'"
+          type="button"
+          class="back-button"
+          (click)="searchQuery.set(''); selectedCategory.set('All')"
+        >
+          <span class="material-icons back-icon">clear_all</span>
+          <span>Clear Filters</span>
+        </button>
+        <button
+          *ngIf="isAdmin()"
+          type="button"
+          class="btn-primary-action"
+          (click)="openAddModal()"
+        >
+          <span class="material-icons">add</span>
+          <span>Add the First FAQ</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FAQ ACCORDION GROUP -->
+    <div *ngIf="!loading() && !error() && filteredFaqs().length > 0" class="faq-accordion-group">
+      <article
+        *ngFor="let faq of filteredFaqs()"
+        class="faq-card"
+        [class.is-expanded]="isExpanded(faq.faq_id)"
+      >
+        <!-- CARD HEADER / QUESTION -->
+        <header
+          class="faq-card-header"
+          (click)="toggleFaq(faq.faq_id)"
+          tabindex="0"
+          role="button"
+          [attr.aria-expanded]="isExpanded(faq.faq_id)"
+        >
+          <div class="faq-header-leading">
+            <span class="q-badge" aria-hidden="true">Q</span>
+            <div class="faq-question-col">
+              <div class="faq-meta-tags" *ngIf="faq.category">
+                <span class="category-tag">{{ faq.category }}</span>
+              </div>
+              <h2 class="faq-question-title">{{ faq.question }}</h2>
+            </div>
+          </div>
+
+          <div class="faq-header-actions" (click)="$event.stopPropagation()">
+            <!-- ADMIN ACTIONS -->
+            <div class="admin-actions-bar" *ngIf="isAdmin()">
+              <button
+                type="button"
+                class="admin-icon-btn edit-btn"
+                (click)="openEditModal(faq, $event)"
+                title="Edit FAQ"
+                aria-label="Edit FAQ"
+              >
+                <span class="material-icons">edit</span>
+              </button>
+              <button
+                type="button"
+                class="admin-icon-btn delete-btn"
+                (click)="confirmDelete(faq, $event)"
+                title="Delete FAQ"
+                aria-label="Delete FAQ"
+              >
+                <span class="material-icons">delete_outline</span>
+              </button>
+            </div>
+
+            <!-- EXPAND / COLLAPSE CHEVRON -->
+            <button
+              type="button"
+              class="chevron-btn"
+              (click)="toggleFaq(faq.faq_id)"
+              [attr.aria-label]="isExpanded(faq.faq_id) ? 'Collapse answer' : 'Expand answer'"
+            >
+              <span class="material-icons">expand_more</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- CARD BODY / ANSWER -->
+        <div class="faq-card-body" *ngIf="isExpanded(faq.faq_id)">
+          <div class="faq-answer-inner">
+            <div class="answer-row">
+              <span class="a-badge" aria-hidden="true">A</span>
+              <div class="answer-content">
+                <div class="answer-text">{{ faq.answer }}</div>
+                <footer class="faq-meta-footer" *ngIf="faq.updated_at || faq.created_at">
+                  <span class="meta-label">
+                    <span class="material-icons">schedule</span>
+                    Last updated: {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+                  </span>
+                </footer>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- STILL HAVE QUESTIONS CTA (FOR NON-ADMIN USERS) -->
+    <section class="faq-cta-card" *ngIf="!isAdmin()">
+      <div class="cta-left">
+        <div class="cta-icon-box">
+          <span class="material-icons">support_agent</span>
+        </div>
+        <div class="cta-body">
+          <h3>Still have questions or grievances?</h3>
+          <p>
+            Can't find the answers you're looking for? Reach out to our dedicated support desk or submit feedback directly through our official grievance desk.
+          </p>
+        </div>
+      </div>
+      <div class="cta-actions">
+        <a [routerLink]="getFeedbackRoute()" class="btn-primary-action">
+          <span class="material-icons">rate_review</span>
+          <span>Submit Grievance / Feedback</span>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+     ADMIN MODAL: ADD / EDIT FAQ
+     ========================================================= -->
+  <div class="modal-backdrop" *ngIf="showModal()" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-header-icon">
+          <span class="material-icons">{{ isEditMode() ? 'edit_note' : 'add_circle' }}</span>
+        </div>
+        <div class="modal-title-wrap">
+          <h2>{{ isEditMode() ? 'Edit FAQ' : 'Add New FAQ' }}</h2>
+          <p>{{ isEditMode() ? 'Update the question, answer, and category.' : 'Provide clear information for users of the portal.' }}</p>
+        </div>
+        <button type="button" class="close-modal-btn" (click)="closeModal()" aria-label="Close dialog">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <!-- QUESTION FIELD -->
+        <div class="form-group">
+          <label for="faqQuestion">Question <span class="required">*</span></label>
+          <input
+            id="faqQuestion"
+            type="text"
+            placeholder="e.g. How do I verify my eligibility for rural agricultural schemes?"
+            [(ngModel)]="formQuestion"
+            maxlength="300"
+          />
+        </div>
+
+        <!-- CATEGORY SELECT -->
+        <div class="form-group">
+          <label for="faqCategory">Category</label>
+          <select id="faqCategory" [(ngModel)]="formCategory">
+            <option *ngFor="let c of predefinedCategories" [value]="c">{{ c }}</option>
+            <option value="Custom">+ Custom Category...</option>
+          </select>
+        </div>
+
+        <!-- CUSTOM CATEGORY INPUT (IF CUSTOM SELECTED) -->
+        <div class="form-group" *ngIf="formCategory === 'Custom'">
+          <label for="customCat">Custom Category Name</label>
+          <input
+            id="customCat"
+            type="text"
+            placeholder="Enter custom category name"
+            [(ngModel)]="customCategory"
+            maxlength="50"
+          />
+        </div>
+
+        <!-- ANSWER FIELD -->
+        <div class="form-group">
+          <label for="faqAnswer">Answer <span class="required">*</span></label>
+          <textarea
+            id="faqAnswer"
+            rows="6"
+            placeholder="Provide a comprehensive and easy-to-understand explanation..."
+            [(ngModel)]="formAnswer"
+          ></textarea>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="back-button" (click)="closeModal()" [disabled]="modalSubmitting()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn-primary-action"
+          (click)="saveFaq()"
+          [disabled]="modalSubmitting() || !formQuestion.trim() || !formAnswer.trim()"
+        >
+          <span class="material-icons" *ngIf="!modalSubmitting()">{{ isEditMode() ? 'save' : 'check' }}</span>
+          <span class="spinner" *ngIf="modalSubmitting()"></span>
+          <span>{{ isEditMode() ? 'Save Changes' : 'Create FAQ' }}</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- =========================================================
+     ADMIN MODAL: CONFIRM DELETE
+     ========================================================= -->
+  <div class="modal-backdrop" *ngIf="showDeleteModal()" (click)="closeDeleteModal()">
+    <div class="modal-card modal-card--danger" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-header-icon modal-header-icon--danger">
+          <span class="material-icons">warning_amber</span>
+        </div>
+        <div class="modal-title-wrap">
+          <h2>Delete FAQ</h2>
+          <p>Are you sure you want to permanently remove this FAQ item?</p>
+        </div>
+        <button type="button" class="close-modal-btn" (click)="closeDeleteModal()" aria-label="Close dialog">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <p class="delete-warning-text">
+          This action will immediately delete the following question from the knowledge base for all users:
+        </p>
+        <div class="delete-faq-preview" *ngIf="faqToDelete()">
+          <strong>"{{ faqToDelete()?.question }}"</strong>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="back-button" (click)="closeDeleteModal()" [disabled]="deleteSubmitting()">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn-danger-action"
+          (click)="executeDelete()"
+          [disabled]="deleteSubmitting()"
+        >
+          <span class="material-icons" *ngIf="!deleteSubmitting()">delete</span>
+          <span class="spinner" *ngIf="deleteSubmitting()"></span>
+          <span>Delete FAQ</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+</div>

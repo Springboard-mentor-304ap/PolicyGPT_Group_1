@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable } from "rxjs";
+import { Observable, map } from "rxjs";
 
 export interface DashboardAnalyticsResponse {
   total_policies: number;
@@ -196,7 +196,70 @@ export class AnalyticsService {
   // --------------------------------------------------
 
   getDashboardAnalytics(): Observable<DashboardAnalyticsResponse & DashboardAnalytics & any> {
-    return this.http.get<any>(`${this.baseUrl}/dashboard`);
+    return this.http.get<any>(`${this.baseUrl}/dashboard`).pipe(
+      map((data: any) => {
+        const policies = data?.policies ?? {};
+        const schemes = data?.schemes ?? {};
+        const users = data?.users ?? {};
+
+        const total_policies = data?.total_policies ?? policies.total ?? 0;
+        const approved_policies = data?.approved_policies ?? policies.approved ?? 0;
+        const pending_policies = data?.pending_policies ?? policies.pending ?? 0;
+        const rejected_policies = data?.rejected_policies ?? policies.rejected ?? 0;
+        const archived_policies = data?.archived_policies ?? policies.archived ?? 0;
+
+        const total_schemes = data?.total_schemes ?? schemes.total ?? 0;
+        const approved_schemes = data?.approved_schemes ?? schemes.approved ?? 0;
+        const active_schemes = data?.active_schemes ?? approved_schemes;
+        const pending_schemes = data?.pending_schemes ?? schemes.pending ?? 0;
+        const rejected_schemes = data?.rejected_schemes ?? schemes.rejected ?? 0;
+        const archived_schemes = data?.archived_schemes ?? schemes.archived ?? 0;
+
+        const total_users = data?.total_users ?? users.total ?? 0;
+        const active_users = data?.active_users ?? users.active ?? 0;
+        const inactive_users = data?.inactive_users ?? users.inactive ?? 0;
+
+        return {
+          ...data,
+          policies: {
+            total: total_policies,
+            approved: approved_policies,
+            pending: pending_policies,
+            rejected: rejected_policies,
+            archived: archived_policies,
+            ...policies,
+          },
+          schemes: {
+            total: total_schemes,
+            approved: approved_schemes,
+            pending: pending_schemes,
+            rejected: rejected_schemes,
+            archived: archived_schemes,
+            ...schemes,
+          },
+          users: {
+            total: total_users,
+            active: active_users,
+            inactive: inactive_users,
+            ...users,
+          },
+          total_policies,
+          approved_policies,
+          pending_policies,
+          rejected_policies,
+          archived_policies,
+          total_schemes,
+          approved_schemes,
+          active_schemes,
+          pending_schemes,
+          rejected_schemes,
+          archived_schemes,
+          total_users,
+          active_users,
+          inactive_users,
+        };
+      })
+    );
   }
 
   // --------------------------------------------------
@@ -204,7 +267,12 @@ export class AnalyticsService {
   // --------------------------------------------------
 
   getPolicyAnalytics(): Observable<PolicyAnalyticsResponse & PolicyAnalytics & any> {
-    return this.http.get<any>(`${this.baseUrl}/policies`);
+    return this.http.get<any>(`${this.baseUrl}/policies`).pipe(
+      map((data: any) => ({
+        ...data,
+        approved: data?.approved ?? 0,
+      }))
+    );
   }
 
   getPolicyTrends(): Observable<PolicyTrendItem[] | any[]> {
@@ -216,7 +284,16 @@ export class AnalyticsService {
   // --------------------------------------------------
 
   getSchemeAnalytics(): Observable<SchemeAnalyticsResponse & SchemeAnalytics & any> {
-    return this.http.get<any>(`${this.baseUrl}/schemes`);
+    return this.http.get<any>(`${this.baseUrl}/schemes`).pipe(
+      map((data: any) => {
+        const approved = data?.approved ?? data?.active ?? 0;
+        return {
+          ...data,
+          approved,
+          active: data?.active ?? approved,
+        };
+      })
+    );
   }
 
   getSchemeUsage(): Observable<SchemeUsageResponse> {

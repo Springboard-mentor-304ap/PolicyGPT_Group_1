@@ -96,6 +96,13 @@ export class GuestUserLayoutComponent implements OnInit {
       exact: false,
       requiresLogin: true,
     },
+    {
+      icon: "support_agent",
+      label: "Support",
+      route: "/dashboard/guest/support",
+      exact: false,
+      requiresLogin: false,
+    },
   ];
 
   constructor(

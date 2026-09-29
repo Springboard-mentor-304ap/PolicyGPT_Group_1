@@ -13,6 +13,8 @@ import {
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 /* =========================================================
    ORGANIZATION NAVIGATION ITEM
@@ -41,6 +43,8 @@ export interface OrganizationNavItem {
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    NotificationBellComponent,
+    ToastContainerComponent,
   ],
 
   templateUrl: "./organization-layout.component.html",
@@ -129,7 +133,7 @@ export class OrganizationLayoutComponent implements OnInit {
     {
       icon: "support_agent",
       label: "Support",
-      route: "/dashboard/organization/feedback",
+      route: "/dashboard/organization/faqs",
     },
   ];
 

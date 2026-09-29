@@ -1,0 +1,114 @@
+<div class="bell-container">
+  <!-- Bell Button -->
+  <button
+    type="button"
+    class="bell-btn"
+    (click)="toggleDropdown($event)"
+    aria-label="Notifications"
+    [attr.aria-expanded]="isOpen"
+    aria-haspopup="true"
+    [attr.aria-controls]="isOpen ? 'notification-bell-dropdown' : null"
+    title="Notifications"
+  >
+    <span class="material-icons bell-icon" aria-hidden="true">
+      {{ unreadCount > 0 ? 'notifications_active' : 'notifications_none' }}
+    </span>
+    <span class="sr-only">
+      {{ unreadCount > 0 ? unreadCount + ' unread notifications' : 'No unread notifications' }}
+    </span>
+
+    <!-- Unread Badge -->
+    <span *ngIf="unreadCount > 0" class="bell-badge" aria-hidden="true">
+      {{ unreadCount > 99 ? '99+' : unreadCount }}
+    </span>
+  </button>
+
+  <!-- Dropdown Preview Panel -->
+  <div
+    *ngIf="isOpen"
+    id="notification-bell-dropdown"
+    class="bell-dropdown"
+    role="region"
+    aria-label="Recent notifications"
+    (click)="$event.stopPropagation()"
+    (keydown.escape)="isOpen = false"
+  >
+    <!-- Header -->
+    <div class="dropdown-header">
+      <div class="header-title">
+        <h3>Notifications</h3>
+        <span *ngIf="unreadCount > 0" class="header-badge">{{ unreadCount }} new</span>
+      </div>
+
+      <div class="header-actions">
+        <button
+          *ngIf="unreadCount > 0"
+          type="button"
+          class="mark-read-text-btn"
+          (click)="markAllAsRead($event)"
+        >
+          Mark all as read
+        </button>
+        <button
+          type="button"
+          class="pref-icon-btn"
+          (click)="openPreferences($event)"
+          title="Notification Preferences"
+          aria-label="Notification Preferences"
+        >
+          <span class="material-icons">settings</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Items List -->
+    <div class="dropdown-list">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="dropdown-loading">
+        <div class="bell-skeleton" *ngFor="let i of [1, 2, 3]"></div>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="!loading && hasError" class="dropdown-error">
+        <span class="material-icons">error_outline</span>
+        <p>Unable to load notifications.</p>
+        <button type="button" class="retry-btn" (click)="loadRecent()">Retry</button>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!loading && !hasError && recentNotifications.length === 0" class="dropdown-empty">
+        <span class="material-icons">notifications_off</span>
+        <p>No notifications yet</p>
+      </div>
+
+      <!-- Recent Items -->
+      <button
+        *ngFor="let item of recentNotifications"
+        type="button"
+        class="dropdown-item"
+        [class.unread]="!item.is_read"
+        (click)="openNotification(item, $event)"
+        [attr.aria-label]="
+          (item.is_read ? 'Read' : 'Unread') + ' notification: ' + item.title +
+          '. ' + formatRelativeTime(item.created_at)
+        "
+      >
+        <span class="item-dot" [class.active]="!item.is_read" aria-hidden="true"></span>
+
+        <span class="item-body">
+          <span class="item-title">{{ item.title }}</span>
+          <span class="item-snippet">{{ item.message }}</span>
+          <span class="item-time">{{ formatRelativeTime(item.created_at) }}</span>
+        </span>
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="dropdown-footer">
+      <button type="button" class="view-all-btn" (click)="viewAll($event)">
+        <span>View All Notifications</span>
+        <span class="material-icons">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -14,8 +14,10 @@ def create_faq(
         question=data.question,
         answer=data.answer,
         category=data.category,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        status=getattr(data, "status", "PUBLISHED") or "PUBLISHED",
+        display_order=getattr(data, "display_order", 0) or 0,
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
     db.add(faq)
@@ -61,7 +63,7 @@ def update_faq(
     for field, value in update_data.items():
         setattr(faq, field, value)
 
-    faq.updated_at = datetime.utcnow()
+    faq.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
     db.refresh(faq)

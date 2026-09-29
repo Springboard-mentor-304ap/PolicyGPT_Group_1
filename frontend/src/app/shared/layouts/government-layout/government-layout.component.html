@@ -72,11 +72,8 @@
         <!-- USER -->
         <div class="dash-user">
 
-            <button type="button" class="dash-user__icon-btn" aria-label="Notifications" routerLink="/notifications">
-                <span class="material-icons">
-                    notifications_none
-                </span>
-            </button>
+            <app-notification-bell></app-notification-bell>
+            <app-toast-container></app-toast-container>
 
 
             <div class="dash-user__avatar" aria-hidden="true">
@@ -246,8 +243,8 @@
             </a>
 
             <!-- NOTIFICATIONS -->
-            <a class="dash-nav__item" routerLink="/notifications" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+            <a class="dash-nav__item" routerLink="/dashboard/government/notifications" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Notifications' : null">
                 <span class="material-icons dash-nav__icon">
                     notifications_none

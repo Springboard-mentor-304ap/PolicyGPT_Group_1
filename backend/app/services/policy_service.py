@@ -175,6 +175,22 @@ def create_policy(
     db.commit()
     db.refresh(policy)
 
+    norm_role = str(getattr(current_user, "role", "") or "").strip().upper()
+    if norm_role in (
+                "GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"
+            ):
+        try:
+            from app.services.notification_service import notify_policy_created
+            notify_policy_created(
+                db=db,
+                policy_id=policy.policy_id,
+                policy_title=policy.title,
+                created_by_id=current_user.user_id,
+                department=policy.department or policy.ministry,
+            )
+        except Exception as e:
+            print(f"Notification error on policy create: {e}")
+
     return policy
 
 
@@ -219,16 +235,17 @@ def update_policy(
         policy_id=policy_id,
     )
 
-    if policy.status not in {
-        "DRAFT",
-        "REJECTED",
-        "ARCHIVED",
-    }:
+    allowed_statuses = (
+        {"DRAFT", "REJECTED", "ARCHIVED", "APPROVED"}
+        if (current_user and current_user.role == "ADMIN")
+        else {"DRAFT", "REJECTED", "ARCHIVED"}
+    )
+    if policy.status not in allowed_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Policy can only be edited when its status "
-                "is DRAFT, REJECTED, or ARCHIVED."
+                "is DRAFT, REJECTED, ARCHIVED, or by an Administrator."
             ),
         )
 
@@ -432,6 +449,14 @@ def update_policy(
     db.commit()
     db.refresh(policy)
 
+    if policy.status == "APPROVED":
+        try:
+            from app.services.notification_service import notify_policy_updated
+            notify_policy_updated(
+                db=db, policy_id=policy.policy_id, policy_title=policy.title)
+        except Exception as e:
+            print(f"Notification error on policy update: {e}")
+
     return policy
 
 
@@ -493,7 +518,10 @@ def submit_policy(
     )
 
     # Creator-only submission check: only the creator (or Admin) can submit
-    if current_user.role != "ADMIN" and policy.created_by != current_user.user_id:
+    if (
+        current_user.role != "ADMIN"
+        and policy.created_by != current_user.user_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
@@ -522,6 +550,18 @@ def submit_policy(
 
     db.commit()
     db.refresh(policy)
+
+    try:
+        from app.services.notification_service import notify_policy_submitted
+        notify_policy_submitted(
+            db=db,
+            policy_id=policy.policy_id,
+            policy_title=policy.title,
+            submitted_by_id=current_user.user_id,
+            department=policy.department,
+        )
+    except Exception as e:
+        print(f"Notification error on policy submit: {e}")
 
     return policy
 
@@ -560,6 +600,20 @@ def approve_policy(
 
     db.commit()
     db.refresh(policy)
+
+    try:
+        from app.services.notification_service import notify_policy_approved
+        notify_policy_approved(
+            db=db,
+            policy_id=policy.policy_id,
+            policy_title=policy.title,
+            creator_id=policy.created_by,
+            ministry=policy.ministry,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
+        )
+    except Exception as e:
+        print(f"Notification error on policy approve: {e}")
 
     return policy
 
@@ -605,6 +659,20 @@ def reject_policy(
 
     db.commit()
     db.refresh(policy)
+
+    try:
+        from app.services.notification_service import notify_policy_rejected
+        notify_policy_rejected(
+            db=db,
+            policy_id=policy.policy_id,
+            policy_title=policy.title,
+            creator_id=policy.created_by,
+            reason=policy.rejection_reason,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
+        )
+    except Exception as e:
+        print(f"Notification error on policy reject: {e}")
 
     return policy
 
@@ -654,6 +722,20 @@ def request_archive_policy(
 
     db.commit()
     db.refresh(policy)
+
+    try:
+        from app.services.notification_service import (
+            notify_policy_archive_requested,
+        )
+        notify_policy_archive_requested(
+            db=db,
+            policy_id=policy.policy_id,
+            policy_title=policy.title,
+            requested_by_id=current_user.user_id,
+            reason=policy.archive_reason,
+        )
+    except Exception as e:
+        print(f"Notification error on policy archive request: {e}")
 
     return policy
 
@@ -724,12 +806,34 @@ def approve_archive_policy(
             ),
         )
 
+    req_user = policy.archive_requested_by
+    title = policy.title
+
     policy.status = "ARCHIVED"
 
     policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Policy Archive Request",
+                decision="APPROVED",
+                entity_type="POLICY",
+                entity_id=policy.policy_id,
+                entity_title=title,
+                decision_by=current_user.full_name or "Administrator",
+                actor_id=current_user.user_id,
+            )
+        except Exception as e:
+            print(f"Notification error on policy archive approve: {e}")
 
     return policy
 
@@ -764,12 +868,34 @@ def reject_archive_policy(
             ),
         )
 
+    req_user = policy.archive_requested_by
+    title = policy.title
+
     policy.status = "APPROVED"
 
     policy.updated_at = _now()
 
     db.commit()
     db.refresh(policy)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Policy Archive Request",
+                decision="REJECTED",
+                entity_type="POLICY",
+                entity_id=policy.policy_id,
+                entity_title=title,
+                decision_by=current_user.full_name or "Administrator",
+                actor_id=current_user.user_id,
+            )
+        except Exception as e:
+            print(f"Notification error on policy archive reject: {e}")
 
     return policy
 
@@ -808,6 +934,26 @@ def restore_policy(
 
     db.commit()
     db.refresh(policy)
+
+    if policy.created_by:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=policy.created_by,
+                request_type="Policy Restoration",
+                decision="APPROVED",
+                entity_type="POLICY",
+                entity_id=policy.policy_id,
+                entity_title=policy.title,
+                reason="Policy has been restored to active status.",
+                decision_by=current_user.full_name or "Administrator",
+                actor_id=current_user.user_id,
+            )
+        except Exception as e:
+            print(f"Notification error on policy restore: {e}")
 
     return policy
 
@@ -866,6 +1012,20 @@ def request_delete_policy(
 
     db.commit()
     db.refresh(policy)
+
+    try:
+        from app.services.notification_service import (
+            notify_policy_delete_requested,
+        )
+        notify_policy_delete_requested(
+            db=db,
+            policy_id=policy.policy_id,
+            policy_title=policy.title,
+            requested_by_id=current_user.user_id,
+            reason=policy.delete_reason,
+        )
+    except Exception as e:
+        print(f"Notification error on policy delete request: {e}")
 
     return policy
 
@@ -936,11 +1096,47 @@ def approve_delete_policy(
             ),
         )
 
+    req_user = policy.delete_requested_by
+    title = policy.title
+
     try:
+
+        # Notifications for this policy hold a related_policy_id FK, so
+        # they must go first or the delete below is always refused. They are
+        # transient UI messages about a row that is about to disappear, so
+        # removing them loses nothing. Any *other* referencing table (feedback,
+        # saved_policies, eligibility_rules, policy_documents) still blocks the
+        # delete and still surfaces the 400 below, which is the intended
+        # behaviour.
+        from app.models.notification import Notification
+
+        db.query(Notification).filter(
+            Notification.related_policy_id == policy_id
+        ).delete(synchronize_session=False)
 
         db.delete(policy)
 
         db.commit()
+
+        if req_user:
+            try:
+                from app.services.notification_service import (
+                    notify_request_decision,
+                )
+                notify_request_decision(
+                    db=db,
+                    user_id=req_user,
+                    request_type="Policy Deletion Request",
+                    decision="APPROVED",
+                    entity_type="POLICY",
+                    entity_id=policy_id,
+                    entity_title=title,
+                    decision_by=current_user.full_name or "Administrator",
+                    actor_id=current_user.user_id,
+                    link_entity=False,
+                )
+            except Exception as e:
+                print(f"Notification error on policy delete approve: {e}")
 
     except Exception as exc:
 
@@ -1002,6 +1198,9 @@ def reject_delete_policy(
             ),
         )
 
+    req_user = policy.delete_requested_by
+    title = policy.title
+
     policy.status = previous_status
 
     # Clear active delete-request data.
@@ -1014,6 +1213,25 @@ def reject_delete_policy(
 
     db.commit()
     db.refresh(policy)
+
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Policy Deletion Request",
+                decision="REJECTED",
+                entity_type="POLICY",
+                entity_id=policy.policy_id,
+                entity_title=title,
+                decision_by=current_user.full_name or "Administrator",
+                actor_id=current_user.user_id,
+            )
+        except Exception as e:
+            print(f"Notification error on policy delete reject: {e}")
 
     return policy
 
@@ -1048,11 +1266,15 @@ def search_policies(
     # --------------------------------------------------------
     if current_user is not None:
         query = query.filter(
-            or_(Policy.status != "DRAFT", Policy.created_by == current_user.user_id)
+            or_(
+                    Policy.status != "DRAFT",
+                    Policy.created_by == current_user.user_id,
+                )
         )
         if str(current_user.role).strip().upper() != "ADMIN":
             query = query.filter(
-                or_(Policy.status != "PENDING_APPROVAL", Policy.created_by == current_user.user_id)
+                or_(Policy.status != "PENDING_APPROVAL",
+                    Policy.created_by == current_user.user_id)
             )
 
     # --------------------------------------------------------
@@ -1107,7 +1329,8 @@ def search_policies(
 
     if publication_date:
         query = query.filter(
-            cast(Policy.publication_date, String).ilike(f"%{publication_date.strip()}%")
+            cast(Policy.publication_date, String).ilike(
+                f"%{publication_date.strip()}%")
         )
 
     # --------------------------------------------------------

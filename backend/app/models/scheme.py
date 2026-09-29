@@ -66,6 +66,11 @@ class Scheme(Base):
         nullable=True,
     )
 
+    application_end_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
     source_url: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,

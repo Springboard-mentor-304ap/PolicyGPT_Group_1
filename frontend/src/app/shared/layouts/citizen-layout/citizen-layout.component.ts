@@ -14,6 +14,8 @@ import { Auth, AuthUser } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 @Component({
   selector: "app-citizen-layout",
@@ -28,6 +30,8 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    NotificationBellComponent,
+    ToastContainerComponent,
   ],
 
   templateUrl: "./citizen-layout.component.html",
@@ -130,7 +134,7 @@ export class CitizenLayoutComponent implements OnInit {
     {
       label: "Support",
       icon: "support_agent",
-      route: "/dashboard/citizen/feedback",
+      route: "/dashboard/citizen/faqs",
     },
   ];
 

@@ -1,23 +1,159 @@
-<footer class="dash-footer">
-    <p class="dash-footer__copy">
-        © 2026 PolicyGPT. All rights reserved.
-    </p>
+<footer class="official-portal-footer" role="contentinfo" aria-label="Official PolicyGPT Portal Footer">
 
-    <div class="dash-footer__links">
-        <a routerLink="/privacy">
-            Privacy
+  <!-- =========================================================
+     TOP BRAND & INITIATIVE BANNER
+     ========================================================= -->
+  <div class="footer-top-banner">
+    <div class="footer-container">
+      <div class="footer-emblem-wrap">
+        <div class="emblem-seal" aria-hidden="true">
+          <span class="material-icons">account_balance</span>
+        </div>
+        <div class="emblem-text">
+          <div class="emblem-org">Government of India &bull; National Portal</div>
+          <h2 class="emblem-title">PolicyGPT Intelligence Platform</h2>
+          <p class="emblem-sub">
+            Bridging public welfare policies and government schemes directly to citizens, researchers, and
+            administrators with transparent, AI-driven insights.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-cta-action">
+        <a [routerLink]="getFeedbackRoute()" class="btn-footer-feedback">
+          <span class="material-icons">rate_review</span>
+          <span>Submit Grievance / Feedback</span>
         </a>
-
-        <span class="dash-footer__dot">•</span>
-
-        <a routerLink="/terms">
-            Terms
-        </a>
-
-        <span class="dash-footer__dot">•</span>
-
-        <a routerLink="/help">
-            Help
-        </a>
+      </div>
     </div>
+  </div>
+
+  <!-- =========================================================
+     MAIN 4-COLUMN PORTAL NAVIGATION
+     ========================================================= -->
+  <div class="footer-main-nav">
+    <div class="footer-container footer-grid">
+
+      <!-- COL 1: EXPLORATION & SERVICES -->
+      <div class="footer-col">
+        <h3 class="col-title">Portal Services</h3>
+        <ul class="col-links">
+          <li>
+            <a [routerLink]="getPoliciesRoute()">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Policies</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getSchemesRoute()">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Public Schemes</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getEligibilityRoute()">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Eligibility Checker</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getCompareRoute()">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Compare Policies & Schemes</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- COL 2: CITIZEN GRIEVANCE & SUPPORT -->
+      <div class="footer-col">
+        <h3 class="col-title">Help & Grievances</h3>
+        <ul class="col-links">
+          <li>
+            <a [routerLink]="getFeedbackRoute()" class="highlight-link">
+              <span class="material-icons bullet-icon">rate_review</span>
+              <span>Feedback & Grievances</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getFaqRoute()">
+              <span class="material-icons bullet-icon">help_outline</span>
+              <span>Frequently Asked Questions</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getFaqRoute()">
+              <span class="material-icons bullet-icon">support_agent</span>
+              <span>Citizen Support Desk</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/terms">
+              <span class="material-icons bullet-icon">verified_user</span>
+              <span>Citizen Charter & Norms</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+
+      <!-- COL 4: OFFICIAL CONTACT & HELPLINE -->
+      <div class="footer-col footer-col--contact">
+        <h3 class="col-title">Contact & Helpline</h3>
+        <div class="contact-block">
+          <div class="contact-item">
+            <span class="material-icons">headset_mic</span>
+            <div>
+              <span class="contact-label">Toll-Free National Helpline</span>
+              <a href="tel:1800117654" class="contact-value">1800-11-7654</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">email</span>
+            <div>
+              <span class="contact-label">Official Support Desk</span>
+              <a href="mailto:support@policygpt.gov.in" class="contact-value">support&#64;policygpt.gov.in</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">schedule</span>
+            <div>
+              <span class="contact-label">Service Hours</span>
+              <span class="contact-hours">Mon - Sat: 9:00 AM - 6:00 PM IST</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================
+     BOTTOM COPYRIGHT & LEGAL COMPLIANCE
+     ========================================================= -->
+  <div class="footer-bottom">
+    <div class="footer-container bottom-flex">
+      <div class="bottom-legal">
+        <p class="copyright-text">
+          &copy; {{ currentYear }} <strong>PolicyGPT</strong> &bull; Platform designed and managed for transparent
+          public administration.
+        </p>
+        <p class="compliance-note">
+          Compliant with Guidelines for Indian Government Websites (GIGW) &bull; Content maintained by National Policy
+          Intelligence Unit.
+        </p>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Legal and Policy links">
+        <a routerLink="/privacy">Privacy Policy</a>
+        <span class="divider">&bull;</span>
+        <a routerLink="/terms">Terms of Service</a>
+        <span class="divider">&bull;</span>
+        <a [routerLink]="getFeedbackRoute()">Feedback</a>
+        <span class="divider">&bull;</span>
+        <a [routerLink]="getFaqRoute()">Help & FAQs</a>
+      </nav>
+    </div>
+  </div>
+
 </footer>

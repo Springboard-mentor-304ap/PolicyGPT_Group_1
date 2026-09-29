@@ -15,6 +15,8 @@ import { Auth, AuthUser } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 // =========================================================
 // NAV ITEM
@@ -43,6 +45,8 @@ export interface AdminNavItem {
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    NotificationBellComponent,
+    ToastContainerComponent,
   ],
 
   templateUrl: "./admin-layout.component.html",

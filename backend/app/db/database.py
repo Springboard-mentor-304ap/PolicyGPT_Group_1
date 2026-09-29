@@ -11,7 +11,8 @@ def _get_connect_args(url: str) -> dict:
     try:
         parsed = urlparse(url)
         if parsed.hostname:
-            # Force IPv4 resolution to prevent macOS dual-stack hanging on unreachable synthesized IPv6 (NAT64)
+            # Force IPv4 resolution to prevent macOS dual-stack hanging on
+            # unreachable synthesized IPv6 (NAT64)
             addr_info = socket.getaddrinfo(
                 parsed.hostname, None, socket.AF_INET, socket.SOCK_STREAM
             )

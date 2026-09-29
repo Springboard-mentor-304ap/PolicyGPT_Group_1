@@ -158,7 +158,10 @@ def list_schemes(
     else:
         # Search / discovery
         if role in public_roles:
-            if status_filter is not None and status_filter.upper() != "APPROVED":
+            if (
+                status_filter is not None
+                and status_filter.upper() != "APPROVED"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You can only view approved schemes.",
@@ -167,7 +170,11 @@ def list_schemes(
             status_filter = "APPROVED"
             created_by = None
         else:
-            if status_filter == "APPROVED" or status_filter == "ALL" or not status_filter:
+            if (
+                status_filter == "APPROVED"
+                or status_filter == "ALL"
+                or not status_filter
+            ):
                 created_by = None
             elif role == "GOVERNMENT_OFFICIAL":
                 created_by = current_user.user_id
@@ -262,7 +269,9 @@ def get_scheme_api(
                 detail="Scheme not found",
             )
     elif role == "GOVERNMENT_OFFICIAL":
-        if scheme.status != "APPROVED" and scheme.created_by != current_user.user_id:
+        if scheme.status != "APPROVED" and (
+            scheme.created_by != current_user.user_id
+        ):
             raise HTTPException(
                 status_code=404,
                 detail="Scheme not found",
@@ -412,6 +421,7 @@ def approve_scheme_api(
             db,
             scheme,
             current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -448,6 +458,8 @@ def reject_scheme_api(
             db,
             scheme,
             data.reason,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -482,6 +494,8 @@ def archive_scheme_api(
         return archive_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -553,6 +567,8 @@ def approve_archive_scheme_api(
         return approve_archive_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -587,6 +603,8 @@ def reject_archive_scheme_api(
         return reject_archive_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -621,6 +639,8 @@ def restore_scheme_api(
         return restore_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:
@@ -691,6 +711,8 @@ def approve_delete_scheme_api(
         approve_delete_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
         return {
@@ -731,6 +753,8 @@ def reject_delete_scheme_api(
         return reject_delete_scheme(
             db,
             scheme,
+            actor_id=current_user.user_id,
+            actor_name=current_user.full_name,
         )
 
     except ValueError as exc:

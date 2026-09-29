@@ -151,35 +151,46 @@ export class AdminComponent implements OnInit {
     this.cdr.detectChanges();
 
     this.analyticsService.getDashboardAnalytics().subscribe({
-      next: (data: DashboardAnalyticsResponse) => {
+      next: (data: any) => {
+        const totalPolicies = data?.total_policies ?? data?.policies?.total ?? 0;
+        const approvedPolicies = data?.approved_policies ?? data?.policies?.approved ?? 0;
+        const pendingPolicies = data?.pending_policies ?? data?.policies?.pending ?? 0;
+        const totalSchemes = data?.total_schemes ?? data?.schemes?.total ?? 0;
+        const activeSchemes = data?.active_schemes ?? data?.approved_schemes ?? data?.schemes?.approved ?? 0;
+        const totalUsers = data?.total_users ?? data?.users?.total ?? 0;
+
         this.statCards = [
           {
             label: "Total Policies",
-            value: data.total_policies,
-            sublabel: `${data.approved_policies} approved, ${data.pending_policies} pending`,
+            value: totalPolicies,
+            sublabel: `${approvedPolicies} approved, ${pendingPolicies} pending`,
             icon: "policy",
             color: "blue",
+            route: "/dashboard/admin/policies/search",
           },
           {
             label: "Total Schemes",
-            value: data.total_schemes,
-            sublabel: `${data.active_schemes} active approved schemes`,
+            value: totalSchemes,
+            sublabel: `${activeSchemes} active approved schemes`,
             icon: "article",
             color: "orange",
+            route: "/dashboard/admin/schemes",
           },
           {
             label: "Total Users",
-            value: data.total_users,
+            value: totalUsers,
             sublabel: "Registered platform users",
             icon: "groups",
             color: "green",
+            route: "/dashboard/admin/users",
           },
           {
             label: "Pending Approvals",
-            value: data.pending_policies,
+            value: pendingPolicies,
             sublabel: "Policies awaiting review",
             icon: "pending_actions",
             color: "purple",
+            route: "/dashboard/admin/schemes/manage",
           },
         ];
         this.loadingStats = false;

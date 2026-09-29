@@ -698,14 +698,22 @@
             <tbody>
 
               <tr
-                *ngIf="!activityAvailable"
+                *ngFor="let act of recentUserActivity"
+              >
+                <td>User #{{ act.user_id }}</td>
+                <td>{{ act.action }}</td>
+                <td>{{ formatDate(act.timestamp || act.created_at) }}</td>
+                <td><span class="status-badge">Completed</span></td>
+              </tr>
+
+              <tr
+                *ngIf="!activityAvailable || recentUserActivity.length === 0"
                 class="empty-row"
               >
 
                 <td colspan="4">
 
-                  Activity event details are not
-                  available from the current analytics API.
+                  No recent activity recorded.
 
                 </td>
 

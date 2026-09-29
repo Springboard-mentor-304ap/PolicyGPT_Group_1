@@ -29,78 +29,97 @@ def get_dashboard_analytics(
             User.user_id == user_id
         )
 
+    policies_total = db.query(Policy).count()
+    policies_approved = (
+        db.query(Policy)
+        .filter(Policy.status == "APPROVED")
+        .count()
+    )
+    policies_pending = (
+        db.query(Policy)
+        .filter(Policy.status == "PENDING_APPROVAL")
+        .count()
+    )
+    policies_rejected = (
+        db.query(Policy)
+        .filter(Policy.status == "REJECTED")
+        .count()
+    )
+    policies_archived = (
+        db.query(Policy)
+        .filter(Policy.status == "ARCHIVED")
+        .count()
+    )
+
+    schemes_total = db.query(Scheme).count()
+    schemes_approved = (
+        db.query(Scheme)
+        .filter(Scheme.status == "APPROVED")
+        .count()
+    )
+    schemes_pending = (
+        db.query(Scheme)
+        .filter(Scheme.status == "PENDING_APPROVAL")
+        .count()
+    )
+    schemes_rejected = (
+        db.query(Scheme)
+        .filter(Scheme.status == "REJECTED")
+        .count()
+    )
+    schemes_archived = (
+        db.query(Scheme)
+        .filter(Scheme.status == "ARCHIVED")
+        .count()
+    )
+
+    users_total = user_query.count()
+    users_active = (
+        user_query
+        .filter(User.is_active == True)
+        .count()
+    )
+    users_inactive = (
+        user_query
+        .filter(User.is_active == False)
+        .count()
+    )
+
     return {
         "policies": {
-            "total": db.query(Policy).count(),
-
-            "approved": (
-                db.query(Policy)
-                .filter(Policy.status == "APPROVED")
-                .count()
-            ),
-
-            "pending": (
-                db.query(Policy)
-                .filter(Policy.status == "PENDING_APPROVAL")
-                .count()
-            ),
-
-            "rejected": (
-                db.query(Policy)
-                .filter(Policy.status == "REJECTED")
-                .count()
-            ),
-
-            "archived": (
-                db.query(Policy)
-                .filter(Policy.status == "ARCHIVED")
-                .count()
-            ),
+            "total": policies_total,
+            "approved": policies_approved,
+            "pending": policies_pending,
+            "rejected": policies_rejected,
+            "archived": policies_archived,
         },
-
         "schemes": {
-            "total": db.query(Scheme).count(),
-
-            "approved": (
-                db.query(Scheme)
-                .filter(Scheme.status == "APPROVED")
-                .count()
-            ),
-
-            "pending": (
-                db.query(Scheme)
-                .filter(Scheme.status == "PENDING_APPROVAL")
-                .count()
-            ),
-
-            "rejected": (
-                db.query(Scheme)
-                .filter(Scheme.status == "REJECTED")
-                .count()
-            ),
-
-            "archived": (
-                db.query(Scheme)
-                .filter(Scheme.status == "ARCHIVED")
-                .count()
-            ),
+            "total": schemes_total,
+            "approved": schemes_approved,
+            "pending": schemes_pending,
+            "rejected": schemes_rejected,
+            "archived": schemes_archived,
         },
-
         "users": {
-            "total": user_query.count(),
-
-            "active": (
-                user_query
-                .filter(User.is_active == True)
-                .count()
-            ),
-
-            "inactive": (
-                user_query
-                .filter(User.is_active == False)
-                .count()
-            ),
-        }
+            "total": users_total,
+            "active": users_active,
+            "inactive": users_inactive,
+        },
+        # Flat format compatibility
+        "total_policies": policies_total,
+        "approved_policies": policies_approved,
+        "pending_policies": policies_pending,
+        "rejected_policies": policies_rejected,
+        "archived_policies": policies_archived,
+        "total_schemes": schemes_total,
+        "approved_schemes": schemes_approved,
+        "active_schemes": schemes_approved,
+        "pending_schemes": schemes_pending,
+        "rejected_schemes": schemes_rejected,
+        "archived_schemes": schemes_archived,
+        "total_users": users_total,
+        "active_users": users_active,
+        "inactive_users": users_inactive,
     }
 
 
@@ -266,6 +285,7 @@ def get_scheme_analytics(db: Session):
     return {
         "total": total,
         "approved": approved,
+        "active": approved,
         "pending": pending,
         "rejected": rejected,
         "archived": archived,

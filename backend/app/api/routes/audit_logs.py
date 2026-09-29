@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import require_roles
 from app.models.user import User
 
 from app.schemas.audit_log import AuditLogResponse
@@ -21,15 +21,6 @@ router = APIRouter(
 )
 
 
-ALLOWED_ROLES = [
-    "CITIZEN",
-    "RESEARCHER",
-    "ORGANIZATION",
-    "GOVERNMENT_OFFICIAL",
-    "ADMIN",
-]
-
-
 @router.get("", response_model=list[AuditLogResponse])
 def get_audit_logs_route(
     user_id: int | None = Query(default=None),
@@ -38,13 +29,16 @@ def get_audit_logs_route(
     from_date: datetime | None = Query(default=None),
     to_date: datetime | None = Query(default=None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(
-        current_user,
-        ALLOWED_ROLES,
-    )
-
     # The user_id query parameter is NOT used to determine access.
     #
     # ADMIN:
@@ -71,13 +65,16 @@ def get_audit_logs_route(
 def get_audit_log_route(
     audit_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(
-        current_user,
-        ALLOWED_ROLES,
-    )
-
     audit_log = get_audit_log(
         db=db,
         audit_id=audit_id,

@@ -26,7 +26,8 @@ export type ActionType =
   | 'REJECT_DELETE'
   | 'DELETE'
   | 'MANAGE_USERS'
-  | 'VIEW_ANALYTICS';
+  | 'VIEW_ANALYTICS'
+  | 'VIEW_REPORTS';
 
 export interface Action {
   type: ActionType;
@@ -66,7 +67,8 @@ export class PermissionService {
     REJECT_DELETE: { label: 'Reject Delete', icon: '❌', requiresReason: false, confirmationMessage: 'Reject delete request?' },
     DELETE: { label: 'Delete', icon: '🗑️', requiresReason: false, confirmationMessage: 'Permanently delete this item? This cannot be undone.' },
     MANAGE_USERS: { label: 'Manage Users', icon: '👥', requiresReason: false },
-    VIEW_ANALYTICS: { label: 'View Analytics', icon: '📊', requiresReason: false }
+    VIEW_ANALYTICS: { label: 'View Analytics', icon: '📊', requiresReason: false },
+    VIEW_REPORTS: { label: 'View Reports', icon: '📈', requiresReason: false }
   };
 
   getAvailableActions(role: string, status: string, entityType: EntityType, isOwner = false): Action[] {
@@ -248,6 +250,11 @@ export class PermissionService {
   canViewAnalytics(role: string): boolean {
     const normalizedRole = this.normalizeRole(role);
     return ['ADMIN', 'GOVERNMENT_OFFICIAL'].includes(normalizedRole);
+  }
+
+  canViewReports(role: string): boolean {
+    const normalizedRole = this.normalizeRole(role);
+    return ['ADMIN', 'GOVERNMENT_OFFICIAL', 'CITIZEN', 'RESEARCHER', 'ORGANIZATION'].includes(normalizedRole);
   }
 
   isAdmin(role: string): boolean {

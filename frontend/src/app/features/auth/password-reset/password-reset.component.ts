@@ -86,6 +86,10 @@ export class PasswordResetComponent implements OnDestroy {
   submittedEmail = "";
   submittedPhone = "";
 
+  get channel(): "email" | "sms" {
+    return this.identifierType === "phone" ? "sms" : "email";
+  }
+
   private resetToken = "";
 
   hideNewPassword = true;

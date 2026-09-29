@@ -123,7 +123,7 @@ export class GovernmentLayoutComponent implements OnInit {
     {
       icon: "insert_chart_outlined",
       label: "Reports",
-      route: "/government/reports",
+      route: "/dashboard/government/reports",
     },
 
     {

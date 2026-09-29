@@ -131,6 +131,12 @@ export class OrganizationLayoutComponent implements OnInit {
     },
 
     {
+      icon: "query_stats",
+      label: "Reports",
+      route: "/dashboard/organization/reports",
+    },
+
+    {
       icon: "support_agent",
       label: "Support",
       route: "/dashboard/organization/faqs",

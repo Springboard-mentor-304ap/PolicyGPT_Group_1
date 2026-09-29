@@ -284,8 +284,8 @@
 
 
             <!-- REPORTS -->
-            <a class="dash-nav__item" routerLink="/admin/reports" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+            <a class="dash-nav__item" routerLink="/dashboard/admin/reports" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeUsersMenu(); closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Reports' : null">
                 <span class="material-icons dash-nav__icon">
                     query_stats

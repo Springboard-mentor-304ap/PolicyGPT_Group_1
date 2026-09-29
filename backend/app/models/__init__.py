@@ -9,6 +9,10 @@ from app.models.notification_preference_rule import NotificationPreferenceRule
 from app.models.notification_delivery import NotificationDelivery
 from app.models.faq import FAQ
 from app.models.support_query import SupportQuery
+from app.models.report import Report
+from app.models.search_history import SearchHistory
+from app.models.audit_log import AuditLog
+from app.models.eligibility_rule import EligibilityRule
 
 __all__ = [
     "User",
@@ -22,5 +26,8 @@ __all__ = [
     "NotificationDelivery",
     "FAQ",
     "SupportQuery",
+    "Report",
+    "SearchHistory",
+    "AuditLog",
+    "EligibilityRule",
 ]
-

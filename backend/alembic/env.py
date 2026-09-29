@@ -10,9 +10,21 @@ from app.db.database import Base
 # IMPORT ALL SQLALCHEMY MODELS
 # =========================================================
 # These imports register the models with Base.metadata.
-# from app.models.user import User
-# from app.models.otp import OTPVerification
-# from app.models.password_reset import PasswordResetToken
+import app.models.user  # noqa: F401
+import app.models.otp  # noqa: F401
+import app.models.password_reset  # noqa: F401
+import app.models.policy  # noqa: F401
+import app.models.scheme  # noqa: F401
+import app.models.notification  # noqa: F401
+import app.models.notification_preference  # noqa: F401
+import app.models.notification_preference_rule  # noqa: F401
+import app.models.notification_delivery  # noqa: F401
+import app.models.faq  # noqa: F401
+import app.models.support_query  # noqa: F401
+import app.models.report  # noqa: F401
+import app.models.search_history  # noqa: F401
+import app.models.audit_log  # noqa: F401
+import app.models.eligibility_rule  # noqa: F401
 
 # =========================================================
 # ALEMBIC CONFIGURATION

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import require_roles
 from app.models.user import User
 
 from app.services.analytics_service import (
@@ -38,19 +38,16 @@ router = APIRouter(
 @router.get("/dashboard")
 def dashboard_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_dashboard_analytics(
         db=db,
         user_id=current_user.user_id,
@@ -61,76 +58,64 @@ def dashboard_analytics(
 @router.get("/policies")
 def policy_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_policy_analytics(db)
 
 
 @router.get("/schemes")
 def scheme_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_scheme_analytics(db)
 
 
 @router.get("/policies/trends")
 def policy_trends(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_policy_trends(db)
 
 
 @router.get("/schemes/usage")
 def scheme_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_scheme_usage(db)
 
 
@@ -141,19 +126,16 @@ def scheme_usage(
 @router.get("/users")
 def user_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_user_analytics(
         db=db,
         user_id=current_user.user_id,
@@ -164,19 +146,16 @@ def user_analytics(
 @router.get("/users/activity")
 def user_activity(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_user_activity(
         db=db,
         user_id=current_user.user_id,
@@ -191,19 +170,16 @@ def user_activity(
 @router.get("/usage")
 def usage_statistics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_usage_statistics(
         db=db,
         user_id=current_user.user_id,
@@ -218,19 +194,16 @@ def usage_statistics(
 @router.get("/role")
 def role_analytics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_role_analytics(
         db,
         current_user,
@@ -244,17 +217,14 @@ def role_analytics(
 @router.get("/departments")
 def list_departments(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "RESEARCHER",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_departments(db)
 
 
@@ -262,17 +232,14 @@ def list_departments(
 def department_analytics(
     department: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "RESEARCHER",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_department_analytics(
         db,
         department,
@@ -283,17 +250,14 @@ def department_analytics(
 def department_policies(
     department: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "RESEARCHER",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_department_policies(
         db,
         department,
@@ -304,17 +268,14 @@ def department_policies(
 def department_schemes(
     department: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "RESEARCHER",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     return get_department_schemes(
         db,
         department,

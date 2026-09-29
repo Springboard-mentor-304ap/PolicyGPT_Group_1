@@ -336,6 +336,40 @@ export const routes: Routes = [
   },
 
   // =========================================================
+  // REPORTS ORPHAN REDIRECTS (role layout integration)
+  // =========================================================
+  //
+  // Legacy /admin/reports and /government/reports links now resolve
+  // inside the role layout instead of falling through to login.
+  //
+  // =========================================================
+  {
+    path: "admin/reports",
+    redirectTo: "dashboard/admin/reports",
+    pathMatch: "full",
+  },
+  {
+    path: "government/reports",
+    redirectTo: "dashboard/government/reports",
+    pathMatch: "full",
+  },
+  {
+    path: "citizen/reports",
+    redirectTo: "dashboard/citizen/reports",
+    pathMatch: "full",
+  },
+  {
+    path: "researcher/reports",
+    redirectTo: "dashboard/researcher/reports",
+    pathMatch: "full",
+  },
+  {
+    path: "organization/reports",
+    redirectTo: "dashboard/organization/reports",
+    pathMatch: "full",
+  },
+
+  // =========================================================
   // FALLBACK
   // =========================================================
   //

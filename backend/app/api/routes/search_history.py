@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import normalize_role, require_roles
 from app.models.user import User
 
 from app.schemas.search_history import SearchHistoryResponse
@@ -30,21 +30,18 @@ router = APIRouter(
 def get_search_history_route(
     user_id: int | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     # ADMIN → can see all search history
-    if current_user.role == "ADMIN":
+    if normalize_role(current_user.role) == "ADMIN":
         return get_all_search_history(
             db=db,
             user_id=user_id,
@@ -65,21 +62,18 @@ def get_search_history_route(
 def get_my_search_history_route(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     # ADMIN → can access the requested user's history
-    if current_user.role == "ADMIN":
+    if normalize_role(current_user.role) == "ADMIN":
         return get_user_search_history(
             db=db,
             user_id=user_id,
@@ -106,21 +100,18 @@ def get_my_search_history_route(
 def delete_my_search_history_route(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     # ADMIN → can delete the requested user's history
-    if current_user.role == "ADMIN":
+    if normalize_role(current_user.role) == "ADMIN":
         return delete_user_search_history(
             db=db,
             user_id=user_id,
@@ -146,21 +137,18 @@ def delete_my_search_history_route(
 @router.get("/statistics")
 def search_history_statistics_route(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    require_roles(
-        current_user,
-        [
+    current_user: User = Depends(
+        require_roles(
             "CITIZEN",
             "RESEARCHER",
             "ORGANIZATION",
             "GOVERNMENT_OFFICIAL",
             "ADMIN",
-        ],
-    )
-
+        )
+    ),
+):
     # ADMIN → statistics for all users
-    if current_user.role == "ADMIN":
+    if normalize_role(current_user.role) == "ADMIN":
         return get_search_history_statistics(
             db=db,
             user_id=None,

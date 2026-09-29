@@ -255,8 +255,8 @@
             </a>
 
             <!-- REPORTS -->
-            <a class="dash-nav__item" routerLink="/government/reports" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+            <a class="dash-nav__item" routerLink="/dashboard/government/reports" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Reports' : null">
                 <span class="material-icons dash-nav__icon">
                     insert_chart_outlined

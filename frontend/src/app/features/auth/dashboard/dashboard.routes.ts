@@ -4,6 +4,7 @@ import { authGuard } from "../../../core/guards/auth.guard";
 import { roleGuard } from "../../../core/guards/role.guard";
 import { guestGuard } from "../../../core/guards/guest.guard";
 import { supportRoleGuard } from "../../../core/guards/support.guard";
+import { REPORTS_CHILD_ROUTES } from "../../reports/reports.routes";
 
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
@@ -190,6 +191,10 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.FeedbackFormComponent,
           ),
       },
+
+      // REPORTS (role layout children)
+      // /dashboard/organization/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -399,6 +404,10 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.FeedbackFormComponent,
           ),
       },
+
+      // REPORTS (role layout children)
+      // /dashboard/citizen/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -656,6 +665,10 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.FeedbackFormComponent,
           ),
       },
+
+      // REPORTS (role layout children)
+      // /dashboard/government/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -970,6 +983,10 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.AdminFeedbackComponent,
           ),
       },
+
+      // REPORTS (role layout children)
+      // /dashboard/admin/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -1150,6 +1167,10 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.FeedbackFormComponent,
           ),
       },
+
+      // REPORTS (role layout children)
+      // /dashboard/researcher/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 

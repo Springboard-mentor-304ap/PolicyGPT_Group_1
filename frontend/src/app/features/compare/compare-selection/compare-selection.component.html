@@ -1,5 +1,9 @@
 <div class="compare-page">
 
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
+
   <!-- Page Header -->
   <div class="page-header">
     <div>

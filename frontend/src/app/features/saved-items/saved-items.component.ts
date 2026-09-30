@@ -14,13 +14,17 @@ import {
   SavedSchemeItem,
 } from "../../core/services/saved-items.service";
 import { Auth } from "../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../shared/components/breadcrumb/breadcrumb.component";
 
 type SavedTab = "all" | "policies" | "schemes";
 
 @Component({
   selector: "app-saved-items",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./saved-items.component.html",
   styleUrl: "./saved-items.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -217,6 +221,14 @@ export class SavedItemsComponent implements OnInit {
       default:
         return "citizen";
     }
+  }
+
+  /** Role-aware breadcrumb trail: Home > Saved Items. */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Saved Items" },
+    ];
   }
 
   // ============================================================

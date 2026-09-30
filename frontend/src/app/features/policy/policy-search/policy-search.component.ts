@@ -31,12 +31,16 @@ import {
 } from "../../../core/constants/government-data.constants";
 
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-policy-search",
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent],
 
   templateUrl: "./policy-search.component.html",
 
@@ -250,6 +254,17 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
   // INIT
   // ============================================================
+
+  /** Breadcrumb trail: Home > Policies (hidden on public guest view). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.userRole === "GUEST") {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Policies" },
+    ];
+  }
 
   ngOnInit(): void {
     console.log("================================================");

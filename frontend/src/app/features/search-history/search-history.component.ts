@@ -10,13 +10,17 @@ import {
 import { Auth } from "../../core/services/auth";
 import { ToastService } from "../../core/services/toast.service";
 import { ConfirmModalComponent } from "../../shared/components/confirm-modal/confirm-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../shared/components/breadcrumb/breadcrumb.component";
 
 type HistoryFilter = "ALL" | "POLICY" | "SCHEME";
 
 @Component({
   selector: "app-search-history",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ConfirmModalComponent, BreadcrumbComponent],
   templateUrl: "./search-history.component.html",
   styleUrl: "./search-history.component.scss",
 })
@@ -38,6 +42,21 @@ export class SearchHistoryComponent implements OnInit {
   clearConfirmOpen = false;
   clearing = false;
   deletingId: number | null = null;
+
+  /** Role-aware breadcrumb trail: Home > Search History. */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const role = String(this.authService.getUserRole() || "CITIZEN")
+      .trim()
+      .toUpperCase();
+    const prefix =
+      role === "ORGANIZATION" || role === "ORGANISATION"
+        ? "organization"
+        : role.toLowerCase();
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Search History" },
+    ];
+  }
 
   ngOnInit(): void {
     this.reload();

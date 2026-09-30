@@ -20,13 +20,17 @@ import { Router } from "@angular/router";
 import { HttpClient } from "@angular/common/http";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-edit-profile",
 
   standalone: true,
 
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BreadcrumbComponent],
 
   templateUrl: "./edit-profile.component.html",
 
@@ -1300,6 +1304,32 @@ export class EditProfileComponent implements OnInit {
 
   get f() {
     return this.profileForm.controls;
+  }
+
+  // =========================================================
+  // BREADCRUMB (Home > Profile > Edit Profile)
+  // =========================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Profile", route: ["/dashboard", prefix, "profile"] },
+      { label: "Edit Profile" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const url = this.router.url || "";
+    if (url.startsWith("/dashboard/admin")) return "admin";
+    if (url.startsWith("/dashboard/citizen")) return "citizen";
+    if (url.startsWith("/dashboard/government")) return "government";
+    if (url.startsWith("/dashboard/researcher")) return "researcher";
+    if (url.startsWith("/dashboard/organization")) return "organization";
+    return null;
   }
 
   // =========================================================

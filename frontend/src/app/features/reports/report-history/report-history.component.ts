@@ -4,16 +4,22 @@ import { RouterLink } from "@angular/router";
 import { finalize } from "rxjs";
 import { ReportService } from "../../../core/services/report.service";
 import { Report } from "../../../core/models/report.model";
+import { Auth } from "../../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 const PAGE_SIZE = 20;
 
 @Component({
   selector: "app-report-history",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent],
   styleUrl: "../reports-shared.scss",
   template: `
     <div class="reports-page">
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
       <header class="page-header">
         <div class="header-content">
           <div class="header-main">
@@ -156,6 +162,24 @@ const PAGE_SIZE = 20;
 })
 export class ReportHistoryComponent implements OnInit {
   private readonly reports = inject(ReportService);
+  private readonly auth = inject(Auth);
+
+  /** Breadcrumb trail: Home > Reports > Report History. */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.reportsPrefix();
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Reports", route: ["/dashboard", prefix, "reports"] },
+      { label: "Report History" },
+    ];
+  }
+
+  private reportsPrefix(): string {
+    const role = (this.auth.getUserRole() || "").toUpperCase();
+    return role === "GOVERNMENT_OFFICIAL" || role === "GOVERNMENT"
+      ? "government"
+      : "admin";
+  }
 
   readonly history = signal<Report[]>([]);
   readonly loading = signal(true);

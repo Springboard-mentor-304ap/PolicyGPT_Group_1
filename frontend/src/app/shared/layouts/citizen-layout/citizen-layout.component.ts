@@ -126,12 +126,6 @@ export class CitizenLayoutComponent implements OnInit {
     },
 
     {
-      label: "Application Status",
-      icon: "assignment",
-      route: "/dashboard/citizen/status",
-    },
-
-    {
       label: "Support",
       icon: "support_agent",
       route: "/dashboard/citizen/faqs",

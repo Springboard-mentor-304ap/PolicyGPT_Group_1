@@ -13,11 +13,15 @@ import {
   SavedEligibilityResult,
 } from "../eligibility.service";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-eligibility-checker",
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, BreadcrumbComponent],
   templateUrl: "./eligibility-checker.html",
   styleUrl: "./eligibility-checker.scss",
 })
@@ -131,6 +135,21 @@ export class EligibilityChecker implements OnInit {
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /**
+   * Breadcrumb trail: Home > Eligibility Checker.
+   * Hidden on the public guest view (guest pages must not show
+   * authenticated-dashboard breadcrumbs).
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if ((this.router.url || "").includes("/dashboard/guest")) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard/citizen"] },
+      { label: "Eligibility Checker" },
+    ];
+  }
 
   ngOnInit(): void {
     this.loadSavedResults();

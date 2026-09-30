@@ -1,5 +1,9 @@
 <div class="eligibility-page">
 
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
+
   <!-- Page Header -->
   <header class="page-header">
     <div class="header-main">

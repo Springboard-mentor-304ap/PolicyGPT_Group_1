@@ -36,6 +36,10 @@ import {
   MINISTRIES,
   STATES,
 } from "../../../core/constants/government-data.constants";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 export interface CompareItem {
   id: number;
@@ -56,7 +60,7 @@ export interface FilterOptions {
 @Component({
   selector: "app-compare-selection",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: "./compare-selection.component.html",
   styleUrls: ["./compare-selection.component.scss"],
 })
@@ -69,6 +73,43 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * Role-aware breadcrumb trail derived from the current dashboard URL,
+   * so Compare works under every authorized role without hardcoding one.
+   * Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Compare" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const match = /\/dashboard\/([^/]+)/.exec(this.router.url || "");
+    if (!match) {
+      return null;
+    }
+    const prefix = match[1].toLowerCase();
+    if (prefix === "guest") {
+      return null;
+    }
+    if (
+      prefix === "admin" ||
+      prefix === "government" ||
+      prefix === "citizen" ||
+      prefix === "researcher" ||
+      prefix === "organization"
+    ) {
+      return prefix;
+    }
+    return null;
+  }
 
   selectedItem1: CompareItem | null = null;
   selectedItem2: CompareItem | null = null;

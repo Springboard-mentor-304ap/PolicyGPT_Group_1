@@ -1,153 +1,175 @@
 <div class="saved-page">
 
-  <!-- HEADER -->
-  <section class="page-header">
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
-    <div class="header-content">
 
-      <div class="header-icon">
-        <span class="material-icons">
-          bookmark
+  <!-- PAGE HEADER -->
+  <header class="saved-header">
+
+    <div class="header-left">
+      <h1>Saved Items</h1>
+
+      <p>
+        Access the policies and schemes
+        you have saved for later.
+      </p>
+    </div>
+
+    <div class="header-right">
+      <button
+        type="button"
+        class="btn btn-outline refresh-btn"
+        (click)="loadSavedItems()"
+        aria-label="Refresh saved items"
+      >
+        <span class="material-icons" aria-hidden="true">
+          refresh
         </span>
-      </div>
 
-      <div>
-        <div class="eyebrow">
-          PERSONALIZED POLICYGPT
-        </div>
-
-        <h1>Saved Items</h1>
-
-        <p>
-          Access the policies and schemes
-          you have saved for later.
-        </p>
-      </div>
-
+        <span>
+          Refresh
+        </span>
+      </button>
     </div>
 
-    <div class="header-stat">
-      <span class="material-icons">
-        bookmark_border
-      </span>
-
-      <div>
-        <strong>{{ totalCount }}</strong>
-        <span>Saved Items</span>
-      </div>
-    </div>
-
-  </section>
+  </header>
 
 
-  <!-- ERROR -->
-  <div class="error-banner" *ngIf="errorMessage">
-    <span class="material-icons">
-      error_outline
-    </span>
+  <!-- SUMMARY CARDS -->
+  <div class="summary-cards">
 
-    <span>{{ errorMessage }}</span>
-
-    <button type="button" (click)="loadSavedItems()">
-      Retry
-    </button>
-  </div>
-
-
-  <!-- SUMMARY -->
-  <section class="summary-grid" *ngIf="!loading">
-
-    <button type="button" class="summary-card" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-      <div class="summary-icon">
+    <button
+      type="button"
+      class="summary-card"
+      [class.active]="activeTab === 'all'"
+      (click)="setTab('all')"
+    >
+      <span class="summary-icon summary-icon--bookmark" aria-hidden="true">
         <span class="material-icons">
           bookmarks
         </span>
-      </div>
+      </span>
 
-      <div class="summary-info">
-        <span>Total Saved</span>
+      <span class="summary-info">
         <strong>{{ totalCount }}</strong>
-      </div>
+        <span>Total Saved</span>
+      </span>
     </button>
 
 
-    <button type="button" class="summary-card" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
-      <div class="summary-icon policy">
+    <button
+      type="button"
+      class="summary-card"
+      [class.active]="activeTab === 'policies'"
+      (click)="setTab('policies')"
+    >
+      <span class="summary-icon summary-icon--policy" aria-hidden="true">
         <span class="material-icons">
-          policy
+          description
         </span>
-      </div>
+      </span>
 
-      <div class="summary-info">
-        <span>Saved Policies</span>
+      <span class="summary-info">
         <strong>{{ policyCount }}</strong>
-      </div>
+        <span>Saved Policies</span>
+      </span>
     </button>
 
 
-    <button type="button" class="summary-card" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
-      <div class="summary-icon scheme">
+    <button
+      type="button"
+      class="summary-card"
+      [class.active]="activeTab === 'schemes'"
+      (click)="setTab('schemes')"
+    >
+      <span class="summary-icon summary-icon--scheme" aria-hidden="true">
         <span class="material-icons">
           account_balance
         </span>
-      </div>
+      </span>
 
-      <div class="summary-info">
-        <span>Saved Schemes</span>
+      <span class="summary-info">
         <strong>{{ schemeCount }}</strong>
-      </div>
+        <span>Saved Schemes</span>
+      </span>
     </button>
 
-  </section>
+  </div>
 
 
-  <!-- TOOLBAR -->
-  <section class="content-card" *ngIf="!loading">
+  <!-- TABS + SEARCH -->
+  <div class="saved-toolbar">
 
-    <div class="toolbar">
+    <nav class="saved-tabs" aria-label="Saved item categories">
 
-      <div class="tabs">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'all'"
+        (click)="setTab('all')"
+      >
+        All
+        <span class="tab-count">{{ totalCount }}</span>
+      </button>
 
-        <button type="button" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-          All
-          <span>{{ totalCount }}</span>
-        </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'policies'"
+        (click)="setTab('policies')"
+      >
+        Policies
+        <span class="tab-count">{{ policyCount }}</span>
+      </button>
 
-        <button type="button" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
-          Policies
-          <span>{{ policyCount }}</span>
-        </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.active]="activeTab === 'schemes'"
+        (click)="setTab('schemes')"
+      >
+        Schemes
+        <span class="tab-count">{{ schemeCount }}</span>
+      </button>
 
-        <button type="button" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
-          Schemes
-          <span>{{ schemeCount }}</span>
-        </button>
-
-      </div>
+    </nav>
 
 
-      <div class="search-box">
+    <div class="search-box">
 
-        <span class="material-icons">
-          search
+      <span class="material-icons search-icon" aria-hidden="true">
+        search
+      </span>
+
+      <input
+        type="search"
+        placeholder="Search saved items..."
+        aria-label="Search saved items"
+        [value]="searchTerm"
+        (input)="onSearch($event)"
+      />
+
+      <button
+        type="button"
+        class="clear-btn"
+        *ngIf="searchTerm"
+        (click)="searchTerm = ''"
+        aria-label="Clear search"
+      >
+        <span class="material-icons" aria-hidden="true">
+          close
         </span>
-
-        <input type="search" placeholder="Search saved items..." [value]="searchTerm" (input)="onSearch($event)" />
-
-        <button type="button" class="clear-search" *ngIf="searchTerm" (click)="searchTerm = ''"
-          aria-label="Clear search">
-          <span class="material-icons">
-            close
-          </span>
-        </button>
-
-      </div>
+      </button>
 
     </div>
 
+  </div>
 
-    <!-- RESULTS -->
-    <div class="results-header">
+
+  <!-- CONTENT -->
+  <section class="saved-content">
+
+    <div class="content-header">
 
       <div>
         <h2>Saved Items</h2>
@@ -158,11 +180,35 @@
         </p>
       </div>
 
-      <button type="button" class="refresh-button" (click)="loadSavedItems()">
-        <span class="material-icons">
-          refresh
-        </span>
-        Refresh
+    </div>
+
+
+    <!-- SKELETON -->
+    <div class="skeleton-block" *ngIf="loading" aria-label="Loading saved items">
+
+      <div class="skeleton-card" *ngFor="let n of [1, 2, 3]">
+        <div class="skeleton skeleton-icon"></div>
+
+        <div class="skeleton-body">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-line"></div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ERROR -->
+    <div class="error-box" *ngIf="!loading && errorMessage">
+
+      <span class="material-icons" aria-hidden="true">
+        error_outline
+      </span>
+
+      <span>{{ errorMessage }}</span>
+
+      <button type="button" (click)="loadSavedItems()">
+        Retry
       </button>
 
     </div>
@@ -170,12 +216,14 @@
 
     <!-- EMPTY STATE -->
     <div class="empty-state" *ngIf="
+        !loading &&
+        !errorMessage &&
         filteredPolicies.length === 0 &&
         filteredSchemes.length === 0
       ">
 
       <div class="empty-icon">
-        <span class="material-icons">
+        <span class="material-icons" aria-hidden="true">
           bookmark_border
         </span>
       </div>
@@ -184,7 +232,11 @@
         {{
         searchTerm
         ? 'No saved items found'
-        : 'No saved items yet'
+        : activeTab === 'policies'
+          ? 'No saved policies yet'
+          : activeTab === 'schemes'
+            ? 'No saved schemes yet'
+            : 'No saved items yet'
         }}
       </h3>
 
@@ -192,12 +244,12 @@
         {{
         searchTerm
         ? 'Try changing your search terms.'
-        : 'Save policies and schemes to access them quickly from here.'
+        : 'Save policies or schemes to quickly access them later.'
         }}
       </p>
 
-      <button type="button" class="primary-button" (click)="explorePolicies()">
-        <span class="material-icons">
+      <button type="button" class="btn btn-primary" (click)="explorePolicies()">
+        <span class="material-icons" aria-hidden="true">
           search
         </span>
 
@@ -208,15 +260,15 @@
 
 
     <!-- POLICIES -->
-    <div class="section" *ngIf="filteredPolicies.length > 0">
+    <div class="section" *ngIf="!loading && filteredPolicies.length > 0">
 
       <div class="section-heading">
 
         <div class="section-title">
 
           <div class="section-icon policy">
-            <span class="material-icons">
-              policy
+            <span class="material-icons" aria-hidden="true">
+              description
             </span>
           </div>
 
@@ -259,8 +311,8 @@
           <div class="item-name">
 
             <div class="item-type-icon policy">
-              <span class="material-icons">
-                policy
+              <span class="material-icons" aria-hidden="true">
+                description
               </span>
             </div>
 
@@ -318,17 +370,17 @@
 
           <div class="actions">
 
-            <button type="button" class="view-button" title="View policy" (click)="openPolicy(policy.policy_id)">
-              <span class="material-icons">
+            <button type="button" class="view-button" title="View policy" aria-label="View policy" (click)="openPolicy(policy.policy_id)">
+              <span class="material-icons" aria-hidden="true">
                 open_in_new
               </span>
             </button>
 
-            <button type="button" class="remove-button" title="Remove from saved items" [disabled]="isRemoving(
+            <button type="button" class="remove-button" title="Remove from saved items" aria-label="Remove from saved items" [disabled]="isRemoving(
                 policy.policy_id,
                 'policy'
               )" (click)="removePolicy(policy)">
-              <span class="material-icons" *ngIf="
+              <span class="material-icons" aria-hidden="true" *ngIf="
                   !isRemoving(
                     policy.policy_id,
                     'policy'
@@ -337,7 +389,7 @@
                 bookmark_remove
               </span>
 
-              <span class="material-icons spinning" *ngIf="
+              <span class="material-icons spinning" aria-hidden="true" *ngIf="
                   isRemoving(
                     policy.policy_id,
                     'policy'
@@ -357,14 +409,14 @@
 
 
     <!-- SCHEMES -->
-    <div class="section" *ngIf="filteredSchemes.length > 0">
+    <div class="section" *ngIf="!loading && filteredSchemes.length > 0">
 
       <div class="section-heading">
 
         <div class="section-title">
 
           <div class="section-icon scheme">
-            <span class="material-icons">
+            <span class="material-icons" aria-hidden="true">
               account_balance
             </span>
           </div>
@@ -408,7 +460,7 @@
           <div class="item-name">
 
             <div class="item-type-icon scheme">
-              <span class="material-icons">
+              <span class="material-icons" aria-hidden="true">
                 account_balance
               </span>
             </div>
@@ -469,17 +521,17 @@
 
           <div class="actions">
 
-            <button type="button" class="view-button" title="View scheme" (click)="openScheme(scheme.scheme_id)">
-              <span class="material-icons">
+            <button type="button" class="view-button" title="View scheme" aria-label="View scheme" (click)="openScheme(scheme.scheme_id)">
+              <span class="material-icons" aria-hidden="true">
                 open_in_new
               </span>
             </button>
 
-            <button type="button" class="remove-button" title="Remove from saved items" [disabled]="isRemoving(
+            <button type="button" class="remove-button" title="Remove from saved items" aria-label="Remove from saved items" [disabled]="isRemoving(
                 scheme.scheme_id,
                 'scheme'
               )" (click)="removeScheme(scheme)">
-              <span class="material-icons" *ngIf="
+              <span class="material-icons" aria-hidden="true" *ngIf="
                   !isRemoving(
                     scheme.scheme_id,
                     'scheme'
@@ -488,7 +540,7 @@
                 bookmark_remove
               </span>
 
-              <span class="material-icons spinning" *ngIf="
+              <span class="material-icons spinning" aria-hidden="true" *ngIf="
                   isRemoving(
                     scheme.scheme_id,
                     'scheme'
@@ -505,24 +557,6 @@
       </div>
 
     </div>
-
-  </section>
-
-
-  <!-- LOADING -->
-  <section class="loading-state" *ngIf="loading">
-
-    <div class="loading-spinner">
-      <span class="material-icons">
-        sync
-      </span>
-    </div>
-
-    <h3>Loading saved items</h3>
-
-    <p>
-      Retrieving your saved policies and schemes...
-    </p>
 
   </section>
 

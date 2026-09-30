@@ -6,11 +6,15 @@ import { Feedback, FeedbackCreate, FeedbackType } from '../../../core/models/fee
 import { FeedbackService } from '../../../core/services/feedback.service';
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-feedback-form',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './feedback-form.component.html',
   styleUrl: './feedback-form.component.scss',
 })
@@ -227,6 +231,14 @@ export class FeedbackFormComponent implements OnInit {
     if (r === 'researcher') return '/dashboard/researcher';
     if (r === 'organization') return '/dashboard/organization';
     return '/dashboard/citizen';
+  }
+
+  /** Breadcrumb trail: Home > Feedback (role-aware via getHomeRoute). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: [this.getHomeRoute()] },
+      { label: 'Feedback' },
+    ];
   }
 
   goBack(): void {

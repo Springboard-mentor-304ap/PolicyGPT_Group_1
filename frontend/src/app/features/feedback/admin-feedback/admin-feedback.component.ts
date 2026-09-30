@@ -6,11 +6,15 @@ import { Feedback, FeedbackStatus, FeedbackUpdate } from '../../../core/models/f
 import { FeedbackService } from '../../../core/services/feedback.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-admin-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './admin-feedback.component.html',
   styleUrl: './admin-feedback.component.scss',
 })
@@ -245,6 +249,14 @@ export class AdminFeedbackComponent implements OnInit {
       default:
         return 'role-badge--citizen';
     }
+  }
+
+  /** Breadcrumb trail: Home > Feedback (admin-only page). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: ['/dashboard/admin'] },
+      { label: 'Feedback' },
+    ];
   }
 
   goBack(): void {

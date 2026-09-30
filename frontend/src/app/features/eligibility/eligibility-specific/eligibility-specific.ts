@@ -10,6 +10,10 @@ import {
 } from "../eligibility.service";
 import { PolicyService } from "../../../core/services/policy.services";
 import { SchemeService } from "../../../core/services/scheme.service";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface SelectableEntity {
   id: number;
@@ -24,7 +28,7 @@ interface SelectableEntity {
 @Component({
   selector: "app-eligibility-specific",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: "./eligibility-specific.html",
   styleUrl: "./eligibility-specific.scss",
 })
@@ -148,6 +152,24 @@ export class EligibilitySpecific {
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /**
+   * Breadcrumb trail: Home > Eligibility Checker > Check Specific.
+   * Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if ((this.router.url || "").includes("/dashboard/guest")) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard/citizen"] },
+      {
+        label: "Eligibility Checker",
+        route: ["/dashboard/citizen/eligibility"],
+      },
+      { label: "Check Specific" },
+    ];
+  }
 
   ngOnInit(): void {
     this.loadEntities();

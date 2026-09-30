@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, Subject, tap } from "rxjs";
+import { Observable, Subject, shareReplay, tap } from "rxjs";
+import { finalize } from "rxjs/operators";
 
 export interface AuthUser {
   user_id: number;
@@ -178,14 +179,30 @@ export class Auth {
   // GET CURRENT LOGGED-IN USER
   // =========================================================
 
+  /**
+   * In-flight deduplication only: concurrent callers (e.g. role layout
+   * plus page component on cold navigation) share a single GET /auth/me.
+   * Sequential calls always re-request, so no stale user data is cached.
+   */
+  private currentUserRequest$: Observable<AuthUser> | null = null;
+
   getCurrentUser(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.apiUrl}/me`).pipe(
-      tap((user: AuthUser) => {
-        if (user) {
-          this.setUser(user);
-        }
-      }),
-    );
+    if (!this.currentUserRequest$) {
+      this.currentUserRequest$ = this.http
+        .get<AuthUser>(`${this.apiUrl}/me`)
+        .pipe(
+          tap((user: AuthUser) => {
+            if (user) {
+              this.setUser(user);
+            }
+          }),
+          finalize(() => {
+            this.currentUserRequest$ = null;
+          }),
+          shareReplay(1),
+        );
+    }
+    return this.currentUserRequest$;
   }
 
   // =========================================================

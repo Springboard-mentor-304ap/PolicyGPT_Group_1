@@ -9,13 +9,17 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Router } from "@angular/router";
 
 import { Auth } from "../../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-change-password",
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
 
   templateUrl: "./change-password.component.html",
 
@@ -434,6 +438,32 @@ export class ChangePasswordComponent {
           this.cdr.markForCheck();
         },
       });
+  }
+
+  // =========================================================
+  // BREADCRUMB (Home > Profile > Change Password)
+  // =========================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Profile", route: ["/dashboard", prefix, "profile"] },
+      { label: "Change Password" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const url = this.router.url || "";
+    if (url.startsWith("/dashboard/admin")) return "admin";
+    if (url.startsWith("/dashboard/citizen")) return "citizen";
+    if (url.startsWith("/dashboard/government")) return "government";
+    if (url.startsWith("/dashboard/researcher")) return "researcher";
+    if (url.startsWith("/dashboard/organization")) return "organization";
+    return null;
   }
 
   // =========================================================

@@ -7,6 +7,10 @@ import { NotificationService } from '../../../core/services/notification.service
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
+import {
   ReportDataset,
   ReportFormat,
   ReportType,
@@ -120,7 +124,7 @@ function newNotificationsTabState(): NotificationsTabState {
 @Component({
   selector: 'app-report-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   styleUrl: '../reports-shared.scss',
   templateUrl: './report-dashboard.component.html',
 })
@@ -133,7 +137,19 @@ export class ReportDashboardComponent implements OnInit {
 
   readonly initializing = signal(true);
   typesError: string | null = null;
-  roleLabel = 'Dashboard';
+
+  /** Breadcrumb trail: Home > Reports (role-aware for admin/government). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const role = (this.auth.getUserRole() || '').toUpperCase();
+    const prefix =
+      role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT'
+        ? 'government'
+        : 'admin';
+    return [
+      { label: 'Home', route: ['/dashboard', prefix] },
+      { label: 'Reports' },
+    ];
+  }
 
   tabs: WorkspaceTab[] = [];
   activeTabKey = '';
@@ -149,17 +165,6 @@ export class ReportDashboardComponent implements OnInit {
   // ============================================================
 
   ngOnInit(): void {
-    const role = (this.auth.getUserRole() || '').toUpperCase();
-    this.roleLabel =
-      role === 'ADMIN' || role === 'ADMINISTRATOR'
-        ? 'Admin Dashboard'
-        : role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT'
-          ? 'Government Dashboard'
-          : role === 'RESEARCHER'
-            ? 'Researcher Dashboard'
-            : role === 'ORGANIZATION' || role === 'ORGANISATION'
-              ? 'Organization Dashboard'
-              : 'Dashboard';
     // Render the shell instantly from the static catalog so the page
     // never shows a full-page "Loading reports workspace..." card.
     // The authorized types arrive in the background and narrow this.

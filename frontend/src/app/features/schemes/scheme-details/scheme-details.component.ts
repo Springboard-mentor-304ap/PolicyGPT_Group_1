@@ -15,6 +15,10 @@ import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface EligibilityRule {
   rule_id: number;
@@ -40,6 +44,7 @@ interface EligibilityRule {
     CommonModule,
     ConfirmModalComponent,
     ReasonModalComponent,
+    BreadcrumbComponent,
   ],
   templateUrl: "./scheme-details.component.html",
   styleUrls: ["./scheme-details.component.scss"],
@@ -118,6 +123,23 @@ export class SchemeDetailsComponent implements OnInit {
     if (r === "ORGANIZATION" || r === "ORGANISATION") return "organization";
     if (r === "GUEST") return "guest";
     return "citizen";
+  }
+
+  /** Breadcrumb trail: Home > Schemes > Scheme Details (hidden on guest view). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.userRole === "GUEST") {
+      return [];
+    }
+    const schemesRoute = this.isAdmin
+      ? ["/dashboard", "admin", "schemes", "search"]
+      : this.isGov
+        ? ["/dashboard", "government", "schemes", "search"]
+        : ["/dashboard", this.rolePrefix, "schemes"];
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Schemes", route: schemesRoute },
+      { label: "Scheme Details" },
+    ];
   }
 
   getCreatorDisplayName(userId: number | null | undefined): string {

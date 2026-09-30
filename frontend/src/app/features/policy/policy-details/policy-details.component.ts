@@ -18,6 +18,10 @@ import {
 } from "../../../core/models/policy.model";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface EligibilityRule {
   rule_id: number;
@@ -44,6 +48,7 @@ interface EligibilityRule {
     CommonModule,
     ConfirmModalComponent,
     ReasonModalComponent,
+    BreadcrumbComponent,
   ],
   templateUrl: "./policy-details.component.html",
   styleUrls: ["./policy-details.component.scss"],
@@ -117,6 +122,23 @@ export class PolicyDetailsComponent implements OnInit {
     if (r === "ORGANIZATION" || r === "ORGANISATION") return "organization";
     if (r === "GUEST") return "guest";
     return "citizen";
+  }
+
+  /** Breadcrumb trail: Home > Policies > Policy Details (hidden on guest view). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.userRole === "GUEST") {
+      return [];
+    }
+    const policiesRoute = this.isAdmin
+      ? ["/dashboard", "admin", "policies", "search"]
+      : this.isGov
+        ? ["/dashboard", "government", "policies", "search"]
+        : ["/dashboard", this.rolePrefix, "policies"];
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Policies", route: policiesRoute },
+      { label: "Policy Details" },
+    ];
   }
 
   getCreatorDisplayName(userId: number | null | undefined): string {
@@ -283,6 +305,12 @@ export class PolicyDetailsComponent implements OnInit {
     this.policy = null;
     this.cdr.detectChanges();
 
+    // Bookmark state and eligibility rules need only the route policyId,
+    // not the policy body, so start them in parallel with the policy
+    // fetch instead of waiting for it (independent requests).
+    this.loadBookmarkState(policyId);
+    this.loadEligibilityRules(policyId);
+
     this.policyService
       .getPolicy(policyId)
       .pipe(
@@ -301,8 +329,6 @@ export class PolicyDetailsComponent implements OnInit {
         if (!policy) return;
         this.policy = policy;
         this.cdr.detectChanges();
-        this.loadBookmarkState(policy.policy_id);
-        this.loadEligibilityRules(policy.policy_id);
       });
   }
 

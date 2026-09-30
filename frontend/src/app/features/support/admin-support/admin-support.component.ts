@@ -9,11 +9,15 @@ import {
 import { SupportService } from '../../../core/services/support.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-admin-support',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './admin-support.component.html',
   styleUrls: [
     './admin-support.component.scss',
@@ -257,6 +261,14 @@ export class AdminSupportComponent implements OnInit {
       default:
         return 'priority-badge--low';
     }
+  }
+
+  /** Breadcrumb trail: Home > Support Requests (admin-only page). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: ['/dashboard/admin'] },
+      { label: 'Support Requests' },
+    ];
   }
 
   goBack(): void {

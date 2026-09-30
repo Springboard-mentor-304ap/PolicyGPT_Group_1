@@ -6,11 +6,15 @@ import { FAQ, FAQCreate, FAQUpdate } from '../../../core/models/faq.model';
 import { FaqService } from '../../../core/services/faq.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-faq-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
   templateUrl: './faq-list.component.html',
   styleUrl: './faq-list.component.scss',
 })
@@ -203,6 +207,14 @@ export class FaqListComponent implements OnInit {
     if (r === 'researcher') return '/dashboard/researcher';
     if (r === 'organization') return '/dashboard/organization';
     return '/dashboard/citizen';
+  }
+
+  /** Breadcrumb trail: Home > FAQs (role-aware via getHomeRoute). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: [this.getHomeRoute()] },
+      { label: 'FAQs' },
+    ];
   }
 
   goBack(): void {

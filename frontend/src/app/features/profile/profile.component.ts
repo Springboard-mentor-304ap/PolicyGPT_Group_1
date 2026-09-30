@@ -12,6 +12,10 @@ import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
 
 import { Auth, AuthUser } from "../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../shared/components/breadcrumb/breadcrumb.component";
 
 // =========================================================
 // USER PROFILE INTERFACE
@@ -39,7 +43,7 @@ export interface UserProfile {
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
 
   templateUrl: "./profile.component.html",
 
@@ -59,6 +63,31 @@ export class ProfileComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly http = inject(HttpClient);
+
+  /**
+   * Role-aware breadcrumb trail (Home > Profile) derived from the current
+   * dashboard URL, mirroring the goBack() prefix mapping below.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Profile" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const url = this.router.url || "";
+    if (url.startsWith("/dashboard/admin")) return "admin";
+    if (url.startsWith("/dashboard/citizen")) return "citizen";
+    if (url.startsWith("/dashboard/government")) return "government";
+    if (url.startsWith("/dashboard/researcher")) return "researcher";
+    if (url.startsWith("/dashboard/organization")) return "organization";
+    return null;
+  }
 
   // =========================================================
   // API

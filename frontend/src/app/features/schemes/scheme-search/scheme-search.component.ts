@@ -19,11 +19,15 @@ import {
   STATES,
 } from '../../../core/constants/government-data.constants';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-scheme-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent],
   templateUrl: './scheme-search.component.html',
   styleUrls: ['./scheme-search.component.scss'],
 })
@@ -146,6 +150,17 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     return String(this.auth?.getUserRole() || '')
       .trim()
       .toUpperCase();
+  }
+
+  /** Breadcrumb trail: Home > Schemes (hidden on public guest view). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.userRole === 'GUEST') {
+      return [];
+    }
+    return [
+      { label: 'Home', route: ['/dashboard', this.rolePrefix] },
+      { label: 'Schemes' },
+    ];
   }
 
   get isAdminOrGov(): boolean {

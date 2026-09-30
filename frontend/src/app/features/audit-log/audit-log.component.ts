@@ -6,11 +6,15 @@ import { AuditLog } from '../../core/models/audit-log.model';
 import { AuditLogService } from '../../core/services/audit-log.service';
 import { Auth } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../shared/components/breadcrumb/breadcrumb.component';
 
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
   templateUrl: './audit-log.component.html',
   styleUrls: [
     './audit-log.component.scss',
@@ -185,6 +189,14 @@ export class AuditLogComponent implements OnInit {
       default:
         return 'role-badge--citizen';
     }
+  }
+
+  /** Breadcrumb trail: Home > Audit Logs (admin-only page). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: ['/dashboard/admin'] },
+      { label: 'Audit Logs' },
+    ];
   }
 
   goBack(): void {

@@ -4,14 +4,20 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { finalize } from "rxjs";
 import { ReportService } from "../../../core/services/report.service";
 import { Report, ReportDataset } from "../../../core/models/report.model";
+import { Auth } from "../../../core/services/auth";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-report-details",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent],
   styleUrl: "../reports-shared.scss",
   template: `
     <div class="reports-page">
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
       <header class="page-header">
         <div class="header-content">
           <div class="header-main">
@@ -239,6 +245,21 @@ import { Report, ReportDataset } from "../../../core/models/report.model";
 export class ReportDetailsComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly reports = inject(ReportService);
+  private readonly auth = inject(Auth);
+
+  /** Breadcrumb trail: Home > Reports > Report Details. */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const role = (this.auth.getUserRole() || "").toUpperCase();
+    const prefix =
+      role === "GOVERNMENT_OFFICIAL" || role === "GOVERNMENT"
+        ? "government"
+        : "admin";
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Reports", route: ["/dashboard", prefix, "reports"] },
+      { label: "Report Details" },
+    ];
+  }
 
   readonly report = signal<Report | null>(null);
   readonly loading = signal(true);

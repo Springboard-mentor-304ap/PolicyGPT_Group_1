@@ -4,6 +4,10 @@
   <!-- HEADER -->
   <!-- ====================================================== -->
 
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
+
   <header class="page-header">
     <div class="header-content">
 

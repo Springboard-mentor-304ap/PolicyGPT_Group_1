@@ -98,18 +98,13 @@ export class AdminAnalyticsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = "";
 
-    console.log("🔥 ANALYTICS: Starting API calls");
-
     // -------------------------
     // Dashboard
     // -------------------------
     this.analyticsService.getDashboardAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 DASHBOARD:", data);
         this.dashboard = data;
         this.loading = false;
-        console.log("🔥 LOADING AFTER DASHBOARD:", this.loading);
-        console.log("🔥 ERROR MESSAGE:", this.errorMessage);
       },
       error: (error) => {
         console.error(
@@ -125,8 +120,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getPolicyAnalytics().subscribe({
       next: (data) => {
-          console.log("🔥 POLICIES:", data);
-
           this.policies = data;
           this.policyTrend =
             data?.monthly_trend ?? [];
@@ -144,8 +137,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getSchemeAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 SCHEMES:", data);
-
           this.schemes = data;
           this.schemeCategories =
             data?.by_category ?? [];
@@ -163,8 +154,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getUserAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 USERS:", data);
-
           this.users = data;
           this.userRoles =
             data?.by_role ?? [];
@@ -178,25 +167,11 @@ export class AdminAnalyticsComponent implements OnInit {
       });
 
 
-    // =====================================================
-    // TEMPORARY LOADING CONTROL
-    // =====================================================
-    // We deliberately stop the loading screen after the
-    // API calls have had time to return.
-    setTimeout(() => {
-      this.loading = false;
-
-      console.log(
-        "🔥 ANALYTICS: LOADING SET TO FALSE"
-      );
-    }, 1000);
     // -------------------------
     // Notifications
     // -------------------------
     this.analyticsService.getNotifications().subscribe({
   next: (data) => {
-    console.log("🔥 NOTIFICATIONS:", data);
-    
   this.totalNotifications = data.length ?? 0;
   this.recentNotifications = data;
   },

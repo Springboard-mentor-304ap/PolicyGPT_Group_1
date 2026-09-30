@@ -9,6 +9,11 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ReportService } from '../../../core/services/report.service';
+import { Auth } from '../../../core/services/auth';
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from '../../../shared/components/breadcrumb/breadcrumb.component';
 import {
   Report,
   ReportFormat,
@@ -47,10 +52,11 @@ const ALL_FILTER_KEYS = [
 @Component({
   selector: 'app-report-generate',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent],
   styleUrl: '../reports-shared.scss',
   template: `
     <div class="reports-page">
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
       <header class="page-header">
         <div class="header-content">
           <div class="header-main">
@@ -294,6 +300,24 @@ export class ReportGenerateComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly reports = inject(ReportService);
+  private readonly auth = inject(Auth);
+
+  /** Breadcrumb trail: Home > Reports > Generate Report. */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.reportsPrefix();
+    return [
+      { label: 'Home', route: ['/dashboard', prefix] },
+      { label: 'Reports', route: ['/dashboard', prefix, 'reports'] },
+      { label: 'Generate Report' },
+    ];
+  }
+
+  private reportsPrefix(): string {
+    const role = (this.auth.getUserRole() || '').toUpperCase();
+    return role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT'
+      ? 'government'
+      : 'admin';
+  }
 
   form!: FormGroup;
   visibleCategories: ReportCategory[] = [];

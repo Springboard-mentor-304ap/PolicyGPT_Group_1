@@ -118,12 +118,6 @@ export class NotificationListComponent implements OnInit, OnDestroy {
     // Subscribe to live pushes so new notifications appear without a refresh.
     this.setupLiveUpdates();
 
-    // Refresh unread count immediately for top bar / bell badge
-    this.notificationService.getUnreadCount().subscribe({
-      next: () => this.cdr.detectChanges(),
-      error: () => {},
-    });
-
     // Check route param :id or query params ?id=
     const routeParamVal =
       this.route.snapshot?.params?.["id"] ||
@@ -135,14 +129,21 @@ export class NotificationListComponent implements OnInit, OnDestroy {
     const initialId = routeId || queryId;
 
     // Check if directly navigating to delivery monitoring
-    if (
+    const toDeliveries =
       this.isAdmin &&
       (this.router.url.includes("/delivery") ||
-        this.route.snapshot?.queryParams?.["tab"] === "deliveries")
-    ) {
+        this.route.snapshot?.queryParams?.["tab"] === "deliveries");
+    if (toDeliveries) {
+      // The deliveries tab never calls getNotifications(), so refresh the
+      // top bar / bell badge with a dedicated request on this path only.
+      this.notificationService.getUnreadCount().subscribe({
+        next: () => this.cdr.detectChanges(),
+        error: () => {},
+      });
       this.selectTab("deliveries");
     } else {
-      // Load initial list immediately on page opening
+      // getNotifications() already syncs the bell badge via tap, so no
+      // extra /unread-count request is needed on this path.
       this.loadNotifications(initialId);
     }
 

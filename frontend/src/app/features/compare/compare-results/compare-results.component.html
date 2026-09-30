@@ -4,6 +4,11 @@
        HEADER
        ========================================================= -->
 
+  <app-breadcrumb
+    *ngIf="breadcrumbItems.length > 0"
+    [items]="breadcrumbItems"
+  ></app-breadcrumb>
+
   <div class="page-header">
 
     <div>

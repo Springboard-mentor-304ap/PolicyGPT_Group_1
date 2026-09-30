@@ -25,6 +25,11 @@
        ===================================================== -->
   <ng-container *ngIf="!loading && !errorMessage && policy">
 
+    <app-breadcrumb
+      *ngIf="breadcrumbItems.length > 0"
+      [items]="breadcrumbItems"
+    ></app-breadcrumb>
+
     <!-- ===================================================
          PAGE HEADER
          =================================================== -->

@@ -16,13 +16,17 @@ import { PolicyResponse } from "../../../core/models/policy.model";
 import { SchemeResponse } from "../../../core/models/scheme.model";
 
 import { CompareItem } from "../compare-selection/compare-selection.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 export type CompareEntity = PolicyResponse | SchemeResponse;
 
 @Component({
   selector: "app-compare-results",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./compare-results.component.html",
   styleUrls: ["./compare-results.component.scss"],
 })
@@ -37,6 +41,43 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   private readonly schemeService = inject(SchemeService);
 
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * Role-aware breadcrumb trail derived from the current dashboard URL:
+   * Home > Compare > Compare Results. Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Compare", route: ["/dashboard", prefix, "compare"] },
+      { label: "Compare Results" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const match = /\/dashboard\/([^/]+)/.exec(this.router.url || "");
+    if (!match) {
+      return null;
+    }
+    const prefix = match[1].toLowerCase();
+    if (prefix === "guest") {
+      return null;
+    }
+    if (
+      prefix === "admin" ||
+      prefix === "government" ||
+      prefix === "citizen" ||
+      prefix === "researcher" ||
+      prefix === "organization"
+    ) {
+      return prefix;
+    }
+    return null;
+  }
 
   items: CompareItem[] = [];
 

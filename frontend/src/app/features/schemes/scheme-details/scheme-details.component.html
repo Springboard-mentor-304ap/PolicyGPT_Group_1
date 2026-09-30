@@ -25,6 +25,11 @@
        ===================================================== -->
   <div *ngIf="scheme && !loading">
 
+    <app-breadcrumb
+      *ngIf="breadcrumbItems.length > 0"
+      [items]="breadcrumbItems"
+    ></app-breadcrumb>
+
     <!-- ===================================================
          PAGE HEADER
          =================================================== -->

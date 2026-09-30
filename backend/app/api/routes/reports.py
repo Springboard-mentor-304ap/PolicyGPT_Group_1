@@ -26,9 +26,6 @@ router = APIRouter(
 
 
 REPORT_ROUTE_ROLES = (
-    "CITIZEN",
-    "RESEARCHER",
-    "ORGANIZATION",
     "GOVERNMENT_OFFICIAL",
     "ADMIN",
 )
@@ -367,5 +364,5 @@ def download_report_endpoint(
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

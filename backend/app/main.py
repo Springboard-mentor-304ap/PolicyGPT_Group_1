@@ -199,12 +199,23 @@ app = FastAPI(
 # CORS
 # =========================================================
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _cors_origins() -> list[str]:
+    origins = [
         "http://localhost:4200",
         "http://127.0.0.1:4200",
-    ],
+    ]
+    extra = (settings.FRONTEND_ORIGINS or "").strip()
+    if extra:
+        for origin in extra.split(","):
+            candidate = origin.strip().rstrip("/")
+            if candidate and candidate not in origins:
+                origins.append(candidate)
+    return origins
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

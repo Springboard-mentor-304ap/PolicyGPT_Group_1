@@ -50,6 +50,12 @@ class Settings(BaseSettings):
 
     DEBUG: bool = False
 
+    # Comma-separated extra frontend origins allowed to call the API
+    # (export endpoints included). Defaults cover local development;
+    # set FRONTEND_ORIGINS in production, e.g.
+    # FRONTEND_ORIGINS=https://app.example.com,https://admin.example.com
+    FRONTEND_ORIGINS: str = ""
+
     @field_validator("DEBUG", mode="before")
     @classmethod
     def parse_debug(cls, value: object) -> object:

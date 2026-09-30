@@ -1,14 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ReportService } from '../../../core/services/report.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import {
-  Report,
   ReportDataset,
   ReportFormat,
   ReportType,
@@ -19,7 +17,6 @@ import {
   REPORT_TYPE_META,
   FilterField,
   FILTERS_BY_TYPE,
-  detailLabel,
 } from '../report-catalog';
 
 interface WorkspaceTab {
@@ -31,22 +28,12 @@ interface WorkspaceTab {
   types: ReportType[];
 }
 
-interface ReportSettingsDraft {
-  type: ReportType | '';
-  detail: string;
-  format: ReportFormat;
-  title: string;
-}
-
 interface ReportTabState {
   type: ReportType | '';
-  details: string[];
   detail: string;
-  format: ReportFormat;
-  title: string;
   /** Filters actually applied to the table (server request). */
   appliedValues: Record<string, string>;
-  /** Temporary drawer edits; table updates only on Apply. */
+  /** Temporary modal edits; table updates only on Apply. */
   draftValues: Record<string, string>;
   remoteOptions: Record<string, string[]>;
   loadingOptions: boolean;
@@ -57,14 +44,11 @@ interface ReportTabState {
   page: number;
   pageSize: number;
   dataset: ReportDataset | null;
-  report: Report | null;
-  generating: boolean;
-  exporting: boolean;
+  /** Per-format export state so only the clicked option shows loading. */
+  exportingFormat: ReportFormat | null;
   exportOpen: boolean;
   columnsOpen: boolean;
   filterOpen: boolean;
-  settingsOpen: boolean;
-  genDraft: ReportSettingsDraft | null;
   error: string | null;
   drawerError: string | null;
   previewLoading: boolean;
@@ -91,10 +75,7 @@ interface NotificationsTabState {
 function newReportTabState(): ReportTabState {
   return {
     type: '',
-    details: [],
     detail: 'overview',
-    format: 'PDF',
-    title: '',
     appliedValues: {},
     draftValues: {},
     remoteOptions: {},
@@ -106,14 +87,10 @@ function newReportTabState(): ReportTabState {
     page: 1,
     pageSize: 10,
     dataset: null,
-    report: null,
-    generating: false,
-    exporting: false,
+    exportingFormat: null,
     exportOpen: false,
     columnsOpen: false,
     filterOpen: false,
-    settingsOpen: false,
-    genDraft: null,
     error: null,
     drawerError: null,
     previewLoading: false,
@@ -143,7 +120,7 @@ function newNotificationsTabState(): NotificationsTabState {
 @Component({
   selector: 'app-report-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   styleUrl: '../reports-shared.scss',
   templateUrl: './report-dashboard.component.html',
 })
@@ -168,7 +145,7 @@ export class ReportDashboardComponent implements OnInit {
   notifState: NotificationsTabState = newNotificationsTabState();
 
   // ============================================================
-  // INIT
+  // INIT — shell renders immediately, types refine in background
   // ============================================================
 
   ngOnInit(): void {
@@ -183,6 +160,20 @@ export class ReportDashboardComponent implements OnInit {
             : role === 'ORGANIZATION' || role === 'ORGANISATION'
               ? 'Organization Dashboard'
               : 'Dashboard';
+    // Render the shell instantly from the static catalog so the page
+    // never shows a full-page "Loading reports workspace..." card.
+    // The authorized types arrive in the background and narrow this.
+    this.tabs = REPORT_CATEGORIES.map((c) => ({
+      key: c.key,
+      title: c.title,
+      description: c.description,
+      icon: c.icon,
+      kind: 'report' as const,
+      types: [...c.types],
+    }));
+    if (this.tabs.length > 0 && !this.activeTabKey) {
+      this.selectTab(this.tabs[0].key);
+    }
     this.loadTypes();
   }
 
@@ -193,7 +184,7 @@ export class ReportDashboardComponent implements OnInit {
       next: (res) => {
         this.allowedTypes = new Set(res?.report_types ?? []);
         this.detailsByType = res?.details ?? {};
-        this.tabs = REPORT_CATEGORIES.map((c) => ({
+        const refined = REPORT_CATEGORIES.map((c) => ({
           key: c.key,
           title: c.title,
           description: c.description,
@@ -201,19 +192,33 @@ export class ReportDashboardComponent implements OnInit {
           kind: 'report' as const,
           types: c.types.filter((t) => this.allowedTypes.has(t)),
         })).filter((t) => t.types.length > 0);
-        const role = (this.auth.getUserRole() || '').toUpperCase();
-        if (role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT') {
-          this.tabs.push({
-            key: 'notifications',
-            title: 'Notification Reports',
-            description: 'Notification delivery and read statistics.',
-            icon: 'notifications',
-            kind: 'notifications' as const,
-            types: [],
-          });
-        }
-        if (this.tabs.length > 0) {
-          this.selectTab(this.tabs[0].key);
+        if (refined.length > 0) {
+          this.tabs = refined;
+          const role = (this.auth.getUserRole() || '').toUpperCase();
+          if (role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT') {
+            this.tabs.push({
+              key: 'notifications',
+              title: 'Notification Reports',
+              description: 'Notification delivery and read statistics.',
+              icon: 'notifications',
+              kind: 'notifications' as const,
+              types: [],
+            });
+          }
+          if (!this.tabs.some((t) => t.key === this.activeTabKey)) {
+            this.selectTab(this.tabs[0].key);
+          } else {
+            // Reconcile the active tab's type against the authorized set.
+            const tab = this.activeTab;
+            const st = tab ? this.stateOf(tab.key) : null;
+            if (tab && tab.kind === 'report' && st && !tab.types.includes(st.type as ReportType)) {
+              st.type = tab.types[0] ?? '';
+              st.previewLoaded = false;
+              this.refreshTabType(tab.key);
+            }
+          }
+        } else if (this.tabs.length === 0) {
+          this.tabs = [];
         }
         this.initializing.set(false);
         this.cdr.markForCheck();
@@ -229,7 +234,7 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   // ============================================================
-  // TABS
+  // TABS (lazy: only the active tab loads)
   // ============================================================
 
   get activeTab(): WorkspaceTab | undefined {
@@ -237,12 +242,12 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   selectTab(key: string): void {
-    // A drawer/modal belongs to its tab; never leave one open over
+    // A modal belongs to its tab; never leave one open over
     // another tab's table.
     for (const st of this.tabState.values()) {
       st.filterOpen = false;
-      st.settingsOpen = false;
       st.exportOpen = false;
+      st.columnsOpen = false;
     }
     this.activeTabKey = key;
     const tab = this.activeTab;
@@ -282,7 +287,7 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   // ============================================================
-  // FILTER DRAWER (draft vs applied)
+  // FILTER MODAL (draft vs applied)
   // ============================================================
 
   filtersFor(tab: WorkspaceTab, st: ReportTabState): FilterField[] {
@@ -301,12 +306,12 @@ export class ReportDashboardComponent implements OnInit {
   openFilter(key: string): void {
     const st = this.stateOf(key);
     // Draft starts from the last applied values; un-applied edits from
-    // a previously closed drawer are intentionally discarded.
+    // a previously closed modal are intentionally discarded.
     st.draftValues = { ...st.appliedValues };
     st.drawerError = null;
     st.filterOpen = true;
-    st.settingsOpen = false;
     st.exportOpen = false;
+    st.columnsOpen = false;
     this.cdr.markForCheck();
   }
 
@@ -317,6 +322,13 @@ export class ReportDashboardComponent implements OnInit {
     st.filterOpen = false;
     st.drawerError = null;
     this.cdr.markForCheck();
+  }
+
+  /** Backdrop click: close only when the overlay itself is clicked. */
+  onOverlayClick(key: string, event: MouseEvent): void {
+    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+      this.closeFilter(key);
+    }
   }
 
   applyDrawerFilters(key: string): void {
@@ -339,16 +351,11 @@ export class ReportDashboardComponent implements OnInit {
 
   resetDrawerFilters(key: string): void {
     const st = this.stateOf(key);
-    // Reset clears the filter controls and immediately reloads the
-    // default dataset. Search is preserved so it keeps combining with
-    // filters; the empty-state button clears search explicitly.
+    // Reset clears the draft controls only; the table keeps showing the
+    // last applied filters until the user clicks Apply Filters.
     st.draftValues = {};
-    st.appliedValues = {};
     st.drawerError = null;
-    st.error = null;
-    st.page = 1;
-    st.filterOpen = false;
-    this.loadPreview(key);
+    this.cdr.markForCheck();
   }
 
   clearAllFilters(key: string): void {
@@ -372,10 +379,6 @@ export class ReportDashboardComponent implements OnInit {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     for (const [key, st] of this.tabState) {
-      if (st.settingsOpen) {
-        this.closeSettings(key);
-        return;
-      }
       if (st.filterOpen) {
         this.closeFilter(key);
         return;
@@ -389,95 +392,76 @@ export class ReportDashboardComponent implements OnInit {
     }
   }
 
-  // ============================================================
-  // REPORT SETTINGS (generation config: type / detail / format)
-  // ============================================================
+  /** Close Columns / Export popovers on outside click or Escape. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (!target || !(target instanceof HTMLElement)) return;
+    if (target.closest('.columns-wrapper') || target.closest('.export-menu')) {
+      return;
+    }
+    let changed = false;
+    for (const st of this.tabState.values()) {
+      if (st.columnsOpen || st.exportOpen) {
+        st.columnsOpen = false;
+        st.exportOpen = false;
+        changed = true;
+      }
+    }
+    if (changed) this.cdr.markForCheck();
+  }
 
-  openSettings(key: string): void {
-    const st = this.stateOf(key);
-    st.genDraft = {
-      type: st.type,
-      detail: st.detail,
-      format: st.format,
-      title: st.title,
-    };
-    st.settingsOpen = true;
-    st.filterOpen = false;
+  /** Keep the filter modal open when clicking inside it. */
+  stopPropagation(event: MouseEvent): void {
+    event.stopPropagation();
+  }
+
+  toggleColumns(st: ReportTabState, event: MouseEvent): void {
+    event.stopPropagation();
+    st.columnsOpen = !st.columnsOpen;
     st.exportOpen = false;
     this.cdr.markForCheck();
   }
 
-  closeSettings(key: string): void {
-    const st = this.stateOf(key);
-    st.settingsOpen = false;
-    st.genDraft = null;
+  toggleExport(st: ReportTabState, event: MouseEvent): void {
+    event.stopPropagation();
+    if (st.exportingFormat) return;
+    st.exportOpen = !st.exportOpen;
+    st.columnsOpen = false;
     this.cdr.markForCheck();
   }
 
-  settingsDetailsFor(type: ReportType | ''): string[] {
-    if (!type) return [];
-    return this.detailsByType[type] ?? ['overview'];
-  }
+  // ============================================================
+  // REPORT TYPE (multi-type tabs, e.g. Government Reports)
+  // ============================================================
 
-  onSettingsTypeChange(key: string): void {
+  onReportTypeChange(key: string): void {
     const st = this.stateOf(key);
-    const draft = st.genDraft;
-    if (!draft || !draft.type) return;
-    const details = this.settingsDetailsFor(draft.type);
-    if (!details.includes(draft.detail)) {
-      draft.detail = details[0] ?? 'overview';
-    }
-  }
-
-  private applySettingsDraft(key: string): boolean {
-    const tab = this.tabs.find((t) => t.key === key);
-    const st = this.stateOf(key);
-    const draft = st.genDraft;
-    if (!tab || tab.kind !== 'report' || !draft || !draft.type) return false;
-    const typeChanged = draft.type !== st.type;
-    st.type = draft.type;
-    st.details = this.settingsDetailsFor(draft.type);
-    st.detail = draft.detail || st.details[0] || 'overview';
-    st.format = draft.format;
-    st.title = draft.title;
-    st.settingsOpen = false;
-    st.genDraft = null;
-    if (typeChanged) {
-      // A different report type has different filters; start clean.
-      st.appliedValues = {};
-      st.draftValues = {};
-      st.page = 1;
-      st.sortCol = null;
-      st.hiddenCols = [];
-      this.loadRemoteOptions(key, st.type);
-    }
-    return true;
-  }
-
-  applySettingsView(key: string): void {
-    if (!this.applySettingsDraft(key)) return;
-    this.stateOf(key).page = 1;
+    const type = st.type as ReportType | '';
+    if (!type) return;
+    // A different report type has different filters; start clean.
+    st.detail = this.defaultDetailFor(type);
+    st.appliedValues = {};
+    st.draftValues = {};
+    st.page = 1;
+    st.sortCol = null;
+    st.hiddenCols = [];
+    st.error = null;
+    st.previewLoaded = false;
+    this.loadRemoteOptions(key, type);
     this.loadPreview(key);
   }
 
-  generateFromSettings(key: string): void {
-    const st = this.stateOf(key);
-    if (st.generating) return;
-    if (!this.applySettingsDraft(key)) return;
-    // Keep the live table consistent with the generated variant, then
-    // generate the official document without replacing the table.
-    this.loadPreview(key);
-    this.generate(key);
+  private defaultDetailFor(type: ReportType): string {
+    const details = this.detailsByType[type] ?? ['overview'];
+    return details[0] ?? 'overview';
   }
 
   private refreshTabType(key: string): void {
     const st = this.stateOf(key);
     const type = st.type as ReportType | '';
     if (!type) return;
-    st.details = this.detailsByType[type] ?? ['overview'];
-    if (!st.details.includes(st.detail)) {
-      st.detail = st.details[0] ?? 'overview';
-    }
+    st.detail = this.defaultDetailFor(type);
     this.loadRemoteOptions(key, type);
     // Live table appears without Generate: fetch preview immediately
     // in parallel with filter-option loading (independent states).
@@ -594,151 +578,77 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   // ============================================================
-  // REPORT TAB: GENERATE + EXPORT (official PDF/Excel output)
+  // EXPORT (official PDF/Excel output via existing generation API)
   // ============================================================
-
-  generate(key: string): void {
-    const tab = this.tabs.find((t) => t.key === key);
-    const st = this.stateOf(key);
-    if (!tab || tab.kind !== 'report' || !st.type || st.generating) return;
-    const built = this.buildParameters(tab, st);
-    if (built.error) {
-      st.error = built.error;
-      return;
-    }
-    st.error = null;
-    st.generating = true;
-    this.cdr.markForCheck();
-    this.reports
-      .generateReport({
-        report_type: st.type,
-        report_format: st.format,
-        title: st.title?.trim() || null,
-        detail: st.detail || null,
-        parameters: built.parameters,
-      })
-      .pipe(
-        finalize(() => {
-          st.generating = false;
-          this.cdr.markForCheck();
-        }),
-      )
-      .subscribe({
-        next: (response) => {
-          const reportId = Number(response.headers.get('X-Report-Id'));
-          if (Number.isFinite(reportId) && reportId > 0) {
-            this.reports.getReport(reportId).subscribe({
-              next: (report) => {
-                st.report = report;
-                this.toast.success(
-                  'Report generated',
-                  `Report #${report.report_id} (${report.report_format}) is ready in history.`,
-                );
-                this.cdr.markForCheck();
-              },
-              error: () => {
-                this.toast.success('Report generated', `Report #${reportId} is ready in history.`);
-                this.cdr.markForCheck();
-              },
-            });
-          } else {
-            st.error = 'Report generation did not return a report ID.';
-            this.cdr.markForCheck();
-          }
-        },
-        error: (err) => {
-          this.decodeBlobError(err, 'Report generation failed.').then((message) => {
-            st.error = message;
-            this.toast.error('Generation failed', message);
-            this.cdr.markForCheck();
-          });
-        },
-      });
-  }
 
   exportReport(key: string, format: ReportFormat): void {
     const tab = this.tabs.find((t) => t.key === key);
     const st = this.stateOf(key);
-    if (!tab || tab.kind !== 'report' || !st.type || st.exporting) return;
+    if (!tab || tab.kind !== 'report' || !st.type || st.exportingFormat) return;
     const built = this.buildParameters(tab, st);
     if (built.error) {
       st.error = built.error;
       st.exportOpen = false;
+      this.toast.error('Export failed', built.error);
       return;
     }
     st.error = null;
-    st.exporting = true;
+    st.exportingFormat = format;
     st.exportOpen = false;
     this.cdr.markForCheck();
     this.reports
       .generateReport({
         report_type: st.type,
         report_format: format,
-        title: st.title?.trim() || null,
+        title: null,
         detail: st.detail || null,
         parameters: built.parameters,
       })
       .pipe(
         finalize(() => {
-          st.exporting = false;
+          st.exportingFormat = null;
           this.cdr.markForCheck();
         }),
       )
       .subscribe({
         next: (response) => {
-          const reportId = Number(response.headers.get('X-Report-Id'));
           const body = response.body;
-          const fallback = `report_${Number.isFinite(reportId) ? reportId : 'export'}.${format === 'EXCEL' ? 'xlsx' : 'pdf'}`;
+          const fallback = `report_export.${format === 'EXCEL' ? 'xlsx' : 'pdf'}`;
           const filename = this.reports.filenameFromDisposition(
             response.headers.get('Content-Disposition'),
             fallback,
           );
           if (body) {
             this.saveBlob(body, filename);
-            this.toast.success('Export ready', `${format} downloaded.`);
+            if (format === 'PDF') {
+              this.toast.success('Success', 'PDF downloaded successfully.');
+            } else {
+              this.toast.success('Success', 'Excel downloaded successfully.');
+            }
+          } else if (format === 'PDF') {
+            this.toast.error('Export failed', 'PDF export failed. Please try again.');
+          } else {
+            this.toast.error('Export failed', 'Excel export failed. Please try again.');
           }
-          if (Number.isFinite(reportId) && reportId > 0) {
-            this.reports.getReport(reportId).subscribe({
-              next: (report) => {
-                st.report = report;
-                this.cdr.markForCheck();
-              },
-              error: () => undefined,
-            });
-          }
+          // The live table stays as-is: exporting never injects a
+          // generated-report card into the page.
         },
         error: (err) => {
           this.decodeBlobError(err, 'Export failed.').then((message) => {
             st.error = message;
-            this.toast.error('Export failed', message);
+            if (format === 'PDF') {
+              this.toast.error('Export failed', 'PDF export failed. Please try again.');
+            } else {
+              this.toast.error('Export failed', 'Excel export failed. Please try again.');
+            }
             this.cdr.markForCheck();
           });
         },
       });
   }
 
-  downloadGenerated(st: ReportTabState): void {
-    if (!st.report || st.exporting) return;
-    const id = st.report.report_id;
-    const format = st.report.report_format;
-    st.exporting = true;
-    this.reports
-      .downloadReport(id)
-      .pipe(
-        finalize(() => {
-          st.exporting = false;
-          this.cdr.markForCheck();
-        }),
-      )
-      .subscribe({
-        next: (blob) => {
-          this.saveBlob(blob, `report_${id}.${format === 'EXCEL' ? 'xlsx' : 'pdf'}`);
-        },
-        error: (err) => {
-          st.error = this.safeMessage(err, 'Download failed.');
-          this.cdr.markForCheck();
-        },
-      });
+  isExporting(st: ReportTabState): boolean {
+    return st.exportingFormat !== null;
   }
 
   private saveBlob(blob: Blob, filename: string): void {
@@ -746,8 +656,10 @@ export class ReportDashboardComponent implements OnInit {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = filename;
+    document.body.appendChild(anchor);
     anchor.click();
-    URL.revokeObjectURL(url);
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   // ============================================================
@@ -772,6 +684,12 @@ export class ReportDashboardComponent implements OnInit {
 
   resetColumns(st: ReportTabState): void {
     st.hiddenCols = [];
+    st.page = 1;
+  }
+
+  onSearchInput(st: ReportTabState): void {
+    // Client-side search over the loaded dataset: no request per
+    // keystroke, just reset to the first page.
     st.page = 1;
   }
 
@@ -871,8 +789,22 @@ export class ReportDashboardComponent implements OnInit {
     return (st.dataset?.summary ?? []).slice(0, 4);
   }
 
-  detailLabel(detail: string): string {
-    return detailLabel(detail);
+  kpiIcon(index: number, tabKey: string): string {
+    if (tabKey === 'user') {
+      return ['group', 'check_circle', 'cancel', 'person_add'][index] ?? 'insights';
+    }
+    return ['insights', 'check_circle', 'pending', 'bar_chart'][index] ?? 'insights';
+  }
+
+  kpiIconClass(index: number): string {
+    return ['stat-icon--blue', 'stat-icon--green', 'stat-icon--orange', 'stat-icon--purple'][index] ?? 'stat-icon--blue';
+  }
+
+  kpiSub(index: number, tabKey: string): string {
+    if (tabKey === 'user') {
+      return ['All registered users', 'Currently active', 'Currently inactive', 'Current period'][index] ?? '';
+    }
+    return ['Overview metric', 'Detail metric', 'Detail metric', 'Detail metric'][index] ?? '';
   }
 
   searchPlaceholder(tab: WorkspaceTab): string {

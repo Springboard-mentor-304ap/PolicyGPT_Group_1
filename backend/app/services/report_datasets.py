@@ -29,7 +29,6 @@ from app.models.scheme import Scheme
 from app.models.search_history import SearchHistory
 from app.models.user import User
 
-
 UNSPECIFIED = "Unspecified"
 EMPTY_MESSAGE = "No data available for the selected filters."
 EMPTY_ACTIVITY_MESSAGE = "No activity data available for the selected period."
@@ -38,6 +37,7 @@ EMPTY_ACTIVITY_MESSAGE = "No activity data available for the selected period."
 # ============================================================
 # HELPERS
 # ============================================================
+
 
 def _parse_date(value: object, name: str) -> date | None:
     if value is None or value == "":
@@ -91,14 +91,18 @@ def _month_key(value: datetime | date | None) -> str | None:
 
 
 def _base_dataset(
-    report_type: str, title: str | None, filters: dict,
+    report_type: str,
+    title: str | None,
+    filters: dict,
     detail: str | None = None,
 ) -> dict:
     return {
         "title": title or report_type,
         "report_type": report_type,
         "detail": detail,
-        "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "generated_at": datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat(),
         "filters": dict(filters or {}),
         "summary": [],
         "sections": [],
@@ -118,12 +122,21 @@ _DETAIL_SELECTION: dict[str, dict[str, tuple[list[str] | None, list[str]]]] = {
     "POLICY_REPORT": {
         "overview": (None, ["Policies"]),
         "status": (
-            ["Total policies", "Approved", "Pending approval",
-             "Rejected", "Draft", "Archived"],
+            [
+                "Total policies",
+                "Approved",
+                "Pending approval",
+                "Rejected",
+                "Draft",
+                "Archived",
+            ],
             ["By status"],
         ),
         "ministry-wise": (["Total policies", "Ministries"], ["By ministry"]),
-        "department-wise": (["Total policies", "Departments"], ["By department"]),
+        "department-wise": (
+            ["Total policies", "Departments"],
+            ["By department"],
+        ),
         "state-wise": (["Total policies", "States"], ["By state"]),
         "category-wise": (["Total policies", "Categories"], ["By category"]),
         "sector-wise": (["Total policies", "Sectors"], ["By sector"]),
@@ -131,12 +144,21 @@ _DETAIL_SELECTION: dict[str, dict[str, tuple[list[str] | None, list[str]]]] = {
     "SCHEME_REPORT": {
         "overview": (None, ["Schemes"]),
         "status": (
-            ["Total schemes", "Approved", "Pending approval",
-             "Rejected", "Draft", "Archived"],
+            [
+                "Total schemes",
+                "Approved",
+                "Pending approval",
+                "Rejected",
+                "Draft",
+                "Archived",
+            ],
             ["By status"],
         ),
         "ministry-wise": (["Total schemes", "Ministries"], ["By ministry"]),
-        "department-wise": (["Total schemes", "Departments"], ["By department"]),
+        "department-wise": (
+            ["Total schemes", "Departments"],
+            ["By department"],
+        ),
         "state-wise": (["Total schemes", "States"], ["By state"]),
         "category-wise": (["Total schemes", "Categories"], ["By category"]),
         "expiring": (
@@ -147,7 +169,7 @@ _DETAIL_SELECTION: dict[str, dict[str, tuple[list[str] | None, list[str]]]] = {
     "USER_REPORT": {
         "overview": (None, ["Users"]),
         "registration": (
-            ["Total users", "New registrations (period)"],
+            ["Total users", "New registrations"],
             ["Registration trend"],
         ),
         "role-wise": (["Total users", "Roles"], ["By role"]),
@@ -189,12 +211,14 @@ def _apply_detail(dataset: dict, report_type: str, detail: str | None) -> dict:
     if keep_summary is not None:
         wanted = set(keep_summary)
         dataset["summary"] = [
-            (label, value) for label, value in dataset.get("summary") or []
+            (label, value)
+            for label, value in dataset.get("summary") or []
             if label in wanted
         ]
     wanted_sections = set(keep_sections)
     dataset["sections"] = [
-        section for section in dataset.get("sections") or []
+        section
+        for section in dataset.get("sections") or []
         if section.get("heading") in wanted_sections
     ]
     return dataset
@@ -256,7 +280,8 @@ def build_policy_dataset(
         )
     if end:
         query = query.filter(
-            Policy.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Policy.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     policies = query.order_by(Policy.policy_id).all()
@@ -351,9 +376,7 @@ def build_policy_dataset(
         )
 
     # Effective-date trend (month of effective_date).
-    effective_months = Counter(
-        _month_key(p.effective_date) for p in policies
-    )
+    effective_months = Counter(_month_key(p.effective_date) for p in policies)
     effective_rows = [
         [month, count]
         for month, count in sorted(
@@ -420,10 +443,13 @@ def build_scheme_dataset(
     if filters.get("status") and staff:
         query = query.filter(Scheme.status == filters["status"])
     if start:
-        query = query.filter(Scheme.created_at >= datetime(start.year, start.month, start.day))
+        query = query.filter(
+            Scheme.created_at >= datetime(start.year, start.month, start.day)
+        )
     if end:
         query = query.filter(
-            Scheme.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Scheme.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     schemes = query.order_by(Scheme.scheme_id).all()
@@ -496,8 +522,14 @@ def build_scheme_dataset(
                 "heading": "Expiring soon (30 days)",
                 "headers": ["Scheme ID", "Name", "End date"],
                 "rows": [
-                    [s.scheme_id, (s.name or "")[:80], _fmt(s.application_end_date)]
-                    for s in sorted(expiring, key=lambda x: x.application_end_date or now)
+                    [
+                        s.scheme_id,
+                        (s.name or "")[:80],
+                        _fmt(s.application_end_date),
+                    ]
+                    for s in sorted(
+                        expiring, key=lambda x: x.application_end_date or now
+                    )
                 ],
             }
         )
@@ -524,6 +556,7 @@ def build_scheme_dataset(
 # USER ACTIVITY REPORT (audit_logs + search_history only)
 # ============================================================
 
+
 def build_user_activity_dataset(
     db: Session, user: User, filters: dict, title: str | None = None
 ) -> dict:
@@ -546,7 +579,9 @@ def build_user_activity_dataset(
     search_query = db.query(SearchHistory)
     if target_user_id is not None:
         audit_query = audit_query.filter(AuditLog.user_id == target_user_id)
-        search_query = search_query.filter(SearchHistory.user_id == target_user_id)
+        search_query = search_query.filter(
+            SearchHistory.user_id == target_user_id
+        )
     if filters.get("action"):
         audit_query = audit_query.filter(AuditLog.action == filters["action"])
     if filters.get("entity_type"):
@@ -558,11 +593,13 @@ def build_user_activity_dataset(
             AuditLog.created_at >= datetime(start.year, start.month, start.day)
         )
         search_query = search_query.filter(
-            SearchHistory.searched_at >= datetime(start.year, start.month, start.day)
+            SearchHistory.searched_at
+            >= datetime(start.year, start.month, start.day)
         )
     if end:
         audit_query = audit_query.filter(
-            AuditLog.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            AuditLog.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
         search_query = search_query.filter(
             SearchHistory.searched_at
@@ -570,7 +607,11 @@ def build_user_activity_dataset(
         )
 
     audits = audit_query.order_by(AuditLog.created_at.desc()).limit(2000).all()
-    searches = search_query.order_by(SearchHistory.searched_at.desc()).limit(2000).all()
+    searches = (
+        search_query.order_by(SearchHistory.searched_at.desc())
+        .limit(2000)
+        .all()
+    )
 
     dataset = _base_dataset("USER_ACTIVITY_REPORT", title, filters)
 
@@ -607,9 +648,7 @@ def build_user_activity_dataset(
         ]
         if role == "ADMIN":
             headers = ["Date", "Action", "Entity type", "Entity ID", "User ID"]
-            rows = [
-                r + [_fmt(a.user_id)] for r, a in zip(rows, audits[:500])
-            ]
+            rows = [r + [_fmt(a.user_id)] for r, a in zip(rows, audits[:500])]
         else:
             headers = ["Date", "Action", "Entity type", "Entity ID"]
         dataset["sections"].append(
@@ -660,6 +699,7 @@ def build_user_activity_dataset(
 # DEPARTMENT / MINISTRY REPORT (string aggregation only)
 # ============================================================
 
+
 def build_department_dataset(
     db: Session, user: User, filters: dict, title: str | None = None
 ) -> dict:
@@ -688,10 +728,12 @@ def build_department_dataset(
         )
     if end:
         policy_query = policy_query.filter(
-            Policy.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Policy.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
         scheme_query = scheme_query.filter(
-            Scheme.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Scheme.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     policies = policy_query.all()
@@ -751,6 +793,7 @@ def build_department_dataset(
 # ANALYTICS REPORT (reuse analytics_service)
 # ============================================================
 
+
 def build_analytics_dataset(
     db: Session, user: User, filters: dict, title: str | None = None
 ) -> dict:
@@ -771,16 +814,20 @@ def build_analytics_dataset(
 
     # Notification + feedback counts, scoped like the rest.
     if role == "ADMIN":
-        notif_total = db.query(func.count(Notification.notification_id)).scalar() or 0
+        notif_total = (
+            db.query(func.count(Notification.notification_id)).scalar() or 0
+        )
         notif_unread = (
             db.query(func.count(Notification.notification_id))
             .filter(Notification.is_read.is_(False))
             .scalar()
             or 0
         )
-        feedback_rows = db.query(Feedback.status, func.count(Feedback.feedback_id)).group_by(
-            Feedback.status
-        ).all()
+        feedback_rows = (
+            db.query(Feedback.status, func.count(Feedback.feedback_id))
+            .group_by(Feedback.status)
+            .all()
+        )
     else:
         notif_total = (
             db.query(func.count(Notification.notification_id))
@@ -850,9 +897,14 @@ def build_analytics_dataset(
     trends = policies.get("monthly_trend") or []
     if trends:
         rows = [
-            [t.get("month", _fmt(t.get("date"))), t.get("count", 0)]
-            if isinstance(t, dict)
-            else [_fmt(v) for v in (t if isinstance(t, (list, tuple)) else [t])]
+            (
+                [t.get("month", _fmt(t.get("date"))), t.get("count", 0)]
+                if isinstance(t, dict)
+                else [
+                    _fmt(v)
+                    for v in (t if isinstance(t, (list, tuple)) else [t])
+                ]
+            )
             for t in trends[:24]
         ]
         dataset["sections"].append(
@@ -867,7 +919,8 @@ def build_analytics_dataset(
         {
             "heading": "Feedback by status (scoped)",
             "headers": ["Status", "Count"],
-            "rows": [[_fmt(s), c] for s, c in feedback_rows] or [[UNSPECIFIED, 0]],
+            "rows": [[_fmt(s), c] for s, c in feedback_rows]
+            or [[UNSPECIFIED, 0]],
         }
     )
 
@@ -950,7 +1003,8 @@ def build_user_dataset(
         )
     if end:
         query = query.filter(
-            User.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            User.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     users = query.order_by(User.user_id).all()
@@ -974,7 +1028,7 @@ def build_user_dataset(
         ("Total users", total),
         ("Active users", active),
         ("Inactive users", total - active),
-        ("New registrations (period)", new_in_period),
+        ("New registrations", new_in_period),
         ("Roles", len(by_role)),
         ("States", len(by_state)),
         ("Districts", len(by_district)),
@@ -1090,8 +1144,12 @@ def build_ministry_dataset(
         policy_query = policy_query.filter(Policy.status == "APPROVED")
         scheme_query = scheme_query.filter(Scheme.status == "APPROVED")
     if filters.get("ministry"):
-        policy_query = policy_query.filter(Policy.ministry == filters["ministry"])
-        scheme_query = scheme_query.filter(Scheme.ministry == filters["ministry"])
+        policy_query = policy_query.filter(
+            Policy.ministry == filters["ministry"]
+        )
+        scheme_query = scheme_query.filter(
+            Scheme.ministry == filters["ministry"]
+        )
     if filters.get("department"):
         policy_query = policy_query.filter(
             Policy.department == filters["department"]
@@ -1111,10 +1169,12 @@ def build_ministry_dataset(
         )
     if end:
         policy_query = policy_query.filter(
-            Policy.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Policy.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
         scheme_query = scheme_query.filter(
-            Scheme.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Scheme.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     policies = policy_query.all()
@@ -1122,14 +1182,19 @@ def build_ministry_dataset(
 
     dataset = _base_dataset("MINISTRY_REPORT", title, filters)
 
-    ministry_policies, ministry_schemes = _ministry_state_rows(policies, schemes)
+    ministry_policies, ministry_schemes = _ministry_state_rows(
+        policies, schemes
+    )
     ministries = sorted(set(ministry_policies) | set(ministry_schemes))
 
     dataset["summary"] = [
         ("Policies", len(policies)),
         ("Schemes", len(schemes)),
         ("Ministries", len(ministries)),
-        ("Approved policies", sum(1 for p in policies if p.status == "APPROVED")),
+        (
+            "Approved policies",
+            sum(1 for p in policies if p.status == "APPROVED"),
+        ),
         ("Active schemes", sum(1 for s in schemes if s.status == "APPROVED")),
     ]
 
@@ -1160,7 +1225,10 @@ def build_ministry_dataset(
             "headers": ["Ministry"] + _STATUS_ORDER,
             "rows": [
                 [m]
-                + [ministry_policies.get(m, Counter()).get(s, 0) for s in _STATUS_ORDER]
+                + [
+                    ministry_policies.get(m, Counter()).get(s, 0)
+                    for s in _STATUS_ORDER
+                ]
                 for m in ministries
             ],
         }
@@ -1171,7 +1239,10 @@ def build_ministry_dataset(
             "headers": ["Ministry"] + _STATUS_ORDER,
             "rows": [
                 [m]
-                + [ministry_schemes.get(m, Counter()).get(s, 0) for s in _STATUS_ORDER]
+                + [
+                    ministry_schemes.get(m, Counter()).get(s, 0)
+                    for s in _STATUS_ORDER
+                ]
                 for m in ministries
             ],
         }
@@ -1183,6 +1254,7 @@ def build_ministry_dataset(
 # ============================================================
 # STATE REPORT (string aggregation only)
 # ============================================================
+
 
 def build_state_dataset(
     db: Session, user: User, filters: dict, title: str | None = None
@@ -1212,10 +1284,12 @@ def build_state_dataset(
         )
     if end:
         policy_query = policy_query.filter(
-            Policy.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Policy.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
         scheme_query = scheme_query.filter(
-            Scheme.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            Scheme.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     policies = policy_query.all()
@@ -1226,9 +1300,13 @@ def build_state_dataset(
     state_policies: dict[str, Counter] = {}
     state_schemes: dict[str, Counter] = {}
     for p in policies:
-        state_policies.setdefault(p.state or UNSPECIFIED, Counter())[p.status] += 1
+        state_policies.setdefault(p.state or UNSPECIFIED, Counter())[
+            p.status
+        ] += 1
     for s in schemes:
-        state_schemes.setdefault(s.state or UNSPECIFIED, Counter())[s.status] += 1
+        state_schemes.setdefault(s.state or UNSPECIFIED, Counter())[
+            s.status
+        ] += 1
     states = sorted(set(state_policies) | set(state_schemes))
 
     dataset["summary"] = [
@@ -1264,7 +1342,10 @@ def build_state_dataset(
             "headers": ["State"] + _STATUS_ORDER,
             "rows": [
                 [st]
-                + [state_policies.get(st, Counter()).get(s, 0) for s in _STATUS_ORDER]
+                + [
+                    state_policies.get(st, Counter()).get(s, 0)
+                    for s in _STATUS_ORDER
+                ]
                 for st in states
             ],
         }
@@ -1275,7 +1356,10 @@ def build_state_dataset(
             "headers": ["State"] + _STATUS_ORDER,
             "rows": [
                 [st]
-                + [state_schemes.get(st, Counter()).get(s, 0) for s in _STATUS_ORDER]
+                + [
+                    state_schemes.get(st, Counter()).get(s, 0)
+                    for s in _STATUS_ORDER
+                ]
                 for st in states
             ],
         }
@@ -1310,9 +1394,8 @@ def build_audit_dataset(
 
     start, end = _date_range(filters)
 
-    query = (
-        db.query(AuditLog, User.role)
-        .outerjoin(User, AuditLog.user_id == User.user_id)
+    query = db.query(AuditLog, User.role).outerjoin(
+        User, AuditLog.user_id == User.user_id
     )
 
     if filters.get("action"):
@@ -1329,7 +1412,8 @@ def build_audit_dataset(
         )
     if end:
         query = query.filter(
-            AuditLog.created_at <= datetime(end.year, end.month, end.day, 23, 59, 59)
+            AuditLog.created_at
+            <= datetime(end.year, end.month, end.day, 23, 59, 59)
         )
 
     rows_all = query.order_by(AuditLog.created_at.desc()).limit(2000).all()
@@ -1412,6 +1496,7 @@ def build_audit_dataset(
 # REPORTS OVERVIEW (dashboard KPI cards, role-scoped)
 # ============================================================
 
+
 def get_reports_overview(db: Session, user: User) -> dict:
     """Cheap role-scoped counts for the Reports dashboard overview."""
     from app.services import analytics_service as analytics
@@ -1443,16 +1528,16 @@ def get_reports_overview(db: Session, user: User) -> dict:
             db.query(Policy.ministry).union(db.query(Scheme.ministry)).all()
         )
         departments = (
-            db.query(Policy.department).union(db.query(Scheme.department)).all()
+            db.query(Policy.department)
+            .union(db.query(Scheme.department))
+            .all()
         )
     else:
         ministries = (
             db.query(Policy.ministry)
             .filter(Policy.status == "APPROVED")
             .union(
-                db.query(Scheme.ministry).filter(
-                    Scheme.status == "APPROVED"
-                )
+                db.query(Scheme.ministry).filter(Scheme.status == "APPROVED")
             )
             .all()
         )
@@ -1460,9 +1545,7 @@ def get_reports_overview(db: Session, user: User) -> dict:
             db.query(Policy.department)
             .filter(Policy.status == "APPROVED")
             .union(
-                db.query(Scheme.department).filter(
-                    Scheme.status == "APPROVED"
-                )
+                db.query(Scheme.department).filter(Scheme.status == "APPROVED")
             )
             .all()
         )
@@ -1573,9 +1656,7 @@ def get_filter_options(
                 .all()
             )
             return sorted({v for (v,) in values if v})
-    values = (
-        db.query(column).distinct().order_by(column).limit(500).all()
-    )
+    values = db.query(column).distinct().order_by(column).limit(500).all()
     return sorted({v for (v,) in values if v})
 
 
@@ -1597,7 +1678,11 @@ _BUILDERS = {
 
 
 def build_dataset(
-    db: Session, report_type: str, user: User, filters: dict, title: str | None = None,
+    db: Session,
+    report_type: str,
+    user: User,
+    filters: dict,
+    title: str | None = None,
     detail: str | None = None,
 ) -> dict:
     from app.services import report_permissions as permissions
@@ -1607,7 +1692,9 @@ def build_dataset(
     if builder is None:
         raise ValueError(f"Unsupported report type: {report_type}")
     effective_detail = permissions.validate_report_detail(
-        user.role, normalized, detail if detail else (filters or {}).get("detail")
+        user.role,
+        normalized,
+        detail if detail else (filters or {}).get("detail"),
     )
     # Builders ignore the stored "detail" key; selection happens below.
     dataset = builder(db, user, filters or {}, title)

@@ -33,14 +33,19 @@ def sanitize_fragment(value: object) -> str:
 
 
 def build_filename(report_id: int, report_type: str, report_format: str) -> str:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    """Official download name: PolicyGPT_<Type>_Report_YYYY-MM-DD.<ext>.
+
+    Never exposes a filesystem path or host-specific URL; the bytes are
+    returned directly as the HTTP binary response.
+    """
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     ext = _EXTENSION_BY_FORMAT.get(
         str(report_format or "").upper(), ".bin"
     )
-    return (
-        f"report_{int(report_id)}_"
-        f"{sanitize_fragment(report_type)}_{stamp}{ext}"
-    )
+    # USER_REPORT -> User, POLICY_REPORT -> Policy, etc.
+    parts = [p.capitalize() for p in str(report_type or "").lower().split("_") if p and p != "report"]
+    type_part = "_".join(parts) or "General"
+    return f"PolicyGPT_{type_part}_Report_{stamp}{ext}"
 
 
 def media_type_for(report_format: str) -> str:

@@ -7,7 +7,6 @@ from app.db.database import get_db
 
 from app.schemas.report import (
     ReportGenerateRequest,
-    ReportGenerateResponse,
     ReportResponse,
 )
 from app.services import report_permissions as permissions
@@ -65,14 +64,22 @@ def report_types(
 # ============================================================
 
 
-@router.post("/generate", response_model=ReportGenerateResponse)
+@router.post("/generate")
 def generate_persisted_report_endpoint(
     payload: ReportGenerateRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(*REPORT_ROUTE_ROLES)),
 ):
+    """Generate a report in memory and return the file bytes directly.
+
+    The response is the PDF/XLSX binary with Content-Disposition and
+    X-Report-Id headers. Report metadata is persisted for history;
+    no file is written to the backend filesystem.
+    """
+    from app.services import report_export_service as export
+
     try:
-        report, data = create_persisted_report(
+        report, content, filename = create_persisted_report(
             db=db,
             user=current_user,
             report_type=payload.report_type,
@@ -86,10 +93,14 @@ def generate_persisted_report_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    return {
-        "report": report,
-        "data": data if isinstance(data, (dict, list)) else {"result": data},
-    }
+    return Response(
+        content=content,
+        media_type=export.media_type_for(payload.report_format),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Report-Id": str(report.report_id),
+        },
+    )
 
 
 # ============================================================
@@ -192,6 +203,45 @@ def get_report_endpoint(
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+
+# ============================================================
+# REPORT STRUCTURED DATA (native View page, no binary)
+# ============================================================
+
+
+@router.get("/{report_id:int}/data")
+def get_report_data_endpoint(
+    report_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*REPORT_ROUTE_ROLES)),
+):
+    """Return the rebuilt structured dataset for the View page.
+
+    Same builders, same ownership and role scope as generation and
+    download, so View, PDF and Excel always represent the same data.
+    """
+    from app.services.report_service import get_report_data_payload
+
+    report = get_report_for_user(db, current_user, report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if not permissions.can_download_report(current_user, report):
+        raise HTTPException(status_code=404, detail="Report not found")
+    if report.status != "COMPLETED":
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Report is still being generated."
+                if report.status == "PENDING"
+                else "Report generation failed. Please regenerate."
+            ),
+        )
+
+    try:
+        return get_report_data_payload(db, current_user, report)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 # ============================================================

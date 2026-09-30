@@ -10,6 +10,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { catchError, finalize, of } from "rxjs";
 
 import { PolicyService } from "../../../core/services/policy.service";
+import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { Auth } from "../../../core/services/auth";
 import {
   PolicyResponse,
@@ -52,10 +53,12 @@ export class PolicyDetailsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly policyService = inject(PolicyService);
+  private readonly savedItemsService = inject(SavedItemsService);
   private readonly auth = inject(Auth);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  private readonly bookmarkStorageKey = "policy_bookmarks";
+  bookmarked = false;
+  bookmarkLoading = false;
 
   activeTab: "overview" | "eligibility" | "benefits" | "documents" = "overview";
   policy: PolicyResponse | null = null;
@@ -298,6 +301,7 @@ export class PolicyDetailsComponent implements OnInit {
         if (!policy) return;
         this.policy = policy;
         this.cdr.detectChanges();
+        this.loadBookmarkState(policy.policy_id);
         this.loadEligibilityRules(policy.policy_id);
       });
   }
@@ -335,36 +339,55 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   isBookmarked(): boolean {
-    return !!this.policy && this.getBookmarks().includes(this.policy.policy_id);
+    return this.bookmarked;
   }
 
   toggleBookmark(): void {
-    if (!this.policy) return;
-    const bookmarks = this.getBookmarks();
+    if (!this.policy || this.bookmarkLoading) return;
     const id = this.policy.policy_id;
-    const index = bookmarks.indexOf(id);
-    if (index === -1) {
-      bookmarks.push(id);
-      this.showToast("Policy added to bookmarks.", "info");
+    this.bookmarkLoading = true;
+    if (!this.bookmarked) {
+      this.savedItemsService.savePolicy(id).subscribe({
+        next: () => {
+          this.bookmarked = true;
+          this.bookmarkLoading = false;
+          this.showToast("Policy added to bookmarks.", "info");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.bookmarkLoading = false;
+          this.showToast("Could not save policy. Please retry.", "error");
+          this.cdr.detectChanges();
+        },
+      });
     } else {
-      bookmarks.splice(index, 1);
-      this.showToast("Policy removed from bookmarks.", "info");
+      this.savedItemsService.unsavePolicy(id).subscribe({
+        next: () => {
+          this.bookmarked = false;
+          this.bookmarkLoading = false;
+          this.showToast("Policy removed from bookmarks.", "info");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.bookmarkLoading = false;
+          this.showToast("Could not remove policy. Please retry.", "error");
+          this.cdr.detectChanges();
+        },
+      });
     }
-    localStorage.setItem(this.bookmarkStorageKey, JSON.stringify(bookmarks));
-    this.cdr.detectChanges();
   }
 
-  private getBookmarks(): number[] {
-    try {
-      const stored = localStorage.getItem(this.bookmarkStorageKey);
-      if (!stored) return [];
-      const parsed: unknown = JSON.parse(stored);
-      return Array.isArray(parsed)
-        ? parsed.map(Number).filter(Number.isFinite)
-        : [];
-    } catch {
-      return [];
-    }
+  private loadBookmarkState(policyId: number): void {
+    this.savedItemsService.isPolicySaved(policyId).subscribe({
+      next: (res) => {
+        this.bookmarked = !!res?.saved;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.bookmarked = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   sharePolicy(): void {

@@ -1,0 +1,828 @@
+// ============================================================
+// COLORS
+// ============================================================
+
+$primary: #1461a0;
+$primary-dark: #0c4678;
+$primary-soft: #edf5fc;
+
+$text: #172033;
+$text-secondary: #617087;
+
+$border: #dfe6ee;
+$border-light: #edf1f5;
+
+$background: #f5f7fb;
+$white: #ffffff;
+
+$danger: #c0392b;
+$danger-soft: #fdf0ee;
+
+$muted: #64748b;
+
+// ============================================================
+// PAGE
+// ============================================================
+
+.history-page {
+  min-height: 100vh;
+
+  background: $background;
+
+  color: $text;
+
+  padding: 24px 28px 48px;
+}
+
+// ============================================================
+// PAGE HEADER
+// ============================================================
+
+.page-header h1 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 30px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  letter-spacing: -0.02em;
+}
+
+.page-header p {
+  margin: 9px 0 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+.header-content {
+  margin: 0 auto;
+
+  padding-bottom: 20px;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+.header-main {
+  min-width: 0;
+}
+
+// ============================================================
+// BACK BUTTON
+// ============================================================
+
+.back-button {
+  flex-shrink: 0;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 9px;
+
+  min-width: 105px;
+
+  height: 44px;
+
+  padding: 0 17px;
+
+  border: 1px solid $border;
+
+  border-radius: 10px;
+
+  background: $white;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    border-color: #b9cce0;
+
+    background: $primary-soft;
+
+    color: $primary;
+  }
+}
+
+// ============================================================
+// RESULTS SECTION
+// ============================================================
+
+.results-section {
+  width: 100%;
+}
+
+// ============================================================
+// RESULTS HEADER
+// ============================================================
+
+.results-header {
+  width: 100%;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 16px;
+}
+
+.results-header-main {
+  min-width: 0;
+
+  flex: 1;
+}
+
+.results-header h2 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 22px;
+
+  line-height: 1.3;
+
+  font-weight: 700;
+}
+
+.results-header p {
+  margin: 6px 0 0;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+// ============================================================
+// CLEAR HISTORY BUTTON
+// ============================================================
+
+.clear-history-button {
+  flex-shrink: 0;
+
+  margin-top: 0;
+
+  min-width: 118px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 13px;
+
+  border: 1px solid #f0c9c4;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $danger;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: $danger-soft;
+
+    border-color: #e7b5af;
+
+    color: $danger;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+  }
+}
+
+// ============================================================
+// TABLE WRAPPER
+// ============================================================
+
+.users-table-wrap {
+  width: 100%;
+
+  overflow-x: auto;
+
+  -webkit-overflow-scrolling: touch;
+
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+}
+
+// ============================================================
+// TABLE
+// ============================================================
+
+.users-table {
+  width: 100%;
+
+  min-width: 820px;
+
+  border-collapse: collapse;
+
+  text-align: left;
+}
+
+.users-table thead {
+  background: #f8fafc;
+}
+
+.users-table th {
+  padding: 10px 14px;
+
+  border-bottom: 1px solid $border;
+
+  color: $muted;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.04em;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+}
+
+.users-table td {
+  padding: 11px 14px;
+
+  border-bottom: 1px solid $border-light;
+
+  vertical-align: middle;
+
+  font-size: 13px;
+}
+
+.users-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.users-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+
+.filters-cell {
+  max-width: 320px;
+
+  color: $text-secondary;
+}
+
+// ============================================================
+// ROW ACTIONS
+// ============================================================
+
+.row-actions {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+
+  white-space: nowrap;
+}
+
+// ============================================================
+// METADATA
+// ============================================================
+
+.metadata-item {
+  display: inline-flex;
+
+  align-items: center;
+
+  min-height: 26px;
+
+  padding: 4px 9px;
+
+  border: 1px solid $border-light;
+
+  border-radius: 6px;
+
+  background: #fafbfd;
+
+  color: $text-secondary;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+.type-badge {
+  background: $primary-soft;
+
+  border-color: #d9e6f2;
+
+  color: $primary;
+
+  font-weight: 750;
+}
+
+// ============================================================
+// PRIMARY BUTTON
+// ============================================================
+
+.btn-primary {
+  min-width: 118px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 13px;
+
+  border: 1px solid $primary;
+
+  border-radius: 8px;
+
+  background: $primary;
+
+  color: $white;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    background: $primary-dark;
+
+    border-color: $primary-dark;
+  }
+}
+
+// ============================================================
+// SECONDARY BUTTON
+// ============================================================
+
+.btn-secondary {
+  min-width: 100px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 13px;
+
+  border: 1px solid #c7d7e7;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $primary;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    background: $primary-soft;
+
+    border-color: #a8c3dc;
+  }
+}
+
+// ============================================================
+// SMALL BUTTON
+// ============================================================
+
+.btn-small {
+  min-width: 0;
+
+  height: 34px;
+
+  padding: 0 12px;
+
+  font-size: 11px;
+}
+
+// ============================================================
+// DANGER BUTTON
+// ============================================================
+
+.btn-danger-ghost {
+  min-width: 100px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0 13px;
+
+  border: 1px solid #f0c9c4;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $danger;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: $danger-soft;
+
+    border-color: #e7b5af;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+  }
+}
+
+// ============================================================
+// SKELETON LIST
+// ============================================================
+
+.skeleton-list {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 13px;
+}
+
+.skeleton-card {
+  display: flex;
+
+  gap: 17px;
+
+  padding: 21px 20px;
+
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+}
+
+.skeleton {
+  position: relative;
+
+  overflow: hidden;
+
+  background: #e9edf2;
+
+  border-radius: 6px;
+
+  &::after {
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    transform: translateX(-100%);
+
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.75),
+      transparent
+    );
+
+    animation: skeleton 1.4s infinite;
+  }
+}
+
+.skeleton-icon {
+  width: 48px;
+
+  height: 48px;
+
+  flex-shrink: 0;
+
+  border-radius: 11px;
+}
+
+.skeleton-body {
+  flex: 1;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.skeleton-title {
+  width: 48%;
+
+  height: 18px;
+}
+
+.skeleton-line {
+  width: 30%;
+
+  height: 13px;
+}
+
+// ============================================================
+// STATE CARD
+// ============================================================
+
+.state-card,
+.empty-state {
+  min-height: 300px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 42px;
+
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+
+  text-align: center;
+}
+
+// ============================================================
+// STATE ICON
+// ============================================================
+
+.state-icon,
+.empty-icon {
+  width: 62px;
+
+  height: 62px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-bottom: 16px;
+
+  border-radius: 50%;
+
+  background: $primary-soft;
+
+  color: $primary;
+
+  .material-icons {
+    font-size: 27px;
+  }
+}
+
+.error-state .state-icon {
+  background: $danger-soft;
+
+  color: $danger;
+}
+
+// ============================================================
+// STATE TEXT
+// ============================================================
+
+.state-card h2,
+.empty-state h2 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 19px;
+
+  font-weight: 800;
+}
+
+.state-card p,
+.empty-state p {
+  max-width: 520px;
+
+  margin: 9px 0 21px;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+// ============================================================
+// EMPTY ACTIONS
+// ============================================================
+
+.empty-actions {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  justify-content: center;
+}
+
+// ============================================================
+// RETRY BUTTON
+// ============================================================
+
+.retry-button {
+  height: 41px;
+
+  padding: 0 18px;
+
+  border: 1px solid $primary;
+
+  border-radius: 8px;
+
+  background: $primary;
+
+  color: $white;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: $primary-dark;
+  }
+}
+
+// ============================================================
+// SKELETON ANIMATION
+// ============================================================
+
+@keyframes skeleton {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+// ============================================================
+// RESPONSIVE
+// ============================================================
+
+@media (max-width: 768px) {
+  .history-page {
+    padding: 18px 16px 36px;
+  }
+
+  .header-content {
+    gap: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+  }
+
+  .results-header {
+    align-items: flex-start;
+
+    gap: 15px;
+  }
+
+  .clear-history-button {
+    min-width: 110px;
+  }
+}
+
+// ============================================================
+// SMALL MOBILE
+// ============================================================
+
+@media (max-width: 560px) {
+  .history-page {
+    padding: 16px 12px 30px;
+  }
+
+  .header-content {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .back-button {
+    align-self: flex-start;
+  }
+
+  .results-header {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .clear-history-button {
+    align-self: flex-start;
+  }
+
+  .results-header h2 {
+    font-size: 20px;
+  }
+}

@@ -1,0 +1,529 @@
+<div class="saved-page">
+
+  <!-- HEADER -->
+  <section class="page-header">
+
+    <div class="header-content">
+
+      <div class="header-icon">
+        <span class="material-icons">
+          bookmark
+        </span>
+      </div>
+
+      <div>
+        <div class="eyebrow">
+          PERSONALIZED POLICYGPT
+        </div>
+
+        <h1>Saved Items</h1>
+
+        <p>
+          Access the policies and schemes
+          you have saved for later.
+        </p>
+      </div>
+
+    </div>
+
+    <div class="header-stat">
+      <span class="material-icons">
+        bookmark_border
+      </span>
+
+      <div>
+        <strong>{{ totalCount }}</strong>
+        <span>Saved Items</span>
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- ERROR -->
+  <div class="error-banner" *ngIf="errorMessage">
+    <span class="material-icons">
+      error_outline
+    </span>
+
+    <span>{{ errorMessage }}</span>
+
+    <button type="button" (click)="loadSavedItems()">
+      Retry
+    </button>
+  </div>
+
+
+  <!-- SUMMARY -->
+  <section class="summary-grid" *ngIf="!loading">
+
+    <button type="button" class="summary-card" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+      <div class="summary-icon">
+        <span class="material-icons">
+          bookmarks
+        </span>
+      </div>
+
+      <div class="summary-info">
+        <span>Total Saved</span>
+        <strong>{{ totalCount }}</strong>
+      </div>
+    </button>
+
+
+    <button type="button" class="summary-card" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
+      <div class="summary-icon policy">
+        <span class="material-icons">
+          policy
+        </span>
+      </div>
+
+      <div class="summary-info">
+        <span>Saved Policies</span>
+        <strong>{{ policyCount }}</strong>
+      </div>
+    </button>
+
+
+    <button type="button" class="summary-card" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
+      <div class="summary-icon scheme">
+        <span class="material-icons">
+          account_balance
+        </span>
+      </div>
+
+      <div class="summary-info">
+        <span>Saved Schemes</span>
+        <strong>{{ schemeCount }}</strong>
+      </div>
+    </button>
+
+  </section>
+
+
+  <!-- TOOLBAR -->
+  <section class="content-card" *ngIf="!loading">
+
+    <div class="toolbar">
+
+      <div class="tabs">
+
+        <button type="button" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+          All
+          <span>{{ totalCount }}</span>
+        </button>
+
+        <button type="button" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
+          Policies
+          <span>{{ policyCount }}</span>
+        </button>
+
+        <button type="button" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
+          Schemes
+          <span>{{ schemeCount }}</span>
+        </button>
+
+      </div>
+
+
+      <div class="search-box">
+
+        <span class="material-icons">
+          search
+        </span>
+
+        <input type="search" placeholder="Search saved items..." [value]="searchTerm" (input)="onSearch($event)" />
+
+        <button type="button" class="clear-search" *ngIf="searchTerm" (click)="searchTerm = ''"
+          aria-label="Clear search">
+          <span class="material-icons">
+            close
+          </span>
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- RESULTS -->
+    <div class="results-header">
+
+      <div>
+        <h2>Saved Items</h2>
+
+        <p>
+          Showing {{ visibleCount }}
+          saved item{{ visibleCount === 1 ? '' : 's' }}
+        </p>
+      </div>
+
+      <button type="button" class="refresh-button" (click)="loadSavedItems()">
+        <span class="material-icons">
+          refresh
+        </span>
+        Refresh
+      </button>
+
+    </div>
+
+
+    <!-- EMPTY STATE -->
+    <div class="empty-state" *ngIf="
+        filteredPolicies.length === 0 &&
+        filteredSchemes.length === 0
+      ">
+
+      <div class="empty-icon">
+        <span class="material-icons">
+          bookmark_border
+        </span>
+      </div>
+
+      <h3>
+        {{
+        searchTerm
+        ? 'No saved items found'
+        : 'No saved items yet'
+        }}
+      </h3>
+
+      <p>
+        {{
+        searchTerm
+        ? 'Try changing your search terms.'
+        : 'Save policies and schemes to access them quickly from here.'
+        }}
+      </p>
+
+      <button type="button" class="primary-button" (click)="explorePolicies()">
+        <span class="material-icons">
+          search
+        </span>
+
+        Explore Policies
+      </button>
+
+    </div>
+
+
+    <!-- POLICIES -->
+    <div class="section" *ngIf="filteredPolicies.length > 0">
+
+      <div class="section-heading">
+
+        <div class="section-title">
+
+          <div class="section-icon policy">
+            <span class="material-icons">
+              policy
+            </span>
+          </div>
+
+          <div>
+            <h3>Saved Policies</h3>
+            <p>
+              Policies saved for future reference
+            </p>
+          </div>
+
+        </div>
+
+        <span class="section-count">
+          {{ filteredPolicies.length }}
+        </span>
+
+      </div>
+
+
+      <div class="items-table">
+
+        <div class="table-header">
+
+          <div>Policy</div>
+          <div>Category</div>
+          <div>Department</div>
+          <div>State</div>
+          <div>Status</div>
+          <div>Saved On</div>
+          <div></div>
+
+        </div>
+
+
+        <div class="table-row" *ngFor="
+            let policy of filteredPolicies;
+            trackBy: trackPolicy
+          ">
+
+          <div class="item-name">
+
+            <div class="item-type-icon policy">
+              <span class="material-icons">
+                policy
+              </span>
+            </div>
+
+            <div>
+              <button type="button" class="item-title" (click)="openPolicy(policy.policy_id)">
+                {{ policy.title }}
+              </button>
+
+              <span class="item-id">
+                Policy #{{ policy.policy_id }}
+              </span>
+            </div>
+
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{ policy.category || '—' }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{
+              policy.department ||
+              policy.ministry ||
+              '—'
+              }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{ policy.state || 'All India' }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="status-badge" [class]="getStatusClass(policy.status)">
+              {{ formatStatus(policy.status) }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="saved-date">
+              {{ formatDate(policy.saved_at) }}
+            </span>
+          </div>
+
+
+          <div class="actions">
+
+            <button type="button" class="view-button" title="View policy" (click)="openPolicy(policy.policy_id)">
+              <span class="material-icons">
+                open_in_new
+              </span>
+            </button>
+
+            <button type="button" class="remove-button" title="Remove from saved items" [disabled]="isRemoving(
+                policy.policy_id,
+                'policy'
+              )" (click)="removePolicy(policy)">
+              <span class="material-icons" *ngIf="
+                  !isRemoving(
+                    policy.policy_id,
+                    'policy'
+                  )
+                ">
+                bookmark_remove
+              </span>
+
+              <span class="material-icons spinning" *ngIf="
+                  isRemoving(
+                    policy.policy_id,
+                    'policy'
+                  )
+                ">
+                sync
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- SCHEMES -->
+    <div class="section" *ngIf="filteredSchemes.length > 0">
+
+      <div class="section-heading">
+
+        <div class="section-title">
+
+          <div class="section-icon scheme">
+            <span class="material-icons">
+              account_balance
+            </span>
+          </div>
+
+          <div>
+            <h3>Saved Schemes</h3>
+            <p>
+              Schemes saved for future reference
+            </p>
+          </div>
+
+        </div>
+
+        <span class="section-count">
+          {{ filteredSchemes.length }}
+        </span>
+
+      </div>
+
+
+      <div class="items-table">
+
+        <div class="table-header">
+
+          <div>Scheme</div>
+          <div>Category</div>
+          <div>Department</div>
+          <div>State</div>
+          <div>Status</div>
+          <div>Saved On</div>
+          <div></div>
+
+        </div>
+
+
+        <div class="table-row" *ngFor="
+            let scheme of filteredSchemes;
+            trackBy: trackScheme
+          ">
+
+          <div class="item-name">
+
+            <div class="item-type-icon scheme">
+              <span class="material-icons">
+                account_balance
+              </span>
+            </div>
+
+            <div>
+
+              <button type="button" class="item-title" (click)="openScheme(scheme.scheme_id)">
+                {{ scheme.name }}
+              </button>
+
+              <span class="item-id">
+                Scheme #{{ scheme.scheme_id }}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{ scheme.category || '—' }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{
+              scheme.department ||
+              scheme.ministry ||
+              '—'
+              }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="metadata">
+              {{ scheme.state || 'All India' }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="status-badge" [class]="getStatusClass(scheme.status)">
+              {{ formatStatus(scheme.status) }}
+            </span>
+          </div>
+
+
+          <div>
+            <span class="saved-date">
+              {{ formatDate(scheme.saved_at) }}
+            </span>
+          </div>
+
+
+          <div class="actions">
+
+            <button type="button" class="view-button" title="View scheme" (click)="openScheme(scheme.scheme_id)">
+              <span class="material-icons">
+                open_in_new
+              </span>
+            </button>
+
+            <button type="button" class="remove-button" title="Remove from saved items" [disabled]="isRemoving(
+                scheme.scheme_id,
+                'scheme'
+              )" (click)="removeScheme(scheme)">
+              <span class="material-icons" *ngIf="
+                  !isRemoving(
+                    scheme.scheme_id,
+                    'scheme'
+                  )
+                ">
+                bookmark_remove
+              </span>
+
+              <span class="material-icons spinning" *ngIf="
+                  isRemoving(
+                    scheme.scheme_id,
+                    'scheme'
+                  )
+                ">
+                sync
+              </span>
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- LOADING -->
+  <section class="loading-state" *ngIf="loading">
+
+    <div class="loading-spinner">
+      <span class="material-icons">
+        sync
+      </span>
+    </div>
+
+    <h3>Loading saved items</h3>
+
+    <p>
+      Retrieving your saved policies and schemes...
+    </p>
+
+  </section>
+
+</div>

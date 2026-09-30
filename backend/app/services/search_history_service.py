@@ -1,6 +1,51 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from app.models.search_history import SearchHistory
+
+
+ALLOWED_SEARCH_TYPES = {"POLICY", "SCHEME"}
+
+
+def record_search(
+    db: Session,
+    user_id: int,
+    search_query: str,
+    search_type: str,
+    filters: dict | None = None,
+):
+    record = SearchHistory(
+        user_id=user_id,
+        search_query=search_query,
+        search_type=search_type,
+        filters=filters,
+        searched_at=datetime.utcnow(),
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def delete_search_history_item(
+    db: Session,
+    user_id: int,
+    history_id: int,
+) -> bool:
+    record = (
+        db.query(SearchHistory)
+        .filter(
+            SearchHistory.history_id == history_id,
+            SearchHistory.user_id == user_id,
+        )
+        .first()
+    )
+    if not record:
+        return False
+    db.delete(record)
+    db.commit()
+    return True
 
 
 def get_all_search_history(

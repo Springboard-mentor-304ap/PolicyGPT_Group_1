@@ -192,6 +192,28 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SAVED ITEMS
+      // /dashboard/organization/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/organization/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
+          ),
+      },
+
       // REPORTS (role layout children)
       // /dashboard/organization/reports
       ...REPORTS_CHILD_ROUTES,
@@ -402,6 +424,28 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../feedback/feedback-form/feedback-form.component").then(
             (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // SAVED ITEMS
+      // /dashboard/citizen/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/citizen/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
           ),
       },
 
@@ -709,9 +753,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "analytics",
 
         loadComponent: () =>
-          import(
-            "./admin/analytics/admin-analytics/admin-analytics.component"
-          ).then((m) => m.AdminAnalyticsComponent),
+          import("./admin/analytics/admin-analytics/admin-analytics.component").then(
+            (m) => m.AdminAnalyticsComponent,
+          ),
       },
 
       // POLICIES (SEARCH/VIEW)
@@ -1165,6 +1209,28 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../feedback/feedback-form/feedback-form.component").then(
             (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // SAVED ITEMS
+      // /dashboard/researcher/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/researcher/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
           ),
       },
 

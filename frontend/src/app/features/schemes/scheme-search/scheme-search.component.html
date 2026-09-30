@@ -45,7 +45,7 @@
           </svg>
         </span>
 
-        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="applyFilters()"
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="submitSearch()"
           placeholder="Search by scheme name..." autocomplete="off" aria-label="Search by scheme name" />
 
         <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; applyFilters()"
@@ -62,7 +62,7 @@
 
       <!-- Search Button -->
 
-      <button type="button" class="search-button" (click)="applyFilters()">
+      <button type="button" class="search-button" (click)="submitSearch()">
 
         <svg class="search-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
           aria-hidden="true">
@@ -423,7 +423,7 @@
               isBookmarked(
                 scheme.scheme_id
               )
-            " (click)="toggleBookmark(scheme)" [attr.aria-label]="
+            " (click)="toggleBookmark(scheme)" [disabled]="isBookmarkPending(scheme.scheme_id)" [attr.aria-label]="
               isBookmarked(
                 scheme.scheme_id
               )

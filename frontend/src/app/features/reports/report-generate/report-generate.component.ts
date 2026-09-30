@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -7,6 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ReportService } from '../../../core/services/report.service';
 import {
   Report,
@@ -145,7 +146,15 @@ const ALL_FILTER_KEYS = [
         </div>
       </header>
 
-      @if (typesError) {
+      @if (initializing()) {
+        <section class="state-card">
+          <div class="state-icon">
+            <span class="material-icons" aria-hidden="true">hourglass_top</span>
+          </div>
+          <h2>Loading report options…</h2>
+          <p>Fetching available report types and filters.</p>
+        </section>
+      } @else if (typesError) {
         <section class="state-card error-state">
           <div class="state-icon">
             <span class="material-icons" aria-hidden="true">error_outline</span>
@@ -156,9 +165,8 @@ const ALL_FILTER_KEYS = [
             Try Again
           </button>
         </section>
-      }
-
-      <section class="filter-panel">
+      } @else {
+        <section class="filter-panel">
         <div class="filter-panel-header">
           <div class="filter-title-group">
             <span class="filter-icon-badge">
@@ -289,15 +297,16 @@ const ALL_FILTER_KEYS = [
             <button
               type="submit"
               class="btn-primary"
-              [disabled]="form.invalid || generating"
+              [disabled]="form.invalid || generating() || initializing()"
             >
-              {{ generating ? 'Generating…' : 'Generate Report' }}
+              {{ generating() ? 'Generating…' : 'Generate Report' }}
             </button>
           </div>
         </form>
       </section>
+      }
 
-      @if (result) {
+      @if (result(); as r) {
         <section class="results-section">
           <article class="portal-card">
             <div class="card-icon" aria-hidden="true">
@@ -305,28 +314,28 @@ const ALL_FILTER_KEYS = [
             </div>
             <div class="card-content">
               <div class="card-title-row">
-                <h3>{{ result.title || result.report_type }}</h3>
+                <h3>{{ r.title || r.report_type }}</h3>
                 <span
                   class="metadata-item status-badge status-status-{{
-                    result.status.toLowerCase()
+                    r.status.toLowerCase()
                   }}"
                 >
-                  {{ result.status }}
+                  {{ r.status }}
                 </span>
               </div>
               <div class="metadata">
-                <span class="metadata-item">ID {{ result.report_id }}</span>
-                <span class="metadata-item">{{ result.report_type }}</span>
-                <span class="metadata-item">{{ result.report_format }}</span>
-                <span class="metadata-item">{{ result.generated_at }}</span>
+                <span class="metadata-item">ID {{ r.report_id }}</span>
+                <span class="metadata-item">{{ r.report_type }}</span>
+                <span class="metadata-item">{{ r.report_format }}</span>
+                <span class="metadata-item">{{ r.generated_at }}</span>
                 <span class="metadata-item">
-                  {{ formatSize(result.file_size) }}
+                  {{ formatSize(r.file_size) }}
                 </span>
               </div>
-              @if (result.status !== 'COMPLETED' && result.status !== 'PENDING') {
+              @if (r.status !== 'COMPLETED' && r.status !== 'PENDING') {
                 <p class="filter-error">
                   {{
-                    result.error_message ||
+                    r.error_message ||
                       'Report generation failed. Please retry.'
                   }}
                 </p>
@@ -336,10 +345,10 @@ const ALL_FILTER_KEYS = [
               }
             </div>
             <div class="card-actions">
-              @if (result.status === 'COMPLETED') {
+              @if (r.status === 'COMPLETED') {
                 <a
                   class="btn-secondary"
-                  [routerLink]="['..', result.report_id]"
+                  [routerLink]="['..', r.report_id]"
                 >
                   View
                 </a>
@@ -347,11 +356,11 @@ const ALL_FILTER_KEYS = [
                   type="button"
                   class="btn-primary"
                   (click)="download()"
-                  [disabled]="downloading"
+                  [disabled]="downloading()"
                 >
-                  {{ downloading ? 'Downloading…' : 'Download' }}
+                  {{ downloading() ? 'Downloading…' : 'Download' }}
                 </button>
-              } @else if (result.status === 'PENDING') {
+              } @else if (r.status === 'PENDING') {
                 <span class="metadata-item">Generating…</span>
               }
             </div>
@@ -373,11 +382,12 @@ export class ReportGenerateComponent implements OnInit {
   activeFilters: FilterField[] = [];
   remoteOptions: Record<string, string[]> = {};
   loadingOptions = false;
-  generating = false;
+  readonly initializing = signal(true);
+  readonly generating = signal(false);
   formError: string | null = null;
   typesError: string | null = null;
-  result: Report | null = null;
-  downloading = false;
+  readonly result = signal<Report | null>(null);
+  readonly downloading = signal(false);
   downloadError: string | null = null;
 
   private detailsByType: Partial<Record<ReportType, string[]>> = {};
@@ -413,8 +423,10 @@ export class ReportGenerateComponent implements OnInit {
 
   loadTypes(): void {
     this.typesError = null;
+    this.initializing.set(true);
     this.reports
       .getTypes()
+      .pipe(finalize(() => undefined))
       .subscribe({
         next: (res) => {
           const allowed = new Set(res?.report_types ?? []);
@@ -439,16 +451,28 @@ export class ReportGenerateComponent implements OnInit {
               typeValue = requestedType;
             }
           }
+          // emitEvent:false — valueChanges subscriptions stay quiet during
+          // init; refreshTypeState below runs exactly once.
           if (categoryKey) {
-            this.form.get('report_category')?.setValue(categoryKey);
+            this.form
+              .get('report_category')
+              ?.setValue(categoryKey, { emitEvent: false });
           }
           if (typeValue) {
-            this.form.get('report_type')?.setValue(typeValue);
+            this.form
+              .get('report_type')
+              ?.setValue(typeValue, { emitEvent: false });
+            // Render the complete form immediately; remote option lists
+            // populate each dropdown independently as they arrive.
             this.refreshTypeState(requestedDetail);
+            this.initializing.set(false);
+          } else {
+            this.initializing.set(false);
           }
         },
         error: (err) => {
           this.typesError = this.safeMessage(err, 'Could not load report types.');
+          this.initializing.set(false);
         },
       });
   }
@@ -460,7 +484,10 @@ export class ReportGenerateComponent implements OnInit {
     this.visibleTypes = category?.types ?? [];
     const current = this.form.get('report_type')?.value as ReportType | '';
     if (!this.visibleTypes.includes(current as ReportType)) {
-      this.form.get('report_type')?.setValue(this.visibleTypes[0] ?? '');
+      // emitEvent:false — the subscription would otherwise refresh twice.
+      this.form
+        .get('report_type')
+        ?.setValue(this.visibleTypes[0] ?? '', { emitEvent: false });
     }
     this.refreshTypeState();
   }
@@ -469,11 +496,15 @@ export class ReportGenerateComponent implements OnInit {
     this.refreshTypeState();
   }
 
-  private refreshTypeState(preserveDetail?: string | null): void {
+  private refreshTypeState(
+    preserveDetail?: string | null,
+    onDone?: () => void,
+  ): void {
     const type = this.form.get('report_type')?.value as ReportType | '';
     if (!type) {
       this.availableDetails = [];
       this.activeFilters = [];
+      onDone?.();
       return;
     }
     this.availableDetails = this.detailsByType[type] ?? ['overview'];
@@ -481,44 +512,51 @@ export class ReportGenerateComponent implements OnInit {
       preserveDetail && this.availableDetails.includes(preserveDetail)
         ? preserveDetail
         : this.availableDetails[0] ?? 'overview';
-    this.form.get('report_detail')?.setValue(wanted);
+    this.form.get('report_detail')?.setValue(wanted, { emitEvent: false });
     this.activeFilters = FILTERS_BY_TYPE[type] ?? [];
-    this.remoteOptions = {};
-    this.loadRemoteOptions(type);
+    this.loadRemoteOptionsCombined(type, onDone);
   }
 
-  private loadRemoteOptions(type: ReportType): void {
+  private loadRemoteOptionsCombined(type: ReportType, onDone?: () => void): void {
     const remoteFields = this.activeFilters.filter(
       (field) => field.kind === 'remote',
     );
+    this.remoteOptions = {};
     if (remoteFields.length === 0) {
+      this.loadingOptions = false;
+      onDone?.();
       return;
     }
     this.loadingOptions = true;
-    let pending = remoteFields.length;
-    for (const field of remoteFields) {
-      this.reports.getOptions(field.key, type).subscribe({
-        next: (res) => {
-          this.remoteOptions[field.key] = res?.values ?? [];
-          if (--pending === 0) {
-            this.loadingOptions = false;
-          }
+    // One batched forkJoin per refresh — a single completion point, no
+    // per-field counter races. Per-field errors fall back to free text.
+    forkJoin(
+      Object.fromEntries(
+        remoteFields.map((field) => [
+          field.key,
+          this.reports.getOptions(field.key, type).pipe(
+            map((res) => res?.values ?? []),
+            catchError(() => of([] as string[])),
+          ),
+        ]),
+      ),
+    )
+      .pipe(finalize(() => (this.loadingOptions = false)))
+      .subscribe({
+        next: (values) => {
+          this.remoteOptions = values as Record<string, string[]>;
+          onDone?.();
         },
         error: () => {
-          // Fall back to a free-text input for this field.
-          this.remoteOptions[field.key] = [];
-          if (--pending === 0) {
-            this.loadingOptions = false;
-          }
+          onDone?.();
         },
       });
-    }
   }
 
   generate(): void {
     this.formError = null;
     this.downloadError = null;
-    if (this.form.invalid || this.generating) {
+    if (this.form.invalid || this.generating() || this.initializing()) {
       return;
     }
     const raw = this.form.getRawValue();
@@ -537,7 +575,7 @@ export class ReportGenerateComponent implements OnInit {
       parameters[field.key] =
         field.kind === 'number' ? Number(value) : String(value).trim();
     }
-    this.generating = true;
+    this.generating.set(true);
     this.reports
       .generateReport({
         report_type: raw.report_type,
@@ -546,32 +584,57 @@ export class ReportGenerateComponent implements OnInit {
         detail: raw.report_detail || null,
         parameters,
       })
+      // finalize is the authoritative cleanup point: the button always
+      // returns to "Generate Report", on success, error, or termination.
+      .pipe(finalize(() => this.generating.set(false)))
       .subscribe({
-        next: (res) => {
-          this.result = res?.report ?? null;
-          this.generating = false;
+        next: (response) => {
+          // The backend returns the file bytes, but generation must NOT
+          // trigger a browser download. Only load the persisted metadata
+          // so the result card offers explicit View / Download actions.
+          const reportId = Number(response.headers.get('X-Report-Id'));
+          if (Number.isFinite(reportId) && reportId > 0) {
+            this.reports.getReport(reportId).subscribe({
+              next: (report) => {
+                this.result.set(report);
+              },
+              error: () => {
+                this.result.set(null);
+              },
+            });
+          } else {
+            this.result.set(null);
+          }
         },
         error: (err) => {
-          this.formError = this.safeMessage(err, 'Report generation failed.');
-          this.generating = false;
+          this.decodeBlobError(err, 'Report generation failed.').then(
+            (message) => {
+              this.formError = message;
+            },
+          );
         },
       });
   }
 
   download(): void {
-    if (!this.result || this.downloading) {
+    if (!this.result() || this.downloading()) {
       return;
     }
-    this.downloading = true;
+    this.downloading.set(true);
     this.downloadError = null;
-    this.reports.downloadReport(this.result.report_id).subscribe({
+    this.reports.downloadReport(this.result()!.report_id).subscribe({
       next: (blob) => {
-        this.saveBlob(blob, this.result!.report_id, this.result!.report_format);
-        this.downloading = false;
+        this.saveBlob(
+          blob,
+          `report_${this.result()!.report_id}.${
+            this.result()!.report_format === 'EXCEL' ? 'xlsx' : 'pdf'
+          }`,
+        );
+        this.downloading.set(false);
       },
       error: (err) => {
         this.downloadError = this.safeMessage(err, 'Download failed.');
-        this.downloading = false;
+        this.downloading.set(false);
       },
     });
   }
@@ -589,13 +652,36 @@ export class ReportGenerateComponent implements OnInit {
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  private saveBlob(blob: Blob, reportId: number, format: string): void {
+  private saveBlob(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `report_${reportId}.${format === 'EXCEL' ? 'xlsx' : 'pdf'}`;
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Error bodies arrive as Blobs (responseType: 'blob') on failure.
+   * Decode JSON error details safely; never surface raw bytes.
+   */
+  private async decodeBlobError(err: unknown, fallback: string): Promise<string> {
+    const raw = (err as { error?: unknown })?.error;
+    if (raw instanceof Blob) {
+      try {
+        const parsed = JSON.parse(await raw.text()) as { detail?: unknown };
+        if (
+          typeof parsed.detail === 'string' &&
+          parsed.detail &&
+          parsed.detail.length < 300
+        ) {
+          return parsed.detail;
+        }
+      } catch {
+        // fall through to status mapping below
+      }
+    }
+    return this.safeMessage(err, fallback);
   }
 
   private safeMessage(err: unknown, fallback: string): string {

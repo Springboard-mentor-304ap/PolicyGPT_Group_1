@@ -298,10 +298,13 @@ def get_role_reports(
 
 
 # ============================================================
-# PERSISTED REPORTS (PART 2 — REAL FILES)
+# PERSISTED REPORTS (STATELESS — IN MEMORY BYTES)
 # ============================================================
-# PENDING -> build dataset -> render bytes -> atomic write ->
-# COMPLETED. On failure: delete partial file -> FAILED.
+# PENDING -> build dataset -> render bytes in memory ->
+# COMPLETED metadata row (no file path). The bytes go straight
+# into the HTTP binary response. Later downloads re-generate
+# deterministically from the stored parameters, so history works
+# without any file on the backend filesystem.
 
 
 def build_v1_report_data(
@@ -322,15 +325,6 @@ def build_v1_report_data(
     )
 
 
-def _preview_of(dataset: dict) -> dict:
-    """Small JSON preview for the generate response (no raw rows)."""
-    return {
-        "summary": dict(dataset.get("summary") or []),
-        "empty": bool(dataset.get("empty")),
-        "sections": len(dataset.get("sections") or []),
-    }
-
-
 def create_persisted_report(
     db: Session,
     user: User,
@@ -339,11 +333,12 @@ def create_persisted_report(
     parameters: dict | None = None,
     title: str | None = None,
     detail: str | None = None,
-) -> tuple[Report, dict | list | None]:
-    """Generate a V1 report with real file lifecycle.
+) -> tuple[Report, bytes, str]:
+    """Generate a report fully in memory.
 
-    Returns (Report row, JSON preview). Raises ValueError (400) for
-    bad input and PermissionError (403) for role violations.
+    Returns (Report row, file bytes, filename). The file bytes are
+    never written to disk. Raises ValueError (400) for bad input
+    and PermissionError (403) for role violations.
     """
     from app.services import report_permissions as permissions
     from app.services import report_export_service as export
@@ -400,7 +395,7 @@ def create_persisted_report(
         filename = export.build_filename(
             report.report_id, normalized_type, normalized_format
         )
-        export.finalize_report_file(db, report, content, filename)
+        export.complete_report(db, report, content, filename)
     except (ValueError, PermissionError):
         export.fail_report(db, report, ValueError("validation"))
         raise
@@ -430,7 +425,7 @@ def create_persisted_report(
     except Exception:
         pass
 
-    return report, _preview_of(dataset)
+    return report, content, filename
 
 
 def list_reports_for_user(
@@ -466,10 +461,55 @@ def get_report_for_user(
     return report
 
 
+def rebuild_report_dataset(
+    db: Session, user: User, report: Report
+) -> dict:
+    """Rebuild a COMPLETED report's structured dataset from parameters.
+
+    Same builders, same role scope as generation and download, so the
+    View page, PDF and Excel all represent the same report data.
+    Raises ValueError with a safe message when rebuild is impossible.
+    """
+    stored = dict(report.parameters or {})
+    detail = stored.pop("detail", None)
+    try:
+        return build_v1_report_data(
+            db, report.report_type, user, stored,
+            title=report.title, detail=detail,
+        )
+    except (ValueError, PermissionError) as exc:
+        raise ValueError(
+            "Report can no longer be generated for your role."
+        ) from exc
+    except Exception as exc:
+        raise ValueError(
+            "Report data is not available. Please regenerate."
+        ) from exc
+
+
+def get_report_data_payload(
+    db: Session, user: User, report: Report
+) -> dict:
+    """Structured dataset for the View page (no binary, no files)."""
+    if report.status != "COMPLETED":
+        raise ValueError(
+            "Report is not ready for viewing."
+            if report.status == "PENDING"
+            else "Report generation failed. Please regenerate."
+        )
+
+    return rebuild_report_dataset(db, user, report)
+
+
 def get_report_download_payload(
     db: Session, user: User, report: Report
 ) -> tuple[str, bytes, str]:
-    """Serve the stored report file (Part 2 real download)."""
+    """Regenerate the report file deterministically from stored parameters.
+
+    No file is ever read from (or written to) disk: the bytes are
+    rebuilt in memory with the same dataset builders and renderers
+    used at generation time, under the downloader's own role scope.
+    """
     from app.services import report_export_service as export
     from app.services.audit_log_service import log_action
 
@@ -480,7 +520,26 @@ def get_report_download_payload(
             else "Report generation failed. Please regenerate."
         )
 
-    filename, content, media_type = export.read_report_file(report)
+    stored = dict(report.parameters or {})
+    detail = stored.pop("detail", None)
+    dataset = rebuild_report_dataset(db, user, report)
+
+    metadata = {
+        "report_id": report.report_id,
+        "title": report.title,
+        "report_type": report.report_type,
+        "report_format": report.report_format,
+        "detail": detail,
+        "status": "COMPLETED",
+        "generated_at": report.generated_at.isoformat()
+        if report.generated_at
+        else "",
+        "filters": stored,
+    }
+    content = export.render_dataset(dataset, metadata, report.report_format)
+    filename = export.build_filename(
+        report.report_id, report.report_type, report.report_format
+    )
 
     log_action(
         db,
@@ -491,4 +550,4 @@ def get_report_download_payload(
         description=f"Downloaded report {report.report_id}",
     )
 
-    return filename, content, media_type
+    return filename, content, export.media_type_for(report.report_format)

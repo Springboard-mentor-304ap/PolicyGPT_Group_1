@@ -10,6 +10,8 @@ from app.models.notification_delivery import NotificationDelivery
 from app.models.faq import FAQ
 from app.models.support_query import SupportQuery
 from app.models.report import Report
+from app.models.saved_policy import SavedPolicy
+from app.models.saved_scheme import SavedScheme
 from app.models.search_history import SearchHistory
 from app.models.audit_log import AuditLog
 from app.models.eligibility_rule import EligibilityRule
@@ -27,6 +29,8 @@ __all__ = [
     "FAQ",
     "SupportQuery",
     "Report",
+    "SavedPolicy",
+    "SavedScheme",
     "SearchHistory",
     "AuditLog",
     "EligibilityRule",

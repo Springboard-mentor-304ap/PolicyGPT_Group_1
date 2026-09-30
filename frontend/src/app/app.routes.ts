@@ -91,7 +91,7 @@ export const routes: Routes = [
         (m) => m.ViewUsersComponent,
       ),
   },
-  
+
   // POLICY ROUTES
   // =========================================================
   {
@@ -141,10 +141,39 @@ export const routes: Routes = [
       ),
   },
 
-  // 
-  
-  
-       // =========================================================
+  // =========================================================
+  // SAVED ITEMS ROUTES
+  // =========================================================
+
+  {
+    path: "saved-items",
+    canActivate: [authGuard, roleGuard],
+    data: {
+      roles: ["CITIZEN", "RESEARCHER", "ORGANIZATION"],
+    },
+    loadComponent: () =>
+      import("./features/saved-items/saved-items.component").then(
+        (m) => m.SavedItemsComponent,
+      ),
+  },
+
+  // =========================================================
+  // SEARCH HISTORY ROUTE (top-level, role-guarded)
+  // =========================================================
+
+  {
+    path: "search-history",
+    canActivate: [authGuard, roleGuard],
+    data: {
+      roles: ["CITIZEN", "RESEARCHER", "ORGANIZATION"],
+    },
+    loadComponent: () =>
+      import("./features/search-history/search-history.component").then(
+        (m) => m.SearchHistoryComponent,
+      ),
+  },
+
+  // =========================================================
   // COMPARE ROUTES
   // =========================================================
   //

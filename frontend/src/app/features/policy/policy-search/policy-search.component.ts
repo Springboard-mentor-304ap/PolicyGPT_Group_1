@@ -1,7 +1,7 @@
 import { CommonModule, Location } from "@angular/common";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
 import {
   Subject,
   debounceTime,
@@ -11,6 +11,9 @@ import {
 } from "rxjs";
 
 import { PolicyService } from "../../../core/services/policy.service";
+import { SavedItemsService } from "../../../core/services/saved-items.service";
+import { SearchHistoryService } from "../../../core/services/search-history.service";
+import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
 
 import {
@@ -45,6 +48,10 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   private readonly policyService = inject(PolicyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly savedItemsService = inject(SavedItemsService);
+  private readonly searchHistoryService = inject(SearchHistoryService);
+  private readonly toastService = inject(ToastService);
 
   private readonly location = inject(Location);
 
@@ -108,10 +115,16 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   errorMessage = "";
 
   // ============================================================
-  // BOOKMARKS
+  // BOOKMARKS (server is source of truth)
   // ============================================================
 
   private readonly bookmarkStorageKey = "policy_bookmarks";
+
+  private savedPolicyIds = new Set<number>();
+
+  private savedPoliciesLoaded = false;
+
+  private pendingBookmarkIds = new Set<number>();
 
   // ============================================================
   // FILTER OPTIONS
@@ -252,6 +265,12 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.setupSearch();
 
     /*
+     * Restore a search from Search History ("Search Again") when the
+     * navigation carries query parameters.
+     */
+    this.restoreSearchFromQueryParams();
+
+    /*
      * CRITICAL:
      *
      * Load policies immediately.
@@ -259,6 +278,44 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
      * No search text is required.
      */
     this.loadPolicies();
+    this.loadSavedPolicyState();
+  }
+
+  /**
+   * Populate search fields from URL query parameters (Search Again).
+   * Only known filter keys are honored; unknown keys are ignored.
+   */
+  private restoreSearchFromQueryParams(): void {
+    const params = this.route.snapshot.queryParams;
+    if (!params || typeof params !== "object") {
+      return;
+    }
+    const text = (value: unknown): string =>
+      typeof value === "string" ? value : "";
+    if (text(params["q"])) {
+      this.searchQuery = text(params["q"]);
+    }
+    if (text(params["category"])) {
+      this.selectedCategory = text(params["category"]);
+    }
+    if (text(params["ministry"])) {
+      this.selectedMinistry = text(params["ministry"]);
+    }
+    if (text(params["department"])) {
+      this.selectedDepartment = text(params["department"]);
+    }
+    if (text(params["state"])) {
+      this.selectedState = text(params["state"]);
+    }
+    if (text(params["sector"])) {
+      this.selectedSector = text(params["sector"]);
+    }
+    if (text(params["publication_date"])) {
+      this.selectedPublicationDate = text(params["publication_date"]);
+    }
+    if (text(params["status"])) {
+      this.selectedStatus = text(params["status"]);
+    }
   }
 
   // ============================================================
@@ -429,6 +486,49 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /**
+   * Explicit user search (Search button / Enter key). Runs the search
+   * and records it to server-side search history exactly once per
+   * distinct query+filter combination.
+   */
+  submitSearch(): void {
+    this.applyFilters();
+    this.recordSearch();
+  }
+
+  private lastRecordedSearchKey: string | null = null;
+
+  private recordSearch(): void {
+    const filters: Record<string, string> = {};
+    if (this.selectedCategory) filters["category"] = this.selectedCategory;
+    if (this.selectedMinistry) filters["ministry"] = this.selectedMinistry;
+    if (this.selectedDepartment) filters["department"] = this.selectedDepartment;
+    if (this.selectedState) filters["state"] = this.selectedState;
+    if (this.selectedSector) filters["sector"] = this.selectedSector;
+    if (this.selectedPublicationDate)
+      filters["publication_date"] = this.selectedPublicationDate;
+    if (this.selectedStatus) filters["status"] = this.selectedStatus;
+
+    const key = JSON.stringify([
+      this.searchQuery.trim(),
+      filters,
+    ]);
+    if (key === this.lastRecordedSearchKey) {
+      return;
+    }
+    this.lastRecordedSearchKey = key;
+    this.searchHistoryService
+      .recordSearch({
+        search_query: this.searchQuery.trim() || "(all policies)",
+        search_type: "POLICY",
+        filters,
+      })
+      .subscribe({
+        next: () => undefined,
+        error: () => undefined,
+      });
+  }
+
   clearFilters(): void {
     this.searchQuery = "";
     this.selectedCategory = "";
@@ -535,7 +635,21 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   isBookmarked(policyId: number | string): boolean {
-    return this.getBookmarks().includes(Number(policyId));
+    const id = Number(policyId);
+
+    if (!Number.isFinite(id)) {
+      return false;
+    }
+
+    if (this.canUseSavedItems && this.savedPoliciesLoaded) {
+      return this.savedPolicyIds.has(id);
+    }
+
+    return this.getBookmarks().includes(id);
+  }
+
+  isBookmarkPending(policyId: number | string): boolean {
+    return this.pendingBookmarkIds.has(Number(policyId));
   }
 
   toggleBookmark(policy: PolicyResponse): void {
@@ -545,8 +659,82 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const bookmarks = this.getBookmarks();
+    if (!this.canUseSavedItems) {
+      this.toggleLocalBookmark(id);
+      return;
+    }
 
+    if (this.pendingBookmarkIds.has(id)) {
+      return;
+    }
+
+    this.pendingBookmarkIds.add(id);
+
+    if (this.savedPolicyIds.has(id)) {
+      this.savedItemsService.unsavePolicy(id).subscribe({
+        next: () => {
+          this.savedPolicyIds.delete(id);
+          this.syncLocalBookmarks();
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.info("Policy removed from saved items.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.error("Could not remove policy. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
+    } else {
+      this.savedItemsService.savePolicy(id).subscribe({
+        next: () => {
+          this.savedPolicyIds.add(id);
+          this.syncLocalBookmarks();
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.success("Policy saved successfully.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.error("Could not save policy. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
+    }
+  }
+
+  private get canUseSavedItems(): boolean {
+    return (
+      this.userRole === "CITIZEN" ||
+      this.userRole === "RESEARCHER" ||
+      this.userRole === "ORGANIZATION" ||
+      this.userRole === "ORGANISATION"
+    );
+  }
+
+  private loadSavedPolicyState(): void {
+    if (!this.canUseSavedItems) {
+      return;
+    }
+
+    this.savedItemsService.getSavedPolicies().subscribe({
+      next: (items) => {
+        this.savedPolicyIds = new Set(
+          (items ?? []).map((item) => Number(item.policy_id)),
+        );
+        this.savedPoliciesLoaded = true;
+        this.syncLocalBookmarks();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.savedPoliciesLoaded = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private toggleLocalBookmark(id: number): void {
+    const bookmarks = this.getBookmarks();
     const index = bookmarks.indexOf(id);
 
     if (index === -1) {
@@ -556,6 +744,17 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     }
 
     localStorage.setItem(this.bookmarkStorageKey, JSON.stringify(bookmarks));
+  }
+
+  private syncLocalBookmarks(): void {
+    try {
+      localStorage.setItem(
+        this.bookmarkStorageKey,
+        JSON.stringify(Array.from(this.savedPolicyIds)),
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
   }
 
   private getBookmarks(): number[] {

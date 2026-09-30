@@ -10,6 +10,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { catchError, finalize, of } from "rxjs";
 
 import { SchemeService, Scheme } from "../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
@@ -48,6 +49,7 @@ export class SchemeDetailsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly schemeService = inject(SchemeService);
+  private readonly savedItemsService = inject(SavedItemsService);
   private readonly toastService = inject(ToastService);
   private readonly auth = inject(Auth);
   private readonly cdr = inject(ChangeDetectorRef);
@@ -58,6 +60,9 @@ export class SchemeDetailsComponent implements OnInit {
   schemeIdNum: number | null = null;
   scheme: Scheme | null = null;
   eligibilityRules: EligibilityRule[] = [];
+
+  bookmarked = false;
+  bookmarkLoading = false;
 
   loading = false;
   eligibilityLoading = false;
@@ -281,6 +286,7 @@ export class SchemeDetailsComponent implements OnInit {
 
         this.scheme = scheme;
         this.cdr.detectChanges();
+        this.loadBookmarkState(scheme.scheme_id);
         this.loadEligibilityRules(scheme.scheme_id);
       });
   }
@@ -656,47 +662,62 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   /*
-   * Bookmark
+   * Bookmark (server-backed saved items)
    */
   toggleBookmark(): void {
-    if (!this.scheme) {
+    if (!this.scheme || this.bookmarkLoading) {
       return;
     }
 
-    const bookmarks = this.getBookmarks();
     const id = this.scheme.scheme_id;
-    const index = bookmarks.indexOf(id);
+    this.bookmarkLoading = true;
 
-    if (index === -1) {
-      bookmarks.push(id);
-      this.toastService.info("Scheme added to bookmarks.");
+    if (!this.bookmarked) {
+      this.savedItemsService.saveScheme(id).subscribe({
+        next: () => {
+          this.bookmarked = true;
+          this.bookmarkLoading = false;
+          this.toastService.info("Scheme added to bookmarks.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.bookmarkLoading = false;
+          this.toastService.error("Could not save scheme. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
     } else {
-      bookmarks.splice(index, 1);
-      this.toastService.info("Scheme removed from bookmarks.");
+      this.savedItemsService.unsaveScheme(id).subscribe({
+        next: () => {
+          this.bookmarked = false;
+          this.bookmarkLoading = false;
+          this.toastService.info("Scheme removed from bookmarks.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.bookmarkLoading = false;
+          this.toastService.error("Could not remove scheme. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
     }
-
-    localStorage.setItem("scheme_bookmarks", JSON.stringify(bookmarks));
-    this.cdr.detectChanges();
   }
 
   isBookmarked(): boolean {
-    if (!this.scheme) {
-      return false;
-    }
-    return this.getBookmarks().includes(this.scheme.scheme_id);
+    return this.bookmarked;
   }
 
-  private getBookmarks(): number[] {
-    try {
-      const stored = localStorage.getItem("scheme_bookmarks");
-      if (!stored) {
-        return [];
-      }
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed.map(Number) : [];
-    } catch {
-      return [];
-    }
+  private loadBookmarkState(schemeId: number): void {
+    this.savedItemsService.isSchemeSaved(schemeId).subscribe({
+      next: (res) => {
+        this.bookmarked = !!res?.saved;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.bookmarked = false;
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   /*

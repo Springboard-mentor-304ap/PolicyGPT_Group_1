@@ -1,0 +1,350 @@
+<div class="history-page">
+
+  <!-- ============================================================
+       PAGE HEADER
+       ============================================================ -->
+
+  <header class="page-header">
+
+    <div class="header-content">
+
+      <div class="header-main">
+
+        <h1>
+          Search History
+        </h1>
+
+        <p>
+          Your recent searches.
+        </p>
+
+      </div>
+
+      <a class="back-button" routerLink="..">
+
+        <span class="material-icons back-icon" aria-hidden="true">
+          arrow_back
+        </span>
+
+        <span>
+          Back
+        </span>
+
+      </a>
+
+    </div>
+
+  </header>
+
+
+  <!-- ============================================================
+       LOADING STATE
+       ============================================================ -->
+
+  @if (loading) {
+
+  <div class="skeleton-list" aria-label="Loading search history">
+
+    @for (i of [1, 2, 3]; track i) {
+
+    <div class="skeleton-card" aria-hidden="true">
+
+      <div class="skeleton skeleton-icon">
+      </div>
+
+      <div class="skeleton-body">
+
+        <div class="skeleton skeleton-title">
+        </div>
+
+        <div class="skeleton skeleton-line">
+        </div>
+
+      </div>
+
+    </div>
+
+    }
+
+  </div>
+
+  }
+
+
+  <!-- ============================================================
+       ERROR STATE
+       ============================================================ -->
+
+  @else if (error) {
+
+  <section class="state-card error-state">
+
+    <div class="state-icon">
+
+      <span class="material-icons" aria-hidden="true">
+        error_outline
+      </span>
+
+    </div>
+
+    <h2>
+      Unable to Load Search History
+    </h2>
+
+    <p>
+      {{ error }}
+    </p>
+
+    <button type="button" class="retry-button" (click)="reload()">
+      Try Again
+    </button>
+
+  </section>
+
+  }
+
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+
+  @else {
+
+  <!-- ==========================================================
+         EMPTY STATE
+         ========================================================== -->
+
+  @if (filteredRows.length === 0) {
+
+  <section class="empty-state">
+
+    <div class="empty-icon">
+
+      <span class="material-icons" aria-hidden="true">
+        history
+      </span>
+
+    </div>
+
+    <h2>
+      No search history yet
+    </h2>
+
+    <p>
+      Your searches will appear here
+      when you search for policies or
+      schemes.
+    </p>
+
+    <div class="empty-actions">
+
+      <a class="btn-primary" [routerLink]="[
+              '..',
+              'policies',
+              'search'
+            ]">
+        Search Policies
+      </a>
+
+      <a class="btn-secondary" [routerLink]="[
+              '..',
+              'schemes'
+            ]">
+        Search Schemes
+      </a>
+
+    </div>
+
+  </section>
+
+  }
+
+
+  <!-- ==========================================================
+         RESULTS
+         ========================================================== -->
+
+  @else {
+
+  <section class="results-section">
+
+    <!-- ======================================================
+             RESULTS HEADER
+             ====================================================== -->
+
+    <div class="results-header">
+
+      <!-- LEFT -->
+      <div class="results-header-main">
+
+        <h2>
+
+          {{ filteredRows.length }}
+
+          {{
+          filteredRows.length === 1
+          ? 'Search'
+          : 'Searches'
+          }}
+
+        </h2>
+
+        <p>
+          Your recent policy and
+          scheme searches.
+        </p>
+
+      </div>
+
+
+      <!-- RIGHT -->
+      @if (rows.length > 0) {
+
+      <button type="button" class="btn-danger-ghost clear-history-button" (click)="askClear()" [disabled]="clearing">
+
+        {{
+        clearing
+        ? 'Clearing…'
+        : 'Clear History'
+        }}
+
+      </button>
+
+      }
+
+    </div>
+
+
+    <!-- ======================================================
+             TABLE
+             ====================================================== -->
+
+    <div class="users-table-wrap">
+
+      <table class="users-table">
+
+        <thead>
+
+          <tr>
+
+            <th scope="col">
+              Search Query
+            </th>
+
+            <th scope="col">
+              Type
+            </th>
+
+            <th scope="col">
+              Filters
+            </th>
+
+            <th scope="col">
+              Date
+            </th>
+
+            <th scope="col">
+              Actions
+            </th>
+
+          </tr>
+
+        </thead>
+
+
+        <tbody>
+
+          @for (
+          row of filteredRows;
+          track row.history_id
+          ) {
+
+          <tr>
+
+            <!-- SEARCH QUERY -->
+            <td>
+              {{ row.search_query }}
+            </td>
+
+
+            <!-- TYPE -->
+            <td>
+
+              <span class="metadata-item type-badge">
+
+                {{
+                row.search_type === 'SCHEME'
+                ? 'Scheme'
+                : 'Policy'
+                }}
+
+              </span>
+
+            </td>
+
+
+            <!-- FILTERS -->
+            <td class="filters-cell">
+              {{ filterSummary(row) }}
+            </td>
+
+
+            <!-- DATE -->
+            <td>
+              {{ formatDate(row.searched_at) }}
+            </td>
+
+
+            <!-- ACTIONS -->
+            <td>
+
+              <div class="row-actions">
+
+                <button type="button" class="btn-secondary btn-small" (click)="searchAgain(row)">
+                  Search Again
+                </button>
+
+
+                <button type="button" class="btn-danger-ghost btn-small" (click)="askDelete(row)" [disabled]="
+                          deletingId === row.history_id
+                        " aria-label="Delete search record">
+
+                  {{
+                  deletingId === row.history_id
+                  ? 'Deleting…'
+                  : 'Delete'
+                  }}
+
+                </button>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </section>
+
+  }
+
+  }
+
+
+  <!-- ============================================================
+       CLEAR HISTORY CONFIRMATION MODAL
+       ============================================================ -->
+
+  <app-confirm-modal [isOpen]="clearConfirmOpen" [title]="'Clear search history?'"
+    [message]="'This action cannot be undone.'" [confirmText]="'Clear History'" [variant]="'danger'"
+    (confirmed)="confirmClear()" (cancelled)="cancelClear()">
+  </app-confirm-modal>
+
+</div>

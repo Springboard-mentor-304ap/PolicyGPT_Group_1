@@ -65,3 +65,21 @@ export interface ReportOptionsResponse {
   report_type: string;
   values: string[];
 }
+
+export interface ReportDatasetSection {
+  heading: string;
+  headers: string[];
+  rows: unknown[][];
+}
+
+export interface ReportDataset {
+  title: string;
+  report_type: string;
+  detail?: string | null;
+  generated_at?: string;
+  filters?: Record<string, unknown> | null;
+  summary: Array<[string, number]>;
+  sections: ReportDatasetSection[];
+  empty: boolean;
+  empty_message?: string | null;
+}

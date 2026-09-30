@@ -11,6 +11,12 @@ export interface SearchHistoryItem {
   searched_at: string;
 }
 
+export interface SearchHistoryCreate {
+  search_query: string;
+  search_type: string;
+  filters?: Record<string, any> | null;
+}
+
 export interface SearchHistoryStatsResponse {
   total_searches: number;
   policy_searches: number;
@@ -27,6 +33,18 @@ export class SearchHistoryService {
 
   getUserSearchHistory(userId: number): Observable<SearchHistoryItem[]> {
     return this.http.get<SearchHistoryItem[]>(`${this.baseUrl}/me/${userId}`);
+  }
+
+  recordSearch(data: SearchHistoryCreate): Observable<SearchHistoryItem> {
+    return this.http.post<SearchHistoryItem>(this.baseUrl, data);
+  }
+
+  deleteSearchHistoryItem(
+    historyId: number,
+  ): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(
+      `${this.baseUrl}/${historyId}`,
+    );
   }
 
   deleteUserSearchHistory(userId: number): Observable<{ message: string; deleted_count: number }> {

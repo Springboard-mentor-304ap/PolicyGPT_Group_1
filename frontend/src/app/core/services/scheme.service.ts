@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { Observable } from "rxjs";
 
 import {
   SchemeResponse,
@@ -9,7 +9,7 @@ import {
   SchemeCreate,
   SchemeUpdate,
   SchemeAnalyticsResponse,
-} from '../models/scheme.model';
+} from "../models/scheme.model";
 
 export type Scheme = SchemeResponse;
 export type {
@@ -22,12 +22,12 @@ export type {
 };
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class SchemeService {
-  private readonly apiUrl = 'http://localhost:8000/schemes';
-  private readonly eligibilityApiUrl = 'http://localhost:8000/eligibility';
-  private readonly analyticsUrl = 'http://localhost:8000/analytics/schemes';
+  private readonly apiUrl = "http://localhost:8000/schemes";
+  private readonly eligibilityApiUrl = "http://localhost:8000/eligibility";
+  private readonly analyticsUrl = "http://localhost:8000/analytics/schemes";
 
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly CACHE_TTL = 30000; // 30 seconds
@@ -35,7 +35,7 @@ export class SchemeService {
   constructor(private http: HttpClient) {}
 
   private getCacheKey(method: string, params?: HttpParams): string {
-    return `${method}:${params?.toString() || ''}`;
+    return `${method}:${params?.toString() || ""}`;
   }
 
   private getFromCache(key: string): any | null {
@@ -64,40 +64,40 @@ export class SchemeService {
     let params = new HttpParams();
 
     if (filters?.keyword && filters.keyword.trim()) {
-      params = params.set('keyword', filters.keyword.trim());
+      params = params.set("keyword", filters.keyword.trim());
     }
     if (filters?.category && filters.category.trim()) {
-      params = params.set('category', filters.category.trim());
+      params = params.set("category", filters.category.trim());
     }
     if (filters?.ministry && filters.ministry.trim()) {
-      params = params.set('ministry', filters.ministry.trim());
+      params = params.set("ministry", filters.ministry.trim());
     }
     if (filters?.department && filters.department.trim()) {
-      params = params.set('department', filters.department.trim());
+      params = params.set("department", filters.department.trim());
     }
     if (filters?.state && filters.state.trim()) {
-      params = params.set('state', filters.state.trim());
+      params = params.set("state", filters.state.trim());
     }
     if (filters?.sector && filters.sector.trim()) {
-      params = params.set('sector', filters.sector.trim());
+      params = params.set("sector", filters.sector.trim());
     }
     if (filters?.publication_date && filters.publication_date.trim()) {
-      params = params.set('publication_date', filters.publication_date.trim());
+      params = params.set("publication_date", filters.publication_date.trim());
     }
     if (filters?.status && filters.status.trim()) {
-      params = params.set('status', filters.status.trim());
+      params = params.set("status", filters.status.trim());
     }
     if (filters?.manage !== undefined) {
-      params = params.set('manage', filters.manage.toString());
+      params = params.set("manage", filters.manage.toString());
     }
     if (filters?.created_by !== undefined) {
-      params = params.set('created_by', filters.created_by.toString());
+      params = params.set("created_by", filters.created_by.toString());
     }
 
     const page = filters?.page && filters.page > 0 ? filters.page : 1;
     const limit = filters?.limit && filters.limit > 0 ? filters.limit : 10;
-    params = params.set('page', page.toString());
-    params = params.set('limit', limit.toString());
+    params = params.set("page", page.toString());
+    params = params.set("limit", limit.toString());
 
     return this.http.get<SchemeListResponse>(this.apiUrl, { params });
   }
@@ -109,7 +109,7 @@ export class SchemeService {
 
   getScheme(id: number): Observable<SchemeResponse> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     return this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`);
   }
@@ -121,7 +121,7 @@ export class SchemeService {
 
   getEligibilityRules(schemeId: number): Observable<any[]> {
     if (!schemeId || schemeId <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     return this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`);
   }
@@ -151,9 +151,12 @@ export class SchemeService {
   // PUT /schemes/{id}
   // ============================================================
 
-  updateScheme(id: number, data: SchemeUpdate | any): Observable<SchemeResponse> {
+  updateScheme(
+    id: number,
+    data: SchemeUpdate | any,
+  ): Observable<SchemeResponse> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     this.clearCache();
     return this.http.put<SchemeResponse>(`${this.apiUrl}/${id}`, data);
@@ -166,7 +169,7 @@ export class SchemeService {
 
   deleteScheme(id: number): Observable<any> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     this.clearCache();
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
@@ -188,7 +191,9 @@ export class SchemeService {
 
   rejectScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject`, { reason });
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject`, {
+      reason,
+    });
   }
 
   archiveScheme(id: number): Observable<SchemeResponse> {
@@ -198,17 +203,26 @@ export class SchemeService {
 
   requestArchiveScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-archive`, { reason });
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/request-archive`,
+      { reason },
+    );
   }
 
   approveArchiveScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/approve-archive`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/approve-archive`,
+      {},
+    );
   }
 
   rejectArchiveScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-archive`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/reject-archive`,
+      {},
+    );
   }
 
   restoreScheme(id: number): Observable<SchemeResponse> {
@@ -218,17 +232,26 @@ export class SchemeService {
 
   requestDeleteScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-delete`, { reason });
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/request-delete`,
+      { reason },
+    );
   }
 
   approveDeleteScheme(id: number): Observable<{ message: string }> {
     this.clearCache();
-    return this.http.post<{ message: string }>(`${this.apiUrl}/${id}/approve-delete`, {});
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/${id}/approve-delete`,
+      {},
+    );
   }
 
   rejectDeleteScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-delete`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/reject-delete`,
+      {},
+    );
   }
 
   getPendingSchemes(): Observable<SchemeResponse[]> {

@@ -12,3 +12,9 @@ class SearchHistoryResponse(BaseModel):
     searched_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SearchHistoryCreate(BaseModel):
+    search_query: str
+    search_type: str
+    filters: dict | None = None

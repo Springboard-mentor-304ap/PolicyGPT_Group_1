@@ -1,17 +1,17 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
-import { ReportService } from '../../../core/services/report.service';
-import { Report } from '../../../core/models/report.model';
+import { Component, OnInit, inject, signal } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterLink } from "@angular/router";
+import { finalize } from "rxjs";
+import { ReportService } from "../../../core/services/report.service";
+import { Report } from "../../../core/models/report.model";
 
 const PAGE_SIZE = 20;
 
 @Component({
-  selector: 'app-report-history',
+  selector: "app-report-history",
   standalone: true,
   imports: [CommonModule, RouterLink],
-  styleUrl: '../reports-shared.scss',
+  styleUrl: "../reports-shared.scss",
   template: `
     <div class="reports-page">
       <header class="page-header">
@@ -29,7 +29,7 @@ const PAGE_SIZE = 20;
         </div>
       </header>
 
-      @if (loading) {
+      @if (loading()) {
         <div class="skeleton-list" aria-label="Loading report history">
           @for (i of [1, 2, 3]; track i) {
             <div class="skeleton-card" aria-hidden="true">
@@ -52,7 +52,7 @@ const PAGE_SIZE = 20;
             Try Again
           </button>
         </section>
-      } @else if (history.length === 0) {
+      } @else if (history().length === 0) {
         <section class="empty-state">
           <div class="empty-icon">
             <span class="material-icons" aria-hidden="true">inbox</span>
@@ -63,15 +63,8 @@ const PAGE_SIZE = 20;
         </section>
       } @else {
         <section class="results-section">
-          <div class="results-header">
-            <div>
-              <h2>Generated Reports</h2>
-              <p>Review and download your reports.</p>
-            </div>
-            <a class="btn-secondary" routerLink="../generate">Generate</a>
-          </div>
           <div class="card-list">
-            @for (item of history; track item.report_id) {
+            @for (item of history(); track item.report_id) {
               <article class="portal-card">
                 <div class="card-icon" aria-hidden="true">
                   <span class="material-icons">description</span>
@@ -103,17 +96,17 @@ const PAGE_SIZE = 20;
                   >
                     View
                   </a>
-                  @if (item.status === 'COMPLETED') {
+                  @if (item.status === "COMPLETED") {
                     <button
                       type="button"
                       class="btn-primary"
                       (click)="download(item)"
-                      [disabled]="downloadingId === item.report_id"
+                      [disabled]="downloadingId() === item.report_id"
                     >
                       {{
-                        downloadingId === item.report_id
-                          ? 'Downloading…'
-                          : 'Download'
+                        downloadingId() === item.report_id
+                          ? "Downloading…"
+                          : "Download"
                       }}
                     </button>
                   }
@@ -126,7 +119,7 @@ const PAGE_SIZE = 20;
               type="button"
               class="pagination-control"
               (click)="previous()"
-              [disabled]="offset === 0 || loading"
+              [disabled]="offset === 0 || loading()"
             >
               <span class="material-icons pagination-arrow" aria-hidden="true">
                 chevron_left
@@ -137,7 +130,7 @@ const PAGE_SIZE = 20;
               type="button"
               class="pagination-control"
               (click)="next()"
-              [disabled]="!hasMore || loading"
+              [disabled]="!hasMore || loading()"
             >
               <span>Next</span>
               <span class="material-icons pagination-arrow" aria-hidden="true">
@@ -164,10 +157,10 @@ const PAGE_SIZE = 20;
 export class ReportHistoryComponent implements OnInit {
   private readonly reports = inject(ReportService);
 
-  history: Report[] = [];
-  loading = true;
+  readonly history = signal<Report[]>([]);
+  readonly loading = signal(true);
   error: string | null = null;
-  downloadingId: number | null = null;
+  readonly downloadingId = signal<number | null>(null);
   downloadError: string | null = null;
   hasMore = false;
   offset = 0;
@@ -178,19 +171,19 @@ export class ReportHistoryComponent implements OnInit {
   }
 
   reload(): void {
-    this.loading = true;
+    this.loading.set(true);
     this.error = null;
     this.reports
       .getHistory(this.pageSize + 1, this.offset)
-      .pipe(finalize(() => (this.loading = false)))
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (res) => {
           const rows = res ?? [];
           this.hasMore = rows.length > this.pageSize;
-          this.history = rows.slice(0, this.pageSize);
+          this.history.set(rows.slice(0, this.pageSize));
         },
         error: () => {
-          this.error = 'Could not load report history. Please retry.';
+          this.error = "Could not load report history. Please retry.";
         },
       });
   }
@@ -209,33 +202,33 @@ export class ReportHistoryComponent implements OnInit {
   }
 
   download(item: Report): void {
-    if (this.downloadingId !== null) {
+    if (this.downloadingId() !== null) {
       return;
     }
-    this.downloadingId = item.report_id;
+    this.downloadingId.set(item.report_id);
     this.downloadError = null;
     this.reports.downloadReport(item.report_id).subscribe({
       next: (blob) => {
         const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
+        const anchor = document.createElement("a");
         anchor.href = url;
         anchor.download = `report_${item.report_id}.${
-          item.report_format === 'EXCEL' ? 'xlsx' : 'pdf'
+          item.report_format === "EXCEL" ? "xlsx" : "pdf"
         }`;
         anchor.click();
         URL.revokeObjectURL(url);
-        this.downloadingId = null;
+        this.downloadingId.set(null);
       },
       error: () => {
-        this.downloadError = 'Download failed. Please retry.';
-        this.downloadingId = null;
+        this.downloadError = "Download failed. Please retry.";
+        this.downloadingId.set(null);
       },
     });
   }
 
   formatSize(size: number | null): string {
     if (size === null || size === undefined) {
-      return '—';
+      return "—";
     }
     if (size < 1024) {
       return `${size} B`;

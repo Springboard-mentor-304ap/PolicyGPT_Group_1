@@ -20,10 +20,17 @@ import { ToastContainerComponent } from "../../components/toast-container/toast-
    RESEARCHER NAVIGATION ITEM
    ========================================================= */
 
+export interface ResearcherNavChild {
+  label: string;
+  icon: string;
+  route: string;
+}
+
 export interface ResearcherNavItem {
   label: string;
   icon: string;
   route: string;
+  children?: ResearcherNavChild[];
 }
 
 /* =========================================================
@@ -68,6 +75,7 @@ export class ResearcherLayoutComponent implements OnInit {
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
+  analyticsMenuOpen = false;
 
   // =========================================================
   // SEARCH
@@ -118,6 +126,18 @@ export class ResearcherLayoutComponent implements OnInit {
       label: "Analytics",
       icon: "analytics",
       route: "/dashboard/researcher/analytics",
+      children: [
+        {
+          label: "Research Analytics",
+          icon: "dashboard",
+          route: "/dashboard/researcher/analytics",
+        },
+        {
+          label: "Policy & Scheme Trends",
+          icon: "query_stats",
+          route: "/dashboard/researcher/analytics/trends",
+        },
+      ],
     },
 
     {
@@ -160,6 +180,36 @@ export class ResearcherLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
+
+    if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
+    }
+  }
+
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+    }
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/researcher/analytics");
   }
 
   // =========================================================

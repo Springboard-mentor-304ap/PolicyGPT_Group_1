@@ -553,6 +553,10 @@ img {
 .dash-nav {
   width: 100%;
 
+  flex: 1 1 auto;
+
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
 
@@ -666,6 +670,125 @@ img {
   overflow: hidden;
 
   text-overflow: ellipsis;
+}
+
+/* =========================================================
+   NAVIGATION CHEVRON + SUBMENU (expandable parents such as
+   Analytics reuse the shared dash-nav submenu language)
+   ========================================================= */
+
+.dash-nav__chevron {
+  margin-left: auto;
+
+  opacity: 0.75;
+
+  font-size: 19px !important;
+
+  flex-shrink: 0;
+
+  transition:
+    transform 0.22s ease,
+    opacity 0.2s ease;
+}
+
+.dash-nav__chevron--open {
+  transform: rotate(90deg);
+}
+
+.dash-nav__users-toggle {
+  appearance: none;
+
+  font-family: inherit;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  outline: none;
+}
+
+.dash-nav__users-toggle:hover {
+  color: $citizen-white;
+}
+
+.dash-nav__users-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+
+  outline-offset: 2px;
+}
+
+.dash-nav__submenu {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 3px;
+
+  margin: 0 0 10px 40px;
+}
+
+.dash-nav__submenu-item {
+  min-height: 36px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 8px 12px;
+
+  border: 1px solid transparent;
+
+  border-radius: 8px;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dash-nav__submenu-item .material-icons {
+  width: 18px;
+
+  min-width: 18px;
+
+  font-size: 17px !important;
+
+  text-align: center;
+}
+
+.dash-nav__submenu-item:hover {
+  color: $citizen-white;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  transform: translateX(2px);
+}
+
+.dash-nav__submenu-item--active {
+  color: $citizen-white !important;
+
+  background: rgba(75, 145, 255, 0.22);
+
+  border-color: rgba(75, 145, 255, 0.18);
+}
+
+.dash-nav__submenu-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+
+  outline-offset: 2px;
 }
 
 /* =========================================================

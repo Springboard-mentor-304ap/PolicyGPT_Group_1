@@ -266,6 +266,69 @@
                 </span>
             </a>
 
+            <!-- ANALYTICS -->
+            <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
+                analyticsMenuOpen || isAnalyticsRouteActive()
+            " (click)="onAnalyticsNavClick($event)" [attr.title]="sidebarCollapsed ? 'Analytics' : null"
+                [attr.aria-expanded]="analyticsMenuOpen" aria-controls="gov-analytics-submenu">
+                <span class="material-icons dash-nav__icon">
+                    analytics
+                </span>
+                <span class="dash-nav__label">
+                    Analytics
+                </span>
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="analyticsMenuOpen"
+                    (click)="toggleAnalyticsMenuOnly($event)" title="Toggle Analytics submenu">
+                    chevron_right
+                </span>
+            </button>
+
+            <!-- ANALYTICS SUBMENU -->
+            @if (analyticsMenuOpen && !sidebarCollapsed) {
+            <div id="gov-analytics-submenu" class="dash-nav__submenu" aria-label="Analytics">
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        dashboard
+                    </span>
+                    <span>
+                        Analytics Overview
+                    </span>
+                </a>
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/policy-scheme"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        query_stats
+                    </span>
+                    <span>
+                        Policy &amp; Scheme Analytics
+                    </span>
+                </a>
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/departments"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        domain
+                    </span>
+                    <span>
+                        Department Analytics
+                    </span>
+                </a>
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/user-notifications"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        notifications
+                    </span>
+                    <span>
+                        User &amp; Notification Statistics
+                    </span>
+                </a>
+            </div>
+            }
+
         </nav>
 
 

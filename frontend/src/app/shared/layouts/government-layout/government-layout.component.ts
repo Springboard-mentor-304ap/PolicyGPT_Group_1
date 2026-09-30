@@ -72,6 +72,7 @@ export class GovernmentLayoutComponent implements OnInit {
 
   policiesMenuOpen = false;
   schemesMenuOpen = false;
+  analyticsMenuOpen = false;
 
   // =======================================================
   // SEARCH
@@ -153,6 +154,8 @@ export class GovernmentLayoutComponent implements OnInit {
       this.policiesMenuOpen = true;
     } else if (this.isSchemesRouteActive()) {
       this.schemesMenuOpen = true;
+    } else if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
     }
   }
 
@@ -287,6 +290,7 @@ export class GovernmentLayoutComponent implements OnInit {
     }
     this.policiesMenuOpen = true;
     this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
     this.closeMobileMenu();
     this.router.navigate(['/dashboard/government/policies/search']);
   }
@@ -305,6 +309,7 @@ export class GovernmentLayoutComponent implements OnInit {
     this.policiesMenuOpen = !this.policiesMenuOpen;
     if (this.policiesMenuOpen) {
       this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
     }
   }
 
@@ -326,6 +331,7 @@ export class GovernmentLayoutComponent implements OnInit {
     }
     this.schemesMenuOpen = true;
     this.policiesMenuOpen = false;
+    this.analyticsMenuOpen = false;
     this.closeMobileMenu();
     this.router.navigate(['/dashboard/government/schemes']);
   }
@@ -344,6 +350,7 @@ export class GovernmentLayoutComponent implements OnInit {
     this.schemesMenuOpen = !this.schemesMenuOpen;
     if (this.schemesMenuOpen) {
       this.policiesMenuOpen = false;
+      this.analyticsMenuOpen = false;
     }
   }
 
@@ -351,9 +358,44 @@ export class GovernmentLayoutComponent implements OnInit {
     this.schemesMenuOpen = false;
   }
 
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleAnalyticsMenu();
+      return;
+    }
+
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+    if (this.analyticsMenuOpen) {
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+    }
+  }
+
+  closeAnalyticsMenu(): void {
+    this.analyticsMenuOpen = false;
+  }
+
   closeAllSubmenus(): void {
     this.policiesMenuOpen = false;
     this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
   }
 
   // =======================================================
@@ -364,6 +406,7 @@ export class GovernmentLayoutComponent implements OnInit {
     return (
       !this.policiesMenuOpen &&
       !this.schemesMenuOpen &&
+      !this.analyticsMenuOpen &&
       this.router.url === "/dashboard/government"
     );
   }
@@ -377,6 +420,10 @@ export class GovernmentLayoutComponent implements OnInit {
       this.router.url.startsWith("/dashboard/government/schemes") ||
       this.router.url.startsWith("/dashboard/government/compare")
     );
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/government/analytics");
   }
 
   // =======================================================

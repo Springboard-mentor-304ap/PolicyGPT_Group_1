@@ -223,6 +223,111 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.SearchHistoryComponent,
           ),
       },
+
+      // ORGANIZATION ANALYTICS (shared detail screens)
+      {
+        path: "analytics",
+
+        data: {
+          variant: "overview",
+          pageTitle: "Organization Overview",
+          pageDescription:
+            "Platform data and key metrics for your organization.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            { label: "Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policies",
+
+        data: {
+          variant: "policies",
+          pageTitle: "Policy Analytics",
+          pageDescription:
+            "Policy portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Policy Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        data: {
+          variant: "schemes",
+          pageTitle: "Scheme Analytics",
+          pageDescription:
+            "Scheme portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Scheme Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Eligibility / Usage Analytics",
+          pageDescription:
+            "Platform eligibility coverage and usage statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Eligibility / Usage Analytics" },
+          ],
+          cta: [
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/organization/schemes"],
+            },
+            {
+              label: "View Search History",
+              icon: "history",
+              route: ["/dashboard/organization/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
     ],
   },
 
@@ -462,6 +567,199 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../search-history/search-history.component").then(
             (m) => m.SearchHistoryComponent,
+          ),
+      },
+
+      // CITIZEN ANALYTICS (shared detail screens)
+      {
+        path: "analytics",
+
+        data: {
+          variant: "personal",
+          pageTitle: "Personal Dashboard",
+          pageDescription:
+            "Your saved items and platform activity at a glance.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            { label: "Analytics" },
+          ],
+          cta: [
+            {
+              label: "View Saved Items",
+              icon: "bookmark",
+              route: ["/dashboard/citizen/saved"],
+            },
+            {
+              label: "Search History",
+              icon: "history",
+              route: ["/dashboard/citizen/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/saved-policies",
+
+        data: {
+          variant: "saved-policies",
+          pageTitle: "Saved Policies",
+          pageDescription: "Policies you saved for later, with counts.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Saved Policies" },
+          ],
+          cta: [
+            {
+              label: "View All Saved Items",
+              icon: "bookmark",
+              route: ["/dashboard/citizen/saved"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/eligible-schemes",
+
+        data: {
+          variant: "eligible-schemes",
+          pageTitle: "Eligible Schemes",
+          pageDescription: "Open schemes you may be eligible for, by category.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Eligible Schemes" },
+          ],
+          cta: [
+            {
+              label: "Check My Eligibility",
+              icon: "fact_check",
+              route: ["/dashboard/citizen/eligibility"],
+            },
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/citizen/schemes"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/search-history",
+
+        data: {
+          variant: "search-history",
+          pageTitle: "Search History",
+          pageDescription: "Your policy and scheme search activity.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Search History" },
+          ],
+          cta: [
+            {
+              label: "View Full History",
+              icon: "history",
+              route: ["/dashboard/citizen/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/application-status",
+
+        data: {
+          variant: "application-status",
+          pageTitle: "Application Status",
+          pageDescription: "Track your scheme applications.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Application Status" },
+          ],
+          cta: [
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/citizen/schemes"],
+            },
+            {
+              label: "Check Eligibility",
+              icon: "fact_check",
+              route: ["/dashboard/citizen/eligibility"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/notifications",
+
+        data: {
+          variant: "notifications",
+          pageTitle: "Notification Activity",
+          pageDescription: "Your notification delivery and read activity.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Notification Activity" },
+          ],
+          cta: [
+            {
+              label: "View All Notifications",
+              icon: "notifications",
+              route: ["/dashboard/citizen/notifications"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
           ),
       },
     ],
@@ -732,6 +1030,142 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // GOVERNMENT ANALYTICS (shared detail screens)
+      // /dashboard/government/analytics
+      {
+        path: "analytics",
+
+        data: {
+          variant: "overview",
+          pageTitle: "Analytics Overview",
+          pageDescription: "Government platform overview and key metrics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            { label: "Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policy-statistics",
+
+        data: {
+          variant: "policy-statistics",
+          pageTitle: "Policy Statistics",
+          pageDescription: "Policy status, distribution and trends.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/government/analytics"],
+            },
+            { label: "Policy Statistics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/scheme-usage",
+
+        data: {
+          variant: "scheme-usage",
+          pageTitle: "Scheme Usage",
+          pageDescription: "Scheme adoption, status and trends.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/government/analytics"],
+            },
+            { label: "Scheme Usage" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/user-activity",
+
+        data: {
+          variant: "user-activity",
+          pageTitle: "User Activity",
+          pageDescription: "User accounts and activity in your scope.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/government/analytics"],
+            },
+            { label: "User Activity" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/departments",
+
+        data: {
+          variant: "departments",
+          pageTitle: "Department Analytics",
+          pageDescription: "Ministry and department aggregations.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/government/analytics"],
+            },
+            { label: "Department Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/notifications",
+
+        data: {
+          variant: "notifications",
+          pageTitle: "Notification Statistics",
+          pageDescription: "Notification delivery and read statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/government"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/government/analytics"],
+            },
+            { label: "Notification Statistics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
       // REPORTS (role layout children)
       // /dashboard/government/reports
       ...REPORTS_CHILD_ROUTES,
@@ -777,6 +1211,130 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("./admin/analytics/admin-analytics/admin-analytics.component").then(
             (m) => m.AdminAnalyticsComponent,
+          ),
+      },
+
+      // ADMIN ANALYTICS CHILDREN (shared detail screens)
+      {
+        path: "analytics/policies",
+
+        data: {
+          variant: "policies",
+          pageTitle: "Policy Analytics",
+          pageDescription:
+            "Policy portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Policy Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        data: {
+          variant: "schemes",
+          pageTitle: "Scheme Analytics",
+          pageDescription:
+            "Scheme portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Scheme Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/users",
+
+        data: {
+          variant: "users",
+          pageTitle: "User Analytics",
+          pageDescription:
+            "Registered user base, activity and role distribution.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "User Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/departments",
+
+        data: {
+          variant: "departments",
+          pageTitle: "Department Analytics",
+          pageDescription: "Ministry and department aggregations.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Department Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Usage Statistics",
+          pageDescription: "Platform usage and adoption statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Usage Statistics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/notifications",
+
+        data: {
+          variant: "notifications",
+          pageTitle: "Notification Analytics",
+          pageDescription: "Notification delivery and read statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Notification Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
           ),
       },
 
@@ -1293,6 +1851,104 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../search-history/search-history.component").then(
             (m) => m.SearchHistoryComponent,
+          ),
+      },
+
+      // RESEARCHER ANALYTICS (shared detail screens)
+      {
+        path: "analytics",
+
+        data: {
+          variant: "overview",
+          pageTitle: "Research Overview",
+          pageDescription: "Platform research data and key metrics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            { label: "Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policies",
+
+        data: {
+          variant: "policies",
+          pageTitle: "Policy Analytics",
+          pageDescription:
+            "Policy portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Policy Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        data: {
+          variant: "schemes",
+          pageTitle: "Scheme Analytics",
+          pageDescription:
+            "Scheme portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Scheme Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Search / Usage Analytics",
+          pageDescription: "Platform search and usage statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Search / Usage Analytics" },
+          ],
+          cta: [
+            {
+              label: "View Search History",
+              icon: "history",
+              route: ["/dashboard/researcher/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
           ),
       },
     ],

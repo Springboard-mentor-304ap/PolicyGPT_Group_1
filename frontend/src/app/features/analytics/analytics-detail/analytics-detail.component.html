@@ -1,0 +1,143 @@
+<div class="analytics-detail-page">
+
+  @if (crumbs.length > 0) {
+    <app-breadcrumb [items]="crumbs"></app-breadcrumb>
+  }
+
+  <header class="analytics-detail-header">
+    <div class="header-left">
+      <h1>{{ pageTitle }}</h1>
+      @if (pageDescription) {
+        <p>{{ pageDescription }}</p>
+      }
+    </div>
+
+    <div class="header-right">
+      <button
+        type="button"
+        class="btn btn-outline"
+        (click)="refresh()"
+        [disabled]="loading"
+        aria-label="Refresh analytics"
+      >
+        <span class="material-icons" aria-hidden="true">refresh</span>
+        <span>{{ loading ? "Loading…" : "Refresh" }}</span>
+      </button>
+    </div>
+  </header>
+
+  @if (loading) {
+    <div class="stats-grid" aria-label="Loading analytics">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="stat-card stat-card--skeleton" aria-hidden="true">
+          <span class="skeleton skeleton-icon"></span>
+          <span class="skeleton-body">
+            <span class="skeleton skeleton-title"></span>
+            <span class="skeleton skeleton-line"></span>
+          </span>
+        </div>
+      }
+    </div>
+
+    <div class="table-skeleton" aria-hidden="true">
+      <div class="skeleton skeleton-table-head"></div>
+      @for (i of [1, 2, 3]; track i) {
+        <div class="skeleton skeleton-table-row"></div>
+      }
+    </div>
+  } @else if (error) {
+    <section class="state-card error-state">
+      <div class="state-icon">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+      </div>
+      <h2>Unable to load analytics.</h2>
+      <p>{{ error }}</p>
+      <button type="button" class="retry-button" (click)="retry()">
+        Retry
+      </button>
+    </section>
+  } @else {
+    @if (note) {
+      <section class="note-panel" aria-label="Note">
+        <div class="note-icon" aria-hidden="true">
+          <span class="material-icons">{{ note.icon }}</span>
+        </div>
+        <div class="note-text">
+          <h2>{{ note.title }}</h2>
+          <p>{{ note.text }}</p>
+        </div>
+      </section>
+    }
+
+    @if (kpis.length > 0) {
+      <div class="stats-grid">
+        @for (kpi of kpis; track kpi.label) {
+          <div class="stat-card">
+            <span
+              class="stat-icon stat-icon--{{ kpi.tone }}"
+              aria-hidden="true"
+            >
+              <span class="material-icons">{{ kpi.icon }}</span>
+            </span>
+            <span class="stat-text">
+              <span class="stat-value">{{ kpi.value }}</span>
+              <span class="stat-title">{{ kpi.label }}</span>
+              <span class="stat-sub">{{ kpi.sub }}</span>
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    @for (table of tables; track table.title) {
+      @if (table.rows.length > 0) {
+        <section class="data-card">
+          <h2>{{ table.title }}</h2>
+          <div class="data-table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  @for (h of table.headers; track h) {
+                    <th>{{ h }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of table.rows; track $index) {
+                  <tr>
+                    @for (cell of row; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+
+    @if (isEmpty && ctas.length === 0) {
+      <section class="state-card empty-state">
+        <div class="state-icon">
+          <span class="material-icons" aria-hidden="true">bar_chart</span>
+        </div>
+        <h2>No data available</h2>
+        <p>There is nothing to show for this view yet.</p>
+      </section>
+    }
+
+    @if (ctas.length > 0) {
+      <div class="cta-row">
+        @for (cta of ctas; track cta.label) {
+          <a class="btn btn-outline" [routerLink]="cta.route">
+            <span class="material-icons" aria-hidden="true">{{
+              cta.icon
+            }}</span>
+            <span>{{ cta.label }}</span>
+          </a>
+        }
+      </div>
+    }
+  }
+</div>

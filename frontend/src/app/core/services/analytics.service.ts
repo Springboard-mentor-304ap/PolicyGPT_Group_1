@@ -181,6 +181,15 @@ export interface UserAnalytics {
   }[];
 }
 
+export interface UsageStatisticsResponse {
+  users: number;
+  policies: number;
+  schemes: number;
+  approved_policies: number;
+  approved_schemes: number;
+  active_users: number;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -310,6 +319,14 @@ export class AnalyticsService {
 
   getUserActivity(): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/users/activity`);
+  }
+
+  // --------------------------------------------------
+  // USAGE STATISTICS (existing backend GET /analytics/usage)
+  // --------------------------------------------------
+
+  getUsageStatistics(): Observable<UsageStatisticsResponse> {
+    return this.http.get<UsageStatisticsResponse>(`${this.baseUrl}/usage`);
   }
 
   // --------------------------------------------------

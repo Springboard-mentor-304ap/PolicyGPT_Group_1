@@ -182,21 +182,106 @@
             </a>
 
             <!-- ANALYTICS -->
-<a class="dash-nav__item"
-    routerLink="/dashboard/admin/analytics"
-    routerLinkActive="dash-nav__item--active"
-    [routerLinkActiveOptions]="{ exact: true }"
-    (click)="closeUsersMenu(); closeMobileMenu()"
-    [attr.title]="sidebarCollapsed ? 'Analytics' : null">
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                analyticsMenuOpen || isAnalyticsRouteActive()
+            " (click)="onAnalyticsNavClick($event)" [attr.title]="sidebarCollapsed ? 'Analytics' : null"
+                [attr.aria-expanded]="analyticsMenuOpen" aria-controls="admin-analytics-submenu">
 
-    <span class="material-icons dash-nav__icon">
-        analytics
-    </span>
+                <span class="material-icons dash-nav__icon">
+                    analytics
+                </span>
 
-    <span class="dash-nav__label">
-        Analytics
-    </span>
-</a>
+                <span class="dash-nav__label">
+                    Analytics
+                </span>
+
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="analyticsMenuOpen"
+                    (click)="toggleAnalyticsMenuOnly($event)" title="Toggle Analytics submenu">
+                    chevron_right
+                </span>
+
+            </button>
+
+            <!-- ANALYTICS SUBMENU -->
+            @if (analyticsMenuOpen && !sidebarCollapsed) {
+
+            <div id="admin-analytics-submenu" class="dash-nav__submenu" aria-label="Analytics">
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        dashboard
+                    </span>
+
+                    <span>
+                        Analytics Overview
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics/policies"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        description
+                    </span>
+
+                    <span>
+                        Policy Analytics
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics/schemes"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        account_balance
+                    </span>
+
+                    <span>
+                        Scheme Analytics
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics/users"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        group
+                    </span>
+
+                    <span>
+                        User Analytics
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics/departments"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        domain
+                    </span>
+
+                    <span>
+                        Department Analytics
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/analytics/usage"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        bar_chart
+                    </span>
+
+                    <span>
+                        Usage Statistics
+                    </span>
+                </a>
+
+            </div>
+
+            }
 
 
             <!-- FAQS -->

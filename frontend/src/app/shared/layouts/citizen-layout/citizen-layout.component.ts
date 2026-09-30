@@ -17,6 +17,23 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
 import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
+/* =========================================================
+   CITIZEN NAVIGATION ITEM (optional expandable children)
+   ========================================================= */
+
+export interface CitizenNavChild {
+  label: string;
+  icon: string;
+  route: string;
+}
+
+export interface CitizenNavItem {
+  label: string;
+  icon: string;
+  route: string;
+  children?: CitizenNavChild[];
+}
+
 @Component({
   selector: "app-citizen-layout",
 
@@ -55,6 +72,7 @@ export class CitizenLayoutComponent implements OnInit {
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
+  analyticsMenuOpen = false;
 
   // =========================================================
   // SEARCH
@@ -76,7 +94,7 @@ export class CitizenLayoutComponent implements OnInit {
   // so that CitizenLayoutComponent stays active.
   // =========================================================
 
-  navItems = [
+  navItems: CitizenNavItem[] = [
     {
       label: "Dashboard",
       icon: "dashboard",
@@ -105,6 +123,24 @@ export class CitizenLayoutComponent implements OnInit {
       label: "Compare",
       icon: "compare_arrows",
       route: "/dashboard/citizen/compare",
+    },
+
+    {
+      label: "Analytics",
+      icon: "analytics",
+      route: "/dashboard/citizen/analytics",
+      children: [
+        {
+          label: "Personal Analytics",
+          icon: "dashboard",
+          route: "/dashboard/citizen/analytics",
+        },
+        {
+          label: "Saved & Search Activity",
+          icon: "insights",
+          route: "/dashboard/citizen/analytics/activity",
+        },
+      ],
     },
 
     {
@@ -147,6 +183,36 @@ export class CitizenLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
+
+    if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
+    }
+  }
+
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+    }
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/citizen/analytics");
   }
 
   // =========================================================

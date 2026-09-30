@@ -107,6 +107,62 @@
             track item.label
             ) {
 
+            @if (item.children && item.children.length > 0) {
+
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                analyticsMenuOpen || isAnalyticsRouteActive()
+            " (click)="onAnalyticsNavClick($event)" [attr.title]="
+              sidebarCollapsed
+                ? item.label
+                : null
+            " [attr.aria-expanded]="analyticsMenuOpen">
+
+                <span class="material-icons dash-nav__icon" aria-hidden="true">
+                    {{ item.icon }}
+                </span>
+
+                <span class="dash-nav__label">
+                    {{ item.label }}
+                </span>
+
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="analyticsMenuOpen"
+                    (click)="toggleAnalyticsMenuOnly($event)" [attr.title]="'Toggle ' + item.label + ' submenu'">
+                    chevron_right
+                </span>
+
+            </button>
+
+            @if (analyticsMenuOpen && !sidebarCollapsed) {
+
+            <div class="dash-nav__submenu" [attr.aria-label]="item.label">
+
+                @for (
+                child of item.children;
+                track child.label
+                ) {
+
+                <a class="dash-nav__submenu-item" [routerLink]="child.route"
+                    routerLinkActive="dash-nav__submenu-item--active"
+                    [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
+
+                    <span class="material-icons" aria-hidden="true">
+                        {{ child.icon }}
+                    </span>
+
+                    <span>
+                        {{ child.label }}
+                    </span>
+
+                </a>
+
+                }
+
+            </div>
+
+            }
+
+            } @else {
+
             <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{
             exact: item.route === '/dashboard/researcher'
@@ -125,6 +181,8 @@
                 </span>
 
             </a>
+
+            }
 
             }
 

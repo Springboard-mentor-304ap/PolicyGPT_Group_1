@@ -20,10 +20,17 @@ import { ToastContainerComponent } from "../../components/toast-container/toast-
    ORGANIZATION NAVIGATION ITEM
    ========================================================= */
 
+export interface OrganizationNavChild {
+  icon: string;
+  label: string;
+  route: string;
+}
+
 export interface OrganizationNavItem {
   icon: string;
   label: string;
   route: string;
+  children?: OrganizationNavChild[];
 }
 
 /* =========================================================
@@ -66,6 +73,7 @@ export class OrganizationLayoutComponent implements OnInit {
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
+  analyticsMenuOpen = false;
 
   // =========================================================
   // SEARCH
@@ -108,8 +116,20 @@ export class OrganizationLayoutComponent implements OnInit {
 
     {
       icon: "analytics",
-      label: "Organization Insights",
+      label: "Analytics",
       route: "/dashboard/organization/analytics",
+      children: [
+        {
+          icon: "dashboard",
+          label: "Organization Analytics",
+          route: "/dashboard/organization/analytics",
+        },
+        {
+          icon: "insights",
+          label: "Policy & Scheme Usage",
+          route: "/dashboard/organization/analytics/usage",
+        },
+      ],
     },
 
     {
@@ -152,6 +172,36 @@ export class OrganizationLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
+
+    if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
+    }
+  }
+
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+    }
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/organization/analytics");
   }
 
   // =========================================================

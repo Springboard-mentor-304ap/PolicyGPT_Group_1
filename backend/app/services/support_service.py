@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.models.faq import FAQ
 from app.models.support_query import SupportQuery
+from app.models.user import User
 from app.schemas.support import SupportRequestCreate
 from app.services.audit_log_service import log_action
 
@@ -148,3 +149,143 @@ def get_support_request(
         )
         .first()
     )
+
+
+# ============================================================
+# ADMIN SUPPORT MANAGEMENT (ADMIN ONLY — no ownership restriction)
+# ============================================================
+
+ALLOWED_SUPPORT_STATUSES = {"OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"}
+
+
+def _support_request_to_dict(query: SupportQuery) -> dict:
+    """Serialize a support request with user details for admin views."""
+    user = query.user
+    return {
+        "query_id": query.query_id,
+        "request_id": query.request_id,
+        "user_id": query.user_id,
+        "user_name": getattr(user, "full_name", None),
+        "user_email": getattr(user, "email", None),
+        "user_role": getattr(user, "role", None),
+        "category": query.category,
+        "subject": query.subject,
+        "description": query.description,
+        "priority": query.priority,
+        "status": query.status,
+        "response": query.response,
+        "created_at": query.created_at,
+        "updated_at": query.updated_at,
+        "resolved_at": query.resolved_at,
+    }
+
+
+def get_all_support_requests(
+    db: Session,
+    status: Optional[str] = None,
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+) -> list[dict]:
+    """Retrieve every support request (ADMIN) with optional filters."""
+    query = db.query(SupportQuery)
+
+    if status and status.strip() and status.strip().lower() != "all":
+        query = query.filter(
+            SupportQuery.status == status.strip().upper())
+
+    if category and category.strip() and category.strip().lower() != "all":
+        query = query.filter(
+            SupportQuery.category.ilike(category.strip()))
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.join(
+            User, User.user_id == SupportQuery.user_id).filter(
+            or_(
+                SupportQuery.subject.ilike(term),
+                SupportQuery.description.ilike(term),
+                SupportQuery.response.ilike(term),
+                User.full_name.ilike(term),
+                User.email.ilike(term),
+            )
+        )
+
+    rows = query.order_by(SupportQuery.created_at.desc()).all()
+    return [_support_request_to_dict(row) for row in rows]
+
+
+def get_support_request_by_id(
+    db: Session,
+    query_id: int,
+) -> dict | None:
+    """Retrieve a single support request by ID (ADMIN, no ownership check)."""
+    query = (
+        db.query(SupportQuery)
+        .filter(SupportQuery.query_id == query_id)
+        .first()
+    )
+    if not query:
+        return None
+    return _support_request_to_dict(query)
+
+
+def respond_to_support_request(
+    db: Session,
+    query_id: int,
+    admin_user_id: int,
+    response: Optional[str] = None,
+    status: Optional[str] = None,
+) -> dict | None:
+    """Record an admin response and/or status change on a support request."""
+    query = (
+        db.query(SupportQuery)
+        .filter(SupportQuery.query_id == query_id)
+        .first()
+    )
+    if not query:
+        return None
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    if response is not None:
+        query.response = response.strip() or None
+
+    if status is not None and status.strip():
+        normalized = status.strip().upper()
+        if normalized not in ALLOWED_SUPPORT_STATUSES:
+            raise ValueError(
+                "Status must be one of: "
+                + ", ".join(sorted(ALLOWED_SUPPORT_STATUSES))
+            )
+        query.status = normalized
+        if normalized in ("RESOLVED", "CLOSED") and not query.resolved_at:
+            query.resolved_at = now
+        if normalized in ("OPEN", "IN_PROGRESS"):
+            query.resolved_at = None
+
+    if query.assigned_to is None:
+        query.assigned_to = admin_user_id
+
+    query.updated_at = now
+    db.commit()
+    db.refresh(query)
+
+    # Notify the requesting user (best effort, never blocks the response)
+    try:
+        from app.services.notification_service import (
+            notify_feedback_updated,
+        )
+        notify_feedback_updated(
+            db=db,
+            feedback_id=query.query_id,
+            subject=query.subject,
+            user_id=query.user_id,
+            response_summary=(
+                query.response[:80] if query.response else None
+            ),
+        )
+    except Exception as exc:
+        logger.warning(
+            "Support response notification dispatch skipped: %s", exc)
+
+    return _support_request_to_dict(query)

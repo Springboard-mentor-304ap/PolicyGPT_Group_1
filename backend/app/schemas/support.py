@@ -32,3 +32,14 @@ class SupportRequestResponse(BaseModel):
     resolved_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class SupportRequestUpdate(BaseModel):
+    response: str | None = None
+    status: str | None = None
+
+
+class AdminSupportRequestResponse(SupportRequestResponse):
+    user_name: str | None = None
+    user_email: str | None = None
+    user_role: str | None = None

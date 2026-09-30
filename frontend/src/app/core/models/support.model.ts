@@ -26,3 +26,14 @@ export interface SupportRequestCreate {
   description: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' | string;
 }
+
+export interface AdminSupportRequest extends SupportRequest {
+  user_name?: string | null;
+  user_email?: string | null;
+  user_role?: string | null;
+}
+
+export interface SupportRequestRespond {
+  response?: string | null;
+  status?: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED' | string;
+}

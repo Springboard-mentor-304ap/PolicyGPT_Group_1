@@ -132,7 +132,7 @@ export class AdminLayoutComponent implements OnInit {
 
     {
       label: "Audit Logs",
-      route: "/admin/audit-logs",
+      route: "/dashboard/admin/audit-logs",
       icon: "history",
     },
   ];

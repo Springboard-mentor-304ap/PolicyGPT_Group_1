@@ -127,12 +127,6 @@ export class GovernmentLayoutComponent implements OnInit {
     },
 
     {
-      icon: "fact_check",
-      label: "Audit Logs",
-      route: "/government/audit-logs",
-    },
-
-    {
       icon: "support_agent",
       label: "Support",
       route: "/dashboard/government/faqs",

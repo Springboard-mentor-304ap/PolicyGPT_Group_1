@@ -227,6 +227,20 @@
             </a>
 
 
+            <!-- SUPPORT REQUESTS -->
+            <a class="dash-nav__item" routerLink="/dashboard/admin/support-requests" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Support Requests' : null">
+                <span class="material-icons dash-nav__icon">
+                    support_agent
+                </span>
+
+                <span class="dash-nav__label">
+                    Support Requests
+                </span>
+            </a>
+
+
             <!-- USERS -->
             <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
                 usersMenuOpen || isUsersRouteActive()
@@ -315,7 +329,7 @@
 
 
             <!-- AUDIT LOGS -->
-            <a class="dash-nav__item" routerLink="/admin/audit-logs" routerLinkActive="dash-nav__item--active"
+            <a class="dash-nav__item" routerLink="/dashboard/admin/audit-logs" routerLinkActive="dash-nav__item--active"
                 [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
                 [attr.title]="sidebarCollapsed ? 'Audit Logs' : null">
                 <span class="material-icons dash-nav__icon">

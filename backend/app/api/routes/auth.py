@@ -4,7 +4,7 @@ import logging
 import secrets
 import re
 import random
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
@@ -25,6 +25,7 @@ from app.db.database import get_db
 from app.models.password_reset import PasswordResetToken
 from app.models.otp import OTPVerification
 from app.models.user import User
+from app.services.audit_log_service import log_request_action
 
 from app.schemas.auth import (
     AuthResponse,
@@ -316,6 +317,7 @@ def hash_reset_token(token: str) -> str:
 )
 def register(
     data: RegisterRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -443,6 +445,16 @@ def register(
     # CREATE TOKEN
     # -----------------------------------------------------
 
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_REGISTERED",
+        "USER",
+        user.user_id,
+        f"New {user.role} account registered ({user.email}).",
+    )
+
     token = create_user_token(user)
 
     # -----------------------------------------------------
@@ -470,6 +482,7 @@ def register(
 )
 def login(
     data: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -513,6 +526,16 @@ def login(
 
     if not user:
 
+        log_request_action(
+            request,
+            db,
+            None,
+            "AUTH_LOGIN_FAILED",
+            "USER",
+            None,
+            "Login failed: unknown identifier.",
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_CREDENTIAL",
@@ -536,6 +559,16 @@ def login(
 
     if not password_valid:
 
+        log_request_action(
+            request,
+            db,
+            user,
+            "AUTH_LOGIN_FAILED",
+            "USER",
+            user.user_id,
+            "Login failed: incorrect password.",
+        )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_PASSWORD",
@@ -558,6 +591,16 @@ def login(
     # -----------------------------------------------------
     # CREATE ACCESS TOKEN
     # -----------------------------------------------------
+
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_LOGIN_SUCCESS",
+        "USER",
+        user.user_id,
+        f"User {user.email} logged in.",
+    )
 
     token = create_user_token(user)
 
@@ -657,6 +700,7 @@ def get_me(
 )
 def update_profile(
     data: ProfileUpdateRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -730,6 +774,16 @@ def update_profile(
             detail="Profile update conflicts with existing data"
         )
 
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_PROFILE_UPDATED",
+        "USER",
+        current_user.user_id,
+        f"Profile updated (fields: {', '.join(sorted(updates.keys()))}).",
+    )
+
     return current_user
 
 
@@ -742,6 +796,7 @@ def update_profile(
 )
 def change_password(
     data: ChangePasswordRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -811,6 +866,16 @@ def change_password(
 
     db.commit()
 
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_PASSWORD_CHANGED",
+        "USER",
+        current_user.user_id,
+        "Password changed; existing tokens revoked.",
+    )
+
     return {
         "message": "Password changed successfully. Please login again."
     }
@@ -824,6 +889,7 @@ def change_password(
     "/logout"
 )
 def logout(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -844,6 +910,16 @@ def logout(
 
     db.commit()
 
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_LOGOUT",
+        "USER",
+        current_user.user_id,
+        f"User {current_user.email} logged out.",
+    )
+
     return {
         "message": "Logged out successfully"
     }
@@ -858,6 +934,7 @@ def logout(
 )
 def send_otp(
     data: SendOTPRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -1043,6 +1120,16 @@ def send_otp(
     # SUCCESS
     # -----------------------------------------------------
 
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_OTP_SENT",
+        "USER",
+        user.user_id if user else None,
+        f"OTP sent via {channel}.",
+    )
+
     return {
         "message": "OTP sent successfully",
         "channel": channel,
@@ -1058,6 +1145,7 @@ def send_otp(
 )
 def verify_otp(
     data: VerifyOTPRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -1163,6 +1251,16 @@ def verify_otp(
         != otp_record.otp_hash
     ):
 
+        log_request_action(
+            request,
+            db,
+            user,
+            "AUTH_OTP_FAILED",
+            "USER",
+            user.user_id,
+            "OTP verification failed: invalid code.",
+        )
+
         raise HTTPException(
 
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1254,6 +1352,16 @@ def verify_otp(
     # SUCCESS
     # -----------------------------------------------------
 
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_OTP_VERIFIED",
+        "USER",
+        user.user_id,
+        "OTP verified successfully.",
+    )
+
     return {
 
         "message":
@@ -1277,6 +1385,7 @@ def verify_otp(
 )
 def forgot_password(
     data: ForgotPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -1531,6 +1640,16 @@ def forgot_password(
     # SUCCESS (GENERIC TO PRESERVE ANTI-ENUMERATION)
     # -----------------------------------------------------
 
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_PASSWORD_RESET_REQUESTED",
+        "USER",
+        user.user_id if user else None,
+        f"Password reset code sent via {channel}.",
+    )
+
     return generic_response
 
 
@@ -1541,6 +1660,7 @@ def forgot_password(
 @router.delete("/account")
 def delete_account(
     data: DeleteAccountRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -1559,6 +1679,8 @@ def delete_account(
         )
 
     user_id = current_user.user_id
+    deleted_email = current_user.email
+    deleted_role = current_user.role
 
     try:
         # -------------------------------------------------
@@ -1601,6 +1723,19 @@ def delete_account(
             detail="Unable to delete account"
         )
 
+    # NOTE: logged with user_id=None because the user row no longer exists
+    # (audit_logs.user_id references users.user_id).
+    log_request_action(
+        request,
+        db,
+        None,
+        "AUTH_ACCOUNT_DELETED",
+        "USER",
+        None,
+        f"Account {deleted_email} ({deleted_role}, user_id {user_id}) "
+        "self-deleted.",
+    )
+
     return {
         "message": "Account deleted successfully"
     }
@@ -1615,6 +1750,7 @@ def delete_account(
 )
 def delete_user(
     email: str,
+    request: Request,
     current_user: User = Depends(
         require_roles("ADMIN")
     ),
@@ -1639,8 +1775,22 @@ def delete_user(
     # DELETE
     # -----------------------------------------------------
 
+    removed_id = user.user_id
+    removed_role = user.role
+
     db.delete(user)
     db.commit()
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_ADMIN_USER_DELETED",
+        "USER",
+        None,
+        f"Admin deleted user {email} ({removed_role}, "
+        f"user_id {removed_id}).",
+    )
 
     return {
         "message": "User deleted successfully",
@@ -1657,6 +1807,7 @@ def delete_user(
 )
 def delete_user_by_phone(
     phone: str,
+    request: Request,
     current_user: User = Depends(
         require_roles("ADMIN")
     ),
@@ -1681,8 +1832,22 @@ def delete_user_by_phone(
     # DELETE
     # -----------------------------------------------------
 
+    removed_id = user.user_id
+    removed_role = user.role
+
     db.delete(user)
     db.commit()
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_ADMIN_USER_DELETED",
+        "USER",
+        None,
+        f"Admin deleted user with phone {phone} ({removed_role}, "
+        f"user_id {removed_id}).",
+    )
 
     return {
         "message": "User deleted successfully",
@@ -1699,6 +1864,7 @@ def delete_user_by_phone(
 )
 def reset_password(
     data: ResetPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
 
@@ -1810,6 +1976,16 @@ def reset_password(
     # -----------------------------------------------------
 
     db.commit()
+
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_PASSWORD_RESET_COMPLETED",
+        "USER",
+        user.user_id,
+        "Password reset completed via reset token.",
+    )
 
     return {
         "message": "Password reset successfully. Please login again."

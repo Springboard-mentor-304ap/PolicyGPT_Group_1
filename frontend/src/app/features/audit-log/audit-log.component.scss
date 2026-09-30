@@ -1,0 +1,11 @@
+// Audit Logs — component-specific additions.
+// Base layout (stats, toolbar, table, modals) is shared with the
+// Admin Feedback console stylesheet (see styleUrls).
+
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover td {
+  background: #f8fafc;
+}

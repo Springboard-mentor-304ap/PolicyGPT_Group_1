@@ -1,0 +1,60 @@
+// Admin Support Requests — component-specific additions.
+// Base layout (stats, toolbar, table, modals) is shared with the
+// Admin Feedback console stylesheet (see styleUrls).
+
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.priority-badge--low {
+  background: #eef2f7;
+  border-color: #d7e0ea;
+  color: #5b6b7f;
+}
+
+.priority-badge--medium {
+  background: #edf5fc;
+  border-color: #c7def2;
+  color: #1461a0;
+}
+
+.priority-badge--high {
+  background: #fef3e6;
+  border-color: #f3d9ae;
+  color: #b25e09;
+}
+
+.priority-badge--urgent {
+  background: #fdecea;
+  border-color: #f3c1bb;
+  color: #b3261e;
+}
+
+.request-id-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: #f4f6fa;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.priority-cell {
+  white-space: nowrap;
+}

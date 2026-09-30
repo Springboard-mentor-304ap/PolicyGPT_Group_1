@@ -1,0 +1,392 @@
+<div class="admin-feedback-page">
+
+  <!-- =========================================================
+     PAGE HEADER (PolicyGPT Standard)
+     ========================================================= -->
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <h1>Audit Logs</h1>
+        <p>
+          Track important actions and changes across the PolicyGPT platform — authentication, user management, policy and scheme workflows, feedback, support, FAQ, and report activity.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <!-- REFRESH BUTTON -->
+        <button
+          type="button"
+          class="btn-refresh"
+          (click)="loadLogs()"
+          [disabled]="loading()"
+          title="Refresh records"
+        >
+          <span class="material-icons" [class.spinning]="loading()">refresh</span>
+          <span>Refresh</span>
+        </button>
+
+        <!-- BACK BUTTON -->
+        <button type="button" class="back-button" (click)="goBack()">
+          <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
+          <span>Back</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================
+     STATISTICS METRIC CARDS
+     ========================================================= -->
+  <section class="stats-grid" aria-label="Audit Log Metrics">
+    <div class="stat-card">
+      <div class="stat-icon-wrap stat-icon-wrap--total">
+        <span class="material-icons">history</span>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ stats().total }}</span>
+        <span class="stat-title">Total Logs</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap stat-icon-wrap--open">
+        <span class="material-icons">today</span>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ stats().todayCount }}</span>
+        <span class="stat-title">Today</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap stat-icon-wrap--progress">
+        <span class="material-icons">manage_accounts</span>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ stats().adminActions }}</span>
+        <span class="stat-title">Administrative Actions</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-wrap stat-icon-wrap--resolved">
+        <span class="material-icons">group</span>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ stats().userActions }}</span>
+        <span class="stat-title">User Actions</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+     TOOLBAR: SEARCH & FILTERS
+     ========================================================= -->
+  <section class="toolbar-card">
+    <div class="toolbar-top">
+      <!-- SEARCH INPUT -->
+      <div class="search-input-wrapper">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+            <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <input
+          type="text"
+          placeholder="Search by action, user, email, entity, or description..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          autocomplete="off"
+          aria-label="Search audit logs"
+        />
+        <button
+          *ngIf="searchQuery()"
+          type="button"
+          class="clear-search"
+          (click)="searchQuery.set('')"
+          aria-label="Clear search"
+        >
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- ACTION FILTER DROPDOWN (server-side) -->
+      <div class="filter-dropdown">
+        <label for="actionSelect" class="filter-label">Action:</label>
+        <select
+          id="actionSelect"
+          [ngModel]="actionFilter()"
+          (ngModelChange)="actionFilter.set($event); applyServerFilters()"
+        >
+          <option *ngFor="let a of availableActions()" [value]="a">
+            {{ a === 'ALL' ? 'All Actions' : a }}
+          </option>
+        </select>
+      </div>
+
+      <!-- ENTITY FILTER DROPDOWN (server-side) -->
+      <div class="filter-dropdown">
+        <label for="entitySelect" class="filter-label">Entity:</label>
+        <select
+          id="entitySelect"
+          [ngModel]="entityFilter()"
+          (ngModelChange)="entityFilter.set($event); applyServerFilters()"
+        >
+          <option *ngFor="let e of availableEntities()" [value]="e">
+            {{ e === 'ALL' ? 'All Entities' : e }}
+          </option>
+        </select>
+      </div>
+
+      <!-- ROLE FILTER DROPDOWN -->
+      <div class="filter-dropdown">
+        <label for="roleSelect" class="filter-label">Role:</label>
+        <select
+          id="roleSelect"
+          [ngModel]="roleFilter()"
+          (ngModelChange)="roleFilter.set($event)"
+        >
+          <option value="ALL">All Roles</option>
+          <option value="ADMIN">Admin</option>
+          <option value="GOVERNMENT_OFFICIAL">Government Official</option>
+          <option value="CITIZEN">Citizen</option>
+          <option value="RESEARCHER">Researcher</option>
+          <option value="ORGANIZATION">Organization</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- DATE RANGE ROW -->
+    <div class="status-tabs-row">
+      <div class="filter-dropdown">
+        <label for="fromDate" class="filter-label">From:</label>
+        <input
+          id="fromDate"
+          type="date"
+          [ngModel]="fromDate()"
+          (ngModelChange)="fromDate.set($event); applyServerFilters()"
+        />
+      </div>
+
+      <div class="filter-dropdown">
+        <label for="toDate" class="filter-label">To:</label>
+        <input
+          id="toDate"
+          type="date"
+          [ngModel]="toDate()"
+          (ngModelChange)="toDate.set($event); applyServerFilters()"
+        />
+      </div>
+
+      <div class="results-meta">
+        Showing <strong>{{ filteredLogs().length }}</strong> of
+        <strong>{{ stats().total }}</strong> records
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+     MAIN CONTENT
+     ========================================================= -->
+  <main class="content-section">
+
+    <!-- LOADING SKELETON -->
+    <div *ngIf="loading()" class="skeleton-table">
+      <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div *ngIf="!loading() && error()" class="error-card">
+      <div class="error-icon-wrap">
+        <span class="material-icons">error_outline</span>
+      </div>
+      <h3>Failed to load audit logs</h3>
+      <p>{{ error() }}</p>
+      <button type="button" class="btn-primary-action" (click)="loadLogs()">
+        <span class="material-icons">refresh</span>
+        <span>Retry</span>
+      </button>
+    </div>
+
+    <!-- EMPTY STATE -->
+    <div *ngIf="!loading() && !error() && filteredLogs().length === 0" class="empty-card">
+      <div class="empty-icon-wrap">
+        <span class="material-icons">history</span>
+      </div>
+      <h3>No audit logs found</h3>
+      <p *ngIf="hasActiveFilters()">
+        No records match the selected filters or search terms. Try clearing some criteria.
+      </p>
+      <p *ngIf="!hasActiveFilters()">
+        No audited actions have been recorded yet.
+      </p>
+      <button
+        type="button"
+        class="back-button"
+        *ngIf="hasActiveFilters()"
+        (click)="resetFilters()"
+      >
+        <span class="material-icons back-icon">filter_alt_off</span>
+        <span>Reset All Filters</span>
+      </button>
+    </div>
+
+    <!-- DESKTOP TABLE VIEW -->
+    <div *ngIf="!loading() && !error() && filteredLogs().length > 0" class="table-card desktop-table-wrap">
+      <div class="table-responsive">
+        <table class="feedback-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Entity ID</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of filteredLogs()" (click)="openDetails(item)" class="clickable-row" title="View details">
+              <!-- TIMESTAMP -->
+              <td class="date-cell">
+                <time>{{ item.created_at | date: 'mediumDate' }}</time>
+                <span class="time-sub">{{ item.created_at | date: 'shortTime' }}</span>
+              </td>
+
+              <!-- USER -->
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar" aria-hidden="true">
+                    {{ (item.user_name || 'S').charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="user-meta">
+                    <span class="user-name">{{ item.user_name || 'System' }}</span>
+                    <span class="user-email">{{ item.user_email || ('User #' + item.user_id) }}</span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- ROLE -->
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(item.user_role)">
+                  {{ item.user_role || '—' }}
+                </span>
+              </td>
+
+              <!-- ACTION -->
+              <td>
+                <span class="type-tag">{{ item.action }}</span>
+              </td>
+
+              <!-- ENTITY -->
+              <td>{{ item.entity_type || '—' }}</td>
+
+              <!-- ENTITY ID -->
+              <td>{{ item.entity_id ?? '—' }}</td>
+
+              <!-- DETAILS -->
+              <td>
+                <div class="message-preview">{{ item.description || '—' }}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MOBILE & TABLET CARD VIEW (Visible on <= 860px) -->
+    <div *ngIf="!loading() && !error() && filteredLogs().length > 0" class="mobile-card-list">
+      <article *ngFor="let item of filteredLogs()" class="mobile-feedback-card" (click)="openDetails(item)">
+        <header class="card-head">
+          <div class="user-block">
+            <div class="user-avatar">
+              {{ (item.user_name || 'S').charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <div class="user-name">{{ item.user_name || 'System' }}</div>
+              <div class="user-email">{{ item.created_at | date: 'medium' }}</div>
+            </div>
+          </div>
+          <span class="role-badge" [ngClass]="getRoleBadgeClass(item.user_role)">
+            {{ item.user_role || '—' }}
+          </span>
+        </header>
+
+        <div class="card-tags">
+          <span class="type-tag">{{ item.action }}</span>
+          <span class="ref-tag" *ngIf="item.entity_type">{{ item.entity_type }} #{{ item.entity_id }}</span>
+        </div>
+
+        <div class="card-body-content">
+          <p class="card-message">{{ item.description || 'No details recorded.' }}</p>
+        </div>
+      </article>
+    </div>
+
+  </main>
+
+  <!-- =========================================================
+     MODAL: LOG DETAILS
+     ========================================================= -->
+  <div class="modal-backdrop" *ngIf="showDetailsModal()" (click)="closeDetails()">
+    <div class="modal-card modal-card--lg" (click)="$event.stopPropagation()">
+      <header class="modal-header">
+        <div class="modal-header-icon">
+          <span class="material-icons">receipt_long</span>
+        </div>
+        <div class="modal-title-wrap">
+          <h2>Audit Log #{{ selectedLog()?.audit_id }}</h2>
+          <p>Full record details. Audit logs are immutable and cannot be edited.</p>
+        </div>
+        <button type="button" class="close-modal-btn" (click)="closeDetails()" aria-label="Close dialog">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body" *ngIf="selectedLog()">
+        <div class="submission-recap-box">
+          <div class="recap-header">
+            <div class="submitter-info">
+              <strong>{{ selectedLog()?.user_name || 'System' }}</strong>
+              <span class="sub-text">({{ selectedLog()?.user_email || '—' }})</span>
+              <span class="role-badge" [ngClass]="getRoleBadgeClass(selectedLog()?.user_role)">
+                {{ selectedLog()?.user_role || '—' }}
+              </span>
+            </div>
+            <time class="recap-time">
+              {{ selectedLog()?.created_at | date: 'medium' }}
+            </time>
+          </div>
+
+          <div class="recap-category-row">
+            <span class="type-tag">{{ selectedLog()?.action }}</span>
+            <span class="ref-tag" *ngIf="selectedLog()?.entity_type">
+              {{ selectedLog()?.entity_type }} #{{ selectedLog()?.entity_id }}
+            </span>
+          </div>
+
+          <div class="recap-subject">
+            User ID: {{ selectedLog()?.user_id ?? '—' }}
+            &nbsp;·&nbsp; IP: {{ selectedLog()?.ip_address || '—' }}
+          </div>
+
+          <div class="recap-message">
+            {{ selectedLog()?.description || 'No details recorded.' }}
+          </div>
+        </div>
+      </div>
+
+      <footer class="modal-footer">
+        <button type="button" class="back-button" (click)="closeDetails()">
+          Close
+        </button>
+      </footer>
+    </div>
+  </div>
+
+</div>

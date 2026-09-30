@@ -28,6 +28,8 @@ def get_audit_logs_route(
     entity_type: str | None = Query(default=None),
     from_date: datetime | None = Query(default=None),
     to_date: datetime | None = Query(default=None),
+    skip: int | None = Query(default=None, ge=0),
+    limit: int | None = Query(default=None, ge=1, le=2000),
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -42,7 +44,7 @@ def get_audit_logs_route(
     # The user_id query parameter is NOT used to determine access.
     #
     # ADMIN:
-    #   Service returns audit logs belonging to CITIZEN + ADMIN.
+    #   Service returns audit logs across every role.
     #
     # Normal users:
     #   Service returns only the logged-in user's audit logs.
@@ -58,6 +60,8 @@ def get_audit_logs_route(
         entity_type=entity_type,
         from_date=from_date,
         to_date=to_date,
+        skip=skip,
+        limit=limit,
     )
 
 

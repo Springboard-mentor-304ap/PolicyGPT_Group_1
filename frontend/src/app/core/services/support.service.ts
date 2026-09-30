@@ -5,6 +5,8 @@ import {
   FAQ,
   SupportRequest,
   SupportRequestCreate,
+  AdminSupportRequest,
+  SupportRequestRespond,
 } from '../models/support.model';
 
 @Injectable({
@@ -68,5 +70,54 @@ export class SupportService {
    */
   getSupportRequest(id: number): Observable<SupportRequest> {
     return this.http.get<SupportRequest>(`${this.baseUrl}/requests/${id}`);
+  }
+
+  /**
+   * Retrieve every support request with user details (Admin only).
+   * GET /support/admin/requests
+   */
+  getAllSupportRequests(filters?: {
+    status?: string;
+    category?: string;
+    search?: string;
+  }): Observable<AdminSupportRequest[]> {
+    let params = new HttpParams();
+    if (filters?.status && filters.status !== 'ALL') {
+      params = params.set('status', filters.status);
+    }
+    if (filters?.category && filters.category !== 'ALL') {
+      params = params.set('category', filters.category);
+    }
+    if (filters?.search && filters.search.trim()) {
+      params = params.set('search', filters.search.trim());
+    }
+    return this.http.get<AdminSupportRequest[]>(
+      `${this.baseUrl}/admin/requests`,
+      { params },
+    );
+  }
+
+  /**
+   * Retrieve a single support request with user details (Admin only).
+   * GET /support/admin/requests/{id}
+   */
+  getSupportRequestAdmin(id: number): Observable<AdminSupportRequest> {
+    return this.http.get<AdminSupportRequest>(
+      `${this.baseUrl}/admin/requests/${id}`,
+    );
+  }
+
+  /**
+   * Record an admin response and/or status change (Admin only).
+   * PATCH /support/admin/requests/{id}
+   */
+  respondToSupportRequest(
+    id: number,
+    payload: SupportRequestRespond,
+  ): Observable<AdminSupportRequest> {
+    return this.http.patch<AdminSupportRequest>(
+      `${this.baseUrl}/admin/requests/${id}`,
+      payload,
+    );
   }
 }

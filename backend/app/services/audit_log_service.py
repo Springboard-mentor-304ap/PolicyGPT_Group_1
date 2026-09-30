@@ -62,6 +62,79 @@ def log_action(
 
 
 
+def get_client_ip(request) -> str | None:
+    """Extract the client IP from a request (proxy-aware). Never raises."""
+    try:
+        if request is None:
+            return None
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip() or None
+        client = getattr(request, "client", None)
+        host = getattr(client, "host", None)
+        return host or None
+    except Exception:
+        return None
+
+
+def log_request_action(
+    request,
+    db: Session,
+    user,
+    action: str,
+    entity_type: str | None = None,
+    entity_id: int | None = None,
+    description: str | None = None,
+) -> AuditLog | None:
+    """Router-level audit helper.
+
+    Records one audit row for an already-successful operation, attaching
+    the client IP. Call only after the business transaction succeeded so
+    a failed operation never produces a success record. Never raises.
+    """
+    try:
+        user_id = getattr(user, "user_id", None)
+    except Exception:
+        user_id = None
+    return log_action(
+        db=db,
+        action=action,
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        description=description,
+        ip_address=get_client_ip(request),
+    )
+
+
+def _is_admin_role(user_role: str | None) -> bool:
+    return (user_role or "").strip().upper() in ("ADMIN", "ADMINISTRATOR")
+
+
+def _attach_user_info(db: Session, entries) -> None:
+    """Attach transient user_name/user_email/user_role for API responses."""
+    try:
+        items = list(entries or [])
+        if not items:
+            return
+        ids = {e.user_id for e in items if e.user_id}
+        users = (
+            {
+                u.user_id: u
+                for u in db.query(User).filter(User.user_id.in_(ids)).all()
+            }
+            if ids
+            else {}
+        )
+        for entry in items:
+            user = users.get(entry.user_id)
+            entry.user_name = getattr(user, "full_name", None)
+            entry.user_email = getattr(user, "email", None)
+            entry.user_role = getattr(user, "role", None)
+    except Exception as exc:
+        logger.warning("Audit user enrichment failed: %s", exc)
+
+
 def get_audit_logs(
     db: Session,
     user_id: int,
@@ -70,6 +143,8 @@ def get_audit_logs(
     entity_type: str | None = None,
     from_date=None,
     to_date=None,
+    skip: int | None = None,
+    limit: int | None = None,
 ):
     query = (
         db.query(AuditLog)
@@ -79,11 +154,9 @@ def get_audit_logs(
         )
     )
 
-    # ADMIN → Citizen + Admin audit logs
-    if user_role == "ADMIN":
-        query = query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+    # ADMIN → all audit logs across every role
+    if _is_admin_role(user_role):
+        pass
 
     # NORMAL USER → only their own audit logs
     else:
@@ -112,11 +185,17 @@ def get_audit_logs(
             AuditLog.created_at <= to_date
         )
 
-    return (
-        query
-        .order_by(AuditLog.created_at.desc())
-        .all()
-    )
+    query = query.order_by(AuditLog.created_at.desc())
+
+    if skip:
+        query = query.offset(skip)
+
+    if limit:
+        query = query.limit(limit)
+
+    entries = query.all()
+    _attach_user_info(db, entries)
+    return entries
 
 
 def get_audit_log(
@@ -136,11 +215,9 @@ def get_audit_log(
         )
     )
 
-    # ADMIN → Citizen + Admin audit logs
-    if user_role == "ADMIN":
-        query = query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+    # ADMIN → all audit logs across every role
+    if _is_admin_role(user_role):
+        pass
 
     # NORMAL USER → only their own audit log
     else:
@@ -148,4 +225,7 @@ def get_audit_log(
             AuditLog.user_id == user_id
         )
 
-    return query.first()
+    entry = query.first()
+    if entry is not None:
+        _attach_user_info(db, [entry])
+    return entry

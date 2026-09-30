@@ -40,6 +40,7 @@ export class FaqListComponent implements OnInit {
   formAnswer = '';
   formCategory = 'General';
   customCategory = '';
+  formStatus = 'PUBLISHED';
 
   // Delete Confirmation Modal
   showDeleteModal = signal<boolean>(false);
@@ -145,6 +146,35 @@ export class FaqListComponent implements OnInit {
     return this.expandedFaqIds().has(faqId);
   }
 
+  isPublished(faq: FAQ): boolean {
+    return (faq.status || 'PUBLISHED').toUpperCase() === 'PUBLISHED';
+  }
+
+  togglePublish(faq: FAQ, event: Event): void {
+    event.stopPropagation();
+    const nextStatus = this.isPublished(faq) ? 'DRAFT' : 'PUBLISHED';
+    this.faqService.updateFaq(faq.faq_id, { status: nextStatus }).subscribe({
+      next: (updated) => {
+        this.toastService.success(
+          nextStatus === 'PUBLISHED' ? 'FAQ Published' : 'FAQ Unpublished',
+          nextStatus === 'PUBLISHED'
+            ? 'The FAQ is now visible to all users.'
+            : 'The FAQ is hidden from users until republished.'
+        );
+        this.faqs.update((list) =>
+          list.map((f) => (f.faq_id === updated.faq_id ? updated : f))
+        );
+      },
+      error: (err) => {
+        console.error('Error updating FAQ status:', err);
+        this.toastService.error(
+          'Status Update Failed',
+          err.error?.detail || 'Could not update FAQ status.'
+        );
+      },
+    });
+  }
+
   expandAll(): void {
     const allIds = new Set(this.filteredFaqs().map((f) => f.faq_id));
     this.expandedFaqIds.set(allIds);
@@ -194,6 +224,7 @@ export class FaqListComponent implements OnInit {
     this.formAnswer = '';
     this.formCategory = 'General';
     this.customCategory = '';
+    this.formStatus = 'PUBLISHED';
     this.showModal.set(true);
   }
 
@@ -203,6 +234,7 @@ export class FaqListComponent implements OnInit {
     this.editingFaqId.set(faq.faq_id);
     this.formQuestion = faq.question;
     this.formAnswer = faq.answer;
+    this.formStatus = (faq.status || 'PUBLISHED').toUpperCase();
 
     if (this.predefinedCategories.includes(faq.category || '')) {
       this.formCategory = faq.category || 'General';
@@ -241,6 +273,7 @@ export class FaqListComponent implements OnInit {
         question: this.formQuestion.trim(),
         answer: this.formAnswer.trim(),
         category: finalCategory,
+        status: this.formStatus,
       };
 
       this.faqService.updateFaq(this.editingFaqId()!, payload).subscribe({
@@ -263,6 +296,7 @@ export class FaqListComponent implements OnInit {
         question: this.formQuestion.trim(),
         answer: this.formAnswer.trim(),
         category: finalCategory,
+        status: this.formStatus,
       };
 
       this.faqService.createFaq(payload).subscribe({

@@ -397,6 +397,11 @@ export const routes: Routes = [
     redirectTo: "dashboard/organization/reports",
     pathMatch: "full",
   },
+  {
+    path: "admin/audit-logs",
+    redirectTo: "dashboard/admin/audit-logs",
+    pathMatch: "full",
+  },
 
   // =========================================================
   // FALLBACK

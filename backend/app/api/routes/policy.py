@@ -3,6 +3,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     status,
 )
 from sqlalchemy.orm import Session
@@ -14,6 +15,7 @@ from app.api.routes.auth import (
 )
 from app.db.database import get_db
 from app.models.user import User
+from app.services.audit_log_service import log_request_action
 
 from app.schemas.policy import (
     PolicyArchiveRequest,
@@ -67,6 +69,7 @@ router = APIRouter(
 )
 def create_policy_route(
     data: PolicyCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -76,11 +79,23 @@ def create_policy_route(
     ),
 ):
 
-    return create_policy(
+    result = create_policy(
         db=db,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_CREATED",
+        "POLICY",
+        result.policy_id,
+        f"Policy '{result.title}' created.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -385,6 +400,7 @@ def delete_requests_route(
 )
 def save_policy_draft_route(
     data: PolicyCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -393,11 +409,23 @@ def save_policy_draft_route(
         )
     ),
 ):
-    return create_policy(
+    result = create_policy(
         db=db,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DRAFT_SAVED",
+        "POLICY",
+        result.policy_id,
+        f"Policy draft '{result.title}' saved.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -466,6 +494,7 @@ def get_policy_route(
 def update_policy_route(
     policy_id: int,
     data: PolicyUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -475,12 +504,24 @@ def update_policy_route(
     ),
 ):
 
-    return update_policy(
+    result = update_policy(
         db=db,
         policy_id=policy_id,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_UPDATED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' updated.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -498,6 +539,7 @@ def update_policy_route(
 )
 def delete_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -506,6 +548,16 @@ def delete_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETED",
+        "POLICY",
+        policy_id,
+        f"Policy #{policy_id} permanently deleted by administrator.",
     )
 
     return {"message": "Policy deleted successfully."}
@@ -526,6 +578,7 @@ def delete_policy_route(
 )
 def submit_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -535,11 +588,23 @@ def submit_policy_route(
     ),
 ):
 
-    return submit_policy(
+    result = submit_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_SUBMITTED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' submitted for approval.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -612,16 +677,29 @@ def reject_policy_route(
 def request_archive_policy_route(
     policy_id: int,
     data: PolicyArchiveRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
 
-    return request_archive_policy(
+    result = request_archive_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_REQUESTED",
+        "POLICY",
+        policy_id,
+        f"Archive requested for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -639,15 +717,28 @@ def request_archive_policy_route(
 )
 def approve_archive_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return approve_archive_policy(
+    result = approve_archive_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Archive approved for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -665,15 +756,28 @@ def approve_archive_policy_route(
 )
 def reject_archive_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_archive_policy(
+    result = reject_archive_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Archive rejected for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -691,15 +795,28 @@ def reject_archive_policy_route(
 )
 def restore_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return restore_policy(
+    result = restore_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_RESTORED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' restored from archive.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -718,16 +835,29 @@ def restore_policy_route(
 def request_delete_policy_route(
     policy_id: int,
     data: PolicyDeleteRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
 
-    return request_delete_policy(
+    result = request_delete_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_REQUESTED",
+        "POLICY",
+        policy_id,
+        f"Delete requested for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -744,6 +874,7 @@ def request_delete_policy_route(
 )
 def approve_delete_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -752,6 +883,16 @@ def approve_delete_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Delete approved; policy #{policy_id} permanently deleted.",
     )
 
     return {
@@ -776,12 +917,25 @@ def approve_delete_policy_route(
 )
 def reject_delete_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_delete_policy(
+    result = reject_delete_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Delete rejected for policy '{result.title}'.",
+    )
+
+    return result

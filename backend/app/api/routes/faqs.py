@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.api.routes.auth import require_roles
 from app.models.user import User
+from app.services.audit_log_service import log_request_action
 
 from app.schemas.faq import (
     FAQCreate,
@@ -32,10 +33,23 @@ router = APIRouter(
 )
 def create_faq_route(
     data: FAQCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-    return create_faq(db, data)
+    result = create_faq(db, data)
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "FAQ_CREATED",
+        "FAQ",
+        result.faq_id,
+        f"FAQ '{result.question[:120]}' created.",
+    )
+
+    return result
 
 
 @router.get(
@@ -74,6 +88,7 @@ def get_faq_route(
 def update_faq_route(
     faq_id: int,
     data: FAQUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -85,12 +100,23 @@ def update_faq_route(
             detail="FAQ not found",
         )
 
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "FAQ_UPDATED",
+        "FAQ",
+        faq_id,
+        f"FAQ #{faq_id} updated.",
+    )
+
     return faq
 
 
 @router.delete("/{faq_id}")
 def delete_faq_route(
     faq_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -101,6 +127,16 @@ def delete_faq_route(
             status_code=404,
             detail="FAQ not found",
         )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "FAQ_DELETED",
+        "FAQ",
+        faq_id,
+        f"FAQ #{faq_id} deleted by administrator.",
+    )
 
     return {
         "message": "FAQ deleted successfully",

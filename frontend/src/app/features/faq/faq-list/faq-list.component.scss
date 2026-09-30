@@ -472,6 +472,29 @@ $warning-soft: #fef3c7;
       color: #475569;
       text-transform: capitalize;
     }
+
+    .status-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    .status-tag--published {
+      background: #e6f4ea;
+      border-color: #b7dfc2;
+      color: #137333;
+    }
+
+    .status-tag--draft {
+      background: #fef3e6;
+      border-color: #f3d9ae;
+      color: #b25e09;
+    }
   }
 
   .faq-question-title {
@@ -525,6 +548,15 @@ $warning-soft: #fef3c7;
           background: $danger-soft;
           color: $danger;
           border-color: #fca5a5;
+        }
+      }
+
+      &.publish-btn {
+        color: #64748b;
+        &:hover {
+          background: #e6f4ea;
+          color: #137333;
+          border-color: #b7dfc2;
         }
       }
     }

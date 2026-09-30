@@ -1028,6 +1028,26 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SUPPORT REQUESTS (ADMIN MANAGEMENT)
+      // /dashboard/admin/support-requests
+      {
+        path: "support-requests",
+        loadComponent: () =>
+          import("../../support/admin-support/admin-support.component").then(
+            (m) => m.AdminSupportComponent,
+          ),
+      },
+
+      // AUDIT LOGS (ADMIN ONLY)
+      // /dashboard/admin/audit-logs
+      {
+        path: "audit-logs",
+        loadComponent: () =>
+          import("../../audit-log/audit-log.component").then(
+            (m) => m.AuditLogComponent,
+          ),
+      },
+
       // REPORTS (role layout children)
       // /dashboard/admin/reports
       ...REPORTS_CHILD_ROUTES,

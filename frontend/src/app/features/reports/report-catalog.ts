@@ -120,3 +120,87 @@ export const REPORT_DETAIL_LABELS: Record<string, string> = {
 export function detailLabel(detail: string): string {
   return REPORT_DETAIL_LABELS[detail] ?? detail;
 }
+
+export interface FilterField {
+  key: string;
+  label: string;
+  kind: 'date' | 'text' | 'number' | 'select' | 'remote';
+  options?: string[];
+  staticOptions?: string[];
+}
+
+export const FILTERS_BY_TYPE: Record<ReportType, FilterField[]> = {
+  POLICY_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'ministry', label: 'Ministry', kind: 'remote' },
+    { key: 'department', label: 'Department', kind: 'remote' },
+    { key: 'state', label: 'State', kind: 'remote' },
+    { key: 'category', label: 'Category', kind: 'remote' },
+    { key: 'sector', label: 'Sector', kind: 'remote' },
+    { key: 'status', label: 'Status', kind: 'remote' },
+    { key: 'policy_id', label: 'Policy ID', kind: 'number' },
+  ],
+  SCHEME_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'ministry', label: 'Ministry', kind: 'remote' },
+    { key: 'department', label: 'Department', kind: 'remote' },
+    { key: 'state', label: 'State', kind: 'remote' },
+    { key: 'category', label: 'Category', kind: 'remote' },
+    { key: 'status', label: 'Status', kind: 'remote' },
+    { key: 'scheme_id', label: 'Scheme ID', kind: 'number' },
+  ],
+  USER_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'role', label: 'Role', kind: 'remote' },
+    { key: 'state', label: 'State', kind: 'remote' },
+    { key: 'district', label: 'District', kind: 'remote' },
+    { key: 'organization', label: 'Organization', kind: 'remote' },
+    {
+      key: 'status',
+      label: 'Status',
+      kind: 'select',
+      staticOptions: ['active', 'inactive'],
+    },
+  ],
+  USER_ACTIVITY_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'action', label: 'Action', kind: 'remote' },
+    { key: 'entity_type', label: 'Entity type', kind: 'remote' },
+    { key: 'user_id', label: 'User ID (admin only)', kind: 'number' },
+  ],
+  DEPARTMENT_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'ministry', label: 'Ministry', kind: 'remote' },
+    { key: 'department', label: 'Department', kind: 'remote' },
+    { key: 'state', label: 'State', kind: 'remote' },
+    { key: 'category', label: 'Category', kind: 'remote' },
+  ],
+  MINISTRY_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'ministry', label: 'Ministry', kind: 'remote' },
+    { key: 'department', label: 'Department', kind: 'remote' },
+    { key: 'state', label: 'State', kind: 'remote' },
+  ],
+  STATE_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'state', label: 'State', kind: 'remote' },
+    { key: 'ministry', label: 'Ministry', kind: 'remote' },
+    { key: 'department', label: 'Department', kind: 'remote' },
+  ],
+  ANALYTICS_REPORT: [],
+  AUDIT_REPORT: [
+    { key: 'date_from', label: 'From date', kind: 'date' },
+    { key: 'date_to', label: 'To date', kind: 'date' },
+    { key: 'action', label: 'Action', kind: 'remote' },
+    { key: 'entity_type', label: 'Entity type', kind: 'remote' },
+    { key: 'user_id', label: 'User ID', kind: 'number' },
+    { key: 'role', label: 'Actor role', kind: 'remote' },
+  ],
+};

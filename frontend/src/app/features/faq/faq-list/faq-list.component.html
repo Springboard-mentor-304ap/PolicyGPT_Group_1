@@ -179,6 +179,15 @@
               <div class="faq-meta-tags" *ngIf="faq.category">
                 <span class="category-tag">{{ faq.category }}</span>
               </div>
+              <div class="faq-meta-tags" *ngIf="isAdmin()">
+                <span
+                  class="status-tag"
+                  [class.status-tag--published]="isPublished(faq)"
+                  [class.status-tag--draft]="!isPublished(faq)"
+                >
+                  {{ isPublished(faq) ? 'Published' : 'Unpublished' }}
+                </span>
+              </div>
               <h2 class="faq-question-title">{{ faq.question }}</h2>
             </div>
           </div>
@@ -194,6 +203,15 @@
                 aria-label="Edit FAQ"
               >
                 <span class="material-icons">edit</span>
+              </button>
+              <button
+                type="button"
+                class="admin-icon-btn publish-btn"
+                (click)="togglePublish(faq, $event)"
+                [title]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
+                [attr.aria-label]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
+              >
+                <span class="material-icons">{{ isPublished(faq) ? 'visibility_off' : 'visibility' }}</span>
               </button>
               <button
                 type="button"
@@ -322,6 +340,15 @@
             placeholder="Provide a comprehensive and easy-to-understand explanation..."
             [(ngModel)]="formAnswer"
           ></textarea>
+        </div>
+
+        <!-- VISIBILITY STATUS -->
+        <div class="form-group">
+          <label for="faqStatus">Visibility</label>
+          <select id="faqStatus" [(ngModel)]="formStatus">
+            <option value="PUBLISHED">Published (visible to all users)</option>
+            <option value="DRAFT">Draft (hidden from users)</option>
+          </select>
         </div>
       </div>
 

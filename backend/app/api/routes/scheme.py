@@ -3,6 +3,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     status,
 )
 
@@ -15,6 +16,11 @@ from app.api.routes.auth import (
 
 from app.db.database import get_db
 from app.models.user import User
+from app.services.audit_log_service import (
+    ACTION_APPROVAL_EVENT,
+    ACTION_REJECTION_EVENT,
+    log_request_action,
+)
 
 from app.schemas.scheme import (
     SchemeArchiveRequest,
@@ -61,6 +67,7 @@ router = APIRouter(
 )
 def create_scheme_api(
     data: SchemeCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -69,11 +76,23 @@ def create_scheme_api(
         )
     ),
 ):
-    return create_scheme(
+    result = create_scheme(
         db=db,
         data=data,
         user_id=current_user.user_id,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_CREATED",
+        "SCHEME",
+        result.scheme_id,
+        f"Scheme '{result.name}' created.",
+    )
+
+    return result
 
 
 @router.post(
@@ -83,6 +102,7 @@ def create_scheme_api(
 )
 def save_scheme_draft_route(
     data: SchemeCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -91,11 +111,23 @@ def save_scheme_draft_route(
         )
     ),
 ):
-    return create_scheme(
+    result = create_scheme(
         db=db,
         data=data,
         user_id=current_user.user_id,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_DRAFT_SAVED",
+        "SCHEME",
+        result.scheme_id,
+        f"Scheme draft '{result.name}' saved.",
+    )
+
+    return result
 
 
 
@@ -287,6 +319,7 @@ def get_scheme_api(
 def update_scheme_api(
     scheme_id: int,
     data: SchemeUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -319,12 +352,24 @@ def update_scheme_api(
             ),
         )
 
-    return update_scheme(
+    result = update_scheme(
         db=db,
         scheme=scheme,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_UPDATED",
+        "SCHEME",
+        scheme_id,
+        f"Scheme '{scheme.name}' updated.",
+    )
+
+    return result
 
 
 @router.delete(
@@ -332,6 +377,7 @@ def update_scheme_api(
 )
 def delete_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -347,9 +393,21 @@ def delete_scheme_api(
             detail="Scheme not found",
         )
 
+    scheme_name = scheme.name
+
     delete_scheme(
         db,
         scheme,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_DELETED",
+        "SCHEME",
+        scheme_id,
+        f"Scheme '{scheme_name}' permanently deleted by administrator.",
     )
 
     return {"message": "Scheme deleted successfully"}
@@ -361,6 +419,7 @@ def delete_scheme_api(
 )
 def submit_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -382,11 +441,23 @@ def submit_scheme_api(
         )
 
     try:
-        return submit_scheme(
+        result = submit_scheme(
             db,
             scheme,
             current_user=current_user,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_SUBMITTED",
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' submitted for approval.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -401,6 +472,7 @@ def submit_scheme_api(
 )
 def approve_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -417,12 +489,25 @@ def approve_scheme_api(
         )
 
     try:
-        return approve_scheme(
+        result = approve_scheme(
             db,
             scheme,
             current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            ACTION_APPROVAL_EVENT,
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' approved by admin "
+            f"{current_user.user_id}.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -438,6 +523,7 @@ def approve_scheme_api(
 def reject_scheme_api(
     scheme_id: int,
     data: SchemeRejectRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -454,13 +540,26 @@ def reject_scheme_api(
         )
 
     try:
-        return reject_scheme(
+        result = reject_scheme(
             db,
             scheme,
             data.reason,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            ACTION_REJECTION_EVENT,
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' rejected by admin "
+            f"{current_user.user_id}.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -475,6 +574,7 @@ def reject_scheme_api(
 )
 def archive_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -491,12 +591,24 @@ def archive_scheme_api(
         )
 
     try:
-        return archive_scheme(
+        result = archive_scheme(
             db,
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_ARCHIVED",
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' archived by administrator.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -512,6 +624,7 @@ def archive_scheme_api(
 def request_archive_scheme_api(
     scheme_id: int,
     data: SchemeArchiveRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -528,12 +641,24 @@ def request_archive_scheme_api(
         )
 
     try:
-        return request_archive_scheme(
+        result = request_archive_scheme(
             db=db,
             scheme=scheme,
             user_id=current_user.user_id,
             reason=data.reason,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_ARCHIVE_REQUESTED",
+            "SCHEME",
+            scheme_id,
+            f"Archive requested for scheme '{scheme.name}'.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -548,6 +673,7 @@ def request_archive_scheme_api(
 )
 def approve_archive_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -564,12 +690,24 @@ def approve_archive_scheme_api(
         )
 
     try:
-        return approve_archive_scheme(
+        result = approve_archive_scheme(
             db,
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_ARCHIVE_APPROVED",
+            "SCHEME",
+            scheme_id,
+            f"Archive approved for scheme '{scheme.name}'.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -584,6 +722,7 @@ def approve_archive_scheme_api(
 )
 def reject_archive_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -600,12 +739,24 @@ def reject_archive_scheme_api(
         )
 
     try:
-        return reject_archive_scheme(
+        result = reject_archive_scheme(
             db,
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_ARCHIVE_REJECTED",
+            "SCHEME",
+            scheme_id,
+            f"Archive rejected for scheme '{scheme.name}'.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -620,6 +771,7 @@ def reject_archive_scheme_api(
 )
 def restore_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -636,12 +788,24 @@ def restore_scheme_api(
         )
 
     try:
-        return restore_scheme(
+        result = restore_scheme(
             db,
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_RESTORED",
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' restored from archive.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -657,6 +821,7 @@ def restore_scheme_api(
 def request_delete_scheme_api(
     scheme_id: int,
     data: SchemeDeleteRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -673,12 +838,24 @@ def request_delete_scheme_api(
         )
 
     try:
-        return request_delete_scheme(
+        result = request_delete_scheme(
             db=db,
             scheme=scheme,
             user_id=current_user.user_id,
             reason=data.reason,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_DELETE_REQUESTED",
+            "SCHEME",
+            scheme_id,
+            f"Delete requested for scheme '{scheme.name}'.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(
@@ -692,6 +869,7 @@ def request_delete_scheme_api(
 )
 def approve_delete_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -715,6 +893,16 @@ def approve_delete_scheme_api(
             actor_name=current_user.full_name,
         )
 
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_DELETE_APPROVED",
+            "SCHEME",
+            scheme_id,
+            f"Delete approved; scheme #{scheme_id} permanently deleted.",
+        )
+
         return {
             "message": (
                 "Scheme deletion approved " "and scheme permanently deleted."
@@ -734,6 +922,7 @@ def approve_delete_scheme_api(
 )
 def reject_delete_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -750,12 +939,24 @@ def reject_delete_scheme_api(
         )
 
     try:
-        return reject_delete_scheme(
+        result = reject_delete_scheme(
             db,
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
         )
+
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_DELETE_REJECTED",
+            "SCHEME",
+            scheme_id,
+            f"Delete rejected for scheme '{scheme.name}'.",
+        )
+
+        return result
 
     except ValueError as exc:
         raise HTTPException(

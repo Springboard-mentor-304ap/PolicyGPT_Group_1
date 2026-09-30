@@ -1,20 +1,27 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.api.routes.auth import get_current_user, normalize_role
+from app.api.routes.auth import (
+    get_current_user,
+    normalize_role,
+    require_roles,
+)
 from app.db.database import get_db
 from app.models.user import User
 from app.schemas.faq import FAQResponse
 from app.schemas.support import (
+    AdminSupportRequestResponse,
     SupportRequestCreate,
     SupportRequestResponse,
+    SupportRequestUpdate,
 )
 from app.services import support_service
+from app.services.audit_log_service import log_request_action
 
 router = APIRouter(
     prefix="/support",
@@ -192,4 +199,99 @@ def get_my_support_request(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Support request not found",
         )
+    return query
+
+
+# ============================================================
+# ADMIN SUPPORT MANAGEMENT (ADMIN ONLY)
+# ============================================================
+
+
+@router.get(
+    "/admin/requests",
+    response_model=list[AdminSupportRequestResponse],
+    summary="List all support requests (Admin)",
+)
+def list_all_support_requests(
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Retrieve every support request with user details (Admin only)."""
+    return support_service.get_all_support_requests(
+        db=db,
+        status=status,
+        category=category,
+        search=search,
+    )
+
+
+@router.get(
+    "/admin/requests/{query_id}",
+    response_model=AdminSupportRequestResponse,
+    summary="Get a support request by ID (Admin)",
+)
+def get_support_request_admin(
+    query_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Retrieve a single support request with user details (Admin only)."""
+    query = support_service.get_support_request_by_id(
+        db=db,
+        query_id=query_id,
+    )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    return query
+
+
+@router.patch(
+    "/admin/requests/{query_id}",
+    response_model=AdminSupportRequestResponse,
+    summary="Respond to a support request (Admin)",
+)
+def respond_to_support_request(
+    query_id: int,
+    data: SupportRequestUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Record an admin response and/or status change (Admin only)."""
+    try:
+        query = support_service.respond_to_support_request(
+            db=db,
+            query_id=query_id,
+            admin_user_id=current_user.user_id,
+            response=data.response,
+            status=data.status,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SUPPORT_REQUEST_RESPONDED",
+        "SUPPORT_QUERY",
+        query_id,
+        f"Admin responded to support request {query['request_id']} "
+        f"(status: {query['status']}).",
+    )
+
     return query

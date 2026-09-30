@@ -144,6 +144,16 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
       // NOTIFICATIONS
       {
         path: "notifications",
@@ -372,6 +382,16 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
           ),
       },
 
@@ -644,6 +664,16 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
           ),
       },
 
@@ -922,6 +952,16 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
       // USERS
       {
         path: "users",
@@ -1173,6 +1213,16 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../change-password/change-password.component").then(
             (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
           ),
       },
 

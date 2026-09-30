@@ -1,0 +1,634 @@
+/* =========================================================
+   POLICYGPT SETTINGS
+   Visual language matches Notifications / Saved Items:
+   page container, breadcrumb, header, white cards, blue
+   primary buttons, subtle borders, 12px radius.
+   ========================================================= */
+
+$blue: #0879ed;
+$blue-dark: #075dcc;
+$blue-light: #eaf3ff;
+
+$bg: #f4f7fb;
+$white: #ffffff;
+
+$heading: #111827;
+$text: #1e293b;
+$muted: #64748b;
+
+$border: #e3e8ef;
+$border-light: #edf1f5;
+
+$green: #078944;
+$green-light: #e8f8ef;
+
+$danger: #dc2626;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.settings-page {
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 24px 32px 48px;
+  background: $bg;
+  color: $text;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+
+  .header-left {
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: $heading;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      color: $muted;
+    }
+  }
+}
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.settings-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  position: sticky;
+  top: 16px;
+}
+
+.settings-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: $muted;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  .material-icons {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: #f1f5f9;
+    color: $heading;
+  }
+
+  &.active {
+    background: $blue-light;
+    color: $blue;
+  }
+}
+
+.settings-content {
+  min-width: 0;
+}
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+.settings-card {
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+  padding: 22px 24px;
+}
+
+.settings-card-header {
+  margin-bottom: 18px;
+
+  h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: $heading;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: $muted;
+  }
+}
+
+.settings-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+/* =========================================================
+   ROWS
+   ========================================================= */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: $heading;
+  }
+
+  span {
+    font-size: 13px;
+    color: $muted;
+  }
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.detail-list {
+  margin: 0;
+  padding: 0;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid $border-light;
+  font-size: 13px;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  dt {
+    color: $muted;
+    font-weight: 500;
+  }
+
+  dd {
+    margin: 0;
+    color: $heading;
+    font-weight: 600;
+    text-align: right;
+  }
+}
+
+.hint-text {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: $muted;
+}
+
+/* =========================================================
+   PROFILE SUMMARY
+   ========================================================= */
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  border: 1px solid $border-light;
+  border-radius: 10px;
+}
+
+.profile-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: $blue-light;
+  color: $blue;
+
+  .material-icons {
+    font-size: 28px;
+  }
+}
+
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: $heading;
+  }
+
+  span {
+    font-size: 13px;
+    color: $muted;
+  }
+}
+
+.role-chip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: $blue-light;
+  color: $blue;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   OPTION CARDS (appearance / language)
+   ========================================================= */
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid $border;
+  border-radius: 10px;
+  background: $white;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+
+  > .material-icons {
+    font-size: 22px;
+    color: $muted;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    border-color: #cbd5e1;
+  }
+}
+
+.option-card--selected {
+  border-color: $blue;
+  background: #fbfdff;
+
+  > .material-icons {
+    color: $blue;
+  }
+}
+
+.option-card--disabled {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+
+  strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: $heading;
+  }
+
+  span {
+    font-size: 12px;
+    color: $muted;
+  }
+}
+
+.option-check {
+  color: $blue;
+  flex-shrink: 0;
+}
+
+.coming-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  .material-icons {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   SESSION
+   ========================================================= */
+
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 6px;
+  background: #f8fafc;
+  border: 1px solid $border-light;
+  border-radius: 10px;
+
+  .btn {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}
+
+.session-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: $blue-light;
+  color: $blue;
+
+  .material-icons {
+    font-size: 22px;
+  }
+}
+
+.session-active {
+  color: $green !important;
+  font-weight: 600 !important;
+}
+
+/* =========================================================
+   BUTTONS (Notifications language)
+   ========================================================= */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+
+  .material-icons {
+    font-size: 18px;
+  }
+}
+
+.btn-primary {
+  background: $blue;
+  border-color: $blue;
+  color: $white;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+
+  &:hover {
+    background: $blue-dark;
+    border-color: $blue-dark;
+  }
+}
+
+.btn-outline {
+  background: $white;
+  border-color: #dbe2eb;
+  color: $text;
+  height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.btn-danger-outline {
+  color: $danger;
+
+  &:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fca5a5;
+  }
+}
+
+/* =========================================================
+   PILLS / SKELETON
+   ========================================================= */
+
+.status-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.status-pill--active {
+  background: $green-light;
+  color: $green;
+}
+
+.skeleton-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #e9edf2;
+  border-radius: 6px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.75),
+      transparent
+    );
+    animation: settings-shimmer 1.4s infinite;
+  }
+}
+
+.skeleton-line {
+  height: 34px;
+}
+
+@keyframes settings-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  .settings-page {
+    padding: 20px 20px 40px;
+  }
+
+  .settings-layout {
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 16px 14px 32px;
+  }
+
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-menu {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 8px;
+  }
+
+  .settings-menu-item {
+    white-space: nowrap;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .settings-card {
+    padding: 18px 16px;
+  }
+
+  .setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .session-card {
+    flex-wrap: wrap;
+
+    .btn {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+
+  .profile-summary {
+    flex-wrap: wrap;
+  }
+
+  .role-chip {
+    margin-left: 0;
+  }
+}

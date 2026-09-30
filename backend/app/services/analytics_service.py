@@ -21,9 +21,7 @@ def get_dashboard_analytics(
     user_query = db.query(User)
 
     if user_role == "ADMIN":
-        user_query = user_query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+        pass
     elif user_id is not None:
         user_query = user_query.filter(
             User.user_id == user_id
@@ -435,9 +433,7 @@ def get_user_analytics(
 
     # ADMIN → CITIZEN + ADMIN
     if user_role == "ADMIN":
-        query = query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+        pass
 
     # NORMAL USER → only themselves
     elif user_id is not None:
@@ -469,6 +465,19 @@ def get_user_analytics(
         .all()
     )
 
+    role_counts = {
+        role: count
+        for role, count in by_role
+    }
+
+    all_roles = [
+        "ADMIN",
+        "CITIZEN",
+        "RESEARCHER",
+        "ORGANIZATION",
+        "GOVERNMENT_OFFICIAL",
+    ]
+
     by_state = (
         query
         .with_entities(
@@ -488,9 +497,9 @@ def get_user_analytics(
         "by_role": [
             {
                 "role": role,
-                "count": count
+                "count": role_counts.get(role, 0)
             }
-            for role, count in by_role
+            for role in all_roles
         ],
 
         "by_state": [
@@ -517,9 +526,7 @@ def get_user_activity(
 
     # ADMIN → CITIZEN + ADMIN
     if user_role == "ADMIN":
-        query = query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+        pass
 
     # NORMAL USER → only themselves
     elif user_id is not None:
@@ -611,9 +618,7 @@ def get_usage_statistics(
 
     # ADMIN → CITIZEN + ADMIN
     if user_role == "ADMIN":
-        user_query = user_query.filter(
-            User.role.in_(["CITIZEN", "ADMIN"])
-        )
+        pass
 
     # NORMAL USER → only themselves
     elif user_id is not None:

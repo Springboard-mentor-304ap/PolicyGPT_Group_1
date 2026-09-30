@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
-import { HttpClient } from "@angular/common/http";
 import { Component, OnInit } from "@angular/core";
+import { AnalyticsService } from "../../../../../../core/services/analytics.service";
 
 interface DashboardAnalytics {
   policies: {
@@ -64,7 +64,7 @@ interface UserAnalytics {
   styleUrls: ["./admin-analytics.component.scss"],
 })
 export class AdminAnalyticsComponent implements OnInit {
-  private readonly apiUrl = "http://localhost:8000";
+  // private readonly apiUrl = "http://localhost:8000";
 
   loading = true;
   errorMessage = "";
@@ -84,7 +84,7 @@ export class AdminAnalyticsComponent implements OnInit {
   activityAvailable = false;
   recentUserActivity: any[] = [];
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly analyticsService: AnalyticsService) {}
 
   ngOnInit(): void {
     this.loadAnalytics();
@@ -103,32 +103,28 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     // Dashboard
     // -------------------------
-    this.http
-      .get<DashboardAnalytics>(
-        `${this.apiUrl}/analytics/dashboard`
-      )
-      .subscribe({
-        next: (data) => {
-          console.log("🔥 DASHBOARD:", data);
-          this.dashboard = data;
-        },
-        error: (error) => {
-          console.error(
+    this.analyticsService.getDashboardAnalytics().subscribe({
+      next: (data) => {
+        console.log("🔥 DASHBOARD:", data);
+        this.dashboard = data;
+        this.loading = false;
+        console.log("🔥 LOADING AFTER DASHBOARD:", this.loading);
+        console.log("🔥 ERROR MESSAGE:", this.errorMessage);
+      },
+      error: (error) => {
+        console.error(
             "❌ DASHBOARD ERROR:",
             error
           );
+          this.loading = false;
         },
       });
 
     // -------------------------
     // Policies
     // -------------------------
-    this.http
-      .get<PolicyAnalytics>(
-        `${this.apiUrl}/analytics/policies`
-      )
-      .subscribe({
-        next: (data) => {
+    this.analyticsService.getPolicyAnalytics().subscribe({
+      next: (data) => {
           console.log("🔥 POLICIES:", data);
 
           this.policies = data;
@@ -146,13 +142,9 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     // Schemes
     // -------------------------
-    this.http
-      .get<SchemeAnalytics>(
-        `${this.apiUrl}/analytics/schemes`
-      )
-      .subscribe({
-        next: (data) => {
-          console.log("🔥 SCHEMES:", data);
+    this.analyticsService.getSchemeAnalytics().subscribe({
+      next: (data) => {
+        console.log("🔥 SCHEMES:", data);
 
           this.schemes = data;
           this.schemeCategories =
@@ -169,13 +161,9 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     // Users
     // -------------------------
-    this.http
-      .get<UserAnalytics>(
-        `${this.apiUrl}/analytics/users`
-      )
-      .subscribe({
-        next: (data) => {
-          console.log("🔥 USERS:", data);
+    this.analyticsService.getUserAnalytics().subscribe({
+      next: (data) => {
+        console.log("🔥 USERS:", data);
 
           this.users = data;
           this.userRoles =
@@ -189,49 +177,6 @@ export class AdminAnalyticsComponent implements OnInit {
         },
       });
 
-    // -------------------------
-    // Notifications
-    // -------------------------
-    this.http
-      .get<any>(
-        `${this.apiUrl}/notifications?page=1&page_size=5`
-      )
-      .subscribe({
-        next: (data) => {
-          console.log("🔥 NOTIFICATIONS:", data);
-          this.totalNotifications = data?.total ?? (Array.isArray(data) ? data.length : 0);
-          this.recentNotifications = data?.items ?? (Array.isArray(data) ? data : []);
-        },
-        error: (error) => {
-          console.error(
-            "❌ NOTIFICATIONS ERROR:",
-            error
-          );
-        },
-      });
-
-    // -------------------------
-    // Audit Logs / Activity
-    // -------------------------
-    this.http
-      .get<any[]>(
-        `${this.apiUrl}/audit-logs`
-      )
-      .subscribe({
-        next: (logs) => {
-          console.log("🔥 AUDIT LOGS:", logs);
-          if (Array.isArray(logs) && logs.length > 0) {
-            this.activityAvailable = true;
-            this.recentUserActivity = logs.slice(0, 5);
-          }
-        },
-        error: (error) => {
-          console.error(
-            "❌ AUDIT LOGS ERROR:",
-            error
-          );
-        },
-      });
 
     // =====================================================
     // TEMPORARY LOADING CONTROL
@@ -245,6 +190,30 @@ export class AdminAnalyticsComponent implements OnInit {
         "🔥 ANALYTICS: LOADING SET TO FALSE"
       );
     }, 1000);
+    // -------------------------
+    // Notifications
+    // -------------------------
+    this.analyticsService.getNotifications().subscribe({
+  next: (data) => {
+    console.log("🔥 NOTIFICATIONS:", data);
+    
+  this.totalNotifications = data.length ?? 0;
+  this.recentNotifications = data;
+  },
+      error: (error) => {
+          console.error(
+            "❌ NOTIFICATIONS ERROR:",
+            error
+          );
+        },
+      });
+
+    // -------------------------
+    // Audit Logs / Activity
+    // -------------------------
+
+    this.activityAvailable = false;
+    // this.recentUserActivity = [];
   }
 
   // =========================================================

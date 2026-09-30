@@ -181,6 +181,23 @@
                 </span>
             </a>
 
+            <!-- ANALYTICS -->
+<a class="dash-nav__item"
+    routerLink="/dashboard/admin/analytics"
+    routerLinkActive="dash-nav__item--active"
+    [routerLinkActiveOptions]="{ exact: true }"
+    (click)="closeUsersMenu(); closeMobileMenu()"
+    [attr.title]="sidebarCollapsed ? 'Analytics' : null">
+
+    <span class="material-icons dash-nav__icon">
+        analytics
+    </span>
+
+    <span class="dash-nav__label">
+        Analytics
+    </span>
+</a>
+
 
             <!-- FAQS -->
             <a class="dash-nav__item" routerLink="/dashboard/admin/faqs" routerLinkActive="dash-nav__item--active"

@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectorRef, inject, signal } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, of } from 'rxjs';
 import { ReportService } from '../../../core/services/report.service';
 import { NotificationService } from '../../../core/services/notification.service';
@@ -31,13 +31,23 @@ interface WorkspaceTab {
   types: ReportType[];
 }
 
+interface ReportSettingsDraft {
+  type: ReportType | '';
+  detail: string;
+  format: ReportFormat;
+  title: string;
+}
+
 interface ReportTabState {
   type: ReportType | '';
   details: string[];
   detail: string;
   format: ReportFormat;
   title: string;
-  values: Record<string, string>;
+  /** Filters actually applied to the table (server request). */
+  appliedValues: Record<string, string>;
+  /** Temporary drawer edits; table updates only on Apply. */
+  draftValues: Record<string, string>;
   remoteOptions: Record<string, string[]>;
   loadingOptions: boolean;
   search: string;
@@ -52,13 +62,14 @@ interface ReportTabState {
   exporting: boolean;
   exportOpen: boolean;
   columnsOpen: boolean;
+  filterOpen: boolean;
+  settingsOpen: boolean;
+  genDraft: ReportSettingsDraft | null;
   error: string | null;
+  drawerError: string | null;
   previewLoading: boolean;
   previewError: string | null;
   previewLoaded: boolean;
-  selectedRow: unknown[] | null;
-  selectedRowHeaders: string[] | null;
-  checkedRows: Set<string>;
 }
 
 interface NotificationsTabState {
@@ -84,7 +95,8 @@ function newReportTabState(): ReportTabState {
     detail: 'overview',
     format: 'PDF',
     title: '',
-    values: {},
+    appliedValues: {},
+    draftValues: {},
     remoteOptions: {},
     loadingOptions: false,
     search: '',
@@ -99,13 +111,14 @@ function newReportTabState(): ReportTabState {
     exporting: false,
     exportOpen: false,
     columnsOpen: false,
+    filterOpen: false,
+    settingsOpen: false,
+    genDraft: null,
     error: null,
+    drawerError: null,
     previewLoading: false,
     previewError: null,
     previewLoaded: false,
-    selectedRow: null,
-    selectedRowHeaders: null,
-    checkedRows: new Set<string>(),
   };
 }
 
@@ -139,7 +152,6 @@ export class ReportDashboardComponent implements OnInit {
   private readonly notifications = inject(NotificationService);
   private readonly auth = inject(Auth);
   private readonly toast = inject(ToastService);
-  private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly initializing = signal(true);
@@ -225,6 +237,13 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   selectTab(key: string): void {
+    // A drawer/modal belongs to its tab; never leave one open over
+    // another tab's table.
+    for (const st of this.tabState.values()) {
+      st.filterOpen = false;
+      st.settingsOpen = false;
+      st.exportOpen = false;
+    }
     this.activeTabKey = key;
     const tab = this.activeTab;
     if (!tab) return;
@@ -263,7 +282,7 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   // ============================================================
-  // REPORT TAB: FILTERS + OPTIONS
+  // FILTER DRAWER (draft vs applied)
   // ============================================================
 
   filtersFor(tab: WorkspaceTab, st: ReportTabState): FilterField[] {
@@ -271,25 +290,184 @@ export class ReportDashboardComponent implements OnInit {
     return FILTERS_BY_TYPE[st.type] ?? [];
   }
 
-  onTabTypeChange(key: string): void {
-    const st = this.stateOf(key);
-    st.detail = 'overview';
-    st.values = {};
-    st.page = 1;
-    st.sortCol = null;
-    st.hiddenCols = [];
-    st.search = '';
-    st.checkedRows = new Set<string>();
-    st.error = null;
-    st.previewLoaded = false;
-    this.refreshTabType(key);
+  drawerDateFields(tab: WorkspaceTab, st: ReportTabState): FilterField[] {
+    return this.filtersFor(tab, st).filter((f) => f.kind === 'date');
   }
 
-  onDetailChange(key: string): void {
+  drawerDataFields(tab: WorkspaceTab, st: ReportTabState): FilterField[] {
+    return this.filtersFor(tab, st).filter((f) => f.kind !== 'date');
+  }
+
+  openFilter(key: string): void {
     const st = this.stateOf(key);
+    // Draft starts from the last applied values; un-applied edits from
+    // a previously closed drawer are intentionally discarded.
+    st.draftValues = { ...st.appliedValues };
+    st.drawerError = null;
+    st.filterOpen = true;
+    st.settingsOpen = false;
+    st.exportOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  closeFilter(key: string): void {
+    const st = this.stateOf(key);
+    // Closing without Apply discards the draft; the table keeps
+    // showing the last applied filters.
+    st.filterOpen = false;
+    st.drawerError = null;
+    this.cdr.markForCheck();
+  }
+
+  applyDrawerFilters(key: string): void {
+    const tab = this.tabs.find((t) => t.key === key);
+    const st = this.stateOf(key);
+    if (!tab || tab.kind !== 'report' || st.previewLoading) return;
+    const dateFrom = st.draftValues['date_from'] || '';
+    const dateTo = st.draftValues['date_to'] || '';
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      st.drawerError = 'The from date must be on or before the to date.';
+      return;
+    }
+    st.drawerError = null;
+    st.error = null;
+    st.appliedValues = { ...st.draftValues };
     st.page = 1;
-    st.checkedRows = new Set<string>();
+    st.filterOpen = false;
     this.loadPreview(key);
+  }
+
+  resetDrawerFilters(key: string): void {
+    const st = this.stateOf(key);
+    // Reset clears the filter controls and immediately reloads the
+    // default dataset. Search is preserved so it keeps combining with
+    // filters; the empty-state button clears search explicitly.
+    st.draftValues = {};
+    st.appliedValues = {};
+    st.drawerError = null;
+    st.error = null;
+    st.page = 1;
+    st.filterOpen = false;
+    this.loadPreview(key);
+  }
+
+  clearAllFilters(key: string): void {
+    const st = this.stateOf(key);
+    st.draftValues = {};
+    st.appliedValues = {};
+    st.search = '';
+    st.drawerError = null;
+    st.error = null;
+    st.page = 1;
+    st.filterOpen = false;
+    this.loadPreview(key);
+  }
+
+  activeFilterCount(st: ReportTabState): number {
+    return Object.values(st.appliedValues).filter(
+      (v) => v !== '' && v !== null && v !== undefined,
+    ).length;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    for (const [key, st] of this.tabState) {
+      if (st.settingsOpen) {
+        this.closeSettings(key);
+        return;
+      }
+      if (st.filterOpen) {
+        this.closeFilter(key);
+        return;
+      }
+      if (st.exportOpen || st.columnsOpen) {
+        st.exportOpen = false;
+        st.columnsOpen = false;
+        this.cdr.markForCheck();
+        return;
+      }
+    }
+  }
+
+  // ============================================================
+  // REPORT SETTINGS (generation config: type / detail / format)
+  // ============================================================
+
+  openSettings(key: string): void {
+    const st = this.stateOf(key);
+    st.genDraft = {
+      type: st.type,
+      detail: st.detail,
+      format: st.format,
+      title: st.title,
+    };
+    st.settingsOpen = true;
+    st.filterOpen = false;
+    st.exportOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  closeSettings(key: string): void {
+    const st = this.stateOf(key);
+    st.settingsOpen = false;
+    st.genDraft = null;
+    this.cdr.markForCheck();
+  }
+
+  settingsDetailsFor(type: ReportType | ''): string[] {
+    if (!type) return [];
+    return this.detailsByType[type] ?? ['overview'];
+  }
+
+  onSettingsTypeChange(key: string): void {
+    const st = this.stateOf(key);
+    const draft = st.genDraft;
+    if (!draft || !draft.type) return;
+    const details = this.settingsDetailsFor(draft.type);
+    if (!details.includes(draft.detail)) {
+      draft.detail = details[0] ?? 'overview';
+    }
+  }
+
+  private applySettingsDraft(key: string): boolean {
+    const tab = this.tabs.find((t) => t.key === key);
+    const st = this.stateOf(key);
+    const draft = st.genDraft;
+    if (!tab || tab.kind !== 'report' || !draft || !draft.type) return false;
+    const typeChanged = draft.type !== st.type;
+    st.type = draft.type;
+    st.details = this.settingsDetailsFor(draft.type);
+    st.detail = draft.detail || st.details[0] || 'overview';
+    st.format = draft.format;
+    st.title = draft.title;
+    st.settingsOpen = false;
+    st.genDraft = null;
+    if (typeChanged) {
+      // A different report type has different filters; start clean.
+      st.appliedValues = {};
+      st.draftValues = {};
+      st.page = 1;
+      st.sortCol = null;
+      st.hiddenCols = [];
+      this.loadRemoteOptions(key, st.type);
+    }
+    return true;
+  }
+
+  applySettingsView(key: string): void {
+    if (!this.applySettingsDraft(key)) return;
+    this.stateOf(key).page = 1;
+    this.loadPreview(key);
+  }
+
+  generateFromSettings(key: string): void {
+    const st = this.stateOf(key);
+    if (st.generating) return;
+    if (!this.applySettingsDraft(key)) return;
+    // Keep the live table consistent with the generated variant, then
+    // generate the official document without replacing the table.
+    this.loadPreview(key);
+    this.generate(key);
   }
 
   private refreshTabType(key: string): void {
@@ -341,35 +519,6 @@ export class ReportDashboardComponent implements OnInit {
       });
   }
 
-  resetTabFilters(key: string): void {
-    const st = this.stateOf(key);
-    st.values = {};
-    st.search = '';
-    st.hiddenCols = [];
-    st.sortCol = null;
-    st.page = 1;
-    st.pageSize = 10;
-    st.error = null;
-    st.previewError = null;
-    st.checkedRows = new Set<string>();
-    st.selectedRow = null;
-    this.loadPreview(key);
-  }
-
-  applyTabFilters(key: string): void {
-    const st = this.stateOf(key);
-    const dateFrom = st.values['date_from'] || '';
-    const dateTo = st.values['date_to'] || '';
-    if (dateFrom && dateTo && dateFrom > dateTo) {
-      st.error = 'The from date must be on or before the to date.';
-      return;
-    }
-    st.error = null;
-    st.page = 1;
-    st.checkedRows = new Set<string>();
-    this.loadPreview(key);
-  }
-
   // ============================================================
   // LIVE PREVIEW (stateless table, no Generate required)
   // ============================================================
@@ -379,8 +528,8 @@ export class ReportDashboardComponent implements OnInit {
     error: string | null;
   } {
     const fields = this.filtersFor(tab, st);
-    const dateFrom = st.values['date_from'] || '';
-    const dateTo = st.values['date_to'] || '';
+    const dateFrom = st.appliedValues['date_from'] || '';
+    const dateTo = st.appliedValues['date_to'] || '';
     if (dateFrom && dateTo && dateFrom > dateTo) {
       return {
         parameters: {},
@@ -389,7 +538,7 @@ export class ReportDashboardComponent implements OnInit {
     }
     const parameters: Record<string, unknown> = {};
     for (const field of fields) {
-      const value = st.values[field.key];
+      const value = st.appliedValues[field.key];
       if (value === '' || value === null || value === undefined) continue;
       parameters[field.key] =
         field.kind === 'number' ? Number(value) : String(value).trim();
@@ -430,7 +579,6 @@ export class ReportDashboardComponent implements OnInit {
           st.previewError = null;
           st.page = 1;
           st.sortCol = null;
-          st.checkedRows = new Set<string>();
           this.cdr.markForCheck();
         },
         error: (err) => {
@@ -603,7 +751,7 @@ export class ReportDashboardComponent implements OnInit {
   }
 
   // ============================================================
-  // REPORT TAB: TABLE (columns, search, sort, pagination, view)
+  // REPORT TAB: TABLE (columns, search, sort, pagination)
   // ============================================================
 
   visibleHeaders(st: ReportTabState): string[] {
@@ -778,93 +926,6 @@ export class ReportDashboardComponent implements OnInit {
       default:
         return tab.description;
     }
-  }
-
-  rowKey(row: unknown[]): string {
-    return JSON.stringify(row);
-  }
-
-  isRowChecked(st: ReportTabState, row: unknown[]): boolean {
-    return st.checkedRows.has(this.rowKey(row));
-  }
-
-  toggleRow(st: ReportTabState, row: unknown[]): void {
-    const key = this.rowKey(row);
-    const next = new Set(st.checkedRows);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
-    st.checkedRows = next;
-  }
-
-  toggleAllPage(st: ReportTabState, checked: boolean): void {
-    const next = new Set(st.checkedRows);
-    for (const row of this.pagedRows(st)) {
-      const key = this.rowKey(row);
-      if (checked) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-    }
-    st.checkedRows = next;
-  }
-
-  toggleAllPageEvent(st: ReportTabState, event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    this.toggleAllPage(st, input?.checked ?? false);
-  }
-
-  allPageChecked(st: ReportTabState): boolean {
-    const page = this.pagedRows(st);
-    if (page.length === 0) return false;
-    return page.every((row) => st.checkedRows.has(this.rowKey(row)));
-  }
-
-  openRowView(st: ReportTabState, row: unknown[]): void {
-    st.selectedRow = row;
-    st.selectedRowHeaders = this.allHeaders(st);
-  }
-
-  closeRowView(st: ReportTabState): void {
-    st.selectedRow = null;
-    st.selectedRowHeaders = null;
-  }
-
-  rowRecordLink(st: ReportTabState, row: unknown[]): string[] | null {
-    const headers = this.allHeaders(st);
-    const idIndex = 0;
-    const idValue = Number(row[idIndex]);
-    if (!Number.isFinite(idValue) || idValue <= 0) return null;
-    const role = (this.auth.getUserRole() || '').toUpperCase();
-    const segment = role === 'GOVERNMENT_OFFICIAL' || role === 'GOVERNMENT' ? 'government' : 'admin';
-    if (st.type === 'POLICY_REPORT' && headers[0] === 'policy_id') {
-      return [`/dashboard/${segment}/policies/${idValue}`];
-    }
-    if (st.type === 'SCHEME_REPORT' && headers[0] === 'scheme_id') {
-      return [`/dashboard/${segment}/schemes/${idValue}`];
-    }
-    if (st.type === 'USER_REPORT' && headers[0] === 'user_id') {
-      if (segment !== 'admin') return null;
-      return [`/dashboard/admin/users/${idValue}`];
-    }
-    return null;
-  }
-
-  openRecord(st: ReportTabState, row: unknown[]): void {
-    const link = this.rowRecordLink(st, row);
-    if (link) {
-      void this.router.navigate(link);
-      return;
-    }
-    this.openRowView(st, row);
-  }
-
-  cellText(value: unknown): string {
-    if (value === null || value === undefined || value === '') return '—';
-    return String(value);
   }
 
   // ============================================================

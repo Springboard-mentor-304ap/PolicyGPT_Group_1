@@ -195,89 +195,9 @@
             </div>
           }
 
-          <!-- CONFIG + FILTERS (presentation only until Apply) -->
-          <section class="filter-panel">
-            <p class="tab-description">{{ tab.description }}</p>
-            <div class="filters-grid">
-              @if (tab.types.length > 1) {
-                <div class="filter-field">
-                  <label for="ws-type"><span>Report type</span></label>
-                  <select id="ws-type" [(ngModel)]="st.type" (ngModelChange)="onTabTypeChange(tab.key)">
-                    @for (t of tab.types; track t) {
-                      <option [value]="t">{{ typeTitle(t) }}</option>
-                    }
-                  </select>
-                </div>
-              }
-              @if (st.details.length > 1) {
-                <div class="filter-field">
-                  <label for="ws-detail"><span>Detail</span></label>
-                  <select id="ws-detail" [(ngModel)]="st.detail" (ngModelChange)="onDetailChange(tab.key)">
-                    @for (d of st.details; track d) {
-                      <option [value]="d">{{ detailLabel(d) }}</option>
-                    }
-                  </select>
-                </div>
-              }
-              <div class="filter-field">
-                <label for="ws-format"><span>Format</span></label>
-                <select id="ws-format" [(ngModel)]="st.format">
-                  <option value="PDF">PDF</option>
-                  <option value="EXCEL">Excel</option>
-                </select>
-              </div>
-              <div class="filter-field">
-                <label for="ws-title"><span>Title (optional)</span></label>
-                <input type="text" id="ws-title" [(ngModel)]="st.title" maxlength="255" placeholder="Report title" />
-              </div>
-              @for (field of filtersFor(tab, st); track field.key) {
-                <div class="filter-field">
-                  <label [for]="'ws-' + field.key"><span>{{ field.label }}</span></label>
-                  @if (field.kind === 'select') {
-                    <select [id]="'ws-' + field.key" [(ngModel)]="st.values[field.key]">
-                      <option value="">Any</option>
-                      @for (option of field.staticOptions; track option) {
-                        <option [value]="option">{{ option }}</option>
-                      }
-                    </select>
-                  } @else if (field.kind === 'date') {
-                    <input type="date" [id]="'ws-' + field.key" [(ngModel)]="st.values[field.key]" />
-                  } @else if (field.kind === 'number') {
-                    <input type="number" min="1" [id]="'ws-' + field.key" [(ngModel)]="st.values[field.key]" />
-                  } @else if (field.kind === 'remote' && st.remoteOptions[field.key]?.length) {
-                    <select [id]="'ws-' + field.key" [(ngModel)]="st.values[field.key]">
-                      <option value="">Any</option>
-                      @for (option of st.remoteOptions[field.key]; track option) {
-                        <option [value]="option">{{ option }}</option>
-                      }
-                    </select>
-                  } @else {
-                    <input
-                      type="text"
-                      [id]="'ws-' + field.key"
-                      [(ngModel)]="st.values[field.key]"
-                      [placeholder]="st.loadingOptions ? 'Loading options…' : 'Any'"
-                    />
-                  }
-                </div>
-              }
-            </div>
-            @if (st.error) {
-              <p class="filter-error">{{ st.error }}</p>
-            }
-            <div class="filter-actions">
-              <button type="button" class="btn-secondary" (click)="applyTabFilters(tab.key)" [disabled]="st.previewLoading">
-                {{ st.previewLoading ? 'Loading…' : 'Apply Filters' }}
-              </button>
-              <button type="button" class="btn-secondary" (click)="resetTabFilters(tab.key)">
-                Reset
-              </button>
-              <button type="button" class="btn-primary" (click)="generate(tab.key)" [disabled]="st.generating || !st.type">
-                {{ st.generating ? 'Generating…' : 'Generate Report' }}
-              </button>
-              <a class="btn-secondary" [routerLink]="['history']">Report History</a>
-            </div>
-          </section>
+          @if (st.error) {
+            <p class="filter-error">{{ st.error }}</p>
+          }
 
           <!-- GENERATED REPORT CARD (official output metadata) -->
           @if (st.report; as rep) {
@@ -310,7 +230,7 @@
             </section>
           }
 
-          <!-- LIVE DATA TABLE CARD -->
+          <!-- LIVE DATA TABLE CARD: no inline filter fields here -->
           <section class="results-section">
             <div class="filter-panel">
               <div class="results-header">
@@ -321,6 +241,20 @@
                 <div class="toolbar-actions">
                   <button type="button" class="btn-secondary" (click)="st.columnsOpen = !st.columnsOpen">
                     Table Columns
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-secondary filter-button"
+                    (click)="openFilter(tab.key)"
+                    aria-label="Open filters"
+                  >
+                    <span class="material-icons" aria-hidden="true">filter_list</span>
+                    <span>Filter</span>
+                    @if (activeFilterCount(st) > 0) {
+                      <span class="filter-badge" aria-label="{{ activeFilterCount(st) }} active filters">
+                        {{ activeFilterCount(st) }}
+                      </span>
+                    }
                   </button>
                   <div class="export-menu">
                     <button type="button" class="btn-secondary" (click)="st.exportOpen = !st.exportOpen" [disabled]="st.exporting">
@@ -334,6 +268,9 @@
                       </div>
                     }
                   </div>
+                  <button type="button" class="btn-primary" (click)="openSettings(tab.key)" [disabled]="st.generating">
+                    {{ st.generating ? 'Generating…' : 'Generate Report' }}
+                  </button>
                 </div>
               </div>
 
@@ -398,38 +335,29 @@
                     Retry
                   </button>
                 </section>
-              } @else if (st.previewError && st.dataset) {
-                <p class="filter-error">{{ st.previewError }} <button type="button" class="btn-secondary" (click)="retryPreview(tab.key)">Retry</button></p>
-                <ng-container *ngTemplateOutlet="dataTable; context: { st: st, tabKey: tab.key }"></ng-container>
               } @else {
-                <ng-container *ngTemplateOutlet="dataTable; context: { st: st, tabKey: tab.key }"></ng-container>
-              }
-
-              <ng-template #dataTable let-st="st" let-tabKey="tabKey">
-                @if (pagedRows(st).length === 0) {
+                @if (st.previewError && st.dataset) {
+                  <p class="filter-error">{{ st.previewError }} <button type="button" class="btn-secondary" (click)="retryPreview(tab.key)">Retry</button></p>
+                }
+                @if (st.previewLoading && st.dataset) {
+                  <p class="tab-description">Loading report data…</p>
+                }
+                @if (pagedRows(st).length === 0 && !st.previewLoading) {
                   <section class="state-card empty-state">
                     <div class="state-icon">
                       <span class="material-icons" aria-hidden="true">search_off</span>
                     </div>
                     <h2>No records found.</h2>
-                    <p>Adjust your filters or search to see results.</p>
-                    <button type="button" class="retry-button" (click)="resetTabFilters(tabKey)">
-                      Reset Filters
+                    <p>No records match the selected filters.</p>
+                    <button type="button" class="retry-button" (click)="clearAllFilters(tab.key)">
+                      Clear Filters
                     </button>
                   </section>
-                } @else {
+                } @else if (pagedRows(st).length > 0) {
                   <div class="report-table-container">
                     <table class="report-table">
                       <thead>
                         <tr>
-                          <th>
-                            <input
-                              type="checkbox"
-                              [checked]="allPageChecked(st)"
-                              (change)="toggleAllPageEvent(st, $event)"
-                              aria-label="Select all rows on page"
-                            />
-                          </th>
                           @for (h of visibleHeaders(st); track h) {
                             <th>
                               <button type="button" class="th-sort" (click)="sortBy(st, allHeaders(st).indexOf(h))">
@@ -440,20 +368,11 @@
                               </button>
                             </th>
                           }
-                          <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         @for (row of pagedRows(st); track $index) {
                           <tr>
-                            <td>
-                              <input
-                                type="checkbox"
-                                [checked]="isRowChecked(st, row)"
-                                (change)="toggleRow(st, row)"
-                                aria-label="Select row"
-                              />
-                            </td>
                             @for (h of visibleHeaders(st); track h) {
                               <td>
                                 @if (isStatusColumn(h)) {
@@ -465,11 +384,6 @@
                                 }
                               </td>
                             }
-                            <td>
-                              <button type="button" class="btn-secondary" (click)="openRowView(st, row)">
-                                View
-                              </button>
-                            </td>
                           </tr>
                         }
                       </tbody>
@@ -500,34 +414,134 @@
                     </select>
                   </div>
                 }
-              </ng-template>
+              }
             </div>
           </section>
 
-          <!-- ROW VIEW MODAL (live data row, distinct from generated report view) -->
-          @if (st.selectedRow; as selRow) {
-            <section class="filter-panel">
-              <div class="results-header">
-                <div>
-                  <h2>Row details</h2>
-                  <p>Live data view. For the official generated document, use View on a generated report.</p>
-                </div>
-                <button type="button" class="btn-secondary" (click)="closeRowView(st)">Close</button>
+          <!-- RIGHT-SIDE FILTER DRAWER -->
+          @if (st.filterOpen) {
+            <div class="drawer-backdrop" (click)="closeFilter(tab.key)" aria-hidden="true"></div>
+            <aside class="filter-drawer" role="dialog" aria-modal="true" aria-label="Filter reports">
+              <div class="drawer-header">
+                <h2>Filter Reports</h2>
+                <button type="button" class="drawer-close" (click)="closeFilter(tab.key)" aria-label="Close filters">
+                  <span class="material-icons" aria-hidden="true">close</span>
+                </button>
               </div>
-              <dl class="detail-list">
-                @for (h of (st.selectedRowHeaders ?? []); track h; let i = $index) {
-                  <div class="detail-row">
-                    <dt class="detail-term">{{ headerLabel(h) }}</dt>
-                    <dd class="detail-value">{{ cellText(selRow[i]) }}</dd>
+              <div class="drawer-body">
+                <p class="tab-description">Search/filter options for the currently selected report.</p>
+                @if (drawerDateFields(tab, st).length > 0) {
+                  <h3 class="drawer-section-title">Date Range</h3>
+                  @for (field of drawerDateFields(tab, st); track field.key) {
+                    <div class="filter-field drawer-field">
+                      <label [for]="'drawer-' + tab.key + '-' + field.key"><span>{{ field.label }}</span></label>
+                      <input type="date" [id]="'drawer-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]" />
+                    </div>
+                  }
+                }
+                @for (field of drawerDataFields(tab, st); track field.key) {
+                  <div class="filter-field drawer-field">
+                    <label [for]="'drawer-' + tab.key + '-' + field.key"><span>{{ field.label }}</span></label>
+                    @if (field.kind === 'select') {
+                      <select [id]="'drawer-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]">
+                        <option value="">All</option>
+                        @for (option of field.staticOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    } @else if (field.kind === 'number') {
+                      <input type="number" min="1" [id]="'drawer-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]" placeholder="Any" />
+                    } @else if (field.kind === 'remote' && st.remoteOptions[field.key]?.length) {
+                      <select [id]="'drawer-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]">
+                        <option value="">All</option>
+                        @for (option of st.remoteOptions[field.key]; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    } @else {
+                      <input
+                        type="text"
+                        [id]="'drawer-' + tab.key + '-' + field.key"
+                        [(ngModel)]="st.draftValues[field.key]"
+                        [placeholder]="st.loadingOptions ? 'Loading options…' : 'All'"
+                      />
+                    }
                   </div>
                 }
-              </dl>
-              @if (rowRecordLink(st, selRow); as link) {
-                <div class="filter-actions">
-                  <button type="button" class="btn-primary" (click)="openRecord(st, selRow)">Open full record</button>
+                @if (filtersFor(tab, st).length === 0) {
+                  <p class="tab-description">No filters available for this report.</p>
+                }
+                @if (st.drawerError) {
+                  <p class="filter-error">{{ st.drawerError }}</p>
+                }
+              </div>
+              <div class="drawer-footer">
+                <button type="button" class="btn-secondary" (click)="resetDrawerFilters(tab.key)" [disabled]="st.previewLoading">
+                  Reset
+                </button>
+                <button type="button" class="btn-primary" (click)="applyDrawerFilters(tab.key)" [disabled]="st.previewLoading">
+                  {{ st.previewLoading ? 'Loading…' : 'Apply Filters' }}
+                </button>
+              </div>
+            </aside>
+          }
+
+          <!-- REPORT SETTINGS MODAL (generation config, separate from filters) -->
+          @if (st.settingsOpen && st.genDraft; as draft) {
+            <div class="drawer-backdrop" (click)="closeSettings(tab.key)" aria-hidden="true"></div>
+            <div class="settings-modal" role="dialog" aria-modal="true" aria-label="Report settings">
+              <div class="drawer-header">
+                <h2>Report Settings</h2>
+                <button type="button" class="drawer-close" (click)="closeSettings(tab.key)" aria-label="Close report settings">
+                  <span class="material-icons" aria-hidden="true">close</span>
+                </button>
+              </div>
+              <div class="drawer-body">
+                <p class="tab-description">Configure the official generated report. Data filters stay in the Filter drawer.</p>
+                @if (tab.types.length > 1) {
+                  <div class="filter-field drawer-field">
+                    <label for="settings-type"><span>Report type</span></label>
+                    <select id="settings-type" [(ngModel)]="draft.type" (ngModelChange)="onSettingsTypeChange(tab.key)">
+                      @for (t of tab.types; track t) {
+                        <option [value]="t">{{ typeTitle(t) }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                @if (settingsDetailsFor(draft.type).length > 1) {
+                  <div class="filter-field drawer-field">
+                    <label for="settings-detail"><span>Detail</span></label>
+                    <select id="settings-detail" [(ngModel)]="draft.detail">
+                      @for (d of settingsDetailsFor(draft.type); track d) {
+                        <option [value]="d">{{ detailLabel(d) }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                <div class="filter-field drawer-field">
+                  <label for="settings-format"><span>Format</span></label>
+                  <select id="settings-format" [(ngModel)]="draft.format">
+                    <option value="PDF">PDF</option>
+                    <option value="EXCEL">Excel</option>
+                  </select>
                 </div>
-              }
-            </section>
+                <div class="filter-field drawer-field">
+                  <label for="settings-title"><span>Title (optional)</span></label>
+                  <input type="text" id="settings-title" [(ngModel)]="draft.title" maxlength="255" placeholder="Report title" />
+                </div>
+              </div>
+              <div class="drawer-footer">
+                <button type="button" class="btn-secondary" (click)="closeSettings(tab.key)">
+                  Cancel
+                </button>
+                <button type="button" class="btn-secondary" (click)="applySettingsView(tab.key)" [disabled]="st.previewLoading">
+                  Apply View
+                </button>
+                <button type="button" class="btn-primary" (click)="generateFromSettings(tab.key)" [disabled]="st.generating">
+                  {{ st.generating ? 'Generating…' : 'Generate Report' }}
+                </button>
+              </div>
+            </div>
           }
         }
       }

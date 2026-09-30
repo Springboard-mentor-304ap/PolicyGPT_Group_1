@@ -194,8 +194,9 @@ export class AdminAnalyticsComponent implements OnInit {
     this.analyticsService.getNotifications().subscribe({
   next: (data) => {
     console.log("🔥 NOTIFICATIONS:", data);
-    this.totalNotifications = data.total ?? 0;
-    this.recentNotifications = data.items ?? [];
+    
+  this.totalNotifications = data.length ?? 0;
+  this.recentNotifications = data;
   },
       error: (error) => {
           console.error(
@@ -210,7 +211,7 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
 
     this.activityAvailable = false;
-    this.recentUserActivity = [];
+    // this.recentUserActivity = [];
   }
 
   // =========================================================

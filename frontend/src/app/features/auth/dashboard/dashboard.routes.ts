@@ -213,10 +213,6 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.SearchHistoryComponent,
           ),
       },
-
-      // REPORTS (role layout children)
-      // /dashboard/organization/reports
-      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -448,10 +444,6 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.SearchHistoryComponent,
           ),
       },
-
-      // REPORTS (role layout children)
-      // /dashboard/citizen/reports
-      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -1253,10 +1245,6 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.SearchHistoryComponent,
           ),
       },
-
-      // REPORTS (role layout children)
-      // /dashboard/researcher/reports
-      ...REPORTS_CHILD_ROUTES,
     ],
   },
 

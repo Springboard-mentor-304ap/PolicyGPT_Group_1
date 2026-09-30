@@ -383,21 +383,6 @@ export const routes: Routes = [
     pathMatch: "full",
   },
   {
-    path: "citizen/reports",
-    redirectTo: "dashboard/citizen/reports",
-    pathMatch: "full",
-  },
-  {
-    path: "researcher/reports",
-    redirectTo: "dashboard/researcher/reports",
-    pathMatch: "full",
-  },
-  {
-    path: "organization/reports",
-    redirectTo: "dashboard/organization/reports",
-    pathMatch: "full",
-  },
-  {
     path: "admin/audit-logs",
     redirectTo: "dashboard/admin/audit-logs",
     pathMatch: "full",

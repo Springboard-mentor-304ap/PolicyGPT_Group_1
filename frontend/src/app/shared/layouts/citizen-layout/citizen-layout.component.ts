@@ -120,12 +120,6 @@ export class CitizenLayoutComponent implements OnInit {
     },
 
     {
-      label: "Reports",
-      icon: "query_stats",
-      route: "/dashboard/citizen/reports",
-    },
-
-    {
       label: "Search History",
       icon: "history",
       route: "/dashboard/citizen/history",

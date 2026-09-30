@@ -254,7 +254,7 @@ export class PermissionService {
 
   canViewReports(role: string): boolean {
     const normalizedRole = this.normalizeRole(role);
-    return ['ADMIN', 'GOVERNMENT_OFFICIAL', 'CITIZEN', 'RESEARCHER', 'ORGANIZATION'].includes(normalizedRole);
+    return ['ADMIN', 'GOVERNMENT_OFFICIAL'].includes(normalizedRole);
   }
 
   isAdmin(role: string): boolean {

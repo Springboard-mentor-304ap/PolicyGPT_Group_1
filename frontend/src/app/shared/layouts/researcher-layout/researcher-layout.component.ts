@@ -139,12 +139,6 @@ export class ResearcherLayoutComponent implements OnInit {
     },
 
     {
-      label: "Reports",
-      icon: "query_stats",
-      route: "/dashboard/researcher/reports",
-    },
-
-    {
       label: "Support",
       icon: "support_agent",
       route: "/dashboard/researcher/faqs",

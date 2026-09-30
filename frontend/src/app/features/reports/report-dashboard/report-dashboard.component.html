@@ -172,8 +172,30 @@
           </section>
         }
       } @else {
-        <!-- REPORT TAB -->
+        <!-- LIVE REPORT TAB -->
         @if (stateOf(tab.key); as st) {
+          <!-- SUMMARY KPI CARDS (live, from dataset summary) -->
+          @if (st.dataset) {
+            <div class="stats-grid">
+              @for (card of summaryCards(st); track card[0]) {
+                <div class="stat-card">
+                  <span class="stat-value">{{ card[1] }}</span>
+                  <span class="stat-title">{{ card[0] }}</span>
+                </div>
+              }
+            </div>
+          } @else if (st.previewLoading) {
+            <div class="stats-grid" aria-label="Loading summary">
+              @for (i of [1, 2, 3, 4]; track i) {
+                <div class="stat-card">
+                  <span class="stat-value">…</span>
+                  <span class="stat-title">Loading…</span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- CONFIG + FILTERS (presentation only until Apply) -->
           <section class="filter-panel">
             <p class="tab-description">{{ tab.description }}</p>
             <div class="filters-grid">
@@ -190,7 +212,7 @@
               @if (st.details.length > 1) {
                 <div class="filter-field">
                   <label for="ws-detail"><span>Detail</span></label>
-                  <select id="ws-detail" [(ngModel)]="st.detail">
+                  <select id="ws-detail" [(ngModel)]="st.detail" (ngModelChange)="onDetailChange(tab.key)">
                     @for (d of st.details; track d) {
                       <option [value]="d">{{ detailLabel(d) }}</option>
                     }
@@ -244,40 +266,61 @@
               <p class="filter-error">{{ st.error }}</p>
             }
             <div class="filter-actions">
-              <button type="button" class="btn-primary" (click)="generate(tab.key)" [disabled]="st.generating || !st.type">
-                {{ st.generating ? 'Generating…' : 'Generate Report' }}
+              <button type="button" class="btn-secondary" (click)="applyTabFilters(tab.key)" [disabled]="st.previewLoading">
+                {{ st.previewLoading ? 'Loading…' : 'Apply Filters' }}
               </button>
               <button type="button" class="btn-secondary" (click)="resetTabFilters(tab.key)">
                 Reset
+              </button>
+              <button type="button" class="btn-primary" (click)="generate(tab.key)" [disabled]="st.generating || !st.type">
+                {{ st.generating ? 'Generating…' : 'Generate Report' }}
               </button>
               <a class="btn-secondary" [routerLink]="['history']">Report History</a>
             </div>
           </section>
 
-          @if (st.dataset; as ds) {
+          <!-- GENERATED REPORT CARD (official output metadata) -->
+          @if (st.report; as rep) {
             <section class="results-section">
-              <div class="stats-grid">
-                @for (card of summaryCards(st); track card[0]) {
-                  <div class="stat-card">
-                    <span class="stat-value">{{ card[1] }}</span>
-                    <span class="stat-title">{{ card[0] }}</span>
+              <article class="portal-card">
+                <div class="card-icon" aria-hidden="true">
+                  <span class="material-icons">description</span>
+                </div>
+                <div class="card-content">
+                  <div class="card-title-row">
+                    <h3>{{ rep.title || rep.report_type }}</h3>
+                    <span class="metadata-item status-badge status-status-{{ rep.status.toLowerCase() }}">
+                      {{ rep.status }}
+                    </span>
                   </div>
-                }
-              </div>
+                  <div class="metadata">
+                    <span class="metadata-item">ID {{ rep.report_id }}</span>
+                    <span class="metadata-item">{{ rep.report_type }}</span>
+                    <span class="metadata-item">{{ rep.report_format }}</span>
+                    <span class="metadata-item">{{ rep.generated_at }}</span>
+                  </div>
+                </div>
+                <div class="card-actions">
+                  <a class="btn-secondary" [routerLink]="[rep.report_id]">View</a>
+                  <button type="button" class="btn-primary" (click)="downloadGenerated(st)" [disabled]="st.exporting">
+                    {{ st.exporting ? 'Downloading…' : 'Download' }}
+                  </button>
+                </div>
+              </article>
+            </section>
+          }
 
-              <div class="report-toolbar">
-                <div class="search-input-wrapper">
-                  <span class="material-icons search-icon" aria-hidden="true">search</span>
-                  <input
-                    type="text"
-                    [(ngModel)]="st.search"
-                    placeholder="Search {{ tab.title | lowercase }}…"
-                    aria-label="Search results"
-                  />
+          <!-- LIVE DATA TABLE CARD -->
+          <section class="results-section">
+            <div class="filter-panel">
+              <div class="results-header">
+                <div>
+                  <h2>{{ tableTitle(tab, st) }}</h2>
+                  <p>{{ tableDescription(tab) }}</p>
                 </div>
                 <div class="toolbar-actions">
                   <button type="button" class="btn-secondary" (click)="st.columnsOpen = !st.columnsOpen">
-                    Columns ⚙
+                    Table Columns
                   </button>
                   <div class="export-menu">
                     <button type="button" class="btn-secondary" (click)="st.exportOpen = !st.exportOpen" [disabled]="st.exporting">
@@ -286,11 +329,26 @@
                     @if (st.exportOpen) {
                       <div class="export-dropdown">
                         <p class="export-title">Export Report</p>
-                        <button type="button" (click)="exportReport(tab.key, 'PDF')">PDF</button>
-                        <button type="button" (click)="exportReport(tab.key, 'EXCEL')">Excel</button>
+                        <button type="button" (click)="exportReport(tab.key, 'PDF')">Export as PDF</button>
+                        <button type="button" (click)="exportReport(tab.key, 'EXCEL')">Export as Excel</button>
                       </div>
                     }
                   </div>
+                </div>
+              </div>
+
+              <div class="report-toolbar">
+                <div class="search-input-wrapper">
+                  <span class="search-icon" aria-hidden="true">
+                    <span class="material-icons">search</span>
+                  </span>
+                  <input
+                    type="text"
+                    [(ngModel)]="st.search"
+                    (ngModelChange)="st.page = 1"
+                    [placeholder]="searchPlaceholder(tab)"
+                    aria-label="Search results"
+                  />
                 </div>
               </div>
 
@@ -298,7 +356,7 @@
                 <section class="filter-panel columns-panel">
                   <h3>Table Columns</h3>
                   <div class="columns-grid">
-                    @for (h of (st.dataset.sections[0]?.headers ?? []); track h) {
+                    @for (h of allHeaders(st); track h) {
                       <label class="column-check">
                         <input
                           type="checkbox"
@@ -317,83 +375,158 @@
                 </section>
               }
 
-              @if (pagedRows(st).length === 0) {
-                <section class="state-card empty-state">
+              @if (st.previewLoading && !st.dataset) {
+                <div class="skeleton-list" aria-label="Loading report data">
+                  @for (i of [1, 2, 3]; track i) {
+                    <div class="skeleton-card" aria-hidden="true">
+                      <div class="skeleton skeleton-icon"></div>
+                      <div class="skeleton-body">
+                        <div class="skeleton skeleton-title"></div>
+                        <div class="skeleton skeleton-line"></div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else if (st.previewError && !st.dataset) {
+                <section class="state-card error-state">
                   <div class="state-icon">
-                    <span class="material-icons" aria-hidden="true">search_off</span>
+                    <span class="material-icons" aria-hidden="true">error_outline</span>
                   </div>
-                  <h2>No records found.</h2>
-                  <button type="button" class="retry-button" (click)="resetTabFilters(tab.key)">
-                    Reset Filters
+                  <h2>Unable to load report data.</h2>
+                  <p>{{ st.previewError }}</p>
+                  <button type="button" class="retry-button" (click)="retryPreview(tab.key)">
+                    Retry
                   </button>
                 </section>
+              } @else if (st.previewError && st.dataset) {
+                <p class="filter-error">{{ st.previewError }} <button type="button" class="btn-secondary" (click)="retryPreview(tab.key)">Retry</button></p>
+                <ng-container *ngTemplateOutlet="dataTable; context: { st: st, tabKey: tab.key }"></ng-container>
               } @else {
-                <div class="report-table-container">
-                  <table class="report-table">
-                    <thead>
-                      <tr>
-                        @for (h of visibleHeaders(st); track h; let ci = $index) {
-                          <th>
-                            <button type="button" class="th-sort" (click)="sortBy(st, st.dataset.sections[0].headers.indexOf(h))">
-                              {{ headerLabel(h) }}
-                              @if (st.sortCol === st.dataset.sections[0].headers.indexOf(h)) {
-                                <span aria-hidden="true">{{ st.sortDir === 1 ? '▲' : '▼' }}</span>
-                              }
-                            </button>
-                          </th>
-                        }
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (row of pagedRows(st); track $index) {
+                <ng-container *ngTemplateOutlet="dataTable; context: { st: st, tabKey: tab.key }"></ng-container>
+              }
+
+              <ng-template #dataTable let-st="st" let-tabKey="tabKey">
+                @if (pagedRows(st).length === 0) {
+                  <section class="state-card empty-state">
+                    <div class="state-icon">
+                      <span class="material-icons" aria-hidden="true">search_off</span>
+                    </div>
+                    <h2>No records found.</h2>
+                    <p>Adjust your filters or search to see results.</p>
+                    <button type="button" class="retry-button" (click)="resetTabFilters(tabKey)">
+                      Reset Filters
+                    </button>
+                  </section>
+                } @else {
+                  <div class="report-table-container">
+                    <table class="report-table">
+                      <thead>
                         <tr>
+                          <th>
+                            <input
+                              type="checkbox"
+                              [checked]="allPageChecked(st)"
+                              (change)="toggleAllPageEvent(st, $event)"
+                              aria-label="Select all rows on page"
+                            />
+                          </th>
                           @for (h of visibleHeaders(st); track h) {
-                            <td>
-                              @if (isStatusColumn(h)) {
-                                <span [ngClass]="statusBadgeClass(row[st.dataset.sections[0].headers.indexOf(h)])">
-                                  {{ row[st.dataset.sections[0].headers.indexOf(h)] }}
-                                </span>
-                              } @else {
-                                {{ row[st.dataset.sections[0].headers.indexOf(h)] }}
-                              }
-                            </td>
+                            <th>
+                              <button type="button" class="th-sort" (click)="sortBy(st, allHeaders(st).indexOf(h))">
+                                {{ headerLabel(h) }}
+                                @if (st.sortCol === allHeaders(st).indexOf(h)) {
+                                  <span aria-hidden="true">{{ st.sortDir === 1 ? '▲' : '▼' }}</span>
+                                }
+                              </button>
+                            </th>
                           }
+                          <th>Action</th>
                         </tr>
-                      }
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        @for (row of pagedRows(st); track $index) {
+                          <tr>
+                            <td>
+                              <input
+                                type="checkbox"
+                                [checked]="isRowChecked(st, row)"
+                                (change)="toggleRow(st, row)"
+                                aria-label="Select row"
+                              />
+                            </td>
+                            @for (h of visibleHeaders(st); track h) {
+                              <td>
+                                @if (isStatusColumn(h)) {
+                                  <span [ngClass]="statusBadgeClass(row[allHeaders(st).indexOf(h)])">
+                                    {{ row[allHeaders(st).indexOf(h)] }}
+                                  </span>
+                                } @else {
+                                  {{ row[allHeaders(st).indexOf(h)] }}
+                                }
+                              </td>
+                            }
+                            <td>
+                              <button type="button" class="btn-secondary" (click)="openRowView(st, row)">
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="pagination">
+                    <button type="button" class="pagination-control" (click)="goToPage(st, st.page - 1)" [disabled]="st.page <= 1">
+                      &lt;
+                    </button>
+                    @for (p of pageNumbers(st); track p) {
+                      <button
+                        type="button"
+                        class="pagination-control"
+                        [style.fontWeight]="p === st.page ? '800' : '600'"
+                        (click)="goToPage(st, p)"
+                      >
+                        {{ p }}
+                      </button>
+                    }
+                    <button type="button" class="pagination-control" (click)="goToPage(st, st.page + 1)" [disabled]="st.page >= totalPages(st)">
+                      &gt;
+                    </button>
+                    <span>{{ pageRangeText(st) }}</span>
+                    <select [(ngModel)]="st.pageSize" (ngModelChange)="st.page = 1" aria-label="Rows per page">
+                      <option [value]="10">10 / page</option>
+                      <option [value]="20">20 / page</option>
+                      <option [value]="50">50 / page</option>
+                    </select>
+                  </div>
+                }
+              </ng-template>
+            </div>
+          </section>
+
+          <!-- ROW VIEW MODAL (live data row, distinct from generated report view) -->
+          @if (st.selectedRow; as selRow) {
+            <section class="filter-panel">
+              <div class="results-header">
+                <div>
+                  <h2>Row details</h2>
+                  <p>Live data view. For the official generated document, use View on a generated report.</p>
                 </div>
-                <div class="pagination">
-                  <button type="button" class="pagination-control" (click)="st.page = st.page - 1" [disabled]="st.page <= 1">
-                    Previous
-                  </button>
-                  <span>{{ pageRangeText(st) }}</span>
-                  <select [(ngModel)]="st.pageSize" (ngModelChange)="st.page = 1" aria-label="Rows per page">
-                    <option [value]="10">10 / page</option>
-                    <option [value]="20">20 / page</option>
-                    <option [value]="50">50 / page</option>
-                  </select>
-                  <button type="button" class="pagination-control" (click)="st.page = st.page + 1" [disabled]="st.page >= totalPages(st)">
-                    Next
-                  </button>
+                <button type="button" class="btn-secondary" (click)="closeRowView(st)">Close</button>
+              </div>
+              <dl class="detail-list">
+                @for (h of (st.selectedRowHeaders ?? []); track h; let i = $index) {
+                  <div class="detail-row">
+                    <dt class="detail-term">{{ headerLabel(h) }}</dt>
+                    <dd class="detail-value">{{ cellText(selRow[i]) }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (rowRecordLink(st, selRow); as link) {
+                <div class="filter-actions">
+                  <button type="button" class="btn-primary" (click)="openRecord(st, selRow)">Open full record</button>
                 </div>
               }
-            </section>
-          } @else if (!st.generating) {
-            <section class="state-card empty-state">
-              <div class="state-icon">
-                <span class="material-icons" aria-hidden="true">{{ tab.icon }}</span>
-              </div>
-              <h2>{{ tab.title }}</h2>
-              <p>{{ tab.description }} Configure the filters above and generate the report.</p>
-            </section>
-          } @else {
-            <section class="state-card">
-              <div class="state-icon">
-                <span class="material-icons" aria-hidden="true">hourglass_top</span>
-              </div>
-              <h2>Generating report…</h2>
-              <p>Building your {{ tab.title | lowercase }} from live data.</p>
             </section>
           }
         }

@@ -48,6 +48,37 @@ export class ReportService {
       .pipe(timeout(120000));
   }
 
+  /**
+   * Live preview dataset for the Reports landing page.
+   * Mirrors GET /reports/preview — same builders, scope and filters
+   * as generation, but stateless: no Report row, no audit, no notify.
+   */
+  getPreview(
+    reportType: ReportType,
+    detail?: string | null,
+    parameters?: Record<string, unknown> | null,
+    title?: string | null,
+  ): Observable<ReportDataset> {
+    const params: Record<string, string> = {
+      report_type: reportType,
+    };
+    if (detail) {
+      params['detail'] = detail;
+    }
+    if (title?.trim()) {
+      params['title'] = title.trim();
+    }
+    for (const [key, value] of Object.entries(parameters ?? {})) {
+      if (value === '' || value === null || value === undefined) {
+        continue;
+      }
+      params[key] = String(value);
+    }
+    return this.http
+      .get<ReportDataset>(`${this.baseUrl}/preview`, { params })
+      .pipe(timeout(60000));
+  }
+
   /** Own history (ADMIN sees all). Mirrors GET /reports/history. */
   getHistory(limit = 100, offset = 0): Observable<Report[]> {
     return this.http

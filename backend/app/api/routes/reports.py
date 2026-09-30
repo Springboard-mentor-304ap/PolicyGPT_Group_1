@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.routes.auth import require_roles
@@ -101,6 +101,90 @@ def generate_persisted_report_endpoint(
             "X-Report-Id": str(report.report_id),
         },
     )
+
+
+# ============================================================
+# LIVE PREVIEW (stateless — no persist, no audit, no notify)
+# ============================================================
+
+
+@router.get("/preview")
+def preview_report(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*REPORT_ROUTE_ROLES)),
+):
+    """Return the live dataset for a report type + filters.
+
+    Same builders, same role scope and filter validation as
+    generation, but nothing is persisted: no Report row, no audit
+    log, no notification. Used by the Reports landing page to show
+    the live table without requiring Generate first.
+    """
+    from app.services import report_permissions as preview_permissions
+    from app.services.report_service import build_v1_report_data
+
+    params = dict(request.query_params)
+    raw_type = (params.pop("report_type", "") or "").strip()
+    detail = params.pop("detail", None)
+    # Title is presentation-only for preview.
+    title = params.pop("title", None)
+    # Search is applied client-side on the returned rows; ignore here
+    # so unknown keys never fail validation.
+    params.pop("search", None)
+
+    if not raw_type:
+        raise HTTPException(status_code=400, detail="report_type is required")
+
+    # Coerce numeric filter strings to int where the builders compare
+    # against integer columns.
+    for numeric_key in ("policy_id", "scheme_id", "user_id"):
+        if numeric_key in params and params[numeric_key] not in (None, ""):
+            try:
+                params[numeric_key] = int(str(params[numeric_key]).strip())
+            except (TypeError, ValueError):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid {numeric_key}: expected a number",
+                )
+    # Drop empty strings so missing filters behave like "Any".
+    cleaned = {
+        k: (v.strip() if isinstance(v, str) else v)
+        for k, v in params.items()
+        if not (v is None or (isinstance(v, str) and v.strip() == ""))
+    }
+
+    try:
+        effective_detail = preview_permissions.validate_report_detail(
+            current_user.role, raw_type, detail
+        )
+        scoped = preview_permissions.apply_report_scope(
+            current_user.role,
+            current_user.user_id,
+            raw_type,
+            cleaned,
+            detail=effective_detail,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        dataset = build_v1_report_data(
+            db,
+            raw_type,
+            current_user,
+            scoped,
+            title,
+            detail=effective_detail,
+        )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    return dataset
 
 
 # ============================================================

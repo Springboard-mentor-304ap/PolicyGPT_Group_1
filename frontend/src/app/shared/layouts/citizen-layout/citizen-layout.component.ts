@@ -129,18 +129,6 @@ export class CitizenLayoutComponent implements OnInit {
       label: "Analytics",
       icon: "analytics",
       route: "/dashboard/citizen/analytics",
-      children: [
-        {
-          label: "Personal Analytics",
-          icon: "dashboard",
-          route: "/dashboard/citizen/analytics",
-        },
-        {
-          label: "Saved & Search Activity",
-          icon: "insights",
-          route: "/dashboard/citizen/analytics/activity",
-        },
-      ],
     },
 
     {

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import require_roles
+from app.api.routes.auth import normalize_role, require_roles
 from app.models.user import User
 
 from app.services.analytics_service import (
@@ -15,6 +15,13 @@ from app.services.analytics_service import (
     get_user_activity,
     get_usage_statistics,
     get_role_analytics,
+)
+from app.services.personal_analytics_service import get_personal_analytics
+from app.services.government_analytics_service import (
+    get_government_departments,
+    get_government_overview,
+    get_government_policy_scheme,
+    get_government_user_notifications,
 )
 
 from app.services.department_analytics_service import (
@@ -207,6 +214,155 @@ def role_analytics(
     return get_role_analytics(
         db,
         current_user,
+    )
+
+
+# ============================================================
+# PERSONAL (ROLE-SCOPED) ANALYTICS
+# ============================================================
+#
+# One endpoint per role, all backed by the same aggregation service.
+# The authenticated user is resolved server-side from the token; no
+# user_id / organization_id is accepted from the client, so a citizen
+# can only ever see their own activity and an organization only its
+# own scope. ADMIN (superuser) may access every endpoint.
+#
+# Every metric is a live database aggregation. Metrics the database
+# cannot back yet (views, eligibility checks, comparisons) are
+# returned as explicit zeros with tracked=False — never fabricated.
+
+def _personal_overview(
+    db: Session,
+    current_user: User,
+    role: str,
+    range: str,
+    date_from: str | None,
+    date_to: str | None,
+):
+    try:
+        return get_personal_analytics(
+            db=db,
+            user=current_user,
+            role=role,
+            range=range,
+            date_from=date_from,
+            date_to=date_to,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/citizen/overview")
+def citizen_overview(
+    range: str = Query(default="30d"),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("CITIZEN")),
+):
+    return _personal_overview(db, current_user, "CITIZEN", range, date_from, date_to)
+
+
+@router.get("/researcher/overview")
+def researcher_overview(
+    range: str = Query(default="30d"),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("RESEARCHER")),
+):
+    return _personal_overview(db, current_user, "RESEARCHER", range, date_from, date_to)
+
+
+@router.get("/organization/overview")
+def organization_overview(
+    range: str = Query(default="30d"),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ORGANIZATION", "ORGANISATION")),
+):
+    role = normalize_role(current_user.role) or "ORGANIZATION"
+    return _personal_overview(db, current_user, role, range, date_from, date_to)
+
+
+# ============================================================
+# GOVERNMENT ANALYTICS (platform-wide, role-guarded)
+# ============================================================
+#
+# Backs the four Government Official Analytics pages. All data is
+# platform-wide government data aggregated live; private user-targeted
+# notification content is never included in listings.
+
+def _handle_gov_errors(fn, *args, **kwargs):
+    try:
+        return fn(*args, **kwargs)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/government/overview")
+def government_overview(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    return _handle_gov_errors(
+        get_government_overview, db, months, date_from, date_to
+    )
+
+
+@router.get("/government/policy-scheme")
+def government_policy_scheme(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    policy_status: str | None = Query(default=None),
+    scheme_status: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    return _handle_gov_errors(
+        get_government_policy_scheme,
+        db,
+        months,
+        date_from,
+        date_to,
+        policy_status,
+        scheme_status,
+        category,
+    )
+
+
+@router.get("/government/departments")
+def government_departments(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    department: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    return _handle_gov_errors(
+        get_government_departments, db, months, date_from, date_to, department
+    )
+
+
+@router.get("/government/user-notifications")
+def government_user_notifications(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    role: str | None = Query(default=None),
+    channel: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    return _handle_gov_errors(
+        get_government_user_notifications, db, months, date_from, date_to, role, channel
     )
 
 

@@ -224,24 +224,17 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // ORGANIZATION ANALYTICS (shared detail screens)
+      // ORGANIZATION ANALYTICS
       {
         path: "analytics",
 
         data: {
-          variant: "overview",
-          pageTitle: "Organization Overview",
-          pageDescription:
-            "Platform data and key metrics for your organization.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/organization"] },
-            { label: "Analytics" },
-          ],
+          analyticsRole: "organization",
         },
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
           ),
       },
 
@@ -570,36 +563,31 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // CITIZEN ANALYTICS (shared detail screens)
+      // CITIZEN ANALYTICS
       {
         path: "analytics",
 
         data: {
-          variant: "personal",
-          pageTitle: "Personal Dashboard",
-          pageDescription:
-            "Your saved items and platform activity at a glance.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/citizen"] },
-            { label: "Analytics" },
-          ],
-          cta: [
-            {
-              label: "View Saved Items",
-              icon: "bookmark",
-              route: ["/dashboard/citizen/saved"],
-            },
-            {
-              label: "Search History",
-              icon: "history",
-              route: ["/dashboard/citizen/history"],
-            },
-          ],
+          analyticsRole: "citizen",
         },
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      // CITIZEN ANALYTICS ALIAS (sidebar: Saved & Search Activity)
+      {
+        path: "analytics/activity",
+
+        data: {
+          analyticsRole: "citizen",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
           ),
       },
 
@@ -1030,139 +1018,41 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // GOVERNMENT ANALYTICS (shared detail screens)
+      // GOVERNMENT ANALYTICS (dedicated pages, sidebar-linked)
       // /dashboard/government/analytics
       {
         path: "analytics",
 
-        data: {
-          variant: "overview",
-          pageTitle: "Analytics Overview",
-          pageDescription: "Government platform overview and key metrics.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            { label: "Analytics" },
-          ],
-        },
-
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/government/govt-analytics-overview.component").then(
+            (m) => m.GovtAnalyticsOverviewComponent,
           ),
       },
 
       {
-        path: "analytics/policy-statistics",
-
-        data: {
-          variant: "policy-statistics",
-          pageTitle: "Policy Statistics",
-          pageDescription: "Policy status, distribution and trends.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            {
-              label: "Analytics",
-              route: ["/dashboard/government/analytics"],
-            },
-            { label: "Policy Statistics" },
-          ],
-        },
+        path: "analytics/policy-scheme",
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
-          ),
-      },
-
-      {
-        path: "analytics/scheme-usage",
-
-        data: {
-          variant: "scheme-usage",
-          pageTitle: "Scheme Usage",
-          pageDescription: "Scheme adoption, status and trends.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            {
-              label: "Analytics",
-              route: ["/dashboard/government/analytics"],
-            },
-            { label: "Scheme Usage" },
-          ],
-        },
-
-        loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
-          ),
-      },
-
-      {
-        path: "analytics/user-activity",
-
-        data: {
-          variant: "user-activity",
-          pageTitle: "User Activity",
-          pageDescription: "User accounts and activity in your scope.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            {
-              label: "Analytics",
-              route: ["/dashboard/government/analytics"],
-            },
-            { label: "User Activity" },
-          ],
-        },
-
-        loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/government/govt-policy-scheme.component").then(
+            (m) => m.GovtPolicySchemeComponent,
           ),
       },
 
       {
         path: "analytics/departments",
 
-        data: {
-          variant: "departments",
-          pageTitle: "Department Analytics",
-          pageDescription: "Ministry and department aggregations.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            {
-              label: "Analytics",
-              route: ["/dashboard/government/analytics"],
-            },
-            { label: "Department Analytics" },
-          ],
-        },
-
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/government/govt-departments.component").then(
+            (m) => m.GovtDepartmentsComponent,
           ),
       },
 
       {
-        path: "analytics/notifications",
-
-        data: {
-          variant: "notifications",
-          pageTitle: "Notification Statistics",
-          pageDescription: "Notification delivery and read statistics.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/government"] },
-            {
-              label: "Analytics",
-              route: ["/dashboard/government/analytics"],
-            },
-            { label: "Notification Statistics" },
-          ],
-        },
+        path: "analytics/user-notifications",
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/government/govt-user-notifications.component").then(
+            (m) => m.GovtUserNotificationsComponent,
           ),
       },
 
@@ -1854,23 +1744,31 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // RESEARCHER ANALYTICS (shared detail screens)
+      // RESEARCHER ANALYTICS
       {
         path: "analytics",
 
         data: {
-          variant: "overview",
-          pageTitle: "Research Overview",
-          pageDescription: "Platform research data and key metrics.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/researcher"] },
-            { label: "Analytics" },
-          ],
+          analyticsRole: "researcher",
         },
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      // RESEARCHER ANALYTICS ALIAS (sidebar: Policy & Scheme Trends)
+      {
+        path: "analytics/trends",
+
+        data: {
+          analyticsRole: "researcher",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
           ),
       },
 

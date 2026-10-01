@@ -118,18 +118,6 @@ export class OrganizationLayoutComponent implements OnInit {
       icon: "analytics",
       label: "Analytics",
       route: "/dashboard/organization/analytics",
-      children: [
-        {
-          icon: "dashboard",
-          label: "Organization Analytics",
-          route: "/dashboard/organization/analytics",
-        },
-        {
-          icon: "insights",
-          label: "Policy & Scheme Usage",
-          route: "/dashboard/organization/analytics/usage",
-        },
-      ],
     },
 
     {

@@ -1,0 +1,275 @@
+<div class="govt-analytics-page">
+  <app-breadcrumb [items]="crumbs"></app-breadcrumb>
+
+  <header class="analytics-header">
+    <div class="header-left">
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageDescription }}</p>
+    </div>
+    <div class="header-right no-print">
+      <div class="range-group" role="group" aria-label="Time range">
+        @for (m of monthOptions; track m) {
+        <button type="button" class="range-pill" [class.range-pill--active]="months === m && !showCustom"
+          (click)="setMonths(m)" [attr.aria-pressed]="months === m && !showCustom">
+          Last {{ m }} Months
+        </button>
+        }
+        <button type="button" class="range-pill" [class.range-pill--active]="showCustom" (click)="toggleCustom()"
+          [attr.aria-pressed]="showCustom">
+          Custom
+        </button>
+      </div>
+      @if (showCustom) {
+      <div class="custom-range">
+        <input type="date" [(ngModel)]="customFrom" aria-label="Start date" />
+        <span aria-hidden="true">–</span>
+        <input type="date" [(ngModel)]="customTo" aria-label="End date" />
+        <button type="button" class="btn btn-primary" (click)="applyCustom()">Apply</button>
+      </div>
+      }
+      @if (data) {
+      <select class="filter-select" [(ngModel)]="role" (change)="onFilterChange()" aria-label="Role filter">
+        <option value="">Role: All</option>
+        @for (r of data.filter_options.roles; track r) {
+        <option [value]="r">{{ pretty(r) }}</option>
+        }
+      </select>
+      <select class="filter-select" [(ngModel)]="channel" (change)="onFilterChange()" aria-label="Channel filter">
+        <option value="">Channel: All</option>
+        @for (c of data.filter_options.channels; track c) {
+        <option [value]="c">{{ pretty(c) }}</option>
+        }
+      </select>
+      }
+      <div class="export-wrap">
+        <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
+          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
+          <span class="material-icons" aria-hidden="true">download</span>
+          <span>Download Report</span>
+        </button>
+        @if (showExportMenu) {
+        <div class="export-menu" role="menu">
+          <button type="button" role="menuitem" (click)="downloadExcel()">
+            <span class="material-icons" aria-hidden="true">table_view</span>
+            Excel (CSV)
+          </button>
+          <button type="button" role="menuitem" (click)="downloadPdf()">
+            <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            PDF (Print)
+          </button>
+        </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (loading) {
+  <div class="stats-grid" aria-label="Loading analytics">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+    <div class="stat-card stat-card--skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-icon"></span>
+      <span class="skeleton-body">
+        <span class="skeleton skeleton-title"></span>
+        <span class="skeleton skeleton-line"></span>
+      </span>
+    </div>
+    }
+  </div>
+  <div class="table-skeleton" aria-hidden="true">
+    <div class="skeleton skeleton-table-head"></div>
+    @for (i of [1, 2, 3]; track i) {
+    <div class="skeleton skeleton-table-row"></div>
+    }
+  </div>
+  } @else if (error) {
+  <section class="state-card error-state">
+    <div class="state-icon">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+    </div>
+    <h2>Unable to load analytics.</h2>
+    <p>{{ error }}</p>
+    <button type="button" class="retry-button" (click)="retry()">Retry</button>
+  </section>
+  } @else if (data) {
+  <div class="stats-grid" role="list">
+    @for (kpi of kpis; track kpi.key) {
+    <div class="stat-card" role="listitem" tabindex="0" [attr.title]="kpi.tooltip">
+      <span class="stat-icon stat-icon--{{ kpi.tone }}" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value">{{ kpi.value }}</span>
+        <span class="stat-title">{{ kpi.label }}</span>
+      </span>
+    </div>
+    }
+  </div>
+
+  <div class="grid-2">
+    <section class="data-card" aria-label="User growth trend">
+      <div class="card-head">
+        <div>
+          <h2>User Growth Trend</h2>
+          <p class="card-sub">New registrations · {{ periodLabel }}</p>
+        </div>
+      </div>
+      <app-analytics-line-chart [series]="growthSeries" [labels]="data.growth_trend.labels"></app-analytics-line-chart>
+    </section>
+
+    <section class="data-card" aria-label="User distribution by role">
+      <div class="card-head">
+        <div>
+          <h2>User Distribution by Role</h2>
+          <p class="card-sub">Registered accounts</p>
+        </div>
+      </div>
+      <app-analytics-donut-chart [slices]="roleSlices"></app-analytics-donut-chart>
+    </section>
+  </div>
+
+  <div class="grid-2 grid-2--even">
+    <section class="data-card" aria-label="User distribution by state">
+      <div class="card-head">
+        <div>
+          <h2>User Distribution by State</h2>
+          <p class="card-sub">Registered accounts</p>
+        </div>
+      </div>
+      <app-analytics-hbar-chart [items]="stateBars" color="#1461a0"></app-analytics-hbar-chart>
+    </section>
+
+    <section class="data-card" aria-label="New user registrations by role">
+      <div class="card-head">
+        <div>
+          <h2>New User Registrations</h2>
+          <p class="card-sub">Stacked by role · {{ periodLabel }}</p>
+        </div>
+      </div>
+      <app-analytics-grouped-bar-chart [categories]="data.growth_trend.labels" [series]="registrationSeries"
+        [stacked]="true"></app-analytics-grouped-bar-chart>
+    </section>
+  </div>
+
+  <div class="grid-2 grid-2--even">
+    <section class="data-card" aria-label="Active users by role">
+      <div class="card-head">
+        <div>
+          <h2>Active Users</h2>
+          <p class="card-sub">Active accounts by role</p>
+        </div>
+      </div>
+      <app-analytics-hbar-chart [items]="activeBars" color="#17833d"></app-analytics-hbar-chart>
+    </section>
+
+    <section class="data-card" aria-label="Notification statistics by channel">
+      <div class="card-head">
+        <div>
+          <h2>Notification Statistics</h2>
+          <p class="card-sub">Sent vs read by channel · {{ periodLabel }}</p>
+        </div>
+      </div>
+      <app-analytics-grouped-bar-chart [categories]="channelGrouped.categories"
+        [series]="channelGrouped.series"></app-analytics-grouped-bar-chart>
+    </section>
+  </div>
+
+  <div class="grid-2 grid-2--even">
+    <section class="data-card" aria-label="Notifications by type">
+      <div class="card-head">
+        <div>
+          <h2>Notifications by Type</h2>
+          <p class="card-sub">{{ periodLabel }}</p>
+        </div>
+      </div>
+      @if (typeBars.length === 0) {
+      <p class="empty-text">No notifications in this period.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="typeBars" color="#7e22ce"></app-analytics-hbar-chart>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Notifications by channel">
+      <div class="card-head">
+        <div>
+          <h2>Notifications by Channel</h2>
+          <p class="card-sub">Share of sent notifications</p>
+        </div>
+      </div>
+      <app-analytics-donut-chart [slices]="channelSlices"></app-analytics-donut-chart>
+    </section>
+  </div>
+
+  <div class="grid-2 grid-2--even">
+    <section class="data-card" aria-label="Recent users">
+      <div class="card-head">
+        <h2>Recent Users</h2>
+      </div>
+      @if (data.recent_users.length === 0) {
+      <p class="empty-text">No users match the active filters.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of data.recent_users; track u.user_id) {
+            <tr>
+              <td [attr.title]="u.full_name">{{ u.full_name }}</td>
+              <td>{{ pretty(u.role) }}</td>
+              <td>
+                <span class="status-badge" [class.status-badge--active]="u.is_active"
+                  [class.status-badge--inactive]="!u.is_active">
+                  {{ u.is_active ? "Active" : "Inactive" }}
+                </span>
+              </td>
+              <td>{{ formatDate(u.created_at) }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Recent notifications">
+      <div class="card-head">
+        <h2>Recent Notifications</h2>
+        <a class="link-action" [routerLink]="['/dashboard/government/notifications']"
+          title="View all notifications">View All</a>
+      </div>
+      @if (data.recent_notifications.length === 0) {
+      <p class="empty-text">No broadcast notifications in this period.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Channel</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (n of data.recent_notifications; track n.notification_id) {
+            <tr>
+              <td [attr.title]="n.title">{{ n.title }}</td>
+              <td>{{ pretty(n.notification_type) }}</td>
+              <td>{{ pretty(n.channel) }}</td>
+              <td>{{ formatDate(n.created_at) }}</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+  </div>
+  }
+</div>

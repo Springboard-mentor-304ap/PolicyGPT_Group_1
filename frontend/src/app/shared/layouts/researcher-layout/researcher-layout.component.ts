@@ -126,18 +126,6 @@ export class ResearcherLayoutComponent implements OnInit {
       label: "Analytics",
       icon: "analytics",
       route: "/dashboard/researcher/analytics",
-      children: [
-        {
-          label: "Research Analytics",
-          icon: "dashboard",
-          route: "/dashboard/researcher/analytics",
-        },
-        {
-          label: "Policy & Scheme Trends",
-          icon: "query_stats",
-          route: "/dashboard/researcher/analytics/trends",
-        },
-      ],
     },
 
     {

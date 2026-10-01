@@ -181,7 +181,7 @@
       } @else {
 
       <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
-        [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
+        [routerLinkActiveOptions]="{ exact: item.route === '/dashboard/organization' }" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? item.label : null">
 
         <span class="material-icons dash-nav__icon" aria-hidden="true">

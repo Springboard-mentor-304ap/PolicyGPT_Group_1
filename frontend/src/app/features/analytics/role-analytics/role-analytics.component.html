@@ -1,0 +1,584 @@
+<div class="role-analytics-page">
+  <app-breadcrumb [items]="crumbs"></app-breadcrumb>
+
+  <header class="analytics-header">
+    <div class="header-left">
+      <h1>{{ config.pageTitle }}</h1>
+      <p>{{ config.pageDescription }}</p>
+    </div>
+
+    <div class="header-right no-print">
+      <div class="range-group" role="group" aria-label="Date range">
+        @for (option of ranges; track option.key) {
+        <button type="button" class="range-pill" [class.range-pill--active]="range === option.key"
+          (click)="setRange(option.key)" [attr.aria-pressed]="range === option.key">
+          {{ option.label }}
+        </button>
+        }
+      </div>
+      @if (range === "custom") {
+      <div class="custom-range">
+        <input type="date" [(ngModel)]="customFrom" aria-label="Start date" />
+        <span aria-hidden="true">–</span>
+        <input type="date" [(ngModel)]="customTo" aria-label="End date" />
+        <button type="button" class="btn btn-primary" (click)="applyCustom()">
+          Apply
+        </button>
+      </div>
+      }
+      <div class="export-wrap">
+        <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
+          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
+          <span class="material-icons" aria-hidden="true">download</span>
+          <span>Download Report</span>
+        </button>
+        @if (showExportMenu) {
+        <div class="export-menu" role="menu">
+          <button type="button" role="menuitem" (click)="exportExcel()">
+            <span class="material-icons" aria-hidden="true">table_view</span>
+            Excel (CSV)
+          </button>
+          <button type="button" role="menuitem" (click)="exportPdf()">
+            <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            PDF (Print)
+          </button>
+        </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (loading) {
+  <div class="stats-grid" aria-label="Loading analytics">
+    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+    <div class="stat-card stat-card--skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-icon"></span>
+      <span class="skeleton-body">
+        <span class="skeleton skeleton-title"></span>
+        <span class="skeleton skeleton-line"></span>
+      </span>
+    </div>
+    }
+  </div>
+  <div class="table-skeleton" aria-hidden="true">
+    <div class="skeleton skeleton-table-head"></div>
+    @for (i of [1, 2, 3]; track i) {
+    <div class="skeleton skeleton-table-row"></div>
+    }
+  </div>
+  } @else if (error) {
+  <section class="state-card error-state">
+    <div class="state-icon">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+    </div>
+    <h2>Unable to load analytics.</h2>
+    <p>{{ error }}</p>
+    <button type="button" class="retry-button" (click)="retry()">
+      Retry
+    </button>
+  </section>
+  } @else if (data) {
+  <!-- KPI CARDS -->
+  <div class="stats-grid stats-grid--{{ kpis.length }}" role="list">
+    @for (kpi of kpis; track kpi.key) {
+    <div class="stat-card" role="listitem" tabindex="0" [attr.title]="kpi.tooltip"
+      [class.stat-card--untracked]="!kpi.tracked">
+      <span class="stat-icon stat-icon--{{ kpi.tone }}" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value">{{ kpi.value }}</span>
+        <span class="stat-title">{{ kpi.label }}</span>
+        @if (!kpi.tracked) {
+        <span class="stat-sub stat-sub--muted">Not tracked yet</span>
+        } @else if (kpi.delta !== null && kpi.delta !== undefined) {
+        <span class="stat-delta" [class.stat-delta--up]="kpi.delta >= 0" [class.stat-delta--down]="kpi.delta < 0"
+          [attr.title]="kpi.deltaHint">
+          <span class="material-icons" aria-hidden="true">{{
+            kpi.delta >= 0 ? "arrow_upward" : "arrow_downward"
+            }}</span>
+          {{ kpi.delta >= 0 ? "+" : "" }}{{ kpi.delta }}%
+        </span>
+        } @else {
+        <span class="stat-sub" [attr.title]="kpi.deltaHint">—</span>
+        }
+        @if (kpi.key === "notifications" && unreadCount > 0) {
+        <span class="stat-sub">{{ unreadCount }} unread</span>
+        }
+      </span>
+    </div>
+    }
+  </div>
+
+  <!-- TREND + DONUT -->
+  <div class="grid-2">
+    <section class="data-card" aria-label="Activity trend">
+      <div class="card-head">
+        <div>
+          <h2>{{ trendTitle }}</h2>
+          <p class="card-sub">
+            {{ data.window.from }} to {{ data.window.to }}
+          </p>
+        </div>
+      </div>
+      <app-analytics-line-chart [series]="trendSeries" [labels]="trendLabels"></app-analytics-line-chart>
+    </section>
+
+    <section class="data-card" aria-label="Activity breakdown">
+      <div class="card-head">
+        <div>
+          <h2>{{ donutTitle }}</h2>
+          <p class="card-sub">Share of each activity type</p>
+        </div>
+      </div>
+      <app-analytics-donut-chart [slices]="donutSlices"></app-analytics-donut-chart>
+    </section>
+  </div>
+
+  <!-- CITIZEN: ACTIVITY + KEYWORDS + NOTIFICATIONS -->
+  @if (role === "citizen") {
+  <div class="grid-3">
+    <section class="data-card" aria-label="Recent activity">
+      <div class="card-head">
+        <h2>Recent Activity</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'history']" title="View full search history">View All</a>
+      </div>
+      @if (data.recent_activity.length === 0) {
+      <p class="empty-text">No activity in this period yet.</p>
+      } @else {
+      <ul class="activity-list">
+        @for (item of data.recent_activity.slice(0, 7); track $index) {
+        <li>
+          <span class="activity-icon" aria-hidden="true">
+            <span class="material-icons">{{
+              activityIcon(item.type)
+              }}</span>
+          </span>
+          <span class="activity-text">
+            <strong [attr.title]="item.title">{{ item.title }}</strong>
+            <span>{{ item.subtitle }}</span>
+          </span>
+          <span class="activity-meta">
+            <span>{{ formatDate(item.timestamp) }}</span>
+            <a class="link-action" [routerLink]="activityLink(item.type, item.entity_id)"
+              title="View {{ item.title }}">View</a>
+          </span>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Top searched keywords">
+      <div class="card-head">
+        <h2>Top Searched Keywords</h2>
+      </div>
+      @if (data.top_searches.length === 0) {
+      <p class="empty-text">No searches in this period yet.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="topSearchBars" color="#1461a0"></app-analytics-hbar-chart>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Recent notifications">
+      <div class="card-head">
+        <h2>Recent Notifications</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'notifications']" title="View all notifications">View All</a>
+      </div>
+      @if (data.recent_notifications.length === 0) {
+      <p class="empty-text">No notifications in this period.</p>
+      } @else {
+      <ul class="notification-list">
+        @for (n of data.recent_notifications.slice(0, 6); track n.notification_id) {
+        <li [class.notification-list--unread]="!n.is_read">
+          <span class="notification-dot" [attr.title]="n.is_read ? 'Read' : 'Unread'" aria-hidden="true"></span>
+          <span class="activity-text">
+            <strong [attr.title]="n.title">{{ n.title }}</strong>
+            <span>{{ n.notification_type }} ·
+              {{ formatDate(n.created_at) }}</span>
+          </span>
+          <a class="link-action" [routerLink]="[baseRoute, 'notifications']"
+            [attr.title]="'View notification: ' + n.title">View</a>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+  </div>
+
+  <!-- CITIZEN: SAVED TABLES -->
+  <div class="grid-2">
+    <section class="data-card" aria-label="Saved policies">
+      <div class="card-head">
+        <h2>Saved Policies</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_policies.length === 0) {
+      <p class="empty-text">No saved policies in this period.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Policy Title</th>
+              <th>Category</th>
+              <th>Saved On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.saved_policies.slice(0, 5); track row.policy_id) {
+            <tr>
+              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td>{{ row.category ?? "—" }}</td>
+              <td>{{ formatDate(row.saved_on) }}</td>
+              <td>
+                <a class="link-action" [routerLink]="[baseRoute, 'policies', row.policy_id]"
+                  [attr.title]="'View policy: ' + row.title">View</a>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Saved schemes">
+      <div class="card-head">
+        <h2>Saved Schemes</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_schemes.length === 0) {
+      <p class="empty-text">No saved schemes in this period.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Scheme Title</th>
+              <th>Category</th>
+              <th>Saved On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.saved_schemes.slice(0, 5); track row.scheme_id) {
+            <tr>
+              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td>{{ row.category ?? "—" }}</td>
+              <td>{{ formatDate(row.saved_on) }}</td>
+              <td>
+                <a class="link-action" [routerLink]="[baseRoute, 'schemes', row.scheme_id]"
+                  [attr.title]="'View scheme: ' + row.title">View</a>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+  </div>
+  }
+
+  <!-- RESEARCHER / ORGANIZATION: CATEGORY + SECTOR + KEYWORDS -->
+  @if (role === "researcher" || role === "organization") {
+  <div class="grid-3">
+    <section class="data-card" aria-label="Top policy categories">
+      <div class="card-head">
+        <div>
+          <h2>
+            {{
+            role === "researcher"
+            ? "Policies by Category"
+            : "Top Policy Categories Viewed"
+            }}
+          </h2>
+          <p class="card-sub">Platform-wide approved records</p>
+        </div>
+      </div>
+      <app-analytics-hbar-chart [items]="policyCategoryBars" color="#1461a0"></app-analytics-hbar-chart>
+    </section>
+
+    <section class="data-card" aria-label="Top scheme sectors">
+      <div class="card-head">
+        <div>
+          <h2>
+            {{
+            role === "researcher"
+            ? "Schemes by Sector"
+            : "Top Scheme Sectors Viewed"
+            }}
+          </h2>
+          <p class="card-sub">
+            {{
+            role === "researcher"
+            ? "Scheme category (schemes have no sector column)"
+            : "Platform-wide approved records"
+            }}
+          </p>
+        </div>
+      </div>
+      <app-analytics-hbar-chart [items]="schemeCategoryBars" color="#17833d"></app-analytics-hbar-chart>
+    </section>
+
+    <section class="data-card" aria-label="Top searched keywords">
+      <div class="card-head">
+        <h2>
+          {{
+          role === "researcher"
+          ? "Top Researched Topics"
+          : "Top Searched Keywords"
+          }}
+        </h2>
+      </div>
+      @if (data.top_searches.length === 0) {
+      <p class="empty-text">No searches in this period yet.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="topSearchBars" color="#7e22ce"></app-analytics-hbar-chart>
+      }
+    </section>
+  </div>
+
+  <div class="grid-3">
+    <section class="data-card" aria-label="Recent activity">
+      <div class="card-head">
+        <h2>
+          {{ role === "researcher" ? "Recent Research Activity" : "Recent Activity" }}
+        </h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'history']" title="View full search history">View All</a>
+      </div>
+      @if (data.recent_activity.length === 0) {
+      <p class="empty-text">No activity in this period yet.</p>
+      } @else {
+      <ul class="activity-list">
+        @for (item of data.recent_activity.slice(0, 6); track $index) {
+        <li>
+          <span class="activity-icon" aria-hidden="true">
+            <span class="material-icons">{{
+              activityIcon(item.type)
+              }}</span>
+          </span>
+          <span class="activity-text">
+            <strong [attr.title]="item.title">{{ item.title }}</strong>
+            <span>{{ item.subtitle }}</span>
+          </span>
+          <span class="activity-meta">
+            <span>{{ formatDate(item.timestamp) }}</span>
+            <a class="link-action" [routerLink]="activityLink(item.type, item.entity_id)"
+              title="View {{ item.title }}">View</a>
+          </span>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    @if (role === "researcher") {
+    <section class="data-card" aria-label="Saved research items">
+      <div class="card-head">
+        <h2>Saved Research Items</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      <h3 class="mini-head">Saved Policies ({{ data.saved_policies.length }})</h3>
+      @if (data.saved_policies.length === 0) {
+      <p class="empty-text">No saved policies in this period.</p>
+      } @else {
+      <ul class="mini-list">
+        @for (row of data.saved_policies.slice(0, 3); track row.policy_id) {
+        <li>
+          <span [attr.title]="row.title">{{ row.title }}</span>
+          <a class="link-action" [routerLink]="[baseRoute, 'policies', row.policy_id]"
+            [attr.title]="'View policy: ' + row.title">View</a>
+        </li>
+        }
+      </ul>
+      }
+      <h3 class="mini-head">Saved Schemes ({{ data.saved_schemes.length }})</h3>
+      @if (data.saved_schemes.length === 0) {
+      <p class="empty-text">No saved schemes in this period.</p>
+      } @else {
+      <ul class="mini-list">
+        @for (row of data.saved_schemes.slice(0, 3); track row.scheme_id) {
+        <li>
+          <span [attr.title]="row.title">{{ row.title }}</span>
+          <a class="link-action" [routerLink]="[baseRoute, 'schemes', row.scheme_id]"
+            [attr.title]="'View scheme: ' + row.title">View</a>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Recent comparisons">
+      <div class="card-head">
+        <h2>Recent Comparisons</h2>
+      </div>
+      <div class="state-inline">
+        <span class="material-icons" aria-hidden="true">compare_arrows</span>
+        <p>
+          No comparison history yet. Comparisons are stateless reads
+          and are not stored by the backend.
+        </p>
+        <a class="btn btn-outline" [routerLink]="[baseRoute, 'compare']">
+          <span class="material-icons" aria-hidden="true">compare_arrows</span>
+          <span>Compare Policies</span>
+        </a>
+      </div>
+    </section>
+    } @else {
+    <section class="data-card" aria-label="Saved policies">
+      <div class="card-head">
+        <h2>Saved Policies</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_policies.length === 0) {
+      <p class="empty-text">No saved policies in this period.</p>
+      } @else {
+      <ul class="mini-list">
+        @for (row of data.saved_policies.slice(0, 6); track row.policy_id) {
+        <li>
+          <span [attr.title]="row.title">{{ row.title }}</span>
+          <a class="link-action" [routerLink]="[baseRoute, 'policies', row.policy_id]"
+            [attr.title]="'View policy: ' + row.title">View</a>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Saved schemes">
+      <div class="card-head">
+        <h2>Saved Schemes</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_schemes.length === 0) {
+      <p class="empty-text">No saved schemes in this period.</p>
+      } @else {
+      <ul class="mini-list">
+        @for (row of data.saved_schemes.slice(0, 6); track row.scheme_id) {
+        <li>
+          <span [attr.title]="row.title">{{ row.title }}</span>
+          <a class="link-action" [routerLink]="[baseRoute, 'schemes', row.scheme_id]"
+            [attr.title]="'View scheme: ' + row.title">View</a>
+        </li>
+        }
+      </ul>
+      }
+    </section>
+    }
+  </div>
+
+  @if (role === "researcher") {
+  <div class="grid-2">
+    <section class="data-card" aria-label="Most viewed policies">
+      <div class="card-head">
+        <div>
+          <h2>Most Viewed Policies</h2>
+          <p class="card-sub">Platform-wide popularity</p>
+        </div>
+      </div>
+      <div class="state-inline">
+        <span class="material-icons" aria-hidden="true">visibility</span>
+        <p>
+          Popularity tracking is not available yet — policy views are
+          not recorded by the backend.
+        </p>
+      </div>
+    </section>
+    <section class="data-card" aria-label="Most viewed schemes">
+      <div class="card-head">
+        <div>
+          <h2>Most Viewed Schemes</h2>
+          <p class="card-sub">Platform-wide popularity</p>
+        </div>
+      </div>
+      <div class="state-inline">
+        <span class="material-icons" aria-hidden="true">visibility</span>
+        <p>
+          Popularity tracking is not available yet — scheme views are
+          not recorded by the backend.
+        </p>
+      </div>
+    </section>
+  </div>
+  } @else {
+  <!-- ORGANIZATION: full saved tables -->
+  <div class="grid-2">
+    <section class="data-card" aria-label="Saved policies table">
+      <div class="card-head">
+        <h2>Saved Policies</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_policies.length === 0) {
+      <p class="empty-text">No saved policies in this period.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Policy Title</th>
+              <th>Category</th>
+              <th>Saved On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.saved_policies.slice(0, 5); track row.policy_id) {
+            <tr>
+              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td>{{ row.category ?? "—" }}</td>
+              <td>{{ formatDate(row.saved_on) }}</td>
+              <td>
+                <a class="link-action" [routerLink]="[baseRoute, 'policies', row.policy_id]"
+                  [attr.title]="'View policy: ' + row.title">View</a>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Saved schemes table">
+      <div class="card-head">
+        <h2>Saved Schemes</h2>
+        <a class="link-action" [routerLink]="[baseRoute, 'saved']" title="View all saved items">View All</a>
+      </div>
+      @if (data.saved_schemes.length === 0) {
+      <p class="empty-text">No saved schemes in this period.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Scheme Title</th>
+              <th>Sector</th>
+              <th>Saved On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.saved_schemes.slice(0, 5); track row.scheme_id) {
+            <tr>
+              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td>{{ row.category ?? "—" }}</td>
+              <td>{{ formatDate(row.saved_on) }}</td>
+              <td>
+                <a class="link-action" [routerLink]="[baseRoute, 'schemes', row.scheme_id]"
+                  [attr.title]="'View scheme: ' + row.title">View</a>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+  </div>
+  }
+  }
+  }
+</div>

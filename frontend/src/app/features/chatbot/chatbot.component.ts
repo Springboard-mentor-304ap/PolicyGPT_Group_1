@@ -9,6 +9,8 @@ import { ToastService } from "../../core/services/toast.service";
 import {
   ChatAction,
   ChatHistoryMessage,
+  ChatResponseData,
+  ChatResultItem,
   ChatUiMessage,
   QuickAction,
 } from "../../core/models/chatbot.model";
@@ -435,7 +437,13 @@ export class ChatbotComponent {
               guest_remaining: response.guest_remaining,
             };
           }
-          this.pushAssistant(response.message, response.actions || []);
+          this.pushAssistant(
+            response.message,
+            response.actions || [],
+            false,
+            response.results || [],
+            response.data || null,
+          );
           this.scrollToBottom(true);
         },
         error: (error) => {
@@ -634,7 +642,52 @@ export class ChatbotComponent {
       }
     };
 
-    for (const rawLine of lines) {
+    const isTableRow = (line: string): boolean =>
+      /^\s*\|.*\|\s*$/.test(line);
+    const isSeparatorRow = (line: string): boolean =>
+      /^\s*\|[\s:|-]+\|\s*$/.test(line) && line.includes("-");
+
+    const renderTable = (block: string[]): string => {
+      const cells = (row: string): string[] =>
+        row
+          .trim()
+          .replace(/^\|/, "")
+          .replace(/\|$/, "")
+          .split("|")
+          .map((c) => c.trim());
+      const header = cells(block[0]);
+      const body = block.slice(1).filter((row) => !isSeparatorRow(row));
+      const head = `<thead><tr>${header
+        .map((c) => `<th>${this.inline(c)}</th>`)
+        .join("")}</tr></thead>`;
+      const rows = body
+        .map(
+          (row) =>
+            `<tr>${cells(row)
+              .map((c) => `<td>${this.inline(c)}</td>`)
+              .join("")}</tr>`,
+        )
+        .join("");
+      return `<div class="chatbot-table-wrap"><table class="chatbot-table">${head}<tbody>${rows}</tbody></table></div>`;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
+      if (isTableRow(rawLine)) {
+        const block: string[] = [];
+        while (i < lines.length && isTableRow(lines[i])) {
+          block.push(lines[i]);
+          i++;
+        }
+        i--;
+        closeList();
+        if (block.length >= 2) {
+          html.push(renderTable(block));
+        } else {
+          html.push(`<p>${this.inline(block[0].trim())}</p>`);
+        }
+        continue;
+      }
       const line = rawLine.trimEnd();
       const trimmed = line.trim();
       const bullet = trimmed.match(/^[-*]\s+(.*)$/);
@@ -694,6 +747,8 @@ export class ChatbotComponent {
     text: string,
     actions: ChatAction[] = [],
     limitReached = false,
+    results: ChatResultItem[] = [],
+    data: ChatResponseData | null = null,
   ): void {
     this.messages.push({
       id: ++this.messageSeq,
@@ -701,7 +756,53 @@ export class ChatbotComponent {
       text,
       actions,
       limitReached,
+      results,
+      data,
     });
+  }
+
+  resultAction(item: ChatResultItem): ChatAction | null {
+    if (!item.route) {
+      return null;
+    }
+    switch ((item.type || "").toLowerCase()) {
+      case "policy":
+        return { label: "View Policy", type: "VIEW_POLICY", route: item.route };
+      case "scheme":
+        return { label: "View Scheme", type: "VIEW_SCHEME", route: item.route };
+      case "statistic":
+        return { label: "View All", type: "NAVIGATE", route: item.route };
+      case "user":
+        return { label: "Manage Users", type: "NAVIGATE", route: item.route };
+      default:
+        return { label: "Open", type: "NAVIGATE", route: item.route };
+    }
+  }
+
+  resultMeta(item: ChatResultItem): string {
+    return [item.ministry, item.category, item.state]
+      .filter((v): v is string => !!v)
+      .join(" · ");
+  }
+
+  statusClass(status: string | null | undefined): string {
+    switch ((status || "").toUpperCase().trim()) {
+      case "APPROVED":
+      case "ACTIVE":
+        return "chatbot-badge--approved";
+      case "DRAFT":
+        return "chatbot-badge--draft";
+      case "PENDING_APPROVAL":
+        return "chatbot-badge--pending";
+      case "REJECTED":
+        return "chatbot-badge--rejected";
+      case "ARCHIVED":
+        return "chatbot-badge--archived";
+      case "INACTIVE":
+        return "chatbot-badge--inactive";
+      default:
+        return "chatbot-badge--other";
+    }
   }
 
   private scrollToBottom(force = false): void {

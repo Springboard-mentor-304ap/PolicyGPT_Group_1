@@ -26,6 +26,30 @@ export interface ChatMessageResponse {
   sources: ChatSource[];
   actions: ChatAction[];
   guest_remaining?: number | null;
+  data?: ChatResponseData | null;
+  results?: ChatResultItem[];
+}
+
+export interface ChatResultItem {
+  type: string;
+  id?: number | string | null;
+  title?: string;
+  subtitle?: string | null;
+  status?: string | null;
+  ministry?: string | null;
+  category?: string | null;
+  state?: string | null;
+  route?: string | null;
+  extra?: Record<string, unknown>;
+}
+
+export interface ChatResponseData {
+  response_type?: string;
+  count?: number | null;
+  total?: number | null;
+  page?: number | null;
+  page_size?: number | null;
+  [key: string]: unknown;
 }
 
 export interface ChatHistoryMessage {
@@ -60,6 +84,8 @@ export interface ChatUiMessage {
   text: string;
   actions?: ChatAction[];
   limitReached?: boolean;
+  results?: ChatResultItem[];
+  data?: ChatResponseData | null;
 }
 
 export interface QuickAction {

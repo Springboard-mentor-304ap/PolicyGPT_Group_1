@@ -25,6 +25,24 @@ class ChatSource(BaseModel):
     title: str
 
 
+class ChatResultItem(BaseModel):
+    """One structured result card (policy/scheme/statistic/user/...).
+
+    Only real database values — never fabricated by the LLM layer.
+    """
+
+    type: str = "policy"
+    id: int | str | None = None
+    title: str = ""
+    subtitle: str | None = None
+    status: str | None = None
+    ministry: str | None = None
+    category: str | None = None
+    state: str | None = None
+    route: str | None = None
+    extra: dict = {}
+
+
 class ChatMessageResponse(BaseModel):
     success: bool = True
     conversation_id: int
@@ -33,6 +51,10 @@ class ChatMessageResponse(BaseModel):
     sources: list[ChatSource] = []
     actions: list[ChatAction] = []
     guest_remaining: int | None = None
+    # Structured payload: {response_type, count/total/page/page_size,
+    # filters, profile, ...}. Absent (None) for legacy plain replies.
+    data: dict | None = None
+    results: list[ChatResultItem] = []
 
 
 class ChatHistoryMessage(BaseModel):

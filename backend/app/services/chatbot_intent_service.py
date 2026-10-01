@@ -17,6 +17,15 @@ ELIGIBILITY_CHECK = "ELIGIBILITY_CHECK"
 SCHEME_RECOMMENDATION = "SCHEME_RECOMMENDATION"
 POLICY_COMPARISON = "POLICY_COMPARISON"
 SCHEME_COMPARISON = "SCHEME_COMPARISON"
+POLICY_COUNT = "POLICY_COUNT"
+SCHEME_COUNT = "SCHEME_COUNT"
+POLICY_EXISTS = "POLICY_EXISTS"
+SCHEME_EXISTS = "SCHEME_EXISTS"
+BENEFITS_QUERY = "BENEFITS_QUERY"
+USER_STATS = "USER_STATS"
+USER_LIST = "USER_LIST"
+ANALYTICS_QUERY = "ANALYTICS_QUERY"
+MORE_RESULTS = "MORE_RESULTS"
 APPLICATION_GUIDANCE = "APPLICATION_GUIDANCE"
 NOTIFICATION_QUERY = "NOTIFICATION_QUERY"
 APPLICATION_STATUS = "APPLICATION_STATUS"
@@ -184,6 +193,14 @@ def classify_intent(text: str) -> dict:
         entities["terms"] = extract_search_terms(text)
         return {"intent": NAVIGATION, "entities": entities}
 
+    # Conversational data questions (count / existence / benefits /
+    # user directory / analytics / pagination). These sit before the
+    # generic search/explanation branches but after comparison and
+    # navigation so explicit phrasing keeps priority.
+    conversational = _classify_conversational(text, lowered)
+    if conversational is not None:
+        return conversational
+
     # Eligibility / recommendation.
     if _has_any(
         lowered,
@@ -192,6 +209,8 @@ def classify_intent(text: str) -> dict:
          "for me", "my income", "family income"),
     ):
         entities["terms"] = extract_search_terms(text)
+        entities["profile"] = extract_profile_details(text)
+        entities["name_hint"] = extract_name_hint(text)
         if _has_any(lowered, ("recommend", "suggest", "suitable", "for me",
                               "family income", "my income", "i am a",
                               "i'm a", "may be available")):
@@ -206,6 +225,7 @@ def classify_intent(text: str) -> dict:
          "how can i apply", "applying"),
     ):
         entities["terms"] = extract_search_terms(text)
+        entities["name_hint"] = extract_name_hint(text)
         return {"intent": APPLICATION_GUIDANCE, "entities": entities}
 
     # Notifications.
@@ -253,6 +273,8 @@ def classify_intent(text: str) -> dict:
                   "describe", "summar", "simplif", "elaborate"),
     ):
         entities["terms"] = extract_search_terms(text)
+        entities["name_hint"] = extract_name_hint(text)
+        entities["profile"] = extract_profile_details(text)
         if mentions_scheme and not mentions_policy:
             return {"intent": SCHEME_EXPLANATION, "entities": entities}
         if mentions_policy and not mentions_scheme:
@@ -261,17 +283,31 @@ def classify_intent(text: str) -> dict:
             return {"intent": POLICY_EXPLANATION, "entities": entities}
         if mentions_scheme:
             return {"intent": SCHEME_EXPLANATION, "entities": entities}
+        # Ordinal / pronoun follow-up ("tell me about the second one").
+        if detect_ordinal(text) is not None or re.search(
+            r"\b(this|that)\s+one\b|\btell\s+me\s+about\s+it\b|\babout\s+it\b",
+            lowered,
+        ):
+            entities["name_hint"] = ""
+            entities["use_context"] = True
+            return {"intent": SCHEME_EXPLANATION, "entities": entities}
         return {"intent": GENERAL_QUERY, "entities": entities}
 
-    # Plain searches.
+    # Plain searches (filters attached for structured querying).
     if mentions_scheme and not mentions_policy:
         entities["terms"] = extract_search_terms(text)
+        entities["filters"] = extract_filters(text)
+        entities["name_hint"] = extract_name_hint(text)
         return {"intent": SCHEME_SEARCH, "entities": entities}
     if mentions_policy and not mentions_scheme:
         entities["terms"] = extract_search_terms(text)
+        entities["filters"] = extract_filters(text)
+        entities["name_hint"] = extract_name_hint(text)
         return {"intent": POLICY_SEARCH, "entities": entities}
     if mentions_policy or mentions_scheme:
         entities["terms"] = extract_search_terms(text)
+        entities["filters"] = extract_filters(text)
+        entities["name_hint"] = extract_name_hint(text)
         # Both mentioned: let the dominant noun win by frequency.
         policy_hits = sum(lowered.count(w) for w in ("polic",))
         scheme_hits = sum(
@@ -292,3 +328,424 @@ def classify_intent(text: str) -> dict:
 
     entities["terms"] = extract_search_terms(text)
     return {"intent": GENERAL_QUERY, "entities": entities}
+
+
+# ============================================================
+# CONVERSATIONAL DATA INTENTS (count / existence / benefits /
+# user directory / analytics / pagination)
+# ============================================================
+
+_USER_WORDS = (
+    "user",
+    "users",
+    "citizen",
+    "citizens",
+    "official",
+    "officials",
+    "government official",
+    "government officials",
+    "administrator",
+    "administrators",
+    "researcher",
+    "researchers",
+    "organization",
+    "organizations",
+    "organisation",
+    "organisations",
+    "member",
+    "members",
+)
+
+_USER_ROLE_MAP = (
+    (("government official", "government officials", "official", "officials"), "GOVERNMENT_OFFICIAL"),
+    (("citizen", "citizens"), "CITIZEN"),
+    (("administrator", "administrators", "admin", "admins"), "ADMIN"),
+    (("researcher", "researchers"), "RESEARCHER"),
+    (("organization", "organizations", "organisation", "organisations"), "ORGANIZATION"),
+)
+
+_STATUS_WORDS = (
+    ("pending approval", "PENDING_APPROVAL"),
+    ("awaiting approval", "PENDING_APPROVAL"),
+    ("pending", "PENDING_APPROVAL"),
+    ("draft", "DRAFT"),
+    ("approved", "APPROVED"),
+    ("rejected", "REJECTED"),
+    ("archived", "ARCHIVED"),
+)
+
+_INDIAN_STATES = (
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+    "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh",
+    "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra",
+    "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+    "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir",
+    "Ladakh", "Lakshadweep", "Puducherry",
+)
+
+_CATEGORY_HINTS = (
+    "education", "health", "healthcare", "agriculture", "water", "energy",
+    "finance", "housing", "employment", "scholarship", "women", "child",
+    "children", "farmer", "farmers", "student", "students", "skill",
+    "rural", "urban", "senior", "youth", "disability", "business",
+)
+
+_MONTHS = (
+    "january", "february", "march", "april", "may", "june", "july",
+    "august", "september", "october", "november", "december",
+)
+
+_MORE_PATTERNS = (
+    r"^(show|see|load)\s+(more|remaining|rest)\b",
+    r"^more(\s+results?)?[!.?…\s]*$",
+    r"^next(\s+page|\s+results?)?[!.?…\s]*$",
+    r"^show\s+all\s*$",
+    r"^(continue|next batch|load next)\b",
+)
+
+_ORDINAL_WORDS = {
+    "first": 1, "1st": 1,
+    "second": 2, "2nd": 2,
+    "third": 3, "3rd": 3,
+    "fourth": 4, "4th": 4,
+    "fifth": 5, "5th": 5,
+    "last": -1,
+}
+
+
+def _mentions_user(lowered: str) -> bool:
+    return any(
+        re.search(r"\b" + re.escape(word) + r"\b", lowered)
+        for word in _USER_WORDS
+    )
+
+
+def _user_role_filter(lowered: str) -> str | None:
+    for words, role in _USER_ROLE_MAP:
+        if any(w in lowered for w in words):
+            return role
+    return None
+
+
+def extract_status_filter(text: str) -> str | None:
+    lowered = text.lower()
+    for phrase, status in _STATUS_WORDS:
+        if phrase in lowered:
+            return status
+    return None
+
+
+def extract_state_filter(text: str) -> str | None:
+    lowered = text.lower()
+    for state in _INDIAN_STATES:
+        if re.search(r"\b" + re.escape(state.lower()) + r"\b", lowered):
+            return state
+    return None
+
+
+def extract_ministry_terms(text: str) -> str:
+    lowered = text.lower()
+    match = re.search(
+        r"ministry\s+of\s+([a-zA-Z][a-zA-Z& ]+?)(?:\s+polic|\s+scheme|\?|$|\s+in\s+|\s+from\s+|\s+for\s+)",
+        lowered,
+    )
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"([a-zA-Z][a-zA-Z& ]+?)\s+ministry\b", lowered)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"department\s+of\s+([a-zA-Z][a-zA-Z& ]+?)(?:\s+polic|\s+scheme|\?|$)", lowered)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+
+def extract_date_filter(text: str) -> dict:
+    lowered = text.lower()
+    if re.search(r"\bthis\s+month\b", lowered):
+        return {"preset": "this_month"}
+    if re.search(r"\bthis\s+year\b", lowered):
+        return {"preset": "this_year"}
+    month_match = re.search(
+        r"published\s+in\s+(january|february|march|april|may|june|july|"
+        r"august|september|october|november|december)(?:\s+(20\d{2}))?",
+        lowered,
+    )
+    if month_match:
+        return {
+            "preset": "month",
+            "month": _MONTHS.index(month_match.group(1)) + 1,
+            "year": int(month_match.group(2)) if month_match.group(2) else None,
+        }
+    if re.search(r"\b(19|20)\d{2}\b", lowered):
+        year = int(re.search(r"\b((?:19|20)\d{2})\b", lowered).group(1))  # type: ignore[union-attr]
+        if "publish" in lowered or "polic" in lowered or "scheme" in lowered:
+            return {"preset": "year", "year": year}
+    if re.search(r"\b(recent|latest|lately|newest|this\s+week)\b", lowered):
+        return {"preset": "recent"}
+    return {"preset": None}
+
+
+def extract_category_terms(text: str) -> str:
+    lowered = text.lower()
+    found = [hint for hint in _CATEGORY_HINTS if re.search(r"\b" + hint + r"\b", lowered)]
+    return " ".join(found)
+
+
+def extract_filters(text: str) -> dict:
+    """Structured filters for policy/scheme queries. Pure function."""
+    ministry = extract_ministry_terms(text)
+    category = extract_category_terms(text)
+    seen: list[str] = []
+    for token in f"{ministry} {category}".split():
+        if token not in seen:
+            seen.append(token)
+    return {
+        "status": extract_status_filter(text),
+        "state": extract_state_filter(text),
+        "date": extract_date_filter(text),
+        "extra_terms": " ".join(seen),
+    }
+
+
+def extract_name_hint(text: str) -> str:
+    """Best-guess record name for existence/detail/benefit lookups."""
+    quoted = re.search(r"[\"“”']([^\"“”']{3,80})[\"“”']", text)
+    if quoted:
+        return quoted.group(1).strip()
+    # Capitalized phrases (e.g. "National Water Policy 2012", "PM-KISAN").
+    candidates = re.findall(
+        r"\b([A-Z][A-Za-z0-9.\-]*(?:\s+[A-Z0-9][A-Za-z0-9.\-]*)+)\b", text
+    )
+    stop_prefix = {
+        "tell", "show", "what", "how", "does", "does", "is", "do", "are",
+        "find", "give", "list", "search", "explain", "about", "central",
+    }
+    for candidate in candidates:
+        words = candidate.split()
+        while words and words[0].lower().strip("?.,") in stop_prefix:
+            words.pop(0)
+        cleaned = " ".join(words).strip("?., ")
+        if len(cleaned) >= 4:
+            return cleaned
+    acronym = re.search(r"\b([A-Z][A-Z0-9.\-]{2,}(?:\s+[A-Z][A-Z0-9.\-]+)*)\b", text)
+    if acronym:
+        return acronym.group(1).strip()
+    return ""
+
+
+def detect_ordinal(text: str) -> int | None:
+    lowered = text.lower()
+    match = re.search(
+        r"\b(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|last)\b(?:\s+(?:one|result|option|scheme|polic(?:y|ies)))?",
+        lowered,
+    )
+    if match:
+        return _ORDINAL_WORDS[match.group(1)]
+    return None
+
+
+def extract_profile_details(text: str) -> dict:
+    """Conversational profile facts (age, income, education, ...). Pure."""
+    details: dict = {}
+    lowered = text.lower()
+
+    age_match = re.search(
+        r"(\d{1,3})\s*(?:years?\s*old|yrs?\s*old|y\.o\b)|\bi\s*(?:'?m|am)\s+(\d{1,2})\b", lowered
+    )
+    if age_match:
+        age = int(age_match.group(1) or age_match.group(2))
+        if 5 <= age <= 100:
+            details["age"] = age
+
+    income_match = re.search(
+        r"(?:family|annual|yearly)?\s*income[^\d₹]{0,12}(?:₹|rs\.?|inr)?\s*([\d,.]+)\s*(lakh|lakhs|lacs?|crore|crores?|thousand|k)?",
+        lowered,
+    )
+    if not income_match:
+        income_match = re.search(
+            r"₹\s*([\d,.]+)\s*(lakh|lakhs|lacs?|crore|crores?|thousand|k)?", lowered
+        )
+    if income_match:
+        try:
+            amount = float(income_match.group(1).replace(",", ""))
+            unit = (income_match.group(2) or "").lower()
+            if unit.startswith("crore"):
+                amount *= 10_000_000
+            elif unit.startswith("lakh") or unit.startswith("lac"):
+                amount *= 100_000
+            elif unit in ("thousand", "k"):
+                amount *= 1_000
+            details["income"] = amount
+        except ValueError:
+            pass
+
+    for pattern, value in (
+        (r"\bb\.?\s*tech\b", "B.Tech"),
+        (r"\bm\.?\s*tech\b", "M.Tech"),
+        (r"\bmba\b", "MBA"),
+        (r"\bmbbs\b", "MBBS"),
+        (r"\b12th\b|\bhigher secondary\b|\bintermediate\b", "12th"),
+        (r"\b10th\b|\bmatric", "10th"),
+        (r"\bph\.?d\b", "PhD"),
+        (r"\bpost\s*graduat|\bmaster'?s\b", "Postgraduate"),
+        (r"\bgraduat|\bbachelor", "Graduate"),
+        (r"\bdiploma\b", "Diploma"),
+        (r"\biti\b", "ITI"),
+    ):
+        if re.search(pattern, lowered):
+            details["education"] = value
+            break
+    if "education" not in details and re.search(
+        r"\bcollege\s+student\b|\buniversity\s+student\b", lowered
+    ):
+        details["education"] = "College"
+
+    for pattern, value in (
+        (r"\bstudent\b", "Student"),
+        (r"\bfarmer\b", "Farmer"),
+        (r"\bteacher\b|\bprofessor\b", "Teacher"),
+        (r"\bdoctor\b|\bnurse\b", "Healthcare"),
+        (r"\bengineer\b", "Engineer"),
+        (r"\bbusiness\b|\bentrepreneur\b|\bshop\b", "Business"),
+        (r"\bunemployed\b", "Unemployed"),
+        (r"\bretired\b|\bpensioner\b", "Retired"),
+        (r"\bgovernment\s+employ", "Government Employee"),
+        (r"\bself[\s-]?employed\b", "Self-Employed"),
+    ):
+        if re.search(pattern, lowered):
+            details["occupation"] = value
+            break
+
+    state = extract_state_filter(text)
+    if state:
+        details["state"] = state
+
+    if re.search(r"\bfemale\b|\bwoman\b|\bgirl\b|\bher\b", lowered):
+        details["gender"] = "Female"
+    elif re.search(r"\bmale\b|\bman\b|\bboy\b|\bhis\b", lowered):
+        details["gender"] = "Male"
+
+    if re.search(r"\b(st|scheduled\s+tribe)\b", lowered):
+        details["category"] = "ST"
+    elif re.search(r"\b(sc|scheduled\s+caste)\b", lowered):
+        details["category"] = "SC"
+    elif re.search(r"\bobc\b", lowered):
+        details["category"] = "OBC"
+    elif re.search(r"\bews\b", lowered):
+        details["category"] = "EWS"
+
+    if re.search(r"\bdisab|pwd\b|physically\s+challenged|differently\s+abled", lowered):
+        details["disability"] = True
+
+    return details
+
+
+def _dominant_kind(lowered: str) -> str:
+    mentions_policy = "polic" in lowered
+    mentions_scheme = any(
+        word in lowered
+        for word in ("scheme", "yojana", "scholarship", "subsidy", "pension")
+    )
+    if mentions_policy and not mentions_scheme:
+        return "policy"
+    return "scheme"
+
+
+def _classify_conversational(text: str, lowered: str) -> dict | None:
+    """Count / existence / benefits / user-directory / analytics intents."""
+    entities: dict = {}
+
+    # Let eligibility phrasing keep its dedicated branch.
+    if _has_any(
+        lowered,
+        ("eligib", "qualify", "for me", "recommend", "suggest", "suitable",
+         "my income", "family income", "may be available"),
+    ):
+        return None
+
+    mentions_policy = "polic" in lowered
+    mentions_scheme = any(
+        word in lowered
+        for word in ("scheme", "yojana", "scholarship", "subsidy", "benefit", "pension")
+    )
+    mentions_record = mentions_policy or mentions_scheme
+    has_user = _mentions_user(lowered)
+
+    # ---- User directory (admin analytics surface; gated in service). ----
+    if has_user and _has_any(
+        lowered,
+        ("how many", "count", "total", "number of", "show", "list",
+         "display", "view", "find", "give me"),
+    ):
+        entities["user_role"] = _user_role_filter(lowered)
+        entities["terms"] = extract_search_terms(text)
+        if _has_any(lowered, ("how many", "count", "total", "number of")):
+            return {"intent": USER_STATS, "entities": entities}
+        return {"intent": USER_LIST, "entities": entities}
+
+    # ---- Statistic counts over the policy/scheme database. ----
+    if mentions_record and _has_any(
+        lowered, ("how many", "count", "total", "number of")
+    ):
+        filters = extract_filters(text)
+        entities["filters"] = filters
+        entities["terms"] = " ".join(
+            part for part in (
+                extract_search_terms(text),
+                filters["extra_terms"],
+            )
+            if part
+        ).strip()
+        kind = _dominant_kind(lowered)
+        return {
+            "intent": POLICY_COUNT if kind == "policy" else SCHEME_COUNT,
+            "entities": entities,
+        }
+
+    # ---- Existence checks ("is X available?", "do we have X?"). ----
+    if mentions_record and (
+        re.search(r"^(is|are)\s+there\b", lowered)
+        or re.search(r"\bdo\s+we\s+have\b", lowered)
+        or re.search(r"\bdoes\b.{0,24}\bcontain\b", lowered)
+        or re.search(r"^is\b.*\bavailable\??$", lowered)
+    ):
+        entities["name_hint"] = extract_name_hint(text)
+        entities["filters"] = extract_filters(text)
+        entities["terms"] = extract_search_terms(text)
+        kind = _dominant_kind(lowered)
+        return {
+            "intent": POLICY_EXISTS if kind == "policy" else SCHEME_EXISTS,
+            "entities": entities,
+        }
+
+    # ---- Benefits of a specific record. ----
+    if "benefit" in lowered and (
+        mentions_record
+        or _has_any(lowered, ("its", "this", "that", "the scheme", "the policy"))
+    ):
+        entities["name_hint"] = extract_name_hint(text)
+        entities["terms"] = extract_search_terms(text)
+        kind = _dominant_kind(lowered) if mentions_record else "scheme"
+        entities["kind"] = kind
+        return {"intent": BENEFITS_QUERY, "entities": entities}
+
+    # ---- Pagination follow-ups ("show more", "next"). ----
+    stripped = lowered.strip().rstrip(".!?… ")
+    if any(re.search(pattern, stripped) for pattern in _MORE_PATTERNS):
+        return {"intent": MORE_RESULTS, "entities": entities}
+
+    # ---- Analytics / department statistics / trends / reports. ----
+    if _has_any(
+        lowered,
+        ("statistic", "analytics", "trend", "department has",
+         "departments with", "most policies", "most schemes", "report summary",
+         "notification statistics", "scheme statistics", "policy statistics"),
+    ):
+        entities["terms"] = extract_search_terms(text)
+        return {"intent": ANALYTICS_QUERY, "entities": entities}
+
+    return None

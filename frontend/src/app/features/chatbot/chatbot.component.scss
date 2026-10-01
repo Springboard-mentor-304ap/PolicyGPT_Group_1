@@ -595,6 +595,164 @@ $radius: 12px;
   margin-top: 8px;
 }
 
+/* ---------- Structured result cards ---------- */
+
+.chatbot-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  max-width: 100%;
+}
+
+.chatbot-result-card {
+  padding: 10px 12px;
+  border: 1px solid #d7e5f3;
+  border-radius: 10px;
+  background: $white;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+.chatbot-result-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chatbot-result-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: $text;
+  line-height: 1.4;
+}
+
+.chatbot-result-card__meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: $muted;
+  line-height: 1.4;
+}
+
+.chatbot-result-card__desc {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: $text;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chatbot-result-card .chatbot-action-btn {
+  margin-top: 8px;
+}
+
+.chatbot-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #d7e5f3;
+  border-radius: 10px;
+  background: $blue-soft;
+}
+
+.chatbot-stat-card__label {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: $blue-dark;
+}
+
+.chatbot-stat-card__count {
+  font-size: 20px;
+  font-weight: 800;
+  color: $navy;
+}
+
+.chatbot-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.chatbot-badge--approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chatbot-badge--draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.chatbot-badge--pending {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.chatbot-badge--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.chatbot-badge--archived {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.chatbot-badge--inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.chatbot-badge--other {
+  background: #e0f2fe;
+  color: #0c4a6e;
+}
+
+/* ---------- Markdown tables (comparisons) ---------- */
+
+.chatbot-table-wrap {
+  margin: 8px 0;
+  overflow-x: auto;
+  border: 1px solid #d7e5f3;
+  border-radius: 8px;
+}
+
+.chatbot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: $white;
+}
+
+.chatbot-table th,
+.chatbot-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5edf5;
+  text-align: left;
+  vertical-align: top;
+}
+
+.chatbot-table thead th {
+  background: $blue-soft;
+  color: $navy;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chatbot-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .chatbot-action-btn {
   padding: 7px 12px;
   border: 1px solid #c7d7e7;

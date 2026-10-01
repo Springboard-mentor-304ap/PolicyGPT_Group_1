@@ -153,4 +153,41 @@ describe('ChatbotComponent', () => {
     component.close();
     expect(component.open).toBe(false);
   });
+
+  it('9. should render markdown tables for comparisons', () => {
+    const html = component.renderMarkdown(
+      '| Feature | A | B |\n|---|---|---|\n| Ministry | Edu | Health |',
+    );
+    expect(html).toContain('<table');
+    expect(html).toContain('<th>Feature</th>');
+    expect(html).toContain('<td>Edu</td>');
+  });
+
+  it('10. should store structured results and map card actions', () => {
+    component.openPanel();
+    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+
+    component.draft = 'How many draft policies are there?';
+    component.send();
+    const req = httpMock.expectOne(`${baseUrl}/message`);
+    req.flush({
+      success: true,
+      conversation_id: 9,
+      message: '**Draft Policies**\n\nThere are **12** draft policies currently available.',
+      intent: 'POLICY_COUNT',
+      sources: [],
+      actions: [{ label: 'View All Draft Policies', type: 'NAVIGATE', route: '/dashboard/citizen/policies' }],
+      data: { response_type: 'STATISTIC_RESPONSE', count: 12 },
+      results: [{ type: 'statistic', title: 'Draft Policies', subtitle: '12', route: '/dashboard/citizen/policies' }],
+      guest_remaining: null,
+    });
+
+    const last = component.messages[component.messages.length - 1];
+    expect(last.results?.length).toBe(1);
+    expect(last.data?.response_type).toBe('STATISTIC_RESPONSE');
+    const action = component.resultAction(last.results![0]);
+    expect(action?.route).toBe('/dashboard/citizen/policies');
+    expect(component.statusClass('APPROVED')).toContain('approved');
+    expect(component.statusClass('DRAFT')).toContain('draft');
+  });
 });

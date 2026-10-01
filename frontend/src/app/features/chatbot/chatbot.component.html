@@ -1,0 +1,208 @@
+<!-- Floating launcher: icon only, no wrapper text or white card -->
+@if (!open || minimized) {
+<button type="button" class="chatbot-launcher" (click)="toggle()" aria-label="Open PolicyGPT Assistant"
+  title="PolicyGPT Assistant">
+  <img class="chatbot-launcher__icon" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
+  <span class="chatbot-launcher__tooltip" aria-hidden="true">
+    PolicyGPT Assistant
+  </span>
+</button>
+}
+
+<!-- Chat panel -->
+@if (open && !minimized) {
+<section class="chatbot-panel" [class.chatbot-panel--fullscreen]="isFullscreen" role="dialog" aria-modal="false"
+  aria-label="PolicyGPT Assistant chat">
+  <header class="chatbot-header">
+    <img class="chatbot-header__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
+    <div class="chatbot-header__titles">
+      <h2>PolicyGPT Assistant</h2>
+      <p>Your Government Policy &amp; Scheme Assistant</p>
+      <span class="chatbot-header__status">
+        <span class="chatbot-header__dot" aria-hidden="true"></span>
+        Online
+      </span>
+    </div>
+    <div class="chatbot-header__actions">
+      <button type="button" class="chatbot-icon-btn" (click)="startNewChat()" title="Start new chat"
+        aria-label="Start new chat">
+        <span class="material-icons" aria-hidden="true">add_comment</span>
+      </button>
+      <button type="button" class="chatbot-icon-btn" [class.chatbot-icon-btn--active]="isHistoryOpen"
+        (click)="toggleHistory()" title="Open chat history" aria-label="Open chat history"
+        [attr.aria-expanded]="isHistoryOpen">
+        <span class="material-icons" aria-hidden="true">history</span>
+      </button>
+      <button type="button" class="chatbot-icon-btn chatbot-icon-btn--fullscreen" (click)="toggleFullscreen()"
+        [title]="isFullscreen ? 'Exit fullscreen' : 'Open fullscreen'"
+        [attr.aria-label]="isFullscreen ? 'Exit fullscreen' : 'Open fullscreen'">
+        <span class="material-icons" aria-hidden="true">{{
+          isFullscreen ? "fullscreen_exit" : "fullscreen"
+          }}</span>
+      </button>
+
+      <button type="button" class="chatbot-icon-btn" (click)="close()" title="Close chatbot" aria-label="Close chatbot">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="chatbot-body">
+    <!-- History side panel (uses existing GET /history data only) -->
+    @if (isHistoryOpen) {
+    <aside class="chatbot-history" aria-label="Chat history">
+      <div class="chatbot-history__head">
+        <h3>Chat History</h3>
+        <button type="button" class="chatbot-icon-btn chatbot-icon-btn--dark" (click)="closeHistory()"
+          aria-label="Close chat history">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </div>
+
+      <button type="button" class="chatbot-history__new" (click)="startNewChat()" aria-label="Start new chat">
+        <span class="material-icons" aria-hidden="true">edit_square</span>
+        New Chat
+      </button>
+
+      @if (historyGroups.length > 0) {
+      <div class="chatbot-history__list">
+        @for (group of historyGroups; track group.label) {
+        <p class="chatbot-history__group">{{ group.label }}</p>
+        @for (item of group.items; track item.message_id) {
+        <div class="chatbot-history__item">
+          <div class="chatbot-history__item-text">
+            <span class="chatbot-history__item-preview">{{
+              historyPreview(item)
+              }}</span>
+            @if (historyTime(item)) {
+            <span class="chatbot-history__item-time">{{
+              historyTime(item)
+              }}</span>
+            }
+          </div>
+        </div>
+        }
+        }
+      </div>
+      } @else {
+      <div class="chatbot-history__empty">
+        <span class="material-icons" aria-hidden="true">history</span>
+        <p>No saved conversations yet.</p>
+        <p class="chatbot-history__empty-sub">
+          Your PolicyGPT conversations will appear here.
+        </p>
+      </div>
+      }
+
+      <div class="chatbot-history__foot">
+        @if (!showDeleteConfirm) {
+        <button type="button" class="chatbot-history__delete" (click)="requestDeleteHistory()"
+          [disabled]="deletingHistory || historyCount === 0">
+          <span class="material-icons" aria-hidden="true">delete_outline</span>
+          Clear history
+        </button>
+        } @else {
+        <div class="chatbot-history__confirm" role="alertdialog" aria-label="Delete conversation confirmation">
+          <p>Delete this conversation?</p>
+          <div class="chatbot-history__confirm-actions">
+            <button type="button" class="chatbot-history__btn chatbot-history__btn--ghost" (click)="cancelDelete()">
+              Cancel
+            </button>
+            <button type="button" class="chatbot-history__btn chatbot-history__btn--danger"
+              (click)="confirmDeleteHistory()" [disabled]="deletingHistory">
+              {{ deletingHistory ? "Deleting…" : "Delete" }}
+            </button>
+          </div>
+        </div>
+        }
+      </div>
+    </aside>
+    }
+
+    <div class="chatbot-main">
+      <div #messageList class="chatbot-messages" role="log" aria-live="polite" aria-label="Conversation"
+        (scroll)="onMessagesScroll()">
+        @for (msg of messages; track msg.id) {
+        @if (msg.sender === "user") {
+        <div class="chatbot-msg chatbot-msg--user">
+          <div class="chatbot-bubble chatbot-bubble--user">{{ msg.text }}</div>
+        </div>
+        } @else {
+        <div class="chatbot-msg chatbot-msg--assistant">
+          <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
+          <div class="chatbot-msg__content">
+            <div class="chatbot-bubble chatbot-bubble--assistant" [innerHTML]="renderMarkdown(msg.text)"></div>
+            @if (msg.actions && msg.actions.length > 0) {
+            <div class="chatbot-actions">
+              @for (action of msg.actions; track action.label) {
+              <button type="button" class="chatbot-action-btn" (click)="runAction(action)">
+                {{ action.label }}
+              </button>
+              }
+            </div>
+            }
+            @if (msg.limitReached) {
+            <div class="chatbot-limit-card">
+              <p>
+                You&rsquo;ve reached the guest chatbot limit. Sign in to
+                continue using PolicyGPT Assistant and unlock
+                personalized features.
+              </p>
+              <div class="chatbot-limit-actions">
+                <a routerLink="/auth/login" class="btn btn-primary">Login</a>
+                <a routerLink="/auth/register" class="btn btn-outline">Register</a>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+        }
+
+        @if (loading) {
+        <div class="chatbot-msg chatbot-msg--assistant">
+          <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
+          <div class="chatbot-bubble chatbot-bubble--assistant chatbot-typing">
+            <span class="chatbot-typing__dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            <span class="chatbot-typing__text">PolicyGPT Assistant is thinking&hellip;</span>
+          </div>
+        </div>
+        }
+      </div>
+
+      @if (messages.length <= 1 && !loading) { <div class="chatbot-quick" aria-label="Quick actions">
+        @for (action of quickActions; track action.label) {
+        <button type="button" class="chatbot-quick-btn" (click)="sendQuickAction(action)" [disabled]="sending"
+          [title]="action.label" [attr.aria-label]="action.label">
+          <span class="material-icons" aria-hidden="true">{{ action.icon }}</span>
+          <span class="chatbot-quick-btn__text">
+            <span class="chatbot-quick-btn__title">{{ action.label }}</span>
+            <span class="chatbot-quick-btn__desc">{{
+              quickDescription(action.label)
+              }}</span>
+          </span>
+        </button>
+        }
+    </div>
+    }
+
+    <div class="chatbot-composer">
+      <textarea #composer [(ngModel)]="draft" (keydown)="onComposerKeydown($event)" rows="2" maxlength="2000"
+        placeholder="Ask about policies, schemes, eligibility..." aria-label="Type your message"></textarea>
+      <button type="button" class="chatbot-send" (click)="send()" [disabled]="sending || !draft.trim()"
+        aria-label="Send message">
+        <span class="material-icons" aria-hidden="true">send</span>
+      </button>
+    </div>
+
+    <p class="chatbot-disclaimer">
+      Information is based on available government data. Please verify
+      important eligibility, deadlines and application details with official
+      sources.
+    </p>
+  </div>
+  </div>
+</section>
+}

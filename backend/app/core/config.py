@@ -56,6 +56,26 @@ class Settings(BaseSettings):
     # FRONTEND_ORIGINS=https://app.example.com,https://admin.example.com
     FRONTEND_ORIGINS: str = ""
 
+    # =========================================================
+    # CHATBOT (PolicyGPT Assistant) CONFIGURATION
+    # =========================================================
+    # Master switch for the chatbot module (routes return 503 when off).
+    CHATBOT_ENABLED: bool = True
+    # Server-side guest usage cap (messages per guest user).
+    CHATBOT_GUEST_MESSAGE_LIMIT: int = 5
+    # Longest accepted user message (longer requests get HTTP 413).
+    CHATBOT_MAX_MESSAGE_LENGTH: int = 2000
+    # Conversation messages returned/stored per history request.
+    CHATBOT_MAX_HISTORY: int = 20
+    # Authenticated per-user throttle: max messages per rolling window.
+    CHATBOT_RATE_LIMIT: int = 30
+    CHATBOT_RATE_LIMIT_WINDOW_SECONDS: int = 60
+    # Response provider: "template" (grounded, default) or "openai".
+    CHATBOT_PROVIDER: str = "template"
+    # Only read when CHATBOT_PROVIDER=openai. Never exposed to clients.
+    CHATBOT_OPENAI_API_KEY: str = ""
+    CHATBOT_OPENAI_MODEL: str = "gpt-4o-mini"
+
     @field_validator("DEBUG", mode="before")
     @classmethod
     def parse_debug(cls, value: object) -> object:

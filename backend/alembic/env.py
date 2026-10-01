@@ -25,6 +25,7 @@ import app.models.report  # noqa: F401
 import app.models.search_history  # noqa: F401
 import app.models.audit_log  # noqa: F401
 import app.models.eligibility_rule  # noqa: F401
+import app.models.chatbot  # noqa: F401
 
 # =========================================================
 # ALEMBIC CONFIGURATION

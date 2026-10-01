@@ -32,6 +32,7 @@ from app.api.routes.policy import router as policy_router
 from app.api.routes.scheme import router as scheme_router
 from app.api.routes.eligibility import router as eligibility_router
 from app.api.routes.role_based import router as role_based_router
+from app.api.routes.chatbot import router as chatbot_router
 
 from app.core.config import settings
 from app.db.database import Base, engine
@@ -253,6 +254,7 @@ app.include_router(support_router)
 app.include_router(search_history_router)
 app.include_router(saved_items_router)
 app.include_router(role_based_router)
+app.include_router(chatbot_router)
 # =========================================================
 # ROOT
 # =========================================================

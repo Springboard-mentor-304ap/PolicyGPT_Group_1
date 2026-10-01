@@ -5,9 +5,9 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AuditLogComponent } from './audit-log.component';
-import { AuditLogService } from '../../../core/services/audit-log.service';
-import { Auth } from '../../../core/services/auth';
-import { ToastService } from '../../../core/services/toast.service';
+import { AuditLogService } from '../../core/services/audit-log.service';
+import { Auth } from '../../core/services/auth';
+import { ToastService } from '../../core/services/toast.service';
 
 describe('AuditLogComponent', () => {
   let component: AuditLogComponent;

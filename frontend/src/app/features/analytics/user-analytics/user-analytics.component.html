@@ -1,0 +1,250 @@
+<div class="analytics-container">
+  <!-- Header -->
+  <header class="header-section">
+    <div>
+      <nav class="breadcrumb">Home > Analytics > <span>User Analytics</span></nav>
+      <h1 class="page-title">User Analytics</h1>
+      <p class="subtitle">Understand user engagement and platform usage across all user types</p>
+    </div>
+    <div class="header-actions">
+      <div class="date-picker-select">
+        <i class="bi bi-calendar3"></i>
+        <span>Jan 1, 2024 - Sep 30, 2024</span>
+        <i class="bi bi-chevron-down"></i>
+      </div>
+      <button class="btn-download">
+        <i class="bi bi-download"></i> Download Report
+      </button>
+    </div>
+  </header>
+
+  <!-- Top Metrics Cards -->
+  <section class="top-metrics-grid">
+    <div class="metric-card" *ngFor="let item of topMetrics">
+      <div class="card-icon" [style.background-color]="item.iconBg" [style.color]="item.iconColor">
+        <i class="bi" [ngClass]="item.icon"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-title">{{ item.title }}</span>
+        <div class="card-value">{{ item.value }}</div>
+        <span class="card-change">{{ item.change }} <small>from last period</small></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts Row 1 -->
+  <section class="charts-row three-col">
+    <!-- User Growth Trend -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Growth Trend</h3>
+        <select class="dropdown-select"><option>Last 12 Months</option></select>
+      </div>
+      <div class="line-chart-mock">
+        <svg viewBox="0 0 500 180" class="svg-chart">
+          <!-- Total Users Line -->
+          <polyline fill="none" stroke="#10B981" stroke-width="2.5" points="10,130 50,100 90,90 130,70 170,80 210,65 250,55 290,65 330,50 370,55 410,35 450,25" />
+          <!-- Active Users Line -->
+          <polyline fill="none" stroke="#2563EB" stroke-width="2.5" points="10,150 50,130 90,120 130,110 170,125 210,105 250,95 290,110 330,105 370,90 410,85 450,85" />
+          <!-- New Users Line -->
+          <polyline fill="none" stroke="#F59E0B" stroke-width="2.5" points="10,170 50,160 90,150 130,145 170,150 210,155 250,140 290,150 330,150 370,145 410,150 450,148" />
+        </svg>
+        <div class="chart-months">
+          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+          <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span><i class="dot" style="background:#10B981"></i> Total Users</span>
+        <span><i class="dot" style="background:#2563EB"></i> Active Users</span>
+        <span><i class="dot" style="background:#F59E0B"></i> New Users</span>
+      </div>
+    </div>
+
+    <!-- User Distribution by Role -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Distribution by Role</h3>
+      </div>
+      <div class="donut-container">
+        <div class="donut-chart">
+          <div class="donut-center">
+            <strong>5,820</strong>
+            <small>Total Users</small>
+          </div>
+        </div>
+        <ul class="donut-legend">
+          <li *ngFor="let d of distribution">
+            <span class="legend-role"><i class="dot" [style.background]="d.color"></i> {{ d.role }}</span>
+            <span class="legend-percent">{{ d.percent }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- User Registration Trend -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Registration Trend</h3>
+        <select class="dropdown-select"><option>Last 6 Months</option></select>
+      </div>
+      <div class="bar-chart-container">
+        <div class="bar-group">
+          <div class="bar-item"><span class="bar-val">120</span><div class="bar" style="height: 55%"></div></div>
+          <div class="bar-item"><span class="bar-val">145</span><div class="bar" style="height: 65%"></div></div>
+          <div class="bar-item"><span class="bar-val">162</span><div class="bar" style="height: 72%"></div></div>
+          <div class="bar-item"><span class="bar-val">178</span><div class="bar" style="height: 80%"></div></div>
+          <div class="bar-item"><span class="bar-val">165</span><div class="bar" style="height: 74%"></div></div>
+          <div class="bar-item"><span class="bar-val">210</span><div class="bar" style="height: 95%"></div></div>
+        </div>
+        <div class="chart-months">
+          <span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts Row 2 -->
+  <section class="charts-row three-col">
+    <!-- Users by State -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>Users by State</h3>
+        <select class="dropdown-select"><option>Top 10 States</option></select>
+      </div>
+      <div class="horizontal-bars">
+        <div class="hbar-row" *ngFor="let s of stateData">
+          <span class="hbar-label">{{ s.state }}</span>
+          <div class="hbar-track">
+            <div class="hbar-fill" [style.width.%]="s.percentage"></div>
+          </div>
+          <span class="hbar-val">{{ s.count }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Engagement Metrics -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Engagement Metrics</h3>
+      </div>
+      <div class="engagement-grid">
+        <div class="eng-card" *ngFor="let e of engagementMetrics">
+          <div class="eng-icon" [style.background-color]="e.iconBg" [style.color]="e.iconColor">
+            <i class="bi" [ngClass]="e.icon"></i>
+          </div>
+          <div class="eng-details">
+            <span class="eng-title">{{ e.title }}</span>
+            <div class="eng-value">{{ e.value }}</div>
+            <span class="eng-change">{{ e.change }} <small>from last period</small></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Activity Heatmap -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Activity Heatmap</h3>
+        <select class="dropdown-select"><option>Last 4 Weeks</option></select>
+      </div>
+      <div class="heatmap-container">
+        <div class="heatmap-body">
+          <div class="heatmap-row" *ngFor="let day of days; let rIdx = index">
+            <span class="day-label">{{ day }}</span>
+            <div class="heatmap-cells">
+              <div 
+                class="hm-cell" 
+                *ngFor="let val of heatmapGrid[rIdx]" 
+                [style.background-color]="getHeatmapColor(val)">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="heatmap-x-axis">
+          <span></span>
+          <span *ngFor="let slot of timeSlots">{{ slot }}</span>
+        </div>
+        <div class="heatmap-footer">
+          <span>Low Activity</span>
+          <div class="gradient-scale">
+            <span style="background:#EFF6FF"></span>
+            <span style="background:#BFDBFE"></span>
+            <span style="background:#93C5FD"></span>
+            <span style="background:#60A5FA"></span>
+            <span style="background:#2563EB"></span>
+            <span style="background:#1E40AF"></span>
+          </div>
+          <span>High Activity</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tables Row -->
+  <section class="tables-row">
+    <!-- Recent Registered Users -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Recent Registered Users</h3>
+        <a href="javascript:void(0)" class="link-view-all">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>State</th>
+              <th>Join Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of recentUsers">
+              <td>{{ u.id }}</td>
+              <td class="font-semibold">{{ u.name }}</td>
+              <td class="text-muted">{{ u.email }}</td>
+              <td><span class="badge" [ngClass]="u.roleClass">{{ u.role }}</span></td>
+              <td>{{ u.state }}</td>
+              <td class="text-muted">{{ u.joinDate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top Active Users -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Top Active Users</h3>
+        <a href="javascript:void(0)" class="link-view-all">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Logins</th>
+              <th>Searches</th>
+              <th>Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of topUsers">
+              <td>{{ u.id }}</td>
+              <td class="font-semibold">{{ u.name }}</td>
+              <td><span class="badge" [ngClass]="u.roleClass">{{ u.role }}</span></td>
+              <td>{{ u.logins | number }}</td>
+              <td>{{ u.searches | number }}</td>
+              <td class="text-muted">{{ u.lastActive }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>

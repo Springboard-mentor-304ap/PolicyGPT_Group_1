@@ -1,9 +1,10 @@
 .filters-card {
   background: #ffffff;
-  border-radius: 12px;
-  border: 1px solid var(--border, #e3e8f0);
-  padding: 16px;
-  box-shadow: var(--pg-shadow-card, 0 2px 8px rgba(15, 23, 42, 0.04));
+  border-radius: 14px;
+  border: 1px solid #e4e9f1;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  margin-bottom: 24px;
 }
 
 .filters-row {
@@ -18,37 +19,38 @@
   flex-direction: column;
   gap: 0.35rem;
   flex: 1;
-  min-width: 150px;
+  min-width: 140px;
 
   .filter-label {
-    font-size: 0.75rem;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--muted, #6b7688);
+    color: #64748b;
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
 
   .filter-select {
     width: 100%;
-    padding: 0.5rem 0.75rem;
+    height: 38px;
+    padding: 0 10px;
     background-color: #f8fafc;
-    border: 1px solid var(--border, #e3e8f0);
+    border: 1px solid #dbe2eb;
     border-radius: 8px;
-    font-size: 0.875rem;
+    font-size: 13px;
     font-weight: 500;
-    color: var(--ink, #0f1b3d);
+    color: #1e293b;
     outline: none;
     cursor: pointer;
     transition: all 0.15s ease;
 
     &:hover, &:focus {
-      border-color: var(--blue, #2f6fed);
+      border-color: #0879ed;
       background-color: #ffffff;
     }
 
     option {
       background-color: #ffffff;
-      color: var(--ink, #0f1b3d);
+      color: #1e293b;
     }
   }
 }
@@ -59,38 +61,40 @@
   gap: 0.625rem;
 
   .btn-apply {
-    background-color: var(--blue, #2f6fed);
+    background-color: #0879ed;
     color: #ffffff;
     border: none;
     border-radius: 8px;
-    padding: 0.525rem 1.125rem;
-    font-size: 0.875rem;
+    height: 38px;
+    padding: 0 1.25rem;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.15s ease;
 
     &:hover {
-      background-color: #255bc4;
+      background-color: #075dcc;
     }
   }
 
   .btn-reset {
-    background-color: transparent;
-    color: var(--muted, #6b7688);
-    border: 1px solid var(--border, #e3e8f0);
+    background-color: #ffffff;
+    color: #475569;
+    border: 1px solid #dbe2eb;
     border-radius: 8px;
-    padding: 0.525rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+    height: 38px;
+    padding: 0 1rem;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.15s ease;
 
     &:hover {
-      border-color: var(--ink, #0f1b3d);
-      color: var(--ink, #0f1b3d);
-      background-color: #f1f5f9;
+      border-color: #0879ed;
+      color: #0879ed;
+      background-color: #f8fafc;
     }
   }
 }

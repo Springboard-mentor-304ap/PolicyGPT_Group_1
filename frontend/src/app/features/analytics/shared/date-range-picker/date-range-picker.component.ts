@@ -49,24 +49,26 @@ import { CommonModule } from '@angular/common';
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
+      height: 38px;
       background: #ffffff;
-      border: 1px solid var(--border, #e3e8f0);
+      border: 1px solid #dbe2eb;
       border-radius: 8px;
-      padding: 0.5rem 0.875rem;
-      font-size: 0.875rem;
+      padding: 0 0.875rem;
+      font-size: 13px;
       font-weight: 500;
-      color: var(--ink, #0f1b3d);
+      color: #1e293b;
       cursor: pointer;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       transition: all 0.15s ease;
       white-space: nowrap;
 
       &:hover {
-        border-color: var(--blue, #2f6fed);
-        background-color: #fafbfd;
+        border-color: #0879ed;
+        background-color: #fafcff;
       }
       .calendar-icon, .chevron-icon {
-        font-size: 1.125rem;
-        color: var(--muted, #6b7688);
+        font-size: 18px;
+        color: #64748b;
       }
     }
     .dropdown-menu {

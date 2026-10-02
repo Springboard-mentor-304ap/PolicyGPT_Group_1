@@ -66,6 +66,8 @@ export interface ApplicationItem {
   appId: string;
 }
 
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+
 // =========================================================
 // GOVERNMENT COMPONENT
 // =========================================================
@@ -73,7 +75,7 @@ export interface ApplicationItem {
 @Component({
   selector: "app-government",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective],
   templateUrl: "./government.component.html",
   styleUrl: "./government.component.scss",
 })

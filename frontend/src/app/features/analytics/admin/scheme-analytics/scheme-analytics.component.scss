@@ -186,7 +186,9 @@
     border: 1px solid #e4e9f1;
     background: #ffffff;
     box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
 
     &:hover {
       transform: translateY(-2px);
@@ -207,11 +209,26 @@
         font-size: 22px;
       }
 
-      &.green { background: #e8f8ef; color: #078944; }
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.orange { background: #fff1e5; color: #ff861c; }
-      &.red { background: #fee2e2; color: #dc2626; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.orange {
+        background: #fff1e5;
+        color: #ff861c;
+      }
+      &.red {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
     }
 
     .card-content {
@@ -249,8 +266,12 @@
         gap: 4px;
         white-space: nowrap;
 
-        &.green { color: #078944; }
-        &.red { color: #dc2626; }
+        &.green {
+          color: #078944;
+        }
+        &.red {
+          color: #dc2626;
+        }
 
         .trend-sub {
           font-weight: 400;
@@ -284,7 +305,10 @@
     grid-template-columns: 1fr;
   }
 
-  .flex-1 { flex: 1; min-width: 0; }
+  .flex-1 {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 // Chart Card General

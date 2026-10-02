@@ -13,6 +13,7 @@ import {
   LineDataset,
 } from "../../shared/line-chart/line-chart.component";
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-department-analytics",
@@ -24,6 +25,7 @@ import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-cha
     HbarChartComponent,
     LineChartComponent,
     DoughnutChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./department-analytics.component.html",
   styleUrl: "./department-analytics.component.scss",

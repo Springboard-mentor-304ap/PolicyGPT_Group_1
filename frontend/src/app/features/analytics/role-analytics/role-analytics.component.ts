@@ -98,6 +98,8 @@ const CHART_COLORS = {
  * aggregations). Metrics the backend cannot track yet render as honest
  * zero / empty states labelled "Not tracked yet".
  */
+import { CountUpDirective } from "../../../shared/directives/count-up.directive";
+
 @Component({
   selector: "app-role-analytics",
   standalone: true,
@@ -110,6 +112,7 @@ const CHART_COLORS = {
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./role-analytics.component.html",
   styleUrl: "./role-analytics.component.scss",

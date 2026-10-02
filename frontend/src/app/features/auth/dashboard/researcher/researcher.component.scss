@@ -712,7 +712,36 @@ $dash-purple: #8b00e8;
   width: 100%;
   background: linear-gradient(180deg, $dash-blue 0%, #38bdf8 100%);
   border-radius: 6px 6px 0 0;
-  transition: height 0.3s ease;
+  transition: height 0.4s ease, filter 0.2s ease;
+  animation: trendBarGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes trendBarGrow {
+  from {
+    height: 0 !important;
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dash-trend-col:nth-child(1) .dash-trend-fill { animation-delay: 0.05s; }
+.dash-trend-col:nth-child(2) .dash-trend-fill { animation-delay: 0.12s; }
+.dash-trend-col:nth-child(3) .dash-trend-fill { animation-delay: 0.19s; }
+.dash-trend-col:nth-child(4) .dash-trend-fill { animation-delay: 0.26s; }
+.dash-trend-col:nth-child(5) .dash-trend-fill { animation-delay: 0.33s; }
+.dash-trend-col:nth-child(6) .dash-trend-fill { animation-delay: 0.40s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-trend-fill {
+    animation: none;
+    transition: none;
+  }
 }
 
 .dash-trend-label {

@@ -47,7 +47,7 @@
         <div class="kpi-content">
           <span class="kpi-label">{{ kpi.label }}</span>
           <div class="kpi-value-row">
-            <span class="kpi-value">{{ kpi.value }}</span>
+            <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
           </div>
           <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
             {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>

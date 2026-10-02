@@ -16,6 +16,7 @@ import {
   MostActiveUserUsage,
   RecentSearchActivityItem,
 } from "../models/admin-analytics.models";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-usage-statistics",
@@ -28,6 +29,7 @@ import {
     LineChartComponent,
     DoughnutChartComponent,
     VbarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./usage-statistics.component.html",
   styleUrl: "./usage-statistics.component.scss",

@@ -24,6 +24,7 @@ import {
   ROLE_COLORS,
   STATUS_COLORS,
 } from "./gov-analytics-base";
+import { CountUpDirective } from "../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-govt-analytics-overview",
@@ -37,6 +38,7 @@ import {
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./govt-analytics-overview.component.html",
   styleUrl: "./government-analytics.scss",

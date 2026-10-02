@@ -79,6 +79,7 @@ export interface BarItem {
             stroke-width="2"
             stroke-linejoin="round"
             stroke-linecap="round"
+            class="chart-polyline"
           />
         }
         @if (hoverIndex !== null) {
@@ -135,6 +136,23 @@ export interface BarItem {
       :host {
         display: block;
         position: relative;
+      }
+      .chart-polyline {
+        stroke-dasharray: 2000;
+        stroke-dashoffset: 2000;
+        animation: drawLine 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes drawLine {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .chart-polyline {
+          stroke-dasharray: none;
+          stroke-dashoffset: 0;
+          animation: none;
+        }
       }
       .chart-legend {
         display: flex;
@@ -345,6 +363,7 @@ export class AnalyticsLineChartComponent {
               (blur)="activeLabel = null"
               tabindex="0"
               [attr.aria-label]="arc.label + ': ' + arc.count"
+              class="donut-segment"
             >
               <title>{{ arc.label }}: {{ arc.count }} ({{ arc.pct }}%)</title>
             </circle>
@@ -388,6 +407,31 @@ export class AnalyticsLineChartComponent {
         width: 100%;
         display: block;
         transform: rotate(-90deg);
+        animation: donutSpinIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes donutSpinIn {
+        from {
+          transform: rotate(-180deg) scale(0.92);
+          opacity: 0.5;
+        }
+        to {
+          transform: rotate(-90deg) scale(1);
+          opacity: 1;
+        }
+      }
+      .donut-segment {
+        transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                    stroke-dasharray 0.6s ease,
+                    stroke-width 0.2s ease,
+                    opacity 0.2s ease;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .donut-svg {
+          animation: none;
+        }
+        .donut-segment {
+          transition: none;
+        }
       }
       .donut-svg circle[tabindex] {
         cursor: pointer;
@@ -546,6 +590,7 @@ export interface GroupedBarSeries {
             [attr.height]="bar.h"
             [attr.fill]="bar.color"
             rx="3"
+            class="chart-bar-rect"
             [attr.opacity]="
               hoverIndex === null || hoverIndex === bar.group ? 1 : 0.35
             "
@@ -589,6 +634,24 @@ export interface GroupedBarSeries {
       :host {
         display: block;
         position: relative;
+      }
+      .chart-bar-rect {
+        transform-origin: center bottom;
+        animation: barGrowUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        transition: opacity 0.2s ease;
+      }
+      @keyframes barGrowUp {
+        from {
+          transform: scaleY(0);
+        }
+        to {
+          transform: scaleY(1);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .chart-bar-rect {
+          animation: none;
+        }
       }
       .chart-legend {
         display: flex;
@@ -885,7 +948,19 @@ export class AnalyticsGroupedBarChartComponent {
         height: 100%;
         border-radius: 999px;
         min-width: 4px;
-        transition: width 0.3s ease;
+        transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        animation: hbarExpand 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes hbarExpand {
+        from {
+          width: 0 !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .hbar-fill {
+          animation: none;
+          transition: none;
+        }
       }
       .hbar-value {
         font-size: 12.5px;

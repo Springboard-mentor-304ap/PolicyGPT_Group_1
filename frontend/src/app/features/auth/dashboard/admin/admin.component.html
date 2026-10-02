@@ -98,7 +98,7 @@
 
       <div class="dash-stat-card__content">
 
-        <p class="dash-stat-card__value">
+        <p class="dash-stat-card__value" [appCountUp]="loadingStats ? '—' : (card.value ?? 0)">
           {{ loadingStats ? '—' : (card.value ?? 0) }}
         </p>
 

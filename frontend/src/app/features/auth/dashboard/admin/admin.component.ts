@@ -12,6 +12,8 @@ import { SchemeService } from "../../../../core/services/scheme.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+
 // =========================================================
 // STAT CARD
 // =========================================================
@@ -44,7 +46,7 @@ export interface ListItem {
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective],
   templateUrl: "./admin.component.html",
   styleUrl: "./admin.component.scss",
 })

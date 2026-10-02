@@ -63,6 +63,8 @@ export interface ApplicationItem {
   appId: string;
 }
 
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+
 // =====================================================
 // CITIZEN COMPONENT
 // =====================================================
@@ -70,7 +72,7 @@ export interface ApplicationItem {
 @Component({
   selector: "app-citizen",
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CountUpDirective],
   templateUrl: "./citizen.component.html",
   styleUrl: "./citizen.component.scss",
 })

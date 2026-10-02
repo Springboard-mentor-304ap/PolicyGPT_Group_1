@@ -91,7 +91,7 @@
         @if (loadingStats) {
         <p class="dash-stat-card__value">—</p>
         } @else {
-        <p class="dash-stat-card__value">{{ stat.value ?? 0 }}</p>
+        <p class="dash-stat-card__value" [appCountUp]="stat.value ?? 0">{{ stat.value ?? 0 }}</p>
         }
 
         <p class="dash-stat-card__label">{{ stat.label }}</p>

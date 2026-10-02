@@ -73,6 +73,8 @@ export interface SavedOrganizationItem {
   savedOn: string;
 }
 
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+
 /* =========================================================
    ORGANIZATION DASHBOARD
    ========================================================= */
@@ -80,7 +82,7 @@ export interface SavedOrganizationItem {
 @Component({
   selector: "app-organization",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CountUpDirective],
   templateUrl: "./organization.component.html",
   styleUrl: "./organization.component.scss",
 })

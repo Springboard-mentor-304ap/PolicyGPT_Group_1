@@ -10,6 +10,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
+import {
+  CHART_HOVER_OPTIONS,
+  getLineChartAnimationConfig,
+  getLineChartAnimationsProperty
+} from '../chart-animation.config';
 
 Chart.register(...registerables);
 
@@ -109,8 +114,10 @@ export class LineChartComponent implements OnChanges, OnDestroy {
         data: ds.data,
         borderColor: ds.borderColor,
         backgroundColor: ds.backgroundColor || 'transparent',
+        fill: ds.fill ?? false,
         tension: 0.35,
         pointRadius: 3,
+        pointHoverRadius: 6,
         borderWidth: 2
       }));
       if (this.chartInstance.options.scales?.['y']) {
@@ -141,14 +148,19 @@ export class LineChartComponent implements OnChanges, OnDestroy {
           data: ds.data,
           borderColor: ds.borderColor,
           backgroundColor: ds.backgroundColor || 'transparent',
+          fill: ds.fill ?? false,
           tension: 0.35,
           pointRadius: 3,
+          pointHoverRadius: 6,
           borderWidth: 2
         }))
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: getLineChartAnimationConfig(),
+        animations: getLineChartAnimationsProperty(),
+        hover: CHART_HOVER_OPTIONS,
         plugins: {
           legend: {
             display: true,
@@ -159,7 +171,12 @@ export class LineChartComponent implements OnChanges, OnDestroy {
               font: { family: 'Roboto, Inter, sans-serif', size: 12, weight: 500 }
             }
           },
-          tooltip: { enabled: true }
+          tooltip: {
+            enabled: true,
+            animation: {
+              duration: 150
+            }
+          }
         },
         scales: {
           x: {

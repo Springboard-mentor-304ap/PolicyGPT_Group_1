@@ -12,6 +12,7 @@ import {
   RecentActivityItem,
   NotificationActivityItem,
 } from "../models/admin-analytics.models";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-admin-dashboard",
@@ -22,6 +23,7 @@ import {
     DateRangePickerComponent,
     LineChartComponent,
     DoughnutChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./admin-dashboard.component.html",
   styleUrl: "./admin-dashboard.component.scss",

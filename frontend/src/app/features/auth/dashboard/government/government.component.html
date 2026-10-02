@@ -110,7 +110,7 @@
 
         } @else {
 
-        <p class="dash-stat-card__value">
+        <p class="dash-stat-card__value" [appCountUp]="card.value ?? 0">
           {{ card.value ?? 0 }}
         </p>
 

@@ -47,7 +47,7 @@
         <div class="card-content">
           <span class="card-label">{{ stat.label }}</span>
           <div class="card-value-row">
-            <span class="card-value">{{ stat.value }}</span>
+            <span class="card-value" [appCountUp]="stat.value">{{ stat.value }}</span>
           </div>
           <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
             {{ stat.change }} <span class="trend-sub">from last month</span>

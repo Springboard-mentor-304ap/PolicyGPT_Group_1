@@ -15,6 +15,7 @@ import {
   LineDataset,
 } from "../../shared/line-chart/line-chart.component";
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-scheme-analytics",
@@ -28,6 +29,7 @@ import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-cha
     HbarChartComponent,
     LineChartComponent,
     DoughnutChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./scheme-analytics.component.html",
   styleUrl: "./scheme-analytics.component.scss",

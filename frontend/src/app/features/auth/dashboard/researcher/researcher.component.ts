@@ -20,6 +20,7 @@ import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 /* =========================================================
    TYPES
@@ -62,7 +63,7 @@ export interface TrendBar {
 @Component({
   selector: "app-researcher",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CountUpDirective],
   templateUrl: "./researcher.component.html",
   styleUrls: ["./researcher.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -23,6 +23,7 @@ import {
   GovtKpiCard,
   STATUS_COLORS,
 } from "./gov-analytics-base";
+import { CountUpDirective } from "../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-govt-policy-scheme",
@@ -36,6 +37,7 @@ import {
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./govt-policy-scheme.component.html",
   styleUrl: "./government-analytics.scss",

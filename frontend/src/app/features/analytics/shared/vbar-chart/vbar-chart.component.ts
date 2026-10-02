@@ -10,6 +10,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
+import {
+  CHART_HOVER_OPTIONS,
+  getBarChartAnimationConfig
+} from '../chart-animation.config';
 
 Chart.register(...registerables);
 
@@ -126,6 +130,8 @@ export class VbarChartComponent implements OnChanges, OnDestroy {
     const ctx = this.chartCanvas.nativeElement.getContext('2d');
     if (!ctx) return;
 
+    const barAnim = getBarChartAnimationConfig('x');
+
     this.chartInstance = new Chart(ctx, {
       type: 'bar',
       plugins: [topValuePlugin],
@@ -136,13 +142,17 @@ export class VbarChartComponent implements OnChanges, OnDestroy {
             data: this.values,
             backgroundColor: this.color,
             borderRadius: { topLeft: 6, topRight: 6 },
-            barThickness: 28
+            barThickness: 28,
+            hoverBackgroundColor: '#075dcc'
           }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: barAnim.animation,
+        animations: barAnim.animations,
+        hover: CHART_HOVER_OPTIONS,
         layout: {
           padding: {
             top: 20
@@ -150,7 +160,12 @@ export class VbarChartComponent implements OnChanges, OnDestroy {
         },
         plugins: {
           legend: { display: false },
-          tooltip: { enabled: true }
+          tooltip: {
+            enabled: true,
+            animation: {
+              duration: 150
+            }
+          }
         },
         scales: {
           x: {

@@ -18,6 +18,7 @@ import {
   RecentRegisteredUser,
   TopActiveUser,
 } from "../models/admin-analytics.models";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-user-analytics",
@@ -31,6 +32,7 @@ import {
     DoughnutChartComponent,
     HbarChartComponent,
     VbarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./user-analytics.component.html",
   styleUrl: "./user-analytics.component.scss",

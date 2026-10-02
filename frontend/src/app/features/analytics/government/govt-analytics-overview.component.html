@@ -84,7 +84,7 @@
         <span class="material-icons">{{ kpi.icon }}</span>
       </span>
       <span class="stat-text">
-        <span class="stat-value">{{ kpi.value }}</span>
+        <span class="stat-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
         <span class="stat-title">{{ kpi.label }}</span>
       </span>
     </div>

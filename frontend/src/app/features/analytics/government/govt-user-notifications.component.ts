@@ -25,6 +25,7 @@ import {
   GovtKpiCard,
   ROLE_COLORS,
 } from "./gov-analytics-base";
+import { CountUpDirective } from "../../../shared/directives/count-up.directive";
 
 @Component({
   selector: "app-govt-user-notifications",
@@ -39,6 +40,7 @@ import {
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     AnalyticsGroupedBarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./govt-user-notifications.component.html",
   styleUrl: "./government-analytics.scss",

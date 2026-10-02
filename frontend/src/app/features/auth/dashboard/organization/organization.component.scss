@@ -730,7 +730,31 @@ $dash-purple: #8b00e8;
   height: 100%;
   background: linear-gradient(90deg, $dash-blue 0%, #38bdf8 100%);
   border-radius: 999px;
-  transition: width 0.4s ease;
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: sectorProgressExpand 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+@keyframes sectorProgressExpand {
+  from {
+    width: 0 !important;
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dash-sector-item:nth-child(1) .dash-sector-item__progress { animation-delay: 0.06s; }
+.dash-sector-item:nth-child(2) .dash-sector-item__progress { animation-delay: 0.14s; }
+.dash-sector-item:nth-child(3) .dash-sector-item__progress { animation-delay: 0.22s; }
+.dash-sector-item:nth-child(4) .dash-sector-item__progress { animation-delay: 0.30s; }
+.dash-sector-item:nth-child(5) .dash-sector-item__progress { animation-delay: 0.38s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-sector-item__progress {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* =========================================================

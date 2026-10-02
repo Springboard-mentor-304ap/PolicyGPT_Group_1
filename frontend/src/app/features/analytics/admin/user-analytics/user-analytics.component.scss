@@ -509,12 +509,19 @@
         gap: 4px;
         height: 24px;
 
+        @for $i from 1 through 7 {
+          &:nth-child(#{$i}) .heatmap-cell {
+            animation-delay: #{$i * 35}ms;
+          }
+        }
+
         .heatmap-cell {
           flex: 1;
           height: 100%;
           border-radius: 4px;
           cursor: pointer;
-          transition: transform 0.1s ease, filter 0.1s ease;
+          animation: heatmapCellAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s ease, filter 0.2s ease;
 
           &:hover {
             transform: scale(1.15);
@@ -886,5 +893,23 @@
         }
       }
     }
+  }
+}
+
+@keyframes heatmapCellAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heatmap-cell {
+    animation: none !important;
+    transition: none !important;
   }
 }

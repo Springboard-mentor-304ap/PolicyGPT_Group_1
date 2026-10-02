@@ -16,6 +16,8 @@ import {
 import { downloadGovtCsv, printAnalyticsPdf } from "../shared/analytics-export";
 import { GovAnalyticsBase, GovtKpiCard } from "./gov-analytics-base";
 
+import { CountUpDirective } from "../../../shared/directives/count-up.directive";
+
 @Component({
   selector: "app-govt-departments",
   standalone: true,
@@ -29,6 +31,7 @@ import { GovAnalyticsBase, GovtKpiCard } from "./gov-analytics-base";
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     AnalyticsGroupedBarChartComponent,
+    CountUpDirective,
   ],
   templateUrl: "./govt-departments.component.html",
   styleUrl: "./government-analytics.scss",

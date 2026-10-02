@@ -10,6 +10,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
+import {
+  CHART_HOVER_OPTIONS,
+  getDoughnutChartAnimationConfig
+} from '../chart-animation.config';
 
 Chart.register(...registerables);
 
@@ -153,7 +157,8 @@ export class DoughnutChartComponent implements OnChanges, OnDestroy {
             data: this.data,
             backgroundColor: this.colors,
             borderWidth: 2,
-            borderColor: '#ffffff'
+            borderColor: '#ffffff',
+            hoverOffset: 4
           }
         ]
       },
@@ -161,6 +166,8 @@ export class DoughnutChartComponent implements OnChanges, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         cutout: '70%',
+        animation: getDoughnutChartAnimationConfig(),
+        hover: CHART_HOVER_OPTIONS,
         plugins: {
           legend: {
             display: true,
@@ -171,7 +178,12 @@ export class DoughnutChartComponent implements OnChanges, OnDestroy {
               font: { family: 'Roboto, Inter, sans-serif', size: 12, weight: 500 }
             }
           },
-          tooltip: { enabled: true },
+          tooltip: {
+            enabled: true,
+            animation: {
+              duration: 150
+            }
+          },
           centerText: {
             mainText: this.centerMainText,
             subText: this.centerSubText

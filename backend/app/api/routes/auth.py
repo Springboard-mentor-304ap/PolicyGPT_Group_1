@@ -1,32 +1,26 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import logging
-import secrets
-import re
 import random
+import re
+import secrets
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger("uvicorn.error")
-from app.services.email_service import send_otp_email
-from app.services.sms_service import normalize_indian_phone, send_otp_sms
 from app.core.security import (
     create_access_token,
     decode_access_token,
     hash_password,
     verify_password,
 )
-
 from app.db.database import get_db
-
-from app.models.password_reset import PasswordResetToken
 from app.models.otp import OTPVerification
+from app.models.password_reset import PasswordResetToken
 from app.models.user import User
-from app.services.audit_log_service import log_request_action
-
 from app.schemas.auth import (
     AuthResponse,
     ChangePasswordRequest,
@@ -37,19 +31,21 @@ from app.schemas.auth import (
     RegisterRequest,
     ResetPasswordRequest,
     SendOTPRequest,
-    VerifyOTPRequest,
     UserResponse,
+    VerifyOTPRequest,
 )
+from app.services.audit_log_service import log_request_action
+from app.services.email_service import send_otp_email
+from app.services.sms_service import normalize_indian_phone, send_otp_sms
+
+logger = logging.getLogger("uvicorn.error")
 
 
 # =========================================================
 # ROUTER
 # =========================================================
 
-router = APIRouter(
-    prefix="/auth",
-    tags=["Authentication"]
-)
+router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 # =========================================================
@@ -63,9 +59,10 @@ security = HTTPBearer()
 # GET CURRENT USER
 # =========================================================
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
 
     token = credentials.credentials
@@ -80,9 +77,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
@@ -96,9 +91,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
@@ -112,18 +105,14 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
-        User.user_id == user_id
-    ).first()
+    user = db.query(User).filter(User.user_id == user_id).first()
 
     # -----------------------------------------------------
     # USER DOES NOT EXIST
@@ -133,9 +122,7 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User no longer exists",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
@@ -144,24 +131,20 @@ def get_current_user(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is inactive"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive"
         )
 
     # -----------------------------------------------------
     # TOKEN VERSION CHECK
     # -----------------------------------------------------
 
-    if (
-        (token_version if token_version is not None else 0)
-        != (user.token_version or 0)
+    if (token_version if token_version is not None else 0) != (
+        user.token_version or 0
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            },
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return user
@@ -188,19 +171,14 @@ ROLE_ALIASES = {
     "ADMIN": "ADMIN",
     "ADMINISTRATOR": "ADMIN",
     "ADMINISTRATOR_ROLE": "ADMIN",
-
     "GOVERNMENT": "GOVERNMENT_OFFICIAL",
     "GOVT": "GOVERNMENT_OFFICIAL",
     "GOVERNMENT OFFICIAL": "GOVERNMENT_OFFICIAL",
     "GOVERNMENT_OFFICIAL": "GOVERNMENT_OFFICIAL",
-
     "CITIZEN": "CITIZEN",
-
     "RESEARCHER": "RESEARCHER",
-
     "ORGANIZATION": "ORGANIZATION",
     "ORG": "ORGANIZATION",
-
     "GUEST": "GUEST",
     "GUEST_USER": "GUEST",
     "GUEST USER": "GUEST",
@@ -226,14 +204,9 @@ def normalize_role(role: str | None) -> str:
 
 def require_roles(*allowed_roles: str):
 
-    normalized_allowed_roles = {
-        normalize_role(role)
-        for role in allowed_roles
-    }
+    normalized_allowed_roles = {normalize_role(role) for role in allowed_roles}
 
-    def role_checker(
-        current_user: User = Depends(get_current_user)
-    ) -> User:
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
 
         user_role = normalize_role(current_user.role)
 
@@ -266,12 +239,11 @@ def require_roles(*allowed_roles: str):
 # CREATE USER TOKEN
 # =========================================================
 
+
 def create_user_token(user: User) -> str:
 
     return create_access_token(
-        user_id=user.user_id,
-        role=user.role,
-        token_version=user.token_version
+        user_id=user.user_id, role=user.role, token_version=user.token_version
     )
 
 
@@ -299,48 +271,42 @@ def find_user_by_phone(db: Session, phone_raw: str | None) -> User | None:
 # HASH RESET TOKEN
 # =========================================================
 
+
 def hash_reset_token(token: str) -> str:
 
-    return hashlib.sha256(
-        token.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 # =========================================================
 # REGISTER
 # =========================================================
 
+
 @router.post(
     "/register",
     response_model=AuthResponse,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 def register(
-    data: RegisterRequest,
-    request: Request,
-    db: Session = Depends(get_db)
+    data: RegisterRequest, request: Request, db: Session = Depends(get_db)
 ):
 
     # -----------------------------------------------------
     # CLEAN EMAIL
     # -----------------------------------------------------
 
-    email = str(
-        data.email
-    ).lower().strip()
+    email = str(data.email).lower().strip()
 
     # -----------------------------------------------------
     # CHECK EMAIL
     # -----------------------------------------------------
 
-    existing_email = db.query(User).filter(
-        User.email == email
-    ).first()
+    existing_email = db.query(User).filter(User.email == email).first()
 
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email is already registered"
+            detail="Email is already registered",
         )
 
     # -----------------------------------------------------
@@ -349,20 +315,18 @@ def register(
 
     if data.phone:
 
-        normalized_registration_phone = re.sub(
-            r"\D",
-            "",
-            data.phone
-        )
+        normalized_registration_phone = re.sub(r"\D", "", data.phone)
 
-        existing_phone = db.query(User).filter(
-            User.phone == normalized_registration_phone
-        ).first()
+        existing_phone = (
+            db.query(User)
+            .filter(User.phone == normalized_registration_phone)
+            .first()
+        )
 
         if existing_phone:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Phone number is already registered"
+                detail="Phone number is already registered",
             )
 
     # -----------------------------------------------------
@@ -372,18 +336,14 @@ def register(
     if data.password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Passwords do not match"
+            detail="Passwords do not match",
         )
 
     # -----------------------------------------------------
     # CURRENT TIME
     # -----------------------------------------------------
 
-    now = datetime.now(
-        timezone.utc
-    ).replace(
-        tzinfo=None
-    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # CREATE USER
@@ -392,9 +352,7 @@ def register(
     user = User(
         full_name=data.full_name,
         email=email,
-        password_hash=hash_password(
-            data.password
-        ),
+        password_hash=hash_password(data.password),
         role=normalize_role(data.role),
         phone=(re.sub(r"\D", "", data.phone) if data.phone else None),
         date_of_birth=data.date_of_birth,
@@ -405,7 +363,7 @@ def register(
         is_active=True,
         token_version=0,
         created_at=now,
-        updated_at=now
+        updated_at=now,
     )
 
     # -----------------------------------------------------
@@ -425,12 +383,14 @@ def register(
                 get_or_create_preferences,
             )
             from app.services.notification_service import NotificationService
+
             get_or_create_preferences(db, user.user_id, user.role)
             NotificationService.notify_new_user(db, user)
         except Exception as notif_err:
             logger.error(
                 f"Error initializing user notification preferences or alert: "
-                f"{notif_err}")
+                f"{notif_err}"
+            )
 
     except IntegrityError:
 
@@ -438,7 +398,7 @@ def register(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email or phone number is already registered"
+            detail="Email or phone number is already registered",
         )
 
     # -----------------------------------------------------
@@ -461,11 +421,7 @@ def register(
     # RESPONSE
     # -----------------------------------------------------
 
-    return AuthResponse(
-        access_token=token,
-        token_type="bearer",
-        user=user
-    )
+    return AuthResponse(access_token=token, token_type="bearer", user=user)
 
 
 # =========================================================
@@ -476,15 +432,9 @@ def register(
 # LOGIN
 # =========================================================
 
-@router.post(
-    "/login",
-    response_model=AuthResponse
-)
-def login(
-    data: LoginRequest,
-    request: Request,
-    db: Session = Depends(get_db)
-):
+
+@router.post("/login", response_model=AuthResponse)
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
     # CLEAN IDENTIFIER
@@ -498,27 +448,23 @@ def login(
 
     normalized_email = identifier.casefold()
 
-    normalized_phone = re.sub(
-        r"\D",
-        "",
-        identifier
-    )
+    normalized_phone = re.sub(r"\D", "", identifier)
 
     # -----------------------------------------------------
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
-        or_(
-            func.lower(
-                func.trim(User.email)
-            ) == normalized_email,
-
-            User.phone == identifier,
-
-            User.phone == normalized_phone
+    user = (
+        db.query(User)
+        .filter(
+            or_(
+                func.lower(func.trim(User.email)) == normalized_email,
+                User.phone == identifier,
+                User.phone == normalized_phone,
+            )
         )
-    ).first()
+        .first()
+    )
 
     # -----------------------------------------------------
     # ACCOUNT DOES NOT EXIST
@@ -539,19 +485,14 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_CREDENTIAL",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            }
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
     # CHECK PASSWORD
     # -----------------------------------------------------
 
-    password_valid = verify_password(
-        data.password,
-        user.password_hash
-    )
+    password_valid = verify_password(data.password, user.password_hash)
 
     # -----------------------------------------------------
     # PASSWORD IS WRONG
@@ -572,9 +513,7 @@ def login(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="INVALID_PASSWORD",
-            headers={
-                "WWW-Authenticate": "Bearer"
-            }
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # -----------------------------------------------------
@@ -584,8 +523,7 @@ def login(
     if not user.is_active:
 
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is inactive"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive"
         )
 
     # -----------------------------------------------------
@@ -608,16 +546,13 @@ def login(
     # RETURN LOGIN RESPONSE
     # -----------------------------------------------------
 
-    return AuthResponse(
-        access_token=token,
-        token_type="bearer",
-        user=user
-    )
+    return AuthResponse(access_token=token, token_type="bearer", user=user)
 
 
 # =========================================================
 # GUEST LOGIN
 # =========================================================
+
 
 @router.post(
     "/guest-login",
@@ -626,16 +561,10 @@ def login(
     description=(
         "Authenticates as a guest user, returning a guest session "
         "token and user profile."
-    )
+    ),
 )
-@router.post(
-    "/guest",
-    response_model=AuthResponse,
-    include_in_schema=False
-)
-def guest_login(
-    db: Session = Depends(get_db)
-):
+@router.post("/guest", response_model=AuthResponse, include_in_schema=False)
+def guest_login(db: Session = Depends(get_db)):
     guest_email = "guest@policygpt.com"
     guest_user = db.query(User).filter(User.email == guest_email).first()
 
@@ -663,15 +592,14 @@ def guest_login(
             db.refresh(guest_user)
         except IntegrityError:
             db.rollback()
-            guest_user = db.query(User).filter(
-                User.email == guest_email).first()
+            guest_user = (
+                db.query(User).filter(User.email == guest_email).first()
+            )
 
     token = create_user_token(guest_user)
 
     return AuthResponse(
-        access_token=token,
-        token_type="bearer",
-        user=guest_user
+        access_token=token, token_type="bearer", user=guest_user
     )
 
 
@@ -679,13 +607,9 @@ def guest_login(
 # CURRENT USER
 # =========================================================
 
-@router.get(
-    "/me",
-    response_model=UserResponse
-)
-def get_me(
-    current_user: User = Depends(get_current_user)
-):
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
 
     return current_user
 
@@ -694,42 +618,42 @@ def get_me(
 # UPDATE PROFILE
 # =========================================================
 
-@router.put(
-    "/profile",
-    response_model=UserResponse
-)
+
+@router.put("/profile", response_model=UserResponse)
 def update_profile(
     data: ProfileUpdateRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
 
-    updates = data.model_dump(
-        exclude_unset=True
-    )
+    updates = data.model_dump(exclude_unset=True)
 
     # -----------------------------------------------------
     # PHONE VALIDATION
     # -----------------------------------------------------
 
-    if "phone" in updates and updates["phone"]:
+    if updates.get("phone"):
 
         if not updates["phone"].isdigit():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Phone number must contain only digits"
+                detail="Phone number must contain only digits",
             )
 
-        existing_phone = db.query(User).filter(
-            User.phone == updates["phone"],
-            User.user_id != current_user.user_id
-        ).first()
+        existing_phone = (
+            db.query(User)
+            .filter(
+                User.phone == updates["phone"],
+                User.user_id != current_user.user_id,
+            )
+            .first()
+        )
 
         if existing_phone:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Phone number is already registered"
+                detail="Phone number is already registered",
             )
 
     # -----------------------------------------------------
@@ -738,23 +662,13 @@ def update_profile(
 
     for field, value in updates.items():
 
-        setattr(
-            current_user,
-            field,
-            value
-        )
+        setattr(current_user, field, value)
 
     # -----------------------------------------------------
     # UPDATE TIMESTAMP
     # -----------------------------------------------------
 
-    current_user.updated_at = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    current_user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # SAVE
@@ -771,7 +685,7 @@ def update_profile(
 
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Profile update conflicts with existing data"
+            detail="Profile update conflicts with existing data",
         )
 
     log_request_action(
@@ -791,27 +705,23 @@ def update_profile(
 # CHANGE PASSWORD
 # =========================================================
 
-@router.post(
-    "/change-password"
-)
+
+@router.post("/change-password")
 def change_password(
     data: ChangePasswordRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
     # CHECK CURRENT PASSWORD
     # -----------------------------------------------------
 
-    if not verify_password(
-        data.current_password,
-        current_user.password_hash
-    ):
+    if not verify_password(data.current_password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Current password is incorrect"
+            detail="Current password is incorrect",
         )
 
     # -----------------------------------------------------
@@ -821,7 +731,7 @@ def change_password(
     if data.new_password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Passwords do not match"
+            detail="Passwords do not match",
         )
 
     # -----------------------------------------------------
@@ -831,16 +741,14 @@ def change_password(
     if data.current_password == data.new_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password must be different from current password"
+            detail="New password must be different from current password",
         )
 
     # -----------------------------------------------------
     # HASH NEW PASSWORD
     # -----------------------------------------------------
 
-    current_user.password_hash = hash_password(
-        data.new_password
-    )
+    current_user.password_hash = hash_password(data.new_password)
 
     # -----------------------------------------------------
     # REVOKE OLD TOKENS
@@ -852,13 +760,7 @@ def change_password(
     # UPDATE TIME
     # -----------------------------------------------------
 
-    current_user.updated_at = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    current_user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # SAVE
@@ -876,22 +778,19 @@ def change_password(
         "Password changed; existing tokens revoked.",
     )
 
-    return {
-        "message": "Password changed successfully. Please login again."
-    }
+    return {"message": "Password changed successfully. Please login again."}
 
 
 # =========================================================
 # LOGOUT
 # =========================================================
 
-@router.post(
-    "/logout"
-)
+
+@router.post("/logout")
 def logout(
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
@@ -900,13 +799,7 @@ def logout(
 
     current_user.token_version += 1
 
-    current_user.updated_at = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    current_user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
 
@@ -920,22 +813,17 @@ def logout(
         f"User {current_user.email} logged out.",
     )
 
-    return {
-        "message": "Logged out successfully"
-    }
+    return {"message": "Logged out successfully"}
 
 
 # =========================================================
 # SEND OTP (EMAIL + SMS - EXPLICIT CHANNEL ONLY)
 # =========================================================
 
-@router.post(
-    "/send-otp"
-)
+
+@router.post("/send-otp")
 def send_otp(
-    data: SendOTPRequest,
-    request: Request,
-    db: Session = Depends(get_db)
+    data: SendOTPRequest, request: Request, db: Session = Depends(get_db)
 ):
 
     # -----------------------------------------------------
@@ -948,7 +836,7 @@ def send_otp(
     if channel not in ("email", "sms"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid channel. Allowed values: email, sms"
+            detail="Invalid channel. Allowed values: email, sms",
         )
 
     # -----------------------------------------------------
@@ -963,7 +851,7 @@ def send_otp(
         if not normalized_phone:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Valid phone number is required when channel is sms"
+                detail="Valid phone number is required when channel is sms",
             )
         user = find_user_by_phone(db, data.phone)
         if not user and email:
@@ -971,65 +859,48 @@ def send_otp(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No account found with this phone number"
+                detail="No account found with this phone number",
             )
     else:
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Email address is required when channel is email"
+                detail="Email address is required when channel is email",
             )
         user = db.query(User).filter(User.email == email).first()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Invalid email address"
+                detail="Invalid email address",
             )
 
     # -----------------------------------------------------
     # INVALIDATE PREVIOUS UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
 
-    db.query(
-        OTPVerification
-    ).filter(
+    db.query(OTPVerification).filter(
         OTPVerification.user_id == user.user_id,
         OTPVerification.channel == channel,
-        OTPVerification.used.is_(False)
-    ).update({
-        "used": True
-    })
+        OTPVerification.used.is_(False),
+    ).update({"used": True})
 
     # -----------------------------------------------------
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
-    otp = str(
-        random.randint(
-            100000,
-            999999
-        )
-    )
+    otp = str(random.randint(100000, 999999))
 
     # -----------------------------------------------------
     # HASH OTP
     # -----------------------------------------------------
 
-    otp_hash = hashlib.sha256(
-        otp.encode("utf-8")
-    ).hexdigest()
+    otp_hash = hashlib.sha256(otp.encode("utf-8")).hexdigest()
 
     # -----------------------------------------------------
     # CURRENT TIME
     # -----------------------------------------------------
 
-    now = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # CREATE OTP RECORD (EXPLICIT CHANNEL)
@@ -1039,11 +910,9 @@ def send_otp(
         user_id=user.user_id,
         otp_hash=otp_hash,
         channel=channel,
-        expires_at=now + timedelta(
-            minutes=5
-        ),
+        expires_at=now + timedelta(minutes=5),
         used=False,
-        created_at=now
+        created_at=now,
     )
 
     # -----------------------------------------------------
@@ -1060,12 +929,14 @@ def send_otp(
     try:
         if channel == "sms":
             result = send_otp_sms(
-                recipient_phone=normalized_phone or normalize_indian_phone(
-                    user.phone) or "",
+                recipient_phone=normalized_phone
+                or normalize_indian_phone(user.phone)
+                or "",
                 otp=otp,
             )
-            provider_error = result.get(
-                "error") if isinstance(result, dict) else None
+            provider_error = (
+                result.get("error") if isinstance(result, dict) else None
+            )
             if not isinstance(result, dict) or not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1075,17 +946,18 @@ def send_otp(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                    f"SMS delivery failed: "
-                    f"{provider_error or 'unknown error'}"
-                ),
+                        f"SMS delivery failed: "
+                        f"{provider_error or 'unknown error'}"
+                    ),
                 )
         else:
             result = send_otp_email(
                 recipient_email=email or user.email,
                 otp=otp,
             )
-            provider_error = result.get(
-                "error") if isinstance(result, dict) else None
+            provider_error = (
+                result.get("error") if isinstance(result, dict) else None
+            )
             if isinstance(result, dict) and not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1095,9 +967,9 @@ def send_otp(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                    f"Email delivery failed: "
-                    f"{provider_error or 'unknown error'}"
-                ),
+                        f"Email delivery failed: "
+                        f"{provider_error or 'unknown error'}"
+                    ),
                 )
 
     except HTTPException:
@@ -1113,7 +985,7 @@ def send_otp(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to send OTP"
+            detail="Unable to send OTP",
         )
 
     # -----------------------------------------------------
@@ -1140,13 +1012,10 @@ def send_otp(
 # VERIFY EMAIL OTP
 # =========================================================
 
-@router.post(
-    "/verify-otp"
-)
+
+@router.post("/verify-otp")
 def verify_otp(
-    data: VerifyOTPRequest,
-    request: Request,
-    db: Session = Depends(get_db)
+    data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)
 ):
 
     # -----------------------------------------------------
@@ -1165,56 +1034,48 @@ def verify_otp(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No account found with this phone number"
+                detail="No account found with this phone number",
             )
     else:
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Email address is required when channel is email"
+                detail="Email address is required when channel is email",
             )
         user = db.query(User).filter(User.email == email).first()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Invalid email address"
+                detail="Invalid email address",
             )
 
     # -----------------------------------------------------
     # FIND LATEST ACTIVE OTP
     # -----------------------------------------------------
 
-    otp_record = db.query(
-        OTPVerification
-    ).filter(
-        OTPVerification.user_id == user.user_id,
-        OTPVerification.channel == data.channel,
-        OTPVerification.used.is_(False)
-    ).order_by(
-        OTPVerification.created_at.desc()
-    ).first()
+    otp_record = (
+        db.query(OTPVerification)
+        .filter(
+            OTPVerification.user_id == user.user_id,
+            OTPVerification.channel == channel,
+            OTPVerification.used.is_(False),
+        )
+        .order_by(OTPVerification.created_at.desc())
+        .first()
+    )
 
     if not otp_record:
 
         raise HTTPException(
-
             status_code=status.HTTP_400_BAD_REQUEST,
-
-            detail="OTP not found or already used"
-
+            detail="OTP not found or already used",
         )
 
     # -----------------------------------------------------
     # CURRENT TIME
     # -----------------------------------------------------
 
-    now = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # CHECK OTP EXPIRATION
@@ -1227,29 +1088,20 @@ def verify_otp(
         db.commit()
 
         raise HTTPException(
-
-            status_code=status.HTTP_400_BAD_REQUEST,
-
-            detail="OTP has expired"
-
+            status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired"
         )
 
     # -----------------------------------------------------
     # HASH ENTERED OTP
     # -----------------------------------------------------
 
-    entered_otp_hash = hashlib.sha256(
-            data.otp.encode("utf-8")
-        ).hexdigest()
+    entered_otp_hash = hashlib.sha256(data.otp.encode("utf-8")).hexdigest()
 
     # -----------------------------------------------------
     # CHECK OTP
     # -----------------------------------------------------
 
-    if (
-        entered_otp_hash
-        != otp_record.otp_hash
-    ):
+    if entered_otp_hash != otp_record.otp_hash:
 
         log_request_action(
             request,
@@ -1262,27 +1114,17 @@ def verify_otp(
         )
 
         raise HTTPException(
-
-            status_code=status.HTTP_400_BAD_REQUEST,
-
-            detail="Invalid OTP"
-
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP"
         )
 
     # -----------------------------------------------------
     # INVALIDATE OLD RESET TOKENS
     # -----------------------------------------------------
 
-    db.query(
-        PasswordResetToken
-    ).filter(
+    db.query(PasswordResetToken).filter(
         PasswordResetToken.user_id == user.user_id,
-        PasswordResetToken.used.is_(False)
-    ).update(
-        {
-            "used": True
-        }
-    )
+        PasswordResetToken.used.is_(False),
+    ).update({"used": True})
 
     # -----------------------------------------------------
     # CREATE NEW RESET TOKEN
@@ -1290,28 +1132,19 @@ def verify_otp(
 
     raw_reset_token = secrets.token_urlsafe(32)
 
-    token_hash = hash_reset_token(
-            raw_reset_token
-        )
+    token_hash = hash_reset_token(raw_reset_token)
 
     # -----------------------------------------------------
     # CREATE RESET RECORD
     # -----------------------------------------------------
 
     reset_record = PasswordResetToken(
-            user_id=user.user_id,
-
-            token_hash=token_hash,
-
-            expires_at=now + timedelta(
-                minutes=15
-            ),
-
-            used=False,
-
-            created_at=now,
-
-        )
+        user_id=user.user_id,
+        token_hash=token_hash,
+        expires_at=now + timedelta(minutes=15),
+        used=False,
+        created_at=now,
+    )
 
     # -----------------------------------------------------
     # MARK OTP USED
@@ -1325,9 +1158,7 @@ def verify_otp(
 
     try:
 
-        db.add(
-            reset_record
-        )
+        db.add(reset_record)
 
         db.commit()
 
@@ -1335,17 +1166,11 @@ def verify_otp(
 
         db.rollback()
 
-        print(
-            "PASSWORD RESET TOKEN ERROR:",
-            exc
-        )
+        print("PASSWORD RESET TOKEN ERROR:", exc)
 
         raise HTTPException(
-
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-
-            detail="Unable to create password reset session"
-
+            detail="Unable to create password reset session",
         )
 
     # -----------------------------------------------------
@@ -1363,16 +1188,9 @@ def verify_otp(
     )
 
     return {
-
-        "message":
-            "OTP verified successfully",
-
-        "verified":
-            True,
-
-        "reset_token":
-            raw_reset_token,
-
+        "message": "OTP verified successfully",
+        "verified": True,
+        "reset_token": raw_reset_token,
     }
 
 
@@ -1380,13 +1198,12 @@ def verify_otp(
 # FORGOT PASSWORD
 # =========================================================
 
-@router.post(
-    "/forgot-password"
-)
+
+@router.post("/forgot-password")
 def forgot_password(
     data: ForgotPasswordRequest,
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
@@ -1397,7 +1214,7 @@ def forgot_password(
     if channel not in ("email", "sms"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid channel. Allowed values: email, sms"
+            detail="Invalid channel. Allowed values: email, sms",
         )
 
     user: User | None = None
@@ -1409,27 +1226,25 @@ def forgot_password(
         if not normalized_phone:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Valid phone number is required when channel is sms"
+                detail="Valid phone number is required when channel is sms",
             )
         user = find_user_by_phone(db, data.phone)
         if not user and email:
             user = db.query(User).filter(User.email == email).first()
         generic_response = {
-            "message":
-                "If an account exists with this phone number, "
-                "a verification code has been sent."
+            "message": "If an account exists with this phone number, "
+            "a verification code has been sent."
         }
     else:
         if not email:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Email address is required when channel is email"
+                detail="Email address is required when channel is email",
             )
         user = db.query(User).filter(User.email == email).first()
         generic_response = {
-            "message":
-                "If an account exists with this email, "
-                "a verification code has been sent."
+            "message": "If an account exists with this email, "
+            "a verification code has been sent."
         }
 
     # -----------------------------------------------------
@@ -1444,93 +1259,57 @@ def forgot_password(
     # INVALIDATE OLD UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
 
-    db.query(
-        OTPVerification
-    ).filter(
+    db.query(OTPVerification).filter(
         OTPVerification.user_id == user.user_id,
         OTPVerification.channel == channel,
-        OTPVerification.used.is_(False)
-    ).update(
-        {
-            "used": True
-        }
-    )
+        OTPVerification.used.is_(False),
+    ).update({"used": True})
 
     # -----------------------------------------------------
     # INVALIDATE OLD RESET TOKENS
     # -----------------------------------------------------
 
-    db.query(
-        PasswordResetToken
-    ).filter(
+    db.query(PasswordResetToken).filter(
         PasswordResetToken.user_id == user.user_id,
-        PasswordResetToken.used.is_(False)
-    ).update(
-        {
-            "used": True
-        }
-    )
+        PasswordResetToken.used.is_(False),
+    ).update({"used": True})
 
     # -----------------------------------------------------
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
-    otp = str(
-        random.randint(
-            100000,
-            999999
-        )
-    )
+    otp = str(random.randint(100000, 999999))
 
     # -----------------------------------------------------
     # HASH OTP
     # -----------------------------------------------------
 
-    otp_hash = hashlib.sha256(
-        otp.encode("utf-8")
-    ).hexdigest()
+    otp_hash = hashlib.sha256(otp.encode("utf-8")).hexdigest()
 
     # -----------------------------------------------------
     # CURRENT TIME
     # -----------------------------------------------------
 
-    now = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # CREATE OTP RECORD (EXPLICIT CHANNEL)
     # -----------------------------------------------------
 
     otp_record = OTPVerification(
-
         user_id=user.user_id,
-
         otp_hash=otp_hash,
-
         channel=channel,
-
-        expires_at=now + timedelta(
-            minutes=5
-        ),
-
+        expires_at=now + timedelta(minutes=5),
         used=False,
-
         created_at=now,
-
     )
 
     # -----------------------------------------------------
     # SAVE OTP
     # -----------------------------------------------------
 
-    db.add(
-        otp_record
-    )
+    db.add(otp_record)
 
     try:
 
@@ -1541,11 +1320,8 @@ def forgot_password(
         db.rollback()
 
         raise HTTPException(
-
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-
-            detail="Unable to create verification code"
-
+            detail="Unable to create verification code",
         )
 
     # -----------------------------------------------------
@@ -1557,14 +1333,12 @@ def forgot_password(
         if channel == "sms":
 
             result = send_otp_sms(
-
                 recipient_phone=normalized_phone or "",
-
                 otp=otp,
-
             )
-            provider_error = result.get(
-                "error") if isinstance(result, dict) else None
+            provider_error = (
+                result.get("error") if isinstance(result, dict) else None
+            )
             if not isinstance(result, dict) or not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1572,27 +1346,22 @@ def forgot_password(
                 except Exception:
                     db.rollback()
                 raise HTTPException(
-
                     status_code=status.HTTP_502_BAD_GATEWAY,
-
                     detail=(
-                    f"SMS delivery failed: "
-                    f"{provider_error or 'unknown error'}"
-                )
-
+                        f"SMS delivery failed: "
+                        f"{provider_error or 'unknown error'}"
+                    ),
                 )
 
         else:
 
             result = send_otp_email(
-
                 recipient_email=email,
-
                 otp=otp,
-
             )
-            provider_error = result.get(
-                "error") if isinstance(result, dict) else None
+            provider_error = (
+                result.get("error") if isinstance(result, dict) else None
+            )
             if isinstance(result, dict) and not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1600,14 +1369,11 @@ def forgot_password(
                 except Exception:
                     db.rollback()
                 raise HTTPException(
-
                     status_code=status.HTTP_502_BAD_GATEWAY,
-
                     detail=(
-                    f"Email delivery failed: "
-                    f"{provider_error or 'unknown error'}"
-                )
-
+                        f"Email delivery failed: "
+                        f"{provider_error or 'unknown error'}"
+                    ),
                 )
 
     except HTTPException:
@@ -1629,11 +1395,8 @@ def forgot_password(
             db.rollback()
 
         raise HTTPException(
-
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-
-            detail="Unable to send verification code"
-
+            detail="Unable to send verification code",
         )
 
     # -----------------------------------------------------
@@ -1657,25 +1420,23 @@ def forgot_password(
 # DELETE CURRENT ACCOUNT
 # =========================================================
 
+
 @router.delete("/account")
 def delete_account(
     data: DeleteAccountRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
     # VERIFY PASSWORD
     # -----------------------------------------------------
 
-    if not verify_password(
-        data.password,
-        current_user.password_hash
-    ):
+    if not verify_password(data.password, current_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect password"
+            detail="Incorrect password",
         )
 
     user_id = current_user.user_id
@@ -1695,17 +1456,17 @@ def delete_account(
         # -------------------------------------------------
         db.execute(
             text("DELETE FROM scheme_applications WHERE user_id = :user_id"),
-            {"user_id": user_id}
+            {"user_id": user_id},
         )
 
         db.execute(
             text("DELETE FROM search_history WHERE user_id = :user_id"),
-            {"user_id": user_id}
+            {"user_id": user_id},
         )
 
         db.execute(
             text("DELETE FROM support_queries WHERE user_id = :user_id"),
-            {"user_id": user_id}
+            {"user_id": user_id},
         )
 
         # -------------------------------------------------
@@ -1720,7 +1481,7 @@ def delete_account(
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to delete account"
+            detail="Unable to delete account",
         )
 
     # NOTE: logged with user_id=None because the user row no longer exists
@@ -1736,40 +1497,30 @@ def delete_account(
         "self-deleted.",
     )
 
-    return {
-        "message": "Account deleted successfully"
-    }
+    return {"message": "Account deleted successfully"}
 
 
 # =========================================================
 # DELETE USER BY EMAIL
 # =========================================================
 
-@router.delete(
-    "/users/email/{email}"
-)
+
+@router.delete("/users/email/{email}")
 def delete_user(
     email: str,
     request: Request,
-    current_user: User = Depends(
-        require_roles("ADMIN")
-    ),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_roles("ADMIN")),
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
-        User.email == email
-    ).first()
+    user = db.query(User).filter(User.email == email).first()
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=404, detail="User not found")
 
     # -----------------------------------------------------
     # DELETE
@@ -1792,41 +1543,30 @@ def delete_user(
         f"user_id {removed_id}).",
     )
 
-    return {
-        "message": "User deleted successfully",
-        "email": email
-    }
+    return {"message": "User deleted successfully", "email": email}
 
 
 # =========================================================
 # DELETE USER BY PHONE
 # =========================================================
 
-@router.delete(
-    "/users/phone/{phone}"
-)
+
+@router.delete("/users/phone/{phone}")
 def delete_user_by_phone(
     phone: str,
     request: Request,
-    current_user: User = Depends(
-        require_roles("ADMIN")
-    ),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(require_roles("ADMIN")),
+    db: Session = Depends(get_db),
 ):
 
     # -----------------------------------------------------
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
-        User.phone == phone
-    ).first()
+    user = db.query(User).filter(User.phone == phone).first()
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=404, detail="User not found")
 
     # -----------------------------------------------------
     # DELETE
@@ -1849,23 +1589,17 @@ def delete_user_by_phone(
         f"user_id {removed_id}).",
     )
 
-    return {
-        "message": "User deleted successfully",
-        "phone": phone
-    }
+    return {"message": "User deleted successfully", "phone": phone}
 
 
 # =========================================================
 # RESET PASSWORD
 # =========================================================
 
-@router.post(
-    "/reset-password"
-)
+
+@router.post("/reset-password")
 def reset_password(
-    data: ResetPasswordRequest,
-    request: Request,
-    db: Session = Depends(get_db)
+    data: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)
 ):
 
     # -----------------------------------------------------
@@ -1875,45 +1609,39 @@ def reset_password(
     if data.new_password != data.confirm_password:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Passwords do not match"
+            detail="Passwords do not match",
         )
 
     # -----------------------------------------------------
     # HASH TOKEN
     # -----------------------------------------------------
 
-    token_hash = hash_reset_token(
-        data.token
-    )
+    token_hash = hash_reset_token(data.token)
 
     # -----------------------------------------------------
     # FIND RESET TOKEN
     # -----------------------------------------------------
 
-    reset_record = db.query(
-        PasswordResetToken
-    ).filter(
-        PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used.is_(False)
-    ).first()
+    reset_record = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used.is_(False),
+        )
+        .first()
+    )
 
     if not reset_record:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or already used reset token"
+            detail="Invalid or already used reset token",
         )
 
     # -----------------------------------------------------
     # CURRENT TIME
     # -----------------------------------------------------
 
-    now = (
-        datetime.now(
-            timezone.utc
-        ).replace(
-            tzinfo=None
-        )
-    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
     # CHECK EXPIRATION
@@ -1927,16 +1655,14 @@ def reset_password(
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reset token has expired"
+            detail="Reset token has expired",
         )
 
     # -----------------------------------------------------
     # FIND USER
     # -----------------------------------------------------
 
-    user = db.query(User).filter(
-        User.user_id == reset_record.user_id
-    ).first()
+    user = db.query(User).filter(User.user_id == reset_record.user_id).first()
 
     if not user:
 
@@ -1946,16 +1672,14 @@ def reset_password(
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid reset request"
+            detail="Invalid reset request",
         )
 
     # -----------------------------------------------------
     # UPDATE PASSWORD
     # -----------------------------------------------------
 
-    user.password_hash = hash_password(
-        data.new_password
-    )
+    user.password_hash = hash_password(data.new_password)
 
     # -----------------------------------------------------
     # INVALIDATE OLD TOKENS
@@ -1987,21 +1711,16 @@ def reset_password(
         "Password reset completed via reset token.",
     )
 
-    return {
-        "message": "Password reset successfully. Please login again."
-    }
+    return {"message": "Password reset successfully. Please login again."}
 
 
 # =========================================================
 # ADMIN TEST
 # =========================================================
 
+
 @router.get("/admin-test")
-def admin_test(
-    current_user: User = Depends(
-        require_roles("ADMIN")
-    )
-):
+def admin_test(current_user: User = Depends(require_roles("ADMIN"))):
     return {
         "message": "Administrator access granted",
         "user_id": current_user.user_id,
@@ -2013,11 +1732,10 @@ def admin_test(
 # GOVERNMENT TEST
 # =========================================================
 
+
 @router.get("/government-test")
 def government_test(
-    current_user: User = Depends(
-        require_roles("GOVERNMENT_OFFICIAL")
-    )
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
     return {
         "message": "Government access granted",
@@ -2030,12 +1748,9 @@ def government_test(
 # RESEARCHER TEST
 # =========================================================
 
+
 @router.get("/researcher-test")
-def researcher_test(
-    current_user: User = Depends(
-        require_roles("RESEARCHER")
-    )
-):
+def researcher_test(current_user: User = Depends(require_roles("RESEARCHER"))):
     return {
         "message": "Researcher access granted",
         "user_id": current_user.user_id,
@@ -2047,12 +1762,9 @@ def researcher_test(
 # CITIZEN TEST
 # =========================================================
 
+
 @router.get("/citizen-test")
-def citizen_test(
-    current_user: User = Depends(
-        require_roles("CITIZEN")
-    )
-):
+def citizen_test(current_user: User = Depends(require_roles("CITIZEN"))):
     return {
         "message": "Citizen access granted",
         "user_id": current_user.user_id,
@@ -2064,11 +1776,10 @@ def citizen_test(
 # ORGANIZATION TEST
 # =========================================================
 
+
 @router.get("/organization-test")
 def organization_test(
-    current_user: User = Depends(
-        require_roles("ORGANIZATION")
-    )
+    current_user: User = Depends(require_roles("ORGANIZATION")),
 ):
     return {
         "message": "Organization access granted",

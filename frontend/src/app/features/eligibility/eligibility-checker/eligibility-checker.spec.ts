@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
-import { Router } from "@angular/router";
+import { provideRouter, Router } from "@angular/router";
 import { of, throwError } from "rxjs";
 import { By } from "@angular/platform-browser";
 import { describe, it, expect, beforeEach, vi } from "vitest";
@@ -76,10 +76,13 @@ describe("EligibilityChecker", () => {
     await TestBed.configureTestingModule({
       imports: [EligibilityChecker],
       providers: [
-        { provide: Router, useValue: mockRouter },
+        provideRouter([]),
         { provide: EligibilityService, useValue: mockEligibilityService },
       ],
     }).compileComponents();
+
+    mockRouter = TestBed.inject(Router);
+    vi.spyOn(mockRouter, "navigate").mockImplementation(() => Promise.resolve(true));
 
     fixture = TestBed.createComponent(EligibilityChecker);
     component = fixture.componentInstance;

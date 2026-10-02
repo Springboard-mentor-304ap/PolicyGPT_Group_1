@@ -137,7 +137,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   categories = POLICY_CATEGORIES;
   ministries = MINISTRIES;
   states = STATES;
-  sectors = POLICY_CATEGORIES;
+  sectors = POLICY_SECTORS;
   departments = ALL_DEPARTMENTS;
 
   statusOptions = [
@@ -173,6 +173,8 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
 
   get activeFiltersCount(): number {
     let count = 0;
+    if (this.selectedCategory) count++;
+    if (this.selectedMinistry) count++;
     if (this.selectedDepartment) count++;
     if (this.selectedState) count++;
     if (this.selectedSector) count++;
@@ -401,6 +403,8 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
 
     const params: PolicyFilters = {
       search,
+      category: this.selectedCategory || undefined,
+      ministry: this.selectedMinistry || undefined,
       department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
       sector: this.selectedSector || undefined,

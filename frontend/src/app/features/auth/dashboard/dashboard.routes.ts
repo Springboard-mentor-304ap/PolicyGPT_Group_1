@@ -1099,51 +1099,27 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "analytics",
 
         loadComponent: () =>
-          import("./admin/analytics/admin-analytics/admin-analytics.component").then(
-            (m) => m.AdminAnalyticsComponent,
+          import("../../analytics/admin/admin-dashboard/admin-dashboard.component").then(
+            (m) => m.AdminDashboardComponent,
           ),
       },
 
-      // ADMIN ANALYTICS CHILDREN (shared detail screens)
+      // ADMIN ANALYTICS CHILDREN
       {
         path: "analytics/policies",
 
-        data: {
-          variant: "policies",
-          pageTitle: "Policy Analytics",
-          pageDescription:
-            "Policy portfolio status and distribution breakdowns.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/admin"] },
-            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
-            { label: "Policy Analytics" },
-          ],
-        },
-
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/admin/policy-analytics/policy-analytics.component").then(
+            (m) => m.PolicyAnalyticsComponent,
           ),
       },
 
       {
         path: "analytics/schemes",
 
-        data: {
-          variant: "schemes",
-          pageTitle: "Scheme Analytics",
-          pageDescription:
-            "Scheme portfolio status and distribution breakdowns.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/admin"] },
-            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
-            { label: "Scheme Analytics" },
-          ],
-        },
-
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/admin/scheme-analytics/scheme-analytics.component").then(
+            (m) => m.SchemeAnalyticsComponent,
           ),
       },
 
@@ -1163,28 +1139,17 @@ export const DASHBOARD_ROUTES: Routes = [
         },
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/admin/user-analytics/user-analytics.component").then(
+            (m) => m.UserAnalyticsComponent,
           ),
       },
 
       {
         path: "analytics/departments",
 
-        data: {
-          variant: "departments",
-          pageTitle: "Department Analytics",
-          pageDescription: "Ministry and department aggregations.",
-          crumbs: [
-            { label: "Home", route: ["/dashboard/admin"] },
-            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
-            { label: "Department Analytics" },
-          ],
-        },
-
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/admin/department-analytics/department-analytics.component").then(
+            (m) => m.DepartmentAnalyticsComponent,
           ),
       },
 
@@ -1203,8 +1168,8 @@ export const DASHBOARD_ROUTES: Routes = [
         },
 
         loadComponent: () =>
-          import("../../analytics/analytics-detail/analytics-detail.component").then(
-            (m) => m.AnalyticsDetailComponent,
+          import("../../analytics/admin/usage-statistics/usage-statistics.component").then(
+            (m) => m.UsageStatisticsComponent,
           ),
       },
 

@@ -1,0 +1,277 @@
+<div class="admin-analytics-page">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/dashboard/admin" class="breadcrumb-link">Dashboard</a>
+    <span class="chevron" aria-hidden="true">&gt;</span>
+    <span class="current" aria-current="page">Analytics Overview</span>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Admin Analytics Dashboard</h1>
+        @if (isSampleData) {
+          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+            <span class="badge-dot"></span>
+            Sample Data
+          </span>
+        }
+      </div>
+      <p class="page-subtitle">Overview of platform statistics and key insights</p>
+    </div>
+    <div class="header-right">
+      <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
+    </div>
+  </div>
+
+  <!-- Top 8 Metric Cards Grid (2 rows x 4 columns) -->
+  <div class="top-cards-grid">
+    <!-- 1. Total Users -->
+    <div class="metric-card">
+      <div class="card-icon-circle blue" aria-hidden="true">
+        <span class="material-icons">people</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Users</span>
+        <div class="card-value-row">
+          <span class="card-value">5,820</span>
+        </div>
+        <span class="card-trend green">↑ 12% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 2. Total Policies -->
+    <div class="metric-card">
+      <div class="card-icon-circle purple" aria-hidden="true">
+        <span class="material-icons">description</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Policies</span>
+        <div class="card-value-row">
+          <span class="card-value">1,250</span>
+        </div>
+        <span class="card-trend green">↑ 8% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 3. Total Schemes -->
+    <div class="metric-card">
+      <div class="card-icon-circle green" aria-hidden="true">
+        <span class="material-icons">folder</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Schemes</span>
+        <div class="card-value-row">
+          <span class="card-value">438</span>
+        </div>
+        <span class="card-trend green">↑ 15% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 4. Approved Policies -->
+    <div class="metric-card">
+      <div class="card-icon-circle green-check" aria-hidden="true">
+        <span class="material-icons">check_circle</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Approved Policies</span>
+        <div class="card-value-row">
+          <span class="card-value">1,020</span>
+        </div>
+        <span class="card-trend green">↑ 10% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 5. Pending Policies -->
+    <div class="metric-card">
+      <div class="card-icon-circle orange" aria-hidden="true">
+        <span class="material-icons">schedule</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Pending Policies</span>
+        <div class="card-value-row">
+          <span class="card-value">85</span>
+        </div>
+        <span class="card-trend red">↑ 5% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 6. Rejected Policies -->
+    <div class="metric-card">
+      <div class="card-icon-circle red" aria-hidden="true">
+        <span class="material-icons">close</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Rejected Policies</span>
+        <div class="card-value-row">
+          <span class="card-value">42</span>
+        </div>
+        <span class="card-trend green">↓ 12% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 7. Active Schemes -->
+    <div class="metric-card">
+      <div class="card-icon-circle blue-gear" aria-hidden="true">
+        <span class="material-icons">settings</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Active Schemes</span>
+        <div class="card-value-row">
+          <span class="card-value">390</span>
+        </div>
+        <span class="card-trend green">↑ 18% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+
+    <!-- 8. Total Notifications -->
+    <div class="metric-card">
+      <div class="card-icon-circle red-bell" aria-hidden="true">
+        <span class="material-icons">notifications</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Notifications</span>
+        <div class="card-value-row">
+          <span class="card-value">12,600</span>
+        </div>
+        <span class="card-trend green">↑ 25% <span class="trend-sub">from last month</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row (3 cards) -->
+  <div class="charts-row">
+    <!-- Policies Trend Line Chart -->
+    <div class="chart-card flex-2">
+      <div class="card-header-row">
+        <h3 class="card-title">Policies Trend</h3>
+        <div class="timeframe-wrapper">
+          <button
+            type="button"
+            class="time-filter-btn"
+            (click)="toggleTimeframeMenu($event)"
+            [attr.aria-expanded]="showTimeframeMenu()">
+            <span>{{ trendTimeframe() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showTimeframeMenu()) {
+            <div class="timeframe-dropdown" role="menu">
+              @for (opt of timeframeOptions; track opt) {
+                <button
+                  type="button"
+                  class="timeframe-item"
+                  [class.active]="opt === trendTimeframe()"
+                  (click)="selectTimeframe(opt)"
+                  role="menuitem">
+                  {{ opt }}
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      <app-line-chart
+        [labels]="trendLabels"
+        [datasets]="policiesTrendDatasets"
+        [yMin]="0"
+        [yMax]="200"
+      />
+    </div>
+
+    <!-- Schemes by Category Doughnut Chart -->
+    <div class="chart-card flex-1">
+      <h3 class="card-title">Schemes by Category</h3>
+      <app-doughnut-chart
+        [labels]="schemesCategoryLabels"
+        [data]="schemesCategoryData"
+        [colors]="['#3cb371', '#2f6fed', '#06b6d4', '#f5a524', '#e5484d', '#94a3b8']"
+        centerMainText="438"
+        centerSubText="Total"
+      />
+    </div>
+
+    <!-- User Distribution Doughnut Chart -->
+    <div class="chart-card flex-1">
+      <h3 class="card-title">User Distribution</h3>
+      <app-doughnut-chart
+        [labels]="userDistLabels"
+        [data]="userDistData"
+        [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d']"
+        centerMainText="5,820"
+        centerSubText="Users"
+      />
+    </div>
+  </div>
+
+  <!-- Tables Row (2 cards) -->
+  <div class="tables-row">
+    <!-- Recent User Activity Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <h3 class="card-title">Recent User Activity</h3>
+        <span class="table-tag">Latest events</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Action</th>
+              <th scope="col">Time</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of recentActivities; track item.user) {
+              <tr>
+                <td class="text-user">{{ item.user }}</td>
+                <td class="text-action">{{ item.action }}</td>
+                <td class="text-muted">{{ item.time }}</td>
+                <td>
+                  <span class="badge-success">{{ item.status }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Latest Notifications Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <h3 class="card-title">Latest Notifications</h3>
+        <span class="table-tag">Sent broadcasts</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Title</th>
+              <th scope="col">Type</th>
+              <th scope="col">Date</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of notifications; track item.title) {
+              <tr>
+                <td class="text-user">{{ item.title }}</td>
+                <td>
+                  <span class="badge-type" [ngClass]="item.typeClass">{{ item.type }}</span>
+                </td>
+                <td class="text-muted">{{ item.date }}</td>
+                <td>
+                  <span class="badge-success">{{ item.status }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

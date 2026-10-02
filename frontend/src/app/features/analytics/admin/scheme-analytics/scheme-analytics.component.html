@@ -1,0 +1,201 @@
+<div class="scheme-analytics-page">
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <a routerLink="/dashboard/admin" class="breadcrumb-link">Dashboard</a>
+    <span class="chevron" aria-hidden="true">&gt;</span>
+    <a routerLink="/dashboard/admin/analytics" class="breadcrumb-link">Analytics</a>
+    <span class="chevron" aria-hidden="true">&gt;</span>
+    <span class="current" aria-current="page">Scheme Analytics</span>
+  </nav>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Scheme Analytics</h1>
+        @if (isSampleData) {
+          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+            <span class="badge-dot"></span>
+            Sample Data
+          </span>
+        }
+      </div>
+      <p class="page-subtitle">Insights into government schemes, application reach and distribution</p>
+    </div>
+    <div class="header-right">
+      <button type="button" class="btn-download" (click)="downloadReport()">
+        <span class="material-icons" aria-hidden="true">download</span>
+        Download Report
+      </button>
+      <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
+    </div>
+  </div>
+
+  <!-- Filters Bar -->
+  <app-filters-bar
+    (apply)="onApplyFilters($event)"
+    (reset)="onResetFilters()"
+  />
+
+  <!-- 5 Stat Cards Row -->
+  <div class="stats-row">
+    @for (stat of stats(); track stat.label; let i = $index) {
+      <div class="stat-card">
+        <div class="card-icon-circle" [ngClass]="getStatIconClass(i)" aria-hidden="true">
+          <span class="material-icons">{{ getStatIcon(i) }}</span>
+        </div>
+        <div class="card-content">
+          <span class="card-label">{{ stat.label }}</span>
+          <div class="card-value-row">
+            <span class="card-value">{{ stat.value }}</span>
+          </div>
+          <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
+            {{ stat.change }} <span class="trend-sub">from last month</span>
+          </span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Row of 3 Chart Cards -->
+  <div class="charts-three-row">
+    <!-- Card 1: Schemes by Category -->
+    <div class="chart-card">
+      <h3 class="card-title">Schemes by Category</h3>
+      <app-doughnut-chart
+        [labels]="categoryLabels()"
+        [data]="categoryData()"
+        [colors]="['#3cb371', '#2f6fed', '#06b6d4', '#f5a524', '#8b5cf6', '#e5484d', '#14b8a6', '#f43f5e', '#94a3b8']"
+        centerMainText="438"
+        centerSubText="Schemes"
+      />
+    </div>
+
+    <!-- Card 2: Scheme Trend -->
+    <div class="chart-card flex-grow-1">
+      <div class="card-header-row">
+        <h3 class="card-title">Scheme Trend</h3>
+        <div class="badge-filter">
+          <span>Last 12 Months</span>
+        </div>
+      </div>
+      <app-line-chart
+        [labels]="trendLabels()"
+        [datasets]="trendDatasets()"
+        [yMin]="0"
+        [yMax]="100"
+      />
+    </div>
+
+    <!-- Card 3: Schemes by State -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Schemes by State</h3>
+        <div class="badge-filter">
+          <span>Top 10 States</span>
+        </div>
+      </div>
+      <app-hbar-chart
+        [labels]="stateLabels()"
+        [data]="stateData()"
+        selectedDepartment="All Departments"
+        primaryColor="#3cb371"
+      />
+    </div>
+  </div>
+
+  <!-- Row of 2 Cards: Top 5 Viewed Schemes + Recent Scheme Updates -->
+  <div class="charts-two-row">
+    <!-- Top 5 Most Viewed Schemes Table -->
+    <div class="table-card flex-1">
+      <div class="table-header-row">
+        <h3 class="card-title">Top 5 Most Viewed Schemes</h3>
+        <span class="table-tag">High engagement</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Scheme Name</th>
+              <th scope="col">Ministry</th>
+              <th scope="col">Views</th>
+              <th scope="col">Applications</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (scheme of topViewedSchemes(); track scheme.name) {
+              <tr>
+                <td class="text-muted">{{ scheme.rank }}</td>
+                <td class="font-semibold name-col" [title]="scheme.name">{{ scheme.name }}</td>
+                <td class="text-muted">{{ scheme.ministry }}</td>
+                <td>
+                  <span class="badge-views">{{ scheme.views | number }}</span>
+                </td>
+                <td class="font-medium">{{ scheme.applications | number }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-state-cell">
+                  <div class="empty-state-box">
+                    <span class="material-icons">search_off</span>
+                    <p>No schemes found matching current filters.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Scheme Updates Table -->
+    <div class="table-card flex-1">
+      <div class="table-header-row">
+        <h3 class="card-title">Recent Scheme Updates</h3>
+        <span class="table-tag">Activity log</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Title</th>
+              <th scope="col">Ministry</th>
+              <th scope="col">Type</th>
+              <th scope="col">Date</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of recentUpdates(); track item.title) {
+              <tr>
+                <td class="font-semibold title-col" [title]="item.title">{{ item.title }}</td>
+                <td class="text-muted">{{ item.ministry }}</td>
+                <td>
+                  <span class="type-chip" [ngClass]="getTypeChipClass(item.type)">
+                    {{ item.type }}
+                  </span>
+                </td>
+                <td class="text-muted">{{ item.date }}</td>
+                <td>
+                  <span class="status-chip chip-green">{{ item.status }}</span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="empty-state-cell">
+                  <div class="empty-state-box">
+                    <span class="material-icons">search_off</span>
+                    <p>No updates found matching current filters.</p>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

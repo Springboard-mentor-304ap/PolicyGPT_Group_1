@@ -169,7 +169,11 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
     this.subscription?.unsubscribe();
     const params =
       this.range === "custom"
-        ? { range: this.range, date_from: this.customFrom, date_to: this.customTo }
+        ? {
+            range: this.range,
+            date_from: this.customFrom,
+            date_to: this.customTo,
+          }
         : { range: this.range };
     const fetcher =
       this.role === "citizen"
@@ -284,36 +288,158 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
       value: this.kpiValue(key, metric),
       delta: metric?.delta_pct ?? null,
       deltaHint: this.deltaHint(metric),
-      tooltip: metric?.tracked === false ? `${tooltip} ${metric.reason ?? ""}` : tooltip,
+      tooltip:
+        metric?.tracked === false
+          ? `${tooltip} ${metric.reason ?? ""}`
+          : tooltip,
       tracked: metric?.tracked !== false,
     });
 
     if (this.role === "citizen") {
       return [
-        card("saved_policies", "Saved Policies", "bookmark", "blue", "Policies you bookmarked in this period.", k["saved_policies"]),
-        card("saved_schemes", "Saved Schemes", "account_balance", "green", "Schemes you bookmarked in this period.", k["saved_schemes"]),
-        card("total_searches", "Total Searches", "history", "orange", "Policy and scheme searches you ran in this period.", k["total_searches"]),
-        card("eligibility_checks", "Eligibility Checks", "fact_check", "purple", "Eligibility checks are not stored by the backend yet.", k["eligibility_checks"]),
-        card("notifications", "Notifications", "notifications", "blue", "Alerts delivered to you in this period, including broadcast alerts.", k["notifications"]),
+        card(
+          "saved_policies",
+          "Saved Policies",
+          "bookmark",
+          "blue",
+          "Policies you bookmarked in this period.",
+          k["saved_policies"],
+        ),
+        card(
+          "saved_schemes",
+          "Saved Schemes",
+          "account_balance",
+          "green",
+          "Schemes you bookmarked in this period.",
+          k["saved_schemes"],
+        ),
+        card(
+          "total_searches",
+          "Total Searches",
+          "history",
+          "orange",
+          "Policy and scheme searches you ran in this period.",
+          k["total_searches"],
+        ),
+        card(
+          "eligibility_checks",
+          "Eligibility Checks",
+          "fact_check",
+          "purple",
+          "Eligibility checks are not stored by the backend yet.",
+          k["eligibility_checks"],
+        ),
+        card(
+          "notifications",
+          "Notifications",
+          "notifications",
+          "blue",
+          "Alerts delivered to you in this period, including broadcast alerts.",
+          k["notifications"],
+        ),
       ];
     }
     if (this.role === "researcher") {
       return [
-        card("policy_views", "Policy Views", "description", "blue", "Policy detail views are not recorded by the backend yet.", k["policy_views"]),
-        card("scheme_views", "Scheme Views", "account_balance", "green", "Scheme detail views are not recorded by the backend yet.", k["scheme_views"]),
-        card("total_searches", "Total Searches", "history", "orange", "Policy and scheme searches you ran in this period.", k["total_searches"]),
-        card("saved_policies", "Saved Policies", "bookmark", "purple", "Policies you bookmarked in this period.", k["saved_policies"]),
-        card("saved_schemes", "Saved Schemes", "account_balance", "orange", "Schemes you bookmarked in this period.", k["saved_schemes"]),
-        card("comparisons", "Comparisons", "compare_arrows", "blue", "Comparisons are stateless reads; no comparison history is stored.", k["comparisons"]),
+        card(
+          "policy_views",
+          "Policy Views",
+          "description",
+          "blue",
+          "Policy detail views are not recorded by the backend yet.",
+          k["policy_views"],
+        ),
+        card(
+          "scheme_views",
+          "Scheme Views",
+          "account_balance",
+          "green",
+          "Scheme detail views are not recorded by the backend yet.",
+          k["scheme_views"],
+        ),
+        card(
+          "total_searches",
+          "Total Searches",
+          "history",
+          "orange",
+          "Policy and scheme searches you ran in this period.",
+          k["total_searches"],
+        ),
+        card(
+          "saved_policies",
+          "Saved Policies",
+          "bookmark",
+          "purple",
+          "Policies you bookmarked in this period.",
+          k["saved_policies"],
+        ),
+        card(
+          "saved_schemes",
+          "Saved Schemes",
+          "account_balance",
+          "orange",
+          "Schemes you bookmarked in this period.",
+          k["saved_schemes"],
+        ),
+        card(
+          "comparisons",
+          "Comparisons",
+          "compare_arrows",
+          "blue",
+          "Comparisons are stateless reads; no comparison history is stored.",
+          k["comparisons"],
+        ),
       ];
     }
     return [
-      card("policy_views", "Policy Views", "description", "blue", "Policy detail views are not recorded by the backend yet.", k["policy_views"]),
-      card("scheme_views", "Scheme Views", "account_balance", "green", "Scheme detail views are not recorded by the backend yet.", k["scheme_views"]),
-      card("total_searches", "Total Searches", "history", "orange", "Searches run in this scope in this period.", k["total_searches"]),
-      card("team_members", "Team Members", "group", "purple", "Accounts sharing your organization name. Organization membership is free text; there is no team table yet.", k["team_members"]),
-      card("comparisons", "Comparisons", "compare_arrows", "orange", "Comparisons are stateless reads; no comparison history is stored.", k["comparisons"]),
-      card("saved_items", "Saved Items", "bookmark", "blue", "Policies and schemes bookmarked in this period.", k["saved_items"]),
+      card(
+        "policy_views",
+        "Policy Views",
+        "description",
+        "blue",
+        "Policy detail views are not recorded by the backend yet.",
+        k["policy_views"],
+      ),
+      card(
+        "scheme_views",
+        "Scheme Views",
+        "account_balance",
+        "green",
+        "Scheme detail views are not recorded by the backend yet.",
+        k["scheme_views"],
+      ),
+      card(
+        "total_searches",
+        "Total Searches",
+        "history",
+        "orange",
+        "Searches run in this scope in this period.",
+        k["total_searches"],
+      ),
+      card(
+        "team_members",
+        "Team Members",
+        "group",
+        "purple",
+        "Accounts sharing your organization name. Organization membership is free text; there is no team table yet.",
+        k["team_members"],
+      ),
+      card(
+        "comparisons",
+        "Comparisons",
+        "compare_arrows",
+        "orange",
+        "Comparisons are stateless reads; no comparison history is stored.",
+        k["comparisons"],
+      ),
+      card(
+        "saved_items",
+        "Saved Items",
+        "bookmark",
+        "blue",
+        "Policies and schemes bookmarked in this period.",
+        k["saved_items"],
+      ),
     ];
   }
 
@@ -324,10 +450,17 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
     if (metric.tracked === false) {
       return "0";
     }
-    if (key === "team_members" && (metric.value === null || metric.value === undefined)) {
+    if (
+      key === "team_members" &&
+      (metric.value === null || metric.value === undefined)
+    ) {
       return "—";
     }
-    if (key === "notifications" && metric.unread !== undefined && metric.unread > 0) {
+    if (
+      key === "notifications" &&
+      metric.unread !== undefined &&
+      metric.unread > 0
+    ) {
       return `${metric.value ?? 0}`;
     }
     return `${metric.value ?? 0}`;
@@ -361,21 +494,51 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
       trend.map(pick);
     if (this.role === "researcher" || this.role === "organization") {
       return [
-        { key: "searches", label: "Searches", color: CHART_COLORS.searches, values: values((t) => t.searches) },
+        {
+          key: "searches",
+          label: "Searches",
+          color: CHART_COLORS.searches,
+          values: values((t) => t.searches),
+        },
         {
           key: "saves",
           label: "Saves",
           color: CHART_COLORS.saves,
           values: trend.map((t) => t.saved_policies + t.saved_schemes),
         },
-        { key: "notifications", label: "Notifications", color: CHART_COLORS.notifications, values: values((t) => t.notifications) },
+        {
+          key: "notifications",
+          label: "Notifications",
+          color: CHART_COLORS.notifications,
+          values: values((t) => t.notifications),
+        },
       ];
     }
     return [
-      { key: "searches", label: "Searches", color: CHART_COLORS.searches, values: values((t) => t.searches) },
-      { key: "saved_policies", label: "Saved Policies", color: CHART_COLORS.savedPolicies, values: values((t) => t.saved_policies) },
-      { key: "saved_schemes", label: "Saved Schemes", color: CHART_COLORS.savedSchemes, values: values((t) => t.saved_schemes) },
-      { key: "notifications", label: "Notifications", color: CHART_COLORS.notifications, values: values((t) => t.notifications) },
+      {
+        key: "searches",
+        label: "Searches",
+        color: CHART_COLORS.searches,
+        values: values((t) => t.searches),
+      },
+      {
+        key: "saved_policies",
+        label: "Saved Policies",
+        color: CHART_COLORS.savedPolicies,
+        values: values((t) => t.saved_policies),
+      },
+      {
+        key: "saved_schemes",
+        label: "Saved Schemes",
+        color: CHART_COLORS.savedSchemes,
+        values: values((t) => t.saved_schemes),
+      },
+      {
+        key: "notifications",
+        label: "Notifications",
+        color: CHART_COLORS.notifications,
+        values: values((t) => t.notifications),
+      },
     ];
   }
 
@@ -387,7 +550,12 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
         : "Activity Trend";
   }
 
-  get donutSlices(): { label: string; count: number; color: string; description?: string }[] {
+  get donutSlices(): {
+    label: string;
+    count: number;
+    color: string;
+    description?: string;
+  }[] {
     const breakdown = this.data?.breakdown ?? [];
     const colorFor = (key: string): string =>
       key === "searches"
@@ -472,7 +640,9 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
       case "search":
         return [base, "history"];
       case "saved_policy":
-        return entityId ? [base, "policies", String(entityId)] : [base, "saved"];
+        return entityId
+          ? [base, "policies", String(entityId)]
+          : [base, "saved"];
       case "saved_scheme":
         return entityId ? [base, "schemes", String(entityId)] : [base, "saved"];
       case "notification":

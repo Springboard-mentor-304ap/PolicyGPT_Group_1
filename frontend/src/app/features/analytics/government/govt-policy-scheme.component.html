@@ -27,28 +27,6 @@
         <button type="button" class="btn btn-primary" (click)="applyCustom()">Apply</button>
       </div>
       }
-      @if (data) {
-      <select class="filter-select" [(ngModel)]="policyStatus" (change)="onFilterChange()"
-        aria-label="Policy status filter">
-        <option value="">Policy status: All</option>
-        @for (s of data.filter_options.statuses; track s) {
-        <option [value]="s">{{ pretty(s) }}</option>
-        }
-      </select>
-      <select class="filter-select" [(ngModel)]="schemeStatus" (change)="onFilterChange()"
-        aria-label="Scheme status filter">
-        <option value="">Scheme status: All</option>
-        @for (s of data.filter_options.statuses; track s) {
-        <option [value]="s">{{ pretty(s) }}</option>
-        }
-      </select>
-      <select class="filter-select" [(ngModel)]="category" (change)="onFilterChange()" aria-label="Category filter">
-        <option value="">Category: All</option>
-        @for (c of data.filter_options.categories; track c) {
-        <option [value]="c">{{ c }}</option>
-        }
-      </select>
-      }
       <div class="export-wrap">
         <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
           aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
@@ -112,6 +90,31 @@
     </div>
     }
   </div>
+
+  @if (data) {
+  <div class="analytics-filters-bar no-print" role="group" aria-label="Analytics filters">
+    <select class="filter-select" [(ngModel)]="policyStatus" (change)="onFilterChange()"
+      aria-label="Policy status filter">
+      <option value="">Policy status: All</option>
+      @for (s of data.filter_options.statuses; track s) {
+      <option [value]="s">{{ pretty(s) }}</option>
+      }
+    </select>
+    <select class="filter-select" [(ngModel)]="schemeStatus" (change)="onFilterChange()"
+      aria-label="Scheme status filter">
+      <option value="">Scheme status: All</option>
+      @for (s of data.filter_options.statuses; track s) {
+      <option [value]="s">{{ pretty(s) }}</option>
+      }
+    </select>
+    <select class="filter-select" [(ngModel)]="category" (change)="onFilterChange()" aria-label="Category filter">
+      <option value="">Category: All</option>
+      @for (c of data.filter_options.categories; track c) {
+      <option [value]="c">{{ c }}</option>
+      }
+    </select>
+  </div>
+  }
 
   <div class="grid-2">
     <section class="data-card" aria-label="Policy and scheme trends">

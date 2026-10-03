@@ -1,3 +1,4 @@
+@use '../../shared/analytics-tokens' as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — OVERVIEW DASHBOARD
    Harmonized with PolicyGPT Admin Portal Design System
@@ -13,6 +14,7 @@
   color: #172033;
   box-sizing: border-box;
   min-height: calc(100vh - 72px);
+  overflow-x: clip;
 
   @media (max-width: 1024px) {
     padding: 20px 20px 32px;
@@ -130,49 +132,13 @@
 
 // Top 8 Metric Cards Grid (2 rows x 4 columns)
 .top-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 24px;
-
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
+  @include tokens.analytics-stat-grid;
 
   .metric-card {
-    min-width: 0;
-    min-height: 88px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
-    border-radius: 14px;
-    border: 1px solid #e4e9f1;
-    background: #ffffff;
-    box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(15, 40, 82, 0.08);
-    }
+    @include tokens.analytics-stat-card;
 
     .card-icon-circle {
-      width: 46px;
-      height: 46px;
-      min-width: 46px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .material-icons {
-        font-size: 22px;
-      }
+      @include tokens.analytics-icon-container;
 
       &.blue { background: #eaf3ff; color: #0879ed; }
       &.purple { background: #f3e8ff; color: #8b00e8; }
@@ -185,39 +151,31 @@
     }
 
     .card-content {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 0;
+      @include tokens.analytics-stat-text;
 
       .card-label {
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        @include tokens.analytics-stat-label;
       }
 
       .card-value-row {
         margin-top: 2px;
 
         .card-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #111827;
-          line-height: 1.2;
+          @include tokens.analytics-stat-value;
         }
       }
 
       .card-trend {
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 600;
-        margin-top: 4px;
+        margin-top: 2px;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
+        flex-wrap: nowrap;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         &.green { color: #078944; }
         &.red { color: #dc2626; }
@@ -367,6 +325,7 @@
   border: 1px solid #e4e9f1;
   padding: 22px 24px;
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  min-width: 0;
 
   .table-header-row {
     display: flex;

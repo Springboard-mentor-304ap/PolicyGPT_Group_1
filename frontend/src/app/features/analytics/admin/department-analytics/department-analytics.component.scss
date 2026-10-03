@@ -1,3 +1,4 @@
+@use '../../shared/analytics-tokens' as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — DEPARTMENT ANALYTICS
    Harmonized with PolicyGPT Admin Portal Design System
@@ -13,6 +14,7 @@
   color: #172033;
   box-sizing: border-box;
   min-height: calc(100vh - 72px);
+  overflow-x: clip;
 
   @media (max-width: 1024px) {
     padding: 20px 20px 32px;
@@ -158,42 +160,13 @@
 
 // Top Cards Grid (6 cards)
 .top-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  @include tokens.analytics-stat-grid;
 
   .metric-card {
-    min-width: 0;
-    min-height: 88px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
-    border-radius: 14px;
-    border: 1px solid #e4e9f1;
-    background: #ffffff;
-    box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(15, 40, 82, 0.08);
-    }
+    @include tokens.analytics-stat-card;
 
     .card-icon-wrapper {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      .material-icons {
-        font-size: 22px;
-      }
+      @include tokens.analytics-icon-container;
 
       &.blue { background: #eaf3ff; color: #0879ed; }
       &.blue-light { background: #e0f2fe; color: #0284c7; }
@@ -204,35 +177,25 @@
     }
 
     .card-content {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 0;
+      @include tokens.analytics-stat-text;
 
       .card-label {
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        @include tokens.analytics-stat-label;
       }
 
       .card-value-row {
         display: flex;
         align-items: baseline;
+        flex-wrap: nowrap;
         gap: 6px;
         margin-top: 2px;
 
         .card-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #111827;
-          line-height: 1.2;
+          @include tokens.analytics-stat-value;
         }
 
         .card-badge {
-          font-size: 12px;
+          font-size: 11.5px;
           font-weight: 600;
 
           &.green { color: #078944; }
@@ -240,178 +203,214 @@
       }
 
       .card-subtext {
-        font-size: 12px;
-        color: #94a3b8;
+        font-size: 11.5px;
+        color: #64748b;
         margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }
 }
 
-// Main Dashboard Body (2 columns: Sidebar + Main Panel)
-.dashboard-body {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 24px;
+// Full-Width Department Search
+.dept-search-section {
+  margin-bottom: 22px;
+  min-width: 0;
+}
 
-  @media (max-width: 1024px) {
-    flex-direction: column;
+.dept-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:focus-within {
+    border-color: #0879ed;
+    box-shadow: 0 0 0 3px rgba(8, 121, 237, 0.12);
+  }
+
+  .search-icon {
+    font-size: 20px;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+
+  .dept-search-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    height: 100%;
+
+    &::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+  }
+
+  .search-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    .material-icons {
+      font-size: 18px;
+    }
+
+    &:hover {
+      background: #e2e8f0;
+      color: #111827;
+    }
   }
 }
 
-// Left Departments Sidebar
-.departments-sidebar {
-  width: 280px;
+.dept-search-results {
+  margin-top: 10px;
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #e4e9f1;
-  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  padding: 6px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  min-width: 0;
 
-  @media (max-width: 1024px) {
+  .results-count {
+    margin: 0;
+    padding: 8px 12px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  .dept-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
-  }
-
-  .sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    .sidebar-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0;
-      letter-spacing: -0.01em;
-    }
-
-    .dept-total-badge {
-      font-size: 11px;
-      font-weight: 600;
-      background: #f1f5f9;
-      color: #475569;
-      padding: 2px 8px;
-      border-radius: 9999px;
-    }
-  }
-
-  .search-input-wrapper {
-    display: flex;
-    align-items: center;
-    background: #f8fafc;
-    border: 1px solid #dbe2eb;
+    box-sizing: border-box;
+    min-width: 0;
+    text-align: left;
+    padding: 8px 12px;
     border-radius: 8px;
-    padding: 0 10px;
-    height: 38px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
 
-    .search-icon {
-      font-size: 18px;
-      color: #64748b;
-      margin-right: 6px;
-    }
-
-    .dept-search-input {
-      border: none;
-      background: transparent;
-      outline: none;
-      font-size: 13px;
-      color: #1e293b;
-      width: 100%;
-
-      &::placeholder {
-        color: #94a3b8;
-      }
-    }
-  }
-
-  .departments-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: 540px;
-    overflow-y: auto;
-
-    .dept-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 12px;
+    .dept-icon-circle {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
       border-radius: 8px;
-      cursor: pointer;
-      background: transparent;
-      border: 1px solid transparent;
-      text-align: left;
-      width: 100%;
-      transition: all 0.15s ease;
-
-      .dept-icon-circle {
-        width: 34px;
-        height: 34px;
-        min-width: 34px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .material-icons {
-          font-size: 18px;
-        }
-      }
-
-      .dept-info {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-
-        .dept-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #1e293b;
-          line-height: 1.25;
-        }
-
-        .dept-count {
-          font-size: 11px;
-          color: #64748b;
-        }
-      }
-
-      &:hover {
-        background: #f1f5f9;
-      }
-
-      &.active {
-        background: #eff6ff;
-        border-color: #bfdbfe;
-
-        .dept-info .dept-name {
-          color: #0879ed;
-        }
-      }
-    }
-
-    .empty-search {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding: 2rem 1rem;
-      color: #64748b;
-      text-align: center;
+      justify-content: center;
+      flex-shrink: 0;
 
       .material-icons {
-        font-size: 2rem;
-        color: #cbd5e1;
-        margin-bottom: 0.25rem;
+        font-size: 18px;
+      }
+    }
+
+    .dept-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+
+      .dept-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #1e293b;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
-      p {
-        margin: 0;
-        font-size: 13px;
+      .dept-count {
+        font-size: 11px;
+        color: #64748b;
       }
+    }
+
+    .selected-check {
+      font-size: 20px;
+      color: #078944;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: #f1f5f9;
+    }
+
+    &.active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+
+      .dept-info .dept-name {
+        color: #0879ed;
+      }
+    }
+
+    &.selected:not(.active) {
+      background: #f8fafc;
+    }
+  }
+
+  .empty-search {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px;
+    color: #64748b;
+
+    .material-icons {
+      font-size: 32px;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .empty-hint {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #94a3b8;
     }
   }
 }
@@ -445,6 +444,7 @@
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 
   .overview-header {
     display: flex;
@@ -520,13 +520,8 @@
     }
 
     .stat-cell {
-      background: #f8fafc;
-      border-radius: 10px;
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border: 1px solid #edf1f5;
+      @include tokens.analytics-mini-stat-card;
+      padding: 10px 12px;
 
       .cell-icon {
         width: 36px;
@@ -547,17 +542,20 @@
 
       .cell-label {
         display: block;
-        font-size: 11px;
+        font-size: 11.5px;
         color: #64748b;
         font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .cell-value {
-        font-size: 18px;
+        font-size: 17px;
         font-weight: 700;
         color: #111827;
-        line-height: 1.1;
-        margin-top: 2px;
+        line-height: 1.2;
+        margin-top: 1px;
       }
     }
   }
@@ -572,6 +570,7 @@
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
   display: flex;
   flex-direction: column;
+  min-width: 0;
 
   .card-header-row {
     display: flex;
@@ -628,6 +627,7 @@
   border: 1px solid #e4e9f1;
   padding: 22px 24px;
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  min-width: 0;
 
   .table-header-row {
     display: flex;

@@ -31,9 +31,6 @@
     </div>
   </div>
 
-  <!-- Filters Bar -->
-  <app-filters-bar (apply)="onApplyFilters($event)" (reset)="onResetFilters()" />
-
   <!-- 5 Stat Cards Row -->
   <div class="stats-row">
     @for (stat of stats(); track stat.label; let i = $index) {
@@ -53,6 +50,9 @@
     </div>
     }
   </div>
+
+  <!-- Filters Bar -->
+  <app-filters-bar (apply)="onApplyFilters($event)" (reset)="onResetFilters()" />
 
   <!-- Row of 3 Chart Cards -->
   <div class="charts-three-row">

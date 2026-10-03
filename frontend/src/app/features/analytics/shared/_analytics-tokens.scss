@@ -1,0 +1,166 @@
+// =========================================================
+// POLICYGPT ANALYTICS — SHARED DESIGN TOKENS & LAYOUT MIXINS
+// Standardized compact horizontal stat-card to match
+// Notifications page stat cards:
+// - Card height: 82–90px (min-height: 84px)
+// - Icon container: 48px x 48px, radius 12px, icon 22px
+// - Main value: 24px, 700 weight, line-height 1.2
+// - Label: 13.5px, 500 weight, line-height 1.35
+// - Card padding: 14px 18px
+// - Gap between icon and text: 14px
+// - Border radius: 12px
+// - Background: #ffffff, border: #e3e8ef
+// - Shadow: 0 2px 8px rgba(15, 23, 42, 0.04)
+// - Responsive grid: 4 cols on large desktop, 3 cols on
+//   medium desktop, 2 cols on tablet, 1 col on mobile
+//
+// Scope: import ONLY from analytics component stylesheets via:
+//   @use '<relative-path>/shared/analytics-tokens' as tokens;
+// =========================================================
+
+$analytics-card-bg: #ffffff;
+$analytics-card-border: #e3e8ef;
+$analytics-stat-radius: 12px;
+$analytics-panel-radius: 16px;
+$analytics-card-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+$analytics-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+$analytics-stat-min-height: 84px;
+$analytics-stat-padding: 14px 18px;
+$analytics-stat-gap: 14px;
+$analytics-stat-grid-gap: 16px;
+$analytics-stat-grid-margin: 22px;
+
+$analytics-icon-size: 48px;
+$analytics-icon-radius: 12px;
+$analytics-icon-font-size: 22px;
+$analytics-value-font-size: 24px;
+$analytics-label-font-size: 13.5px;
+
+// Compact horizontal summary/KPI card shell: icon container on
+// the left, metric text on the right, vertically centered.
+@mixin analytics-stat-card {
+  min-width: 0;
+  min-height: $analytics-stat-min-height;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: $analytics-stat-gap;
+  padding: $analytics-stat-padding;
+  border-radius: $analytics-stat-radius;
+  border: 1px solid $analytics-card-border;
+  background: $analytics-card-bg;
+  box-shadow: $analytics-card-shadow;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $analytics-card-shadow-hover;
+  }
+}
+
+// Icon container inside stat card
+@mixin analytics-icon-container {
+  width: $analytics-icon-size;
+  height: $analytics-icon-size;
+  min-width: $analytics-icon-size;
+  border-radius: $analytics-icon-radius;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .material-icons {
+    font-size: $analytics-icon-font-size;
+  }
+}
+
+// Text content wrapper
+@mixin analytics-stat-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+// Main stat value
+@mixin analytics-stat-value {
+  font-size: $analytics-value-font-size;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+// Stat label
+@mixin analytics-stat-label {
+  font-size: $analytics-label-font-size;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Summary-card grid shell: 4 cards per row on large desktop,
+// 2–3 on medium desktop and tablet, 1–2 on mobile.
+@mixin analytics-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: $analytics-stat-grid-gap;
+  margin-bottom: $analytics-stat-grid-margin;
+  align-content: start;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+
+  &.stats-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    @media (max-width: 860px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &.stats-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Mini / summary metric item mixin for secondary summary cards
+@mixin analytics-mini-stat-card {
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid $analytics-card-border;
+  background: $analytics-card-bg;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+  }
+}

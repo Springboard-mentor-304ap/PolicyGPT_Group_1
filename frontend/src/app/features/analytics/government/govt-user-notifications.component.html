@@ -27,20 +27,6 @@
         <button type="button" class="btn btn-primary" (click)="applyCustom()">Apply</button>
       </div>
       }
-      @if (data) {
-      <select class="filter-select" [(ngModel)]="role" (change)="onFilterChange()" aria-label="Role filter">
-        <option value="">Role: All</option>
-        @for (r of data.filter_options.roles; track r) {
-        <option [value]="r">{{ pretty(r) }}</option>
-        }
-      </select>
-      <select class="filter-select" [(ngModel)]="channel" (change)="onFilterChange()" aria-label="Channel filter">
-        <option value="">Channel: All</option>
-        @for (c of data.filter_options.channels; track c) {
-        <option [value]="c">{{ pretty(c) }}</option>
-        }
-      </select>
-      }
       <div class="export-wrap">
         <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
           aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
@@ -104,6 +90,23 @@
     </div>
     }
   </div>
+
+  @if (data) {
+  <div class="analytics-filters-bar no-print" role="group" aria-label="Analytics filters">
+    <select class="filter-select" [(ngModel)]="role" (change)="onFilterChange()" aria-label="Role filter">
+      <option value="">Role: All</option>
+      @for (r of data.filter_options.roles; track r) {
+      <option [value]="r">{{ pretty(r) }}</option>
+      }
+    </select>
+    <select class="filter-select" [(ngModel)]="channel" (change)="onFilterChange()" aria-label="Channel filter">
+      <option value="">Channel: All</option>
+      @for (c of data.filter_options.channels; track c) {
+      <option [value]="c">{{ pretty(c) }}</option>
+      }
+    </select>
+  </div>
+  }
 
   <div class="grid-2">
     <section class="data-card" aria-label="User growth trend">

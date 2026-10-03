@@ -1,3 +1,4 @@
+@use '../../shared/analytics-tokens' as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — USER ANALYTICS
    Harmonized with PolicyGPT Admin Portal Design System
@@ -13,6 +14,7 @@
   color: #172033;
   box-sizing: border-box;
   min-height: calc(100vh - 72px);
+  overflow-x: clip;
 
   @media (max-width: 1024px) {
     padding: 20px 20px 32px;
@@ -163,54 +165,14 @@
 
 // KPI Grid (6 Cards)
 .kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
+  @include tokens.analytics-stat-grid;
 
   .kpi-card {
-    min-width: 0;
-    min-height: 88px;
+    @include tokens.analytics-stat-card;
     background: #ffffff;
-    border-radius: 14px;
-    border: 1px solid #e4e9f1;
-    padding: 16px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(15, 40, 82, 0.08);
-    }
 
     .kpi-icon-circle {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-
-      .material-icons {
-        font-size: 22px;
-      }
+      @include tokens.analytics-icon-container;
 
       &.blue { background: #eaf3ff; color: #0879ed; }
       &.green { background: #e8f8ef; color: #078944; }
@@ -221,39 +183,31 @@
     }
 
     .kpi-content {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 0;
+      @include tokens.analytics-stat-text;
 
       .kpi-label {
-        font-size: 13px;
-        color: #64748b;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        @include tokens.analytics-stat-label;
       }
 
       .kpi-value-row {
         margin-top: 2px;
 
         .kpi-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #111827;
-          line-height: 1.2;
+          @include tokens.analytics-stat-value;
         }
       }
 
       .kpi-trend {
-        font-size: 12px;
+        font-size: 11.5px;
         font-weight: 600;
-        margin-top: 4px;
+        margin-top: 2px;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
+        flex-wrap: nowrap;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         &.green { color: #078944; }
         &.red { color: #dc2626; }
@@ -398,24 +352,13 @@
   height: 100%;
 
   .engagement-card {
-    background: #f8fafc;
-    border: 1px solid #e4e9f1;
-    border-radius: 12px;
-    padding: 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: transform 0.15s ease;
-
-    &:hover {
-      transform: translateY(-1px);
-    }
+    @include tokens.analytics-mini-stat-card;
 
     .engagement-icon-circle {
       width: 40px;
       height: 40px;
       min-width: 40px;
-      border-radius: 50%;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -438,9 +381,13 @@
       min-width: 0;
 
       .engagement-label {
-        font-size: 12px;
+        font-size: 12.5px;
         color: #64748b;
         font-weight: 500;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .engagement-value {
@@ -458,6 +405,9 @@
         display: inline-flex;
         align-items: center;
         gap: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         &.green { color: #078944; }
         &.red { color: #dc2626; }
@@ -601,6 +551,7 @@
   border: 1px solid #e4e9f1;
   padding: 22px 24px;
   box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  min-width: 0;
   display: flex;
   flex-direction: column;
 

@@ -34,9 +34,66 @@ describe('DepartmentAnalyticsComponent', () => {
   it('should filter departments based on search query', () => {
     const event = { target: { value: 'Edu' } } as unknown as Event;
     component.updateSearch(event);
-    expect(component.searchQuery()).toBe('edu');
+    expect(component.searchQuery()).toBe('Edu');
+    expect(component.showResults()).toBe(true);
     expect(component.filteredDepartments().length).toBeGreaterThan(0);
     expect(component.filteredDepartments()[0].name).toContain('Education');
+  });
+
+  it('should match departments by id or overview title', () => {
+    const event = { target: { value: 'ministry' } } as unknown as Event;
+    component.updateSearch(event);
+    const items = component.filteredDepartments();
+    expect(items.length).toBeGreaterThan(0);
+    // 'Agriculture' has no 'ministry' in its name: matched via overview title.
+    expect(items.map((d) => d.name)).toContain('Agriculture');
+    expect(
+      items.every((d) => d.overview.title.toLowerCase().includes('ministry')),
+    ).toBe(true);
+  });
+
+  it('should show an empty state when nothing matches', () => {
+    const event = { target: { value: 'zzz-no-such-dept' } } as unknown as Event;
+    component.updateSearch(event);
+    expect(component.showResults()).toBe(true);
+    expect(component.filteredDepartments().length).toBe(0);
+  });
+
+  it('should select a department and close the results panel', () => {
+    const targetDept = component.departmentsList[2]; // Education
+    component.selectDepartmentAndClose(targetDept);
+    expect(component.selectedDept().id).toBe('education');
+    expect(component.currentOverview().title).toBe(targetDept.overview.title);
+    expect(component.resultsOpen()).toBe(false);
+  });
+
+  it('should clear the search and restore the default view', () => {
+    component.selectDepartment(component.departmentsList[2]);
+    const event = { target: { value: 'health' } } as unknown as Event;
+    component.updateSearch(event);
+    component.clearSearch();
+    expect(component.searchQuery()).toBe('');
+    expect(component.showResults()).toBe(false);
+    expect(component.filteredDepartments().length).toBe(
+      component.departmentsList.length,
+    );
+    expect(component.selectedDept().id).toBe('all');
+  });
+
+  it('should navigate results with the keyboard', () => {
+    const event = { target: { value: 'e' } } as unknown as Event;
+    component.updateSearch(event);
+    const count = component.filteredDepartments().length;
+    expect(count).toBeGreaterThan(1);
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    expect(component.activeResultIndex()).toBe(0);
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    expect(component.activeResultIndex()).toBe(1);
+    component.onSearchKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(component.selectedDept().id).toBe(
+      component.filteredDepartments()[1].id,
+    );
+    expect(component.resultsOpen()).toBe(false);
   });
 
   it('should select department and update overview', () => {

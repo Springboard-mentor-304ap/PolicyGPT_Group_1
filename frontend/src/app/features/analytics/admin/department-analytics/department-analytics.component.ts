@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChildren } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
@@ -292,6 +292,24 @@ export class DepartmentAnalyticsComponent implements OnInit {
   selectedDept = signal<DepartmentItem>(this.departmentsList[0]);
   currentOverview = signal(this.departmentsList[0].overview);
 
+  // Full-width search results panel state.
+  resultsOpen = signal<boolean>(false);
+  activeResultIndex = signal<number>(-1);
+  showResults = computed<boolean>(
+    () => this.resultsOpen() && this.searchQuery().trim().length > 0,
+  );
+  activeDescendantId = computed<string | null>(() => {
+    const items = this.filteredDepartments();
+    const index = this.activeResultIndex();
+    if (!this.showResults() || index < 0 || index >= items.length) {
+      return null;
+    }
+    return `dept-option-${items[index].id}`;
+  });
+  private readonly resultOptions = viewChildren("resultOption", {
+    read: ElementRef,
+  });
+
   // Line Chart Data
   monthLabels = [
     "Jan",
@@ -433,11 +451,92 @@ export class DepartmentAnalyticsComponent implements OnInit {
   }
 
   updateSearch(event: Event): void {
-    const query = (event.target as HTMLInputElement).value.toLowerCase();
-    this.searchQuery.set(query);
+    const raw = (event.target as HTMLInputElement).value;
+    const query = raw.toLowerCase().trim();
+    this.searchQuery.set(raw);
+    this.activeResultIndex.set(-1);
+    this.resultsOpen.set(true);
+    if (query.length === 0) {
+      this.filteredDepartments.set(this.departmentsList);
+      return;
+    }
     this.filteredDepartments.set(
-      this.departmentsList.filter((d) => d.name.toLowerCase().includes(query)),
+      this.departmentsList.filter(
+        (d) =>
+          d.name.toLowerCase().includes(query) ||
+          d.id.toLowerCase().includes(query) ||
+          d.overview.title.toLowerCase().includes(query),
+      ),
     );
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    const items = this.filteredDepartments();
+    switch (event.key) {
+      case "ArrowDown":
+        event.preventDefault();
+        if (!this.showResults() || items.length === 0) {
+          return;
+        }
+        this.activeResultIndex.set(
+          (this.activeResultIndex() + 1) % items.length,
+        );
+        this.scrollActiveResultIntoView();
+        break;
+      case "ArrowUp":
+        event.preventDefault();
+        if (!this.showResults() || items.length === 0) {
+          return;
+        }
+        this.activeResultIndex.set(
+          (this.activeResultIndex() - 1 + items.length) % items.length,
+        );
+        this.scrollActiveResultIntoView();
+        break;
+      case "Enter": {
+        const index = this.activeResultIndex();
+        if (this.showResults() && index >= 0 && index < items.length) {
+          event.preventDefault();
+          this.selectDepartmentAndClose(items[index]);
+        }
+        break;
+      }
+      case "Escape":
+        if (this.showResults()) {
+          event.preventDefault();
+          this.resultsOpen.set(false);
+          this.activeResultIndex.set(-1);
+        } else if (this.searchQuery().length > 0) {
+          this.clearSearch();
+        }
+        break;
+    }
+  }
+
+  setActiveResultIndex(index: number): void {
+    this.activeResultIndex.set(index);
+  }
+
+  private scrollActiveResultIntoView(): void {
+    const index = this.activeResultIndex();
+    const el = this.resultOptions()[index]?.nativeElement as
+      | HTMLElement
+      | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }
+
+  selectDepartmentAndClose(dept: DepartmentItem): void {
+    this.selectDepartment(dept);
+    this.resultsOpen.set(false);
+    this.activeResultIndex.set(-1);
+  }
+
+  clearSearch(): void {
+    this.searchQuery.set("");
+    this.activeResultIndex.set(-1);
+    this.resultsOpen.set(false);
+    this.filteredDepartments.set(this.departmentsList);
+    this.selectDepartment(this.departmentsList[0]);
   }
 
   selectDepartment(dept: DepartmentItem): void {

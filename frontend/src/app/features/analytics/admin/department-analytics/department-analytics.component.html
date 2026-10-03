@@ -14,10 +14,10 @@
       <div class="title-row">
         <h1 class="page-title">Department Analytics</h1>
         @if (isSampleData) {
-          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-            <span class="badge-dot"></span>
-            Sample Data
-          </span>
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
         }
       </div>
       <p class="page-subtitle">Department-wise analysis of policies, schemes and platform activity</p>
@@ -118,72 +118,72 @@
     </div>
   </div>
 
-  <!-- Main Layout 2 Columns -->
-  <div class="dashboard-body">
-    <!-- Left Sidebar: Departments List -->
-    <aside class="departments-sidebar">
-      <div class="sidebar-header">
-        <h2 class="sidebar-title">Departments</h2>
-        <span class="dept-total-badge">{{ filteredDepartments().length }}</span>
-      </div>
+  <!-- Full-Width Department Search -->
+  <div class="dept-search-section">
+    <div class="dept-search-bar">
+      <span class="material-icons search-icon" aria-hidden="true">search</span>
+      <input type="text" placeholder="Search departments by name..." class="dept-search-input" role="combobox"
+        aria-label="Search departments" aria-expanded="{{ showResults() }}" aria-controls="dept-search-results"
+        [attr.aria-activedescendant]="activeDescendantId()" [value]="searchQuery()" (input)="updateSearch($event)"
+        (keydown)="onSearchKeydown($event)" (focus)="resultsOpen.set(searchQuery().trim().length > 0)" />
+      @if (searchQuery().length > 0) {
+      <button type="button" class="search-clear-btn" (click)="clearSearch()" aria-label="Clear department search">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+      }
+    </div>
 
-      <div class="search-input-wrapper">
-        <span class="material-icons search-icon" aria-hidden="true">search</span>
-        <input
-          type="text"
-          placeholder="Search departments..."
-          class="dept-search-input"
-          [value]="searchQuery()"
-          (input)="updateSearch($event)"
-          aria-label="Search departments"
-        />
-      </div>
-
-      <div class="departments-list" role="list">
-        @for (dept of filteredDepartments(); track dept.id) {
-          <button
-            type="button"
-            class="dept-item"
-            [class.active]="selectedDept().id === dept.id"
-            (click)="selectDepartment(dept)"
-            role="listitem">
-            <div class="dept-icon-circle" [style.background-color]="dept.iconBg" [style.color]="dept.iconColor" aria-hidden="true">
-              <span class="material-icons">{{ dept.icon }}</span>
-            </div>
-            <div class="dept-info">
-              <span class="dept-name">{{ dept.name }}</span>
-              <span class="dept-count">{{ dept.count }} {{ dept.id === 'all' ? 'departments' : 'departments' }}</span>
-            </div>
-          </button>
-        } @empty {
-          <div class="empty-search">
-            <span class="material-icons">search_off</span>
-            <p>No department found</p>
-          </div>
+    @if (showResults()) {
+    <div class="dept-search-results" id="dept-search-results" role="listbox" aria-label="Matching departments">
+      <p class="results-count" role="presentation">
+        {{ filteredDepartments().length }}
+        {{ filteredDepartments().length === 1 ? "department" : "departments" }} found
+      </p>
+      @for (dept of filteredDepartments(); track dept.id; let i = $index) {
+      <button #resultOption type="button" class="dept-result-item" role="option" id="dept-option-{{ dept.id }}"
+        [attr.aria-selected]="selectedDept().id === dept.id" [class.active]="activeResultIndex() === i"
+        [class.selected]="selectedDept().id === dept.id" (click)="selectDepartmentAndClose(dept)"
+        (mouseenter)="setActiveResultIndex(i)">
+        <div class="dept-icon-circle" [style.background-color]="dept.iconBg" [style.color]="dept.iconColor"
+          aria-hidden="true">
+          <span class="material-icons">{{ dept.icon }}</span>
+        </div>
+        <div class="dept-info">
+          <span class="dept-name">{{ dept.name }}</span>
+          <span class="dept-count">{{ dept.count }} departments</span>
+        </div>
+        @if (selectedDept().id === dept.id) {
+        <span class="material-icons selected-check" aria-hidden="true">check_circle</span>
         }
+      </button>
+      } @empty {
+      <div class="empty-search">
+        <span class="material-icons" aria-hidden="true">search_off</span>
+        <p>No departments match "{{ searchQuery().trim() }}"</p>
+        <span class="empty-hint">Try a different name or clear the search to see all departments.</span>
       </div>
-    </aside>
+      }
+    </div>
+    }
+  </div>
 
-    <!-- Right Main Panel -->
-    <div class="main-panel">
-      <!-- Top Row: Department Overview & Line Chart -->
-      <div class="panel-top-row">
-        <!-- Department Overview Card -->
-        <div class="dept-overview-card">
-          <div class="overview-header">
-            <div class="header-title-box">
-              <div class="dept-avatar" aria-hidden="true">
-                <span class="material-icons">{{ selectedDept().icon }}</span>
-              </div>
-              <div>
-                <h3 class="overview-dept-name">{{ currentOverview().title }}</h3>
-                <p class="overview-subtitle">Policies, schemes and activity overview</p>
-              </div>
+  <!-- Main Content (full width) -->
+  <div class="main-panel">
+    <!-- Top Row: Department Overview & Line Chart -->
+    <div class="panel-top-row">
+      <!-- Department Overview Card -->
+      <div class="dept-overview-card">
+        <div class="overview-header">
+          <div class="header-title-box">
+            <div class="dept-avatar" aria-hidden="true">
+              <span class="material-icons">{{ selectedDept().icon }}</span>
             </div>
-            <button
-              type="button"
-              class="btn-view-details"
-              (click)="viewDepartmentDetails({
+            <div>
+              <h3 class="overview-dept-name">{{ currentOverview().title }}</h3>
+              <p class="overview-subtitle">Policies, schemes and activity overview</p>
+            </div>
+          </div>
+          <button type="button" class="btn-view-details" (click)="viewDepartmentDetails({
                 rank: 1,
                 name: currentOverview().title,
                 totalPolicies: currentOverview().totalPolicies,
@@ -194,239 +194,216 @@
                 downloads: '7,890',
                 lastUpdated: 'Sep 30, 2024'
               })">
-              <span>View Details</span>
-              <span class="material-icons" aria-hidden="true">open_in_new</span>
-            </button>
-          </div>
-
-          <div class="stats-grid">
-            <!-- Row 1: Policies -->
-            <div class="stat-cell">
-              <div class="cell-icon blue" aria-hidden="true"><span class="material-icons">description</span></div>
-              <div>
-                <span class="cell-label">Total Policies</span>
-                <span class="cell-value">{{ currentOverview().totalPolicies }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon green" aria-hidden="true"><span class="material-icons">check_circle</span></div>
-              <div>
-                <span class="cell-label">Active Policies</span>
-                <span class="cell-value">{{ currentOverview().activePolicies }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon orange" aria-hidden="true"><span class="material-icons">hourglass_empty</span></div>
-              <div>
-                <span class="cell-label">Pending</span>
-                <span class="cell-value">{{ currentOverview().pendingPolicies }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon red" aria-hidden="true"><span class="material-icons">close</span></div>
-              <div>
-                <span class="cell-label">Rejected</span>
-                <span class="cell-value">{{ currentOverview().rejectedPolicies }}</span>
-              </div>
-            </div>
-
-            <!-- Row 2: Schemes -->
-            <div class="stat-cell">
-              <div class="cell-icon green" aria-hidden="true"><span class="material-icons">folder</span></div>
-              <div>
-                <span class="cell-label">Total Schemes</span>
-                <span class="cell-value">{{ currentOverview().totalSchemes }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon green" aria-hidden="true"><span class="material-icons">check_circle</span></div>
-              <div>
-                <span class="cell-label">Active Schemes</span>
-                <span class="cell-value">{{ currentOverview().activeSchemes }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon orange" aria-hidden="true"><span class="material-icons">hourglass_empty</span></div>
-              <div>
-                <span class="cell-label">Pending</span>
-                <span class="cell-value">{{ currentOverview().pendingSchemes }}</span>
-              </div>
-            </div>
-
-            <div class="stat-cell">
-              <div class="cell-icon red" aria-hidden="true"><span class="material-icons">close</span></div>
-              <div>
-                <span class="cell-label">Rejected</span>
-                <span class="cell-value">{{ currentOverview().rejectedSchemes }}</span>
-              </div>
-            </div>
-          </div>
+            <span>View Details</span>
+            <span class="material-icons" aria-hidden="true">open_in_new</span>
+          </button>
         </div>
 
-        <!-- Policies vs Schemes Trend Line Chart -->
-        <div class="chart-card trend-card">
-          <div class="card-header-row">
-            <h3 class="card-title">Policies vs Schemes Trend</h3>
-            <div class="time-filter">
-              <span>Last 12 Months</span>
+        <div class="stats-grid">
+          <!-- Row 1: Policies -->
+          <div class="stat-cell">
+            <div class="cell-icon blue" aria-hidden="true"><span class="material-icons">description</span></div>
+            <div>
+              <span class="cell-label">Total Policies</span>
+              <span class="cell-value">{{ currentOverview().totalPolicies }}</span>
             </div>
           </div>
-          <app-line-chart
-            [labels]="monthLabels"
-            [datasets]="trendDatasets"
-            [yMin]="0"
-            [yMax]="50"
-          />
+
+          <div class="stat-cell">
+            <div class="cell-icon green" aria-hidden="true"><span class="material-icons">check_circle</span></div>
+            <div>
+              <span class="cell-label">Active Policies</span>
+              <span class="cell-value">{{ currentOverview().activePolicies }}</span>
+            </div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="cell-icon orange" aria-hidden="true"><span class="material-icons">hourglass_empty</span></div>
+            <div>
+              <span class="cell-label">Pending</span>
+              <span class="cell-value">{{ currentOverview().pendingPolicies }}</span>
+            </div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="cell-icon red" aria-hidden="true"><span class="material-icons">close</span></div>
+            <div>
+              <span class="cell-label">Rejected</span>
+              <span class="cell-value">{{ currentOverview().rejectedPolicies }}</span>
+            </div>
+          </div>
+
+          <!-- Row 2: Schemes -->
+          <div class="stat-cell">
+            <div class="cell-icon green" aria-hidden="true"><span class="material-icons">folder</span></div>
+            <div>
+              <span class="cell-label">Total Schemes</span>
+              <span class="cell-value">{{ currentOverview().totalSchemes }}</span>
+            </div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="cell-icon green" aria-hidden="true"><span class="material-icons">check_circle</span></div>
+            <div>
+              <span class="cell-label">Active Schemes</span>
+              <span class="cell-value">{{ currentOverview().activeSchemes }}</span>
+            </div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="cell-icon orange" aria-hidden="true"><span class="material-icons">hourglass_empty</span></div>
+            <div>
+              <span class="cell-label">Pending</span>
+              <span class="cell-value">{{ currentOverview().pendingSchemes }}</span>
+            </div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="cell-icon red" aria-hidden="true"><span class="material-icons">close</span></div>
+            <div>
+              <span class="cell-label">Rejected</span>
+              <span class="cell-value">{{ currentOverview().rejectedSchemes }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Middle Row: 3 Visualizations -->
-      <div class="panel-middle-row">
-        <div class="chart-card">
-          <h3 class="card-title">Policy Distribution by Department</h3>
-          <app-hbar-chart
-            [labels]="policyDeptLabels"
-            [data]="policyDeptData"
-            [selectedDepartment]="selectedDept().name"
-            primaryColor="#2f6fed"
-            dimmedColor="rgba(47, 111, 237, 0.25)"
-          />
+      <!-- Policies vs Schemes Trend Line Chart -->
+      <div class="chart-card trend-card">
+        <div class="card-header-row">
+          <h3 class="card-title">Policies vs Schemes Trend</h3>
+          <div class="time-filter">
+            <span>Last 12 Months</span>
+          </div>
         </div>
+        <app-line-chart [labels]="monthLabels" [datasets]="trendDatasets" [yMin]="0" [yMax]="50" />
+      </div>
+    </div>
 
-        <div class="chart-card">
-          <h3 class="card-title">Scheme Distribution by Department</h3>
-          <app-hbar-chart
-            [labels]="schemeDeptLabels"
-            [data]="schemeDeptData"
-            [selectedDepartment]="selectedDept().name"
-            primaryColor="#3cb371"
-            dimmedColor="rgba(60, 179, 113, 0.25)"
-          />
-        </div>
-
-        <div class="chart-card">
-          <h3 class="card-title">Department-wise User Engagement</h3>
-          <app-doughnut-chart
-            [labels]="engagementLabels"
-            [data]="engagementData"
-            [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d', '#06b6d4', '#94a3b8']"
-            centerMainText="185,420"
-            centerSubText="Total Views"
-          />
-        </div>
+    <!-- Middle Row: 3 Visualizations -->
+    <div class="panel-middle-row">
+      <div class="chart-card">
+        <h3 class="card-title">Policy Distribution by Department</h3>
+        <app-hbar-chart [labels]="policyDeptLabels" [data]="policyDeptData" [selectedDepartment]="selectedDept().name"
+          primaryColor="#2f6fed" dimmedColor="rgba(47, 111, 237, 0.25)" />
       </div>
 
-      <!-- Bottom Row: Department Performance Table -->
-      <div class="table-card">
-        <div class="table-header-row">
-          <h3 class="card-title">Department Performance</h3>
-          <span class="table-tag">Ranked by performance</span>
-        </div>
+      <div class="chart-card">
+        <h3 class="card-title">Scheme Distribution by Department</h3>
+        <app-hbar-chart [labels]="schemeDeptLabels" [data]="schemeDeptData" [selectedDepartment]="selectedDept().name"
+          primaryColor="#3cb371" dimmedColor="rgba(60, 179, 113, 0.25)" />
+      </div>
 
-        <div class="table-responsive">
-          <table class="perf-table">
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Department</th>
-                <th scope="col">Total Policies</th>
-                <th scope="col">Active Policies</th>
-                <th scope="col">Total Schemes</th>
-                <th scope="col">Active Schemes</th>
-                <th scope="col">Total Views</th>
-                <th scope="col">Downloads</th>
-                <th scope="col">Last Updated</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of tableRows; track row.rank) {
-                <tr>
-                  <td class="text-muted">{{ row.rank }}</td>
-                  <td class="font-semibold">{{ row.name }}</td>
-                  <td>{{ row.totalPolicies }}</td>
-                  <td>{{ row.activePolicies }}</td>
-                  <td>{{ row.totalSchemes }}</td>
-                  <td>{{ row.activeSchemes }}</td>
-                  <td>{{ row.totalViews }}</td>
-                  <td>{{ row.downloads }}</td>
-                  <td class="text-muted">{{ row.lastUpdated }}</td>
-                  <td>
-                    <button
-                      type="button"
-                      class="btn-table-action"
-                      (click)="viewDepartmentDetails(row)">
-                      View
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+      <div class="chart-card">
+        <h3 class="card-title">Department-wise User Engagement</h3>
+        <app-doughnut-chart [labels]="engagementLabels" [data]="engagementData"
+          [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d', '#06b6d4', '#94a3b8']"
+          centerMainText="185,420" centerSubText="Total Views" />
+      </div>
+    </div>
+
+    <!-- Bottom Row: Department Performance Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <h3 class="card-title">Department Performance</h3>
+        <span class="table-tag">Ranked by performance</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="perf-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Department</th>
+              <th scope="col">Total Policies</th>
+              <th scope="col">Active Policies</th>
+              <th scope="col">Total Schemes</th>
+              <th scope="col">Active Schemes</th>
+              <th scope="col">Total Views</th>
+              <th scope="col">Downloads</th>
+              <th scope="col">Last Updated</th>
+              <th scope="col">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of tableRows; track row.rank) {
+            <tr>
+              <td class="text-muted">{{ row.rank }}</td>
+              <td class="font-semibold">{{ row.name }}</td>
+              <td>{{ row.totalPolicies }}</td>
+              <td>{{ row.activePolicies }}</td>
+              <td>{{ row.totalSchemes }}</td>
+              <td>{{ row.activeSchemes }}</td>
+              <td>{{ row.totalViews }}</td>
+              <td>{{ row.downloads }}</td>
+              <td class="text-muted">{{ row.lastUpdated }}</td>
+              <td>
+                <button type="button" class="btn-table-action" (click)="viewDepartmentDetails(row)">
+                  View
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
   <!-- Detail Modal -->
   @if (selectedRowDepartment(); as dept) {
-    <div class="modal-overlay" (click)="closeDetailsModal()" role="dialog" aria-modal="true">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title-box">
-            <span class="material-icons dept-icon" aria-hidden="true">account_balance</span>
-            <div>
-              <h3 class="modal-title">{{ dept.name }}</h3>
-              <p class="modal-subtitle">Performance breakdown and operational metrics</p>
-            </div>
+  <div class="modal-overlay" (click)="closeDetailsModal()" role="dialog" aria-modal="true">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <span class="material-icons dept-icon" aria-hidden="true">account_balance</span>
+          <div>
+            <h3 class="modal-title">{{ dept.name }}</h3>
+            <p class="modal-subtitle">Performance breakdown and operational metrics</p>
           </div>
-          <button type="button" class="btn-close" (click)="closeDetailsModal()" aria-label="Close modal">
-            <span class="material-icons">close</span>
-          </button>
         </div>
+        <button type="button" class="btn-close" (click)="closeDetailsModal()" aria-label="Close modal">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
 
-        <div class="modal-body">
-          <div class="modal-metrics-grid">
-            <div class="modal-metric">
-              <span class="metric-lbl">Total Policies</span>
-              <span class="metric-val">{{ dept.totalPolicies }}</span>
-            </div>
-            <div class="modal-metric">
-              <span class="metric-lbl">Active Policies</span>
-              <span class="metric-val green-text">{{ dept.activePolicies }}</span>
-            </div>
-            <div class="modal-metric">
-              <span class="metric-lbl">Total Schemes</span>
-              <span class="metric-val">{{ dept.totalSchemes }}</span>
-            </div>
-            <div class="modal-metric">
-              <span class="metric-lbl">Active Schemes</span>
-              <span class="metric-val green-text">{{ dept.activeSchemes }}</span>
-            </div>
-            <div class="modal-metric">
-              <span class="metric-lbl">Total Views</span>
-              <span class="metric-val blue-text">{{ dept.totalViews }}</span>
-            </div>
-            <div class="modal-metric">
-              <span class="metric-lbl">Downloads</span>
-              <span class="metric-val blue-text">{{ dept.downloads }}</span>
-            </div>
+      <div class="modal-body">
+        <div class="modal-metrics-grid">
+          <div class="modal-metric">
+            <span class="metric-lbl">Total Policies</span>
+            <span class="metric-val">{{ dept.totalPolicies }}</span>
           </div>
-          <p class="modal-note">
-            <span class="material-icons">info</span>
-            Last operational synchronization: {{ dept.lastUpdated }} (Sample Preview Data).
-          </p>
+          <div class="modal-metric">
+            <span class="metric-lbl">Active Policies</span>
+            <span class="metric-val green-text">{{ dept.activePolicies }}</span>
+          </div>
+          <div class="modal-metric">
+            <span class="metric-lbl">Total Schemes</span>
+            <span class="metric-val">{{ dept.totalSchemes }}</span>
+          </div>
+          <div class="modal-metric">
+            <span class="metric-lbl">Active Schemes</span>
+            <span class="metric-val green-text">{{ dept.activeSchemes }}</span>
+          </div>
+          <div class="modal-metric">
+            <span class="metric-lbl">Total Views</span>
+            <span class="metric-val blue-text">{{ dept.totalViews }}</span>
+          </div>
+          <div class="modal-metric">
+            <span class="metric-lbl">Downloads</span>
+            <span class="metric-val blue-text">{{ dept.downloads }}</span>
+          </div>
         </div>
+        <p class="modal-note">
+          <span class="material-icons">info</span>
+          Last operational synchronization: {{ dept.lastUpdated }} (Sample Preview Data).
+        </p>
+      </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn-modal-close" (click)="closeDetailsModal()">Close</button>
-        </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-close" (click)="closeDetailsModal()">Close</button>
       </div>
     </div>
+  </div>
   }
 </div>

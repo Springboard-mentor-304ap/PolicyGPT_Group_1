@@ -70,7 +70,11 @@
     }
 
     @if (kpis.length > 0) {
-      <div class="stats-grid">
+      <div
+        class="stats-grid"
+        [class.stats-grid--3]="kpis.length === 3"
+        [class.stats-grid--2]="kpis.length === 2"
+      >
         @for (kpi of kpis; track kpi.label) {
           <div class="stat-card">
             <span

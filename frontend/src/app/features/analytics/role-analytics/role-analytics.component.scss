@@ -1,3 +1,4 @@
+@use '../shared/analytics-tokens' as tokens;
 /* =========================================================
    POLICYGPT ROLE ANALYTICS
    Citizen / Researcher / Organization Analytics pages.
@@ -264,29 +265,11 @@ $white: #ffffff;
    ============================================================ */
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  @include tokens.analytics-stat-grid;
 }
 
 .stat-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  background: $white;
-  border: 1px solid $border;
-  border-radius: 14px;
-  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
-  min-width: 0;
-  min-height: 88px;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 7px 20px rgba(15, 40, 82, 0.08);
-    transform: translateY(-2px);
-  }
+  @include tokens.analytics-stat-card;
 
   &:focus-visible {
     outline: 2px solid $primary;
@@ -300,13 +283,14 @@ $white: #ffffff;
 
 .stat-icon {
   flex-shrink: 0;
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  border: 1px solid #d0e4ff;
+  border-radius: 12px;
+  border: none;
   background: $primary-soft;
   color: $primary;
 
@@ -316,27 +300,23 @@ $white: #ffffff;
 }
 
 .stat-icon--green {
-  background: $success-soft;
-  color: $success;
-  border-color: #c7eed6;
+  background: #e8f8ef;
+  color: #078944;
 }
 
 .stat-icon--orange {
   background: #fff1e5;
   color: #ff861c;
-  border-color: #fedbc1;
 }
 
 .stat-icon--purple {
   background: #f3e8ff;
   color: #8b00e8;
-  border-color: #e2ccf5;
 }
 
 .stat-icon--blue {
-  background: $primary-soft;
-  color: $primary;
-  border-color: #d0e4ff;
+  background: #eaf3ff;
+  color: #0879ed;
 }
 
 .stat-text {
@@ -348,17 +328,21 @@ $white: #ffffff;
 .stat-value {
   margin: 0;
   color: #111827;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.2;
 }
 
 .stat-title {
-  margin: 4px 0 0;
-  color: $text-secondary;
-  font-size: 13px;
-  font-weight: 600;
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-sub {
@@ -626,7 +610,7 @@ $white: #ffffff;
 
   th,
   td {
-    padding: 12px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid $border-light;
     text-align: left;
     white-space: nowrap;
@@ -639,6 +623,7 @@ $white: #ffffff;
     background: #f8fafc;
     color: #64748b;
     font-size: 12px;
+    padding: 11px 14px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -768,10 +753,10 @@ $white: #ffffff;
 }
 
 .skeleton-icon {
-  width: 46px;
-  height: 46px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: 12px;
 }
 
 .skeleton-body {
@@ -935,22 +920,12 @@ $white: #ffffff;
 }
 
 @media (max-width: 600px) {
-  .stats-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .data-card {
     padding: 16px 14px;
   }
 
   .stat-value {
     font-size: 24px;
-  }
-}
-
-@media (max-width: 420px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
   }
 }
 

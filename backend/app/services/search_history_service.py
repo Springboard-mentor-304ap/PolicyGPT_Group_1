@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.search_history import SearchHistory
@@ -80,16 +81,12 @@ def delete_user_search_history(
     db: Session,
     user_id: int,
 ):
-    records = (
+    # Bulk DELETE instead of fetching every row and deleting one by one.
+    deleted_count = (
         db.query(SearchHistory)
         .filter(SearchHistory.user_id == user_id)
-        .all()
+        .delete(synchronize_session=False)
     )
-
-    deleted_count = len(records)
-
-    for record in records:
-        db.delete(record)
 
     db.commit()
 
@@ -108,22 +105,20 @@ def get_search_history_statistics(
     if user_id is not None:
         query = query.filter(SearchHistory.user_id == user_id)
 
-    total_searches = query.count()
-
-    policy_searches = (
-        query
-        .filter(SearchHistory.search_type == "POLICY")
-        .count()
+    # Single GROUP BY instead of 3 COUNTs.
+    type_rows = (
+        query.with_entities(
+            SearchHistory.search_type,
+            func.count(SearchHistory.history_id),
+        )
+        .group_by(SearchHistory.search_type)
+        .all()
     )
-
-    scheme_searches = (
-        query
-        .filter(SearchHistory.search_type == "SCHEME")
-        .count()
-    )
+    by_type = {t: c for t, c in type_rows}
+    total_searches = sum(by_type.values())
 
     return {
         "total_searches": total_searches,
-        "policy_searches": policy_searches,
-        "scheme_searches": scheme_searches,
+        "policy_searches": by_type.get("POLICY", 0),
+        "scheme_searches": by_type.get("SCHEME", 0),
     }

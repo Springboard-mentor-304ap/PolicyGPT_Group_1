@@ -10,16 +10,60 @@ describe("UserAnalyticsComponent", () => {
   let mockDataService: any;
 
   const mockKpis = [
-    { label: "Total Users", value: "5,820", change: "+12%", isPositive: true, icon: "people", iconClass: "blue" },
-    { label: "Active Users", value: "4,320", change: "+8%", isPositive: true, icon: "person_check", iconClass: "green" },
-    { label: "New Users", value: "340", change: "+15%", isPositive: true, icon: "person_add", iconClass: "orange" },
-    { label: "Govt. Officials", value: "640", change: "+5%", isPositive: true, icon: "badge", iconClass: "purple" },
-    { label: "Organizations", value: "290", change: "+10%", isPositive: true, icon: "business", iconClass: "teal" },
-    { label: "Researchers", value: "410", change: "+7%", isPositive: true, icon: "science", iconClass: "pink" },
+    {
+      label: "Total Users",
+      value: "5,820",
+      change: "+12%",
+      isPositive: true,
+      icon: "people",
+      iconClass: "blue",
+    },
+    {
+      label: "Active Users",
+      value: "4,320",
+      change: "+8%",
+      isPositive: true,
+      icon: "person",
+      iconClass: "green",
+    },
+    {
+      label: "New Users",
+      value: "340",
+      change: "+15%",
+      isPositive: true,
+      icon: "person_add",
+      iconClass: "orange",
+    },
+    {
+      label: "Govt. Officials",
+      value: "640",
+      change: "+5%",
+      isPositive: true,
+      icon: "badge",
+      iconClass: "purple",
+    },
+    {
+      label: "Organizations",
+      value: "290",
+      change: "+10%",
+      isPositive: true,
+      icon: "business",
+      iconClass: "teal",
+    },
+    {
+      label: "Researchers",
+      value: "410",
+      change: "+7%",
+      isPositive: true,
+      icon: "science",
+      iconClass: "pink",
+    },
   ];
 
   const mockGrowthTrend = (period: string) => ({
-    labels: period.includes("6") ? ["Apr", "May", "Jun", "Jul", "Aug", "Sep"] : ["Jan", "Feb", "Mar"],
+    labels: period.includes("6")
+      ? ["Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+      : ["Jan", "Feb", "Mar"],
     series: [
       { label: "Citizens", data: [10, 20, 30], color: "#2f6fed" },
       { label: "Officials", data: [2, 4, 6], color: "#3cb371" },
@@ -40,15 +84,54 @@ describe("UserAnalyticsComponent", () => {
   };
 
   const mockStates = {
-    labels: ["Uttar Pradesh", "Maharashtra", "Tamil Nadu", "Karnataka", "Gujarat", "Rajasthan", "West Bengal", "Madhya Pradesh", "Delhi", "Kerala"],
+    labels: [
+      "Uttar Pradesh",
+      "Maharashtra",
+      "Tamil Nadu",
+      "Karnataka",
+      "Gujarat",
+      "Rajasthan",
+      "West Bengal",
+      "Madhya Pradesh",
+      "Delhi",
+      "Kerala",
+    ],
     values: [100, 90, 80, 70, 60, 50, 40, 30, 20, 10],
   };
 
   const mockEngagement = [
-    { label: "Total Logins", value: "12,450", change: "+14%", isPositive: true, icon: "login", iconClass: "blue" },
-    { label: "Search Queries", value: "28,900", change: "+22%", isPositive: true, icon: "search", iconClass: "purple" },
-    { label: "Reports Generated", value: "3,120", change: "+8%", isPositive: true, icon: "description", iconClass: "orange" },
-    { label: "Notifications Sent", value: "45,600", change: "+18%", isPositive: true, icon: "notifications", iconClass: "green" },
+    {
+      label: "Total Logins",
+      value: "12,450",
+      change: "+14%",
+      isPositive: true,
+      icon: "login",
+      iconClass: "blue",
+    },
+    {
+      label: "Search Queries",
+      value: "28,900",
+      change: "+22%",
+      isPositive: true,
+      icon: "search",
+      iconClass: "purple",
+    },
+    {
+      label: "Reports Generated",
+      value: "3,120",
+      change: "+8%",
+      isPositive: true,
+      icon: "description",
+      iconClass: "orange",
+    },
+    {
+      label: "Notifications Sent",
+      value: "45,600",
+      change: "+18%",
+      isPositive: true,
+      icon: "notifications",
+      iconClass: "green",
+    },
   ];
 
   const mockHeatmap = {
@@ -65,12 +148,33 @@ describe("UserAnalyticsComponent", () => {
   };
 
   const mockRecentUsers = [
-    { rank: 1, name: "Rahul Sharma", email: "rahul@gov.in", role: "Govt. Official", state: "Delhi", joinDate: "Sep 30, 2024" },
-    { rank: 2, name: "Priya Patel", email: "priya@example.com", role: "Citizen", state: "Gujarat", joinDate: "Sep 29, 2024" },
+    {
+      rank: 1,
+      name: "Rahul Sharma",
+      email: "rahul@gov.in",
+      role: "Govt. Official",
+      state: "Delhi",
+      joinDate: "Sep 30, 2024",
+    },
+    {
+      rank: 2,
+      name: "Priya Patel",
+      email: "priya@example.com",
+      role: "Citizen",
+      state: "Gujarat",
+      joinDate: "Sep 29, 2024",
+    },
   ];
 
   const mockActiveUsers = [
-    { rank: 1, name: "Dr. Ananya Roy", role: "Researcher", logins: 45, searches: 120, lastActive: "2 mins ago" },
+    {
+      rank: 1,
+      name: "Dr. Ananya Roy",
+      role: "Researcher",
+      logins: 45,
+      searches: 120,
+      lastActive: "2 mins ago",
+    },
   ];
 
   beforeEach(async () => {
@@ -81,8 +185,7 @@ describe("UserAnalyticsComponent", () => {
         const labels6 = ["Apr", "May", "Jun", "Jul", "Aug", "Sep"];
         const labels3 = ["Jan", "Feb", "Mar"];
         const labels = sixMonth ? labels6 : labels3;
-        const data = (base: number[]) =>
-          sixMonth ? [...base, ...base] : base;
+        const data = (base: number[]) => (sixMonth ? [...base, ...base] : base);
         return of({
           kpis: mockKpis,
           growth_trend: {
@@ -185,8 +288,12 @@ describe("UserAnalyticsComponent", () => {
 
   it("should return correct role badge class", () => {
     expect(component.getRoleBadgeClass("Citizen")).toBe("badge-citizen");
-    expect(component.getRoleBadgeClass("Govt. Official")).toBe("badge-official");
+    expect(component.getRoleBadgeClass("Govt. Official")).toBe(
+      "badge-official",
+    );
     expect(component.getRoleBadgeClass("Researcher")).toBe("badge-researcher");
-    expect(component.getRoleBadgeClass("Organization")).toBe("badge-organization");
+    expect(component.getRoleBadgeClass("Organization")).toBe(
+      "badge-organization",
+    );
   });
 });

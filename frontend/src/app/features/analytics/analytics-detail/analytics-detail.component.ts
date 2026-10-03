@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, RouterLink } from "@angular/router";
-import { Observable, catchError, forkJoin, map, of } from "rxjs";
+import { Observable, Subscription, catchError, forkJoin, map, of } from "rxjs";
 
 import { AnalyticsService } from "../../../core/services/analytics.service";
 import { NotificationService } from "../../../core/services/notification.service";
@@ -134,6 +135,8 @@ export class AnalyticsDetailComponent implements OnInit {
   private readonly savedItems = inject(SavedItemsService);
   private readonly searchHistory = inject(SearchHistoryService);
   private readonly auth = inject(Auth);
+  private readonly destroyRef = inject(DestroyRef);
+  private loadSub: Subscription | null = null;
 
   variant: AnalyticsVariant = "overview";
   pageTitle = "Analytics";
@@ -167,12 +170,14 @@ export class AnalyticsDetailComponent implements OnInit {
   }
 
   private load(): void {
+    // Cancel any in-flight load (refresh/retry spam) before starting anew.
+    this.loadSub?.unsubscribe();
     this.loading = true;
     this.error = null;
     this.kpis = [];
     this.tables = [];
     this.note = null;
-    this.buildViewModel(this.variant).subscribe({
+    this.loadSub = this.buildViewModel(this.variant).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (vm) => {
         this.kpis = vm.kpis;
         this.tables = vm.tables;

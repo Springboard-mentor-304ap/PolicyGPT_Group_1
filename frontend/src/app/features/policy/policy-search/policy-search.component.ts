@@ -4,6 +4,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angula
 import { FormsModule } from "@angular/forms";
 import {
   Subject,
+  Subscription,
   debounceTime,
   distinctUntilChanged,
   finalize,
@@ -68,6 +69,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   private readonly destroy$ = new Subject<void>();
+  private loadSub: Subscription | null = null;
 
   private readonly searchSubject = new Subject<string>();
 
@@ -368,6 +370,9 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   loadPolicies(): void {
+    // Cancel any in-flight list request so a slow earlier response can
+    // never overwrite newer results (keystroke/filter races).
+    this.loadSub?.unsubscribe();
     this.loading = true;
     this.errorMessage = "";
     this.cdr.detectChanges();
@@ -420,7 +425,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     console.log("[POLICY SEARCH] Status:", status);
     console.log("================================================");
 
-    this.policyService
+    this.loadSub = this.policyService
       .getPolicies(params)
       .pipe(
         takeUntil(this.destroy$),

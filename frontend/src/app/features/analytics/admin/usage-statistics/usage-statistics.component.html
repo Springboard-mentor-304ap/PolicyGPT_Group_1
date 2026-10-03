@@ -13,12 +13,6 @@
     <div class="header-left">
       <div class="title-row">
         <h1 class="page-title">Usage Statistics</h1>
-        @if (isSampleData) {
-        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-          <span class="badge-dot"></span>
-          Sample Data
-        </span>
-        }
       </div>
       <p class="page-subtitle">Track platform usage and engagement across all users</p>
     </div>
@@ -30,40 +24,6 @@
         <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
       </button>
     </div>
-  </div>
-
-  <!-- 6 KPI Cards Grid -->
-  @if (isLoading() && !hasLoaded()) {
-  <div class="analytics-skeleton-grid" aria-hidden="true">
-    @for (s of [1, 2, 3, 4, 5, 6]; track s) {
-    <div class="analytics-skeleton-card"></div>
-    }
-  </div>
-  }
-  @if (loadError()) {
-  <p class="analytics-status error" role="alert">{{ loadError() }}
-    <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
-  </p>
-  }
-  <div class="kpi-grid">
-    @for (kpi of kpis(); track kpi.label) {
-    <div class="kpi-card">
-      <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
-        <span class="material-icons">{{ kpi.icon }}</span>
-      </div>
-      <div class="kpi-content">
-        <span class="kpi-label">{{ kpi.label }}</span>
-        <div class="kpi-value-row">
-          <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
-        </div>
-        @if (kpi.change) {
-        <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
-          {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
-        </span>
-        }
-      </div>
-    </div>
-    }
   </div>
 
   <!-- Row 2: 3 Visualizations (User Activity Trend, Daily Usage, User Distribution by Role) -->
@@ -141,14 +101,11 @@
   </div>
 
   <!-- Row 3: 3 Data Tables (Top 10 Policies, Top 10 Schemes, Most Active Users) -->
-  <div class="tri-grid">
+  <div class="duo-grid">
     <!-- D. Top 10 Searched Policies -->
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Top 10 Searched Policies</h2>
-        <button type="button" class="btn-view-all" (click)="openModal('policies')">
-          View All
-        </button>
       </div>
 
       <div class="table-responsive">
@@ -157,8 +114,6 @@
             <tr>
               <th scope="col" class="col-rank">#</th>
               <th scope="col">Policy Title</th>
-              <th scope="col" class="text-right">Searches</th>
-              <th scope="col" class="text-right">Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -166,8 +121,6 @@
             <tr>
               <td class="col-rank">{{ item.rank }}</td>
               <td class="col-title font-semibold">{{ item.title }}</td>
-              <td class="text-right font-medium">{{ item.searches }}</td>
-              <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
             </tr>
             }
           </tbody>
@@ -179,9 +132,6 @@
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Top 10 Searched Schemes</h2>
-        <button type="button" class="btn-view-all" (click)="openModal('schemes')">
-          View All
-        </button>
       </div>
 
       <div class="table-responsive">
@@ -190,8 +140,6 @@
             <tr>
               <th scope="col" class="col-rank">#</th>
               <th scope="col">Scheme Title</th>
-              <th scope="col" class="text-right">Searches</th>
-              <th scope="col" class="text-right">Trend</th>
             </tr>
           </thead>
           <tbody>
@@ -199,8 +147,6 @@
             <tr>
               <td class="col-rank">{{ item.rank }}</td>
               <td class="col-title font-semibold">{{ item.title }}</td>
-              <td class="text-right font-medium">{{ item.searches }}</td>
-              <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
             </tr>
             }
           </tbody>
@@ -208,13 +154,14 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Row 4: Full-width Table (Recent Search Activity) -->
+  <div class="full-card">
     <!-- F. Most Active Users -->
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Most Active Users</h2>
-        <button type="button" class="btn-view-all" (click)="openModal('users')">
-          View All
-        </button>
       </div>
 
       <div class="table-responsive">
@@ -234,47 +181,6 @@
               <td class="col-user text-secondary font-medium">{{ u.user }}</td>
               <td class="text-muted">{{ u.role }}</td>
               <td class="text-right font-semibold">{{ u.activities }}</td>
-            </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Row 4: Full-width Table (Recent Search Activity) -->
-  <div class="full-card">
-    <div class="table-card">
-      <div class="card-header-row">
-        <h2 class="card-title">Recent Search Activity</h2>
-        <button type="button" class="btn-view-all" (click)="openModal('searches')">
-          View All
-        </button>
-      </div>
-
-      <div class="table-responsive">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th scope="col" class="col-rank">#</th>
-              <th scope="col">User</th>
-              <th scope="col">Search Query</th>
-              <th scope="col">Type</th>
-              <th scope="col">Date & Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of recentSearches().slice(0, 5); track item.rank) {
-            <tr>
-              <td class="col-rank">{{ item.rank }}</td>
-              <td class="font-medium text-secondary">{{ item.user }}</td>
-              <td class="text-ink font-semibold">{{ item.query }}</td>
-              <td>
-                <span class="type-chip" [ngClass]="item.type === 'Scheme' ? 'chip-scheme' : 'chip-policy'">
-                  {{ item.type }}
-                </span>
-              </td>
-              <td class="text-muted">{{ item.dateTime }}</td>
             </tr>
             }
           </tbody>

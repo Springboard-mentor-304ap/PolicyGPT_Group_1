@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any
-from sqlalchemy import or_, and_, func
+from sqlalchemy import case, or_, and_, func
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -125,7 +125,90 @@ def invalidate_preference_cache(user_id: int | None = None) -> None:
 _SUPPRESSION_CACHE: dict[tuple[int, str], frozenset[str]] = {}
 
 
-def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
+def _prefetched_lookup(prefetch, kind, entity_id, fetch_fn):
+    """Batch-friendly single-row lookup.
+
+    When a list caller prefetched rows into ``prefetch[kind]`` dicts, serve
+    from memory; otherwise fall back to the original query. Single-row
+    callers pass no prefetch and behave exactly as before.
+    """
+    if prefetch is not None and entity_id is not None:
+        bucket = prefetch.get(kind)
+        if bucket is not None and entity_id in bucket:
+            return bucket[entity_id]
+    return fetch_fn()
+
+
+def build_enrichment_prefetch(db: Session, notifs) -> dict[str, dict]:
+    """Prefetch entity rows for a notification list in ~4 queries.
+
+    Collects every policy/scheme/user id referenced by the page, then loads
+    each table once with IN (including approver/creator second-level ids),
+    replacing up to 4 sequential lookups per row.
+    """
+    policy_ids: set = set()
+    scheme_ids: set = set()
+    user_ids: set = set()
+    for n in notifs:
+        pid = n.related_policy_id or (
+            n.entity_id if n.entity_type == "POLICY" else None
+        )
+        if pid is not None:
+            policy_ids.add(pid)
+        sid = n.related_scheme_id or (
+            n.entity_id if n.entity_type == "SCHEME" else None
+        )
+        if sid is not None:
+            scheme_ids.add(sid)
+        if n.entity_type == "USER" and n.entity_id is not None:
+            user_ids.add(n.entity_id)
+
+    policies = (
+        {
+            p.policy_id: p
+            for p in db.query(Policy)
+            .filter(Policy.policy_id.in_(policy_ids))
+            .all()
+        }
+        if policy_ids
+        else {}
+    )
+    schemes = (
+        {
+            s.scheme_id: s
+            for s in db.query(Scheme)
+            .filter(Scheme.scheme_id.in_(scheme_ids))
+            .all()
+        }
+        if scheme_ids
+        else {}
+    )
+    staff_ids: set = set()
+    for p in policies.values():
+        if p.approved_by is not None:
+            staff_ids.add(p.approved_by)
+        if p.created_by is not None:
+            staff_ids.add(p.created_by)
+    for s in schemes.values():
+        if s.approved_by is not None:
+            staff_ids.add(s.approved_by)
+        if s.created_by is not None:
+            staff_ids.add(s.created_by)
+    wanted_users = user_ids | staff_ids
+    users = (
+        {
+            u.user_id: u
+            for u in db.query(User).filter(User.user_id.in_(wanted_users)).all()
+        }
+        if wanted_users
+        else {}
+    )
+    return {"policies": policies, "schemes": schemes, "users": users}
+
+
+def enrich_notification(
+    db: Session, notif: Notification, prefetch: dict | None = None
+) -> dict[str, Any]:
     (
         "Enrich notification model with dynamic entity details from "
         "Policy, Scheme, User, etc."
@@ -175,7 +258,14 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
         notif.entity_id if notif.entity_type == "POLICY" else None
     )
     if policy_id:
-        policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+        policy = _prefetched_lookup(
+            prefetch,
+            "policies",
+            policy_id,
+            lambda: db.query(Policy)
+            .filter(Policy.policy_id == policy_id)
+            .first(),
+        )
         if policy:
             data["entity_title"] = policy.title
             data["entity_status"] = policy.status
@@ -194,10 +284,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
             )
 
             if policy.approved_by:
-                approver = (
-                    db.query(User)
+                approver = _prefetched_lookup(
+                    prefetch,
+                    "users",
+                    policy.approved_by,
+                    lambda: db.query(User)
                     .filter(User.user_id == policy.approved_by)
-                    .first()
+                    .first(),
                 )
                 if approver:
                     data["decision_by_name"] = (
@@ -206,10 +299,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
                     data["decision_date"] = policy.updated_at
 
             if policy.created_by:
-                creator = (
-                    db.query(User)
+                creator = _prefetched_lookup(
+                    prefetch,
+                    "users",
+                    policy.created_by,
+                    lambda: db.query(User)
                     .filter(User.user_id == policy.created_by)
-                    .first()
+                    .first(),
                 )
                 if creator:
                     data["submitted_by_name"] = (
@@ -222,7 +318,14 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
         notif.entity_id if notif.entity_type == "SCHEME" else None
     )
     if scheme_id:
-        scheme = db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first()
+        scheme = _prefetched_lookup(
+            prefetch,
+            "schemes",
+            scheme_id,
+            lambda: db.query(Scheme)
+            .filter(Scheme.scheme_id == scheme_id)
+            .first(),
+        )
         if scheme:
             data["entity_title"] = scheme.name
             data["entity_status"] = scheme.status
@@ -252,10 +355,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
                 data["days_remaining"] = max(0, remaining)
 
             if scheme.approved_by:
-                approver = (
-                    db.query(User)
+                approver = _prefetched_lookup(
+                    prefetch,
+                    "users",
+                    scheme.approved_by,
+                    lambda: db.query(User)
                     .filter(User.user_id == scheme.approved_by)
-                    .first()
+                    .first(),
                 )
                 if approver:
                     data["decision_by_name"] = (
@@ -264,10 +370,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
                     data["decision_date"] = scheme.updated_at
 
             if scheme.created_by:
-                creator = (
-                    db.query(User)
+                creator = _prefetched_lookup(
+                    prefetch,
+                    "users",
+                    scheme.created_by,
+                    lambda: db.query(User)
                     .filter(User.user_id == scheme.created_by)
-                    .first()
+                    .first(),
                 )
                 if creator:
                     data["submitted_by_name"] = (
@@ -277,8 +386,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
 
     # User Entity Lookup
     if notif.entity_type == "USER" and notif.entity_id:
-        target_user = (
-            db.query(User).filter(User.user_id == notif.entity_id).first()
+        target_user = _prefetched_lookup(
+            prefetch,
+            "users",
+            notif.entity_id,
+            lambda: db.query(User)
+            .filter(User.user_id == notif.entity_id)
+            .first(),
         )
         if target_user:
             data["entity_title"] = target_user.full_name or target_user.email
@@ -299,10 +413,13 @@ def enrich_notification(db: Session, notif: Notification) -> dict[str, Any]:
     # Deadline Info if attached to related scheme
     if "DEADLINE" in nt and not data.get("deadline_date"):
         if notif.related_scheme_id:
-            s_lookup = (
-                db.query(Scheme)
+            s_lookup = _prefetched_lookup(
+                prefetch,
+                "schemes",
+                notif.related_scheme_id,
+                lambda: db.query(Scheme)
                 .filter(Scheme.scheme_id == notif.related_scheme_id)
-                .first()
+                .first(),
             )
             if s_lookup and s_lookup.application_end_date:
                 data["deadline_date"] = s_lookup.application_end_date.strftime(
@@ -850,8 +967,13 @@ def get_user_notifications(
     raw_items = query.offset(offset).limit(page_size).all()
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
 
-    # Enrich each notification with dynamic backend data
-    enriched_items = [enrich_notification(db, item) for item in raw_items]
+    # Enrich each notification with dynamic backend data.
+    # Entity rows are prefetched once (~4 queries) instead of up to 4
+    # sequential lookups per row.
+    prefetch = build_enrichment_prefetch(db, raw_items)
+    enriched_items = [
+        enrich_notification(db, item, prefetch) for item in raw_items
+    ]
 
     summary = get_notification_summary(db, user_id, user_role)
     unread_count = summary["unread"]
@@ -952,22 +1074,20 @@ def mark_all_notifications_read(
     now = _now()
     base_filter = get_base_notification_filter(user_id, user_role)
 
-    unread_notifications = (
+    # Bulk UPDATE instead of fetching every unread row and looping.
+    updated_count = (
         db.query(Notification)
         .filter(base_filter, Notification.is_read.is_(False))
-        .all()
+        .update(
+            {Notification.is_read: True, Notification.read_at: now, Notification.updated_at: now},
+            synchronize_session=False,
+        )
     )
-
-    for notif in unread_notifications:
-        notif.is_read = True
-        notif.read_at = now
-        notif.updated_at = now
-
     db.commit()
 
     return {
         "message": "All notifications marked as read",
-        "updated_count": len(unread_notifications),
+        "updated_count": updated_count,
     }
 
 
@@ -1041,27 +1161,31 @@ def get_notification_summary(
 
     base_filter = _visibility_filter(db, user_id, user_role)
 
-    total = (
-        db.query(func.count(Notification.notification_id))
+    # Single conditional-aggregation query instead of 3 COUNTs.
+    row = (
+        db.query(
+            func.count(Notification.notification_id),
+            func.sum(
+                case((Notification.is_read.is_(False), 1), else_=0)
+            ),
+            func.sum(
+                case(
+                    (
+                        Notification.created_at
+                        >= _now() - timedelta(days=7),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ),
+        )
         .filter(base_filter)
-        .scalar()
-        or 0
+        .first()
     )
-    unread = (
-        db.query(func.count(Notification.notification_id))
-        .filter(base_filter, Notification.is_read.is_(False))
-        .scalar()
-        or 0
-    )
+    total = row[0] or 0
+    unread = int(row[1] or 0)
     read = max(0, total - unread)
-
-    week_ago = _now() - timedelta(days=7)
-    this_week = (
-        db.query(func.count(Notification.notification_id))
-        .filter(base_filter, Notification.created_at >= week_ago)
-        .scalar()
-        or 0
-    )
+    this_week = int(row[2] or 0)
 
     return {
         "total": total,
@@ -1084,65 +1208,40 @@ def get_admin_notification_stats(db: Session) -> dict[str, int]:
     total_notifications = (
         db.query(func.count(Notification.notification_id)).scalar() or 0
     )
-    in_app_count = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(NotificationDelivery.channel == "IN_APP")
-        .scalar()
-        or 0
-    )
-    email_sent = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(
-            NotificationDelivery.channel == "EMAIL",
-            NotificationDelivery.status.in_(["SENT", "DELIVERED"]),
+    # Single GROUP BY instead of 8 COUNTs over notification_delivery.
+    delivery_rows = (
+        db.query(
+            NotificationDelivery.channel,
+            NotificationDelivery.status,
+            func.count(NotificationDelivery.delivery_id),
         )
-        .scalar()
-        or 0
+        .group_by(NotificationDelivery.channel, NotificationDelivery.status)
+        .all()
     )
-    email_failed = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(
-            NotificationDelivery.channel == "EMAIL",
-            NotificationDelivery.status == "FAILED",
+    by_channel_status = {(c, s): n for c, s, n in delivery_rows}
+
+    def _d(channel: str, statuses) -> int:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        return sum(
+            by_channel_status.get((channel, s), 0) for s in statuses
         )
-        .scalar()
-        or 0
+
+    in_app_count = sum(
+        n for (c, _s), n in by_channel_status.items() if c == "IN_APP"
     )
-    sms_sent = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(
-            NotificationDelivery.channel == "SMS",
-            NotificationDelivery.status.in_(["SENT", "DELIVERED"]),
-        )
-        .scalar()
-        or 0
+    email_sent = _d("EMAIL", ["SENT", "DELIVERED"])
+    email_failed = _d("EMAIL", "FAILED")
+    sms_sent = _d("SMS", ["SENT", "DELIVERED"])
+    sms_failed = _d("SMS", "FAILED")
+    pending_deliveries = sum(
+        n for (_c, s), n in by_channel_status.items() if s == "PENDING"
     )
-    sms_failed = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(
-            NotificationDelivery.channel == "SMS",
-            NotificationDelivery.status == "FAILED",
-        )
-        .scalar()
-        or 0
+    delivered_count = sum(
+        n for (_c, s), n in by_channel_status.items() if s == "DELIVERED"
     )
-    pending_deliveries = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(NotificationDelivery.status == "PENDING")
-        .scalar()
-        or 0
-    )
-    delivered_count = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(NotificationDelivery.status == "DELIVERED")
-        .scalar()
-        or 0
-    )
-    skipped_count = (
-        db.query(func.count(NotificationDelivery.delivery_id))
-        .filter(NotificationDelivery.status == "SKIPPED")
-        .scalar()
-        or 0
+    skipped_count = sum(
+        n for (_c, s), n in by_channel_status.items() if s == "SKIPPED"
     )
 
     return {

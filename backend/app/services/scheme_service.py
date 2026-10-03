@@ -553,14 +553,18 @@ def request_archive_scheme(
 
 def get_archive_requests(
     db: Session,
+    page: int | None = None,
+    limit: int | None = None,
 ):
 
-    return (
+    query = (
         db.query(Scheme)
         .filter(Scheme.status == "ARCHIVE_REQUESTED")
         .order_by(Scheme.scheme_id.desc())
-        .all()
     )
+    if page is not None and limit is not None:
+        query = query.offset(max(0, (page - 1) * limit)).limit(limit)
+    return query.all()
 
 
 def approve_archive_scheme(
@@ -761,14 +765,18 @@ def request_delete_scheme(
 
 def get_delete_requests(
     db: Session,
+    page: int | None = None,
+    limit: int | None = None,
 ):
 
-    return (
+    query = (
         db.query(Scheme)
         .filter(Scheme.status == "DELETE_REQUESTED")
         .order_by(Scheme.scheme_id.desc())
-        .all()
     )
+    if page is not None and limit is not None:
+        query = query.offset(max(0, (page - 1) * limit)).limit(limit)
+    return query.all()
 
 
 def approve_delete_scheme(
@@ -1003,11 +1011,15 @@ def search_schemes(
 
 def get_pending_schemes(
     db: Session,
+    page: int | None = None,
+    limit: int | None = None,
 ):
 
-    return (
+    query = (
         db.query(Scheme)
         .filter(Scheme.status == "PENDING_APPROVAL")
         .order_by(Scheme.scheme_id.desc())
-        .all()
     )
+    if page is not None and limit is not None:
+        query = query.offset(max(0, (page - 1) * limit)).limit(limit)
+    return query.all()

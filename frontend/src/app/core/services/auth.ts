@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, Subject, shareReplay, tap } from "rxjs";
+import { Observable, Subject, of, shareReplay, tap } from "rxjs";
 import { finalize } from "rxjs/operators";
 
 export interface AuthUser {
@@ -73,6 +73,8 @@ export class Auth {
 
         if (response?.user) {
           this.setUser(response.user);
+          this.cachedMe = response.user;
+          this.lastMeAt = Date.now();
         }
       }),
     );
@@ -91,6 +93,8 @@ export class Auth {
 
         if (response?.user) {
           this.setUser(response.user);
+          this.cachedMe = response.user;
+          this.lastMeAt = Date.now();
         }
       }),
     );
@@ -170,6 +174,8 @@ export class Auth {
 
           if (response?.user) {
             this.setUser(response.user);
+            this.cachedMe = response.user;
+            this.lastMeAt = Date.now();
           }
         }),
       );
@@ -180,13 +186,23 @@ export class Auth {
   // =========================================================
 
   /**
-   * In-flight deduplication only: concurrent callers (e.g. role layout
-   * plus page component on cold navigation) share a single GET /auth/me.
-   * Sequential calls always re-request, so no stale user data is cached.
+   * In-flight deduplication + short TTL: concurrent callers (e.g. role layout
+   * plus page component on cold navigation) share a single GET /auth/me, and
+   * sequential mounts within 30s reuse it instead of re-requesting.
+   * Login/register/logout always invalidate.
    */
   private currentUserRequest$: Observable<AuthUser> | null = null;
+  private cachedMe: AuthUser | null = null;
+  private lastMeAt = 0;
+  private static readonly ME_TTL_MS = 30_000;
 
-  getCurrentUser(): Observable<AuthUser> {
+  getCurrentUser(forceRefresh = false): Observable<AuthUser> {
+    const fresh =
+      this.cachedMe &&
+      Date.now() - this.lastMeAt < Auth.ME_TTL_MS;
+    if (!forceRefresh && fresh && this.cachedMe) {
+      return of(this.cachedMe);
+    }
     if (!this.currentUserRequest$) {
       this.currentUserRequest$ = this.http
         .get<AuthUser>(`${this.apiUrl}/me`)
@@ -194,6 +210,8 @@ export class Auth {
           tap((user: AuthUser) => {
             if (user) {
               this.setUser(user);
+              this.cachedMe = user;
+              this.lastMeAt = Date.now();
             }
           }),
           finalize(() => {
@@ -203,6 +221,13 @@ export class Auth {
         );
     }
     return this.currentUserRequest$;
+  }
+
+  /** Drop the cached /auth/me snapshot (login, register, logout). */
+  invalidateMe(): void {
+    this.cachedMe = null;
+    this.lastMeAt = 0;
+    this.currentUserRequest$ = null;
   }
 
   // =========================================================
@@ -377,6 +402,7 @@ export class Auth {
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
+    this.invalidateMe();
     this.loggedOutSubject.next();
   }
 

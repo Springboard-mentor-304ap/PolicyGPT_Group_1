@@ -2,7 +2,7 @@ import { Component, OnInit, inject, OnDestroy, signal, computed, ChangeDetectorR
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
+import { Subject, Subscription, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { SchemeService } from '../../../core/services/scheme.service';
 import { SavedItemsService } from '../../../core/services/saved-items.service';
@@ -42,6 +42,7 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly destroy$ = new Subject<void>();
+  private loadSub: Subscription | null = null;
   private readonly searchSubject = new Subject<string>();
 
   // Search & Filters (Scheme Name, Department, State, Sector, Publication Date, Status)
@@ -232,6 +233,9 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   }
 
   loadSchemes(): void {
+    // Cancel any in-flight list request so a slow earlier response can
+    // never overwrite newer results (keystroke/filter races).
+    this.loadSub?.unsubscribe();
     this.loading.set(true);
     this.errorMessage.set('');
     this.cdr.detectChanges();
@@ -251,7 +255,7 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
       limit: this.pageSize,
     };
 
-    this.schemeService.getSchemes(filters).subscribe({
+    this.loadSub = this.schemeService.getSchemes(filters).pipe(takeUntil(this.destroy$)).subscribe({
       next: (response: SchemeListResponse) => {
         const rawSchemes = Array.isArray(response?.schemes) ? response.schemes : [];
         let filtered = rawSchemes;

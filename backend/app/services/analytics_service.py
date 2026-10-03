@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import case, func, extract
 
 from app.models.policy import Policy
 from app.models.scheme import Scheme
@@ -17,71 +17,47 @@ def get_dashboard_analytics(
 ):
     # Policy and scheme data are shared platform data.
     # There is currently no owner/user_id column in these tables.
+    # User scope: ADMIN sees all, others only themselves.
 
-    user_query = db.query(User)
+    user_is_admin = user_role == "ADMIN"
+    user_self_only = not user_is_admin and user_id is not None
 
-    if user_role == "ADMIN":
-        pass
-    elif user_id is not None:
-        user_query = user_query.filter(
-            User.user_id == user_id
+    pol_rows = (
+        db.query(Policy.status, func.count(Policy.policy_id))
+        .group_by(Policy.status)
+        .all()
+    )
+    pol_by_status = {s: c for s, c in pol_rows}
+    policies_total = sum(pol_by_status.values())
+    policies_approved = pol_by_status.get("APPROVED", 0)
+    policies_pending = pol_by_status.get("PENDING_APPROVAL", 0)
+    policies_rejected = pol_by_status.get("REJECTED", 0)
+    policies_archived = pol_by_status.get("ARCHIVED", 0)
+
+    sch_rows = (
+        db.query(Scheme.status, func.count(Scheme.scheme_id))
+        .group_by(Scheme.status)
+        .all()
+    )
+    sch_by_status = {s: c for s, c in sch_rows}
+    schemes_total = sum(sch_by_status.values())
+    schemes_approved = sch_by_status.get("APPROVED", 0)
+    schemes_pending = sch_by_status.get("PENDING_APPROVAL", 0)
+    schemes_rejected = sch_by_status.get("REJECTED", 0)
+    schemes_archived = sch_by_status.get("ARCHIVED", 0)
+
+    user_row = (
+        db.query(
+            func.count(User.user_id),
+            func.sum(case((User.is_active == True, 1), else_=0)),
         )
-
-    policies_total = db.query(Policy).count()
-    policies_approved = (
-        db.query(Policy)
-        .filter(Policy.status == "APPROVED")
-        .count()
     )
-    policies_pending = (
-        db.query(Policy)
-        .filter(Policy.status == "PENDING_APPROVAL")
-        .count()
-    )
-    policies_rejected = (
-        db.query(Policy)
-        .filter(Policy.status == "REJECTED")
-        .count()
-    )
-    policies_archived = (
-        db.query(Policy)
-        .filter(Policy.status == "ARCHIVED")
-        .count()
-    )
-
-    schemes_total = db.query(Scheme).count()
-    schemes_approved = (
-        db.query(Scheme)
-        .filter(Scheme.status == "APPROVED")
-        .count()
-    )
-    schemes_pending = (
-        db.query(Scheme)
-        .filter(Scheme.status == "PENDING_APPROVAL")
-        .count()
-    )
-    schemes_rejected = (
-        db.query(Scheme)
-        .filter(Scheme.status == "REJECTED")
-        .count()
-    )
-    schemes_archived = (
-        db.query(Scheme)
-        .filter(Scheme.status == "ARCHIVED")
-        .count()
-    )
-
-    users_total = user_query.count()
-    users_active = (
-        user_query
-        .filter(User.is_active == True)
-        .count()
-    )
-    users_inactive = (
-        user_query
-        .filter(User.is_active == False)
-        .count()
-    )
+    if user_self_only:
+        user_row = user_row.filter(User.user_id == user_id)
+    user_row = user_row.first()
+    users_total = user_row[0] or 0
+    users_active = int(user_row[1] or 0)
+    users_inactive = users_total - users_active
 
     return {
         "policies": {
@@ -127,31 +103,17 @@ def get_dashboard_analytics(
 
 def get_policy_analytics(db: Session):
 
-    total = db.query(Policy).count()
-
-    approved = (
-        db.query(Policy)
-        .filter(Policy.status == "APPROVED")
-        .count()
+    status_rows = (
+        db.query(Policy.status, func.count(Policy.policy_id))
+        .group_by(Policy.status)
+        .all()
     )
-
-    pending = (
-        db.query(Policy)
-        .filter(Policy.status == "PENDING_APPROVAL")
-        .count()
-    )
-
-    rejected = (
-        db.query(Policy)
-        .filter(Policy.status == "REJECTED")
-        .count()
-    )
-
-    archived = (
-        db.query(Policy)
-        .filter(Policy.status == "ARCHIVED")
-        .count()
-    )
+    by_status = {s: c for s, c in status_rows}
+    total = sum(by_status.values())
+    approved = by_status.get("APPROVED", 0)
+    pending = by_status.get("PENDING_APPROVAL", 0)
+    rejected = by_status.get("REJECTED", 0)
+    archived = by_status.get("ARCHIVED", 0)
 
     by_category = (
         db.query(
@@ -224,31 +186,17 @@ def get_policy_analytics(db: Session):
 
 def get_scheme_analytics(db: Session):
 
-    total = db.query(Scheme).count()
-
-    approved = (
-        db.query(Scheme)
-        .filter(Scheme.status == "APPROVED")
-        .count()
+    status_rows = (
+        db.query(Scheme.status, func.count(Scheme.scheme_id))
+        .group_by(Scheme.status)
+        .all()
     )
-
-    pending = (
-        db.query(Scheme)
-        .filter(Scheme.status == "PENDING_APPROVAL")
-        .count()
-    )
-
-    rejected = (
-        db.query(Scheme)
-        .filter(Scheme.status == "REJECTED")
-        .count()
-    )
-
-    archived = (
-        db.query(Scheme)
-        .filter(Scheme.status == "ARCHIVED")
-        .count()
-    )
+    by_status = {s: c for s, c in status_rows}
+    total = sum(by_status.values())
+    approved = by_status.get("APPROVED", 0)
+    pending = by_status.get("PENDING_APPROVAL", 0)
+    rejected = by_status.get("REJECTED", 0)
+    archived = by_status.get("ARCHIVED", 0)
 
     by_category = (
         db.query(
@@ -441,19 +389,15 @@ def get_user_analytics(
             User.user_id == user_id
         )
 
-    total_users = query.count()
-
-    active_users = (
-        query
-        .filter(User.is_active == True)
-        .count()
+    totals_row = (
+        query.with_entities(
+            func.count(User.user_id),
+            func.sum(case((User.is_active == True, 1), else_=0)),
+        ).first()
     )
-
-    inactive_users = (
-        query
-        .filter(User.is_active == False)
-        .count()
-    )
+    total_users = totals_row[0] or 0
+    active_users = int(totals_row[1] or 0)
+    inactive_users = total_users - active_users
 
     by_role = (
         query
@@ -534,20 +478,21 @@ def get_user_activity(
             User.user_id == user_id
         )
 
+    totals_row = (
+        query.with_entities(
+            func.count(User.user_id),
+            func.sum(case((User.is_active == True, 1), else_=0)),
+        ).first()
+    )
+    total = totals_row[0] or 0
+    active = int(totals_row[1] or 0)
+
     return {
-        "total_users": query.count(),
+        "total_users": total,
 
-        "active_users": (
-            query
-            .filter(User.is_active == True)
-            .count()
-        ),
+        "active_users": active,
 
-        "inactive_users": (
-            query
-            .filter(User.is_active == False)
-            .count()
-        )
+        "inactive_users": total - active,
     }
 
 

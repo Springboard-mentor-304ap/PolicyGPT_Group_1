@@ -386,19 +386,43 @@ class NotificationDeliveryService:
         exhausted = 0
         recovered = 0
 
+        # Batch the notification + user lookups (2 IN queries) instead of
+        # 2 sequential lookups per delivery row.
+        notif_ids = list(
+            {d.notification_id for d in candidates if d.notification_id}
+        )
+        notifications = (
+            {
+                n.notification_id: n
+                for n in db.query(Notification)
+                .filter(Notification.notification_id.in_(notif_ids))
+                .all()
+            }
+            if notif_ids
+            else {}
+        )
+        user_ids = list(
+            {
+                n.user_id
+                for n in notifications.values()
+                if n.user_id is not None
+            }
+        )
+        users = (
+            {
+                u.user_id: u
+                for u in db.query(User).filter(User.user_id.in_(user_ids)).all()
+            }
+            if user_ids
+            else {}
+        )
+
         for delivery in candidates:
-            notification = (
-                db.query(Notification)
-                .filter(
-                    Notification.notification_id == delivery.notification_id
-                )
-                .first()
-            )
+            notification = notifications.get(delivery.notification_id)
             if notification is None:
                 continue
             user = (
-                db.query(User).filter(User.user_id ==
-                         notification.user_id).first()
+                users.get(notification.user_id)
                 if notification.user_id
                 else None
             )

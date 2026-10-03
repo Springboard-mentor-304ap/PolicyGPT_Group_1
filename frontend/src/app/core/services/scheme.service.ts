@@ -1,6 +1,8 @@
 import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Observable } from "rxjs";
+import { Observable, of, throwError } from "rxjs";
+import { catchError, shareReplay, tap } from "rxjs/operators";
+import { Auth } from "./auth";
 
 import {
   SchemeResponse,
@@ -30,21 +32,55 @@ export class SchemeService {
   private readonly analyticsUrl = "http://localhost:8000/analytics/schemes";
 
   private cache = new Map<string, { data: any; timestamp: number }>();
+  private inflight = new Map<string, Observable<any>>();
   private readonly CACHE_TTL = 30000; // 30 seconds
+  private static readonly MAX_ENTRIES = 100;
 
-  constructor(private http: HttpClient) {}
-
-  private getCacheKey(method: string, params?: HttpParams): string {
-    return `${method}:${params?.toString() || ""}`;
+  constructor(
+    private http: HttpClient,
+    private auth: Auth,
+  ) {
+    // Never serve one user's list data to another user in the same tab.
+    // Optional-chained: specs may provide a partial Auth double.
+    this.auth.onLoggedOut?.(() => this.clearCache());
   }
 
-  private getFromCache(key: string): any | null {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return cached.data;
+  private getCacheKey(method: string, params?: HttpParams): string {
+    const uid = this.auth.getStoredUser()?.user_id ?? "anon";
+    return `${uid}|${method}:${params?.toString() || ""}`;
+  }
+
+  private getCached<T>(key: string, fetchFn: () => Observable<T>): Observable<T> {
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.timestamp < this.CACHE_TTL) {
+      return of(hit.data as T);
     }
-    this.cache.delete(key);
-    return null;
+    if (hit) {
+      this.cache.delete(key);
+    }
+    const ongoing = this.inflight.get(key);
+    if (ongoing) {
+      return ongoing as Observable<T>;
+    }
+    const req = fetchFn().pipe(
+      tap((data) => {
+        if (this.cache.size >= SchemeService.MAX_ENTRIES) {
+          const oldest = this.cache.keys().next();
+          if (!oldest.done) {
+            this.cache.delete(oldest.value);
+          }
+        }
+        this.cache.set(key, { data, timestamp: Date.now() });
+        this.inflight.delete(key);
+      }),
+      catchError((err) => {
+        this.inflight.delete(key);
+        return throwError(() => err);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.inflight.set(key, req);
+    return req;
   }
 
   private setCache(key: string, data: any): void {
@@ -99,7 +135,11 @@ export class SchemeService {
     params = params.set("page", page.toString());
     params = params.set("limit", limit.toString());
 
-    return this.http.get<SchemeListResponse>(this.apiUrl, { params });
+    const key = this.getCacheKey("getSchemes", params);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeListResponse>(this.apiUrl, { params }),
+    );
   }
 
   // ============================================================
@@ -111,7 +151,11 @@ export class SchemeService {
     if (!id || id <= 0) {
       throw new Error("A valid scheme ID is required.");
     }
-    return this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`);
+    const key = this.getCacheKey(`getScheme:${id}`);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`),
+    );
   }
 
   // ============================================================
@@ -123,7 +167,11 @@ export class SchemeService {
     if (!schemeId || schemeId <= 0) {
       throw new Error("A valid scheme ID is required.");
     }
-    return this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`);
+    const key = this.getCacheKey(`getEligibilityRules:${schemeId}`);
+    return this.getCached(
+      key,
+      () => this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`),
+    );
   }
 
   // ============================================================
@@ -255,15 +303,27 @@ export class SchemeService {
   }
 
   getPendingSchemes(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/pending-approval`);
+    const key = this.getCacheKey("getPendingSchemes");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/pending-approval`)
+    );
   }
 
   getArchiveRequests(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/archive-requests`);
+    const key = this.getCacheKey("getArchiveRequests");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/archive-requests`)
+    );
   }
 
   getDeleteRequests(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/delete-requests`);
+    const key = this.getCacheKey("getDeleteRequests");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/delete-requests`)
+    );
   }
 
   // ============================================================
@@ -272,7 +332,11 @@ export class SchemeService {
   // ============================================================
 
   getSchemeStatistics(): Observable<SchemeAnalyticsResponse> {
-    return this.http.get<SchemeAnalyticsResponse>(this.analyticsUrl);
+    const key = this.getCacheKey("getSchemeStatistics");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeAnalyticsResponse>(this.analyticsUrl)
+    );
   }
 
   getSchemeAnalytics(): Observable<SchemeAnalyticsResponse> {

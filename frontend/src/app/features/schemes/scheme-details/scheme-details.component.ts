@@ -288,6 +288,11 @@ export class SchemeDetailsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = "";
 
+    // Bookmark state and eligibility rules need only the route schemeId,
+    // not the scheme body: fetch in parallel instead of waiting.
+    this.loadBookmarkState(schemeId);
+    this.loadEligibilityRules(schemeId);
+
     this.schemeService
       .getScheme(schemeId)
       .pipe(
@@ -308,8 +313,6 @@ export class SchemeDetailsComponent implements OnInit {
 
         this.scheme = scheme;
         this.cdr.detectChanges();
-        this.loadBookmarkState(scheme.scheme_id);
-        this.loadEligibilityRules(scheme.scheme_id);
       });
   }
 

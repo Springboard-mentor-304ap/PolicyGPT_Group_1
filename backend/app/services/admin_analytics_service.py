@@ -93,7 +93,9 @@ def _month_bounds(num_months: int):
     can use btree indexes on created_at (extract() cannot).
     """
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    first_of_current = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    first_of_current = now.replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
     buckets = []
     for i in range(num_months - 1, -1, -1):
         idx = first_of_current.month - 1 - i
@@ -132,12 +134,10 @@ def get_admin_overview_analytics(
     # Each returns current + prev-period in one roundtrip via conditional SUM.
     # Prev-period columns mirror the legacy logic: totals/notifs on
     # created_at, per-status buckets on updated_at.
-    users_row = (
-        db.query(
-            func.count(User.user_id),
-            func.sum(case((User.created_at < thirty_days_ago, 1), else_=0)),
-        ).first()
-    )
+    users_row = db.query(
+        func.count(User.user_id),
+        func.sum(case((User.created_at < thirty_days_ago, 1), else_=0)),
+    ).first()
     total_users = users_row[0] or 0
     users_prev = int(users_row[1] or 0)
     users_chg, users_pos = _calc_change(total_users, users_prev)
@@ -154,9 +154,7 @@ def get_admin_overview_analytics(
     pol_by_status = {s: (c, int(p or 0)) for s, c, p in pol_rows}
     total_policies = sum(c for c, _ in pol_by_status.values())
     policies_prev = (
-        db.query(Policy)
-        .filter(Policy.created_at < thirty_days_ago)
-        .count()
+        db.query(Policy).filter(Policy.created_at < thirty_days_ago).count()
     )
     policies_chg, policies_pos = _calc_change(total_policies, policies_prev)
 
@@ -186,9 +184,7 @@ def get_admin_overview_analytics(
     sch_by_status = {s: (c, int(p or 0)) for s, c, p in sch_rows}
     total_schemes = sum(c for c, _ in sch_by_status.values())
     schemes_prev = (
-        db.query(Scheme)
-        .filter(Scheme.created_at < thirty_days_ago)
-        .count()
+        db.query(Scheme).filter(Scheme.created_at < thirty_days_ago).count()
     )
     schemes_chg, schemes_pos = _calc_change(total_schemes, schemes_prev)
 
@@ -196,14 +192,12 @@ def get_admin_overview_analytics(
     act_prev = int(act_prev)
     act_chg, act_pos = _calc_change(active_schemes, act_prev)
 
-    notifs_row = (
-        db.query(
-            func.count(Notification.notification_id),
-            func.sum(
-                case((Notification.created_at < thirty_days_ago, 1), else_=0)
-            ),
-        ).first()
-    )
+    notifs_row = db.query(
+        func.count(Notification.notification_id),
+        func.sum(
+            case((Notification.created_at < thirty_days_ago, 1), else_=0)
+        ),
+    ).first()
     total_notifs = notifs_row[0] or 0
     notifs_prev = int(notifs_row[1] or 0)
     notifs_chg, notifs_pos = _calc_change(total_notifs, notifs_prev)
@@ -282,9 +276,7 @@ def get_admin_overview_analytics(
         )
         .all()
     )
-    trend_map = {
-        (int(y), int(m), s): c for y, m, s, c in trend_rows
-    }
+    trend_map = {(int(y), int(m), s): c for y, m, s, c in trend_rows}
 
     approved_series = []
     pending_series = []
@@ -836,37 +828,35 @@ def get_admin_user_analytics(
     sixty_days_ago = now - timedelta(days=60)
 
     # KPI base — 2 grouped queries instead of 12 COUNTs.
-    user_row = (
-        db.query(
-            func.count(User.user_id),
-            func.sum(case((User.is_active == True, 1), else_=0)),
-            func.sum(case((User.created_at >= thirty_days_ago, 1), else_=0)),
-            func.sum(
-                case(
-                    (
-                        and_(
-                            User.created_at >= sixty_days_ago,
-                            User.created_at < thirty_days_ago,
-                        ),
-                        1,
+    user_row = db.query(
+        func.count(User.user_id),
+        func.sum(case((User.is_active == True, 1), else_=0)),
+        func.sum(case((User.created_at >= thirty_days_ago, 1), else_=0)),
+        func.sum(
+            case(
+                (
+                    and_(
+                        User.created_at >= sixty_days_ago,
+                        User.created_at < thirty_days_ago,
                     ),
-                    else_=0,
-                )
-            ),
-            func.sum(
-                case(
-                    (
-                        and_(
-                            User.is_active == True,
-                            User.created_at < thirty_days_ago,
-                        ),
-                        1,
+                    1,
+                ),
+                else_=0,
+            )
+        ),
+        func.sum(
+            case(
+                (
+                    and_(
+                        User.is_active == True,
+                        User.created_at < thirty_days_ago,
                     ),
-                    else_=0,
-                )
-            ),
-        ).first()
-    )
+                    1,
+                ),
+                else_=0,
+            )
+        ),
+    ).first()
     total_users = user_row[0] or 0
     active_users = int(user_row[1] or 0)
     new_users = int(user_row[2] or 0)
@@ -908,7 +898,7 @@ def get_admin_user_analytics(
             "value": f"{active_users:,}",
             "change": active_chg,
             "isPositive": active_pos,
-            "icon": "person_check",
+            "icon": "person",
             "iconClass": "green",
         },
         {
@@ -973,7 +963,9 @@ def get_admin_user_analytics(
     researchers_series = []
     for y, m, _, _, _ in buckets:
         citizen_series.append(growth_map.get((y, m, "CITIZEN"), 0))
-        officials_series.append(growth_map.get((y, m, "GOVERNMENT_OFFICIAL"), 0))
+        officials_series.append(
+            growth_map.get((y, m, "GOVERNMENT_OFFICIAL"), 0)
+        )
         researchers_series.append(growth_map.get((y, m, "RESEARCHER"), 0))
 
     growth_trend = {
@@ -1039,7 +1031,9 @@ def get_admin_user_analytics(
         .all()
     )
     reg_map = {(int(y), int(m)): c for y, m, c in reg_rows}
-    reg_trend_values = [reg_map.get((y, m), 0) for y, m, _, _, _ in reg_buckets]
+    reg_trend_values = [
+        reg_map.get((y, m), 0) for y, m, _, _, _ in reg_buckets
+    ]
 
     registration_trend = {
         "labels": reg_trend_labels,
@@ -1067,41 +1061,43 @@ def get_admin_user_analytics(
     logins_row = (
         db.query(
             func.count(AuditLog.audit_id),
-            func.sum(case((and_(login_cond, AuditLog.created_at < thirty_days_ago), 1), else_=0)),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            login_cond, AuditLog.created_at < thirty_days_ago
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ),
         )
         .filter(login_cond)
         .first()
     )
     total_logins = logins_row[0] or 0
     logins_prev = int(logins_row[1] or 0)
-    searches_row = (
-        db.query(
-            func.count(SearchHistory.history_id),
-            func.sum(
-                case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
-            ),
-        ).first()
-    )
+    searches_row = db.query(
+        func.count(SearchHistory.history_id),
+        func.sum(
+            case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
+        ),
+    ).first()
     search_queries = searches_row[0] or 0
     searches_prev = int(searches_row[1] or 0)
-    reports_row = (
-        db.query(
-            func.count(Report.report_id),
-            func.sum(
-                case((Report.generated_at < thirty_days_ago, 1), else_=0)
-            ),
-        ).first()
-    )
+    reports_row = db.query(
+        func.count(Report.report_id),
+        func.sum(case((Report.generated_at < thirty_days_ago, 1), else_=0)),
+    ).first()
     reports_gen = reports_row[0] or 0
     reports_prev = int(reports_row[1] or 0)
-    notifs_row = (
-        db.query(
-            func.count(Notification.notification_id),
-            func.sum(
-                case((Notification.created_at < thirty_days_ago, 1), else_=0)
-            ),
-        ).first()
-    )
+    notifs_row = db.query(
+        func.count(Notification.notification_id),
+        func.sum(
+            case((Notification.created_at < thirty_days_ago, 1), else_=0)
+        ),
+    ).first()
     notifs_sent = notifs_row[0] or 0
     notifs_prev = int(notifs_row[1] or 0)
     logins_chg, logins_pos = _calc_change(total_logins, logins_prev)
@@ -1216,7 +1212,10 @@ def get_admin_user_analytics(
     )
     top_uids = [uid for uid, _ in active_user_counts]
     users_by_id = (
-        {u.user_id: u for u in db.query(User).filter(User.user_id.in_(top_uids)).all()}
+        {
+            u.user_id: u
+            for u in db.query(User).filter(User.user_id.in_(top_uids)).all()
+        }
         if top_uids
         else {}
     )
@@ -1524,7 +1523,11 @@ def get_admin_department_analytics(
     )
     last_by_dept = {d: dt for d, dt in pol_max_rows}
     for d, dt in sch_max_rows:
-        if dt and (d not in last_by_dept or not last_by_dept[d] or dt > last_by_dept[d]):
+        if dt and (
+            d not in last_by_dept
+            or not last_by_dept[d]
+            or dt > last_by_dept[d]
+        ):
             last_by_dept[d] = dt
     performance_table = []
     for idx, d_item in enumerate(all_dept_items[1:], 1):
@@ -1573,21 +1576,27 @@ def get_admin_usage_statistics(
         AuditLog.action.ilike("%login%"), AuditLog.action.ilike("%auth%")
     )
     # KPIs — 3 single-row conditional queries instead of 7 COUNTs.
-    searches_row = (
-        db.query(
-            func.count(SearchHistory.history_id),
-            func.sum(
-                case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
-            ),
-        ).first()
-    )
+    searches_row = db.query(
+        func.count(SearchHistory.history_id),
+        func.sum(
+            case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
+        ),
+    ).first()
     total_searches = searches_row[0] or 0
     searches_prev = int(searches_row[1] or 0)
     logins_row = (
         db.query(
             func.count(AuditLog.audit_id),
             func.sum(
-                case((and_(login_cond, AuditLog.created_at < thirty_days_ago), 1), else_=0)
+                case(
+                    (
+                        and_(
+                            login_cond, AuditLog.created_at < thirty_days_ago
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
             ),
         )
         .filter(login_cond)
@@ -1595,12 +1604,10 @@ def get_admin_usage_statistics(
     )
     total_logins = logins_row[0] or 0
     logins_prev = int(logins_row[1] or 0)
-    reports_row = (
-        db.query(
-            func.count(Report.report_id),
-            func.sum(case((Report.generated_at < thirty_days_ago, 1), else_=0)),
-        ).first()
-    )
+    reports_row = db.query(
+        func.count(Report.report_id),
+        func.sum(case((Report.generated_at < thirty_days_ago, 1), else_=0)),
+    ).first()
     reports_count = reports_row[0] or 0
     reports_prev = int(reports_row[1] or 0)
     visits_chg, visits_pos = _calc_change(total_logins, logins_prev)
@@ -1817,9 +1824,7 @@ def get_admin_usage_statistics(
     active_users_by_id = (
         {
             u.user_id: u
-            for u in db.query(User)
-            .filter(User.user_id.in_(active_uids))
-            .all()
+            for u in db.query(User).filter(User.user_id.in_(active_uids)).all()
         }
         if active_uids
         else {}

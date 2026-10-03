@@ -212,25 +212,21 @@ def load_history(db, conversation_id: int, limit: int) -> list:
 
 
 def clear_user_history(db, user_id: int) -> int:
-    conversations = (
-        db.query(ChatbotConversation)
+    # Bulk deletes instead of N+M per-row deletes: messages first (FK),
+    # then conversations. Subquery avoids loading any rows.
+    conversation_ids = (
+        db.query(ChatbotConversation.conversation_id)
         .filter(ChatbotConversation.user_id == user_id)
-        .all()
+        .subquery()
     )
-    removed = 0
-    for conversation in conversations:
-        messages = (
-            db.query(ChatbotMessage)
-            .filter(
-                ChatbotMessage.conversation_id
-                == conversation.conversation_id
-            )
-            .all()
-        )
-        for message in messages:
-            db.delete(message)
-            removed += 1
-        db.delete(conversation)
+    removed = (
+        db.query(ChatbotMessage)
+        .filter(ChatbotMessage.conversation_id.in_(conversation_ids))
+        .delete(synchronize_session=False)
+    )
+    db.query(ChatbotConversation).filter(
+        ChatbotConversation.user_id == user_id
+    ).delete(synchronize_session=False)
     db.commit()
     return removed
 

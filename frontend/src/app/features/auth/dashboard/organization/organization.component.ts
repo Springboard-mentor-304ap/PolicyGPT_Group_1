@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, inject } from "@angular/core";
+import { Component, DestroyRef, OnInit, ChangeDetectorRef, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { forkJoin, of } from "rxjs";
@@ -93,6 +94,7 @@ export class OrganizationComponent implements OnInit {
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   /* =======================================================
      USER
@@ -225,7 +227,7 @@ export class OrganizationComponent implements OnInit {
       return;
     }
 
-    this.authService.getCurrentUser().subscribe({
+    this.authService.getCurrentUser().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (user: AuthUser) => {
         if (user) {
           this.setUserDetails(user);
@@ -258,7 +260,7 @@ export class OrganizationComponent implements OnInit {
       schemes: this.schemeService
         .getSchemes({ status: "APPROVED", limit: 3 })
         .pipe(catchError(() => of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }))),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ policyAnalytics, schemeAnalytics, policies, schemes }) => {
         const approvedPolicies = policyAnalytics.approved || policyAnalytics.total || 0;
         const activeSchemes = schemeAnalytics.active || schemeAnalytics.total || 0;

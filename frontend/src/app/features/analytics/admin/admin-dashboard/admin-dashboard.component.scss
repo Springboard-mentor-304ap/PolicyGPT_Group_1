@@ -1,4 +1,4 @@
-@use '../../shared/analytics-tokens' as tokens;
+@use "../../shared/analytics-tokens" as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — OVERVIEW DASHBOARD
    Harmonized with PolicyGPT Admin Portal Design System
@@ -140,14 +140,38 @@
     .card-icon-circle {
       @include tokens.analytics-icon-container;
 
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
-      &.green { background: #e8f8ef; color: #078944; }
-      &.green-check { background: #e8f8ef; color: #078944; }
-      &.orange { background: #fff1e5; color: #ff861c; }
-      &.red { background: #fee2e2; color: #dc2626; }
-      &.blue-gear { background: #eaf3ff; color: #0879ed; }
-      &.red-bell { background: #fee2e2; color: #dc2626; }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.green-check {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.orange {
+        background: #fff1e5;
+        color: #ff861c;
+      }
+      &.red {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      &.blue-gear {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.red-bell {
+        background: #fee2e2;
+        color: #dc2626;
+      }
     }
 
     .card-content {
@@ -177,8 +201,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
 
-        &.green { color: #078944; }
-        &.red { color: #dc2626; }
+        &.green {
+          color: #078944;
+        }
+        &.red {
+          color: #dc2626;
+        }
 
         .trend-sub {
           font-weight: 400;
@@ -199,8 +227,14 @@
     flex-direction: column;
   }
 
-  .flex-2 { flex: 2; min-width: 0; }
-  .flex-1 { flex: 1.2; min-width: 0; }
+  .flex-2 {
+    flex: 2;
+    min-width: 0;
+  }
+  .flex-1 {
+    flex: 1.2;
+    min-width: 0;
+  }
 }
 
 // Chart Card
@@ -427,10 +461,22 @@
       font-size: 11px;
       display: inline-block;
 
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
-      &.orange { background: #fff1e5; color: #ff861c; }
-      &.red { background: #fee2e2; color: #dc2626; }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
+      &.orange {
+        background: #fff1e5;
+        color: #ff861c;
+      }
+      &.red {
+        background: #fee2e2;
+        color: #dc2626;
+      }
     }
   }
 }

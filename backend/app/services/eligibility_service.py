@@ -610,6 +610,23 @@ def match_entities(
             .order_by(Policy.policy_id)
         ).all()
 
+        entity_ids = [e.policy_id for e in entities]
+        all_rules = (
+            db.scalars(
+                select(EligibilityRule)
+                .where(
+                    EligibilityRule.policy_id.in_(entity_ids),
+                    EligibilityRule.is_active.is_(True),
+                )
+                .order_by(EligibilityRule.rule_id)
+            ).all()
+            if entity_ids
+            else []
+        )
+        rules_by_entity: dict[int, list] = {}
+        for r in all_rules:
+            rules_by_entity.setdefault(r.policy_id, []).append(r)
+
     else:
 
         entities = db.scalars(
@@ -618,12 +635,29 @@ def match_entities(
             .order_by(Scheme.scheme_id)
         ).all()
 
+        entity_ids = [e.scheme_id for e in entities]
+        all_rules = (
+            db.scalars(
+                select(EligibilityRule)
+                .where(
+                    EligibilityRule.scheme_id.in_(entity_ids),
+                    EligibilityRule.is_active.is_(True),
+                )
+                .order_by(EligibilityRule.rule_id)
+            ).all()
+            if entity_ids
+            else []
+        )
+        rules_by_entity = {}
+        for r in all_rules:
+            rules_by_entity.setdefault(r.scheme_id, []).append(r)
+
     eligible_entities: list[dict[str, Any]] = []
 
     ineligible_entities: list[dict[str, Any]] = []
 
     # =====================================================
-    # CHECK EACH ENTITY
+    # CHECK EACH ENTITY (rules already batched: no per-entity query)
     # =====================================================
 
     for entity in entities:
@@ -632,27 +666,11 @@ def match_entities(
 
             entity_id = entity.policy_id
 
-            rules = db.scalars(
-                select(EligibilityRule)
-                .where(
-                    EligibilityRule.policy_id == entity_id,
-                    EligibilityRule.is_active.is_(True),
-                )
-                .order_by(EligibilityRule.rule_id)
-            ).all()
-
         else:
 
             entity_id = entity.scheme_id
 
-            rules = db.scalars(
-                select(EligibilityRule)
-                .where(
-                    EligibilityRule.scheme_id == entity_id,
-                    EligibilityRule.is_active.is_(True),
-                )
-                .order_by(EligibilityRule.rule_id)
-            ).all()
+        rules = rules_by_entity.get(entity_id, [])
 
         eligible, _, _ = evaluate_rules(
             list(rules),

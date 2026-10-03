@@ -2,7 +2,7 @@ import { CommonModule } from "@angular/common";
 import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
-import { forkJoin, timeout, finalize } from "rxjs";
+import { forkJoin, timeout, finalize, Subscription } from "rxjs";
 
 import {
   EligibilityMatchResponse,
@@ -170,6 +170,10 @@ export class EligibilityChecker implements OnInit {
    * Find schemes and policies matching the user's profile.
    */
   findEligible(): void {
+    // Prevent duplicate submissions: ignore while a check is in flight.
+    if (this.loading) {
+      return;
+    }
     console.log("=================================");
     console.log("Eligibility search started");
     console.log("Profile:", this.profile);

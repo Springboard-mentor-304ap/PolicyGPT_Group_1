@@ -1,4 +1,5 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { forkJoin, of } from "rxjs";
@@ -84,6 +85,7 @@ export class CitizenComponent implements OnInit {
   private readonly notificationService = inject(NotificationService);
   private readonly searchHistoryService = inject(SearchHistoryService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   // =====================================================
   // USER
@@ -178,7 +180,7 @@ export class CitizenComponent implements OnInit {
       return;
     }
 
-    this.authService.getCurrentUser().subscribe({
+    this.authService.getCurrentUser().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (user: AuthUser) => {
         if (user) {
           this.setUserDetails(user);
@@ -221,7 +223,7 @@ export class CitizenComponent implements OnInit {
             .getNotificationStats(userId)
             .pipe(catchError(() => of({ total: 0, read: 0, unread: 0 })))
         : of({ total: 0, read: 0, unread: 0 }),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ policies, schemes, notificationStats }) => {
         const policyList: PolicyResponse[] = Array.isArray(policies?.policies) ? policies.policies : [];
         const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes) ? schemes.schemes : [];
@@ -293,7 +295,7 @@ export class CitizenComponent implements OnInit {
     if (userId) {
       this.searchHistoryService
         .getUserSearchHistory(userId)
-        .pipe(catchError(() => of([])))
+        .pipe(catchError(() => of([])), takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (history: SearchHistoryItem[]) => {
             this.searchHistory = Array.isArray(history)

@@ -238,10 +238,12 @@ def list_schemes(
     response_model=list[SchemeResponse],
 )
 def pending_approval(
+    page: int | None = Query(default=None, ge=1),
+    limit: int | None = Query(default=None, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-    return get_pending_schemes(db)
+    return get_pending_schemes(db, page=page, limit=limit)
 
 
 @router.get(
@@ -249,10 +251,12 @@ def pending_approval(
     response_model=list[SchemeResponse],
 )
 def archive_requests(
+    page: int | None = Query(default=None, ge=1),
+    limit: int | None = Query(default=None, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-    return get_archive_requests(db)
+    return get_archive_requests(db, page=page, limit=limit)
 
 
 @router.get(
@@ -260,10 +264,12 @@ def archive_requests(
     response_model=list[SchemeResponse],
 )
 def delete_requests(
+    page: int | None = Query(default=None, ge=1),
+    limit: int | None = Query(default=None, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-    return get_delete_requests(db)
+    return get_delete_requests(db, page=page, limit=limit)
 
 
 @router.get(

@@ -282,10 +282,10 @@
   }
 }
 
-// 3-Column Chart Grids
-.tri-grid {
+// 2-Column Chart Grids
+.duo-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
   margin-bottom: 24px;
 

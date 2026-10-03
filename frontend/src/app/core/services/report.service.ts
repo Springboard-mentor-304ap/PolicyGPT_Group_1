@@ -1,6 +1,6 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, shareReplay, throwError, timeout } from 'rxjs';
+import { Observable, catchError, finalize, shareReplay, throwError, timeout } from 'rxjs';
 import {
   Report,
   ReportDataset,
@@ -22,6 +22,9 @@ export class ReportService {
 
   /** Session cache for static filter options, keyed by role+type+field. */
   private readonly optionsCache = new Map<string, Observable<ReportOptionsResponse>>();
+
+  /** In-flight preview dedup, keyed by serialized params. */
+  private readonly previewInflight = new Map<string, Observable<ReportDataset>>();
 
   /** Role-scoped allowed types/formats. Mirrors GET /reports/types. */
   getTypes(): Observable<ReportTypesResponse> {
@@ -74,9 +77,24 @@ export class ReportService {
       }
       params[key] = String(value);
     }
-    return this.http
+    // Dedupe concurrent identical previews (rapid parameter tweaks can
+    // otherwise fire overlapping full-dataset builds server-side).
+    const previewKey = JSON.stringify(params);
+    const ongoing = this.previewInflight.get(previewKey);
+    if (ongoing) {
+      return ongoing;
+    }
+    const request = this.http
       .get<ReportDataset>(`${this.baseUrl}/preview`, { params })
-      .pipe(timeout(60000));
+      .pipe(
+        timeout(60000),
+        finalize(() => {
+          this.previewInflight.delete(previewKey);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    this.previewInflight.set(previewKey, request);
+    return request;
   }
 
   /** Own history (ADMIN sees all). Mirrors GET /reports/history. */

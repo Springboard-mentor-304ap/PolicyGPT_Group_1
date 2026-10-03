@@ -1498,77 +1498,62 @@ def build_audit_dataset(
 
 
 def get_reports_overview(db: Session, user: User) -> dict:
-    """Cheap role-scoped counts for the Reports dashboard overview."""
-    from app.services import analytics_service as analytics
+    """Cheap role-scoped counts for the Reports dashboard overview.
 
-    dashboard = analytics.get_dashboard_analytics(
-        db=db, user_id=user.user_id, user_role=user.role
-    )
-    if _is_staff(user.role):
-        pol = dashboard.get("policies", {})
-        sch = dashboard.get("schemes", {})
-    else:
+    Direct conditional counts + COUNT(DISTINCT ...) over a UNION (~7 light
+    queries) instead of the 13-query dashboard fan-out plus two full UNION
+    fetches whose rows were only counted in Python.
+    """
+    staff = _is_staff(user.role)
+    admin = _is_admin(user.role)
+
+    pol_q = db.query(func.count(Policy.policy_id))
+    sch_q = db.query(func.count(Scheme.scheme_id))
+    if not staff:
         # Public scope: overview counts reflect approved rows only.
-        pol = {
-            "total": db.query(func.count(Policy.policy_id))
-            .filter(Policy.status == "APPROVED")
-            .scalar()
-            or 0
-        }
-        sch = {
-            "total": db.query(func.count(Scheme.scheme_id))
-            .filter(Scheme.status == "APPROVED")
-            .scalar()
-            or 0
-        }
-    usr = dashboard.get("users", {})
+        pol_q = pol_q.filter(Policy.status == "APPROVED")
+        sch_q = sch_q.filter(Scheme.status == "APPROVED")
+    policies = pol_q.scalar() or 0
+    schemes = sch_q.scalar() or 0
 
-    if _is_staff(user.role):
-        ministries = (
-            db.query(Policy.ministry).union(db.query(Scheme.ministry)).all()
+    def _distinct_count(col_p, col_s) -> int:
+        pq = db.query(col_p.label("v")).filter(
+            col_p.isnot(None), col_p != ""
         )
-        departments = (
-            db.query(Policy.department)
-            .union(db.query(Scheme.department))
-            .all()
+        sq = db.query(col_s.label("v")).filter(
+            col_s.isnot(None), col_s != ""
         )
-    else:
-        ministries = (
-            db.query(Policy.ministry)
-            .filter(Policy.status == "APPROVED")
-            .union(
-                db.query(Scheme.ministry).filter(Scheme.status == "APPROVED")
-            )
-            .all()
-        )
-        departments = (
-            db.query(Policy.department)
-            .filter(Policy.status == "APPROVED")
-            .union(
-                db.query(Scheme.department).filter(Scheme.status == "APPROVED")
-            )
-            .all()
+        if not staff:
+            pq = pq.filter(Policy.status == "APPROVED")
+            sq = sq.filter(Scheme.status == "APPROVED")
+        union = pq.union(sq).subquery()
+        return (
+            db.query(func.count(func.distinct(union.c.v))).scalar() or 0
         )
 
     overview: dict = {
-        "policies": pol.get("total", 0),
-        "schemes": sch.get("total", 0),
-        "ministries": len({m for (m,) in ministries if m}),
-        "departments": len({d for (d,) in departments if d}),
+        "policies": policies,
+        "schemes": schemes,
+        "ministries": _distinct_count(Policy.ministry, Scheme.ministry),
+        "departments": _distinct_count(
+            Policy.department, Scheme.department
+        ),
     }
 
-    if _is_admin(user.role):
-        audit_total = db.query(func.count(AuditLog.audit_id)).scalar() or 0
-        overview["users"] = usr.get("total", 0)
-        overview["activity"] = audit_total
+    if admin:
+        overview["users"] = (
+            db.query(func.count(User.user_id)).scalar() or 0
+        )
+        overview["activity"] = (
+            db.query(func.count(AuditLog.audit_id)).scalar() or 0
+        )
     else:
-        own_audits = (
+        overview["activity"] = (
             db.query(func.count(AuditLog.audit_id))
             .filter(AuditLog.user_id == user.user_id)
             .scalar()
             or 0
         )
-        overview["activity"] = own_audits
 
     return overview
 

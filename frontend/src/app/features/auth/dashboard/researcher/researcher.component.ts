@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   OnInit,
   inject,
 } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { forkJoin, of } from "rxjs";
@@ -74,6 +76,7 @@ export class ResearcherComponent implements OnInit {
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
 
   loading = true;
   error = "";
@@ -226,7 +229,7 @@ export class ResearcherComponent implements OnInit {
             of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }),
           ),
         ),
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({
         policyAnalytics,
         schemeAnalytics,

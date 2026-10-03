@@ -67,7 +67,7 @@
   </div>
 
   <!-- Row 2: 3 Visualizations (Growth Trend, Distribution by Role, Registration Trend) -->
-  <div class="tri-grid">
+  <div class="duo-grid">
     <!-- A. User Growth Trend -->
     <div class="chart-card">
       <div class="card-header-row">
@@ -107,38 +107,35 @@
           [centerMainText]="roleTotal()" centerSubText="Total Users" />
       </div>
     </div>
-
-    <!-- C. User Registration Trend -->
-    <div class="chart-card">
-      <div class="card-header-row">
-        <h2 class="card-title">User Registration Trend</h2>
-        <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showRegMenu.set(!showRegMenu())"
-            [attr.aria-expanded]="showRegMenu()" aria-label="Select registration trend period">
-            <span>{{ regPeriod() }}</span>
-            <span class="material-icons">arrow_drop_down</span>
-          </button>
-          @if (showRegMenu()) {
-          <div class="dropdown-menu">
-            @for (opt of regPeriodOptions; track opt) {
-            <button type="button" class="dropdown-item" [class.active]="regPeriod() === opt"
-              (click)="setRegPeriod(opt)">
-              {{ opt }}
-            </button>
-            }
-          </div>
-          }
-        </div>
-      </div>
-
-      <div class="chart-body">
-        <app-vbar-chart [labels]="regLabels()" [values]="regValues()" color="#60a5fa" />
-      </div>
-    </div>
   </div>
 
   <!-- Row 3: 3 Sections (Users by State, User Engagement Metrics, User Activity Heatmap) -->
   <div class="tri-grid">
+    <!-- E. User Engagement Metrics (4 Mini-Cards) -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">User Engagement Metrics</h2>
+      </div>
+
+      <div class="engagement-grid">
+        @for (metric of engagementMetrics(); track metric.label) {
+        <div class="engagement-card">
+          <div class="engagement-icon-circle" [ngClass]="metric.iconClass" aria-hidden="true">
+            <span class="material-icons">{{ metric.icon }}</span>
+          </div>
+          <div class="engagement-content">
+            <span class="engagement-label">{{ metric.label }}</span>
+            <span class="engagement-value" [appCountUp]="metric.value">{{ metric.value }}</span>
+            @if (metric.change) {
+            <span class="engagement-trend" [ngClass]="{ 'green': metric.isPositive, 'red': !metric.isPositive }">
+              {{ metric.change }} <span class="trend-sub">from last period</span>
+            </span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
     <!-- D. Users by State -->
     <div class="chart-card">
       <div class="card-header-row">
@@ -167,47 +164,21 @@
       </div>
     </div>
 
-    <!-- E. User Engagement Metrics (4 Mini-Cards) -->
+    <!-- C. User Registration Trend -->
     <div class="chart-card">
       <div class="card-header-row">
-        <h2 class="card-title">User Engagement Metrics</h2>
-      </div>
-
-      <div class="engagement-grid">
-        @for (metric of engagementMetrics(); track metric.label) {
-        <div class="engagement-card">
-          <div class="engagement-icon-circle" [ngClass]="metric.iconClass" aria-hidden="true">
-            <span class="material-icons">{{ metric.icon }}</span>
-          </div>
-          <div class="engagement-content">
-            <span class="engagement-label">{{ metric.label }}</span>
-            <span class="engagement-value" [appCountUp]="metric.value">{{ metric.value }}</span>
-            @if (metric.change) {
-            <span class="engagement-trend" [ngClass]="{ 'green': metric.isPositive, 'red': !metric.isPositive }">
-              {{ metric.change }} <span class="trend-sub">from last period</span>
-            </span>
-            }
-          </div>
-        </div>
-        }
-      </div>
-    </div>
-
-    <!-- F. User Activity Heatmap -->
-    <div class="chart-card">
-      <div class="card-header-row">
-        <h2 class="card-title">User Activity Heatmap</h2>
+        <h2 class="card-title">User Registration Trend</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showHeatmapMenu.set(!showHeatmapMenu())"
-            [attr.aria-expanded]="showHeatmapMenu()" aria-label="Select heatmap period">
-            <span>{{ heatmapPeriod() }}</span>
+          <button type="button" class="dropdown-toggle-btn" (click)="showRegMenu.set(!showRegMenu())"
+            [attr.aria-expanded]="showRegMenu()" aria-label="Select registration trend period">
+            <span>{{ regPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
-          @if (showHeatmapMenu()) {
+          @if (showRegMenu()) {
           <div class="dropdown-menu">
-            @for (opt of heatmapPeriodOptions; track opt) {
-            <button type="button" class="dropdown-item" [class.active]="heatmapPeriod() === opt"
-              (click)="setHeatmapPeriod(opt)">
+            @for (opt of regPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="regPeriod() === opt"
+              (click)="setRegPeriod(opt)">
               {{ opt }}
             </button>
             }
@@ -216,48 +187,8 @@
         </div>
       </div>
 
-      <div class="heatmap-container">
-        <!-- Heatmap Grid -->
-        <div class="heatmap-body">
-          <div class="heatmap-days-col">
-            @for (day of heatmapDays(); track day) {
-            <div class="day-label">{{ day }}</div>
-            }
-          </div>
-
-          <div class="heatmap-grid-area">
-            @for (day of heatmapDays(); track day; let dIdx = $index) {
-            <div class="heatmap-row">
-              @for (time of heatmapTimes(); track time; let tIdx = $index) {
-              @let cell = getCell(dIdx, tIdx);
-              <div class="heatmap-cell" [ngClass]="'level-' + (cell?.level ?? 0)"
-                [title]="day + ' ' + time + ': ' + (cell?.value ?? 0) + ' active users'"
-                (mouseenter)="hoveredCell.set(cell ?? null)" (mouseleave)="hoveredCell.set(null)"></div>
-              }
-            </div>
-            }
-
-            <!-- Bottom Time labels -->
-            <div class="heatmap-times-row">
-              @for (time of heatmapTimes(); track time) {
-              <div class="time-label">{{ time }}</div>
-              }
-            </div>
-          </div>
-        </div>
-
-        <!-- Heatmap Legend -->
-        <div class="heatmap-legend">
-          <span class="legend-text">Low Activity</span>
-          <div class="legend-swatches">
-            <span class="swatch level-0"></span>
-            <span class="swatch level-1"></span>
-            <span class="swatch level-2"></span>
-            <span class="swatch level-3"></span>
-            <span class="swatch level-4"></span>
-          </div>
-          <span class="legend-text">High Activity</span>
-        </div>
+      <div class="chart-body">
+        <app-vbar-chart [labels]="regLabels()" [values]="regValues()" color="#60a5fa" />
       </div>
     </div>
   </div>
@@ -322,8 +253,6 @@
               <th scope="col">Name</th>
               <th scope="col">Role</th>
               <th scope="col">Logins</th>
-              <th scope="col">Searches</th>
-              <th scope="col">Last Active</th>
             </tr>
           </thead>
           <tbody>
@@ -337,8 +266,6 @@
                 </span>
               </td>
               <td class="text-secondary">{{ user.logins | number }}</td>
-              <td class="text-secondary">{{ user.searches | number }}</td>
-              <td class="text-muted">{{ user.lastActive }}</td>
             </tr>
             }
           </tbody>

@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, tap } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, of, tap, throwError } from 'rxjs';
+import { catchError, shareReplay } from 'rxjs/operators';
+import { Auth } from './auth';
 import {
   AdminNotificationStats,
   NotificationDeliveryRecord,
@@ -47,10 +49,70 @@ export class NotificationService {
   public readonly hasRealtime$ = this.hasRealtimeSubject.asObservable();
 
   private readonly realtime = inject(NotificationRealtimeService);
+  private readonly auth = inject(Auth);
   private realtimeWired = false;
+
+  /**
+   * Short-TTL read cache + in-flight dedup for badge/list/summary GETs.
+   * Concurrent identical calls (bell + list + poll tick) share one HTTP;
+   * sequential calls within 20s reuse it. Mutations clear it; logout too.
+   */
+  private static readonly READ_TTL_MS = 20_000;
+  private static readonly MAX_ENTRIES = 50;
+  private readCache = new Map<string, { at: number; data: unknown }>();
+  private readInflight = new Map<string, Observable<unknown>>();
 
   constructor(private readonly http: HttpClient) {
     this.wireRealtime();
+    // Optional-chained: specs may provide a partial Auth double.
+    this.auth.onLoggedOut?.(() => {
+      this.readCache.clear();
+      this.unreadCountSubject.next(0);
+    });
+  }
+
+  private readKey(key: string): string {
+    const uid = this.auth.getStoredUser()?.user_id ?? 'anon';
+    return `${uid}|${key}`;
+  }
+
+  private cachedGet<T>(key: string, fetchFn: () => Observable<T>): Observable<T> {
+    const skey = this.readKey(key);
+    const hit = this.readCache.get(skey);
+    if (hit && Date.now() - hit.at < NotificationService.READ_TTL_MS) {
+      return of(hit.data as T);
+    }
+    if (hit) {
+      this.readCache.delete(skey);
+    }
+    const ongoing = this.readInflight.get(skey);
+    if (ongoing) {
+      return ongoing as Observable<T>;
+    }
+    const req = fetchFn().pipe(
+      tap((data) => {
+        if (this.readCache.size >= NotificationService.MAX_ENTRIES) {
+          const oldest = this.readCache.keys().next();
+          if (!oldest.done) {
+            this.readCache.delete(oldest.value);
+          }
+        }
+        this.readCache.set(skey, { at: Date.now(), data });
+        this.readInflight.delete(skey);
+      }),
+      catchError((err) => {
+        this.readInflight.delete(skey);
+        return throwError(() => err);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.readInflight.set(skey, req);
+    return req;
+  }
+
+  /** Drop cached list/badge/summary reads after any read-state mutation. */
+  private invalidateReads(): void {
+    this.readCache.clear();
   }
 
   /**
@@ -155,12 +217,14 @@ export class NotificationService {
       if (params.page_size) httpParams = httpParams.set('page_size', params.page_size.toString());
     }
 
-    return this.http.get<NotificationListResponse>(this.baseUrl, { params: httpParams }).pipe(
-      tap((response) => {
-        if (response?.unread_count !== undefined) {
-          this.unreadCountSubject.next(response.unread_count);
-        }
-      })
+    return this.cachedGet(`list:${httpParams.toString()}`, () =>
+      this.http.get<NotificationListResponse>(this.baseUrl, { params: httpParams }).pipe(
+        tap((response) => {
+          if (response?.unread_count !== undefined) {
+            this.unreadCountSubject.next(response.unread_count);
+          }
+        }),
+      ),
     );
   }
 
@@ -168,10 +232,12 @@ export class NotificationService {
    * Fast endpoint to get current unread count for the topbar bell badge.
    */
   getUnreadCount(): Observable<UnreadCountResponse> {
-    return this.http.get<UnreadCountResponse>(`${this.baseUrl}/unread-count`).pipe(
-      tap((res) => {
-        this.unreadCountSubject.next(res.unread_count);
-      })
+    return this.cachedGet('unread-count', () =>
+      this.http.get<UnreadCountResponse>(`${this.baseUrl}/unread-count`).pipe(
+        tap((res) => {
+          this.unreadCountSubject.next(res.unread_count);
+        }),
+      ),
     );
   }
 
@@ -179,12 +245,14 @@ export class NotificationService {
    * Get 4-card notification summary statistics (Total, Unread, Read, This Week).
    */
   getSummary(): Observable<NotificationSummary> {
-    return this.http.get<NotificationSummary>(`${this.baseUrl}/summary`).pipe(
-      tap((summary) => {
-        if (summary?.unread !== undefined) {
-          this.unreadCountSubject.next(summary.unread);
-        }
-      })
+    return this.cachedGet('summary', () =>
+      this.http.get<NotificationSummary>(`${this.baseUrl}/summary`).pipe(
+        tap((summary) => {
+          if (summary?.unread !== undefined) {
+            this.unreadCountSubject.next(summary.unread);
+          }
+        }),
+      ),
     );
   }
 
@@ -201,6 +269,7 @@ export class NotificationService {
   markAsRead(notificationId: number): Observable<NotificationItem> {
     return this.http.patch<NotificationItem>(`${this.baseUrl}/${notificationId}/read`, {}).pipe(
       tap(() => {
+        this.invalidateReads();
         this.decrementUnreadCount();
       })
     );
@@ -212,6 +281,7 @@ export class NotificationService {
   markAsUnread(notificationId: number): Observable<NotificationItem> {
     return this.http.patch<NotificationItem>(`${this.baseUrl}/${notificationId}/unread`, {}).pipe(
       tap(() => {
+        this.invalidateReads();
         this.incrementUnreadCount();
       })
     );
@@ -223,6 +293,7 @@ export class NotificationService {
   markAllAsRead(): Observable<{ message: string; updated_count: number }> {
     return this.http.patch<{ message: string; updated_count: number }>(`${this.baseUrl}/read-all`, {}).pipe(
       tap(() => {
+        this.invalidateReads();
         this.unreadCountSubject.next(0);
       })
     );
@@ -234,7 +305,8 @@ export class NotificationService {
   deleteNotification(notificationId: number): Observable<{ message: string; notification_id: number }> {
     return this.http.delete<{ message: string; notification_id: number }>(`${this.baseUrl}/${notificationId}`).pipe(
       tap(() => {
-        this.getUnreadCount().subscribe();
+        this.invalidateReads();
+        this.getUnreadCount().subscribe({ error: () => undefined });
       })
     );
   }

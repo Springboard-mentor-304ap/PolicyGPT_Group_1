@@ -43,9 +43,11 @@
         <div class="card-value-row">
           <span class="card-value" [appCountUp]="stat.value">{{ stat.value }}</span>
         </div>
+        @if (stat.change) {
         <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
           {{ stat.change }} <span class="trend-sub">from last month</span>
         </span>
+        }
       </div>
     </div>
     }
@@ -54,6 +56,19 @@
   <!-- Filters Bar -->
   <app-filters-bar (apply)="onApplyFilters($event)" (reset)="onResetFilters()" />
 
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadData()">Retry</button>
+  </p>
+  }
+
   <!-- Row of 3 Chart Cards -->
   <div class="charts-three-row">
     <!-- Card 1: Schemes by Category -->
@@ -61,7 +76,7 @@
       <h3 class="card-title">Schemes by Category</h3>
       <app-doughnut-chart [labels]="categoryLabels()" [data]="categoryData()"
         [colors]="['#3cb371', '#2f6fed', '#06b6d4', '#f5a524', '#8b5cf6', '#e5484d', '#14b8a6', '#f43f5e', '#94a3b8']"
-        centerMainText="438" centerSubText="Schemes" />
+        [centerMainText]="categoryTotal()" centerSubText="Schemes" />
     </div>
 
     <!-- Card 2: Scheme Trend -->

@@ -1,4 +1,4 @@
-@use '../../shared/analytics-tokens' as tokens;
+@use "../../shared/analytics-tokens" as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — DEPARTMENT ANALYTICS
    Harmonized with PolicyGPT Admin Portal Design System
@@ -168,12 +168,30 @@
     .card-icon-wrapper {
       @include tokens.analytics-icon-container;
 
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.blue-light { background: #e0f2fe; color: #0284c7; }
-      &.green { background: #e8f8ef; color: #078944; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
-      &.cyan { background: #cff4fc; color: #0891b2; }
-      &.blue-gradient { background: #e0e7ff; color: #4338ca; }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.blue-light {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
+      &.cyan {
+        background: #cff4fc;
+        color: #0891b2;
+      }
+      &.blue-gradient {
+        background: #e0e7ff;
+        color: #4338ca;
+      }
     }
 
     .card-content {
@@ -198,7 +216,9 @@
           font-size: 11.5px;
           font-weight: 600;
 
-          &.green { color: #078944; }
+          &.green {
+            color: #078944;
+          }
         }
       }
 
@@ -232,7 +252,9 @@
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
   &:focus-within {
     border-color: #0879ed;
@@ -274,7 +296,9 @@
     background: #f1f5f9;
     color: #64748b;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
 
     .material-icons {
       font-size: 18px;
@@ -323,7 +347,9 @@
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
 
     .dept-icon-circle {
       width: 34px;
@@ -469,7 +495,9 @@
         align-items: center;
         justify-content: center;
 
-        .material-icons { font-size: 24px; }
+        .material-icons {
+          font-size: 24px;
+        }
       }
 
       .overview-dept-name {
@@ -502,7 +530,9 @@
       transition: all 0.15s ease;
       white-space: nowrap;
 
-      .material-icons { font-size: 16px; }
+      .material-icons {
+        font-size: 16px;
+      }
 
       &:hover {
         background: #eff6ff;
@@ -512,7 +542,7 @@
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
 
     @media (max-width: 640px) {
@@ -532,12 +562,26 @@
         align-items: center;
         justify-content: center;
 
-        .material-icons { font-size: 18px; }
+        .material-icons {
+          font-size: 18px;
+        }
 
-        &.blue { background: #eaf3ff; color: #0879ed; }
-        &.green { background: #e8f8ef; color: #078944; }
-        &.orange { background: #fff1e5; color: #ff861c; }
-        &.red { background: #fee2e2; color: #dc2626; }
+        &.blue {
+          background: #eaf3ff;
+          color: #0879ed;
+        }
+        &.green {
+          background: #e8f8ef;
+          color: #078944;
+        }
+        &.orange {
+          background: #fff1e5;
+          color: #ff861c;
+        }
+        &.red {
+          background: #fee2e2;
+          color: #dc2626;
+        }
       }
 
       .cell-label {
@@ -699,8 +743,13 @@
       }
     }
 
-    .font-semibold { font-weight: 600; color: #111827; }
-    .text-muted { color: #64748b; }
+    .font-semibold {
+      font-weight: 600;
+      color: #111827;
+    }
+    .text-muted {
+      color: #64748b;
+    }
 
     .btn-table-action {
       background: none;
@@ -818,8 +867,12 @@
             color: #111827;
             margin-top: 4px;
 
-            &.green-text { color: #078944; }
-            &.blue-text { color: #0879ed; }
+            &.green-text {
+              color: #078944;
+            }
+            &.blue-text {
+              color: #0879ed;
+            }
           }
         }
       }

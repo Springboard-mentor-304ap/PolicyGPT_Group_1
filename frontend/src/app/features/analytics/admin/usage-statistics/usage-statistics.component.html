@@ -14,23 +14,18 @@
       <div class="title-row">
         <h1 class="page-title">Usage Statistics</h1>
         @if (isSampleData) {
-          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-            <span class="badge-dot"></span>
-            Sample Data
-          </span>
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
         }
       </div>
       <p class="page-subtitle">Track platform usage and engagement across all users</p>
     </div>
     <div class="header-right">
       <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
-      <button
-        type="button"
-        class="btn-download"
-        (click)="downloadReport()"
-        [disabled]="isDownloading()"
-        aria-label="Download Usage Statistics Report"
-      >
+      <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
+        aria-label="Download Usage Statistics Report">
         <span class="material-icons" aria-hidden="true">download</span>
         <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
       </button>
@@ -38,122 +33,109 @@
   </div>
 
   <!-- 6 KPI Cards Grid -->
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5, 6]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
+  </p>
+  }
   <div class="kpi-grid">
     @for (kpi of kpis(); track kpi.label) {
-      <div class="kpi-card">
-        <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
-          <span class="material-icons">{{ kpi.icon }}</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">{{ kpi.label }}</span>
-          <div class="kpi-value-row">
-            <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
-          </div>
-          <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
-            {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
-          </span>
-        </div>
+    <div class="kpi-card">
+      <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
       </div>
+      <div class="kpi-content">
+        <span class="kpi-label">{{ kpi.label }}</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
+        </div>
+        @if (kpi.change) {
+        <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
+          {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
+        </span>
+        }
+      </div>
+    </div>
     }
   </div>
 
   <!-- Row 2: 3 Visualizations (User Activity Trend, Daily Usage, User Distribution by Role) -->
-  <div class="tri-grid">
+  <div class="duo-grid">
     <!-- A. User Activity Trend -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Activity Trend</h2>
         <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showActivityMenu.set(!showActivityMenu())"
-            [attr.aria-expanded]="showActivityMenu()"
-            aria-label="Select activity trend period"
-          >
+          <button type="button" class="dropdown-toggle-btn" (click)="showActivityMenu.set(!showActivityMenu())"
+            [attr.aria-expanded]="showActivityMenu()" aria-label="Select activity trend period">
             <span>{{ activityTrendPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
           @if (showActivityMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of activityPeriodOptions; track opt) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="activityTrendPeriod() === opt"
-                  (click)="setActivityPeriod(opt)"
-                >
-                  {{ opt }}
-                </button>
-              }
-            </div>
+          <div class="dropdown-menu">
+            @for (opt of activityPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="activityTrendPeriod() === opt"
+              (click)="setActivityPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
 
       <div class="chart-body">
-        <app-line-chart
-          [labels]="activityLabels()"
-          [datasets]="activityDatasets()"
-        />
+        <app-line-chart [labels]="activityLabels()" [datasets]="activityDatasets()" />
       </div>
     </div>
 
-    <!-- B. Daily Usage -->
-    <div class="chart-card">
-      <div class="card-header-row">
-        <h2 class="card-title">Daily Usage</h2>
-        <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showDailyMenu.set(!showDailyMenu())"
-            [attr.aria-expanded]="showDailyMenu()"
-            aria-label="Select daily usage period"
-          >
-            <span>{{ dailyUsagePeriod() }}</span>
-            <span class="material-icons">arrow_drop_down</span>
-          </button>
-          @if (showDailyMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of dailyPeriodOptions; track opt) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="dailyUsagePeriod() === opt"
-                  (click)="setDailyPeriod(opt)"
-                >
-                  {{ opt }}
-                </button>
-              }
-            </div>
-          }
-        </div>
-      </div>
+    <!-- B. User Distribution by Role -->
 
-      <div class="chart-body">
-        <app-vbar-chart
-          [labels]="dailyLabels()"
-          [values]="dailyValues()"
-          color="#5b8bf7"
-        />
-      </div>
-    </div>
-
-    <!-- C. User Distribution by Role -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Distribution by Role</h2>
       </div>
 
       <div class="chart-body doughnut-body">
-        <app-doughnut-chart
-          [labels]="roleLabels()"
-          [data]="roleData()"
-          [colors]="roleColors()"
-          [centerMainText]="roleTotal()"
-          centerSubText="Total Users"
-        />
+        <app-doughnut-chart [labels]="roleLabels()" [data]="roleData()" [colors]="roleColors()"
+          [centerMainText]="roleTotal()" centerSubText="Total Users" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Usage -->
+  <div class="solo-grid">
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">Daily Usage</h2>
+        <div class="dropdown-wrapper">
+          <button type="button" class="dropdown-toggle-btn" (click)="showDailyMenu.set(!showDailyMenu())"
+            [attr.aria-expanded]="showDailyMenu()" aria-label="Select daily usage period">
+            <span>{{ dailyUsagePeriod() }}</span>
+            <span class="material-icons">arrow_drop_down</span>
+          </button>
+          @if (showDailyMenu()) {
+          <div class="dropdown-menu">
+            @for (opt of dailyPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="dailyUsagePeriod() === opt"
+              (click)="setDailyPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="chart-body">
+        <app-vbar-chart [labels]="dailyLabels()" [values]="dailyValues()" color="#5b8bf7" />
       </div>
     </div>
   </div>
@@ -181,12 +163,12 @@
           </thead>
           <tbody>
             @for (item of topPolicies().slice(0, 10); track item.rank) {
-              <tr>
-                <td class="col-rank">{{ item.rank }}</td>
-                <td class="col-title font-semibold">{{ item.title }}</td>
-                <td class="text-right font-medium">{{ item.searches }}</td>
-                <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ item.rank }}</td>
+              <td class="col-title font-semibold">{{ item.title }}</td>
+              <td class="text-right font-medium">{{ item.searches }}</td>
+              <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -214,12 +196,12 @@
           </thead>
           <tbody>
             @for (item of topSchemes().slice(0, 10); track item.rank) {
-              <tr>
-                <td class="col-rank">{{ item.rank }}</td>
-                <td class="col-title font-semibold">{{ item.title }}</td>
-                <td class="text-right font-medium">{{ item.searches }}</td>
-                <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ item.rank }}</td>
+              <td class="col-title font-semibold">{{ item.title }}</td>
+              <td class="text-right font-medium">{{ item.searches }}</td>
+              <td class="text-right text-trend green font-semibold">{{ item.trend }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -247,12 +229,12 @@
           </thead>
           <tbody>
             @for (u of mostActiveUsers().slice(0, 10); track u.rank) {
-              <tr>
-                <td class="col-rank">{{ u.rank }}</td>
-                <td class="col-user text-secondary font-medium">{{ u.user }}</td>
-                <td class="text-muted">{{ u.role }}</td>
-                <td class="text-right font-semibold">{{ u.activities }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ u.rank }}</td>
+              <td class="col-user text-secondary font-medium">{{ u.user }}</td>
+              <td class="text-muted">{{ u.role }}</td>
+              <td class="text-right font-semibold">{{ u.activities }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -283,20 +265,17 @@
           </thead>
           <tbody>
             @for (item of recentSearches().slice(0, 5); track item.rank) {
-              <tr>
-                <td class="col-rank">{{ item.rank }}</td>
-                <td class="font-medium text-secondary">{{ item.user }}</td>
-                <td class="text-ink font-semibold">{{ item.query }}</td>
-                <td>
-                  <span
-                    class="type-chip"
-                    [ngClass]="item.type === 'Scheme' ? 'chip-scheme' : 'chip-policy'"
-                  >
-                    {{ item.type }}
-                  </span>
-                </td>
-                <td class="text-muted">{{ item.dateTime }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ item.rank }}</td>
+              <td class="font-medium text-secondary">{{ item.user }}</td>
+              <td class="text-ink font-semibold">{{ item.query }}</td>
+              <td>
+                <span class="type-chip" [ngClass]="item.type === 'Scheme' ? 'chip-scheme' : 'chip-policy'">
+                  {{ item.type }}
+                </span>
+              </td>
+              <td class="text-muted">{{ item.dateTime }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -306,172 +285,161 @@
 
   <!-- Expanded "View All" Modals -->
   @if (activeModal()) {
-    <div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="0" role="dialog" aria-modal="true">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3 class="modal-title">
-            @switch (activeModal()) {
-              @case ('policies') { All Top Searched Policies }
-              @case ('schemes') { All Top Searched Schemes }
-              @case ('users') { Most Active Users }
-              @case ('searches') { Recent Search Activity History }
-            }
-          </h3>
-          <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close modal">
-            <span class="material-icons">close</span>
-          </button>
-        </div>
-
-        <div class="modal-controls">
-          <div class="search-input-wrapper">
-            <span class="material-icons">search</span>
-            <input
-              type="text"
-              class="modal-search"
-              placeholder="Search items..."
-              [ngModel]="modalSearchTerm()"
-              (ngModelChange)="modalSearchTerm.set($event)"
-            />
-          </div>
-
-          @if (activeModal() === 'searches') {
-            <div class="role-filter-wrapper">
-              <select
-                class="modal-role-select"
-                [ngModel]="modalTypeFilter()"
-                (ngModelChange)="modalTypeFilter.set($event)"
-                aria-label="Filter by type"
-              >
-                <option value="ALL">All Types</option>
-                <option value="Scheme">Scheme</option>
-                <option value="Policy">Policy</option>
-              </select>
-            </div>
-          }
-        </div>
-
-        <div class="modal-body table-responsive">
+  <div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="0" role="dialog"
+    aria-modal="true">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
           @switch (activeModal()) {
-            @case ('policies') {
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Policy Title</th>
-                    <th scope="col" class="text-right">Searches</th>
-                    <th scope="col" class="text-right">Trend</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (p of filteredPolicies(); track p.rank) {
-                    <tr>
-                      <td>{{ p.rank }}</td>
-                      <td class="font-semibold">{{ p.title }}</td>
-                      <td class="text-right font-medium">{{ p.searches }}</td>
-                      <td class="text-right text-trend green font-semibold">{{ p.trend }}</td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="4" class="text-center py-4 text-muted">No policies found matching your search.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-            @case ('schemes') {
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">Scheme Title</th>
-                    <th scope="col" class="text-right">Searches</th>
-                    <th scope="col" class="text-right">Trend</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (s of filteredSchemes(); track s.rank) {
-                    <tr>
-                      <td>{{ s.rank }}</td>
-                      <td class="font-semibold">{{ s.title }}</td>
-                      <td class="text-right font-medium">{{ s.searches }}</td>
-                      <td class="text-right text-trend green font-semibold">{{ s.trend }}</td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="4" class="text-center py-4 text-muted">No schemes found matching your search.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-            @case ('users') {
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">User</th>
-                    <th scope="col">Role</th>
-                    <th scope="col" class="text-right">Activities</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (u of filteredUsers(); track u.rank) {
-                    <tr>
-                      <td>{{ u.rank }}</td>
-                      <td class="font-medium text-secondary">{{ u.user }}</td>
-                      <td class="text-muted">{{ u.role }}</td>
-                      <td class="text-right font-semibold">{{ u.activities }}</td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="4" class="text-center py-4 text-muted">No active users found matching your search.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
-            @case ('searches') {
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">#</th>
-                    <th scope="col">User</th>
-                    <th scope="col">Search Query</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">Date & Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (item of filteredSearches(); track item.rank) {
-                    <tr>
-                      <td>{{ item.rank }}</td>
-                      <td class="font-medium text-secondary">{{ item.user }}</td>
-                      <td class="font-semibold">{{ item.query }}</td>
-                      <td>
-                        <span
-                          class="type-chip"
-                          [ngClass]="item.type === 'Scheme' ? 'chip-scheme' : 'chip-policy'"
-                        >
-                          {{ item.type }}
-                        </span>
-                      </td>
-                      <td class="text-muted">{{ item.dateTime }}</td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="5" class="text-center py-4 text-muted">No search activities found matching your search.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
+          @case ('policies') { All Top Searched Policies }
+          @case ('schemes') { All Top Searched Schemes }
+          @case ('users') { Most Active Users }
+          @case ('searches') { Recent Search Activity History }
           }
+        </h3>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close modal">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="modal-controls">
+        <div class="search-input-wrapper">
+          <span class="material-icons">search</span>
+          <input type="text" class="modal-search" placeholder="Search items..." [ngModel]="modalSearchTerm()"
+            (ngModelChange)="modalSearchTerm.set($event)" />
         </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn-close-modal" (click)="closeModal()">Close</button>
+        @if (activeModal() === 'searches') {
+        <div class="role-filter-wrapper">
+          <select class="modal-role-select" [ngModel]="modalTypeFilter()" (ngModelChange)="modalTypeFilter.set($event)"
+            aria-label="Filter by type">
+            <option value="ALL">All Types</option>
+            <option value="Scheme">Scheme</option>
+            <option value="Policy">Policy</option>
+          </select>
         </div>
+        }
+      </div>
+
+      <div class="modal-body table-responsive">
+        @switch (activeModal()) {
+        @case ('policies') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Policy Title</th>
+              <th scope="col" class="text-right">Searches</th>
+              <th scope="col" class="text-right">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filteredPolicies(); track p.rank) {
+            <tr>
+              <td>{{ p.rank }}</td>
+              <td class="font-semibold">{{ p.title }}</td>
+              <td class="text-right font-medium">{{ p.searches }}</td>
+              <td class="text-right text-trend green font-semibold">{{ p.trend }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="4" class="text-center py-4 text-muted">No policies found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+        @case ('schemes') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Scheme Title</th>
+              <th scope="col" class="text-right">Searches</th>
+              <th scope="col" class="text-right">Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filteredSchemes(); track s.rank) {
+            <tr>
+              <td>{{ s.rank }}</td>
+              <td class="font-semibold">{{ s.title }}</td>
+              <td class="text-right font-medium">{{ s.searches }}</td>
+              <td class="text-right text-trend green font-semibold">{{ s.trend }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="4" class="text-center py-4 text-muted">No schemes found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+        @case ('users') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">User</th>
+              <th scope="col">Role</th>
+              <th scope="col" class="text-right">Activities</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of filteredUsers(); track u.rank) {
+            <tr>
+              <td>{{ u.rank }}</td>
+              <td class="font-medium text-secondary">{{ u.user }}</td>
+              <td class="text-muted">{{ u.role }}</td>
+              <td class="text-right font-semibold">{{ u.activities }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="4" class="text-center py-4 text-muted">No active users found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+        @case ('searches') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">User</th>
+              <th scope="col">Search Query</th>
+              <th scope="col">Type</th>
+              <th scope="col">Date & Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filteredSearches(); track item.rank) {
+            <tr>
+              <td>{{ item.rank }}</td>
+              <td class="font-medium text-secondary">{{ item.user }}</td>
+              <td class="font-semibold">{{ item.query }}</td>
+              <td>
+                <span class="type-chip" [ngClass]="item.type === 'Scheme' ? 'chip-scheme' : 'chip-policy'">
+                  {{ item.type }}
+                </span>
+              </td>
+              <td class="text-muted">{{ item.dateTime }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No search activities found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-close-modal" (click)="closeModal()">Close</button>
       </div>
     </div>
+  </div>
   }
 </div>

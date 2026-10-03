@@ -41,6 +41,10 @@ export class SchemeAnalyticsComponent implements OnInit {
 
   activeFilters = signal<Record<string, string>>({});
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");
+  isLoading = signal<boolean>(true);
+  hasLoaded = signal<boolean>(false);
+  loadError = signal<string | null>(null);
+  isExporting = signal<boolean>(false);
 
   stats = signal<AnalyticsStat[]>([]);
   categoryLabels = signal<string[]>([]);
@@ -58,46 +62,39 @@ export class SchemeAnalyticsComponent implements OnInit {
 
   loadData(): void {
     const filters = this.activeFilters();
+    this.isLoading.set(true);
+    this.loadError.set(null);
 
-    // Stats
-    this.dataService
-      .getSchemeAnalyticsStats(filters)
-      .subscribe((res) => this.stats.set(res));
-
-    // Category Doughnut
-    this.dataService.getSchemesByCategoryDetailed(filters).subscribe((res) => {
-      this.categoryLabels.set(res.map((c) => `${c.label} (${c.percentage}%)`));
-      this.categoryData.set(res.map((c) => c.percentage));
+    // Single aggregate request; slices share one HTTP via cache.
+    this.dataService.getAdminSchemeAnalytics(filters).subscribe({
+      next: (res) => {
+        this.stats.set(res.stats || []);
+        const cats = res.by_category || [];
+        this.categoryLabels.set(cats.map((c) => `${c.label} (${c.percentage}%)`));
+        this.categoryData.set(cats.map((c) => c.percentage));
+        this.trendLabels.set(res.trend?.labels || []);
+        this.trendDatasets.set(
+          (res.trend?.series || []).map((s) => ({
+            label: s.label,
+            data: s.data,
+            borderColor: s.color,
+            backgroundColor: "transparent",
+          })),
+        );
+        this.stateLabels.set((res.by_state || []).map((r) => r.label));
+        this.stateData.set((res.by_state || []).map((r) => r.value));
+        this.topViewedSchemes.set(res.top_schemes || []);
+        this.recentUpdates.set(res.recent_updates || []);
+        this.hasLoaded.set(true);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error("Failed to load scheme analytics:", err);
+        // Keep any previously loaded cards visible; surface error + retry.
+        this.loadError.set("Could not load scheme analytics. Please retry.");
+        this.isLoading.set(false);
+      },
     });
-
-    // Trend Line
-    this.dataService.getSchemeTrend(filters).subscribe((res) => {
-      this.trendLabels.set(res.labels);
-      this.trendDatasets.set(
-        res.series.map((s) => ({
-          label: s.label,
-          data: s.data,
-          borderColor: s.color,
-          backgroundColor: "transparent",
-        })),
-      );
-    });
-
-    // Schemes by State HBar
-    this.dataService.getSchemesByState(filters).subscribe((res) => {
-      this.stateLabels.set(res.map((r) => r.label));
-      this.stateData.set(res.map((r) => r.value));
-    });
-
-    // Top Viewed Schemes Table
-    this.dataService
-      .getTopViewedSchemes(filters)
-      .subscribe((res) => this.topViewedSchemes.set(res));
-
-    // Recent Scheme Updates Table
-    this.dataService
-      .getRecentSchemeUpdates(filters)
-      .subscribe((res) => this.recentUpdates.set(res));
   }
 
   onApplyFilters(filters: Record<string, string>): void {
@@ -115,19 +112,34 @@ export class SchemeAnalyticsComponent implements OnInit {
   }
 
   downloadReport(): void {
-    this.dataService.downloadReport("pdf").subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "scheme-analytics-report.pdf";
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => {
-        console.error("Could not download report");
-      },
-    });
+    if (this.isExporting()) return;
+    this.isExporting.set(true);
+    const filters = this.activeFilters();
+    this.dataService
+      .downloadReport("SCHEME_REPORT", "PDF", "Scheme Analytics Report", filters)
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `scheme-analytics-report-${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this.isExporting.set(false);
+        },
+        error: (err) => {
+          console.error("Could not download scheme report:", err);
+          this.isExporting.set(false);
+        },
+      });
+  }
+
+  /** Live doughnut center total (no hardcoded 438). */
+  categoryTotal(): string {
+    const found = this.stats().find((s) => s.label === "Total Schemes")?.value;
+    return String(found ?? "0");
   }
 
   getStatIcon(index: number): string {

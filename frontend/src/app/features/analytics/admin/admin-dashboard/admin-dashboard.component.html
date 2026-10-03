@@ -11,12 +11,6 @@
     <div class="header-left">
       <div class="title-row">
         <h1 class="page-title">Admin Analytics Dashboard</h1>
-        @if (isSampleData) {
-          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-            <span class="badge-dot"></span>
-            Sample Data
-          </span>
-        }
       </div>
       <p class="page-subtitle">Overview of platform statistics and key insights</p>
     </div>
@@ -26,7 +20,19 @@
   </div>
 
   <!-- Top 8 Metric Cards Grid (2 rows x 4 columns) -->
-  <div class="top-cards-grid">
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5, 6, 7, 8]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadOverviewData(trendTimeframe())">Retry</button>
+  </p>
+  }
+  <div class="top-cards-grid" [hidden]="isLoading() && !hasLoaded()">
     <!-- 1. Total Users -->
     <div class="metric-card">
       <div class="card-icon-circle blue" aria-hidden="true">
@@ -35,9 +41,13 @@
       <div class="card-content">
         <span class="card-label">Total Users</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="5,820">5,820</span>
+          <span class="card-value" [appCountUp]="getMetric('Total Users').value">{{ getMetric('Total Users').value }}</span>
         </div>
-        <span class="card-trend green">↑ 12% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Total Users').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Users').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Users').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -49,9 +59,13 @@
       <div class="card-content">
         <span class="card-label">Total Policies</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="1,250">1,250</span>
+          <span class="card-value" [appCountUp]="getMetric('Total Policies').value">{{ getMetric('Total Policies').value }}</span>
         </div>
-        <span class="card-trend green">↑ 8% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Total Policies').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Policies').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Policies').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -63,9 +77,13 @@
       <div class="card-content">
         <span class="card-label">Total Schemes</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="438">438</span>
+          <span class="card-value" [appCountUp]="getMetric('Total Schemes').value">{{ getMetric('Total Schemes').value }}</span>
         </div>
-        <span class="card-trend green">↑ 15% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Total Schemes').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Schemes').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Schemes').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -77,9 +95,13 @@
       <div class="card-content">
         <span class="card-label">Approved Policies</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="1,020">1,020</span>
+          <span class="card-value" [appCountUp]="getMetric('Approved Policies').value">{{ getMetric('Approved Policies').value }}</span>
         </div>
-        <span class="card-trend green">↑ 10% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Approved Policies').change) {
+        <span class="card-trend" [ngClass]="getMetric('Approved Policies').isPositive ? 'green' : 'red'">
+          {{ getMetric('Approved Policies').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -91,9 +113,13 @@
       <div class="card-content">
         <span class="card-label">Pending Policies</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="85">85</span>
+          <span class="card-value" [appCountUp]="getMetric('Pending Policies').value">{{ getMetric('Pending Policies').value }}</span>
         </div>
-        <span class="card-trend red">↑ 5% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Pending Policies').change) {
+        <span class="card-trend" [ngClass]="getMetric('Pending Policies').isPositive ? 'red' : 'green'">
+          {{ getMetric('Pending Policies').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -105,9 +131,13 @@
       <div class="card-content">
         <span class="card-label">Rejected Policies</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="42">42</span>
+          <span class="card-value" [appCountUp]="getMetric('Rejected Policies').value">{{ getMetric('Rejected Policies').value }}</span>
         </div>
-        <span class="card-trend green">↓ 12% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Rejected Policies').change) {
+        <span class="card-trend" [ngClass]="getMetric('Rejected Policies').isPositive ? 'red' : 'green'">
+          {{ getMetric('Rejected Policies').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -119,9 +149,13 @@
       <div class="card-content">
         <span class="card-label">Active Schemes</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="390">390</span>
+          <span class="card-value" [appCountUp]="getMetric('Active Schemes').value">{{ getMetric('Active Schemes').value }}</span>
         </div>
-        <span class="card-trend green">↑ 18% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Active Schemes').change) {
+        <span class="card-trend" [ngClass]="getMetric('Active Schemes').isPositive ? 'green' : 'red'">
+          {{ getMetric('Active Schemes').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
 
@@ -133,9 +167,13 @@
       <div class="card-content">
         <span class="card-label">Total Notifications</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="12,600">12,600</span>
+          <span class="card-value" [appCountUp]="getMetric('Total Notifications').value">{{ getMetric('Total Notifications').value }}</span>
         </div>
-        <span class="card-trend green">↑ 25% <span class="trend-sub">from last month</span></span>
+        @if (getMetric('Total Notifications').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Notifications').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Notifications').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
       </div>
     </div>
   </div>
@@ -147,60 +185,42 @@
       <div class="card-header-row">
         <h3 class="card-title">Policies Trend</h3>
         <div class="timeframe-wrapper">
-          <button
-            type="button"
-            class="time-filter-btn"
-            (click)="toggleTimeframeMenu($event)"
+          <button type="button" class="time-filter-btn" (click)="toggleTimeframeMenu($event)"
             [attr.aria-expanded]="showTimeframeMenu()">
             <span>{{ trendTimeframe() }}</span>
             <span class="material-icons" aria-hidden="true">expand_more</span>
           </button>
           @if (showTimeframeMenu()) {
-            <div class="timeframe-dropdown" role="menu">
-              @for (opt of timeframeOptions; track opt) {
-                <button
-                  type="button"
-                  class="timeframe-item"
-                  [class.active]="opt === trendTimeframe()"
-                  (click)="selectTimeframe(opt)"
-                  role="menuitem">
-                  {{ opt }}
-                </button>
-              }
-            </div>
+          <div class="timeframe-dropdown" role="menu">
+            @for (opt of timeframeOptions; track opt) {
+            <button type="button" class="timeframe-item" [class.active]="opt === trendTimeframe()"
+              (click)="selectTimeframe(opt)" role="menuitem">
+              {{ opt }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
-      <app-line-chart
-        [labels]="trendLabels"
-        [datasets]="policiesTrendDatasets"
-        [yMin]="0"
-        [yMax]="200"
-      />
+      <app-line-chart [labels]="trendLabels" [datasets]="policiesTrendDatasets" [yMin]="0" [yMax]="chartYMax()" />
     </div>
 
     <!-- Schemes by Category Doughnut Chart -->
     <div class="chart-card flex-1">
       <h3 class="card-title">Schemes by Category</h3>
-      <app-doughnut-chart
-        [labels]="schemesCategoryLabels"
-        [data]="schemesCategoryData"
+      <app-doughnut-chart [labels]="schemesCategoryLabels" [data]="schemesCategoryData"
         [colors]="['#3cb371', '#2f6fed', '#06b6d4', '#f5a524', '#e5484d', '#94a3b8']"
-        centerMainText="438"
-        centerSubText="Total"
-      />
+        [centerMainText]="schemesTotal()"
+        centerSubText="Total" />
     </div>
 
     <!-- User Distribution Doughnut Chart -->
     <div class="chart-card flex-1">
       <h3 class="card-title">User Distribution</h3>
-      <app-doughnut-chart
-        [labels]="userDistLabels"
-        [data]="userDistData"
+      <app-doughnut-chart [labels]="userDistLabels" [data]="userDistData"
         [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d']"
-        centerMainText="5,820"
-        centerSubText="Users"
-      />
+        [centerMainText]="userDistTotal()"
+        centerSubText="Users" />
     </div>
   </div>
 
@@ -225,14 +245,14 @@
           </thead>
           <tbody>
             @for (item of recentActivities; track item.user) {
-              <tr>
-                <td class="text-user">{{ item.user }}</td>
-                <td class="text-action">{{ item.action }}</td>
-                <td class="text-muted">{{ item.time }}</td>
-                <td>
-                  <span class="badge-success">{{ item.status }}</span>
-                </td>
-              </tr>
+            <tr>
+              <td class="text-user">{{ item.user }}</td>
+              <td class="text-action">{{ item.action }}</td>
+              <td class="text-muted">{{ item.time }}</td>
+              <td>
+                <span class="badge-success">{{ item.status }}</span>
+              </td>
+            </tr>
             }
           </tbody>
         </table>
@@ -258,16 +278,16 @@
           </thead>
           <tbody>
             @for (item of notifications; track item.title) {
-              <tr>
-                <td class="text-user">{{ item.title }}</td>
-                <td>
-                  <span class="badge-type" [ngClass]="item.typeClass">{{ item.type }}</span>
-                </td>
-                <td class="text-muted">{{ item.date }}</td>
-                <td>
-                  <span class="badge-success">{{ item.status }}</span>
-                </td>
-              </tr>
+            <tr>
+              <td class="text-user">{{ item.title }}</td>
+              <td>
+                <span class="badge-type" [ngClass]="item.typeClass">{{ item.type }}</span>
+              </td>
+              <td class="text-muted">{{ item.date }}</td>
+              <td>
+                <span class="badge-success">{{ item.status }}</span>
+              </td>
+            </tr>
             }
           </tbody>
         </table>

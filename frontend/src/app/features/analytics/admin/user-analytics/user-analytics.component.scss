@@ -1,4 +1,4 @@
-@use '../../shared/analytics-tokens' as tokens;
+@use "../../shared/analytics-tokens" as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — USER ANALYTICS
    Harmonized with PolicyGPT Admin Portal Design System
@@ -174,12 +174,30 @@
     .kpi-icon-circle {
       @include tokens.analytics-icon-container;
 
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.green { background: #e8f8ef; color: #078944; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
-      &.red { background: #fee2e2; color: #dc2626; }
-      &.orange { background: #fff1e5; color: #ff861c; }
-      &.blue-light { background: #e0f2fe; color: #0284c7; }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
+      &.red {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      &.orange {
+        background: #fff1e5;
+        color: #ff861c;
+      }
+      &.blue-light {
+        background: #e0f2fe;
+        color: #0284c7;
+      }
     }
 
     .kpi-content {
@@ -209,8 +227,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
 
-        &.green { color: #078944; }
-        &.red { color: #dc2626; }
+        &.green {
+          color: #078944;
+        }
+        &.red {
+          color: #dc2626;
+        }
 
         .trend-sub {
           font-weight: 400;
@@ -312,7 +334,9 @@
     background: #ffffff;
     border: 1px solid #e4e9f1;
     border-radius: 8px;
-    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+    box-shadow:
+      0 10px 25px -5px rgba(15, 23, 42, 0.1),
+      0 8px 10px -6px rgba(15, 23, 42, 0.05);
     min-width: 140px;
     z-index: 30;
     padding: 4px 0;
@@ -347,7 +371,6 @@
 // Engagement 2x2 Grid inside card
 .engagement-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   height: 100%;
 
@@ -368,10 +391,22 @@
         font-size: 20px;
       }
 
-      &.blue { background: #eaf3ff; color: #0879ed; }
-      &.purple { background: #f3e8ff; color: #8b00e8; }
-      &.orange { background: #fff1e5; color: #ff861c; }
-      &.green { background: #e8f8ef; color: #078944; }
+      &.blue {
+        background: #eaf3ff;
+        color: #0879ed;
+      }
+      &.purple {
+        background: #f3e8ff;
+        color: #8b00e8;
+      }
+      &.orange {
+        background: #fff1e5;
+        color: #ff861c;
+      }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
     }
 
     .engagement-content {
@@ -409,8 +444,12 @@
         overflow: hidden;
         text-overflow: ellipsis;
 
-        &.green { color: #078944; }
-        &.red { color: #dc2626; }
+        &.green {
+          color: #078944;
+        }
+        &.red {
+          color: #dc2626;
+        }
 
         .trend-sub {
           font-weight: 400;
@@ -471,7 +510,10 @@
           border-radius: 4px;
           cursor: pointer;
           animation: heatmapCellAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s ease, filter 0.2s ease;
+          transition:
+            transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+            background-color 0.4s ease,
+            filter 0.2s ease;
 
           &:hover {
             transform: scale(1.15);
@@ -479,11 +521,21 @@
             z-index: 10;
           }
 
-          &.level-0 { background: #e2e8f0; }
-          &.level-1 { background: #bfdbfe; }
-          &.level-2 { background: #93c5fd; }
-          &.level-3 { background: #3b82f6; }
-          &.level-4 { background: #1d4ed8; }
+          &.level-0 {
+            background: #e2e8f0;
+          }
+          &.level-1 {
+            background: #bfdbfe;
+          }
+          &.level-2 {
+            background: #93c5fd;
+          }
+          &.level-3 {
+            background: #3b82f6;
+          }
+          &.level-4 {
+            background: #1d4ed8;
+          }
         }
       }
 
@@ -522,11 +574,21 @@
         height: 14px;
         border-radius: 3px;
 
-        &.level-0 { background: #e2e8f0; }
-        &.level-1 { background: #bfdbfe; }
-        &.level-2 { background: #93c5fd; }
-        &.level-3 { background: #3b82f6; }
-        &.level-4 { background: #1d4ed8; }
+        &.level-0 {
+          background: #e2e8f0;
+        }
+        &.level-1 {
+          background: #bfdbfe;
+        }
+        &.level-2 {
+          background: #93c5fd;
+        }
+        &.level-3 {
+          background: #3b82f6;
+        }
+        &.level-4 {
+          background: #1d4ed8;
+        }
       }
     }
   }
@@ -712,7 +774,9 @@
     background: #ffffff;
     border-radius: 16px;
     border: 1px solid #e4e9f1;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
     width: 100%;
     max-width: 860px;
     max-height: 85vh;

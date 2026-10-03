@@ -181,3 +181,92 @@ export interface RecentSearchActivityItem {
   dateTime: string;
 }
 
+export interface SchemesByCategoryItem {
+  label: string;
+  percentage: number;
+  count?: number;
+}
+
+export interface UserDistributionData {
+  labels: string[];
+  data: number[];
+  colors: string[];
+  total: string;
+}
+
+export interface AdminOverviewResponse {
+  metrics: AnalyticsStat[];
+  policyStatusTrend: TrendData;
+  schemesByCategory: SchemesByCategoryItem[];
+  userDistribution: UserDistributionData;
+  recentActivities: RecentActivityItem[];
+  notifications: NotificationActivityItem[];
+}
+
+export interface AdminPolicyAnalyticsResponse {
+  stats: AnalyticsStat[];
+  by_category: CategorySlice[];
+  trend: TrendData;
+  by_state: BarChartData[];
+  by_ministry: BarChartData[];
+  latest_policies: PolicyRow[];
+}
+
+export interface AdminSchemeAnalyticsResponse {
+  stats: AnalyticsStat[];
+  by_category: CategorySlice[];
+  trend: TrendData;
+  by_state: BarChartData[];
+  top_schemes: SchemeRow[];
+  recent_updates: SchemeUpdateRow[];
+}
+
+export interface HeatmapData {
+  days: string[];
+  times: string[];
+  cells: HeatmapCell[];
+}
+
+export interface AdminUserAnalyticsResponse {
+  kpis: UserKpiCard[];
+  growth_trend: TrendData;
+  role_distribution: UserDistributionData;
+  registration_trend: { labels: string[]; values: number[] };
+  users_by_state: { labels: string[]; values: number[] };
+  engagement_metrics: EngagementMetric[];
+  heatmap: HeatmapData;
+  recent_registered_users: RecentRegisteredUser[];
+  top_active_users: TopActiveUser[];
+}
+
+export interface DepartmentTrendDataset {
+  label: string;
+  data: number[];
+  borderColor: string;
+  backgroundColor?: string;
+  tension?: number;
+  fill?: boolean;
+}
+
+export interface AdminDepartmentAnalyticsResponse {
+  departments_list: DepartmentItem[];
+  all_departments_list: DepartmentItem[];
+  selected_overview: DepartmentOverview;
+  month_labels: string[];
+  trend_datasets: DepartmentTrendDataset[];
+  top_by_policies: BarChartData[];
+  top_by_schemes: BarChartData[];
+  performance_table: DepartmentPerformanceRow[];
+}
+
+export interface AdminUsageStatisticsResponse {
+  kpis: UsageKpiCard[];
+  activity_trend: TrendData;
+  daily_usage: { labels: string[]; values: number[] };
+  role_distribution: UserDistributionData;
+  top_policies: TopSearchedItem[];
+  top_schemes: TopSearchedItem[];
+  most_active_users: MostActiveUserUsage[];
+  recent_searches: RecentSearchActivityItem[];
+}
+

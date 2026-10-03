@@ -45,6 +45,9 @@ export class UserAnalyticsComponent implements OnInit {
   // Selected date range
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");
   isDownloading = signal<boolean>(false);
+  isLoading = signal<boolean>(true);
+  hasLoaded = signal<boolean>(false);
+  loadError = signal<string | null>(null);
 
   // KPI Cards
   kpis = signal<UserKpiCard[]>([]);
@@ -60,7 +63,7 @@ export class UserAnalyticsComponent implements OnInit {
   roleLabels = signal<string[]>([]);
   roleData = signal<number[]>([]);
   roleColors = signal<string[]>([]);
-  roleTotal = signal<string>("5,820");
+  roleTotal = signal<string>("0");
 
   // User Registration Trend
   regPeriod = signal<string>("Last 6 Months");
@@ -145,45 +148,51 @@ export class UserAnalyticsComponent implements OnInit {
   }
 
   loadAllData(): void {
-    // 1. KPI Cards
-    this.dataService.getUserKpis().subscribe((data) => {
-      this.kpis.set(data);
-    });
-
-    // 2. Growth Trend
-    this.updateGrowthTrend();
-
-    // 3. Role Distribution
-    this.dataService.getUserRoleDistribution().subscribe((dist) => {
-      this.roleLabels.set(dist.labels);
-      this.roleData.set(dist.data);
-      this.roleColors.set(dist.colors);
-      this.roleTotal.set(dist.total);
-    });
-
-    // 4. Registration Trend
-    this.updateRegTrend();
-
-    // 5. Users by State
-    this.updateStateDistribution(10);
-
-    // 6. Engagement Metrics
-    this.dataService.getUserEngagementMetrics().subscribe((metrics) => {
-      this.engagementMetrics.set(metrics);
-    });
-
-    // 7. Heatmap Data
-    this.updateHeatmap();
-
-    // 8. Recent Registered Users
-    this.dataService.getRecentRegisteredUsers().subscribe((users) => {
-      this.recentUsers.set(users);
-    });
-
-    // 9. Top Active Users
-    this.dataService.getTopActiveUsers().subscribe((users) => {
-      this.topActiveUsers.set(users);
-    });
+    this.isLoading.set(true);
+    this.loadError.set(null);
+    // Single aggregate request for all sections (no duplicate HTTPs).
+    this.dataService
+      .getAdminUserAnalytics({
+        growth_period: this.growthPeriod(),
+        reg_period: this.regPeriod(),
+        state_limit: String(this.stateOptions.find((o) => o.label === this.selectedStateOption())?.count ?? 10),
+        heatmap_period: this.heatmapPeriod(),
+      })
+      .subscribe({
+        next: (res) => {
+          this.kpis.set(res.kpis || []);
+          this.growthLabels.set(res.growth_trend?.labels || []);
+          this.growthDatasets.set(
+            (res.growth_trend?.series || []).map((s) => ({
+              label: s.label,
+              data: s.data,
+              borderColor: s.color,
+              fill: false,
+            })),
+          );
+          this.roleLabels.set(res.role_distribution?.labels || []);
+          this.roleData.set(res.role_distribution?.data || []);
+          this.roleColors.set(res.role_distribution?.colors || []);
+          this.roleTotal.set(res.role_distribution?.total || "0");
+          this.regLabels.set(res.registration_trend?.labels || []);
+          this.regValues.set(res.registration_trend?.values || []);
+          this.stateLabels.set(res.users_by_state?.labels || []);
+          this.stateValues.set(res.users_by_state?.values || []);
+          this.engagementMetrics.set(res.engagement_metrics || []);
+          this.heatmapDays.set(res.heatmap?.days || []);
+          this.heatmapTimes.set(res.heatmap?.times || []);
+          this.heatmapCells.set(res.heatmap?.cells || []);
+          this.recentUsers.set(res.recent_registered_users || []);
+          this.topActiveUsers.set(res.top_active_users || []);
+          this.hasLoaded.set(true);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error("Failed to load user analytics:", err);
+          this.loadError.set("Could not load user analytics. Please retry.");
+          this.isLoading.set(false);
+        },
+      });
   }
 
   onDateRangeChange(range: string): void {
@@ -194,19 +203,20 @@ export class UserAnalyticsComponent implements OnInit {
     if (this.isDownloading()) return;
     this.isDownloading.set(true);
 
-    this.dataService.downloadReport("User Analytics Report", "pdf").subscribe({
+    this.dataService.downloadReport("USER_REPORT", "PDF", "User Analytics Report", {}).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `user-analytics-report-${new Date().toISOString().split("T")[0]}.txt`;
+        a.download = `user-analytics-report-${new Date().toISOString().split("T")[0]}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         this.isDownloading.set(false);
       },
-      error: () => {
+      error: (err) => {
+        console.error("Could not download user report:", err);
         this.isDownloading.set(false);
       },
     });
@@ -216,7 +226,7 @@ export class UserAnalyticsComponent implements OnInit {
   setGrowthPeriod(period: string): void {
     this.growthPeriod.set(period);
     this.showGrowthMenu.set(false);
-    this.updateGrowthTrend();
+    this.loadAllData();
   }
 
   private updateGrowthTrend(): void {
@@ -237,7 +247,7 @@ export class UserAnalyticsComponent implements OnInit {
   setRegPeriod(period: string): void {
     this.regPeriod.set(period);
     this.showRegMenu.set(false);
-    this.updateRegTrend();
+    this.loadAllData();
   }
 
   private updateRegTrend(): void {
@@ -251,7 +261,7 @@ export class UserAnalyticsComponent implements OnInit {
   selectStateOption(option: { label: string; count: number }): void {
     this.selectedStateOption.set(option.label);
     this.showStateMenu.set(false);
-    this.updateStateDistribution(option.count);
+    this.loadAllData();
   }
 
   private updateStateDistribution(count: number): void {
@@ -265,7 +275,7 @@ export class UserAnalyticsComponent implements OnInit {
   setHeatmapPeriod(period: string): void {
     this.heatmapPeriod.set(period);
     this.showHeatmapMenu.set(false);
-    this.updateHeatmap();
+    this.loadAllData();
   }
 
   private updateHeatmap(): void {

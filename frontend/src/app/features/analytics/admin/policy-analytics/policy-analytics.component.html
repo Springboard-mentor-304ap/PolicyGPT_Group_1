@@ -14,10 +14,10 @@
       <div class="title-row">
         <h1 class="page-title">Policy Analytics</h1>
         @if (isSampleData) {
-          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-            <span class="badge-dot"></span>
-            Sample Data
-          </span>
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
         }
       </div>
       <p class="page-subtitle">Detailed insights into government policies, approvals and distribution</p>
@@ -34,41 +34,49 @@
   <!-- 5 Stat Cards Row -->
   <div class="stats-row">
     @for (stat of stats(); track stat.label; let i = $index) {
-      <div class="stat-card">
-        <div class="card-icon-circle" [ngClass]="getStatIconClass(i)" aria-hidden="true">
-          <span class="material-icons">{{ getStatIcon(i) }}</span>
-        </div>
-        <div class="card-content">
-          <span class="card-label">{{ stat.label }}</span>
-          <div class="card-value-row">
-            <span class="card-value" [appCountUp]="stat.value">{{ stat.value }}</span>
-          </div>
-          <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
-            {{ stat.change }} <span class="trend-sub">from last month</span>
-          </span>
-        </div>
+    <div class="stat-card">
+      <div class="card-icon-circle" [ngClass]="getStatIconClass(i)" aria-hidden="true">
+        <span class="material-icons">{{ getStatIcon(i) }}</span>
       </div>
+      <div class="card-content">
+        <span class="card-label">{{ stat.label }}</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="stat.value">{{ stat.value }}</span>
+        </div>
+        @if (stat.change) {
+        <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
+          {{ stat.change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
     }
   </div>
 
   <!-- Filters Bar -->
-  <app-filters-bar
-    (apply)="onApplyFilters($event)"
-    (reset)="onResetFilters()"
-  />
+  <app-filters-bar (apply)="onApplyFilters($event)" (reset)="onResetFilters()" />
+
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadData()">Retry</button>
+  </p>
+  }
 
   <!-- Row of 3 Chart Cards -->
   <div class="charts-three-row">
     <!-- Card 1: Policies by Category -->
     <div class="chart-card">
       <h3 class="card-title">Policies by Category</h3>
-      <app-doughnut-chart
-        [labels]="categoryLabels()"
-        [data]="categoryData()"
+      <app-doughnut-chart [labels]="categoryLabels()" [data]="categoryData()"
         [colors]="['#2f6fed', '#3cb371', '#06b6d4', '#f5a524', '#8b5cf6', '#e5484d', '#14b8a6', '#94a3b8']"
-        centerMainText="1,250"
-        centerSubText="Policies"
-      />
+        [centerMainText]="categoryTotal()" centerSubText="Policies" />
     </div>
 
     <!-- Card 2: Policy Status Trend -->
@@ -79,12 +87,7 @@
           <span>Last 12 Months</span>
         </div>
       </div>
-      <app-line-chart
-        [labels]="trendLabels()"
-        [datasets]="trendDatasets()"
-        [yMin]="0"
-        [yMax]="200"
-      />
+      <app-line-chart [labels]="trendLabels()" [datasets]="trendDatasets()" [yMin]="0" [yMax]="200" />
     </div>
 
     <!-- Card 3: Policies by State -->
@@ -95,12 +98,8 @@
           <span>Top 10 States</span>
         </div>
       </div>
-      <app-hbar-chart
-        [labels]="stateLabels()"
-        [data]="stateData()"
-        selectedDepartment="All Departments"
-        primaryColor="#2f6fed"
-      />
+      <app-hbar-chart [labels]="stateLabels()" [data]="stateData()" selectedDepartment="All Departments"
+        primaryColor="#2f6fed" />
     </div>
   </div>
 
@@ -114,11 +113,7 @@
           <span>Top 10 Ministries</span>
         </div>
       </div>
-      <app-vbar-chart
-        [labels]="ministryLabels()"
-        [values]="ministryData()"
-        color="#2f6fed"
-      />
+      <app-vbar-chart [labels]="ministryLabels()" [values]="ministryData()" color="#2f6fed" />
     </div>
 
     <!-- Latest Policies Table -->
@@ -143,28 +138,28 @@
           </thead>
           <tbody>
             @for (policy of latestPolicies(); track policy.title; let idx = $index) {
-              <tr>
-                <td class="text-muted">{{ idx + 1 }}</td>
-                <td class="font-semibold title-col" [title]="policy.title">{{ policy.title }}</td>
-                <td>{{ policy.ministry }}</td>
-                <td class="text-muted">{{ policy.state }}</td>
-                <td>{{ policy.category }}</td>
-                <td>
-                  <span class="status-chip" [ngClass]="getStatusChipClass(policy.status)">
-                    {{ policy.status }}
-                  </span>
-                </td>
-                <td class="text-muted">{{ policy.date }}</td>
-              </tr>
+            <tr>
+              <td class="text-muted">{{ idx + 1 }}</td>
+              <td class="font-semibold title-col" [title]="policy.title">{{ policy.title }}</td>
+              <td>{{ policy.ministry }}</td>
+              <td class="text-muted">{{ policy.state }}</td>
+              <td>{{ policy.category }}</td>
+              <td>
+                <span class="status-chip" [ngClass]="getStatusChipClass(policy.status)">
+                  {{ policy.status }}
+                </span>
+              </td>
+              <td class="text-muted">{{ policy.date }}</td>
+            </tr>
             } @empty {
-              <tr>
-                <td colspan="7" class="empty-state-cell">
-                  <div class="empty-state-box">
-                    <span class="material-icons">search_off</span>
-                    <p>No policies found matching current filters.</p>
-                  </div>
-                </td>
-              </tr>
+            <tr>
+              <td colspan="7" class="empty-state-cell">
+                <div class="empty-state-box">
+                  <span class="material-icons">search_off</span>
+                  <p>No policies found matching current filters.</p>
+                </div>
+              </td>
+            </tr>
             }
           </tbody>
         </table>

@@ -42,6 +42,9 @@ export class UsageStatisticsComponent implements OnInit {
   // Selected date range
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");
   isDownloading = signal<boolean>(false);
+  isLoading = signal<boolean>(true);
+  hasLoaded = signal<boolean>(false);
+  loadError = signal<string | null>(null);
 
   // 6 KPI Cards
   kpis = signal<UsageKpiCard[]>([]);
@@ -64,7 +67,7 @@ export class UsageStatisticsComponent implements OnInit {
   roleLabels = signal<string[]>([]);
   roleData = signal<number[]>([]);
   roleColors = signal<string[]>([]);
-  roleTotal = signal<string>("5,820");
+  roleTotal = signal<string>("0");
 
   // Middle Tables (Top 10 Policies, Top 10 Schemes, Most Active Users)
   topPolicies = signal<TopSearchedItem[]>([]);
@@ -125,44 +128,45 @@ export class UsageStatisticsComponent implements OnInit {
   }
 
   loadAllData(): void {
-    // 1. KPI Cards
-    this.dataService.getUsageKpis().subscribe((data) => {
-      this.kpis.set(data);
-    });
-
-    // 2. Activity Trend
-    this.updateActivityTrend();
-
-    // 3. Daily Usage
-    this.updateDailyUsage();
-
-    // 4. Role Distribution
-    this.dataService.getUserRoleDistribution().subscribe((dist) => {
-      this.roleLabels.set(dist.labels);
-      this.roleData.set(dist.data);
-      this.roleColors.set(dist.colors);
-      this.roleTotal.set(dist.total);
-    });
-
-    // 5. Top Searched Policies
-    this.dataService.getTopSearchedPolicies().subscribe((policies) => {
-      this.topPolicies.set(policies);
-    });
-
-    // 6. Top Searched Schemes
-    this.dataService.getTopSearchedSchemes().subscribe((schemes) => {
-      this.topSchemes.set(schemes);
-    });
-
-    // 7. Most Active Users
-    this.dataService.getMostActiveUsersUsage().subscribe((users) => {
-      this.mostActiveUsers.set(users);
-    });
-
-    // 8. Recent Search Activity
-    this.dataService.getRecentSearchActivities().subscribe((searches) => {
-      this.recentSearches.set(searches);
-    });
+    this.isLoading.set(true);
+    this.loadError.set(null);
+    // Single aggregate request for all sections (no duplicate HTTPs).
+    this.dataService
+      .getAdminUsageStatistics({
+        activity_period: this.activityTrendPeriod(),
+        daily_period: this.dailyUsagePeriod(),
+      })
+      .subscribe({
+        next: (res) => {
+          this.kpis.set(res.kpis || []);
+          this.activityLabels.set(res.activity_trend?.labels || []);
+          this.activityDatasets.set(
+            (res.activity_trend?.series || []).map((s) => ({
+              label: s.label,
+              data: s.data,
+              borderColor: s.color,
+              fill: false,
+            })),
+          );
+          this.dailyLabels.set(res.daily_usage?.labels || []);
+          this.dailyValues.set(res.daily_usage?.values || []);
+          this.roleLabels.set(res.role_distribution?.labels || []);
+          this.roleData.set(res.role_distribution?.data || []);
+          this.roleColors.set(res.role_distribution?.colors || []);
+          this.roleTotal.set(res.role_distribution?.total || "0");
+          this.topPolicies.set(res.top_policies || []);
+          this.topSchemes.set(res.top_schemes || []);
+          this.mostActiveUsers.set(res.most_active_users || []);
+          this.recentSearches.set(res.recent_searches || []);
+          this.hasLoaded.set(true);
+          this.isLoading.set(false);
+        },
+        error: (err) => {
+          console.error("Failed to load usage statistics:", err);
+          this.loadError.set("Could not load usage statistics. Please retry.");
+          this.isLoading.set(false);
+        },
+      });
   }
 
   onDateRangeChange(range: string): void {
@@ -173,19 +177,20 @@ export class UsageStatisticsComponent implements OnInit {
     if (this.isDownloading()) return;
     this.isDownloading.set(true);
 
-    this.dataService.downloadReport("Usage Statistics Report", "pdf").subscribe({
+    this.dataService.downloadReport("ANALYTICS_REPORT", "PDF", "Usage Statistics Report", {}).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `usage-statistics-report-${new Date().toISOString().split("T")[0]}.txt`;
+        a.download = `usage-statistics-report-${new Date().toISOString().split("T")[0]}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
         this.isDownloading.set(false);
       },
-      error: () => {
+      error: (err) => {
+        console.error("Could not download usage report:", err);
         this.isDownloading.set(false);
       },
     });
@@ -194,7 +199,7 @@ export class UsageStatisticsComponent implements OnInit {
   setActivityPeriod(period: string): void {
     this.activityTrendPeriod.set(period);
     this.showActivityMenu.set(false);
-    this.updateActivityTrend();
+    this.loadAllData();
   }
 
   private updateActivityTrend(): void {
@@ -214,7 +219,7 @@ export class UsageStatisticsComponent implements OnInit {
   setDailyPeriod(period: string): void {
     this.dailyUsagePeriod.set(period);
     this.showDailyMenu.set(false);
-    this.updateDailyUsage();
+    this.loadAllData();
   }
 
   private updateDailyUsage(): void {

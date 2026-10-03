@@ -30,6 +30,14 @@ from app.services.department_analytics_service import (
     get_department_policies,
     get_department_schemes,
 )
+from app.services.admin_analytics_service import (
+    get_admin_overview_analytics,
+    get_admin_policy_analytics,
+    get_admin_scheme_analytics,
+    get_admin_user_analytics,
+    get_admin_department_analytics,
+    get_admin_usage_statistics,
+)
 
 
 router = APIRouter(
@@ -435,4 +443,101 @@ def department_schemes(
     return get_department_schemes(
         db,
         department,
+    )
+
+
+# ============================================================
+# ADMIN ANALYTICS (PROTECTED BY ADMIN ROLE)
+# ============================================================
+
+@router.get("/admin/overview")
+def admin_overview(
+    timeframe: str = Query(default="Last 9 Months"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_admin_overview_analytics(db=db, timeframe=timeframe)
+
+
+@router.get("/admin/policies")
+def admin_policies(
+    state: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    ministry: str | None = Query(default=None),
+    department: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    filters = {
+        "state": state,
+        "category": category,
+        "ministry": ministry,
+        "department": department,
+        "status": status,
+    }
+    return get_admin_policy_analytics(db=db, filters=filters)
+
+
+@router.get("/admin/schemes")
+def admin_schemes(
+    state: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    ministry: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    filters = {
+        "state": state,
+        "category": category,
+        "ministry": ministry,
+        "status": status,
+    }
+    return get_admin_scheme_analytics(db=db, filters=filters)
+
+
+@router.get("/admin/users")
+def admin_users(
+    growth_period: str = Query(default="Last 12 Months"),
+    reg_period: str = Query(default="Last 6 Months"),
+    state_limit: int = Query(default=10),
+    heatmap_period: str = Query(default="Last 4 Weeks"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_admin_user_analytics(
+        db=db,
+        growth_period=growth_period,
+        reg_period=reg_period,
+        state_limit=state_limit,
+        heatmap_period=heatmap_period,
+    )
+
+
+@router.get("/admin/departments")
+def admin_departments(
+    search: str | None = Query(default=None),
+    selected_department: str = Query(default="all"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_admin_department_analytics(
+        db=db,
+        search=search,
+        selected_department=selected_department,
+    )
+
+
+@router.get("/admin/usage")
+def admin_usage(
+    activity_period: str = Query(default="Last 12 Months"),
+    daily_period: str = Query(default="Last 30 Days"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    return get_admin_usage_statistics(
+        db=db,
+        activity_period=activity_period,
+        daily_period=daily_period,
     )

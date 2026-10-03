@@ -31,8 +31,20 @@
     </div>
   </div>
 
-  <!-- Top Metric Cards Grid (6 cards) -->
-  <div class="top-cards-grid">
+  <!-- Top Metric Cards Grid (6 cards, live API values) -->
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5, 6]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadData()">Retry</button>
+  </p>
+  }
+  <div class="top-cards-grid" [hidden]="isLoading() && !hasLoaded()">
     <div class="metric-card">
       <div class="card-icon-wrapper blue" aria-hidden="true">
         <span class="material-icons">account_balance</span>
@@ -40,10 +52,10 @@
       <div class="card-content">
         <span class="card-label">Total Departments</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="56">56</span>
-          <span class="card-badge green">↑ 12%</span>
+          <span class="card-value" [appCountUp]="overviewMetrics().totalDepts">{{ overviewMetrics().totalDepts }}</span>
+          <span class="card-badge green">Live</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">Live total</span>
       </div>
     </div>
 
@@ -54,10 +66,10 @@
       <div class="card-content">
         <span class="card-label">Total Policies</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="1,250">1,250</span>
-          <span class="card-badge green">↑ 18%</span>
+          <span class="card-value" [appCountUp]="currentOverview().totalPolicies">{{ currentOverview().totalPolicies }}</span>
+          <span class="card-badge green">Live</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">Live total</span>
       </div>
     </div>
 
@@ -68,10 +80,10 @@
       <div class="card-content">
         <span class="card-label">Total Schemes</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="438">438</span>
-          <span class="card-badge green">↑ 20%</span>
+          <span class="card-value" [appCountUp]="currentOverview().totalSchemes">{{ currentOverview().totalSchemes }}</span>
+          <span class="card-badge green">Live</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">Live total</span>
       </div>
     </div>
 
@@ -82,10 +94,10 @@
       <div class="card-content">
         <span class="card-label">Active Departments</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="48">48</span>
-          <span class="card-badge green">↑ 9%</span>
+          <span class="card-value" [appCountUp]="overviewMetrics().activeDepts">{{ overviewMetrics().activeDepts }}</span>
+          <span class="card-badge green">Live</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">Live total</span>
       </div>
     </div>
 
@@ -96,10 +108,10 @@
       <div class="card-content">
         <span class="card-label">Total Views</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="185,420">185,420</span>
-          <span class="card-badge green">↑ 25%</span>
+          <span class="card-value">—</span>
+          <span class="card-badge">Not tracked</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">No view data stored</span>
       </div>
     </div>
 
@@ -110,10 +122,10 @@
       <div class="card-content">
         <span class="card-label">Total Downloads</span>
         <div class="card-value-row">
-          <span class="card-value" appCountUp="28,760">28,760</span>
-          <span class="card-badge green">↑ 22%</span>
+          <span class="card-value">—</span>
+          <span class="card-badge">Not tracked</span>
         </div>
-        <span class="card-subtext">from last period</span>
+        <span class="card-subtext">No download data stored</span>
       </div>
     </div>
   </div>
@@ -190,9 +202,9 @@
                 activePolicies: currentOverview().activePolicies,
                 totalSchemes: currentOverview().totalSchemes,
                 activeSchemes: currentOverview().activeSchemes,
-                totalViews: '45,230',
-                downloads: '7,890',
-                lastUpdated: 'Sep 30, 2024'
+                totalViews: '—',
+                downloads: '—',
+                lastUpdated: 'Live data'
               })">
             <span>View Details</span>
             <span class="material-icons" aria-hidden="true">open_in_new</span>
@@ -276,7 +288,7 @@
             <span>Last 12 Months</span>
           </div>
         </div>
-        <app-line-chart [labels]="monthLabels" [datasets]="trendDatasets" [yMin]="0" [yMax]="50" />
+        <app-line-chart [labels]="monthLabels()" [datasets]="trendDatasets()" [yMin]="0" [yMax]="50" />
       </div>
     </div>
 
@@ -284,21 +296,21 @@
     <div class="panel-middle-row">
       <div class="chart-card">
         <h3 class="card-title">Policy Distribution by Department</h3>
-        <app-hbar-chart [labels]="policyDeptLabels" [data]="policyDeptData" [selectedDepartment]="selectedDept().name"
+        <app-hbar-chart [labels]="policyDeptLabels()" [data]="policyDeptData()" [selectedDepartment]="selectedDept().name"
           primaryColor="#2f6fed" dimmedColor="rgba(47, 111, 237, 0.25)" />
       </div>
 
       <div class="chart-card">
         <h3 class="card-title">Scheme Distribution by Department</h3>
-        <app-hbar-chart [labels]="schemeDeptLabels" [data]="schemeDeptData" [selectedDepartment]="selectedDept().name"
+        <app-hbar-chart [labels]="schemeDeptLabels()" [data]="schemeDeptData()" [selectedDepartment]="selectedDept().name"
           primaryColor="#3cb371" dimmedColor="rgba(60, 179, 113, 0.25)" />
       </div>
 
       <div class="chart-card">
         <h3 class="card-title">Department-wise User Engagement</h3>
-        <app-doughnut-chart [labels]="engagementLabels" [data]="engagementData"
+        <app-doughnut-chart [labels]="engagementLabels()" [data]="engagementData()"
           [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d', '#06b6d4', '#94a3b8']"
-          centerMainText="185,420" centerSubText="Total Views" />
+          [centerMainText]="engagementTotal()" centerSubText="Items" />
       </div>
     </div>
 
@@ -396,7 +408,7 @@
         </div>
         <p class="modal-note">
           <span class="material-icons">info</span>
-          Last operational synchronization: {{ dept.lastUpdated }} (Sample Preview Data).
+          Last operational synchronization: {{ dept.lastUpdated }} (Live database values; views/downloads not tracked yet).
         </p>
       </div>
 

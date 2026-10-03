@@ -14,23 +14,18 @@
       <div class="title-row">
         <h1 class="page-title">User Analytics</h1>
         @if (isSampleData) {
-          <span class="sample-data-badge" title="Data presented from frontend sample dataset">
-            <span class="badge-dot"></span>
-            Sample Data
-          </span>
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
         }
       </div>
       <p class="page-subtitle">Understand user engagement and platform usage across all user types</p>
     </div>
     <div class="header-right">
       <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
-      <button
-        type="button"
-        class="btn-download"
-        (click)="downloadReport()"
-        [disabled]="isDownloading()"
-        aria-label="Download User Analytics Report"
-      >
+      <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
+        aria-label="Download User Analytics Report">
         <span class="material-icons" aria-hidden="true">download</span>
         <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
       </button>
@@ -38,22 +33,36 @@
   </div>
 
   <!-- 6 KPI Cards Grid -->
+  @if (isLoading() && !hasLoaded()) {
+  <div class="analytics-skeleton-grid" aria-hidden="true">
+    @for (s of [1, 2, 3, 4, 5, 6]; track s) {
+    <div class="analytics-skeleton-card"></div>
+    }
+  </div>
+  }
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
+  </p>
+  }
   <div class="kpi-grid">
     @for (kpi of kpis(); track kpi.label) {
-      <div class="kpi-card">
-        <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
-          <span class="material-icons">{{ kpi.icon }}</span>
-        </div>
-        <div class="kpi-content">
-          <span class="kpi-label">{{ kpi.label }}</span>
-          <div class="kpi-value-row">
-            <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
-          </div>
-          <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
-            {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
-          </span>
-        </div>
+    <div class="kpi-card">
+      <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
       </div>
+      <div class="kpi-content">
+        <span class="kpi-label">{{ kpi.label }}</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
+        </div>
+        @if (kpi.change) {
+        <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
+          {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
+        </span>
+        }
+      </div>
+    </div>
     }
   </div>
 
@@ -64,38 +73,26 @@
       <div class="card-header-row">
         <h2 class="card-title">User Growth Trend</h2>
         <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showGrowthMenu.set(!showGrowthMenu())"
-            [attr.aria-expanded]="showGrowthMenu()"
-            aria-label="Select growth trend period"
-          >
+          <button type="button" class="dropdown-toggle-btn" (click)="showGrowthMenu.set(!showGrowthMenu())"
+            [attr.aria-expanded]="showGrowthMenu()" aria-label="Select growth trend period">
             <span>{{ growthPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
           @if (showGrowthMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of growthPeriodOptions; track opt) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="growthPeriod() === opt"
-                  (click)="setGrowthPeriod(opt)"
-                >
-                  {{ opt }}
-                </button>
-              }
-            </div>
+          <div class="dropdown-menu">
+            @for (opt of growthPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="growthPeriod() === opt"
+              (click)="setGrowthPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
 
       <div class="chart-body">
-        <app-line-chart
-          [labels]="growthLabels()"
-          [datasets]="growthDatasets()"
-        />
+        <app-line-chart [labels]="growthLabels()" [datasets]="growthDatasets()" />
       </div>
     </div>
 
@@ -106,13 +103,8 @@
       </div>
 
       <div class="chart-body doughnut-body">
-        <app-doughnut-chart
-          [labels]="roleLabels()"
-          [data]="roleData()"
-          [colors]="roleColors()"
-          [centerMainText]="roleTotal()"
-          centerSubText="Total Users"
-        />
+        <app-doughnut-chart [labels]="roleLabels()" [data]="roleData()" [colors]="roleColors()"
+          [centerMainText]="roleTotal()" centerSubText="Total Users" />
       </div>
     </div>
 
@@ -121,39 +113,26 @@
       <div class="card-header-row">
         <h2 class="card-title">User Registration Trend</h2>
         <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showRegMenu.set(!showRegMenu())"
-            [attr.aria-expanded]="showRegMenu()"
-            aria-label="Select registration trend period"
-          >
+          <button type="button" class="dropdown-toggle-btn" (click)="showRegMenu.set(!showRegMenu())"
+            [attr.aria-expanded]="showRegMenu()" aria-label="Select registration trend period">
             <span>{{ regPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
           @if (showRegMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of regPeriodOptions; track opt) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="regPeriod() === opt"
-                  (click)="setRegPeriod(opt)"
-                >
-                  {{ opt }}
-                </button>
-              }
-            </div>
+          <div class="dropdown-menu">
+            @for (opt of regPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="regPeriod() === opt"
+              (click)="setRegPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
 
       <div class="chart-body">
-        <app-vbar-chart
-          [labels]="regLabels()"
-          [values]="regValues()"
-          color="#60a5fa"
-        />
+        <app-vbar-chart [labels]="regLabels()" [values]="regValues()" color="#60a5fa" />
       </div>
     </div>
   </div>
@@ -165,39 +144,26 @@
       <div class="card-header-row">
         <h2 class="card-title">Users by State</h2>
         <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showStateMenu.set(!showStateMenu())"
-            [attr.aria-expanded]="showStateMenu()"
-            aria-label="Select state display count"
-          >
+          <button type="button" class="dropdown-toggle-btn" (click)="showStateMenu.set(!showStateMenu())"
+            [attr.aria-expanded]="showStateMenu()" aria-label="Select state display count">
             <span>{{ selectedStateOption() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
           @if (showStateMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of stateOptions; track opt.label) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="selectedStateOption() === opt.label"
-                  (click)="selectStateOption(opt)"
-                >
-                  {{ opt.label }}
-                </button>
-              }
-            </div>
+          <div class="dropdown-menu">
+            @for (opt of stateOptions; track opt.label) {
+            <button type="button" class="dropdown-item" [class.active]="selectedStateOption() === opt.label"
+              (click)="selectStateOption(opt)">
+              {{ opt.label }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
 
       <div class="chart-body">
-        <app-hbar-chart
-          [labels]="stateLabels()"
-          [data]="stateValues()"
-          primaryColor="#3b82f6"
-        />
+        <app-hbar-chart [labels]="stateLabels()" [data]="stateValues()" primaryColor="#3b82f6" />
       </div>
     </div>
 
@@ -209,18 +175,20 @@
 
       <div class="engagement-grid">
         @for (metric of engagementMetrics(); track metric.label) {
-          <div class="engagement-card">
-            <div class="engagement-icon-circle" [ngClass]="metric.iconClass" aria-hidden="true">
-              <span class="material-icons">{{ metric.icon }}</span>
-            </div>
-            <div class="engagement-content">
-              <span class="engagement-label">{{ metric.label }}</span>
-              <span class="engagement-value" [appCountUp]="metric.value">{{ metric.value }}</span>
-              <span class="engagement-trend" [ngClass]="{ 'green': metric.isPositive, 'red': !metric.isPositive }">
-                {{ metric.change }} <span class="trend-sub">from last period</span>
-              </span>
-            </div>
+        <div class="engagement-card">
+          <div class="engagement-icon-circle" [ngClass]="metric.iconClass" aria-hidden="true">
+            <span class="material-icons">{{ metric.icon }}</span>
           </div>
+          <div class="engagement-content">
+            <span class="engagement-label">{{ metric.label }}</span>
+            <span class="engagement-value" [appCountUp]="metric.value">{{ metric.value }}</span>
+            @if (metric.change) {
+            <span class="engagement-trend" [ngClass]="{ 'green': metric.isPositive, 'red': !metric.isPositive }">
+              {{ metric.change }} <span class="trend-sub">from last period</span>
+            </span>
+            }
+          </div>
+        </div>
         }
       </div>
     </div>
@@ -230,29 +198,20 @@
       <div class="card-header-row">
         <h2 class="card-title">User Activity Heatmap</h2>
         <div class="dropdown-wrapper">
-          <button
-            type="button"
-            class="dropdown-toggle-btn"
-            (click)="showHeatmapMenu.set(!showHeatmapMenu())"
-            [attr.aria-expanded]="showHeatmapMenu()"
-            aria-label="Select heatmap period"
-          >
+          <button type="button" class="dropdown-toggle-btn" (click)="showHeatmapMenu.set(!showHeatmapMenu())"
+            [attr.aria-expanded]="showHeatmapMenu()" aria-label="Select heatmap period">
             <span>{{ heatmapPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
           </button>
           @if (showHeatmapMenu()) {
-            <div class="dropdown-menu">
-              @for (opt of heatmapPeriodOptions; track opt) {
-                <button
-                  type="button"
-                  class="dropdown-item"
-                  [class.active]="heatmapPeriod() === opt"
-                  (click)="setHeatmapPeriod(opt)"
-                >
-                  {{ opt }}
-                </button>
-              }
-            </div>
+          <div class="dropdown-menu">
+            @for (opt of heatmapPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="heatmapPeriod() === opt"
+              (click)="setHeatmapPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
           }
         </div>
       </div>
@@ -262,30 +221,26 @@
         <div class="heatmap-body">
           <div class="heatmap-days-col">
             @for (day of heatmapDays(); track day) {
-              <div class="day-label">{{ day }}</div>
+            <div class="day-label">{{ day }}</div>
             }
           </div>
 
           <div class="heatmap-grid-area">
             @for (day of heatmapDays(); track day; let dIdx = $index) {
-              <div class="heatmap-row">
-                @for (time of heatmapTimes(); track time; let tIdx = $index) {
-                  @let cell = getCell(dIdx, tIdx);
-                  <div
-                    class="heatmap-cell"
-                    [ngClass]="'level-' + (cell?.level ?? 0)"
-                    [title]="day + ' ' + time + ': ' + (cell?.value ?? 0) + ' active users'"
-                    (mouseenter)="hoveredCell.set(cell ?? null)"
-                    (mouseleave)="hoveredCell.set(null)"
-                  ></div>
-                }
-              </div>
+            <div class="heatmap-row">
+              @for (time of heatmapTimes(); track time; let tIdx = $index) {
+              @let cell = getCell(dIdx, tIdx);
+              <div class="heatmap-cell" [ngClass]="'level-' + (cell?.level ?? 0)"
+                [title]="day + ' ' + time + ': ' + (cell?.value ?? 0) + ' active users'"
+                (mouseenter)="hoveredCell.set(cell ?? null)" (mouseleave)="hoveredCell.set(null)"></div>
+              }
+            </div>
             }
 
             <!-- Bottom Time labels -->
             <div class="heatmap-times-row">
               @for (time of heatmapTimes(); track time) {
-                <div class="time-label">{{ time }}</div>
+              <div class="time-label">{{ time }}</div>
               }
             </div>
           </div>
@@ -332,18 +287,18 @@
           </thead>
           <tbody>
             @for (user of recentUsers().slice(0, 5); track user.rank) {
-              <tr>
-                <td class="col-rank">{{ user.rank }}</td>
-                <td class="col-name font-semibold">{{ user.name }}</td>
-                <td class="col-email text-muted">{{ user.email }}</td>
-                <td>
-                  <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="text-secondary">{{ user.state }}</td>
-                <td class="text-muted">{{ user.joinDate }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ user.rank }}</td>
+              <td class="col-name font-semibold">{{ user.name }}</td>
+              <td class="col-email text-muted">{{ user.email }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="text-secondary">{{ user.state }}</td>
+              <td class="text-muted">{{ user.joinDate }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -373,18 +328,18 @@
           </thead>
           <tbody>
             @for (user of topActiveUsers().slice(0, 5); track user.rank) {
-              <tr>
-                <td class="col-rank">{{ user.rank }}</td>
-                <td class="col-name font-semibold">{{ user.name }}</td>
-                <td>
-                  <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
-                    {{ user.role }}
-                  </span>
-                </td>
-                <td class="text-secondary">{{ user.logins | number }}</td>
-                <td class="text-secondary">{{ user.searches | number }}</td>
-                <td class="text-muted">{{ user.lastActive }}</td>
-              </tr>
+            <tr>
+              <td class="col-rank">{{ user.rank }}</td>
+              <td class="col-name font-semibold">{{ user.name }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="text-secondary">{{ user.logins | number }}</td>
+              <td class="text-secondary">{{ user.searches | number }}</td>
+              <td class="text-muted">{{ user.lastActive }}</td>
+            </tr>
             }
           </tbody>
         </table>
@@ -394,120 +349,112 @@
 
   <!-- Expanded "View All" Modal Dialog -->
   @if (activeModal()) {
-    <div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="0" role="dialog" aria-modal="true">
-      <div class="modal-card" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3 class="modal-title">
-            {{ activeModal() === 'recent' ? 'All Registered Users' : 'All Active Users' }}
-          </h3>
-          <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close modal">
-            <span class="material-icons">close</span>
-          </button>
+  <div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="0" role="dialog"
+    aria-modal="true">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          {{ activeModal() === 'recent' ? 'All Registered Users' : 'All Active Users' }}
+        </h3>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close modal">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="modal-controls">
+        <div class="search-input-wrapper">
+          <span class="material-icons">search</span>
+          <input type="text" class="modal-search" placeholder="Search by name, email, or state..."
+            [ngModel]="modalSearchTerm()" (ngModelChange)="modalSearchTerm.set($event)" />
         </div>
 
-        <div class="modal-controls">
-          <div class="search-input-wrapper">
-            <span class="material-icons">search</span>
-            <input
-              type="text"
-              class="modal-search"
-              placeholder="Search by name, email, or state..."
-              [ngModel]="modalSearchTerm()"
-              (ngModelChange)="modalSearchTerm.set($event)"
-            />
-          </div>
-
-          <div class="role-filter-wrapper">
-            <select
-              class="modal-role-select"
-              [ngModel]="modalRoleFilter()"
-              (ngModelChange)="modalRoleFilter.set($event)"
-              aria-label="Filter by role"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="Citizen">Citizen</option>
-              <option value="Govt. Official">Govt. Official</option>
-              <option value="Researcher">Researcher</option>
-              <option value="Organization">Organization</option>
-              <option value="Administrator">Administrator</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="modal-body table-responsive">
-          @if (activeModal() === 'recent') {
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">State</th>
-                  <th scope="col">Join Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (user of filteredRecentUsers(); track user.rank) {
-                  <tr>
-                    <td>{{ user.rank }}</td>
-                    <td class="font-semibold">{{ user.name }}</td>
-                    <td class="text-muted">{{ user.email }}</td>
-                    <td>
-                      <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
-                        {{ user.role }}
-                      </span>
-                    </td>
-                    <td>{{ user.state }}</td>
-                    <td class="text-muted">{{ user.joinDate }}</td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No users found matching your search.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          } @else {
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">User</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">Logins</th>
-                  <th scope="col">Searches</th>
-                  <th scope="col">Last Active</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (user of filteredTopActiveUsers(); track user.rank) {
-                  <tr>
-                    <td>{{ user.rank }}</td>
-                    <td class="font-semibold">{{ user.name }}</td>
-                    <td>
-                      <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
-                        {{ user.role }}
-                      </span>
-                    </td>
-                    <td>{{ user.logins | number }}</td>
-                    <td>{{ user.searches | number }}</td>
-                    <td class="text-muted">{{ user.lastActive }}</td>
-                  </tr>
-                } @empty {
-                  <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">No active users found matching your search.</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          }
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn-close-modal" (click)="closeModal()">Close</button>
+        <div class="role-filter-wrapper">
+          <select class="modal-role-select" [ngModel]="modalRoleFilter()" (ngModelChange)="modalRoleFilter.set($event)"
+            aria-label="Filter by role">
+            <option value="ALL">All Roles</option>
+            <option value="Citizen">Citizen</option>
+            <option value="Govt. Official">Govt. Official</option>
+            <option value="Researcher">Researcher</option>
+            <option value="Organization">Organization</option>
+            <option value="Administrator">Administrator</option>
+          </select>
         </div>
       </div>
+
+      <div class="modal-body table-responsive">
+        @if (activeModal() === 'recent') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Role</th>
+              <th scope="col">State</th>
+              <th scope="col">Join Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of filteredRecentUsers(); track user.rank) {
+            <tr>
+              <td>{{ user.rank }}</td>
+              <td class="font-semibold">{{ user.name }}</td>
+              <td class="text-muted">{{ user.email }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>{{ user.state }}</td>
+              <td class="text-muted">{{ user.joinDate }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">No users found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">User</th>
+              <th scope="col">Role</th>
+              <th scope="col">Logins</th>
+              <th scope="col">Searches</th>
+              <th scope="col">Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of filteredTopActiveUsers(); track user.rank) {
+            <tr>
+              <td>{{ user.rank }}</td>
+              <td class="font-semibold">{{ user.name }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>{{ user.logins | number }}</td>
+              <td>{{ user.searches | number }}</td>
+              <td class="text-muted">{{ user.lastActive }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">No active users found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-close-modal" (click)="closeModal()">Close</button>
+      </div>
     </div>
+  </div>
   }
 </div>

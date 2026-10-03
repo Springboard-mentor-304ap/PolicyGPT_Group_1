@@ -41,6 +41,10 @@ export class PolicyAnalyticsComponent implements OnInit {
 
   activeFilters = signal<Record<string, string>>({});
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");
+  isLoading = signal<boolean>(true);
+  hasLoaded = signal<boolean>(false);
+  loadError = signal<string | null>(null);
+  isExporting = signal<boolean>(false);
 
   stats = signal<AnalyticsStat[]>([]);
   categoryLabels = signal<string[]>([]);
@@ -59,47 +63,40 @@ export class PolicyAnalyticsComponent implements OnInit {
 
   loadData(): void {
     const filters = this.activeFilters();
+    this.isLoading.set(true);
+    this.loadError.set(null);
 
-    // Stats
-    this.dataService
-      .getPolicyAnalyticsStats(filters)
-      .subscribe((res) => this.stats.set(res));
-
-    // Category Doughnut
-    this.dataService.getPoliciesByCategory(filters).subscribe((res) => {
-      this.categoryLabels.set(res.map((c) => `${c.label} (${c.percentage}%)`));
-      this.categoryData.set(res.map((c) => c.percentage));
+    // Single aggregate request; derived slices share one HTTP via cache.
+    this.dataService.getAdminPolicyAnalytics(filters).subscribe({
+      next: (res) => {
+        this.stats.set(res.stats || []);
+        const cats = res.by_category || [];
+        this.categoryLabels.set(cats.map((c) => `${c.label} (${c.percentage}%)`));
+        this.categoryData.set(cats.map((c) => c.percentage));
+        this.trendLabels.set(res.trend?.labels || []);
+        this.trendDatasets.set(
+          (res.trend?.series || []).map((s) => ({
+            label: s.label,
+            data: s.data,
+            borderColor: s.color,
+            backgroundColor: "transparent",
+          })),
+        );
+        this.stateLabels.set((res.by_state || []).map((r) => r.label));
+        this.stateData.set((res.by_state || []).map((r) => r.value));
+        this.ministryLabels.set((res.by_ministry || []).map((r) => r.label));
+        this.ministryData.set((res.by_ministry || []).map((r) => r.value));
+        this.latestPolicies.set(res.latest_policies || []);
+        this.hasLoaded.set(true);
+        this.isLoading.set(false);
+      },
+      error: (err) => {
+        console.error("Failed to load policy analytics:", err);
+        // Keep any previously loaded cards visible; surface error + retry.
+        this.loadError.set("Could not load policy analytics. Please retry.");
+        this.isLoading.set(false);
+      },
     });
-
-    // Trend Line
-    this.dataService.getPolicyStatusTrend(filters).subscribe((res) => {
-      this.trendLabels.set(res.labels);
-      this.trendDatasets.set(
-        res.series.map((s) => ({
-          label: s.label,
-          data: s.data,
-          borderColor: s.color,
-          backgroundColor: "transparent",
-        })),
-      );
-    });
-
-    // Policies by State HBar
-    this.dataService.getPoliciesByState(filters).subscribe((res) => {
-      this.stateLabels.set(res.map((r) => r.label));
-      this.stateData.set(res.map((r) => r.value));
-    });
-
-    // Policies by Ministry VBar
-    this.dataService.getPoliciesByMinistry(filters).subscribe((res) => {
-      this.ministryLabels.set(res.map((r) => r.label));
-      this.ministryData.set(res.map((r) => r.value));
-    });
-
-    // Latest Policies
-    this.dataService
-      .getLatestPolicies(filters)
-      .subscribe((res) => this.latestPolicies.set(res));
   }
 
   onApplyFilters(filters: Record<string, string>): void {
@@ -117,20 +114,34 @@ export class PolicyAnalyticsComponent implements OnInit {
   }
 
   exportReport(): void {
-    this.dataService.downloadReport("pdf").subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "policy-analytics-report.pdf";
-        a.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => {
-        // Fallback notification
-        console.error("Could not export report");
-      },
-    });
+    if (this.isExporting()) return;
+    this.isExporting.set(true);
+    const filters = this.activeFilters();
+    this.dataService
+      .downloadReport("POLICY_REPORT", "PDF", "Policy Analytics Report", filters)
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `policy-analytics-report-${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this.isExporting.set(false);
+        },
+        error: (err) => {
+          console.error("Could not export policy report:", err);
+          this.isExporting.set(false);
+        },
+      });
+  }
+
+  /** Live doughnut center total (no hardcoded 1,250). */
+  categoryTotal(): string {
+    const found = this.stats().find((s) => s.label === "Total Policies")?.value;
+    return String(found ?? "0");
   }
 
   getStatIcon(index: number): string {

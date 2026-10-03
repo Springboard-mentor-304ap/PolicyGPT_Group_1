@@ -1,5 +1,11 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import {
+  ChangeDetectorRef,
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
 import { PolicyService } from "../../../core/services/policy.service";
@@ -9,6 +15,7 @@ import {
   PolicyListResponse,
   PolicyStatus,
 } from "../../../core/models/policy.model";
+import { OverlayModule, ConnectedPosition } from "@angular/cdk/overlay";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 
@@ -34,13 +41,14 @@ export interface PolicyTableItem {
     CommonModule,
     FormsModule,
     RouterLink,
+    OverlayModule,
     ConfirmModalComponent,
     ReasonModalComponent,
   ],
   templateUrl: "./manage-policies.component.html",
   styleUrls: ["./manage-policies.component.scss"],
 })
-export class ManagePoliciesComponent implements OnInit {
+export class ManagePoliciesComponent implements OnInit, OnDestroy {
   constructor(
     private readonly policyService: PolicyService,
     private readonly router: Router,
@@ -59,6 +67,37 @@ export class ManagePoliciesComponent implements OnInit {
   errorMessage = "";
   successToastMessage: string | null = null;
 
+  readonly actionMenuPositions: ConnectedPosition[] = [
+    {
+      originX: "end",
+      originY: "bottom",
+      overlayX: "end",
+      overlayY: "top",
+      offsetY: 6,
+    },
+    {
+      originX: "end",
+      originY: "top",
+      overlayX: "end",
+      overlayY: "bottom",
+      offsetY: -6,
+    },
+    {
+      originX: "start",
+      originY: "bottom",
+      overlayX: "start",
+      overlayY: "top",
+      offsetY: 6,
+    },
+    {
+      originX: "start",
+      originY: "top",
+      overlayX: "start",
+      overlayY: "bottom",
+      offsetY: -6,
+    },
+  ];
+
   // Real backend analytics statistics
   stats = {
     total: 0,
@@ -74,6 +113,8 @@ export class ManagePoliciesComponent implements OnInit {
   confirmMessage = "";
   confirmVariant: "primary" | "danger" | "warning" | "success" = "primary";
   confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
 
   reasonModalOpen = false;
   reasonTitle = "";
@@ -283,9 +324,29 @@ export class ManagePoliciesComponent implements OnInit {
     this.menuOpenId = this.menuOpenId === id ? null : id;
     this.cdr.detectChanges();
   }
+
   closeMenu(): void {
-    this.menuOpenId = null;
-    this.cdr.detectChanges();
+    if (this.menuOpenId !== null) {
+      this.menuOpenId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscapeKey(): void {
+    if (this.menuOpenId !== null) {
+      this.closeMenu();
+    }
+  }
+
+  onOverlayKeydown(event: KeyboardEvent): void {
+    if (event.key === "Escape") {
+      this.closeMenu();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.closeMenu();
   }
 
   viewPolicy(policy: PolicyTableItem): void {
@@ -319,27 +380,51 @@ export class ManagePoliciesComponent implements OnInit {
     return Boolean(currentUserId && policy.createdBy === currentUserId);
   }
 
+  getSubmitActionLabel(policy: PolicyTableItem): string {
+    if (this.isAdmin) {
+      return "Submit";
+    }
+    return policy.status === "REJECTED"
+      ? "Re-submit for approval"
+      : "Submit for approval";
+  }
+
   openSubmitModal(policy: PolicyTableItem): void {
     this.closeMenu();
     if (!this.canSubmitPolicy(policy)) {
       this.errorMessage =
-        "You are not authorized to submit this policy. Only the user who created it can submit it for approval.";
+        "You are not authorized to submit this policy. Only policies in DRAFT or REJECTED status can be submitted.";
       this.cdr.detectChanges();
       return;
     }
+    const policyTitle = policy.title || "Untitled Policy";
     this.confirmTitle = "Submit Policy";
-    this.confirmMessage = `Submit "${policy.title}" for approval?`;
+    this.confirmMessage = `Submit "${policyTitle}" for approval?`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+
       this.policyService.submitPolicy(policy.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast("Policy submitted for approval.");
           this.loadPolicies();
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -350,19 +435,34 @@ export class ManagePoliciesComponent implements OnInit {
 
   openApproveModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    const policyTitle = policy.title || "Untitled Policy";
     this.confirmTitle = "Approve Policy";
-    this.confirmMessage = `Are you sure you want to approve "${policy.title}"?`;
+    this.confirmMessage = `Are you sure you want to approve "${policyTitle}"?`;
     this.confirmVariant = "success";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+
       this.policyService.approvePolicy(policy.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast("Policy approved successfully.");
           this.loadPolicies();
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -584,14 +684,22 @@ export class ManagePoliciesComponent implements OnInit {
   }
 
   onConfirmModalConfirmed(): void {
+    if (this.confirmLoading) {
+      return;
+    }
     if (this.confirmAction) {
       this.confirmAction();
     }
   }
 
   onConfirmModalCancelled(): void {
+    if (this.confirmLoading) {
+      return;
+    }
     this.confirmModalOpen = false;
     this.confirmAction = null;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.cdr.detectChanges();
   }
 

@@ -307,13 +307,27 @@
                                         View
                                     </button>
 
-                                    <button type="button" class="more-action" [class.open]="menuOpenId === policy.id"
-                                        [attr.aria-expanded]="menuOpenId === policy.id" aria-label="More policy actions"
+                                    <button type="button" class="more-action"
+                                        cdkOverlayOrigin #trigger="cdkOverlayOrigin"
+                                        [class.open]="menuOpenId === policy.id"
+                                        [attr.aria-expanded]="menuOpenId === policy.id"
+                                        aria-haspopup="menu"
+                                        aria-label="More policy actions"
                                         (click)="toggleMenu(policy.id)">
                                         <span class="material-icons">more_horiz</span>
                                     </button>
 
-                                    <div class="action-menu" *ngIf="menuOpenId === policy.id">
+                                    <ng-template
+                                        cdkConnectedOverlay
+                                        [cdkConnectedOverlayOrigin]="trigger"
+                                        [cdkConnectedOverlayOpen]="menuOpenId === policy.id"
+                                        [cdkConnectedOverlayHasBackdrop]="true"
+                                        [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                                        [cdkConnectedOverlayPositions]="actionMenuPositions"
+                                        [cdkConnectedOverlayPanelClass]="'policy-action-overlay-pane'"
+                                        (backdropClick)="closeMenu()"
+                                        (overlayKeydown)="onOverlayKeydown($event)">
+                                        <div class="action-menu" role="menu">
 
                                         <!-- DRAFT / REJECTED -->
                                         @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
@@ -326,9 +340,7 @@
                                         @if (canSubmitPolicy(policy)) {
                                         <button type="button" (click)="openSubmitModal(policy)">
                                             <span class="material-icons">send</span>
-                                            {{ policy.status === 'REJECTED'
-                                            ? 'Re-submit for approval'
-                                            : 'Submit for approval' }}
+                                            {{ getSubmitActionLabel(policy) }}
                                         </button>
                                         }
 
@@ -476,6 +488,7 @@
                                         }
 
                                     </div>
+                                    </ng-template>
                                 </div>
 
                             </td>
@@ -551,7 +564,8 @@
 
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-        [variant]="confirmVariant" (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"

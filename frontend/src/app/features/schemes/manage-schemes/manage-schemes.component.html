@@ -318,13 +318,27 @@
                                         View
                                     </button>
 
-                                    <button type="button" class="more-action" [class.open]="menuOpenId === scheme.id"
-                                        [attr.aria-expanded]="menuOpenId === scheme.id" aria-label="More scheme actions"
+                                    <button type="button" class="more-action"
+                                        cdkOverlayOrigin #trigger="cdkOverlayOrigin"
+                                        [class.open]="menuOpenId === scheme.id"
+                                        [attr.aria-expanded]="menuOpenId === scheme.id"
+                                        aria-haspopup="menu"
+                                        aria-label="More scheme actions"
                                         (click)="toggleMenu(scheme.id)">
                                         <span class="material-icons">more_horiz</span>
                                     </button>
 
-                                    <div class="action-menu" *ngIf="menuOpenId === scheme.id">
+                                    <ng-template
+                                        cdkConnectedOverlay
+                                        [cdkConnectedOverlayOrigin]="trigger"
+                                        [cdkConnectedOverlayOpen]="menuOpenId === scheme.id"
+                                        [cdkConnectedOverlayHasBackdrop]="true"
+                                        [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                                        [cdkConnectedOverlayPositions]="actionMenuPositions"
+                                        [cdkConnectedOverlayPanelClass]="'scheme-action-overlay-pane'"
+                                        (backdropClick)="closeMenu()"
+                                        (overlayKeydown)="onOverlayKeydown($event)">
+                                        <div class="action-menu" role="menu">
                                         <!-- DRAFT / REJECTED -->
                                         @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
                                         <button type="button" (click)="editScheme(scheme)">
@@ -335,9 +349,7 @@
                                         @if (canSubmitScheme(scheme)) {
                                         <button type="button" (click)="openSubmitModal(scheme)">
                                             <span class="material-icons">send</span>
-                                            {{ scheme.status === 'REJECTED'
-                                            ? 'Re-submit for approval'
-                                            : 'Submit for approval' }}
+                                            {{ getSubmitActionLabel(scheme) }}
                                         </button>
                                         }
 
@@ -479,6 +491,7 @@
                                         }
                                         }
                                     </div>
+                                    </ng-template>
                                 </div>
                             </td>
                         </tr>
@@ -546,7 +559,8 @@
 
     <!-- Workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-        [variant]="confirmVariant" (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"

@@ -288,4 +288,259 @@ describe('ManageSchemesComponent', () => {
     expect(component.schemes.length).toBe(0);
     expect(component.errorMessage).toBeTruthy();
   });
+
+  // Test 8: Submit action label for Admin vs Other roles
+  it('8. Menu label should be "Submit" for Admin and "Submit for approval" for Gov Official', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftScheme = component.schemes[0];
+    expect(component.getSubmitActionLabel(draftScheme)).toBe('Submit');
+
+    // For Government Official
+    component.userRole = 'GOVERNMENT_OFFICIAL';
+    expect(component.getSubmitActionLabel(draftScheme)).toBe('Submit for approval');
+
+    const rejectedScheme = { ...draftScheme, status: 'REJECTED' };
+    expect(component.getSubmitActionLabel(rejectedScheme)).toBe('Re-submit for approval');
+  });
+
+  // Test 9: Submit opens confirmation modal with dynamic scheme name
+  it('9. openSubmitModal should open confirmation modal displaying correct scheme name', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftScheme = component.schemes[0];
+    component.openSubmitModal(draftScheme);
+
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe('Submit Scheme');
+    expect(component.confirmMessage).toContain('Scheme A - Draft');
+    expect(component.confirmLoading).toBe(false);
+  });
+
+  // Test 10: Cancel closes modal without changing record or calling service
+  it('10. onConfirmModalCancelled should close modal without calling submitScheme', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+    const submitSpy = vi.spyOn(schemeService, 'submitScheme');
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftScheme = component.schemes[0];
+    component.openSubmitModal(draftScheme);
+    expect(component.confirmModalOpen).toBe(true);
+
+    component.onConfirmModalCancelled();
+
+    expect(component.confirmModalOpen).toBe(false);
+    expect(component.confirmAction).toBeNull();
+    expect(submitSpy).not.toHaveBeenCalled();
+    expect(component.schemes[0].status).toBe('DRAFT');
+  });
+
+  // Test 11: Confirm sends correct record ID and transitions to PENDING_APPROVAL
+  it('11. Confirming submit calls submitScheme and refreshes list with PENDING_APPROVAL', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    const updatedScheme: SchemeResponse = {
+      ...sampleSchemes[0],
+      status: 'PENDING_APPROVAL',
+    };
+    const submitSpy = vi
+      .spyOn(schemeService, 'submitScheme')
+      .mockReturnValue(of(updatedScheme));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const loadSpy = vi.spyOn(component, 'loadSchemes');
+
+    const draftScheme = component.schemes[0];
+    component.openSubmitModal(draftScheme);
+    component.onConfirmModalConfirmed();
+
+    expect(submitSpy).toHaveBeenCalledWith(draftScheme.id);
+    expect(component.confirmModalOpen).toBe(false);
+    expect(component.confirmLoading).toBe(false);
+    expect(component.successToastMessage).toBe('Scheme submitted for approval.');
+    expect(loadSpy).toHaveBeenCalled();
+  });
+
+  // Test 12: Duplicate clicks do not create duplicate API requests
+  it('12. Multiple confirm clicks while loading should not trigger duplicate submissions', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    // Subject that doesn't emit immediately to keep loading state active
+    const submitSpy = vi
+      .spyOn(schemeService, 'submitScheme')
+      .mockReturnValue(of(sampleSchemes[0]));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftScheme = component.schemes[0];
+    component.openSubmitModal(draftScheme);
+
+    // Simulate loading state active
+    component.confirmLoading = true;
+    component.onConfirmModalConfirmed();
+
+    expect(submitSpy).not.toHaveBeenCalled();
+  });
+
+  // Test 13: API error displays error message and preserves previous status
+  it('13. API failure during submission preserves record status and sets error message', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    vi.spyOn(schemeService, 'submitScheme').mockReturnValue(
+      throwError(() => ({ status: 400, error: { detail: 'Only DRAFT or REJECTED schemes can be submitted.' } }))
+    );
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftScheme = component.schemes[0];
+    component.openSubmitModal(draftScheme);
+    component.onConfirmModalConfirmed();
+
+    expect(component.confirmLoading).toBe(false);
+    expect(component.errorMessage).toContain('Only DRAFT or REJECTED schemes can be submitted.');
+    expect(component.confirmErrorMessage).toContain('Only DRAFT or REJECTED schemes can be submitted.');
+    expect(component.schemes[0].status).toBe('DRAFT');
+  });
+
+  // Test 14: Next available action after PENDING_APPROVAL is Approve/Reject, not Submit
+  it('14. Scheme in PENDING_APPROVAL cannot be submitted again and shows Approve for Admin', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const pendingScheme = component.schemes[1];
+    expect(component.canSubmitScheme(pendingScheme)).toBe(false);
+  });
+
+  // Test 15: Three-dot action menu toggle and close
+  it('15. toggleMenu should open menu for clicked scheme and toggle closed on second click', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.menuOpenId).toBeNull();
+
+    // Click scheme 1 three-dot button
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Click scheme 1 three-dot button again -> closes
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBeNull();
+  });
+
+  // Test 16: Opening one row closes any previously open row menu
+  it('16. Opening another row menu should close the previously open row menu', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Click scheme 2 three-dot button
+    component.toggleMenu(2);
+    expect(component.menuOpenId).toBe(2);
+  });
+
+  // Test 17: Escape key and outside closeMenu close the menu
+  it('17. Escape key and closeMenu should close the active action dropdown', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Press Escape
+    component.onEscapeKey();
+    expect(component.menuOpenId).toBeNull();
+
+    // Reopen and test onOverlayKeydown Escape
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+    component.onOverlayKeydown(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(component.menuOpenId).toBeNull();
+  });
+
+  // Test 18: Action overlay positions provide below-aligned primary and above-aligned fallback
+  it('18. actionMenuPositions should define below primary and above fallback positions', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.actionMenuPositions.length).toBeGreaterThanOrEqual(2);
+
+    // Primary: opens below button
+    const primary = component.actionMenuPositions[0];
+    expect(primary.originY).toBe('bottom');
+    expect(primary.overlayY).toBe('top');
+
+    // Fallback: opens above button
+    const fallback = component.actionMenuPositions[1];
+    expect(fallback.originY).toBe('top');
+    expect(fallback.overlayY).toBe('bottom');
+  });
 });
+

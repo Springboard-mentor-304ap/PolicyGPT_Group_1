@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  HostListener,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { SchemeService } from '../../../core/services/scheme.service';
@@ -16,6 +22,7 @@ import {
   ALL_DEPARTMENTS,
   STATES,
 } from '../../../core/constants/government-data.constants';
+import { OverlayModule, ConnectedPosition } from '@angular/cdk/overlay';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import { ReasonModalComponent } from '../../../shared/components/reason-modal/reason-modal.component';
 
@@ -43,13 +50,14 @@ export interface SchemeTableItem {
     CommonModule,
     FormsModule,
     RouterLink,
+    OverlayModule,
     ConfirmModalComponent,
     ReasonModalComponent,
   ],
   templateUrl: './manage-schemes.component.html',
   styleUrls: ['./manage-schemes.component.scss'],
 })
-export class ManageSchemesComponent implements OnInit {
+export class ManageSchemesComponent implements OnInit, OnDestroy {
   constructor(
     private readonly schemeService: SchemeService,
     private readonly router: Router,
@@ -74,6 +82,37 @@ export class ManageSchemesComponent implements OnInit {
   errorMessage = '';
   successToastMessage: string | null = null;
 
+  readonly actionMenuPositions: ConnectedPosition[] = [
+    {
+      originX: 'end',
+      originY: 'bottom',
+      overlayX: 'end',
+      overlayY: 'top',
+      offsetY: 6,
+    },
+    {
+      originX: 'end',
+      originY: 'top',
+      overlayX: 'end',
+      overlayY: 'bottom',
+      offsetY: -6,
+    },
+    {
+      originX: 'start',
+      originY: 'bottom',
+      overlayX: 'start',
+      overlayY: 'top',
+      offsetY: 6,
+    },
+    {
+      originX: 'start',
+      originY: 'top',
+      overlayX: 'start',
+      overlayY: 'bottom',
+      offsetY: -6,
+    },
+  ];
+
   // Real backend analytics statistics
   stats = {
     total: 0,
@@ -89,6 +128,8 @@ export class ManageSchemesComponent implements OnInit {
   confirmMessage = '';
   confirmVariant: 'primary' | 'danger' | 'warning' | 'success' = 'primary';
   confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
 
   reasonModalOpen = false;
   reasonTitle = '';
@@ -393,8 +434,27 @@ export class ManageSchemesComponent implements OnInit {
   }
 
   closeMenu(): void {
-    this.menuOpenId = null;
-    this.cdr.detectChanges();
+    if (this.menuOpenId !== null) {
+      this.menuOpenId = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.menuOpenId !== null) {
+      this.closeMenu();
+    }
+  }
+
+  onOverlayKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.closeMenu();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.closeMenu();
   }
 
   viewScheme(scheme: SchemeTableItem): void {
@@ -428,27 +488,51 @@ export class ManageSchemesComponent implements OnInit {
     return Boolean(currentUserId && scheme.createdBy === currentUserId);
   }
 
+  getSubmitActionLabel(scheme: SchemeTableItem): string {
+    if (this.isAdmin) {
+      return 'Submit';
+    }
+    return scheme.status === 'REJECTED'
+      ? 'Re-submit for approval'
+      : 'Submit for approval';
+  }
+
   openSubmitModal(scheme: SchemeTableItem): void {
     this.closeMenu();
     if (!this.canSubmitScheme(scheme)) {
       this.errorMessage =
-        'You are not authorized to submit this scheme. Only the user who created it can submit it for approval.';
+        'You are not authorized to submit this scheme. Only schemes in DRAFT or REJECTED status can be submitted.';
       this.cdr.detectChanges();
       return;
     }
+    const schemeName = scheme.name || scheme.title || 'Untitled Scheme';
     this.confirmTitle = 'Submit Scheme';
-    this.confirmMessage = `Submit "${scheme.title}" for approval?`;
+    this.confirmMessage = `Submit "${schemeName}" for approval?`;
     this.confirmVariant = 'primary';
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+
       this.schemeService.submitScheme(scheme.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme submitted for approval.');
           this.loadSchemes();
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -459,19 +543,34 @@ export class ManageSchemesComponent implements OnInit {
 
   openApproveModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    const schemeName = scheme.name || scheme.title || 'Untitled Scheme';
     this.confirmTitle = 'Approve Scheme';
-    this.confirmMessage = `Are you sure you want to approve "${scheme.title}"?`;
+    this.confirmMessage = `Are you sure you want to approve "${schemeName}"?`;
     this.confirmVariant = 'success';
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+
       this.schemeService.approveScheme(scheme.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme approved successfully.');
           this.loadSchemes();
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -691,14 +790,22 @@ export class ManageSchemesComponent implements OnInit {
   }
 
   onConfirmModalConfirmed(): void {
+    if (this.confirmLoading) {
+      return;
+    }
     if (this.confirmAction) {
       this.confirmAction();
     }
   }
 
   onConfirmModalCancelled(): void {
+    if (this.confirmLoading) {
+      return;
+    }
     this.confirmModalOpen = false;
     this.confirmAction = null;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.cdr.detectChanges();
   }
 

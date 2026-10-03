@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, effect, input, OnDestroy, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -8,7 +8,7 @@ import { CommonModule } from '@angular/common';
   template: `
     @if (isOpen()) {
       <div class="modal-overlay" (click)="onBackdropClick($event)">
-        <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-card" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
           <div class="modal-icon" [ngClass]="'modal-icon--' + variant()">
             @if (variant() === 'danger') {
               <span class="material-icons">warning</span>
@@ -24,11 +24,19 @@ import { CommonModule } from '@angular/common';
           <h3 class="modal-title">{{ title() }}</h3>
           <p class="modal-message">{{ message() }}</p>
 
+          @if (errorMessage()) {
+            <div class="modal-error">
+              <span class="material-icons">error_outline</span>
+              <span>{{ errorMessage() }}</span>
+            </div>
+          }
+
           <div class="modal-actions">
             @if (showCancel()) {
               <button
                 type="button"
                 class="modal-btn modal-btn--cancel"
+                [disabled]="isLoading()"
                 (click)="onCancel()"
               >
                 {{ cancelText() }}
@@ -38,9 +46,13 @@ import { CommonModule } from '@angular/common';
               type="button"
               class="modal-btn"
               [ngClass]="'modal-btn--' + variant()"
+              [disabled]="isLoading()"
               (click)="onConfirm()"
             >
-              {{ confirmText() }}
+              @if (isLoading()) {
+                <span class="modal-spinner"></span>
+              }
+              <span>{{ confirmText() }}</span>
             </button>
           </div>
         </div>
@@ -122,11 +134,33 @@ import { CommonModule } from '@angular/common';
     }
 
     .modal-message {
-      margin: 10px 0 24px;
+      margin: 10px 0 20px;
       font-size: 14px;
       line-height: 1.55;
       color: #475569;
       white-space: pre-line;
+    }
+
+    .modal-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      color: #b91c1c;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: left;
+      margin: 0 0 18px;
+      word-break: break-word;
+    }
+
+    .modal-error .material-icons {
+      font-size: 18px;
+      color: #dc2626;
+      flex-shrink: 0;
     }
 
     .modal-actions {
@@ -153,13 +187,32 @@ import { CommonModule } from '@angular/common';
       box-sizing: border-box;
     }
 
+    .modal-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .modal-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: modalSpin 0.7s linear infinite;
+      margin-right: 8px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
     .modal-btn--cancel {
       background: #ffffff;
       border: 1px solid #cbd5e1;
       color: #475569;
     }
 
-    .modal-btn--cancel:hover {
+    .modal-btn--cancel:hover:not(:disabled) {
       background: #f8fafc;
       border-color: #94a3b8;
       color: #1e293b;
@@ -172,7 +225,7 @@ import { CommonModule } from '@angular/common';
       box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
     }
 
-    .modal-btn--danger:hover {
+    .modal-btn--danger:hover:not(:disabled) {
       background: #b91c1c;
       border-color: #b91c1c;
     }
@@ -184,7 +237,7 @@ import { CommonModule } from '@angular/common';
       box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
     }
 
-    .modal-btn--warning:hover {
+    .modal-btn--warning:hover:not(:disabled) {
       background: #b45309;
       border-color: #b45309;
     }
@@ -196,7 +249,7 @@ import { CommonModule } from '@angular/common';
       box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
     }
 
-    .modal-btn--success:hover {
+    .modal-btn--success:hover:not(:disabled) {
       background: #047857;
       border-color: #047857;
     }
@@ -208,12 +261,12 @@ import { CommonModule } from '@angular/common';
       box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
     }
 
-    .modal-btn--primary:hover {
+    .modal-btn--primary:hover:not(:disabled) {
       background: #1d4ed8;
       border-color: #1d4ed8;
     }
 
-    .modal-btn:active {
+    .modal-btn:active:not(:disabled) {
       transform: scale(0.98);
     }
 
@@ -225,6 +278,12 @@ import { CommonModule } from '@angular/common';
       to {
         opacity: 1;
         transform: scale(1);
+      }
+    }
+
+    @keyframes modalSpin {
+      to {
+        transform: rotate(360deg);
       }
     }
 
@@ -241,7 +300,7 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class ConfirmModalComponent {
+export class ConfirmModalComponent implements OnDestroy {
   isOpen = input.required<boolean>();
   title = input.required<string>();
   message = input.required<string>();
@@ -249,21 +308,51 @@ export class ConfirmModalComponent {
   cancelText = input<string>('Cancel');
   variant = input<'primary' | 'danger' | 'warning' | 'success'>('danger');
   showCancel = input<boolean>(true);
+  isLoading = input<boolean>(false);
+  errorMessage = input<string | null>(null);
 
   confirmed = output<void>();
   cancelled = output<void>();
 
+  constructor() {
+    effect(() => {
+      const open = this.isOpen();
+      if (typeof document !== 'undefined') {
+        if (open) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = '';
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = '';
+    }
+  }
+
   onBackdropClick(event: MouseEvent): void {
+    if (this.isLoading()) {
+      return;
+    }
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
       this.onCancel();
     }
   }
 
   onConfirm(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.confirmed.emit();
   }
 
   onCancel(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.cancelled.emit();
   }
 }

@@ -84,6 +84,8 @@ export class PolicyDetailsComponent implements OnInit {
   confirmMessage = "";
   confirmVariant: "primary" | "danger" | "warning" | "success" = "primary";
   confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
 
   reasonModalOpen = false;
   reasonTitle = "";
@@ -561,20 +563,31 @@ export class PolicyDetailsComponent implements OnInit {
       return;
     }
     const policyId = this.policy.policy_id;
+    const policyTitle = this.policy.title || "Untitled Policy";
     this.confirmTitle = "Submit Policy";
-    this.confirmMessage = `Submit "${this.policy.title}" for approval?`;
+    this.confirmMessage = `Submit "${policyTitle}" for approval?`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
       this.policyService.submitPolicy(policyId).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showToast("Policy submitted for approval.", "success");
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.showToast(this.getErrorMessage(err), "error");
+          this.confirmLoading = false;
+          const msg = this.getErrorMessage(err);
+          this.confirmErrorMessage = msg;
+          this.showToast(msg, "error");
           this.cdr.detectChanges();
         },
       });

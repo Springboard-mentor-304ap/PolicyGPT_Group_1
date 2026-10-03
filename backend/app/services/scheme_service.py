@@ -331,7 +331,8 @@ def submit_scheme(
 ) -> Scheme:
 
     # Creator-only submission check: only the creator (or Admin) can submit
-    if current_user and current_user.role != "ADMIN":
+    is_admin = current_user and str(getattr(current_user, "role", "")).strip().upper() in {"ADMIN", "ADMINISTRATOR"}
+    if current_user and not is_admin:
         if scheme.created_by != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

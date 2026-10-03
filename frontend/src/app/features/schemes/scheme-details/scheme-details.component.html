@@ -189,7 +189,7 @@
 
               <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
                 <span class="material-icons">publish</span>
-                <span>{{ scheme.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval' }}</span>
+                <span>{{ isAdmin ? 'Submit' : (scheme.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval') }}</span>
               </button>
 
               <button type="button" class="workflow-option workflow-option--success" *ngIf="canApprove"
@@ -681,7 +681,8 @@
        SHARED CONFIRM MODAL
        ===================================================== -->
   <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-    [variant]="confirmVariant" (confirmed)="confirmAction && confirmAction()"
+    [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+    (confirmed)="confirmAction && confirmAction()"
     (cancelled)="confirmModalOpen = false"></app-confirm-modal>
 
   <!-- =====================================================

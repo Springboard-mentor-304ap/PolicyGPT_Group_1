@@ -87,6 +87,8 @@ export class SchemeDetailsComponent implements OnInit {
   confirmMessage = "";
   confirmVariant: "primary" | "danger" | "warning" | "success" = "primary";
   confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
 
   reasonModalOpen = false;
   reasonTitle = "";
@@ -410,19 +412,30 @@ export class SchemeDetailsComponent implements OnInit {
       return;
     }
     const schemeId = this.scheme.scheme_id;
+    const schemeName = this.scheme.name || "Untitled Scheme";
     this.confirmTitle = "Submit Scheme";
-    this.confirmMessage = `Submit "${this.scheme.name}" for administrator approval?`;
+    this.confirmMessage = `Submit "${schemeName}" for approval?`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
       this.schemeService.submitScheme(schemeId).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.toastService.success("Scheme submitted for approval.");
           this.loadScheme(schemeId);
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.toastService.error(this.getErrorMessage(err));
+          this.confirmLoading = false;
+          const msg = this.getErrorMessage(err);
+          this.confirmErrorMessage = msg;
+          this.toastService.error(msg);
         },
       });
     };

@@ -518,17 +518,16 @@ def submit_policy(
     )
 
     # Creator-only submission check: only the creator (or Admin) can submit
-    if (
-        current_user.role != "ADMIN"
-        and policy.created_by != current_user.user_id
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "You are not authorized to submit this policy. "
-                "Only the user who created it can submit it for approval."
-            ),
-        )
+    is_admin = current_user and str(getattr(current_user, "role", "")).strip().upper() in {"ADMIN", "ADMINISTRATOR"}
+    if current_user and not is_admin:
+        if policy.created_by != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "You are not authorized to submit this policy. "
+                    "Only the user who created it can submit it for approval."
+                ),
+            )
 
     if policy.status not in {
         "DRAFT",

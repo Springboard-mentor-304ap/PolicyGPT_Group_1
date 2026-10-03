@@ -1031,14 +1031,9 @@ td {
    ========================================================= */
 
 .action-menu {
-  position: absolute;
-  z-index: 99999;
-  right: 0;
-  bottom: calc(100% + 8px);
-  top: auto;
-
+  position: relative;
   width: 225px;
-  max-height: calc(100vh - 40px);
+  max-height: min(420px, calc(100vh - 40px));
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -1056,24 +1051,18 @@ td {
   text-align: left;
 
   box-sizing: border-box;
-  isolation: isolate;
+  animation: actionMenuFadeIn 0.12s ease-out;
 }
 
-.action-menu button {
-  width: 100%;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: #3d4d65;
-  cursor: pointer;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 700;
+@keyframes actionMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .action-menu button {

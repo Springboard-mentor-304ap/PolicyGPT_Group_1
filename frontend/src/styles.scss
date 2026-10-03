@@ -5,6 +5,24 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 @import "bootstrap-icons/font/bootstrap-icons.css";
+@import "@angular/cdk/overlay-prebuilt.css";
+
+/* =========================================================
+   CDK OVERLAY STACKING & POSITIONING CONFIGURATION
+   Allows table action dropdowns to float above table, cards,
+   header (1100), and sidebar (1100), while remaining below
+   confirmation modals (9999 / 10000).
+   ========================================================= */
+.cdk-overlay-container {
+  z-index: 2500 !important;
+}
+
+.policy-action-overlay-pane,
+.scheme-action-overlay-pane {
+  z-index: 2500 !important;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
 
 html {
   height: 100%;

@@ -289,4 +289,316 @@ describe("ManagePoliciesComponent", () => {
     expect(component.policies.length).toBe(0);
     expect(component.errorMessage).toBeTruthy();
   });
+
+  // Test 8: Submit action label for Admin vs Other roles
+  it('8. Menu label should be "Submit" for Admin and "Submit for approval" for Gov Official', () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftPolicy = component.policies[0];
+    expect(component.getSubmitActionLabel(draftPolicy)).toBe("Submit");
+
+    // For Government Official
+    component.userRole = "GOVERNMENT_OFFICIAL";
+    expect(component.getSubmitActionLabel(draftPolicy)).toBe(
+      "Submit for approval",
+    );
+
+    const rejectedPolicy = { ...draftPolicy, status: "REJECTED" };
+    expect(component.getSubmitActionLabel(rejectedPolicy)).toBe(
+      "Re-submit for approval",
+    );
+  });
+
+  // Test 9: Submit opens confirmation modal with dynamic policy name
+  it("9. openSubmitModal should open confirmation modal displaying correct policy name", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftPolicy = component.policies[0];
+    component.openSubmitModal(draftPolicy);
+
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe("Submit Policy");
+    expect(component.confirmMessage).toContain("Policy A - Draft");
+    expect(component.confirmLoading).toBe(false);
+  });
+
+  // Test 10: Cancel closes modal without changing record or calling service
+  it("10. onConfirmModalCancelled should close modal without calling submitPolicy", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+    const submitSpy = vi.spyOn(policyService, "submitPolicy");
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftPolicy = component.policies[0];
+    component.openSubmitModal(draftPolicy);
+    expect(component.confirmModalOpen).toBe(true);
+
+    component.onConfirmModalCancelled();
+
+    expect(component.confirmModalOpen).toBe(false);
+    expect(component.confirmAction).toBeNull();
+    expect(submitSpy).not.toHaveBeenCalled();
+    expect(component.policies[0].status).toBe("DRAFT");
+  });
+
+  // Test 11: Confirm sends correct record ID and transitions to PENDING_APPROVAL
+  it("11. Confirming submit calls submitPolicy and refreshes list with PENDING_APPROVAL", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    const updatedPolicy: PolicyResponse = {
+      ...samplePolicies[0],
+      status: "PENDING_APPROVAL",
+    };
+    const submitSpy = vi
+      .spyOn(policyService, "submitPolicy")
+      .mockReturnValue(of(updatedPolicy));
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const loadSpy = vi.spyOn(component, "loadPolicies");
+
+    const draftPolicy = component.policies[0];
+    component.openSubmitModal(draftPolicy);
+    component.onConfirmModalConfirmed();
+
+    expect(submitSpy).toHaveBeenCalledWith(draftPolicy.id);
+    expect(component.confirmModalOpen).toBe(false);
+    expect(component.confirmLoading).toBe(false);
+    expect(component.successToastMessage).toBe(
+      "Policy submitted for approval.",
+    );
+    expect(loadSpy).toHaveBeenCalled();
+  });
+
+  // Test 12: Duplicate clicks do not create duplicate API requests
+  it("12. Multiple confirm clicks while loading should not trigger duplicate submissions", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    const submitSpy = vi
+      .spyOn(policyService, "submitPolicy")
+      .mockReturnValue(of(samplePolicies[0]));
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftPolicy = component.policies[0];
+    component.openSubmitModal(draftPolicy);
+
+    // Simulate loading state active
+    component.confirmLoading = true;
+    component.onConfirmModalConfirmed();
+
+    expect(submitSpy).not.toHaveBeenCalled();
+  });
+
+  // Test 13: API error displays error message and preserves previous status
+  it("13. API failure during submission preserves record status and sets error message", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    vi.spyOn(policyService, "submitPolicy").mockReturnValue(
+      throwError(() => ({
+        status: 400,
+        error: { detail: "Only DRAFT or REJECTED policies can be submitted." },
+      })),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const draftPolicy = component.policies[0];
+    component.openSubmitModal(draftPolicy);
+    component.onConfirmModalConfirmed();
+
+    expect(component.confirmLoading).toBe(false);
+    expect(component.errorMessage).toContain(
+      "Only DRAFT or REJECTED policies can be submitted.",
+    );
+    expect(component.confirmErrorMessage).toContain(
+      "Only DRAFT or REJECTED policies can be submitted.",
+    );
+    expect(component.policies[0].status).toBe("DRAFT");
+  });
+
+  // Test 14: Next available action after PENDING_APPROVAL is Approve/Reject, not Submit
+  it("14. Policy in PENDING_APPROVAL cannot be submitted again and shows Approve for Admin", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const pendingPolicy = component.policies[1];
+    expect(component.canSubmitPolicy(pendingPolicy)).toBe(false);
+  });
+
+  // Test 15: Three-dot action menu toggle and close
+  it("15. toggleMenu should open menu for clicked policy and toggle closed on second click", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.menuOpenId).toBeNull();
+
+    // Click policy 1 three-dot button
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Click policy 1 three-dot button again -> closes
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBeNull();
+  });
+
+  // Test 16: Opening one row closes any previously open row menu
+  it("16. Opening another row menu should close the previously open row menu", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Click policy 2 three-dot button
+    component.toggleMenu(2);
+    expect(component.menuOpenId).toBe(2);
+  });
+
+  // Test 17: Escape key and outside closeMenu close the menu
+  it("17. Escape key and closeMenu should close the active action dropdown", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+
+    // Press Escape
+    component.onEscapeKey();
+    expect(component.menuOpenId).toBeNull();
+
+    // Reopen and test onOverlayKeydown Escape
+    component.toggleMenu(1);
+    expect(component.menuOpenId).toBe(1);
+    component.onOverlayKeydown(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(component.menuOpenId).toBeNull();
+  });
+
+  // Test 18: Action overlay positions provide below-aligned primary and above-aligned fallback
+  it("18. actionMenuPositions should define below primary and above fallback positions", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.actionMenuPositions.length).toBeGreaterThanOrEqual(2);
+
+    // Primary: opens below button
+    const primary = component.actionMenuPositions[0];
+    expect(primary.originY).toBe("bottom");
+    expect(primary.overlayY).toBe("top");
+
+    // Fallback: opens above button
+    const fallback = component.actionMenuPositions[1];
+    expect(fallback.originY).toBe("top");
+    expect(fallback.overlayY).toBe("bottom");
+  });
 });
+
+

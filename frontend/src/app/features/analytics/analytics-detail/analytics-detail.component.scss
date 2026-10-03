@@ -1,29 +1,30 @@
 /* =========================================================
    POLICYGPT ANALYTICS DETAIL
-   Shared screen for every Analytics child route. Visual
-   language matches Notifications / Reports: page header,
-   KPI cards, data cards, tables, skeletons, empty states.
+   Shared screen for every Analytics child route.
+   Standardized to match PolicyGPT Admin Design System:
+   page padding 28x32x40, card radius 16px, stat radius 14px,
+   Admin typography, shadows, buttons & animations.
    ========================================================= */
 
-$primary: #1461a0;
-$primary-dark: #0c4678;
-$primary-soft: #edf5fc;
+$primary: #0879ed;
+$primary-dark: #005bb5;
+$primary-soft: #eaf3ff;
 
-$success: #17833d;
-$success-soft: #eaf7ef;
+$success: #078944;
+$success-soft: #e8f8ef;
 
 $text: #172033;
-$text-secondary: #617087;
-$text-muted: #8995a6;
+$text-secondary: #64748b;
+$text-muted: #94a3b8;
 
-$border: #dfe6ee;
-$border-light: #edf1f5;
+$border: #e4e9f1;
+$border-light: #f1f5f9;
 
-$background: #f5f7fb;
+$background: #f4f7fb;
 $white: #ffffff;
 
-$danger: #c0392b;
-$danger-soft: #fdf0ee;
+$danger: #dc2626;
+$danger-soft: #fee2e2;
 
 :host {
   display: block;
@@ -34,7 +35,15 @@ $danger-soft: #fdf0ee;
   min-height: 100%;
   background: $background;
   color: $text;
-  padding: 24px 28px 48px;
+  padding: 28px 32px 40px;
+
+  @media (max-width: 1024px) {
+    padding: 20px 20px 32px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 16px 14px 28px;
+  }
 }
 
 /* ============================================================
@@ -45,31 +54,34 @@ $danger-soft: #fdf0ee;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 
   .header-left {
+    min-width: 0;
+
     h1 {
       margin: 0;
       font-size: 28px;
       font-weight: 700;
-      color: $text;
+      color: #111827;
       letter-spacing: -0.02em;
-      line-height: 1.2;
+      line-height: 1.25;
     }
 
     p {
-      margin: 6px 0 0;
+      margin: 4px 0 0;
       font-size: 14px;
       color: $text-secondary;
+      line-height: 1.45;
     }
   }
 
   .header-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     flex-shrink: 0;
   }
 }
@@ -94,15 +106,17 @@ $danger-soft: #fdf0ee;
 
 .btn-outline {
   background: $white;
-  border-color: #dbe2eb;
-  color: $text;
-  height: 40px;
-  padding: 0 14px;
+  border-color: #e2e8f0;
+  color: #334155;
+  height: 38px;
+  padding: 0 16px;
   font-size: 13px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 
   &:hover:not(:disabled) {
     background: #f8fafc;
     border-color: #cbd5e1;
+    color: #1e293b;
   }
 
   &:disabled {
@@ -115,13 +129,19 @@ $danger-soft: #fdf0ee;
   background: $primary;
   border-color: $primary;
   color: $white;
-  height: 42px;
-  padding: 0 18px;
-  font-size: 14px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(8, 121, 237, 0.2);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: $primary-dark;
     border-color: $primary-dark;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 
@@ -133,60 +153,67 @@ $danger-soft: #fdf0ee;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 18px;
+  padding: 16px 18px;
   background: $white;
   border: 1px solid $border;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
   min-width: 0;
+  min-height: 88px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 7px 20px rgba(15, 40, 82, 0.08);
+    transform: translateY(-2px);
+  }
 }
 
 .stat-icon {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 11px;
-  border: 1px solid #d9e6f2;
+  border-radius: 50%;
+  border: 1px solid #d0e4ff;
   background: $primary-soft;
   color: $primary;
 
   .material-icons {
-    font-size: 24px;
+    font-size: 22px;
   }
 }
 
 .stat-icon--green {
   background: $success-soft;
   color: $success;
-  border-color: #d9eee1;
+  border-color: #c7eed6;
 }
 
 .stat-icon--orange {
-  background: #fff4e8;
-  color: #c26a00;
-  border-color: #f5ddbd;
+  background: #fff1e5;
+  color: #ff861c;
+  border-color: #fedbc1;
 }
 
 .stat-icon--purple {
   background: #f3e8ff;
-  color: #7e22ce;
+  color: #8b00e8;
   border-color: #e2ccf5;
 }
 
 .stat-icon--blue {
   background: $primary-soft;
   color: $primary;
-  border-color: #d9e6f2;
+  border-color: #d0e4ff;
 }
 
 .stat-text {
@@ -197,10 +224,11 @@ $danger-soft: #fdf0ee;
 
 .stat-value {
   margin: 0;
-  color: $text;
-  font-size: 28px;
+  color: #111827;
+  font-size: 26px;
   font-weight: 700;
-  line-height: 1;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .stat-title {
@@ -228,23 +256,31 @@ $danger-soft: #fdf0ee;
 .data-card {
   background: $white;
   border: 1px solid $border;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  padding: 20px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(15, 40, 82, 0.065);
+  }
 
   h2 {
-    margin: 0 0 12px;
+    margin: 0 0 14px;
     font-size: 16px;
     font-weight: 700;
-    color: $text;
+    color: #111827;
+    letter-spacing: -0.01em;
   }
 }
 
 .data-table-container {
   overflow-x: auto;
-  border: 1px solid $border-light;
-  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: $white;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.035);
 }
 
 .data-table {
@@ -254,7 +290,7 @@ $danger-soft: #fdf0ee;
 
   th,
   td {
-    padding: 9px 12px;
+    padding: 12px 16px;
     border-bottom: 1px solid $border-light;
     text-align: left;
     white-space: nowrap;
@@ -264,12 +300,13 @@ $danger-soft: #fdf0ee;
   }
 
   th {
-    background: #f1f5fa;
-    color: $text;
+    background: #f8fafc;
+    color: #64748b;
     font-size: 12px;
-    font-weight: 750;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   tr:last-child th,
@@ -277,8 +314,12 @@ $danger-soft: #fdf0ee;
     border-bottom: 0;
   }
 
-  tbody tr:hover {
-    background: #f8fafc;
+  tbody tr {
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #fafcff;
+    }
   }
 }
 
@@ -292,10 +333,10 @@ $danger-soft: #fdf0ee;
   align-items: flex-start;
   background: $white;
   border: 1px solid $border;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
   padding: 18px 20px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .note-icon {
@@ -305,7 +346,8 @@ $danger-soft: #fdf0ee;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 50%;
+  border: 1px solid #d0e4ff;
   background: $primary-soft;
   color: $primary;
 
@@ -319,7 +361,7 @@ $danger-soft: #fdf0ee;
     margin: 0;
     font-size: 15px;
     font-weight: 700;
-    color: $text;
+    color: #111827;
   }
 
   p {
@@ -334,7 +376,7 @@ $danger-soft: #fdf0ee;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 4px 0 20px;
+  margin: 4px 0 24px;
 }
 
 /* ============================================================
@@ -363,10 +405,10 @@ $danger-soft: #fdf0ee;
 }
 
 .skeleton-icon {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   flex-shrink: 0;
-  border-radius: 11px;
+  border-radius: 50%;
 }
 
 .skeleton-body {
@@ -417,7 +459,8 @@ $danger-soft: #fdf0ee;
   padding: 42px;
   background: $white;
   border: 1px solid $border;
-  border-radius: 12px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
   text-align: center;
 }
 
@@ -431,6 +474,7 @@ $danger-soft: #fdf0ee;
   border-radius: 50%;
   background: $primary-soft;
   color: $primary;
+  border: 1px solid #d0e4ff;
 
   .material-icons {
     font-size: 27px;
@@ -440,13 +484,14 @@ $danger-soft: #fdf0ee;
 .error-state .state-icon {
   background: $danger-soft;
   color: $danger;
+  border-color: #fecaca;
 }
 
 .state-card h2 {
   margin: 0;
-  color: $text;
+  color: #111827;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .state-card p {
@@ -458,18 +503,21 @@ $danger-soft: #fdf0ee;
 }
 
 .retry-button {
-  height: 41px;
+  height: 38px;
   padding: 0 18px;
   border: 1px solid $primary;
   border-radius: 8px;
   background: $primary;
   color: $white;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(8, 121, 237, 0.2);
+  transition: all 0.2s ease;
 
   &:hover {
     background: $primary-dark;
+    border-color: $primary-dark;
   }
 }
 

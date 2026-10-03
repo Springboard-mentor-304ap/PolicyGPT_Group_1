@@ -72,11 +72,11 @@ $purple: #8b00e8;
 .dash-welcome {
   position: relative;
 
-  min-height: 205px;
+  min-height: 233px;
 
-  margin: 0 0 30px;
+  margin: 0 0 36px;
 
-  padding: 34px 42px;
+  padding: 34px 43px;
 
   display: flex;
 
@@ -86,9 +86,9 @@ $purple: #8b00e8;
 
   border-radius: 20px;
 
-  background: linear-gradient(110deg, #f0f4ff 0%, #e9efff 55%, #dfe8ff 100%);
+  background: linear-gradient(110deg, #f1f5ff 0%, #e9efff 55%, #e0e9ff 100%);
 
-  box-shadow: 0 3px 14px rgba(24, 51, 100, 0.05);
+  box-shadow: 0 2px 10px rgba(24, 51, 100, 0.04);
 }
 
 // =====================================================
@@ -444,9 +444,9 @@ $purple: #8b00e8;
 
   grid-template-columns: repeat(4, minmax(0, 1fr));
 
-  gap: 22px;
+  gap: 28px;
 
-  margin: 0 0 30px;
+  margin: 0 0 26px;
 
   padding: 0;
 }
@@ -454,7 +454,7 @@ $purple: #8b00e8;
 .dash-stat-card {
   min-width: 0;
 
-  min-height: 86px;
+  min-height: 84px;
 
   display: flex;
 
@@ -462,13 +462,13 @@ $purple: #8b00e8;
 
   gap: 14px;
 
-  padding: 16px 18px;
+  padding: 15px 17px;
 
   border-radius: 17px;
 
   background: $white;
 
-  box-shadow: 0 4px 15px rgba(15, 40, 82, 0.06);
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.06);
 
   transition:
     transform 0.2s ease,
@@ -478,15 +478,15 @@ $purple: #8b00e8;
 .dash-stat-card:hover {
   transform: translateY(-2px);
 
-  box-shadow: 0 8px 20px rgba(15, 40, 82, 0.09);
+  box-shadow: 0 7px 20px rgba(15, 40, 82, 0.09);
 }
 
 .dash-stat-card__icon {
-  width: 48px;
+  width: 47px;
 
-  height: 48px;
+  height: 47px;
 
-  flex: 0 0 48px;
+  flex: 0 0 47px;
 
   display: flex;
 
@@ -528,19 +528,19 @@ $purple: #8b00e8;
 .dash-stat-card__value {
   margin: 0;
 
-  color: #18202f;
+  color: #111827;
 
   font-size: 28px;
 
   font-weight: 700;
 
-  line-height: 1.05;
+  line-height: 1;
 }
 
 .dash-stat-card__label {
-  margin: 5px 0 0;
+  margin: 4px 0 0;
 
-  color: #1f2b42;
+  color: #172033;
 
   font-size: 13px;
 
@@ -556,9 +556,9 @@ $purple: #8b00e8;
 }
 
 .dash-stat-card__sub {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
 
-  color: #65748b;
+  color: #64748b;
 
   font-size: 12px;
 
@@ -578,7 +578,7 @@ $purple: #8b00e8;
 
   grid-template-columns: repeat(2, minmax(0, 1fr));
 
-  gap: 28px;
+  gap: 32px;
 
   margin: 0 0 28px;
 
@@ -592,13 +592,13 @@ $purple: #8b00e8;
 .dash-panel {
   min-width: 0;
 
-  min-height: 350px;
+  min-height: 370px;
 
   display: flex;
 
   flex-direction: column;
 
-  padding: 26px 28px 20px;
+  padding: 25px 26px 18px;
 
   border-radius: 19px;
 

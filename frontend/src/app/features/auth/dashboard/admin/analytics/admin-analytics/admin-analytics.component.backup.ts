@@ -395,6 +395,77 @@ export class AdminAnalyticsComponent implements OnInit {
     );
   }
 
+  getApprovedCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "approved");
+  }
+
+  getPendingCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "pending");
+  }
+
+  getRejectedCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "rejected");
+  }
+
+  getTrendYForField(item: any, field: string): number {
+    if (!item) return 115;
+    const value = Number(item?.[field] ?? 0);
+    const values = this.policyTrend.map((trend: any) =>
+      Math.max(
+        Number(trend?.approved ?? 0),
+        Number(trend?.pending ?? 0),
+        Number(trend?.rejected ?? 0),
+        Number(trend?.count ?? 0)
+      )
+    );
+    const max = Math.max(...values, 1);
+    const height = 120;
+    const padding = 5;
+    return height - padding - (value / max) * (height - padding * 2);
+  }
+
+  private createTrendCurvePath(data: any[], field: string): string {
+    if (!data || data.length === 0) return "";
+    const values = data.map((item: any) => Number(item?.[field] ?? 0));
+    const allValues = data.map((item: any) =>
+      Math.max(
+        Number(item?.approved ?? 0),
+        Number(item?.pending ?? 0),
+        Number(item?.rejected ?? 0),
+        Number(item?.count ?? 0)
+      )
+    );
+    const max = Math.max(...allValues, 1);
+    const width = 290;
+    const height = 120;
+    const paddingX = 5;
+    const paddingY = 5;
+
+    const pts = values.map((val, idx) => ({
+      x: values.length === 1 ? width / 2 : paddingX + (idx * (width - paddingX * 2)) / (values.length - 1),
+      y: height - paddingY - (val / max) * (height - paddingY * 2)
+    }));
+
+    if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    if (pts.length === 2) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    const tension = 0.18;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+
   private createTrendPoints(
     data: any[],
     field: string

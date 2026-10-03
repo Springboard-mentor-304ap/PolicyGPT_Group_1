@@ -177,8 +177,54 @@ $primary-blue: #2563EB;
 
 /* Line Chart */
 .line-chart-mock {
-  .svg-chart { width: 100%; height: 140px; }
+  .svg-chart {
+    width: 100%;
+    height: 140px;
+    overflow: visible;
+
+    .chart-trend-line {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: drawLineMock 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    circle {
+      opacity: 0;
+      animation: fadeInCircle 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.3s;
+    }
+  }
 }
+
+@keyframes drawLineMock {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeInCircle {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line-chart-mock .svg-chart .chart-trend-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .line-chart-mock .svg-chart circle {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 .chart-months {
   display: flex;
   justify-content: space-between;
@@ -186,13 +232,41 @@ $primary-blue: #2563EB;
   color: $text-muted;
   margin-top: 0.5rem;
 }
+
 .chart-legend {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  align-items: center;
+  gap: 1.25rem;
   margin-top: 0.75rem;
   font-size: 0.75rem;
   color: $text-muted;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .legend-circle-inner {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+  }
+
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
 }
 
@@ -276,19 +350,124 @@ $primary-blue: #2563EB;
   }
 }
 
-/* Horizontal Bars */
+/* Horizontal Bars (Image 1 Style) */
 .horizontal-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+
   .hbar-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.4rem;
-    font-size: 0.725rem;
+    min-height: 24px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
 
-    .hbar-label { width: 95px; color: $text-muted; text-align: right; }
-    .hbar-track { flex: 1; height: 12px; background: #F1F5F9; border-radius: 3px; overflow: hidden; }
-    .hbar-fill { height: 100%; background: #60A5FA; border-radius: 3px; }
-    .hbar-val { width: 35px; font-weight: 600; color: $text-dark; }
+    &:hover,
+    &:focus {
+      outline: none;
+      .hbar-label {
+        color: $text-dark;
+      }
+      .hbar-fill {
+        filter: brightness(0.92);
+        box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid #3b82f6;
+      outline-offset: 2px;
+    }
+
+    .hbar-label {
+      width: 120px;
+      min-width: 95px;
+      max-width: 140px;
+      color: $text-muted;
+      text-align: right;
+      padding-right: 12px;
+      font-size: 0.775rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+
+    .hbar-bar-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      border-left: 1.5px solid #E2E8F0;
+      height: 22px;
+      min-width: 0;
+    }
+
+    .hbar-fill {
+      height: 14px;
+      background: #3B82F6;
+      border-radius: 0 4px 4px 0;
+      min-width: 3px;
+      flex-shrink: 0;
+      transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+      animation: hbarFillGrow 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .hbar-val {
+      margin-left: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #475569;
+      white-space: nowrap;
+      flex-shrink: 0;
+      opacity: 0;
+      animation: hbarValFade 0.4s ease forwards 0.25s;
+    }
+  }
+}
+
+@keyframes hbarFillGrow {
+  from {
+    width: 0 !important;
+  }
+}
+
+@keyframes hbarValFade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .horizontal-bars .hbar-row {
+    .hbar-fill {
+      animation: none !important;
+      transition: none !important;
+    }
+    .hbar-val {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .horizontal-bars .hbar-row {
+    .hbar-label {
+      width: 90px;
+      min-width: 75px;
+      font-size: 0.7rem;
+      padding-right: 8px;
+    }
+    .hbar-fill {
+      height: 12px;
+    }
+    .hbar-val {
+      font-size: 0.7rem;
+      margin-left: 6px;
+    }
   }
 }
 

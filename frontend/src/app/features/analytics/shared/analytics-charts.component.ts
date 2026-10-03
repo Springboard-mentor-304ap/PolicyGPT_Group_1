@@ -30,30 +30,20 @@ export interface BarItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <div class="chart-legend" role="list">
-      @for (s of series; track s.key) {
-        <button
-          type="button"
-          class="legend-chip"
-          role="listitem"
-          [class.legend-chip--off]="hidden.has(s.key)"
-          (click)="toggle(s.key)"
-          [attr.aria-pressed]="!hidden.has(s.key)"
-          [attr.title]="'Toggle ' + s.label"
-        >
-          <span class="legend-dot" [style.background]="s.color"></span>
-          <span>{{ s.label }}</span>
-        </button>
-      }
-    </div>
     <div
       class="line-wrap"
+      tabindex="0"
+      role="region"
+      aria-label="Interactive trend chart"
       (mousemove)="onHover($event)"
       (mouseleave)="hoverIndex = null"
+      (touchmove)="onTouch($event)"
+      (touchend)="hoverIndex = null"
+      (keydown)="onKeydown($event)"
     >
       <svg
         #svg
-        viewBox="0 0 640 240"
+        viewBox="0 0 640 248"
         preserveAspectRatio="none"
         class="line-svg"
         role="img"
@@ -72,41 +62,61 @@ export interface BarItem {
           </text>
         }
         @for (s of visibleSeries; track s.key) {
-          <polyline
-            [attr.points]="pointsFor(s)"
+          <path
+            [attr.d]="curvePathFor(s)"
             fill="none"
             [attr.stroke]="s.color"
-            stroke-width="2"
+            stroke-width="2.5"
             stroke-linejoin="round"
             stroke-linecap="round"
-            class="chart-polyline"
+            class="chart-path"
           />
+          @for (v of s.values; track $index) {
+            <circle
+              [attr.cx]="xFor($index)"
+              [attr.cy]="yFor(v)"
+              r="4.5"
+              fill="#ffffff"
+              [attr.stroke]="s.color"
+              stroke-width="2.5"
+              class="chart-marker"
+              [style.animation-delay]="($index * 50) + 'ms'"
+            />
+          }
         }
         @if (hoverIndex !== null) {
           <line
             [attr.x1]="xFor(hoverIndex)"
             [attr.y1]="20"
             [attr.x2]="xFor(hoverIndex)"
-            y2="220"
+            y2="216"
             class="hover-line"
           />
           @for (s of visibleSeries; track s.key) {
             <circle
               [attr.cx]="xFor(hoverIndex)"
               [attr.cy]="yFor(s.values[hoverIndex] ?? 0)"
-              r="4"
+              r="7"
               [attr.fill]="s.color"
-              stroke="#fff"
-              stroke-width="2"
+              stroke="#ffffff"
+              stroke-width="2.5"
+              class="hover-marker"
             />
           }
         }
+        @for (lbl of labels; track $index) {
+          @if (shouldShowXLabel($index)) {
+            <text
+              [attr.x]="xFor($index)"
+              y="238"
+              text-anchor="middle"
+              class="grid-label x-axis-label"
+            >
+              {{ lbl }}
+            </text>
+          }
+        }
       </svg>
-      <div class="x-labels" aria-hidden="true">
-        <span>{{ firstLabel }}</span>
-        <span>{{ midLabel }}</span>
-        <span>{{ lastLabel }}</span>
-      </div>
       @if (hoverIndex !== null) {
         <div
           class="chart-tooltip"
@@ -114,17 +124,44 @@ export interface BarItem {
           [style.top.px]="8"
           role="status"
         >
-          <strong>{{ labels[hoverIndex] }}</strong>
-          @for (s of visibleSeries; track s.key) {
-            <span class="tooltip-row">
-              <span
-                class="legend-dot"
-                [style.background]="s.color"
-              ></span>
-              {{ s.label }}: <strong>{{ s.values[hoverIndex] ?? 0 }}</strong>
-            </span>
-          }
+          <strong class="tooltip-period">{{ labels[hoverIndex] }}</strong>
+          <div class="tooltip-items">
+            @for (s of visibleSeries; track s.key) {
+              <div class="tooltip-row">
+                <span
+                  class="tooltip-marker"
+                  [style.border-color]="s.color"
+                ></span>
+                <span class="tooltip-label">{{ s.label }}:</span>
+                <strong class="tooltip-value">{{ s.values[hoverIndex] ?? 0 }}</strong>
+              </div>
+            }
+          </div>
         </div>
+      }
+    </div>
+    <div class="chart-legend" role="list">
+      @for (s of series; track s.key) {
+        <button
+          type="button"
+          class="legend-item"
+          role="listitem"
+          [class.legend-item--off]="hidden.has(s.key)"
+          (click)="toggle(s.key)"
+          [attr.aria-pressed]="!hidden.has(s.key)"
+          [attr.title]="'Toggle ' + s.label"
+        >
+          <span
+            class="legend-circle"
+            [style.border-color]="s.color"
+          >
+            <span
+              class="legend-circle-inner"
+              [style.background]="s.color"
+            ></span>
+          </span>
+          <span class="legend-label">{{ s.label }}</span>
+        </button>
       }
     </div>
     @if (isEmpty) {
@@ -137,103 +174,174 @@ export interface BarItem {
         display: block;
         position: relative;
       }
-      .chart-polyline {
+      .line-wrap {
+        position: relative;
+        outline: none;
+      }
+      .line-svg {
+        width: 100%;
+        height: 248px;
+        display: block;
+        overflow: visible;
+      }
+      .grid-line {
+        stroke: #f1f5f9;
+        stroke-width: 1;
+      }
+      .grid-label {
+        font-size: 11px;
+        font-weight: 500;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        fill: #64748b;
+      }
+      .x-axis-label {
+        font-size: 11px;
+        fill: #64748b;
+      }
+      .chart-path {
         stroke-dasharray: 2000;
         stroke-dashoffset: 2000;
         animation: drawLine 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .chart-marker {
+        opacity: 0;
+        animation: fadeInMarker 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        cursor: pointer;
+        transition: r 0.15s ease;
+      }
+      .hover-marker {
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
       }
       @keyframes drawLine {
         to {
           stroke-dashoffset: 0;
         }
       }
+      @keyframes fadeInMarker {
+        from {
+          opacity: 0;
+          transform: scale(0.3);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
       @media (prefers-reduced-motion: reduce) {
-        .chart-polyline {
+        .chart-path {
           stroke-dasharray: none;
           stroke-dashoffset: 0;
           animation: none;
         }
-      }
-      .chart-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-      .legend-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid #dbe2eb;
-        background: #fff;
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #334155;
-        cursor: pointer;
-      }
-      .legend-chip:hover {
-        border-color: #94a3b8;
-      }
-      .legend-chip--off {
-        opacity: 0.45;
-      }
-      .legend-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-      }
-      .line-wrap {
-        position: relative;
-      }
-      .line-svg {
-        width: 100%;
-        height: 240px;
-        display: block;
-      }
-      .grid-line {
-        stroke: #e8edf3;
-        stroke-width: 1;
-      }
-      .grid-label {
-        font-size: 11px;
-        fill: #94a3b8;
+        .chart-marker {
+          opacity: 1;
+          animation: none;
+        }
       }
       .hover-line {
-        stroke: #94a3b8;
+        stroke: #cbd5e1;
         stroke-width: 1;
         stroke-dasharray: 4 3;
-      }
-      .x-labels {
-        display: flex;
-        justify-content: space-between;
-        font-size: 11px;
-        color: #94a3b8;
-        margin-top: 4px;
       }
       .chart-tooltip {
         position: absolute;
         transform: translateX(-50%);
         background: #0f172a;
-        color: #fff;
+        color: #ffffff;
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 8px 12px;
         font-size: 12px;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
         pointer-events: none;
         white-space: nowrap;
-        z-index: 5;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.3);
+        z-index: 10;
+        box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.25), 0 4px 6px -2px rgba(15, 23, 42, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
-      .chart-tooltip strong {
+      .tooltip-period {
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #f8fafc;
+        font-size: 12px;
+      }
+      .tooltip-items {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
       }
       .tooltip-row {
         display: flex;
         align-items: center;
         gap: 6px;
+      }
+      .tooltip-marker {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        border: 2px solid;
+        background: #ffffff;
+        flex-shrink: 0;
+      }
+      .tooltip-label {
+        color: #cbd5e1;
+        font-size: 11px;
+      }
+      .tooltip-value {
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 12px;
+        margin-left: auto;
+      }
+      .chart-legend {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 14px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: transparent;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+        border-radius: 6px;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        transition: opacity 0.15s ease, background-color 0.15s ease;
+      }
+      .legend-item:hover {
+        background-color: #f8fafc;
+        color: #1e293b;
+      }
+      .legend-item--off {
+        opacity: 0.35;
+        text-decoration: line-through;
+      }
+      .legend-circle {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid;
+        background-color: #ffffff;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .legend-circle-inner {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+      }
+      .legend-label {
+        user-select: none;
       }
       .chart-empty {
         color: #8995a6;
@@ -275,7 +383,7 @@ export class AnalyticsLineChartComponent {
     const max = this.maxValue;
     const step = max / 4;
     return [0, 1, 2, 3, 4].map((i) => ({
-      y: 220 - (220 - 20) * (i / 4),
+      y: 216 - (216 - 20) * (i / 4),
       value: Math.round(step * i),
     }));
   }
@@ -314,11 +422,49 @@ export class AnalyticsLineChartComponent {
   }
 
   yFor(value: number): number {
-    return 220 - ((220 - 20) * value) / this.maxValue;
+    return 216 - ((216 - 20) * value) / this.maxValue;
   }
 
   pointsFor(s: LineSeries): string {
     return s.values.map((v, i) => `${this.xFor(i)},${this.yFor(v)}`).join(" ");
+  }
+
+  curvePathFor(s: LineSeries): string {
+    const vals = s.values;
+    if (!vals || vals.length === 0) return "";
+    const pts = vals.map((v, i) => ({ x: this.xFor(i), y: this.yFor(v) }));
+    if (pts.length === 1) {
+      return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    }
+    if (pts.length === 2) {
+      return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+    }
+
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    const tension = 0.18;
+
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  shouldShowXLabel(index: number): boolean {
+    const total = this.labels.length;
+    if (total <= 12) return true;
+    if (total <= 24) return index % 2 === 0 || index === total - 1;
+    const step = Math.ceil(total / 10);
+    return index % step === 0 || index === total - 1;
   }
 
   onHover(event: MouseEvent): void {
@@ -329,6 +475,31 @@ export class AnalyticsLineChartComponent {
     // Account for the 36-unit left gutter in a 640-unit viewBox.
     const adjusted = (ratio * 640 - 36) / (640 - 36);
     this.hoverIndex = Math.min(n, Math.max(0, Math.round(adjusted * n)));
+  }
+
+  onTouch(event: TouchEvent): void {
+    if (!event.touches.length) return;
+    const touch = event.touches[0];
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const ratio = (touch.clientX - rect.left) / Math.max(rect.width, 1);
+    const n = Math.max(this.labels.length - 1, 1);
+    const adjusted = (ratio * 640 - 36) / (640 - 36);
+    this.hoverIndex = Math.min(n, Math.max(0, Math.round(adjusted * n)));
+  }
+
+  onKeydown(event: KeyboardEvent): void {
+    if (!this.labels.length) return;
+    const n = this.labels.length - 1;
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      this.hoverIndex = Math.min(n, (this.hoverIndex ?? -1) + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      this.hoverIndex = Math.max(0, (this.hoverIndex ?? 1) - 1);
+    } else if (event.key === "Escape") {
+      this.hoverIndex = null;
+    }
   }
 }
 
@@ -449,16 +620,19 @@ export class AnalyticsLineChartComponent {
         justify-content: center;
       }
       .donut-center strong {
-        font-size: 26px;
-        font-weight: 800;
-        color: #172033;
-        line-height: 1;
+        font-size: 24px;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.1;
+        letter-spacing: -0.01em;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
       }
       .donut-center span {
-        font-size: 11px;
-        color: #8995a6;
-        font-weight: 600;
-        margin-top: 4px;
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 400;
+        margin-top: 3px;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
       }
       .donut-legend {
         list-style: none;
@@ -474,22 +648,24 @@ export class AnalyticsLineChartComponent {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 12.5px;
-        padding: 4px 8px;
+        font-size: 12px;
+        padding: 5px 8px;
         border-radius: 6px;
+        transition: background 0.15s ease;
       }
       .donut-legend--active {
-        background: #f1f5f9;
+        background: #f8fafc;
       }
       .legend-dot {
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         flex-shrink: 0;
       }
       .donut-legend-label {
         color: #334155;
-        font-weight: 600;
+        font-weight: 500;
+        font-size: 13px;
         flex: 1;
         min-width: 0;
         overflow: hidden;
@@ -497,8 +673,9 @@ export class AnalyticsLineChartComponent {
         white-space: nowrap;
       }
       .donut-legend-value {
-        color: #64748b;
-        font-weight: 700;
+        color: #111827;
+        font-weight: 600;
+        font-size: 12px;
         white-space: nowrap;
       }
     `,
@@ -657,23 +834,24 @@ export interface GroupedBarSeries {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
       }
       .legend-chip {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        border: 1px solid #dbe2eb;
-        background: #fff;
-        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        border-radius: 6px;
         padding: 4px 10px;
         font-size: 12px;
         font-weight: 600;
-        color: #334155;
+        color: #475569;
+        transition: all 0.15s ease;
       }
       .legend-dot {
-        width: 10px;
-        height: 10px;
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         flex-shrink: 0;
       }
@@ -686,37 +864,45 @@ export interface GroupedBarSeries {
         display: block;
       }
       .grid-line {
-        stroke: #e8edf3;
+        stroke: #f1f5f9;
         stroke-width: 1;
       }
       .grid-label {
         font-size: 11px;
-        fill: #94a3b8;
+        font-weight: 500;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        fill: #64748b;
       }
       .x-labels {
         display: flex;
         justify-content: space-between;
         font-size: 11px;
-        color: #94a3b8;
-        margin-top: 4px;
+        font-weight: 500;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        color: #64748b;
+        margin-top: 6px;
         overflow: hidden;
       }
       .chart-tooltip {
         position: absolute;
         transform: translateX(-50%);
-        background: #0f172a;
-        color: #fff;
+        background: #1e293b;
+        color: #ffffff;
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 8px 12px;
         font-size: 12px;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
         pointer-events: none;
         white-space: nowrap;
         z-index: 5;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.3);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
       .chart-tooltip strong {
         display: block;
         margin-bottom: 4px;
+        font-weight: 600;
+        color: #f8fafc;
       }
       .tooltip-row {
         display: flex;
@@ -886,24 +1072,24 @@ export class AnalyticsGroupedBarChartComponent {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <div class="hbar-list" role="list">
+    <div class="hbar-chart" role="list">
       @for (item of items; track item.label) {
         <div
           class="hbar-row"
           role="listitem"
-          [attr.title]="item.label + ': ' + item.value + (suffix ? ' ' + suffix : '')"
+          [attr.title]="item.label + ': ' + formatValue(item.value) + (suffix ? ' ' + suffix : '')"
           tabindex="0"
-          [attr.aria-label]="item.label + ': ' + item.value"
+          [attr.aria-label]="item.label + ': ' + formatValue(item.value)"
         >
-          <span class="hbar-label">{{ item.label }}</span>
-          <span class="hbar-track">
-            <span
-              class="hbar-fill"
+          <span class="hbar-label" [attr.title]="item.label">{{ item.label }}</span>
+          <div class="hbar-bar-area">
+            <div
+              class="hbar-bar"
               [style.width.%]="widthFor(item.value)"
-              [style.background]="color"
-            ></span>
-          </span>
-          <span class="hbar-value">{{ item.value }}{{ suffix ? " " + suffix : "" }}</span>
+              [style.background-color]="color || '#3b82f6'"
+            ></div>
+            <span class="hbar-value">{{ formatValue(item.value) }}{{ suffix ? " " + suffix : "" }}</span>
+          </div>
         </div>
       }
       @if (items.length === 0) {
@@ -913,42 +1099,63 @@ export class AnalyticsGroupedBarChartComponent {
   `,
   styles: [
     `
-      .hbar-list {
+      .hbar-chart {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
+        width: 100%;
+        padding: 4px 0;
       }
       .hbar-row {
-        display: grid;
-        grid-template-columns: minmax(110px, 180px) 1fr auto;
-        gap: 10px;
+        display: flex;
         align-items: center;
-        border-radius: 6px;
+        width: 100%;
+        min-height: 24px;
+        border-radius: 4px;
+        transition: background-color 0.15s ease;
       }
-      .hbar-row:hover .hbar-fill,
-      .hbar-row:focus .hbar-fill {
+      .hbar-row:hover .hbar-label,
+      .hbar-row:focus .hbar-label {
+        color: #0f172a;
+      }
+      .hbar-row:hover .hbar-bar,
+      .hbar-row:focus .hbar-bar {
         filter: brightness(0.92);
+        box-shadow: 0 1px 4px rgba(59, 130, 246, 0.25);
+      }
+      .hbar-row:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
       }
       .hbar-label {
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #334155;
+        width: 140px;
+        min-width: 110px;
+        max-width: 180px;
+        text-align: right;
+        padding-right: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        flex-shrink: 0;
       }
-      .hbar-track {
-        height: 10px;
-        background: #eef2f7;
-        border-radius: 999px;
-        overflow: hidden;
+      .hbar-bar-area {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        border-left: 1.5px solid #e2e8f0;
+        height: 22px;
+        min-width: 0;
       }
-      .hbar-fill {
+      .hbar-bar {
         display: block;
-        height: 100%;
-        border-radius: 999px;
-        min-width: 4px;
-        transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        height: 16px;
+        border-radius: 0 4px 4px 0;
+        min-width: 3px;
+        flex-shrink: 0;
+        transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
         animation: hbarExpand 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       @keyframes hbarExpand {
@@ -956,31 +1163,58 @@ export class AnalyticsGroupedBarChartComponent {
           width: 0 !important;
         }
       }
-      @media (prefers-reduced-motion: reduce) {
-        .hbar-fill {
-          animation: none;
-          transition: none;
+      .hbar-value {
+        margin-left: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #475569;
+        white-space: nowrap;
+        flex-shrink: 0;
+        opacity: 0;
+        animation: hbarValueFade 0.4s ease forwards 0.25s;
+      }
+      @keyframes hbarValueFade {
+        to {
+          opacity: 1;
         }
       }
-      .hbar-value {
-        font-size: 12.5px;
-        font-weight: 700;
-        color: #172033;
-        min-width: 44px;
-        text-align: right;
+      @media (prefers-reduced-motion: reduce) {
+        .hbar-bar {
+          animation: none !important;
+          transition: none !important;
+        }
+        .hbar-value {
+          animation: none !important;
+          opacity: 1 !important;
+        }
       }
       .hbar-empty {
-        color: #8995a6;
+        color: #64748b;
         font-size: 13px;
         text-align: center;
-        margin: 8px 0 0;
+        margin: 12px 0;
+      }
+      @media (max-width: 640px) {
+        .hbar-label {
+          width: 95px;
+          min-width: 80px;
+          font-size: 11px;
+          padding-right: 8px;
+        }
+        .hbar-bar {
+          height: 14px;
+        }
+        .hbar-value {
+          font-size: 10px;
+          margin-left: 6px;
+        }
       }
     `,
   ],
 })
 export class AnalyticsHBarChartComponent {
   @Input() items: BarItem[] = [];
-  @Input() color = "#1461a0";
+  @Input() color = "#3b82f6";
   @Input() suffix = "";
 
   get maxValue(): number {
@@ -988,6 +1222,13 @@ export class AnalyticsHBarChartComponent {
   }
 
   widthFor(value: number): number {
-    return Math.max(2, (value / this.maxValue) * 100);
+    if (this.maxValue <= 0 || value <= 0) return 0;
+    const pct = (value / this.maxValue) * 78;
+    return Math.max(2, Math.min(78, Math.round(pct * 10) / 10));
+  }
+
+  formatValue(value: number): string {
+    if (value === null || value === undefined) return "0";
+    return typeof value === "number" ? value.toLocaleString() : String(value);
   }
 }

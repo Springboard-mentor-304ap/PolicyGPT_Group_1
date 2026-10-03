@@ -170,8 +170,54 @@ $primary-blue: #2563EB;
 
 /* Line Chart Mock */
 .line-chart-mock {
-  .svg-chart { width: 100%; height: 130px; }
+  .svg-chart {
+    width: 100%;
+    height: 130px;
+    overflow: visible;
+
+    .chart-trend-line {
+      stroke-dasharray: 1000;
+      stroke-dashoffset: 1000;
+      animation: drawLineMock 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    circle {
+      opacity: 0;
+      animation: fadeInCircle 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      animation-delay: 0.3s;
+    }
+  }
 }
+
+@keyframes drawLineMock {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeInCircle {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line-chart-mock .svg-chart .chart-trend-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .line-chart-mock .svg-chart circle {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 .chart-months {
   display: flex;
   justify-content: space-between;
@@ -179,13 +225,42 @@ $primary-blue: #2563EB;
   color: $text-muted;
   margin-top: 0.5rem;
 }
+
 .chart-legend {
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-top: 0.75rem;
   font-size: 0.7rem;
   color: $text-muted;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .legend-circle-inner {
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+  }
+
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
 }
 

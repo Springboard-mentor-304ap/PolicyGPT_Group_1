@@ -115,10 +115,16 @@ export class LineChartComponent implements OnChanges, OnDestroy {
         borderColor: ds.borderColor,
         backgroundColor: ds.backgroundColor || 'transparent',
         fill: ds.fill ?? false,
-        tension: 0.35,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        borderWidth: 2
+        tension: 0.38,
+        borderWidth: 2.5,
+        pointRadius: 4.5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#ffffff',
+        pointBorderColor: ds.borderColor,
+        pointBorderWidth: 2.5,
+        pointHoverBackgroundColor: ds.borderColor,
+        pointHoverBorderColor: '#ffffff',
+        pointHoverBorderWidth: 2.5
       }));
       if (this.chartInstance.options.scales?.['y']) {
         if (this.yMin !== undefined) {
@@ -149,10 +155,16 @@ export class LineChartComponent implements OnChanges, OnDestroy {
           borderColor: ds.borderColor,
           backgroundColor: ds.backgroundColor || 'transparent',
           fill: ds.fill ?? false,
-          tension: 0.35,
-          pointRadius: 3,
-          pointHoverRadius: 6,
-          borderWidth: 2
+          tension: 0.38,
+          borderWidth: 2.5,
+          pointRadius: 4.5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: ds.borderColor,
+          pointBorderWidth: 2.5,
+          pointHoverBackgroundColor: ds.borderColor,
+          pointHoverBorderColor: '#ffffff',
+          pointHoverBorderWidth: 2.5
         }))
       },
       options: {
@@ -165,14 +177,30 @@ export class LineChartComponent implements OnChanges, OnDestroy {
           legend: {
             display: true,
             position: 'bottom',
+            align: 'center',
             labels: {
               usePointStyle: true,
+              pointStyle: 'circle',
               boxWidth: 8,
-              font: { family: 'Roboto, Inter, sans-serif', size: 12, weight: 500 }
+              boxHeight: 8,
+              padding: 18,
+              color: '#475569',
+              font: { family: 'Inter, system-ui, -apple-system, sans-serif', size: 12, weight: 500 }
             }
           },
           tooltip: {
             enabled: true,
+            backgroundColor: '#0f172a',
+            titleColor: '#ffffff',
+            bodyColor: '#f8fafc',
+            titleFont: { family: 'Inter, system-ui, -apple-system, sans-serif', size: 12, weight: 600 },
+            bodyFont: { family: 'Inter, system-ui, -apple-system, sans-serif', size: 12 },
+            padding: { top: 8, bottom: 8, left: 12, right: 12 },
+            cornerRadius: 8,
+            boxPadding: 4,
+            usePointStyle: true,
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
             animation: {
               duration: 150
             }
@@ -181,13 +209,15 @@ export class LineChartComponent implements OnChanges, OnDestroy {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { family: 'Roboto, Inter, sans-serif', size: 11 }, color: '#64748b' }
+            border: { display: false },
+            ticks: { font: { family: 'Inter, system-ui, -apple-system, sans-serif', size: 11 }, color: '#64748b' }
           },
           y: {
             ...(this.yMin !== undefined ? { min: this.yMin } : {}),
             ...(this.yMax !== undefined ? { max: this.yMax } : {}),
-            grid: { color: '#e2e8f0' },
-            ticks: { font: { family: 'Roboto, Inter, sans-serif', size: 11 }, color: '#64748b' }
+            grid: { color: '#f1f5f9' },
+            border: { display: false },
+            ticks: { font: { family: 'Inter, system-ui, -apple-system, sans-serif', size: 11 }, color: '#64748b' }
           }
         }
       }

@@ -44,19 +44,52 @@
       </div>
       <div class="chart-body line-chart-mock">
         <svg class="svg-chart" viewBox="0 0 300 120" preserveAspectRatio="none">
-          <path d="M0 60 Q 50 30, 100 40 T 200 20 T 300 15" fill="none" stroke="#2563EB" stroke-width="2"/>
-          <path d="M0 80 Q 50 60, 100 65 T 200 45 T 300 40" fill="none" stroke="#10B981" stroke-width="2"/>
-          <path d="M0 100 Q 50 90, 100 85 T 200 75 T 300 70" fill="none" stroke="#F59E0B" stroke-width="2"/>
-          <path d="M0 110 Q 50 105, 100 100 T 200 90 T 300 85" fill="none" stroke="#8B5CF6" stroke-width="2"/>
+          <!-- Horizontal Gridlines -->
+          <line x1="0" y1="25" x2="300" y2="25" stroke="#f1f5f9" stroke-width="1" />
+          <line x1="0" y1="50" x2="300" y2="50" stroke="#f1f5f9" stroke-width="1" />
+          <line x1="0" y1="75" x2="300" y2="75" stroke="#f1f5f9" stroke-width="1" />
+          <line x1="0" y1="100" x2="300" y2="100" stroke="#f1f5f9" stroke-width="1" />
+
+          <!-- Smooth Trend Paths -->
+          <path d="M0 60 Q 50 30, 100 40 T 200 20 T 300 15" fill="none" stroke="#2563EB" stroke-width="2.5" class="chart-trend-line" />
+          <path d="M0 80 Q 50 60, 100 65 T 200 45 T 300 40" fill="none" stroke="#10B981" stroke-width="2.5" class="chart-trend-line" />
+          <path d="M0 100 Q 50 90, 100 85 T 200 75 T 300 70" fill="none" stroke="#F59E0B" stroke-width="2.5" class="chart-trend-line" />
+          <path d="M0 110 Q 50 105, 100 100 T 200 90 T 300 85" fill="none" stroke="#8B5CF6" stroke-width="2.5" class="chart-trend-line" />
+
+          <!-- Circular Outlined Markers: Visits -->
+          <circle cx="12" cy="57" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="38" cy="40" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="65" cy="33" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="91" cy="38" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="118" cy="40" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="145" cy="35" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="172" cy="27" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="200" cy="20" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="227" cy="17" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="254" cy="16" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+          <circle cx="281" cy="15" r="3.5" fill="#ffffff" stroke="#2563EB" stroke-width="2" />
+
+          <!-- Circular Outlined Markers: Searches -->
+          <circle cx="12" cy="77" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="38" cy="65" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="65" cy="60" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="91" cy="63" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="118" cy="64" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="145" cy="58" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="172" cy="50" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="200" cy="45" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="227" cy="43" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="254" cy="41" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
+          <circle cx="281" cy="40" r="3.5" fill="#ffffff" stroke="#10B981" stroke-width="2" />
         </svg>
         <div class="chart-months">
           <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
         </div>
         <div class="chart-legend">
-          <span><span class="dot" style="background:#2563EB"></span>Visits</span>
-          <span><span class="dot" style="background:#10B981"></span>Searches</span>
-          <span><span class="dot" style="background:#F59E0B"></span>Policy Views</span>
-          <span><span class="dot" style="background:#8B5CF6"></span>Scheme Views</span>
+          <span><i class="legend-circle" style="border-color:#2563EB"><i class="legend-circle-inner" style="background:#2563EB"></i></i>Visits</span>
+          <span><i class="legend-circle" style="border-color:#10B981"><i class="legend-circle-inner" style="background:#10B981"></i></i>Searches</span>
+          <span><i class="legend-circle" style="border-color:#F59E0B"><i class="legend-circle-inner" style="background:#F59E0B"></i></i>Policy Views</span>
+          <span><i class="legend-circle" style="border-color:#8B5CF6"><i class="legend-circle-inner" style="background:#8B5CF6"></i></i>Scheme Views</span>
         </div>
       </div>
     </div>

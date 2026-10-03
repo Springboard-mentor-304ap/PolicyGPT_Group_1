@@ -31,7 +31,8 @@ const endValuePlugin = {
           ctx.fillStyle = '#475569';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
-          ctx.fillText(value.toString(), bar.x + 6, bar.y);
+          const formatted = typeof value === 'number' ? value.toLocaleString() : value.toString();
+          ctx.fillText(formatted, bar.x + 6, bar.y);
           ctx.restore();
         }
       });
@@ -85,8 +86,8 @@ export class HbarChartComponent implements OnChanges, OnDestroy {
   @Input() labels: string[] = [];
   @Input() data: number[] = [];
   @Input() selectedDepartment: string = 'All Departments';
-  @Input() primaryColor: string = '#2f6fed';
-  @Input() dimmedColor: string = 'rgba(47, 111, 237, 0.25)';
+  @Input() primaryColor: string = '#3b82f6';
+  @Input() dimmedColor: string = 'rgba(59, 130, 246, 0.25)';
 
   private chartInstance: Chart | null = null;
   private isInitialized = false;
@@ -152,8 +153,14 @@ export class HbarChartComponent implements OnChanges, OnDestroy {
           {
             data: this.data,
             backgroundColor: backgroundColors,
-            borderRadius: 4,
-            barThickness: 14
+            borderRadius: {
+              topRight: 4,
+              bottomRight: 4,
+              topLeft: 0,
+              bottomLeft: 0
+            },
+            borderSkipped: 'start',
+            barThickness: 16
           }
         ]
       },
@@ -166,7 +173,7 @@ export class HbarChartComponent implements OnChanges, OnDestroy {
         hover: CHART_HOVER_OPTIONS,
         layout: {
           padding: {
-            right: 32
+            right: 48
           }
         },
         plugins: {
@@ -185,9 +192,11 @@ export class HbarChartComponent implements OnChanges, OnDestroy {
           },
           y: {
             grid: { display: false },
+            border: { display: true, color: '#e2e8f0', width: 1.5 },
             ticks: {
               font: { family: 'Roboto, Inter, sans-serif', size: 11, weight: 500 },
-              color: '#475569'
+              color: '#475569',
+              padding: 8
             }
           }
         }

@@ -51,7 +51,7 @@ $dash-purple: #8b00e8;
 .dash-welcome {
   position: relative;
   min-height: 233px;
-  margin-bottom: 28px;
+  margin-bottom: 36px;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -265,7 +265,7 @@ $dash-purple: #8b00e8;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 28px;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
 }
 
 .dash-stat-card {
@@ -289,9 +289,9 @@ $dash-purple: #8b00e8;
 }
 
 .dash-stat-card__icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 47px;
+  height: 47px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -300,7 +300,7 @@ $dash-purple: #8b00e8;
 
 .dash-stat-card__icon .material-icons {
   color: #ffffff;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .dash-stat-card__icon--blue {
@@ -369,7 +369,7 @@ $dash-purple: #8b00e8;
   min-height: 370px;
   display: flex;
   flex-direction: column;
-  padding: 25px 26px 20px;
+  padding: 25px 26px 18px;
   border-radius: 19px;
   background: $dash-white;
   box-shadow: 0 4px 17px rgba(15, 40, 82, 0.055);

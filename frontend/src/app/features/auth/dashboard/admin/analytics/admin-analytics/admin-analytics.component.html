@@ -401,40 +401,62 @@
               preserveAspectRatio="none"
             >
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getApprovedTrendPoints()"
+                [attr.d]="getApprovedCurvePath()"
                 fill="none"
                 stroke="#55bd91"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-approved"
+              ></path>
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getPendingTrendPoints()"
+                [attr.d]="getPendingCurvePath()"
                 fill="none"
                 stroke="#e6b24d"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-pending"
+              ></path>
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getRejectedTrendPoints()"
+                [attr.d]="getRejectedCurvePath()"
                 fill="none"
                 stroke="#e95e67"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-rejected"
+              ></path>
 
-              <circle
-                *ngFor="
-                  let item of policyTrend;
-                  let i = index
-                "
-                [attr.cx]="getTrendX(i)"
-                [attr.cy]="getTrendY(item)"
-                r="2.5"
-                fill="#55bd91"
-              ></circle>
+              <ng-container *ngFor="let item of policyTrend; let i = index">
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'approved')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#55bd91"
+                  stroke-width="2"
+                  class="chart-dot-approved"
+                ></circle>
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'pending')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#e6b24d"
+                  stroke-width="2"
+                  class="chart-dot-pending"
+                ></circle>
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'rejected')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#e95e67"
+                  stroke-width="2"
+                  class="chart-dot-rejected"
+                ></circle>
+              </ng-container>
 
             </svg>
 

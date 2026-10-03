@@ -398,35 +398,90 @@
 
 .chart-legend {
   display: flex;
-  gap: 12px;
-  font-size: 7px;
-  color: #788697;
-  margin-top: 5px;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 10px;
 }
 
 .chart-legend span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .chart-legend i {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
+  border: 2px solid;
+  background: #ffffff;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .approved-dot {
-  background: #55bd91;
+  border-color: #55bd91 !important;
 }
 
 .pending-dot {
-  background: #e6b24d;
+  border-color: #e6b24d !important;
 }
 
 .rejected-dot {
-  background: #e95e67;
+  border-color: #e95e67 !important;
+}
+
+.chart-path-approved,
+.chart-path-pending,
+.chart-path-rejected {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: drawLineAdmin 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawLineAdmin {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.chart-dot-approved,
+.chart-dot-pending,
+.chart-dot-rejected {
+  opacity: 0;
+  animation: fadeInAdminDot 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeInAdminDot {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-path-approved,
+  .chart-path-pending,
+  .chart-path-rejected {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+  .chart-dot-approved,
+  .chart-dot-pending,
+  .chart-dot-rejected {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 

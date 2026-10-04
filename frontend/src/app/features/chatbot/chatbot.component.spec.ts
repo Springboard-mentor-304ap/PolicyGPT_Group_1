@@ -14,6 +14,33 @@ function storeUser(role: string): void {
   localStorage.setItem('policygpt_token', 'test-token');
 }
 
+// localStorage-backed Auth stub with the same observable semantics as the
+// real Auth service for the members the chatbot component uses
+// (getStoredUser/getUserRole). The real Auth class cannot be instantiated
+// under raw vitest because JIT constructor-dependency metadata is only
+// produced by the Angular compiler pipeline (`ng test`); the stub keeps
+// every existing assertion exercising identical role/user behaviour.
+const authStub = {
+  getStoredUser: () => {
+    try {
+      const raw = localStorage.getItem('policygpt_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  getUserRole: () => {
+    try {
+      const raw = localStorage.getItem('policygpt_user');
+      const user = raw ? (JSON.parse(raw) as { role?: unknown }) : null;
+      const role = user?.role;
+      return typeof role === 'string' ? role.toUpperCase().trim() : null;
+    } catch {
+      return null;
+    }
+  },
+};
+
 describe('ChatbotComponent', () => {
   let fixture: ComponentFixture<ChatbotComponent>;
   let component: ChatbotComponent;
@@ -26,7 +53,12 @@ describe('ChatbotComponent', () => {
     storeUser('CITIZEN');
     await TestBed.configureTestingModule({
       imports: [ChatbotComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: Auth, useValue: authStub },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ChatbotComponent);

@@ -32,6 +32,7 @@ from app.services.chatbot_provider import (
     OpenAIChatbotProvider,
     ProviderError,
     TemplateChatbotProvider,
+    eligibility_label,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -635,8 +636,8 @@ def count_schemes(db, user, terms="", filters=None) -> int:
     return queries.count_schemes(db, user, _combined_terms(terms, filters), filters)
 
 
-def find_record_by_name(db, user, kind, name, limit=20) -> dict:
-    return queries.find_record_by_name(db, user, kind, name, limit)
+def find_record_by_name(db, user, kind, name, limit=20, fuzzy=True) -> dict:
+    return queries.find_record_by_name(db, user, kind, name, limit, fuzzy=fuzzy)
 
 
 def _serializable_profile(profile) -> dict:
@@ -987,11 +988,18 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 total = found.get("total", 0)
             view_type = "VIEW_POLICY" if kind == "policy" else "VIEW_SCHEME"
             if best is not None:
+                # The resolved row carries its real table in _kind: a
+                # follow-up may resolve a record of the other kind.
+                # Navigation must always use the row's actual kind and id,
+                # never the intent's assumed kind.
+                kind = best.get("_kind") or kind
+                view_type = "VIEW_POLICY" if kind == "policy" else "VIEW_SCHEME"
                 builder = policy_result if kind == "policy" else scheme_result
                 results = [builder(prefix, best)]
-                ctx.update({"row": best})
+                ctx.update({"row": best,
+                            "requested_field": entities.get("requested_field")})
                 actions = [schemas.ChatAction(
-                    label=f"View {'Policy' if kind == 'policy' else 'Scheme'}",
+                    label=f"View {'Policy' if kind == 'policy' else 'Scheme'} Details",
                     type=view_type,
                     route=_route(prefix, "policies" if kind == "policy" else "schemes",
                                  str(best["id"])),
@@ -1001,7 +1009,8 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                     kind=kind.upper(), id=best["id"],
                     title=str(best.get("title") or ""))]
                 data = {"response_type": "DETAIL_RESPONSE",
-                        "id": best.get("id"), "title": best.get("title")}
+                        "id": best.get("id"), "title": best.get("title"),
+                        "requested_field": entities.get("requested_field")}
                 if kind == "scheme":
                     actions.append(schemas.ChatAction(
                         label="Check Eligibility", type="CHECK_ELIGIBILITY",
@@ -1041,7 +1050,12 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 )
             profile_lines = context.profile_summary_lines(full_profile)
             if target is not None:
-                check = queries.check_scheme_for_profile(db, target.get("id"), full_profile)
+                # Single-record assessment is scheme-only: a policy row must
+                # never be checked against the scheme rule engine (id spaces
+                # differ). Policy targets fall through to discovery below.
+                check = None
+                if target.get("_kind", "scheme") == "scheme":
+                    check = queries.check_scheme_for_profile(db, target.get("id"), full_profile)
                 if check is not None:
                     ctx.update({
                         "row": target, "check": check,
@@ -1066,6 +1080,7 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                     data = {
                         "response_type": "ELIGIBILITY_RESPONSE",
                         "eligible": bool(check.get("eligible")),
+                        "eligibility_label": eligibility_label(check),
                         "matched": check.get("matched_rules") or [],
                         "failed": check.get("failed_rules") or [],
                         "profile": _serializable_profile(full_profile),
@@ -1094,6 +1109,9 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 ]
                 data = {
                     "response_type": "ELIGIBILITY_RESPONSE",
+                    "eligibility_label": eligibility_label(
+                        {"eligible": False, "failed_rules": []}
+                    ),
                     "total": matched["total"],
                     "profile": _serializable_profile(full_profile),
                 }
@@ -1118,6 +1136,11 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
             ))
             data = {
                 "response_type": "ELIGIBILITY_RESPONSE",
+                "eligibility_label": eligibility_label(
+                    None,
+                    needs_details=queries.build_eligibility_profile_data(
+                        full_profile) is None,
+                ),
                 "total": total,
                 "profile": _serializable_profile(full_profile),
             }
@@ -1184,19 +1207,27 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                     db, user, entities.get("terms", ""), None, 1, 1)
                 rows = fetched["rows"]
                 row = rows[0] if rows else None
-            ctx.update({"row": row})
+            ctx.update({"row": row,
+                        "requested_field": entities.get("requested_field")})
             if row and row.get("id") is not None:
-                results = [scheme_result(prefix, row)]
+                # Respect the row's real table: a policy-titled follow-up
+                # must link to the policy page, never to /schemes/<policy_id>.
+                is_policy = row.get("_kind") == "policy"
+                segment = "policies" if is_policy else "schemes"
+                view = "View Policy Details" if is_policy else "View Scheme Details"
+                ctx.update({"kind": "policy" if is_policy else "scheme"})
+                results = [(policy_result if is_policy else scheme_result)(prefix, row)]
                 actions = [schemas.ChatAction(
-                    label="View Scheme", type="VIEW_SCHEME",
-                    route=_route(prefix, "schemes", str(row["id"])),
-                    entity_type="SCHEME", entity_id=row["id"],
+                    label=view, type="VIEW_POLICY" if is_policy else "VIEW_SCHEME",
+                    route=_route(prefix, segment, str(row["id"])),
+                    entity_type="POLICY" if is_policy else "SCHEME", entity_id=row["id"],
                 )]
                 sources = [schemas.ChatSource(
-                    kind="SCHEME", id=row["id"],
+                    kind="POLICY" if is_policy else "SCHEME", id=row["id"],
                     title=str(row.get("title") or ""))]
                 data = {"response_type": "APPLICATION_GUIDANCE_RESPONSE",
-                        "id": row.get("id"), "title": row.get("title")}
+                        "id": row.get("id"), "title": row.get("title"),
+                        "requested_field": entities.get("requested_field")}
             else:
                 data = {"response_type": "NO_DATA_RESPONSE"}
             return _finish(provider.render(intent_name, ctx, role))
@@ -1218,7 +1249,7 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 view_type = "VIEW_POLICY" if is_policy else "VIEW_SCHEME"
                 segment = "policies" if is_policy else "schemes"
                 actions = [schemas.ChatAction(
-                    label=f"View {'Policy' if is_policy else 'Scheme'}",
+                    label=f"View {'Policy' if is_policy else 'Scheme'} Details",
                     type=view_type,
                     route=_route(prefix, segment, str(row["id"])),
                     entity_type="POLICY" if is_policy else "SCHEME",
@@ -1232,9 +1263,11 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 sources = [schemas.ChatSource(
                     kind="POLICY" if is_policy else "SCHEME", id=row["id"],
                     title=str(row.get("title") or ""))]
-                ctx.update({"row": row, "found": True})
+                ctx.update({"row": row, "found": True,
+                            "requested_field": entities.get("requested_field")})
                 data = {"response_type": "BENEFITS_RESPONSE",
-                        "id": row.get("id"), "title": row.get("title")}
+                        "id": row.get("id"), "title": row.get("title"),
+                        "requested_field": entities.get("requested_field")}
             else:
                 ctx.update({"row": None, "found": False})
                 data = {"response_type": "NO_DATA_RESPONSE"}

@@ -29,6 +29,17 @@ def _row_title(row: dict) -> str:
     return str(row.get("title") or row.get("name") or "Untitled")
 
 
+def eligibility_label(check: dict | None, needs_details: bool = False) -> str:
+    """One of the four supported assessment labels. Pure function."""
+    if needs_details or check is None:
+        return "Unable to determine — more information required."
+    if check.get("eligible"):
+        return "Eligible based on available criteria."
+    if check.get("failed_rules"):
+        return "Not eligible based on a specified mandatory criterion."
+    return "Possibly eligible — verification required."
+
+
 class TemplateChatbotProvider(ChatbotProvider):
     """Grounded template renderer. Pure function of retrieved records."""
 
@@ -213,6 +224,95 @@ class TemplateChatbotProvider(ChatbotProvider):
     # Explanations (only retrieved fields are mentioned)
     # --------------------------------------------------
 
+    # --------------------------------------------------
+    # Field-targeted answers (relevance-first: only the requested
+    # database field, never a full record dump)
+    # --------------------------------------------------
+
+    def _missing_field(self, field_label: str, noun: str) -> str:
+        return (
+            f"The {field_label} for this {noun} is not available "
+            "in the current PolicyGPT records."
+        )
+
+    def _render_focused_field(
+        self, row: dict, noun: str, context: dict
+    ) -> str | None:
+        """Answer only the requested field for one record.
+
+        Returns None when no specific field was requested (caller renders
+        the default summary) so existing behaviour is unchanged.
+        """
+        field = context.get("requested_field")
+        if not field or field == "description":
+            return None
+        title = _row_title(row)
+        view = "View Policy" if noun == "policy" else "View Scheme"
+        tail = f"Select {view} for the complete details."
+        if field == "benefits":
+            benefits = row.get("benefits") or []
+            lines = [f"**Benefits of {title}**", ""]
+            if isinstance(benefits, list) and benefits:
+                lines += [f"- {b}" for b in benefits[:8]]
+            else:
+                lines.append(
+                    "No itemised benefits are recorded for this entry. "
+                    "Open its details page for the full official description."
+                )
+            return "\n".join(lines + ["", tail])
+        if field == "documents":
+            if row.get("documents_required"):
+                return "\n".join([
+                    f"**Documents required for {title}**",
+                    "",
+                    str(row["documents_required"])[:600],
+                    "",
+                    tail,
+                ])
+            return self._missing_field("required documents", noun)
+        if field == "application_process":
+            if row.get("application_process"):
+                lines = [
+                    f"**Application process for {title}**",
+                    "",
+                    str(row["application_process"])[:600],
+                    "",
+                ]
+                if row.get("application_url"):
+                    lines += [
+                        f"Apply here: {row['application_url']}",
+                        "",
+                    ]
+                lines.append(tail)
+                return "\n".join(lines)
+            return self._missing_field("application process", noun)
+        if field == "ministry":
+            if row.get("ministry"):
+                return f"**{title}** is under **{row['ministry']}**.\n\n{tail}"
+            return self._missing_field("ministry", noun)
+        if field == "department":
+            if row.get("department"):
+                return (
+                    f"**{title}** is handled by **{row['department']}**."
+                    f"\n\n{tail}"
+                )
+            return self._missing_field("department", noun)
+        if field == "status":
+            if row.get("status"):
+                return (
+                    f"**{title}** — status: **{row['status']}**.\n\n{tail}"
+                )
+            return self._missing_field("status", noun)
+        if field == "deadline":
+            if row.get("application_end_date"):
+                return (
+                    f"**Application deadline for {title}**\n\n"
+                    f"Apply by: {row['application_end_date']}\n\n"
+                    "Always confirm deadlines on the official source."
+                )
+            return self._missing_field("deadline", noun)
+        return None
+
     def _render_policy_explanation(self, context: dict, role: str) -> str:
         row = context.get("row")
         if not row:
@@ -232,6 +332,9 @@ class TemplateChatbotProvider(ChatbotProvider):
                 "I couldn't find that policy in the PolicyGPT database, so I "
                 "can't explain it. Please check the title and try again."
             )
+        focused = self._render_focused_field(row, "policy", context)
+        if focused is not None:
+            return focused
         lines = [f"**{_row_title(row)}**", ""]
         if row.get("description"):
             lines += [str(row["description"])[:800], ""]
@@ -275,6 +378,9 @@ class TemplateChatbotProvider(ChatbotProvider):
                 "I couldn't find that scheme in the PolicyGPT database, so I "
                 "can't explain it. Please check the name and try again."
             )
+        focused = self._render_focused_field(row, "scheme", context)
+        if focused is not None:
+            return focused
         lines = [f"**{_row_title(row)}**", ""]
         if row.get("description"):
             lines += [str(row["description"])[:800], ""]
@@ -314,6 +420,12 @@ class TemplateChatbotProvider(ChatbotProvider):
     def _render_scheme_recommendation(self, context: dict, role: str) -> str:
         return self._render_eligibility_result(context, role)
 
+    def eligibility_label_for_check(
+        self, check: dict | None, needs_details: bool = False
+    ) -> str:
+        """One of the four supported assessment labels. Pure function."""
+        return eligibility_label(check, needs_details)
+
     def _render_eligibility_result(self, context: dict, role: str) -> str:
         profile_lines = context.get("profile_lines") or []
         header = ""
@@ -326,24 +438,43 @@ class TemplateChatbotProvider(ChatbotProvider):
         check = context.get("check")
         if check is not None:
             title = _row_title(context.get("row") or {})
-            lines = [f"**Potential Eligibility \u2014 {title}**", ""]
+            label = self.eligibility_label_for_check(check)
+            context["eligibility_label"] = label
+            lines = [f"**{label}**", "", f"Scheme: **{title}**", ""]
             if profile_lines:
                 lines += [line.replace("**", "") for line in profile_lines]
                 lines.append("")
-            for rule in check.get("matched_rules") or []:
-                lines.append(f"\u2713 {rule}")
-            for rule in check.get("failed_rules") or []:
-                lines.append(f"\u26a0 {rule}")
+            matched = check.get("matched_rules") or []
+            failed = check.get("failed_rules") or []
+            if matched:
+                lines.append("Criteria matched:")
+                lines += [f"- ✓ {rule}" for rule in matched]
+                lines.append("")
+            if failed:
+                lines.append("Criteria not met / unverified:")
+                lines += [f"- ✕ {rule}" for rule in failed]
+                lines.append("")
+            if not matched and not failed:
+                lines += [
+                    "No detailed eligibility rules are recorded for this "
+                    "scheme, so a criteria-based assessment is not possible.",
+                    "",
+                ]
             lines += [
-                "",
-                "**Important:** This matching is indicative only. Please verify "
-                "the complete official eligibility requirements before applying.",
+                "**Important:** This assessment uses only the criteria "
+                "recorded in PolicyGPT. Please verify the complete official "
+                "eligibility requirements before applying.",
             ]
             return "\n".join(lines)
         rows: list[dict] = context.get("rows", [])
         total: int = context.get("total", 0)
         if context.get("rule_matched") and rows:
+            context["eligibility_label"] = (
+                "Possibly eligible — verification required."
+            )
             lines = [
+                "**Possibly eligible — verification required.**",
+                "",
                 f"I found **{total}** scheme{'s' if total != 1 else ''} "
                 "that may match your information.",
                 "",
@@ -357,6 +488,17 @@ class TemplateChatbotProvider(ChatbotProvider):
             ]
             return header + "\n".join(lines) if header else "\n".join(lines)
         if not rows:
+            if context.get("needs_details"):
+                context["eligibility_label"] = (
+                    "Unable to determine — more information required."
+                )
+                return (
+                    header
+                    + "**Unable to determine — more information required.**\n\n"
+                    "To check eligibility, share your age and optionally your "
+                    "education, state, occupation and family income. You can "
+                    "also use the Eligibility Checker page."
+                )
             return (
                 header
                 + "I couldn't find schemes matching that description in the "
@@ -444,9 +586,19 @@ class TemplateChatbotProvider(ChatbotProvider):
                 "Tell me which scheme you want to apply for and I'll explain "
                 "its documented application process."
             )
+        noun = context.get("kind", "scheme")
+        noun = "policy" if noun == "policy" else "scheme"
         lines = [f"Applying for **{_row_title(row)}**:", ""]
         if row.get("application_process"):
             lines += [str(row["application_process"])[:600], ""]
+        else:
+            lines += [
+                f"The application process for this {noun} is not available "
+                "in the current PolicyGPT records.",
+                "",
+            ]
+        if row.get("application_url"):
+            lines += [f"Apply here: {row['application_url']}", ""]
         if row.get("documents_required"):
             lines += [
                 f"Documents usually required: {str(row['documents_required'])[:400]}",

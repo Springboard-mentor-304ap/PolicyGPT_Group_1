@@ -212,6 +212,11 @@ $radius: 12px;
   box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
 }
 
+.chatbot-header__dot--offline {
+  background: #f87171;
+  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+}
+
 .chatbot-header__actions {
   display: flex;
   gap: 2px;
@@ -716,6 +721,55 @@ $radius: 12px;
 .chatbot-badge--other {
   background: #e0f2fe;
   color: #0c4a6e;
+}
+
+/* ---------- Eligibility assessment badge ----------
+   Icon + text + border style distinguish results without
+   relying on color alone. */
+
+.chatbot-eligibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+
+  .material-icons {
+    font-size: 16px;
+  }
+}
+
+.chatbot-eligibility--eligible {
+  border-style: solid;
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.chatbot-eligibility--possible {
+  border-style: dashed;
+  border-color: #d97706;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.chatbot-eligibility--not-eligible {
+  border-style: double;
+  border-color: #dc2626;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.chatbot-eligibility--unknown {
+  border-style: dotted;
+  border-color: #64748b;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 /* ---------- Markdown tables (comparisons) ---------- */

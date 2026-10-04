@@ -331,8 +331,16 @@ def rank_rows(rows: list[dict], hint: str) -> list[dict]:
     return sorted(rows, key=lambda r: _relevance(str(r.get("title") or ""), hint))
 
 
-def find_record_by_name(db, user, kind: str, name: str, limit: int = 20) -> dict:
-    """Look a policy/scheme up by (partial) name. Real DB rows only."""
+def find_record_by_name(db, user, kind: str, name: str, limit: int = 20,
+                         fuzzy: bool = True) -> dict:
+    """Look a policy/scheme up by (partial) name. Real DB rows only.
+
+    Exact matches rank first. When substring search finds nothing useful,
+    a bounded spelling-tolerant pass surfaces close title matches as
+    explicitly labelled alternatives — never as a silent substitution.
+    ``fuzzy=False`` skips the bounded full-fetch fallback (used by
+    conversation-context resolution loops to avoid repeated scans).
+    """
     if kind == "policy":
         data = search_policies_filtered(
             db, user, terms=name, filters=None, page=1, limit=limit
@@ -348,7 +356,49 @@ def find_record_by_name(db, user, kind: str, name: str, limit: int = 20) -> dict
     if rows and _relevance(str(rows[0].get("title") or ""), name)[0] <= 2:
         best = rows[0]
     alternatives = [r for r in rows if r is not best][:4]
+    if fuzzy and best is None and not alternatives:
+        alternatives = _close_title_matches(db, user, kind, name)
     return {"best": best, "alternatives": alternatives, "total": data["total"]}
+
+
+def _close_title_matches(db, user, kind: str, name: str, limit: int = 4) -> list[dict]:
+    """Spelling-tolerant fallback over a bounded candidate set.
+
+    Compares the requested name against titles from a bounded full fetch
+    (RBAC-scoped, same services) using difflib similarity. Only genuinely
+    similar titles (>= 0.6) are returned, as alternatives for the caller
+    to label as possible matches.
+    """
+    import difflib
+
+    hint = (name or "").strip().casefold()
+    if len(hint) < 3:
+        return []
+    try:
+        if kind == "policy":
+            data = search_policies_filtered(
+                db, user, terms="", filters=None, page=1, limit=FULL_FETCH_LIMIT
+            )
+        else:
+            data = search_schemes_filtered(
+                db, user, terms="", filters=None, page=1, limit=FULL_FETCH_LIMIT
+            )
+    except Exception:
+        return []
+    scored: list[tuple[float, dict]] = []
+    for row in data.get("rows", []) or []:
+        title = str(row.get("title") or "").casefold()
+        if not title:
+            continue
+        ratio = difflib.SequenceMatcher(None, hint, title).ratio()
+        if ratio >= 0.6:
+            scored.append((ratio, row))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    matches = []
+    for _, row in scored[:limit]:
+        row["_kind"] = kind
+        matches.append(row)
+    return matches
 
 
 # ============================================================

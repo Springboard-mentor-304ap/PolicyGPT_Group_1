@@ -45,7 +45,8 @@ _SEARCH_INTENTS = frozenset({
 _PRONOUN_HINTS = (
     "its", "it", "this scheme", "that scheme", "the scheme",
     "this policy", "that policy", "the policy", "benefits",
-    "eligib", "apply", "document",
+    "eligib", "apply", "document", "deadline", "ministry",
+    "department", "status", "available", "this", "that",
 )
 
 
@@ -143,7 +144,11 @@ def _try_lookup(db, user, kind: str, term: str):
     if len(term) < 3:
         return None
     try:
-        found = chatbot_service.find_record_by_name(db, user, kind, term)
+        # fuzzy=False: context titles are re-validated with substring
+        # ranking only — no bounded full-fetch scan per candidate, so
+        # follow-up resolution stays at a handful of indexed queries.
+        found = chatbot_service.find_record_by_name(
+            db, user, kind, term, fuzzy=False)
     except Exception:
         return None
     if found and found.get("best"):
@@ -151,11 +156,21 @@ def _try_lookup(db, user, kind: str, term: str):
     return None
 
 
+def _kind_order(kind_hint: str) -> tuple[str, ...]:
+    """Deduplicated lookup order: hinted kind first, then the other table."""
+    ordered = [kind_hint]
+    for kind in ("scheme", "policy"):
+        if kind not in ordered:
+            ordered.append(kind)
+    return tuple(ordered)
+
+
 def resolve_referenced_entity(
     db, user, conversation_id: int | None, text: str, kind_hint: str = "scheme"
 ):
     """Resolve "it / second one / <name>" to a real DB row dict or None."""
     lowered = (text or "").lower()
+    kinds = _kind_order(kind_hint)
 
     # 1. Explicit name in this turn.
     hint = intent.extract_name_hint(text or "")
@@ -175,27 +190,34 @@ def resolve_referenced_entity(
     if ordinal is not None and titles:
         index = ordinal - 1 if ordinal > 0 else len(titles) - 1
         if 0 <= index < len(titles):
-            for kind in (kind_hint, "scheme", "policy"):
+            for kind in kinds:
                 row = _try_lookup(db, user, kind, titles[index])
                 if row:
                     return row
 
     # 3. Pronoun / bare follow-up ("its benefits?", "can I apply?").
+    # Only the most recent titles are tried: the active subject is at the
+    # top of the list, and each candidate costs database round-trips.
     if any(hint_word in lowered for hint_word in _PRONOUN_HINTS):
-        for title in titles:
-            for kind in (kind_hint, "scheme", "policy"):
+        for title in titles[:3]:
+            for kind in kinds:
                 row = _try_lookup(db, user, kind, title)
                 if row:
                     return row
 
-    # 4. Most recent explicitly named entity from earlier user turns.
+    # 4. Most recent explicitly named entity from earlier user turns
+    # (bounded: older turns are progressively less likely to be meant).
+    seen = 0
     for message in reversed(_load_messages(db, conversation_id)):
         if getattr(message, "sender", "") != "user":
             continue
         older_hint = intent.extract_name_hint(message.message or "")
         if not older_hint:
             continue
-        for kind in (kind_hint, "scheme", "policy"):
+        seen += 1
+        if seen > 3:
+            break
+        for kind in kinds:
             row = _try_lookup(db, user, kind, older_hint)
             if row:
                 return row

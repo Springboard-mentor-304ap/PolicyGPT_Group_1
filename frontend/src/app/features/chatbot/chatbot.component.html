@@ -19,8 +19,14 @@
       <h2>PolicyGPT Assistant</h2>
       <p>Your Government Policy &amp; Scheme Assistant</p>
       <span class="chatbot-header__status">
-        <span class="chatbot-header__dot" aria-hidden="true"></span>
+        <span class="chatbot-header__dot" [class.chatbot-header__dot--offline]="!serviceOnline" aria-hidden="true"></span>
+        @if (!serviceOnline) {
+        Offline — retrying
+        } @else if (loading || sending) {
+        Thinking…
+        } @else {
         Online
+        }
       </span>
     </div>
     <div class="chatbot-header__actions">
@@ -132,6 +138,13 @@
           <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
           <div class="chatbot-msg__content">
             <div class="chatbot-bubble chatbot-bubble--assistant" [innerHTML]="renderMarkdown(msg.text)"></div>
+            @if (msg.data?.['eligibility_label']) {
+            <div class="chatbot-eligibility" [ngClass]="eligibilityClass(msg.data?.['eligibility_label'])"
+              role="status" aria-label="Eligibility assessment">
+              <span class="material-icons" aria-hidden="true">{{ eligibilityIcon(msg.data?.['eligibility_label']) }}</span>
+              <span class="chatbot-eligibility__label">{{ msg.data?.['eligibility_label'] }}</span>
+            </div>
+            }
             @if (msg.results && msg.results.length > 0) {
             <div class="chatbot-results" aria-label="Structured results">
               @for (item of msg.results; track $index) {

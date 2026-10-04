@@ -201,16 +201,28 @@ def classify_intent(text: str) -> dict:
     if conversational is not None:
         return conversational
 
+    # Field-targeted follow-ups ("its benefits?", "who can apply for
+    # this?", "what documents are needed?"). These beat the generic
+    # branches so pronoun questions resolve against conversation context
+    # instead of falling through to GENERAL_QUERY.
+    field_followup = _classify_field_followup(text, lowered)
+    if field_followup is not None:
+        return field_followup
+
     # Eligibility / recommendation.
     if _has_any(
         lowered,
         ("eligib", "qualify", "am i eligible", "eligible for", "can i get",
-         "can i apply", "do i qualify", "recommend", "suggest", "suitable",
+         "can i apply", "do i qualify", "who can apply", "who is eligible",
+         "eligibility criteria", "according to my profile", "for my profile",
+         "based on my profile", "using my profile",
+         "recommend", "suggest", "suitable",
          "for me", "my income", "family income"),
     ):
         entities["terms"] = extract_search_terms(text)
         entities["profile"] = extract_profile_details(text)
         entities["name_hint"] = extract_name_hint(text)
+        entities["requested_field"] = FIELD_ELIGIBILITY
         if _has_any(lowered, ("recommend", "suggest", "suitable", "for me",
                               "family income", "my income", "i am a",
                               "i'm a", "may be available")):
@@ -222,10 +234,15 @@ def classify_intent(text: str) -> dict:
         lowered,
         ("how to apply", "how do i apply", "apply for", "application process",
          "application procedure", "documents required", "documents needed",
+         "documents are needed", "what documents", "which documents",
          "how can i apply", "applying"),
     ):
         entities["terms"] = extract_search_terms(text)
         entities["name_hint"] = extract_name_hint(text)
+        entities["requested_field"] = (
+            FIELD_DOCUMENTS if "document" in lowered
+            else FIELD_APPLICATION_PROCESS
+        )
         return {"intent": APPLICATION_GUIDANCE, "entities": entities}
 
     # Notifications.
@@ -275,6 +292,9 @@ def classify_intent(text: str) -> dict:
         entities["terms"] = extract_search_terms(text)
         entities["name_hint"] = extract_name_hint(text)
         entities["profile"] = extract_profile_details(text)
+        entities["requested_field"] = (
+            extract_requested_field(text) or FIELD_DESCRIPTION
+        )
         if mentions_scheme and not mentions_policy:
             return {"intent": SCHEME_EXPLANATION, "entities": entities}
         if mentions_policy and not mentions_scheme:
@@ -290,6 +310,13 @@ def classify_intent(text: str) -> dict:
         ):
             entities["name_hint"] = ""
             entities["use_context"] = True
+            return {"intent": SCHEME_EXPLANATION, "entities": entities}
+        # Bare-name detail request ("Tell me about PM Kisan", "What is
+        # Ayushman Bharat?"): no policy/scheme keyword, but a plausible
+        # record name is present. Try a grounded lookup instead of a
+        # generic answer; the service replies "not found" when the
+        # database has no match.
+        if entities["name_hint"]:
             return {"intent": SCHEME_EXPLANATION, "entities": entities}
         return {"intent": GENERAL_QUERY, "entities": entities}
 
@@ -324,6 +351,16 @@ def classify_intent(text: str) -> dict:
         return {"intent": SUPPORT, "entities": entities}
 
     if len(lowered.split()) <= 2 and not entities:
+        # Short name queries ("PM-KISAN", "Ayushman Bharat"): try a
+        # grounded lookup instead of giving up. The service replies
+        # "not found" when the database has no match.
+        hint = extract_name_hint(text) or extract_search_terms(text)
+        if hint:
+            return {"intent": SCHEME_EXPLANATION, "entities": {
+                "terms": extract_search_terms(text),
+                "name_hint": hint,
+                "requested_field": FIELD_DESCRIPTION,
+            }}
         return {"intent": UNKNOWN, "entities": entities}
 
     entities["terms"] = extract_search_terms(text)
@@ -521,8 +558,11 @@ def extract_name_hint(text: str) -> str:
         r"\b([A-Z][A-Za-z0-9.\-]*(?:\s+[A-Z0-9][A-Za-z0-9.\-]*)+)\b", text
     )
     stop_prefix = {
-        "tell", "show", "what", "how", "does", "does", "is", "do", "are",
+        "tell", "show", "what", "how", "does", "is", "do", "are",
         "find", "give", "list", "search", "explain", "about", "central",
+        "am", "i", "was", "were", "be", "been", "my", "me", "you",
+        "your", "we", "our", "they", "their", "it", "its", "this",
+        "that", "these", "those",
     }
     for candidate in candidates:
         words = candidate.split()
@@ -655,6 +695,132 @@ def _dominant_kind(lowered: str) -> str:
     return "scheme"
 
 
+# Requested-field values attached to entities["requested_field"] so the
+# retrieval layer can answer with only the relevant database fields.
+FIELD_BENEFITS = "benefits"
+FIELD_ELIGIBILITY = "eligibility"
+FIELD_DOCUMENTS = "documents"
+FIELD_APPLICATION_PROCESS = "application_process"
+FIELD_MINISTRY = "ministry"
+FIELD_DEPARTMENT = "department"
+FIELD_STATUS = "status"
+FIELD_DEADLINE = "deadline"
+FIELD_DESCRIPTION = "description"
+
+# Pronoun / follow-up markers: the record comes from conversation context.
+_FOLLOWUP_HINTS = (
+    "its", "it", "this", "that", "these", "those",
+    "this scheme", "that scheme", "the scheme",
+    "this policy", "that policy", "the policy",
+)
+
+
+def extract_requested_field(text: str) -> str | None:
+    """Which database field the user is asking for (if any). Pure."""
+    lowered = (text or "").lower()
+    if _has_any(lowered, ("benefit", "advantage", "what do i get", "what does it offer")):
+        return FIELD_BENEFITS
+    if _has_any(lowered, ("document", "paperwork", "proof required", "required proof")):
+        return FIELD_DOCUMENTS
+    # Eligibility before application-process: "who can apply" asks WHO
+    # qualifies, while "how can I apply" asks HOW to apply.
+    if _has_any(
+        lowered,
+        ("eligib", "qualif", "who can apply", "who is eligible",
+         "eligibility criteria", "am i eligible", "do i qualify"),
+    ):
+        return FIELD_ELIGIBILITY
+    if _has_any(
+        lowered,
+        ("how to apply", "how do i apply", "how can i apply", "applying",
+         "application process", "application procedure", "apply for",
+         "registration process", "how to register"),
+    ):
+        return FIELD_APPLICATION_PROCESS
+    if "ministry" in lowered or "ministries" in lowered:
+        return FIELD_MINISTRY
+    if "department" in lowered:
+        return FIELD_DEPARTMENT
+    if _has_any(
+        lowered,
+        ("deadline", "last date", "apply by", "closing date", "expiry", "valid till"),
+    ):
+        return FIELD_DEADLINE
+    if _has_any(
+        lowered,
+        ("is it available", "is this available", "is that available",
+         "still active", "still valid", "status of", "scheme status",
+         "policy status", "currently available"),
+    ):
+        return FIELD_STATUS
+    return None
+
+
+def _has_followup_hint(lowered: str) -> bool:
+    if detect_ordinal(lowered) is not None:
+        return True
+    return any(hint in lowered for hint in _FOLLOWUP_HINTS)
+
+
+def _classify_field_followup(text: str, lowered: str) -> dict | None:
+    """Pronoun / short follow-ups ("its benefits?", "who can apply for
+    this?", "what documents are needed?") routed to the supported
+    PolicyGPT workflow with the record resolved from context.
+
+    Returns None when the turn names no usable hint and carries no
+    follow-up marker, so unrelated questions are never forced into a
+    database workflow.
+    """
+    field = extract_requested_field(text)
+    if field is None:
+        return None
+    # Discovery phrasing ("which schemes can I apply for?", "find schemes
+    # for my profile") asks for MANY records, not one context record —
+    # leave it for the eligibility/recommendation branch. Singular
+    # "this scheme" follow-ups still resolve against context.
+    if re.search(
+        r"\b(which|what|list|find|show|recommend|suggest)\b.{0,30}\bschemes\b",
+        lowered,
+    ):
+        return None
+    entities: dict = {
+        "terms": extract_search_terms(text),
+        "name_hint": extract_name_hint(text),
+        "requested_field": field,
+    }
+    if field == FIELD_BENEFITS:
+        if not _has_followup_hint(lowered) and not entities["name_hint"]:
+            return None
+        entities["kind"] = _dominant_kind(lowered)
+        entities["use_context"] = True
+        return {"intent": BENEFITS_QUERY, "entities": entities}
+    if field in (FIELD_DOCUMENTS, FIELD_APPLICATION_PROCESS):
+        if not _has_followup_hint(lowered) and not entities["name_hint"]:
+            # Bare "how do I apply?" with no record: still guidance, the
+            # service asks which scheme is meant.
+            if field != FIELD_APPLICATION_PROCESS:
+                return None
+        entities["use_context"] = True
+        return {"intent": APPLICATION_GUIDANCE, "entities": entities}
+    if field == FIELD_ELIGIBILITY:
+        entities["profile"] = extract_profile_details(text)
+        entities["use_context"] = True
+        return {"intent": ELIGIBILITY_CHECK, "entities": entities}
+    if field in (FIELD_MINISTRY, FIELD_DEPARTMENT, FIELD_DEADLINE,
+                 FIELD_STATUS, FIELD_DESCRIPTION):
+        if not _has_followup_hint(lowered) and not entities["name_hint"]:
+            return None
+        entities["use_context"] = True
+        kind = _dominant_kind(lowered)
+        entities["kind"] = kind
+        # Respect the record kind so the single-record lookup tries the
+        # right table first instead of missing repeatedly on the other.
+        if kind == "policy":
+            return {"intent": POLICY_EXPLANATION, "entities": entities}
+        return {"intent": SCHEME_EXPLANATION, "entities": entities}
+    return None
+
+
 def _classify_conversational(text: str, lowered: str) -> dict | None:
     """Count / existence / benefits / user-directory / analytics intents."""
     entities: dict = {}
@@ -716,6 +882,7 @@ def _classify_conversational(text: str, lowered: str) -> dict | None:
         entities["name_hint"] = extract_name_hint(text)
         entities["filters"] = extract_filters(text)
         entities["terms"] = extract_search_terms(text)
+        entities["requested_field"] = FIELD_STATUS
         kind = _dominant_kind(lowered)
         return {
             "intent": POLICY_EXISTS if kind == "policy" else SCHEME_EXISTS,
@@ -729,6 +896,7 @@ def _classify_conversational(text: str, lowered: str) -> dict | None:
     ):
         entities["name_hint"] = extract_name_hint(text)
         entities["terms"] = extract_search_terms(text)
+        entities["requested_field"] = FIELD_BENEFITS
         kind = _dominant_kind(lowered) if mentions_record else "scheme"
         entities["kind"] = kind
         return {"intent": BENEFITS_QUERY, "entities": entities}

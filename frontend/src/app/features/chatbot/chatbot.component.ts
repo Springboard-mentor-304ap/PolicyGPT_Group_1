@@ -139,6 +139,7 @@ export class ChatbotComponent {
   conversationId: number | null = null;
   historyLoaded = false;
   guestLimitReached = false;
+  serviceOnline = true;
 
   // New UI state (kept separate per spec).
   isFullscreen = false;
@@ -430,6 +431,7 @@ export class ChatbotComponent {
           this.selectedConversation = response.conversation_id;
           this.sending = false;
           this.loading = false;
+          this.serviceOnline = true;
           if (typeof response.guest_remaining === "number") {
             this.guestLimitReached = response.guest_remaining <= 0;
             this.guestUsage = {
@@ -457,6 +459,9 @@ export class ChatbotComponent {
 
   private handleSendError(error: unknown): void {
     const status = (error as { status?: number })?.status ?? 0;
+    if (status === 0 || status >= 500) {
+      this.serviceOnline = false;
+    }
     const detail = (error as { error?: { detail?: unknown } })?.error?.detail;
     const detailText =
       typeof detail === "string" && detail.length < 500 ? detail : "";
@@ -540,6 +545,7 @@ export class ChatbotComponent {
     this.chatbot.getHistory().subscribe({
       next: (history) => {
         this.historyLoaded = true;
+        this.serviceOnline = true;
         this.conversationId = history.conversation_id;
         this.selectedConversation = history.conversation_id;
         this.rawHistory = history.messages || [];
@@ -803,6 +809,34 @@ export class ChatbotComponent {
       default:
         return "chatbot-badge--other";
     }
+  }
+
+  eligibilityClass(label: unknown): string {
+    const text = String(label || "").toLowerCase();
+    if (text.startsWith("eligible based")) {
+      return "chatbot-eligibility--eligible";
+    }
+    if (text.startsWith("possibly eligible")) {
+      return "chatbot-eligibility--possible";
+    }
+    if (text.startsWith("not eligible")) {
+      return "chatbot-eligibility--not-eligible";
+    }
+    return "chatbot-eligibility--unknown";
+  }
+
+  eligibilityIcon(label: unknown): string {
+    const text = String(label || "").toLowerCase();
+    if (text.startsWith("eligible based")) {
+      return "check_circle";
+    }
+    if (text.startsWith("possibly eligible")) {
+      return "help";
+    }
+    if (text.startsWith("not eligible")) {
+      return "cancel";
+    }
+    return "info";
   }
 
   private scrollToBottom(force = false): void {

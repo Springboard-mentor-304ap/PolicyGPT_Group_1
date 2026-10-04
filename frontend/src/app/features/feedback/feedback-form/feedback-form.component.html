@@ -312,7 +312,9 @@
 
       <!-- SUBMISSIONS LIST -->
       <div *ngIf="!loadingHistory() && !historyError() && filteredHistory().length > 0" class="submissions-list">
-        <article *ngFor="let item of filteredHistory()" class="submission-card">
+        <article *ngFor="let item of filteredHistory()" class="submission-card"
+          [attr.id]="'feedback-' + item.feedback_id"
+          [class.highlighted]="highlightedFeedbackId() === item.feedback_id">
           <!-- CARD HEADER -->
           <header class="submission-card-header">
             <div class="header-leading-tags">

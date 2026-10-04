@@ -407,13 +407,8 @@
          ========================================================= -->
       <div *ngIf="selectedNotification" class="full-width-detail-container">
 
-        <!-- BACK BUTTON BAR -->
-        <div class="detail-top-nav">
-          <button type="button" class="btn btn-outline back-btn" (click)="backToList()">
-            <span class="material-icons">arrow_back</span>
-            <span>Back to Notifications</span>
-          </button>
-
+        <!-- BACK BUTTON BAR (single bottom button; actions stay top-right) -->
+        <div class="detail-top-nav detail-top-nav--actions-only">
           <div class="detail-top-actions" (click)="$event.stopPropagation()">
             <button
               *ngIf="!selectedNotification.is_read"
@@ -483,7 +478,7 @@
             <!-- DYNAMIC ENTITY DETAILS BY NOTIFICATION TYPE (Section 23) -->
 
             <!-- 1. POLICY INFORMATION -->
-            <div *ngIf="selectedNotification.entity_type === 'POLICY' || selectedNotification.related_policy_id || selectedNotification.notification_type.includes('POLICY')" class="entity-info-card">
+            <div *ngIf="(selectedNotification.entity_type === 'POLICY' || selectedNotification.related_policy_id || selectedNotification.notification_type.includes('POLICY')) && hasPolicyDetails(selectedNotification)" class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-purple">description</span>
                 <h3>Policy Information</h3>
@@ -493,11 +488,11 @@
                   <span class="field-label">Policy Title:</span>
                   <strong class="field-value">{{ selectedNotification.entity_title }}</strong>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.related_policy_id || selectedNotification.entity_id">
+                <div class="entity-field" *ngIf="!isPublicRole && (selectedNotification.related_policy_id || selectedNotification.entity_id)">
                   <span class="field-label">Policy ID:</span>
                   <span class="field-value font-mono">#{{ selectedNotification.related_policy_id || selectedNotification.entity_id }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.entity_status">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.entity_status">
                   <span class="field-label">Current Status:</span>
                   <span class="status-pill status-{{ selectedNotification.entity_status.toLowerCase() }}">
                     {{ selectedNotification.entity_status }}
@@ -511,30 +506,38 @@
                   <span class="field-label">Department:</span>
                   <span class="field-value">{{ selectedNotification.entity_department }}</span>
                 </div>
+                <div class="entity-field" *ngIf="selectedNotification.entity_state">
+                  <span class="field-label">State:</span>
+                  <span class="field-value">{{ selectedNotification.entity_state }}</span>
+                </div>
+                <div class="entity-field" *ngIf="selectedNotification.entity_published_date">
+                  <span class="field-label">Published Date:</span>
+                  <span class="field-value">{{ selectedNotification.entity_published_date | date:'mediumDate' }}</span>
+                </div>
                 <div class="entity-field" *ngIf="selectedNotification.entity_category">
                   <span class="field-label">Category:</span>
                   <span class="field-value">{{ selectedNotification.entity_category }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.decision_by_name">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_by_name">
                   <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected By:' : 'Approved By:' }}</span>
                   <span class="field-value">{{ selectedNotification.decision_by_name }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.decision_date">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_date">
                   <span class="field-label">Decision Date:</span>
                   <span class="field-value">{{ selectedNotification.decision_date | date:'mediumDate' }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.submitted_by_name">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.submitted_by_name">
                   <span class="field-label">Submitted By:</span>
                   <span class="field-value">{{ selectedNotification.submitted_by_name }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.submitted_date">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.submitted_date">
                   <span class="field-label">Submitted Date:</span>
                   <span class="field-value">{{ selectedNotification.submitted_date | date:'mediumDate' }}</span>
                 </div>
               </div>
 
               <!-- Rejection / Archive / Delete Reason -->
-              <div *ngIf="selectedNotification.decision_reason" class="reason-alert-box">
+              <div *ngIf="!isPublicRole && selectedNotification.decision_reason" class="reason-alert-box">
                 <span class="material-icons">info</span>
                 <div>
                   <strong>Reason / Review Remarks:</strong>
@@ -557,7 +560,7 @@
             </div>
 
             <!-- 2. SCHEME INFORMATION -->
-            <div *ngIf="selectedNotification.entity_type === 'SCHEME' || selectedNotification.related_scheme_id || selectedNotification.notification_type.includes('SCHEME')" class="entity-info-card">
+            <div *ngIf="(selectedNotification.entity_type === 'SCHEME' || selectedNotification.related_scheme_id || selectedNotification.notification_type.includes('SCHEME')) && hasSchemeDetails(selectedNotification)" class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-blue">campaign</span>
                 <h3>Scheme Information</h3>
@@ -567,11 +570,11 @@
                   <span class="field-label">Scheme Name:</span>
                   <strong class="field-value">{{ selectedNotification.entity_title }}</strong>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.related_scheme_id || selectedNotification.entity_id">
+                <div class="entity-field" *ngIf="!isPublicRole && (selectedNotification.related_scheme_id || selectedNotification.entity_id)">
                   <span class="field-label">Scheme ID:</span>
                   <span class="field-value font-mono">#{{ selectedNotification.related_scheme_id || selectedNotification.entity_id }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.entity_status">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.entity_status">
                   <span class="field-label">Current Status:</span>
                   <span class="status-pill status-{{ selectedNotification.entity_status.toLowerCase() }}">
                     {{ selectedNotification.entity_status }}
@@ -585,6 +588,10 @@
                   <span class="field-label">Department:</span>
                   <span class="field-value">{{ selectedNotification.entity_department }}</span>
                 </div>
+                <div class="entity-field" *ngIf="selectedNotification.entity_state">
+                  <span class="field-label">State:</span>
+                  <span class="field-value">{{ selectedNotification.entity_state }}</span>
+                </div>
                 <div class="entity-field" *ngIf="selectedNotification.entity_category">
                   <span class="field-label">Category:</span>
                   <span class="field-value">{{ selectedNotification.entity_category }}</span>
@@ -597,18 +604,18 @@
                   <span class="field-label">Time Remaining:</span>
                   <span class="badge badge--deadline">{{ selectedNotification.days_remaining }} days remaining</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.decision_by_name">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_by_name">
                   <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected By:' : 'Approved By:' }}</span>
                   <span class="field-value">{{ selectedNotification.decision_by_name }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.decision_date">
+                <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_date">
                   <span class="field-label">Decision Date:</span>
                   <span class="field-value">{{ selectedNotification.decision_date | date:'mediumDate' }}</span>
                 </div>
               </div>
 
               <!-- Rejection Reason -->
-              <div *ngIf="selectedNotification.decision_reason" class="reason-alert-box">
+              <div *ngIf="!isPublicRole && selectedNotification.decision_reason" class="reason-alert-box">
                 <span class="material-icons">info</span>
                 <div>
                   <strong>Decision Reason / Notes:</strong>
@@ -658,20 +665,56 @@
               </div>
             </div>
 
-            <!-- 4. FEEDBACK & ISSUES (ADMIN ONLY) -->
+            <!-- 4. FEEDBACK & ISSUES -->
             <div *ngIf="selectedNotification.notification_type.includes('FEEDBACK') || selectedNotification.notification_type.includes('ISSUE')" class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-teal">feedback</span>
                 <h3>Feedback &amp; Grievance Submission</h3>
               </div>
-              <div class="entity-grid">
+              <div class="entity-grid" *ngIf="selectedNotification.feedback_message; else noFeedbackRef">
+                <div class="entity-field" *ngIf="selectedNotification.feedback_subject">
+                  <span class="field-label">Subject:</span>
+                  <strong class="field-value">{{ selectedNotification.feedback_subject }}</strong>
+                </div>
+                <div class="entity-field">
+                  <span class="field-label">Inquiry:</span>
+                  <span class="field-value">{{ selectedNotification.feedback_message }}</span>
+                </div>
+                <div class="entity-field" *ngIf="selectedNotification.feedback_status">
+                  <span class="field-label">Current Status:</span>
+                  <span class="field-value">{{ selectedNotification.feedback_status }}</span>
+                </div>
                 <div class="entity-field">
                   <span class="field-label">Source Channel:</span>
                   <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—' }}</span>
                 </div>
-                <div class="entity-field">
+                <div class="entity-field" *ngIf="selectedNotification.feedback_created_at">
+                  <span class="field-label">Received Date:</span>
+                  <span class="field-value">{{ selectedNotification.feedback_created_at | date:'medium' }}</span>
+                </div>
+                <div class="entity-field" *ngIf="!selectedNotification.feedback_created_at">
                   <span class="field-label">Received Date:</span>
                   <span class="field-value">{{ selectedNotification.created_at | date:'medium' }}</span>
+                </div>
+              </div>
+              <ng-template #noFeedbackRef>
+                <div class="entity-grid">
+                  <div class="entity-field">
+                    <span class="field-label">Source Channel:</span>
+                    <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—' }}</span>
+                  </div>
+                  <div class="entity-field">
+                    <span class="field-label">Received Date:</span>
+                    <span class="field-value">{{ selectedNotification.created_at | date:'medium' }}</span>
+                  </div>
+                </div>
+                <p class="text-muted text-xs" style="margin: 8px 0 0;">No linked feedback record available for this notification.</p>
+              </ng-template>
+              <div *ngIf="selectedNotification.feedback_response" class="reason-alert-box">
+                <span class="material-icons">verified</span>
+                <div>
+                  <strong>Official Response:</strong>
+                  <p>{{ selectedNotification.feedback_response }}</p>
                 </div>
               </div>
             </div>

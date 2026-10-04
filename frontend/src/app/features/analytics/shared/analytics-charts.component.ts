@@ -80,7 +80,7 @@ export interface BarItem {
               [attr.stroke]="s.color"
               stroke-width="2.5"
               class="chart-marker"
-              [style.animation-delay]="($index * 50) + 'ms'"
+              [style.animation-delay]="$index * 50 + 'ms'"
             />
           }
         }
@@ -133,7 +133,9 @@ export interface BarItem {
                   [style.border-color]="s.color"
                 ></span>
                 <span class="tooltip-label">{{ s.label }}:</span>
-                <strong class="tooltip-value">{{ s.values[hoverIndex] ?? 0 }}</strong>
+                <strong class="tooltip-value">{{
+                  s.values[hoverIndex] ?? 0
+                }}</strong>
               </div>
             }
           </div>
@@ -151,10 +153,7 @@ export interface BarItem {
           [attr.aria-pressed]="!hidden.has(s.key)"
           [attr.title]="'Toggle ' + s.label"
         >
-          <span
-            class="legend-circle"
-            [style.border-color]="s.color"
-          >
+          <span class="legend-circle" [style.border-color]="s.color">
             <span
               class="legend-circle-inner"
               [style.background]="s.color"
@@ -191,7 +190,11 @@ export interface BarItem {
       .grid-label {
         font-size: 11px;
         font-weight: 500;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         fill: #64748b;
       }
       .x-axis-label {
@@ -251,11 +254,17 @@ export interface BarItem {
         border-radius: 8px;
         padding: 8px 12px;
         font-size: 12px;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         pointer-events: none;
         white-space: nowrap;
         z-index: 10;
-        box-shadow: 0 10px 20px -3px rgba(15, 23, 42, 0.25), 0 4px 6px -2px rgba(15, 23, 42, 0.1);
+        box-shadow:
+          0 10px 20px -3px rgba(15, 23, 42, 0.25),
+          0 4px 6px -2px rgba(15, 23, 42, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
       .tooltip-period {
@@ -313,8 +322,14 @@ export interface BarItem {
         font-weight: 500;
         color: #475569;
         border-radius: 6px;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
-        transition: opacity 0.15s ease, background-color 0.15s ease;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        transition:
+          opacity 0.15s ease,
+          background-color 0.15s ease;
       }
       .legend-item:hover {
         background-color: #f8fafc;
@@ -376,7 +391,10 @@ export class AnalyticsLineChartComponent {
   }
 
   get isEmpty(): boolean {
-    return this.maxValue <= 1 && this.series.every((s) => s.values.every((v) => v === 0));
+    return (
+      this.maxValue <= 1 &&
+      this.series.every((s) => s.values.every((v) => v === 0))
+    );
   }
 
   get gridlines(): { y: number; value: number }[] {
@@ -515,8 +533,20 @@ export class AnalyticsLineChartComponent {
   template: `
     <div class="donut-layout">
       <div class="donut-wrap">
-        <svg viewBox="0 0 160 160" class="donut-svg" role="img" aria-label="Activity by type chart">
-          <circle cx="80" cy="80" r="62" fill="none" stroke="#eef2f7" stroke-width="26" />
+        <svg
+          viewBox="0 0 160 160"
+          class="donut-svg"
+          role="img"
+          aria-label="Activity by type chart"
+        >
+          <circle
+            cx="80"
+            cy="80"
+            r="62"
+            fill="none"
+            stroke="#eef2f7"
+            stroke-width="26"
+          />
           @for (arc of arcs; track arc.label) {
             <circle
               cx="80"
@@ -527,7 +557,9 @@ export class AnalyticsLineChartComponent {
               stroke-width="26"
               [attr.stroke-dasharray]="arc.dash"
               [attr.stroke-dashoffset]="arc.offset"
-              [attr.opacity]="activeLabel === null || activeLabel === arc.label ? 1 : 0.35"
+              [attr.opacity]="
+                activeLabel === null || activeLabel === arc.label ? 1 : 0.35
+              "
               (mouseenter)="activeLabel = arc.label"
               (mouseleave)="activeLabel = null"
               (focus)="activeLabel = arc.label"
@@ -555,7 +587,9 @@ export class AnalyticsLineChartComponent {
           >
             <span class="legend-dot" [style.background]="arc.color"></span>
             <span class="donut-legend-label">{{ arc.label }}</span>
-            <span class="donut-legend-value">{{ arc.count }} · {{ arc.pct }}%</span>
+            <span class="donut-legend-value"
+              >{{ arc.count }} · {{ arc.pct }}%</span
+            >
           </li>
         }
       </ul>
@@ -591,10 +625,11 @@ export class AnalyticsLineChartComponent {
         }
       }
       .donut-segment {
-        transition: stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                    stroke-dasharray 0.6s ease,
-                    stroke-width 0.2s ease,
-                    opacity 0.2s ease;
+        transition:
+          stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+          stroke-dasharray 0.6s ease,
+          stroke-width 0.2s ease,
+          opacity 0.2s ease;
       }
       @media (prefers-reduced-motion: reduce) {
         .donut-svg {
@@ -625,14 +660,22 @@ export class AnalyticsLineChartComponent {
         color: #111827;
         line-height: 1.1;
         letter-spacing: -0.01em;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
       }
       .donut-center span {
         font-size: 12px;
         color: #64748b;
         font-weight: 400;
         margin-top: 3px;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
       }
       .donut-legend {
         list-style: none;
@@ -690,7 +733,15 @@ export class AnalyticsDonutChartComponent {
     return this.slices.reduce((sum, s) => sum + s.count, 0);
   }
 
-  get arcs(): { label: string; count: number; color: string; pct: number; dash: string; offset: number; description?: string }[] {
+  get arcs(): {
+    label: string;
+    count: number;
+    color: string;
+    pct: number;
+    dash: string;
+    offset: number;
+    description?: string;
+  }[] {
     const circumference = 2 * Math.PI * 62;
     let cursor = 0;
     const total = this.total || 1;
@@ -870,7 +921,11 @@ export interface GroupedBarSeries {
       .grid-label {
         font-size: 11px;
         font-weight: 500;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         fill: #64748b;
       }
       .x-labels {
@@ -878,7 +933,11 @@ export interface GroupedBarSeries {
         justify-content: space-between;
         font-size: 11px;
         font-weight: 500;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         color: #64748b;
         margin-top: 6px;
         overflow: hidden;
@@ -891,11 +950,17 @@ export interface GroupedBarSeries {
         border-radius: 8px;
         padding: 8px 12px;
         font-size: 12px;
-        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
         pointer-events: none;
         white-space: nowrap;
         z-index: 5;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        box-shadow:
+          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
       .chart-tooltip strong {
@@ -1077,18 +1142,28 @@ export class AnalyticsGroupedBarChartComponent {
         <div
           class="hbar-row"
           role="listitem"
-          [attr.title]="item.label + ': ' + formatValue(item.value) + (suffix ? ' ' + suffix : '')"
+          [attr.title]="
+            item.label +
+            ': ' +
+            formatValue(item.value) +
+            (suffix ? ' ' + suffix : '')
+          "
           tabindex="0"
           [attr.aria-label]="item.label + ': ' + formatValue(item.value)"
         >
-          <span class="hbar-label" [attr.title]="item.label">{{ item.label }}</span>
+          <span class="hbar-label" [attr.title]="item.label">{{
+            item.label
+          }}</span>
           <div class="hbar-bar-area">
             <div
               class="hbar-bar"
               [style.width.%]="widthFor(item.value)"
               [style.background-color]="color || '#3b82f6'"
             ></div>
-            <span class="hbar-value">{{ formatValue(item.value) }}{{ suffix ? " " + suffix : "" }}</span>
+            <span class="hbar-value"
+              >{{ formatValue(item.value)
+              }}{{ suffix ? " " + suffix : "" }}</span
+            >
           </div>
         </div>
       }
@@ -1155,7 +1230,9 @@ export class AnalyticsGroupedBarChartComponent {
         border-radius: 0 4px 4px 0;
         min-width: 3px;
         flex-shrink: 0;
-        transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+        transition:
+          width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+          filter 0.2s ease;
         animation: hbarExpand 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       @keyframes hbarExpand {

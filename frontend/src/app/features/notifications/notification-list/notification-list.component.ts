@@ -831,31 +831,98 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   }
 
   navigateToResource(item: NotificationItem): void {
+    const prefix = this.getRolePrefix();
+    const policyId = item.related_policy_id ||
+      (item.entity_type === "POLICY" ? item.entity_id : null);
+    if (policyId) {
+      // Role-scoped detail route with the real policy ID. The backend
+      // detail endpoint enforces visibility (404 for restricted records).
+      this.router.navigate([`/dashboard/${prefix}/policies`, policyId]);
+      return;
+    }
+    const schemeId = item.related_scheme_id ||
+      (item.entity_type === "SCHEME" ? item.entity_id : null);
+    if (schemeId) {
+      this.router.navigate([`/dashboard/${prefix}/schemes`, schemeId]);
+      return;
+    }
+    const feedbackId = this.feedbackId(item);
+    if (feedbackId !== null) {
+      // Existing feedback surface with a deep link to the actual record.
+      // The backend detail endpoint enforces ownership (404 otherwise).
+      this.router.navigate([`/dashboard/${prefix}/feedback`], {
+        queryParams: { id: feedbackId },
+      });
+      return;
+    }
+    if (
+      item.notification_type.includes("FEEDBACK") ||
+      item.notification_type.includes("ISSUE")
+    ) {
+      this.toastService.warning(
+        "No linked record",
+        "This notification has no linked feedback record to open.",
+      );
+      return;
+    }
     if (item.action_url) {
       this.router.navigateByUrl(item.action_url);
       return;
     }
 
-    const prefix = this.getRolePrefix();
-    if (
-      item.related_policy_id ||
-      (item.entity_type === "POLICY" && item.entity_id)
-    ) {
-      const pid = item.related_policy_id || item.entity_id;
-      this.router.navigate([`/dashboard/${prefix}/policies`, pid]);
-    } else if (
-      item.related_scheme_id ||
-      (item.entity_type === "SCHEME" && item.entity_id)
-    ) {
-      const sid = item.related_scheme_id || item.entity_id;
-      this.router.navigate([`/dashboard/${prefix}/schemes`, sid]);
-    } else if (item.entity_type === "USER") {
+    if (item.entity_type === "USER") {
       this.router.navigate(["/dashboard/admin/users"]);
     } else if (item.notification_type.includes("DELIVERY")) {
       this.selectTab("deliveries");
     } else {
       this.router.navigate([`/dashboard/${prefix}`]);
     }
+  }
+
+  /** True for roles restricted to approved, public-facing records. */
+  get isPublicRole(): boolean {
+    const role = (this.userRole || "").toUpperCase().trim();
+    return (
+      role === "CITIZEN" ||
+      role === "RESEARCHER" ||
+      role === "ORGANIZATION" ||
+      role === "GUEST" ||
+      role === ""
+    );
+  }
+
+  /** Valid feedback reference from the notification's stable entity ref. */
+  feedbackId(item: NotificationItem): number | null {
+    if (item.entity_type !== "FEEDBACK") {
+      return null;
+    }
+    const raw = item.entity_id;
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+  }
+
+  /** Whether the policy card has any displayable content for this role. */
+  hasPolicyDetails(item: NotificationItem): boolean {
+    if (this.isPublicRole) {
+      // Withheld (non-approved) entities carry no public fields at all.
+      return !!item.entity_title;
+    }
+    return !!(
+      item.entity_title ||
+      item.related_policy_id ||
+      item.entity_id
+    );
+  }
+
+  /** Whether the scheme card has any displayable content for this role. */
+  hasSchemeDetails(item: NotificationItem): boolean {
+    if (this.isPublicRole) {
+      return !!item.entity_title;
+    }
+    return !!(
+      item.entity_title ||
+      item.related_scheme_id ||
+      item.entity_id
+    );
   }
 
   getActionLabel(item: NotificationItem): string {

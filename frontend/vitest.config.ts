@@ -57,6 +57,8 @@ export default defineConfig({
   plugins: [inlineAngularResources()],
   test: {
     environment: 'jsdom',
+    // Legacy specs use describe/it/expect/vi without importing 'vitest'.
+    globals: true,
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.spec.ts'],
   },

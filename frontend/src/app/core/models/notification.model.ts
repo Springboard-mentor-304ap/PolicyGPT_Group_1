@@ -117,6 +117,8 @@ export interface NotificationItem {
   entity_category?: string | null;
   entity_description?: string | null;
   entity_benefits?: string[] | null;
+  entity_state?: string | null;
+  entity_published_date?: string | null;
   decision_by_name?: string | null;
   decision_date?: string | null;
   decision_reason?: string | null;
@@ -126,6 +128,11 @@ export interface NotificationItem {
   days_remaining?: number | null;
   application_url?: string | null;
   request_type?: string | null;
+  feedback_status?: string | null;
+  feedback_subject?: string | null;
+  feedback_message?: string | null;
+  feedback_response?: string | null;
+  feedback_created_at?: string | null;
 }
 
 export interface AdminNotificationStats {

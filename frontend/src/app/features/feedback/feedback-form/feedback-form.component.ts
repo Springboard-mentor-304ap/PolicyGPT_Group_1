@@ -1,7 +1,7 @@
 import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Feedback, FeedbackCreate, FeedbackType } from '../../../core/models/feedback.model';
 import { FeedbackService } from '../../../core/services/feedback.service';
 import { Auth, AuthUser } from '../../../core/services/auth';
@@ -40,6 +40,10 @@ export class FeedbackFormComponent implements OnInit {
   historyError = signal<string | null>(null);
   historySearch = signal<string>('');
   historyStatusFilter = signal<string>('ALL');
+
+  // Deep link to one record (e.g. from a notification's Review Feedback).
+  highlightedFeedbackId = signal<number | null>(null);
+  private linkNotified = false;
 
   // Predefined Feedback Types with friendly metadata
   feedbackTypes: { value: FeedbackType; label: string; icon: string; description: string }[] = [
@@ -105,6 +109,7 @@ export class FeedbackFormComponent implements OnInit {
     private readonly authService: Auth,
     private readonly toastService: ToastService,
     private readonly router: Router,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
@@ -119,6 +124,24 @@ export class FeedbackFormComponent implements OnInit {
       return;
     }
 
+    // Deep link (?id=) from notifications: open the actual record.
+    this.route.queryParams.subscribe((params) => {
+      const linked = Number(params?.['id']);
+      if (Number.isFinite(linked) && linked > 0) {
+        this.applyFeedbackLink(linked);
+      }
+    });
+
+    this.loadHistory();
+  }
+
+  /** Jump to one feedback record: history tab, filters cleared, highlight. */
+  private applyFeedbackLink(feedbackId: number): void {
+    this.linkNotified = false;
+    this.highlightedFeedbackId.set(feedbackId);
+    this.historySearch.set('');
+    this.historyStatusFilter.set('ALL');
+    this.activeTab.set('history');
     this.loadHistory();
   }
 
@@ -188,6 +211,7 @@ export class FeedbackFormComponent implements OnInit {
       next: (data) => {
         this.userFeedbacks.set(data || []);
         this.loadingHistory.set(false);
+        this.revealLinkedFeedback();
       },
       error: (err) => {
         console.error('Error loading feedback history:', err);
@@ -195,6 +219,26 @@ export class FeedbackFormComponent implements OnInit {
         this.loadingHistory.set(false);
       },
     });
+  }
+
+  /** Scroll to a deep-linked record after the list renders, or explain. */
+  private revealLinkedFeedback(): void {
+    const id = this.highlightedFeedbackId();
+    if (id === null || typeof window === 'undefined') {
+      return;
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`feedback-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (!this.linkNotified) {
+        this.linkNotified = true;
+        this.toastService.warning(
+          'Not Found',
+          'The linked feedback record was not found.',
+        );
+      }
+    }, 80);
   }
 
   getStatusClass(status: string): string {

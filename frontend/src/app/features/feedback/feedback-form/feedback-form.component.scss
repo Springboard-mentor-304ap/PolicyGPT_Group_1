@@ -660,6 +660,12 @@ $warning-soft: #fef3c7;
   flex-direction: column;
   gap: 14px;
   transition: all 0.2s ease;
+  scroll-margin-top: 90px;
+
+  &.highlighted {
+    border-color: #1461a0;
+    box-shadow: 0 0 0 2px rgba(20, 97, 160, 0.25);
+  }
 
   &:hover {
     border-color: #b9cce0;

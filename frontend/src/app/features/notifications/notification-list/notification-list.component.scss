@@ -824,6 +824,10 @@ $danger-light: #fee2e2;
   gap: 12px;
   margin-bottom: 4px;
 
+  &.detail-top-nav--actions-only {
+    justify-content: flex-end;
+  }
+
   .back-btn {
     display: inline-flex;
     align-items: center;

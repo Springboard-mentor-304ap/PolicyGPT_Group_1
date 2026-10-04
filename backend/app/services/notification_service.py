@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.policy import Policy
 from app.models.scheme import Scheme
+from app.models.feedback import Feedback
 from app.models.notification import Notification
 from app.models.notification_delivery import NotificationDelivery
 from app.schemas.notification import NotificationCreate
@@ -207,12 +208,17 @@ def build_enrichment_prefetch(db: Session, notifs) -> dict[str, dict]:
 
 
 def enrich_notification(
-    db: Session, notif: Notification, prefetch: dict | None = None
+    db: Session,
+    notif: Notification,
+    prefetch: dict | None = None,
+    user_role: str = "CITIZEN",
+    user_id: int | None = None,
 ) -> dict[str, Any]:
     (
         "Enrich notification model with dynamic entity details from "
         "Policy, Scheme, User, etc."
     )
+    norm_role = normalize_role(user_role)
     data = {
         "notification_id": notif.notification_id,
         "user_id": notif.user_id,
@@ -242,6 +248,8 @@ def enrich_notification(
         "entity_category": None,
         "entity_description": None,
         "entity_benefits": None,
+        "entity_state": None,
+        "entity_published_date": None,
         "decision_by_name": None,
         "decision_date": None,
         "decision_reason": None,
@@ -251,9 +259,15 @@ def enrich_notification(
         "days_remaining": None,
         "application_url": None,
         "request_type": None,
+        "feedback_status": None,
+        "feedback_subject": None,
+        "feedback_message": None,
+        "feedback_response": None,
+        "feedback_created_at": None,
     }
 
-    # Policy Entity Lookup
+    # Policy Entity Lookup (role-gated: public roles see APPROVED only,
+    # officials see APPROVED plus their own submissions).
     policy_id = notif.related_policy_id or (
         notif.entity_id if notif.entity_type == "POLICY" else None
     )
@@ -266,52 +280,55 @@ def enrich_notification(
             .filter(Policy.policy_id == policy_id)
             .first(),
         )
-        if policy:
+        if policy and _entity_visible(policy, norm_role, user_id):
             data["entity_title"] = policy.title
-            data["entity_status"] = policy.status
             data["entity_ministry"] = policy.ministry
             data["entity_department"] = policy.department
             data["entity_category"] = policy.category
             data["entity_description"] = policy.description
             data["entity_benefits"] = policy.benefits or []
+            data["entity_state"] = policy.state
+            if policy.publication_date:
+                data["entity_published_date"] = policy.publication_date.isoformat()
             if not data["action_url"]:
                 data["action_url"] = f"/policies/{policy.policy_id}"
-
-            data["decision_reason"] = (
-                policy.rejection_reason
-                or policy.delete_reason
-                or policy.archive_reason
-            )
-
-            if policy.approved_by:
-                approver = _prefetched_lookup(
-                    prefetch,
-                    "users",
-                    policy.approved_by,
-                    lambda: db.query(User)
-                    .filter(User.user_id == policy.approved_by)
-                    .first(),
+            if not _is_public_role(norm_role):
+                data["entity_status"] = policy.status
+                data["decision_reason"] = (
+                    policy.rejection_reason
+                    or policy.delete_reason
+                    or policy.archive_reason
                 )
-                if approver:
-                    data["decision_by_name"] = (
-                        approver.full_name or approver.email
-                    )
-                    data["decision_date"] = policy.updated_at
 
-            if policy.created_by:
-                creator = _prefetched_lookup(
-                    prefetch,
-                    "users",
-                    policy.created_by,
-                    lambda: db.query(User)
-                    .filter(User.user_id == policy.created_by)
-                    .first(),
-                )
-                if creator:
-                    data["submitted_by_name"] = (
-                        creator.full_name or creator.email
+                if policy.approved_by:
+                    approver = _prefetched_lookup(
+                        prefetch,
+                        "users",
+                        policy.approved_by,
+                        lambda: db.query(User)
+                        .filter(User.user_id == policy.approved_by)
+                        .first(),
                     )
-                    data["submitted_date"] = policy.created_at
+                    if approver:
+                        data["decision_by_name"] = (
+                            approver.full_name or approver.email
+                        )
+                        data["decision_date"] = policy.updated_at
+
+                if policy.created_by:
+                    creator = _prefetched_lookup(
+                        prefetch,
+                        "users",
+                        policy.created_by,
+                        lambda: db.query(User)
+                        .filter(User.user_id == policy.created_by)
+                        .first(),
+                    )
+                    if creator:
+                        data["submitted_by_name"] = (
+                            creator.full_name or creator.email
+                        )
+                        data["submitted_date"] = policy.created_at
 
     # Scheme Entity Lookup
     scheme_id = notif.related_scheme_id or (
@@ -326,23 +343,25 @@ def enrich_notification(
             .filter(Scheme.scheme_id == scheme_id)
             .first(),
         )
-        if scheme:
+        if scheme and _entity_visible(scheme, norm_role, user_id):
             data["entity_title"] = scheme.name
-            data["entity_status"] = scheme.status
             data["entity_ministry"] = scheme.ministry
             data["entity_department"] = scheme.department
             data["entity_category"] = scheme.category
             data["entity_description"] = scheme.description
             data["entity_benefits"] = scheme.benefits or []
+            data["entity_state"] = scheme.state
             data["application_url"] = scheme.application_url
             if not data["action_url"]:
                 data["action_url"] = f"/schemes/{scheme.scheme_id}"
 
-            data["decision_reason"] = (
-                scheme.rejection_reason
-                or scheme.delete_reason
-                or scheme.archive_reason
-            )
+            if not _is_public_role(norm_role):
+                data["entity_status"] = scheme.status
+                data["decision_reason"] = (
+                    scheme.rejection_reason
+                    or scheme.delete_reason
+                    or scheme.archive_reason
+                )
 
             if scheme.application_end_date:
                 data["deadline_date"] = scheme.application_end_date.strftime(
@@ -354,7 +373,7 @@ def enrich_notification(
                 ).days
                 data["days_remaining"] = max(0, remaining)
 
-            if scheme.approved_by:
+            if not _is_public_role(norm_role) and scheme.approved_by:
                 approver = _prefetched_lookup(
                     prefetch,
                     "users",
@@ -369,7 +388,7 @@ def enrich_notification(
                     )
                     data["decision_date"] = scheme.updated_at
 
-            if scheme.created_by:
+            if not _is_public_role(norm_role) and scheme.created_by:
                 creator = _prefetched_lookup(
                     prefetch,
                     "users",
@@ -384,8 +403,13 @@ def enrich_notification(
                     )
                     data["submitted_date"] = scheme.created_at
 
-    # User Entity Lookup
-    if notif.entity_type == "USER" and notif.entity_id:
+    # User Entity Lookup (staff-only: never expose user records to
+    # public roles through enrichment).
+    if (
+        notif.entity_type == "USER"
+        and notif.entity_id
+        and not _is_public_role(norm_role)
+    ):
         target_user = _prefetched_lookup(
             prefetch,
             "users",
@@ -410,7 +434,7 @@ def enrich_notification(
     elif "APPROVAL" in nt or "SUBMITTED" in nt or "PENDING" in nt:
         data["request_type"] = "APPROVAL_REQUEST"
 
-    # Deadline Info if attached to related scheme
+    # Deadline Info if attached to a visible related scheme.
     if "DEADLINE" in nt and not data.get("deadline_date"):
         if notif.related_scheme_id:
             s_lookup = _prefetched_lookup(
@@ -421,7 +445,11 @@ def enrich_notification(
                 .filter(Scheme.scheme_id == notif.related_scheme_id)
                 .first(),
             )
-            if s_lookup and s_lookup.application_end_date:
+            if (
+                s_lookup
+                and s_lookup.application_end_date
+                and _entity_visible(s_lookup, norm_role, user_id)
+            ):
                 data["deadline_date"] = s_lookup.application_end_date.strftime(
                     "%d %B %Y"
                 )
@@ -431,7 +459,52 @@ def enrich_notification(
                 ).days
                 data["days_remaining"] = max(0, remaining)
 
+    # Feedback Entity Lookup (owner or admin only, mirroring the
+    # feedback detail endpoint's ownership rule).
+    if notif.entity_type == "FEEDBACK" and notif.entity_id:
+        feedback = (
+            db.query(Feedback)
+            .filter(Feedback.feedback_id == notif.entity_id)
+            .first()
+        )
+        if feedback and (
+            norm_role == "ADMIN" or feedback.user_id == user_id
+        ):
+            data["feedback_status"] = feedback.status
+            data["feedback_subject"] = feedback.subject
+            data["feedback_message"] = feedback.message
+            data["feedback_response"] = feedback.admin_response
+            data["feedback_created_at"] = feedback.created_at
+
     return data
+
+
+_PUBLIC_VISIBILITY_ROLES = frozenset(
+    {"CITIZEN", "RESEARCHER", "ORGANIZATION", "GUEST", "GUEST_USER"}
+)
+
+
+def _is_public_role(norm_role: str) -> bool:
+    """True for roles restricted to approved, public-facing records."""
+    return (norm_role or "").upper() in _PUBLIC_VISIBILITY_ROLES
+
+
+def _entity_visible(entity, norm_role: str, user_id: int | None) -> bool:
+    """Mirror the policy/scheme detail-route visibility rules.
+
+    Public roles see APPROVED records only. Government officials see
+    APPROVED records plus their own submissions. Admins see everything.
+    Unknown roles default to the public restriction (fail closed).
+    """
+    status = str(getattr(entity, "status", "") or "").upper()
+    if norm_role == "ADMIN":
+        return True
+    if norm_role == "GOVERNMENT_OFFICIAL":
+        return status == "APPROVED" or (
+            user_id is not None
+            and getattr(entity, "created_by", None) == user_id
+        )
+    return status == "APPROVED"
 
 
 def create_notification(
@@ -969,10 +1042,11 @@ def get_user_notifications(
 
     # Enrich each notification with dynamic backend data.
     # Entity rows are prefetched once (~4 queries) instead of up to 4
-    # sequential lookups per row.
+    # sequential lookups per row. Role scoping matches the detail route.
     prefetch = build_enrichment_prefetch(db, raw_items)
     enriched_items = [
-        enrich_notification(db, item, prefetch) for item in raw_items
+        enrich_notification(db, item, prefetch, norm_role, user_id)
+        for item in raw_items
     ]
 
     summary = get_notification_summary(db, user_id, user_role)
@@ -1023,7 +1097,7 @@ def get_notification_by_id(
     notif = _get_notification_record(db, notification_id, user_id, user_role)
     if not notif:
         return None
-    return enrich_notification(db, notif)
+    return enrich_notification(db, notif, None, user_role, user_id)
 
 
 def mark_notification_read(
@@ -1043,7 +1117,7 @@ def mark_notification_read(
     notification.updated_at = _now()
     db.commit()
     db.refresh(notification)
-    return enrich_notification(db, notification)
+    return enrich_notification(db, notification, None, user_role, user_id)
 
 
 def mark_notification_unread(
@@ -1063,7 +1137,7 @@ def mark_notification_unread(
     notification.updated_at = _now()
     db.commit()
     db.refresh(notification)
-    return enrich_notification(db, notification)
+    return enrich_notification(db, notification, None, user_role, user_id)
 
 
 def mark_all_notifications_read(

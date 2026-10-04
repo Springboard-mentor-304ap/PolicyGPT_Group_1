@@ -158,6 +158,8 @@ class NotificationResponse(BaseModel):
     entity_category: str | None = None
     entity_description: str | None = None
     entity_benefits: list[str] | None = None
+    entity_state: str | None = None
+    entity_published_date: str | None = None
     decision_by_name: str | None = None
     decision_date: datetime | None = None
     decision_reason: str | None = None
@@ -167,6 +169,11 @@ class NotificationResponse(BaseModel):
     days_remaining: int | None = None
     application_url: str | None = None
     request_type: str | None = None
+    feedback_status: str | None = None
+    feedback_subject: str | None = None
+    feedback_message: str | None = None
+    feedback_response: str | None = None
+    feedback_created_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -109,4 +109,13 @@ describe('FeedbackFormComponent', () => {
     expect(component.userFeedbacks().length).toBe(2);
     expect(component.activeTab()).toBe('history');
   });
+
+  it('should deep-link to a feedback record from a notification', () => {
+    component.historySearch.set('unrelated query');
+    (component as unknown as { applyFeedbackLink: (id: number) => void }).applyFeedbackLink(1);
+    expect(component.activeTab()).toBe('history');
+    expect(component.highlightedFeedbackId()).toBe(1);
+    expect(component.historySearch()).toBe('');
+    expect(component.historyStatusFilter()).toBe('ALL');
+  });
 });

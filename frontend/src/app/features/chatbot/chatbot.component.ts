@@ -8,6 +8,7 @@ import { ChatbotService } from "../../core/services/chatbot.service";
 import { ToastService } from "../../core/services/toast.service";
 import {
   ChatAction,
+  ChatConversation,
   ChatHistoryMessage,
   ChatResponseData,
   ChatResultItem,
@@ -107,9 +108,9 @@ const QUICK_ACTION_DESCRIPTIONS: Record<string, string> = {
   "Policy analysis": "Trends & analysis",
 };
 
-export interface HistoryGroup {
+export interface ConversationGroup {
   label: string;
-  items: ChatHistoryMessage[];
+  items: ChatConversation[];
 }
 
 @Component({
@@ -137,7 +138,6 @@ export class ChatbotComponent {
   messages: ChatUiMessage[] = [];
   draft = "";
   conversationId: number | null = null;
-  historyLoaded = false;
   guestLimitReached = false;
   serviceOnline = true;
 
@@ -146,12 +146,32 @@ export class ChatbotComponent {
   isHistoryOpen = false;
   showDeleteConfirm = false;
   deletingHistory = false;
-  rawHistory: ChatHistoryMessage[] = [];
   selectedConversation: number | null = null;
   guestUsage: { message_count: number; guest_remaining: number | null } | null = null;
 
+  // Conversation state: the active view (`messages`) renders exactly one
+  // conversation; every conversation keeps its own cached turns so
+  // switching never mixes chats and stale replies land in their origin.
+  conversations: ChatConversation[] = [];
+  historyLoading = false;
+  historyError: string | null = null;
+  loadingConversation = false;
+  conversationError: string | null = null;
+  pendingDeleteId: number | null = null;
+  deletingConversation = false;
+  menuOpenId: number | null = null;
+
   private messageSeq = 0;
   private stickToBottom = true;
+  private messagesByConversation = new Map<number, ChatUiMessage[]>();
+  private loadedConversations = new Set<number>();
+  private pendingNewChat = true;
+  private creatingNew = false;
+  private sendingFor = new Set<number>();
+  // Monotonic guards against stale async work (superseded restores /
+  // abandoned creations) after New Chat or conversation switches.
+  private chatEpoch = 0;
+  private loadToken = 0;
 
   // =========================================================
   // STATE ALIASES (spec §29 names, synced with legacy fields)
@@ -167,6 +187,31 @@ export class ChatbotComponent {
 
   get activeConversation(): number | null {
     return this.conversationId;
+  }
+
+  /** Active conversation id (per-conversation state model). */
+  get activeConversationId(): number | null {
+    return this.conversationId;
+  }
+
+  /** True while the active view is an unsent, server-detached new chat. */
+  get isNewChat(): boolean {
+    return this.pendingNewChat;
+  }
+
+  /** True while the conversation list is being fetched. */
+  get isLoadingHistory(): boolean {
+    return this.historyLoading;
+  }
+
+  /** True while the active conversation has a message in flight. */
+  get isSendingMessage(): boolean {
+    return this.sending;
+  }
+
+  /** True while a selected conversation's messages are being restored. */
+  get isLoadingConversation(): boolean {
+    return this.loadingConversation;
   }
 
   // =========================================================
@@ -256,11 +301,11 @@ export class ChatbotComponent {
   openPanel(): void {
     this.open = true;
     this.minimized = false;
+    // Never auto-attach to a previous conversation: a fresh view always
+    // starts as an isolated pending new chat (welcome message only).
     if (this.messages.length === 0) {
+      this.pendingNewChat = this.conversationId === null;
       this.pushAssistant(this.greeting);
-    }
-    if (!this.historyLoaded) {
-      this.loadHistory();
     }
     this.stickToBottom = true;
     setTimeout(() => {
@@ -289,14 +334,14 @@ export class ChatbotComponent {
 
   openHistory(): void {
     this.isHistoryOpen = true;
-    if (!this.historyLoaded) {
-      this.loadHistory();
-    }
+    this.loadConversations();
   }
 
   closeHistory(): void {
     this.isHistoryOpen = false;
     this.showDeleteConfirm = false;
+    this.menuOpenId = null;
+    this.pendingDeleteId = null;
   }
 
   toggleHistory(): void {
@@ -310,6 +355,14 @@ export class ChatbotComponent {
   @HostListener("document:keydown", ["$event"])
   onDocumentKeydown(event: KeyboardEvent): void {
     if (event.key !== "Escape") {
+      return;
+    }
+    if (this.menuOpenId !== null) {
+      this.closeMenu();
+      return;
+    }
+    if (this.pendingDeleteId !== null) {
+      this.cancelDeleteConversation();
       return;
     }
     if (this.showDeleteConfirm) {
@@ -331,19 +384,31 @@ export class ChatbotComponent {
   }
 
   // =========================================================
-  // NEW CHAT (non-destructive) + DELETE (with confirmation)
+  // NEW CHAT (isolated, non-destructive) + DELETE
   // =========================================================
 
-  /** Start a fresh view without deleting stored conversations. */
+  /**
+   * Start a completely independent conversation. Only the local view is
+   * reset (welcome message); nothing is deleted server-side, and the new
+   * server conversation id is minted on first send, so no message can
+   * ever attach to the previously active chat.
+   */
   startNewChat(): void {
-    this.messages = [];
+    this.chatEpoch++;
+    this.pendingNewChat = true;
     this.conversationId = null;
     this.selectedConversation = null;
     this.guestLimitReached = false;
     this.isHistoryOpen = false;
     this.showDeleteConfirm = false;
+    this.conversationError = null;
+    this.loadingConversation = false;
+    this.menuOpenId = null;
+    this.pendingDeleteId = null;
+    this.messages = [];
     this.stickToBottom = true;
     this.pushAssistant(this.greeting);
+    this.syncSendFlags();
     this.scrollToBottom(true);
     setTimeout(() => this.composer?.nativeElement.focus(), 60);
   }
@@ -351,6 +416,83 @@ export class ChatbotComponent {
   /** Legacy destructive clear — kept; delegates to confirmed delete. */
   clearConversation(): void {
     this.startNewChat();
+  }
+
+  /** Adopt a freshly minted server conversation for the pending new chat. */
+  private adoptConversation(conversationId: number): void {
+    this.conversationId = conversationId;
+    this.selectedConversation = conversationId;
+    this.pendingNewChat = false;
+    this.messagesByConversation.set(conversationId, []);
+    this.loadedConversations.add(conversationId);
+    // Reset the view to a clean welcome; the first user message follows
+    // through the normal send path and is cached with its reply.
+    this.messages = [];
+    this.pushAssistant(this.greeting);
+    const now = new Date().toISOString();
+    this.conversations = [
+      {
+        conversation_id: conversationId,
+        role: this.userRole,
+        message_count: 0,
+        title: null,
+        preview: null,
+        created_at: now,
+        updated_at: now,
+      },
+      ...this.conversations.filter(
+        (c) => c.conversation_id !== conversationId,
+      ),
+    ];
+  }
+
+  /** Render exactly the active conversation's cached messages. */
+  private renderActive(): void {
+    if (this.conversationId === null) {
+      return;
+    }
+    this.messages = [...(this.messagesByConversation.get(this.conversationId) ?? [])];
+  }
+
+  /** Append a turn to its originating conversation's cache (and the view
+   * when that conversation is active). */
+  private appendToConversation(convId: number, msg: ChatUiMessage): void {
+    const list = this.messagesByConversation.get(convId) ?? [];
+    list.push(msg);
+    this.messagesByConversation.set(convId, list);
+    if (convId === this.conversationId) {
+      this.messages = [...list];
+    }
+  }
+
+  /** Keep the header/typing indicators truthful per active conversation. */
+  private syncSendFlags(): void {
+    const active = this.conversationId;
+    this.sending =
+      this.creatingNew ||
+      (active !== null && this.sendingFor.has(active));
+    this.loading = this.sending;
+  }
+
+  /** Refresh the history-list entry from the local cache (no refetch). */
+  private touchConversationEntry(convId: number): void {
+    const cached = this.messagesByConversation.get(convId) ?? [];
+    const firstUser = cached.find((m) => m.sender === "user");
+    const last = cached[cached.length - 1];
+    const now = new Date().toISOString();
+    const entry: ChatConversation = {
+      conversation_id: convId,
+      role: this.userRole,
+      message_count: cached.length,
+      title: firstUser ? firstUser.text.slice(0, 80) : null,
+      preview: last ? last.text.slice(0, 160) : null,
+      created_at: now,
+      updated_at: now,
+    };
+    this.conversations = [
+      entry,
+      ...this.conversations.filter((c) => c.conversation_id !== convId),
+    ];
   }
 
   requestDeleteHistory(): void {
@@ -371,14 +513,11 @@ export class ChatbotComponent {
         this.deletingHistory = false;
         this.showDeleteConfirm = false;
         this.isHistoryOpen = false;
-        this.messages = [];
-        this.rawHistory = [];
-        this.conversationId = null;
-        this.selectedConversation = null;
-        this.historyLoaded = true;
-        this.guestLimitReached = false;
-        this.pushAssistant(this.greeting);
-        this.scrollToBottom(true);
+        this.conversations = [];
+        this.messagesByConversation.clear();
+        this.loadedConversations.clear();
+        this.pendingDeleteId = null;
+        this.startNewChat();
       },
       error: () => {
         this.deletingHistory = false;
@@ -409,29 +548,78 @@ export class ChatbotComponent {
 
   send(): void {
     const text = this.draft.trim();
-    if (!text || this.sending) {
+    if (!text) {
       return;
     }
-    this.pushUser(text);
+    // A pending new chat has no server conversation yet: mint one first so
+    // the message can never attach to the previously active chat.
+    if (this.conversationId === null) {
+      if (this.creatingNew) {
+        return;
+      }
+      this.creatingNew = true;
+      this.syncSendFlags();
+      const epoch = this.chatEpoch;
+      this.chatbot.createConversation().subscribe({
+        next: (created) => {
+          this.creatingNew = false;
+          if (epoch !== this.chatEpoch) {
+            // The user moved on while creating; drop the abandoned empty
+            // conversation quietly and keep the fresh view untouched.
+            this.syncSendFlags();
+            this.chatbot
+              .deleteConversation(created.conversation_id)
+              .subscribe({ error: () => undefined });
+            return;
+          }
+          this.adoptConversation(created.conversation_id);
+          this.sendToConversation(created.conversation_id, text, epoch);
+        },
+        error: (error) => {
+          this.creatingNew = false;
+          this.syncSendFlags();
+          this.handleSendError(error);
+          this.scrollToBottom(true);
+        },
+      });
+      return;
+    }
+    // Duplicate-submission guard, scoped per conversation so other chats
+    // stay usable while one reply is being generated.
+    if (this.sendingFor.has(this.conversationId)) {
+      return;
+    }
+    this.sendToConversation(this.conversationId, text, this.chatEpoch);
+  }
+
+  private sendToConversation(
+    convId: number,
+    text: string,
+    epoch: number,
+  ): void {
+    this.sendingFor.add(convId);
     this.draft = "";
-    this.sending = true;
-    this.loading = true;
+    this.pushUserToConversation(convId, text);
+    this.syncSendFlags();
     this.stickToBottom = true;
     this.scrollToBottom(true);
+    const sentAt = performance.now();
 
     this.chatbot
       .sendMessage({
         message: text,
-        conversation_id: this.conversationId,
+        conversation_id: convId,
         context: { page: this.router.url },
       })
       .subscribe({
         next: (response) => {
-          this.conversationId = response.conversation_id;
-          this.selectedConversation = response.conversation_id;
-          this.sending = false;
-          this.loading = false;
+          console.debug(
+            `[chatbot] client-observed response time: ${Math.round(performance.now() - sentAt)} ms ` +
+            `(conversation ${response.conversation_id})`,
+          );
+          this.sendingFor.delete(convId);
           this.serviceOnline = true;
+          const target = response.conversation_id;
           if (typeof response.guest_remaining === "number") {
             this.guestLimitReached = response.guest_remaining <= 0;
             this.guestUsage = {
@@ -439,22 +627,42 @@ export class ChatbotComponent {
               guest_remaining: response.guest_remaining,
             };
           }
-          this.pushAssistant(
-            response.message,
-            response.actions || [],
-            false,
-            response.results || [],
-            response.data || null,
-          );
+          this.appendToConversation(target, {
+            id: ++this.messageSeq,
+            sender: "assistant",
+            text: response.message,
+            actions: response.actions || [],
+            limitReached: false,
+            results: response.results || [],
+            data: response.data || null,
+          });
+          this.loadedConversations.add(target);
+          this.touchConversationEntry(target);
+          // appendToConversation renders only when the reply's own
+          // conversation is still the active view; otherwise the reply
+          // stays cached without overwriting the newer chat
+          // (stale-response guard).
+          this.syncSendFlags();
           this.scrollToBottom(true);
         },
         error: (error) => {
-          this.sending = false;
-          this.loading = false;
-          this.handleSendError(error);
-          this.scrollToBottom(true);
+          this.sendingFor.delete(convId);
+          this.syncSendFlags();
+          // Surface the failure only in its originating conversation.
+          if (convId === this.conversationId && epoch === this.chatEpoch) {
+            this.handleSendError(error);
+            this.scrollToBottom(true);
+          }
         },
       });
+  }
+
+  private pushUserToConversation(convId: number, text: string): void {
+    this.appendToConversation(convId, {
+      id: ++this.messageSeq,
+      sender: "user",
+      text,
+    });
   }
 
   private handleSendError(error: unknown): void {
@@ -538,39 +746,132 @@ export class ChatbotComponent {
   }
 
   // =========================================================
-  // HISTORY (existing GET /chatbot/history only — no fake data)
+  // HISTORY (conversation list + per-conversation restore)
   // =========================================================
 
-  private loadHistory(): void {
-    this.chatbot.getHistory().subscribe({
-      next: (history) => {
-        this.historyLoaded = true;
+  /** Fetch the caller's conversation list for the history drawer. */
+  loadConversations(): void {
+    if (this.historyLoading) {
+      return;
+    }
+    this.historyLoading = true;
+    this.historyError = null;
+    this.chatbot.listConversations().subscribe({
+      next: (res) => {
+        this.historyLoading = false;
         this.serviceOnline = true;
-        this.conversationId = history.conversation_id;
-        this.selectedConversation = history.conversation_id;
-        this.rawHistory = history.messages || [];
-        if (history.messages.length > 0) {
-          this.messages = history.messages.map((m) => ({
-            id: ++this.messageSeq,
-            sender: m.sender === "user" ? "user" : "assistant",
-            text: m.message,
-          }));
-        }
-        this.scrollToBottom(true);
+        this.conversations = res.conversations || [];
       },
       error: () => {
-        this.historyLoaded = true;
+        this.historyLoading = false;
+        this.historyError =
+          "Couldn't load your conversations. Please try again.";
       },
     });
   }
 
-  reloadHistory(): void {
-    this.historyLoaded = false;
-    this.loadHistory();
+  /**
+   * Open a conversation and make it active. Uses the reliable session
+   * cache when available; otherwise restores from the backend (ownership
+   * enforced server-side) including structured cards and actions.
+   */
+  openConversation(conversationId: number, force = false): void {
+    if (
+      !force &&
+      conversationId === this.conversationId &&
+      !this.pendingNewChat
+    ) {
+      this.isHistoryOpen = false;
+      return;
+    }
+    this.chatEpoch++;
+    const token = ++this.loadToken;
+    this.pendingNewChat = false;
+    this.conversationId = conversationId;
+    this.selectedConversation = conversationId;
+    this.conversationError = null;
+    this.menuOpenId = null;
+    this.pendingDeleteId = null;
+    if (
+      this.loadedConversations.has(conversationId) &&
+      this.messagesByConversation.has(conversationId)
+    ) {
+      this.renderActive();
+      this.isHistoryOpen = false;
+      this.stickToBottom = true;
+      this.syncSendFlags();
+      this.scrollToBottom(true);
+      return;
+    }
+    this.loadingConversation = true;
+    this.messages = [];
+    this.isHistoryOpen = false;
+    this.stickToBottom = true;
+    this.chatbot.getHistory(conversationId).subscribe({
+      next: (history) => {
+        if (token !== this.loadToken || this.conversationId !== conversationId) {
+          return;
+        }
+        const mapped = (history.messages || []).map((m) =>
+          this.mapHistoryMessage(m),
+        );
+        this.messagesByConversation.set(conversationId, mapped);
+        this.loadedConversations.add(conversationId);
+        this.loadingConversation = false;
+        this.serviceOnline = true;
+        this.renderActive();
+        this.touchConversationEntry(conversationId);
+        this.syncSendFlags();
+        this.scrollToBottom(true);
+      },
+      error: (error) => {
+        if (token !== this.loadToken || this.conversationId !== conversationId) {
+          return;
+        }
+        this.loadingConversation = false;
+        const status = (error as { status?: number })?.status ?? 0;
+        if (status === 0 || status >= 500) {
+          this.serviceOnline = false;
+        }
+        this.conversationError =
+          status === 404
+            ? "This conversation is no longer available."
+            : status === 401 || status === 403
+              ? "Please sign in to continue using PolicyGPT Assistant."
+              : "Couldn't load this conversation. Please try again.";
+      },
+    });
   }
 
-  get historyGroups(): HistoryGroup[] {
-    if (!this.rawHistory || this.rawHistory.length === 0) {
+  /** Retry restoring the currently selected conversation. */
+  retryConversation(): void {
+    if (this.conversationId !== null) {
+      this.conversationError = null;
+      this.openConversation(this.conversationId, true);
+    }
+  }
+
+  /** Map one stored turn back to a UI message, restoring its structured
+   * payload (cards, buttons, eligibility) when present. */
+  private mapHistoryMessage(m: ChatHistoryMessage): ChatUiMessage {
+    const payload = m.payload ?? null;
+    const actions = Array.isArray(payload?.actions) ? payload.actions : [];
+    const results = Array.isArray(payload?.results) ? payload.results : [];
+    const data =
+      payload && typeof payload.data === "object" ? payload.data : null;
+    return {
+      id: ++this.messageSeq,
+      sender: m.sender === "user" ? "user" : "assistant",
+      text: m.message,
+      actions,
+      limitReached: false,
+      results,
+      data,
+    };
+  }
+
+  get conversationGroups(): ConversationGroup[] {
+    if (!this.conversations || this.conversations.length === 0) {
       return [];
     }
     const today = new Date();
@@ -580,11 +881,11 @@ export class ChatbotComponent {
       today.getDate(),
     ).getTime();
     const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
-    const todayItems: ChatHistoryMessage[] = [];
-    const yesterdayItems: ChatHistoryMessage[] = [];
-    const olderItems: ChatHistoryMessage[] = [];
-    for (const item of this.rawHistory) {
-      const ts = item.created_at ? Date.parse(item.created_at) : NaN;
+    const todayItems: ChatConversation[] = [];
+    const yesterdayItems: ChatConversation[] = [];
+    const olderItems: ChatConversation[] = [];
+    for (const item of this.conversations) {
+      const ts = item.updated_at ? Date.parse(item.updated_at) : NaN;
       if (Number.isNaN(ts)) {
         todayItems.push(item);
       } else if (ts >= startOfToday) {
@@ -595,7 +896,7 @@ export class ChatbotComponent {
         olderItems.push(item);
       }
     }
-    const groups: HistoryGroup[] = [];
+    const groups: ConversationGroup[] = [];
     if (todayItems.length > 0) {
       groups.push({ label: "Today", items: todayItems });
     }
@@ -608,27 +909,113 @@ export class ChatbotComponent {
     return groups;
   }
 
-  historyPreview(item: ChatHistoryMessage): string {
-    const text = (item.message || "").replace(/\s+/g, " ").trim();
-    return text.length > 64 ? `${text.slice(0, 64)}…` : text || "Conversation";
+  conversationTitle(item: ChatConversation): string {
+    const title = (item.title || "").replace(/\s+/g, " ").trim();
+    return title || "New conversation";
   }
 
-  historyTime(item: ChatHistoryMessage): string {
-    if (!item.created_at) {
+  conversationPreview(item: ChatConversation): string {
+    const preview = (item.preview || "").replace(/\s+/g, " ").trim();
+    if (preview) {
+      return preview.length > 64 ? `${preview.slice(0, 64)}…` : preview;
+    }
+    return item.message_count > 0 ? "Conversation" : "No messages yet";
+  }
+
+  /** Relative timestamp ("just now", "5m ago", "Yesterday", …). */
+  relativeTime(iso: string | null | undefined): string {
+    if (!iso) {
       return "";
     }
-    const ts = Date.parse(item.created_at);
+    const ts = Date.parse(iso);
     if (Number.isNaN(ts)) {
       return "";
     }
-    return new Date(ts).toLocaleTimeString([], {
-      hour: "numeric",
-      minute: "2-digit",
+    const diffMs = Date.now() - ts;
+    if (diffMs < 0) {
+      return "";
+    }
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) {
+      return "just now";
+    }
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
+    const days = Math.floor(hours / 24);
+    if (days === 1) {
+      return "Yesterday";
+    }
+    if (days < 7) {
+      return `${days}d ago`;
+    }
+    return new Date(ts).toLocaleDateString([], {
+      day: "numeric",
+      month: "short",
+      year: new Date(ts).getFullYear() === new Date().getFullYear() ? undefined : "numeric",
     });
   }
 
   get historyCount(): number {
-    return this.rawHistory.length;
+    return this.conversations.length;
+  }
+
+  // ---------- Per-conversation menu + delete ----------
+
+  toggleMenu(conversationId: number, event?: Event): void {
+    event?.stopPropagation();
+    this.menuOpenId =
+      this.menuOpenId === conversationId ? null : conversationId;
+    if (this.menuOpenId !== null) {
+      this.pendingDeleteId = null;
+    }
+  }
+
+  closeMenu(): void {
+    this.menuOpenId = null;
+  }
+
+  requestDeleteConversation(conversationId: number, event?: Event): void {
+    event?.stopPropagation();
+    this.menuOpenId = null;
+    this.pendingDeleteId = conversationId;
+  }
+
+  cancelDeleteConversation(): void {
+    this.pendingDeleteId = null;
+  }
+
+  confirmDeleteConversation(): void {
+    const conversationId = this.pendingDeleteId;
+    if (conversationId === null || this.deletingConversation) {
+      return;
+    }
+    this.deletingConversation = true;
+    this.chatbot.deleteConversation(conversationId).subscribe({
+      next: () => {
+        this.deletingConversation = false;
+        this.pendingDeleteId = null;
+        this.menuOpenId = null;
+        this.conversations = this.conversations.filter(
+          (c) => c.conversation_id !== conversationId,
+        );
+        this.messagesByConversation.delete(conversationId);
+        this.loadedConversations.delete(conversationId);
+        if (this.conversationId === conversationId) {
+          // The active chat was deleted: move to a clean new chat.
+          this.startNewChat();
+        }
+      },
+      error: () => {
+        this.deletingConversation = false;
+        this.pendingDeleteId = null;
+        this.toast.error("Error", "Could not delete the conversation.");
+      },
+    });
   }
 
   // =========================================================
@@ -827,10 +1214,6 @@ export class ChatbotComponent {
   // =========================================================
   // HELPERS
   // =========================================================
-
-  private pushUser(text: string): void {
-    this.messages.push({ id: ++this.messageSeq, sender: "user", text });
-  }
 
   private pushAssistant(
     text: string,

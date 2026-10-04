@@ -166,15 +166,8 @@ def get_conversation(db, conversation_id: int, user_id: int):
     return conversation
 
 
-def get_or_create_conversation(db, user, role: str):
-    conversation = (
-        db.query(ChatbotConversation)
-        .filter(ChatbotConversation.user_id == user.user_id)
-        .order_by(ChatbotConversation.updated_at.desc())
-        .first()
-    )
-    if conversation is not None:
-        return conversation
+def create_conversation(db, user, role: str):
+    """Create a brand-new conversation for New Chat (never reuses one)."""
     conversation = ChatbotConversation(
         user_id=user.user_id,
         session_id=None,
@@ -188,18 +181,44 @@ def get_or_create_conversation(db, user, role: str):
     return conversation
 
 
+def get_or_create_conversation(db, user, role: str):
+    conversation = (
+        db.query(ChatbotConversation)
+        .filter(ChatbotConversation.user_id == user.user_id)
+        .order_by(ChatbotConversation.updated_at.desc())
+        .first()
+    )
+    if conversation is not None:
+        return conversation
+    return create_conversation(db, user, role)
+
+
+def _jsonable(value):
+    """Best-effort conversion of the assistant payload to JSON-safe data."""
+    import json
+
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return None
+
+
 def save_message(db, conversation_id: int, sender: str, message: str,
-                 intent_name: str | None) -> None:
+                 intent_name: str | None,
+                 payload: dict | None = None,
+                 commit: bool = True) -> None:
     db.add(
         ChatbotMessage(
             conversation_id=conversation_id,
             sender=sender,
             message=message,
             intent=intent_name,
+            payload=_jsonable(payload) if payload is not None else None,
             created_at=_now(),
         )
     )
-    db.commit()
+    if commit:
+        db.commit()
 
 
 def load_history(db, conversation_id: int, limit: int) -> list:
@@ -210,6 +229,76 @@ def load_history(db, conversation_id: int, limit: int) -> list:
         .limit(limit)
         .all()
     )
+
+
+def list_conversations(db, user_id: int, limit: int = 50) -> list[dict]:
+    """Caller-owned conversation summaries for the history panel.
+
+    Three bounded queries (conversations + their messages), grouped in
+    Python: title/preview derive from real messages only, never invented.
+    """
+    conversations = (
+        db.query(ChatbotConversation)
+        .filter(ChatbotConversation.user_id == user_id)
+        .order_by(
+            ChatbotConversation.updated_at.desc(),
+            ChatbotConversation.conversation_id.desc(),
+        )
+        .limit(max(1, min(limit, 100)))
+        .all()
+    )
+    if not conversations:
+        return []
+    ids = [c.conversation_id for c in conversations]
+    messages = (
+        db.query(ChatbotMessage)
+        .filter(ChatbotMessage.conversation_id.in_(ids))
+        .order_by(ChatbotMessage.created_at.asc(), ChatbotMessage.message_id.asc())
+        .all()
+    )
+    by_conversation: dict[int, list] = {}
+    for message in messages:
+        by_conversation.setdefault(message.conversation_id, []).append(message)
+    summaries = []
+    for conversation in conversations:
+        turns = by_conversation.get(conversation.conversation_id, [])
+        first_user = next(
+            (m.message for m in turns if getattr(m, "sender", "") == "user"),
+            None,
+        )
+        last = turns[-1].message if turns else None
+        title_source = (first_user or "").strip()
+        summaries.append({
+            "conversation_id": conversation.conversation_id,
+            "role": conversation.role,
+            "message_count": len(turns),
+            "title": title_source[:80] if title_source else None,
+            "preview": ((last or first_user) or "").strip()[:160] or None,
+            "created_at": (
+                conversation.created_at.isoformat()
+                if getattr(conversation, "created_at", None) else ""
+            ),
+            "updated_at": (
+                conversation.updated_at.isoformat()
+                if getattr(conversation, "updated_at", None) else ""
+            ),
+        })
+    return summaries
+
+
+def delete_conversation(db, conversation_id: int, user_id: int) -> int:
+    """Delete one caller-owned conversation and its messages."""
+    conversation = get_conversation(db, conversation_id, user_id)
+    removed = (
+        db.query(ChatbotMessage)
+        .filter(ChatbotMessage.conversation_id == conversation.conversation_id)
+        .delete(synchronize_session=False)
+    )
+    db.query(ChatbotConversation).filter(
+        ChatbotConversation.conversation_id == conversation.conversation_id
+    ).delete(synchronize_session=False)
+    db.commit()
+    return removed
 
 
 def clear_user_history(db, user_id: int) -> int:
@@ -755,6 +844,8 @@ def _provider():
 def process_message(db, user: User, message: str,
                     conversation_id: int | None,
                     context_page: str | None = None) -> schemas.ChatMessageResponse:
+    boot = time.monotonic()
+    timings: dict[str, float] = {}
     role = normalize_role(getattr(user, "role", None))
     prefix = home_prefix(role)
     cleaned = (message or "").strip()
@@ -767,9 +858,13 @@ def process_message(db, user: User, message: str,
 
     check_rate_limit(user.user_id)
 
+    # Single usage lookup, reused when the counters are touched below.
+    t = time.monotonic()
+    usage = get_usage(db, user.user_id)
+    timings["usage_lookup_ms"] = (time.monotonic() - t) * 1000
+
     guest_remaining: int | None = None
     if role == "GUEST":
-        usage = get_usage(db, user.user_id)
         used = int(usage.message_count) if usage else 0
         if used >= settings.CHATBOT_GUEST_MESSAGE_LIMIT:
             logger.info("chatbot guest limit reached user_id=%s", user.user_id)
@@ -781,16 +876,22 @@ def process_message(db, user: User, message: str,
             )
         guest_remaining = settings.CHATBOT_GUEST_MESSAGE_LIMIT - used - 1
 
+    t = time.monotonic()
     if conversation_id is not None:
         conversation = get_conversation(db, conversation_id, user.user_id)
     else:
         conversation = get_or_create_conversation(db, user, role)
+    timings["conversation_ms"] = (time.monotonic() - t) * 1000
 
+    t = time.monotonic()
     classified = intent.classify_intent(cleaned)
     intent_name: str = classified["intent"]
     entities: dict = classified.get("entities", {})
+    timings["intent_ms"] = (time.monotonic() - t) * 1000
 
+    t = time.monotonic()
     gated = role_gate(intent_name, cleaned, role)
+    timings["role_gate_ms"] = (time.monotonic() - t) * 1000
     if gated is not None:
         reply_text = gated["message"]
         actions = [
@@ -799,21 +900,44 @@ def process_message(db, user: User, message: str,
         sources: list[schemas.ChatSource] = []
         data: dict | None = {"response_type": "UNAUTHORIZED_RESPONSE"}
         results: list[schemas.ChatResultItem] = []
+        timings["retrieval_ms"] = 0.0
     else:
+        t = time.monotonic()
         reply_text, actions, sources, data, results = _handle_intent(
             db, user, role, prefix, intent_name, entities, cleaned,
             conversation.conversation_id,
         )
+        timings["retrieval_ms"] = (time.monotonic() - t) * 1000
 
-    save_message(db, conversation.conversation_id, "user", cleaned, intent_name)
+    # One transaction for both turns plus the counter touch: two fewer
+    # remote commits than saving each message separately.
+    t = time.monotonic()
+    save_message(db, conversation.conversation_id, "user", cleaned,
+                 intent_name, commit=False)
+    assistant_payload = {
+        "actions": [
+            a.model_dump() if hasattr(a, "model_dump") else dict(a)
+            for a in (actions or [])
+        ],
+        "results": [
+            r.model_dump() if hasattr(r, "model_dump") else dict(r)
+            for r in (results or [])
+        ],
+        "data": _jsonable(data),
+        "sources": [
+            s.model_dump() if hasattr(s, "model_dump") else dict(s)
+            for s in (sources or [])
+        ],
+    }
     save_message(
-        db, conversation.conversation_id, "assistant", reply_text, intent_name
+        db, conversation.conversation_id, "assistant", reply_text, intent_name,
+        payload=assistant_payload, commit=False,
     )
 
     # Touch conversation + usage counters (best effort, same commit style
-    # as the rest of the codebase).
+    # as the rest of the codebase). The usage row was already fetched
+    # above, so no second lookup is needed.
     conversation.updated_at = _now()
-    usage = get_usage(db, user.user_id)
     if usage is None:
         usage = ChatbotUsage(
             user_id=user.user_id, session_id=None,
@@ -823,10 +947,17 @@ def process_message(db, user: User, message: str,
     usage.message_count = int(usage.message_count or 0) + 1
     usage.updated_at = _now()
     db.commit()
+    timings["persist_ms"] = (time.monotonic() - t) * 1000
+    timings["total_ms"] = (time.monotonic() - boot) * 1000
 
     logger.info(
         "chatbot reply role=%s intent=%s conversation=%s",
         role, intent_name, conversation.conversation_id,
+    )
+    logger.debug(
+        "chatbot timings role=%s intent=%s conversation=%s %s",
+        role, intent_name, conversation.conversation_id,
+        " ".join(f"{k}={v:.1f}" for k, v in timings.items()),
     )
 
     return schemas.ChatMessageResponse(

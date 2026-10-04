@@ -54,15 +54,21 @@
   </header>
 
   <div class="chatbot-body">
-    <!-- History side panel (uses existing GET /history data only) -->
+    <!-- History side panel (caller-owned conversations only) -->
     @if (isHistoryOpen) {
     <aside class="chatbot-history" aria-label="Chat history">
       <div class="chatbot-history__head">
         <h3>Chat History</h3>
-        <button type="button" class="chatbot-icon-btn chatbot-icon-btn--dark" (click)="closeHistory()"
-          aria-label="Close chat history">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </button>
+        <div class="chatbot-history__head-actions">
+          <button type="button" class="chatbot-icon-btn chatbot-icon-btn--dark" (click)="loadConversations()"
+            [disabled]="historyLoading" title="Refresh conversations" aria-label="Refresh conversations">
+            <span class="material-icons" aria-hidden="true">refresh</span>
+          </button>
+          <button type="button" class="chatbot-icon-btn chatbot-icon-btn--dark" (click)="closeHistory()"
+            aria-label="Close chat history">
+            <span class="material-icons" aria-hidden="true">close</span>
+          </button>
+        </div>
       </div>
 
       <button type="button" class="chatbot-history__new" (click)="startNewChat()" aria-label="Start new chat">
@@ -70,22 +76,70 @@
         New Chat
       </button>
 
-      @if (historyGroups.length > 0) {
+      @if (historyLoading) {
+      <div class="chatbot-history__list" aria-label="Loading conversations">
+        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
+        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
+        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
+      </div>
+      } @else if (historyError) {
+      <div class="chatbot-history__error" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <p>{{ historyError }}</p>
+        <button type="button" class="chatbot-history__btn chatbot-history__btn--ghost"
+          (click)="loadConversations()">Retry</button>
+      </div>
+      } @else if (conversationGroups.length > 0) {
       <div class="chatbot-history__list">
-        @for (group of historyGroups; track group.label) {
+        @for (group of conversationGroups; track group.label) {
         <p class="chatbot-history__group">{{ group.label }}</p>
-        @for (item of group.items; track item.message_id) {
-        <div class="chatbot-history__item">
-          <div class="chatbot-history__item-text">
-            <span class="chatbot-history__item-preview">{{
-              historyPreview(item)
+        @for (item of group.items; track item.conversation_id) {
+        <div class="chatbot-history__item"
+          [class.chatbot-history__item--active]="selectedConversation === item.conversation_id">
+          <button type="button" class="chatbot-history__open" (click)="openConversation(item.conversation_id)"
+            [attr.aria-current]="selectedConversation === item.conversation_id ? 'true' : null"
+            [attr.aria-label]="'Open conversation: ' + conversationTitle(item)">
+            <span class="chatbot-history__item-title">{{
+              conversationTitle(item)
               }}</span>
-            @if (historyTime(item)) {
+            <span class="chatbot-history__item-preview">{{
+              conversationPreview(item)
+              }}</span>
+            @if (relativeTime(item.updated_at)) {
             <span class="chatbot-history__item-time">{{
-              historyTime(item)
+              relativeTime(item.updated_at)
               }}</span>
             }
+          </button>
+          <button type="button" class="chatbot-history__menu-btn" (click)="toggleMenu(item.conversation_id, $event)"
+            [attr.aria-expanded]="menuOpenId === item.conversation_id" aria-haspopup="menu"
+            aria-label="Conversation options">
+            <span class="material-icons" aria-hidden="true">more_vert</span>
+          </button>
+          @if (menuOpenId === item.conversation_id) {
+          <div class="chatbot-history__menu" role="menu" aria-label="Conversation options">
+            <button type="button" role="menuitem" class="chatbot-history__menu-item"
+              (click)="requestDeleteConversation(item.conversation_id)">
+              <span class="material-icons" aria-hidden="true">delete_outline</span>
+              Delete
+            </button>
           </div>
+          }
+          @if (pendingDeleteId === item.conversation_id) {
+          <div class="chatbot-history__confirm" role="alertdialog" aria-label="Delete conversation confirmation">
+            <p>Delete this conversation?</p>
+            <div class="chatbot-history__confirm-actions">
+              <button type="button" class="chatbot-history__btn chatbot-history__btn--ghost"
+                (click)="cancelDeleteConversation()">
+                Cancel
+              </button>
+              <button type="button" class="chatbot-history__btn chatbot-history__btn--danger"
+                (click)="confirmDeleteConversation()" [disabled]="deletingConversation">
+                {{ deletingConversation ? "Deleting…" : "Delete" }}
+              </button>
+            </div>
+          </div>
+          }
         </div>
         }
         }
@@ -214,6 +268,25 @@
         }
         }
 
+        @if (loadingConversation) {
+        <div class="chatbot-msg chatbot-msg--assistant">
+          <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
+          <div class="chatbot-bubble chatbot-bubble--assistant chatbot-typing">
+            <span class="chatbot-typing__dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </span>
+            <span class="chatbot-typing__text">Loading conversation&hellip;</span>
+          </div>
+        </div>
+        }
+        @if (conversationError && !loadingConversation) {
+        <div class="chatbot-history__error chatbot-history__error--panel" role="alert">
+          <span class="material-icons" aria-hidden="true">error_outline</span>
+          <p>{{ conversationError }}</p>
+          <button type="button" class="chatbot-history__btn chatbot-history__btn--ghost"
+            (click)="retryConversation()">Retry</button>
+        </div>
+        }
         @if (loading) {
         <div class="chatbot-msg chatbot-msg--assistant">
           <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />

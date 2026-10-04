@@ -63,11 +63,35 @@ class ChatHistoryMessage(BaseModel):
     message: str
     intent: str | None = None
     created_at: str
+    # Structured assistant payload stored at reply time (actions, results,
+    # data, sources) so reopening a conversation restores its cards,
+    # buttons and eligibility metadata. None for user turns / legacy rows.
+    payload: dict | None = None
 
 
 class ChatHistoryResponse(BaseModel):
     conversation_id: int
     messages: list[ChatHistoryMessage] = []
+
+
+class ChatConversationItem(BaseModel):
+    conversation_id: int
+    role: str | None = None
+    message_count: int = 0
+    # Derived from the first user message; None for empty conversations.
+    title: str | None = None
+    # Most recent message preview; None for empty conversations.
+    preview: str | None = None
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class ChatConversationListResponse(BaseModel):
+    conversations: list[ChatConversationItem] = []
+
+
+class ChatConversationCreateResponse(BaseModel):
+    conversation_id: int
 
 
 class ChatConfigResponse(BaseModel):

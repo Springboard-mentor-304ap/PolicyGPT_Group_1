@@ -123,10 +123,71 @@ def get_history(
                         m.created_at.isoformat()
                         if getattr(m, "created_at", None) else ""
                     ),
+                    payload=getattr(m, "payload", None),
                 )
                 for m in messages
             ],
         )
+    except Exception as exc:
+        raise _handle_chatbot_error(exc)
+
+
+@router.get(
+    "/conversations", response_model=schemas.ChatConversationListResponse
+)
+def list_conversations(
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*CHATBOT_ROLES)),
+):
+    """List the caller's own conversations, most recently active first."""
+    _require_enabled()
+    try:
+        items = chatbot_service.list_conversations(
+            db, current_user.user_id, limit
+        )
+        return schemas.ChatConversationListResponse(
+            conversations=[
+                schemas.ChatConversationItem(**item) for item in items
+            ],
+        )
+    except Exception as exc:
+        raise _handle_chatbot_error(exc)
+
+
+@router.post(
+    "/conversations", response_model=schemas.ChatConversationCreateResponse
+)
+def create_conversation(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*CHATBOT_ROLES)),
+):
+    """Mint a brand-new conversation for New Chat (never reuses one)."""
+    _require_enabled()
+    try:
+        conversation = chatbot_service.create_conversation(
+            db, current_user, normalize_role(current_user.role),
+        )
+        return schemas.ChatConversationCreateResponse(
+            conversation_id=conversation.conversation_id,
+        )
+    except Exception as exc:
+        raise _handle_chatbot_error(exc)
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(*CHATBOT_ROLES)),
+):
+    """Delete one caller-owned conversation (ownership enforced)."""
+    _require_enabled()
+    try:
+        removed = chatbot_service.delete_conversation(
+            db, conversation_id, current_user.user_id
+        )
+        return {"message": "Conversation deleted.", "removed": removed}
     except Exception as exc:
         raise _handle_chatbot_error(exc)
 

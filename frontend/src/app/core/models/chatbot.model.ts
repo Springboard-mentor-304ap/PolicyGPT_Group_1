@@ -58,6 +58,31 @@ export interface ChatHistoryMessage {
   message: string;
   intent?: string | null;
   created_at: string;
+  // Structured assistant payload stored at reply time (actions, results,
+  // data, sources). Restores cards/buttons/eligibility on reopen.
+  // Absent (null) for user turns and legacy rows.
+  payload?: {
+    actions?: ChatAction[];
+    results?: ChatResultItem[];
+    data?: ChatResponseData | null;
+    sources?: ChatSource[];
+  } | null;
+}
+
+export interface ChatConversation {
+  conversation_id: number;
+  role?: string | null;
+  message_count: number;
+  // Derived from the first user message; null for empty conversations.
+  title?: string | null;
+  // Most recent message preview; null for empty conversations.
+  preview?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatConversationListResponse {
+  conversations: ChatConversation[];
 }
 
 export interface ChatHistoryResponse {

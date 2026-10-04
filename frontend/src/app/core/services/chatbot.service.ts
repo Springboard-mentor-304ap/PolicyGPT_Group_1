@@ -4,6 +4,7 @@ import { Observable } from "rxjs";
 
 import {
   ChatConfig,
+  ChatConversationListResponse,
   ChatHistoryResponse,
   ChatMessageRequest,
   ChatMessageResponse,
@@ -42,6 +43,30 @@ export class ChatbotService {
   clearHistory(): Observable<{ message: string; removed: number }> {
     return this.http.delete<{ message: string; removed: number }>(
       `${this.baseUrl}/history`,
+    );
+  }
+
+  listConversations(
+    limit = 50,
+  ): Observable<ChatConversationListResponse> {
+    return this.http.get<ChatConversationListResponse>(
+      `${this.baseUrl}/conversations`,
+      { params: { limit: String(limit) } },
+    );
+  }
+
+  createConversation(): Observable<{ conversation_id: number }> {
+    return this.http.post<{ conversation_id: number }>(
+      `${this.baseUrl}/conversations`,
+      {},
+    );
+  }
+
+  deleteConversation(
+    conversationId: number,
+  ): Observable<{ message: string; removed: number }> {
+    return this.http.delete<{ message: string; removed: number }>(
+      `${this.baseUrl}/conversations/${conversationId}`,
     );
   }
 

@@ -6,6 +6,7 @@ import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ChatbotComponent } from './chatbot.component';
 import { Auth } from '../../core/services/auth';
+import type { ChatConversation } from '../../core/models/chatbot.model';
 
 function storeUser(role: string): void {
   localStorage.setItem(
@@ -88,12 +89,16 @@ describe('ChatbotComponent', () => {
     expect(component.messages[0].text).toContain('find government schemes');
     expect(component.quickActions.length).toBe(6);
     expect(component.quickActions[0].label).toBe('Find schemes for me');
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    // Opening the panel must not auto-attach to any prior conversation.
+    httpMock.expectNone(`${baseUrl}/history`);
+    httpMock.expectNone(`${baseUrl}/conversations`);
+    expect(component.conversationId).toBeNull();
   });
 
   it('3. should send a message and render the reply with actions', () => {
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    // Simulate an adopted conversation so the send path is exercised.
+    component.conversationId = 9;
 
     component.draft = 'scholarships?';
     component.send();
@@ -120,7 +125,7 @@ describe('ChatbotComponent', () => {
 
   it('4. should show safe server detail but suppress long internals', () => {
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    component.conversationId = 9;
 
     component.draft = 'hi';
     component.send();
@@ -147,7 +152,7 @@ describe('ChatbotComponent', () => {
   it('5. should show guest limit card with login and register', () => {
     storeUser('GUEST');
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    component.conversationId = 9;
     expect(component.greeting).toContain('publicly available');
 
     component.draft = 'hi';
@@ -181,7 +186,6 @@ describe('ChatbotComponent', () => {
 
   it('8. should minimize and close the panel', () => {
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
     component.minimize();
     expect(component.minimized).toBe(true);
     expect(component.open).toBe(true);
@@ -200,7 +204,7 @@ describe('ChatbotComponent', () => {
 
   it('10. should store structured results and map card actions', () => {
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    component.conversationId = 9;
 
     component.draft = 'How many draft policies are there?';
     component.send();
@@ -344,7 +348,7 @@ describe('ChatbotComponent', () => {
 
   it('20. should render one card per record with correct detail navigation', () => {
     component.openPanel();
-    httpMock.expectOne(`${baseUrl}/history`).flush({ conversation_id: 9, messages: [] });
+    component.conversationId = 9;
 
     component.draft = 'Show me schemes I may be eligible for';
     component.send();
@@ -391,5 +395,240 @@ describe('ChatbotComponent', () => {
     const spy = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     component.runAction(component.resultAction(last.results![1])!);
     expect(spy).toHaveBeenCalledWith('/dashboard/citizen/schemes/9');
+  });
+
+  it('21. should isolate New Chat without touching the server', () => {
+    component.openPanel();
+    component.conversationId = 9;
+    component.draft = 'old question';
+    component.send();
+    // Start over before the old reply arrives.
+    component.startNewChat();
+    expect(component.conversationId).toBeNull();
+    expect(component.isNewChat).toBe(true);
+    expect(component.messages.length).toBe(1);
+    expect(component.messages[0].text).toContain('find government schemes');
+    // No creation, deletion or listing calls: isolation is purely local
+    // until the first new message is sent.
+    httpMock.expectNone(`${baseUrl}/conversations`);
+    httpMock.expectNone(`${baseUrl}/history`);
+    // The abandoned in-flight reply must not leak into the new chat.
+    httpMock
+      .expectOne(`${baseUrl}/message`)
+      .flush({ success: true, conversation_id: 9, message: 'Late reply.', intent: 'GENERAL_QUERY', sources: [], actions: [] });
+    expect(component.conversationId).toBeNull();
+    expect(component.messages.length).toBe(1);
+  });
+
+  it('22. should mint a new conversation on first send after New Chat', () => {
+    component.openPanel();
+    expect(component.conversationId).toBeNull();
+
+    component.draft = 'first question';
+    component.send();
+    const createReq = httpMock.expectOne(`${baseUrl}/conversations`);
+    expect(createReq.request.method).toBe('POST');
+    createReq.flush({ conversation_id: 42 });
+
+    const msgReq = httpMock.expectOne(`${baseUrl}/message`);
+    expect(msgReq.request.body.conversation_id).toBe(42);
+    expect(msgReq.request.body.message).toBe('first question');
+    msgReq.flush({
+      success: true, conversation_id: 42, message: 'Fresh reply.',
+      intent: 'GENERAL_QUERY', sources: [], actions: [], guest_remaining: null,
+    });
+
+    expect(component.conversationId).toBe(42);
+    expect(component.messages.map((m) => m.sender)).toEqual(
+      expect.arrayContaining(['user', 'assistant']),
+    );
+  });
+
+  it('23. should reuse the adopted conversation without re-creating', () => {
+    component.openPanel();
+    component.conversationId = 42;
+    component.draft = 'follow-up';
+    component.send();
+    httpMock.expectNone(`${baseUrl}/conversations`);
+    const msgReq = httpMock.expectOne(`${baseUrl}/message`);
+    expect(msgReq.request.body.conversation_id).toBe(42);
+    msgReq.flush({
+      success: true, conversation_id: 42, message: 'ok',
+      intent: 'GENERAL_QUERY', sources: [], actions: [],
+    });
+    expect(component.conversationId).toBe(42);
+  });
+
+  it('24. should never let a stale reply overwrite the active chat', () => {
+    component.openPanel();
+    component.conversationId = 9;
+    component.draft = 'question for chat 9';
+    component.send();
+    // Switch to conversation 7 while 9 is still generating.
+    component.openConversation(7);
+    httpMock
+      .expectOne(`${baseUrl}/history?conversation_id=7`)
+      .flush({ conversation_id: 7, messages: [{ message_id: 1, sender: 'user', message: 'chat 7 q', created_at: '' }] });
+    expect(component.conversationId).toBe(7);
+    expect(component.messages.map((m) => m.text)).toEqual(['chat 7 q']);
+
+    // Late reply for 9 must be cached under 9, not rendered into 7.
+    httpMock
+      .expectOne(`${baseUrl}/message`)
+      .flush({ success: true, conversation_id: 9, message: 'Late reply 9.', intent: 'GENERAL_QUERY', sources: [], actions: [] });
+    expect(component.conversationId).toBe(7);
+    expect(component.messages.map((m) => m.text)).toEqual(['chat 7 q']);
+
+    // Reopening 9 restores both turns from cache without any HTTP.
+    component.openConversation(9);
+    httpMock.expectNone(`${baseUrl}/history?conversation_id=9`);
+    expect(component.messages.map((m) => m.text)).toEqual(['question for chat 9', 'Late reply 9.']);
+  });
+
+  it('25. should restore structured cards when reopening a conversation', () => {
+    component.openPanel();
+    component.openConversation(9);
+    httpMock.expectOne(`${baseUrl}/history?conversation_id=9`).flush({
+      conversation_id: 9,
+      messages: [
+        { message_id: 1, sender: 'user', message: 'Am I eligible?', created_at: '' },
+        {
+          message_id: 2, sender: 'assistant', message: '**Eligible based on available criteria.**',
+          intent: 'ELIGIBILITY_CHECK', created_at: '',
+          payload: {
+            actions: [{ label: 'View Scheme Details', type: 'VIEW_SCHEME', route: '/dashboard/citizen/schemes/9', entity_type: 'SCHEME', entity_id: 9 }],
+            results: [{ type: 'scheme', id: 9, title: 'Scheme B', route: '/dashboard/citizen/schemes/9' }],
+            data: { response_type: 'ELIGIBILITY_RESPONSE', eligibility_label: 'Eligible based on available criteria.' },
+            sources: [],
+          },
+        },
+      ],
+    });
+
+    expect(component.conversationId).toBe(9);
+    expect(component.selectedConversation).toBe(9);
+    const last = component.messages[component.messages.length - 1];
+    expect(last.results?.length).toBe(1);
+    expect(last.results?.[0].id).toBe(9);
+    expect(last.actions?.length).toBe(1);
+    expect(last.data?.['eligibility_label']).toBe('Eligible based on available criteria.');
+  });
+
+  it('26. should show an error with retry when restoration fails', () => {
+    component.openPanel();
+    component.openConversation(9);
+    httpMock
+      .expectOne(`${baseUrl}/history?conversation_id=9`)
+      .flush({ detail: 'gone' }, { status: 404, statusText: 'Not Found' });
+    expect(component.conversationError).toContain('no longer available');
+
+    component.retryConversation();
+    httpMock.expectOne(`${baseUrl}/history?conversation_id=9`).flush({
+      conversation_id: 9,
+      messages: [{ message_id: 1, sender: 'user', message: 'hi again', created_at: '' }],
+    });
+    expect(component.conversationError).toBeNull();
+    expect(component.messages.map((m) => m.text)).toEqual(['hi again']);
+  });
+
+  it('27. should list conversations with titles, previews and groups', () => {
+    component.openPanel();
+    component.toggleHistory();
+    expect(component.isHistoryOpen).toBe(true);
+    const now = new Date().toISOString();
+    httpMock.expectOne(`${baseUrl}/conversations?limit=50`).flush({
+      conversations: [
+        { conversation_id: 9, role: 'CITIZEN', message_count: 4, title: 'Find education schemes', preview: 'Here are two schemes.', created_at: now, updated_at: now },
+        { conversation_id: 7, role: 'CITIZEN', message_count: 0, title: null, preview: null, created_at: '2020-01-01T00:00:00', updated_at: '2020-01-01T00:00:00' },
+      ],
+    });
+    expect(component.conversations.length).toBe(2);
+    expect(component.conversationGroups.map((g) => g.label)).toEqual(['Today', 'Earlier']);
+    expect(component.conversationTitle(component.conversations[0])).toBe('Find education schemes');
+    expect(component.conversationTitle(component.conversations[1])).toBe('New conversation');
+    expect(component.conversationPreview(component.conversations[0])).toContain('Here are two schemes.');
+    expect(component.historyCount).toBe(2);
+  });
+
+  it('28. should surface history load failures with retry', () => {
+    component.openPanel();
+    component.toggleHistory();
+    httpMock
+      .expectOne(`${baseUrl}/conversations?limit=50`)
+      .flush({ detail: 'down' }, { status: 500, statusText: 'Server Error' });
+    expect(component.historyError).toContain("Couldn't load");
+    component.loadConversations();
+    httpMock.expectOne(`${baseUrl}/conversations?limit=50`).flush({ conversations: [] });
+    expect(component.historyError).toBeNull();
+    expect(component.conversations).toEqual([]);
+  });
+
+  it('29. should delete one conversation without touching the active chat', () => {
+    const now = new Date().toISOString();
+    const entry = (id: number): ChatConversation => ({
+      conversation_id: id, role: 'CITIZEN', message_count: 1,
+      title: `Chat ${id}`, preview: 'hi', created_at: now, updated_at: now,
+    });
+    component.openPanel();
+    component.conversations = [entry(9), entry(7)];
+    component.conversationId = 9;
+    component.selectedConversation = 9;
+
+    component.requestDeleteConversation(7);
+    expect(component.pendingDeleteId).toBe(7);
+    component.confirmDeleteConversation();
+    httpMock.expectOne(`${baseUrl}/conversations/7`).flush({ message: 'Conversation deleted.', removed: 2 });
+    expect(component.conversations.map((c) => c.conversation_id)).toEqual([9]);
+    expect(component.conversationId).toBe(9);
+  });
+
+  it('30. should move to a clean chat after deleting the active conversation', () => {
+    const now = new Date().toISOString();
+    component.openPanel();
+    component.conversations = [
+      { conversation_id: 9, role: 'CITIZEN', message_count: 1, title: 'Chat 9', preview: 'hi', created_at: now, updated_at: now },
+    ];
+    component.conversationId = 9;
+    component.selectedConversation = 9;
+    component.requestDeleteConversation(9);
+    component.confirmDeleteConversation();
+    httpMock.expectOne(`${baseUrl}/conversations/9`).flush({ message: 'Conversation deleted.', removed: 2 });
+    expect(component.conversationId).toBeNull();
+    expect(component.isNewChat).toBe(true);
+    expect(component.messages.length).toBe(1);
+    expect(component.conversations).toEqual([]);
+  });
+
+  it('31. should block duplicate submissions per conversation', () => {
+    component.openPanel();
+    component.conversationId = 9;
+    component.draft = 'same question';
+    component.send();
+    component.draft = 'same question';
+    component.send();
+    httpMock.expectOne(`${baseUrl}/message`).flush({
+      success: true, conversation_id: 9, message: 'ok', intent: 'GENERAL_QUERY', sources: [], actions: [],
+    });
+    httpMock.expectNone(`${baseUrl}/message`);
+  });
+
+  it('32. should ask to sign in on unauthorized responses', () => {
+    component.openPanel();
+    component.conversationId = 9;
+    component.draft = 'private stuff';
+    component.send();
+    httpMock
+      .expectOne(`${baseUrl}/message`)
+      .flush({ detail: 'Not authenticated' }, { status: 401, statusText: 'Unauthorized' });
+    const last = component.messages[component.messages.length - 1];
+    expect(last.text).toContain('sign in');
+  });
+
+  it('33. should format relative times and fall back safely', () => {
+    expect(component.relativeTime(new Date().toISOString())).toBe('just now');
+    expect(component.relativeTime(new Date(Date.now() - 5 * 60000).toISOString())).toBe('5m ago');
+    expect(component.relativeTime(new Date(Date.now() - 3 * 3600000).toISOString())).toBe('3h ago');
+    expect(component.relativeTime('not-a-date')).toBe('');
+    expect(component.relativeTime(null)).toBe('');
   });
 });

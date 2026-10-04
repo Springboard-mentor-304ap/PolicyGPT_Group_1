@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -76,6 +77,14 @@ class ChatbotMessage(Base):
 
     intent: Mapped[str | None] = mapped_column(
         String(64),
+        nullable=True,
+    )
+
+    # Structured assistant payload (actions/results/data/sources) stored at
+    # reply time so reopening a conversation restores its cards, buttons
+    # and eligibility metadata exactly as answered. User turns store None.
+    payload: Mapped[dict | None] = mapped_column(
+        JSONB,
         nullable=True,
     )
 

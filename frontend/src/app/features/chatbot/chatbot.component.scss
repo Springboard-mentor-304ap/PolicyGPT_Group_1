@@ -35,7 +35,9 @@ $radius: 12px;
   background: transparent;
   cursor: pointer;
   animation: chatbot-float 2.8s ease-in-out infinite;
-  transition: transform 0.15s ease, filter 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
 
   &:hover {
     transform: scale(1.07);
@@ -83,7 +85,9 @@ $radius: 12px;
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 6px 18px rgba(8, 32, 70, 0.3);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   pointer-events: none;
 }
 
@@ -181,6 +185,7 @@ $radius: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: $white;
   }
 
   p {
@@ -591,6 +596,19 @@ $radius: 12px;
   li {
     margin-bottom: 3px;
   }
+
+  li::marker {
+    font-weight: 700;
+    color: $blue-dark;
+  }
+
+  .chatbot-list-detail {
+    display: block;
+    font-size: 12px;
+    color: $muted;
+    margin-top: 2px;
+    line-height: 1.45;
+  }
 }
 
 .chatbot-actions {
@@ -611,6 +629,7 @@ $radius: 12px;
 }
 
 .chatbot-result-card {
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid #d7e5f3;
   border-radius: 10px;
@@ -626,10 +645,29 @@ $radius: 12px;
 }
 
 .chatbot-result-card__title {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 700;
   color: $text;
   line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.chatbot-result-card__num {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: $blue-soft;
+  color: $blue-dark;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .chatbot-result-card__meta {
@@ -817,7 +855,11 @@ $radius: 12px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover {
     background: $blue-soft;
@@ -949,7 +991,9 @@ $radius: 12px;
   font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   .material-icons {
     flex-shrink: 0;

@@ -137,7 +137,7 @@
         <div class="chatbot-msg chatbot-msg--assistant">
           <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
           <div class="chatbot-msg__content">
-            <div class="chatbot-bubble chatbot-bubble--assistant" [innerHTML]="renderMarkdown(msg.text)"></div>
+            <div class="chatbot-bubble chatbot-bubble--assistant" [innerHTML]="renderMarkdown(displayText(msg))"></div>
             @if (msg.data?.['eligibility_label']) {
             <div class="chatbot-eligibility" [ngClass]="eligibilityClass(msg.data?.['eligibility_label'])"
               role="status" aria-label="Eligibility assessment">
@@ -147,7 +147,7 @@
             }
             @if (msg.results && msg.results.length > 0) {
             <div class="chatbot-results" aria-label="Structured results">
-              @for (item of msg.results; track $index) {
+              @for (item of msg.results; track (item.id ?? $index)) {
               @if (item.type === 'statistic') {
               <div class="chatbot-stat-card">
                 <span class="chatbot-stat-card__label">{{ item.title }}</span>
@@ -161,6 +161,7 @@
               } @else {
               <div class="chatbot-result-card">
                 <div class="chatbot-result-card__head">
+                  <span class="chatbot-result-card__num" aria-hidden="true">{{ cardNumber(msg, $index) }}</span>
                   <span class="chatbot-result-card__title">{{ item.title }}</span>
                   @if (item.status) {
                   <span class="chatbot-badge" [ngClass]="statusClass(item.status)">

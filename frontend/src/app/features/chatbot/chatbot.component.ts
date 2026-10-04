@@ -636,16 +636,22 @@ export class ChatbotComponent {
   // =========================================================
 
   renderMarkdown(text: string): string {
-    const escaped = this.escapeHtml(text);
+    const escaped = this.escapeHtml(text || "");
     const lines = escaped.split("\n");
     const html: string[] = [];
     let listOpen: string | null = null;
+    // Index in `html` of the last emitted <li> while a list is open. Used
+    // to fold indented continuation lines (backend record metadata such as
+    // "   Ministry; Category") into the current item instead of closing
+    // the list — which previously restarted numbering at 1 for every item.
+    let lastLi: number | null = null;
 
     const closeList = (): void => {
       if (listOpen) {
         html.push(listOpen === "ul" ? "</ul>" : "</ol>");
         listOpen = null;
       }
+      lastLi = null;
     };
 
     const isTableRow = (line: string): boolean =>
@@ -699,13 +705,26 @@ export class ChatbotComponent {
       const bullet = trimmed.match(/^[-*]\s+(.*)$/);
       const numbered = trimmed.match(/^\d+[.)]\s+(.*)$/);
       const heading = trimmed.match(/^#{1,3}\s+(.*)$/);
-      if (bullet) {
+      // Indented, non-list content directly after a list item belongs to
+      // that item (backend metadata continuation lines). Fold it into the
+      // open <li> so the ordered list stays continuous (1, 2, 3, …).
+      const continuation =
+        !bullet && !numbered && !heading && listOpen !== null && lastLi !== null
+          ? rawLine.match(/^\s+\S[\s\S]*$/)
+          : null;
+      if (continuation) {
+        html[lastLi as number] = (html[lastLi as number] as string).replace(
+          /<\/li>$/,
+          `<br><span class="chatbot-list-detail">${this.inline(trimmed)}</span></li>`,
+        );
+      } else if (bullet) {
         if (listOpen !== "ul") {
           closeList();
           html.push("<ul>");
           listOpen = "ul";
         }
         html.push(`<li>${this.inline(bullet[1])}</li>`);
+        lastLi = html.length - 1;
       } else if (numbered) {
         if (listOpen !== "ol") {
           closeList();
@@ -713,6 +732,7 @@ export class ChatbotComponent {
           listOpen = "ol";
         }
         html.push(`<li>${this.inline(numbered[1])}</li>`);
+        lastLi = html.length - 1;
       } else {
         closeList();
         if (!trimmed) {
@@ -731,6 +751,69 @@ export class ChatbotComponent {
 
   private inline(text: string): string {
     return text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  }
+
+  // =========================================================
+  // STRUCTURED DISPLAY (render structured results, not prose)
+  // =========================================================
+
+  /** True for navigable record results (policy/scheme/user), not summaries. */
+  isRecordResult(item: ChatResultItem | null | undefined): boolean {
+    const type = (item?.type || "").toLowerCase();
+    return type === "policy" || type === "scheme" || type === "user";
+  }
+
+  /**
+   * Display text for an assistant message. When structured record cards
+   * are rendered from `results`, the backend's enumerated record lines
+   * would duplicate them, so those lines (plus their indented metadata
+   * continuations) are omitted. Prose — headings, summaries, counts,
+   * footers, tables, criteria — is always preserved. Messages without
+   * structured results (e.g. conversation history) render in full.
+   */
+  displayText(msg: ChatUiMessage): string {
+    const text = msg.text || "";
+    const results = msg.results || [];
+    if (!results.some((item) => this.isRecordResult(item))) {
+      return text;
+    }
+    const kept: string[] = [];
+    let skipping = false;
+    for (const line of text.split("\n")) {
+      if (/^\s*\d+[.)]\s+\S/.test(line)) {
+        skipping = true;
+        continue;
+      }
+      if (skipping) {
+        if (/^\s+\S/.test(line)) {
+          continue;
+        }
+        skipping = false;
+      }
+      kept.push(line);
+    }
+    return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  /**
+   * Sequential card number for a record result. Continuous within the
+   * message's record cards; when the backend reports pagination
+   * (data.page/page_size), numbering continues across pages instead of
+   * restarting at 1.
+   */
+  cardNumber(msg: ChatUiMessage, index: number): number {
+    const results = msg.results || [];
+    let position = 0;
+    for (let i = 0; i <= index && i < results.length; i++) {
+      if (this.isRecordResult(results[i])) {
+        position++;
+      }
+    }
+    const data = msg.data || null;
+    const page = Number(data?.page) || 0;
+    const size = Number(data?.page_size) || 0;
+    const base = page > 0 && size > 0 ? (page - 1) * size : 0;
+    return base + position;
   }
 
   private escapeHtml(text: string): string {
@@ -773,9 +856,9 @@ export class ChatbotComponent {
     }
     switch ((item.type || "").toLowerCase()) {
       case "policy":
-        return { label: "View Policy", type: "VIEW_POLICY", route: item.route };
+        return { label: "View Policy Details", type: "VIEW_POLICY", route: item.route };
       case "scheme":
-        return { label: "View Scheme", type: "VIEW_SCHEME", route: item.route };
+        return { label: "View Scheme Details", type: "VIEW_SCHEME", route: item.route };
       case "statistic":
         return { label: "View All", type: "NAVIGATE", route: item.route };
       case "user":

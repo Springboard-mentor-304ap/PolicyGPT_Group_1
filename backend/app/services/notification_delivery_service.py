@@ -44,9 +44,7 @@ def build_notification_sms(notification: Notification) -> str:
 
     category = tax.resolve_category(notification.notification_type)
     prefix = {
-        tax.NotificationCategory.ADMIN_REQUEST.value: (
-            "PolicyGPT: Action needed"
-        ),
+        tax.NotificationCategory.ADMIN_REQUEST.value: ("PolicyGPT: Action needed"),
         tax.NotificationCategory.APPROVAL.value: "PolicyGPT: Decision",
         tax.NotificationCategory.DEADLINE.value: "PolicyGPT: Reminder",
     }.get(category, "PolicyGPT")
@@ -56,9 +54,7 @@ def build_notification_sms(notification: Notification) -> str:
     return _fit(f"{prefix} - {title}: {body}", 160)
 
 
-
 class NotificationDeliveryService:
-
     @staticmethod
     def deliver_in_app(
         db: Session,
@@ -251,6 +247,68 @@ class NotificationDeliveryService:
         return delivery
 
     @classmethod
+    def deliver_external(
+        cls,
+        db: Session,
+        notification: Notification,
+        user: User | None = None,
+        preference: NotificationPreference | None = None,
+    ) -> dict[str, Any]:
+        """Send only the EMAIL/SMS legs for an already-stored notification.
+
+        Used by background workers after the request has committed the
+        in-app row. Never creates the notification itself and never
+        touches in-app delivery bookkeeping.
+        """
+        from app.services.notification_preference_rule_service import (
+            resolve_channels_for_user,
+        )
+
+        deliveries = []
+        target_user = user
+        if not target_user and notification.user_id:
+            target_user = (
+                db.query(User).filter(User.user_id == notification.user_id).first()
+            )
+        if not target_user:
+            return {"deliveries": deliveries}
+        if not preference:
+            preference = (
+                db.query(NotificationPreference)
+                .filter(NotificationPreference.user_id == target_user.user_id)
+                .first()
+            )
+        channels = resolve_channels_for_user(
+            db=db,
+            user_id=target_user.user_id,
+            notification_type=notification.notification_type,
+            preference=preference,
+        )
+        try:
+            email_delivery = cls.deliver_email(
+                db=db,
+                notification=notification,
+                user=target_user,
+                is_enabled_by_preference=channels["email"],
+            )
+            if email_delivery:
+                deliveries.append(email_delivery)
+        except Exception as e:
+            logger.error(f"Email delivery error (non-fatal): {e}")
+        try:
+            sms_delivery = cls.deliver_sms(
+                db=db,
+                notification=notification,
+                user=target_user,
+                is_enabled_by_preference=channels["sms"],
+            )
+            if sms_delivery:
+                deliveries.append(sms_delivery)
+        except Exception as e:
+            logger.error(f"SMS delivery error (non-fatal): {e}")
+        return {"deliveries": deliveries}
+
+    @classmethod
     def deliver(
         cls,
         db: Session,
@@ -277,8 +335,7 @@ class NotificationDeliveryService:
             logger.error(f"In-App delivery recording error: {e}")
 
         if not user and notification.user_id:
-            user = db.query(User).filter(
-                User.user_id == notification.user_id).first()
+            user = db.query(User).filter(User.user_id == notification.user_id).first()
 
         # If system broadcast without specific user, in-app is sufficient
         if not user:
@@ -318,9 +375,8 @@ class NotificationDeliveryService:
                 db.commit()
             except Exception as exc:
                 logger.debug(
-                    "Could not mark in-app-suppressed notification "
-                    "read: %s",
-                    exc)
+                    "Could not mark in-app-suppressed notification read: %s", exc
+                )
 
         # 2. Email Delivery via Brevo
         try:
@@ -388,9 +444,7 @@ class NotificationDeliveryService:
 
         # Batch the notification + user lookups (2 IN queries) instead of
         # 2 sequential lookups per delivery row.
-        notif_ids = list(
-            {d.notification_id for d in candidates if d.notification_id}
-        )
+        notif_ids = list({d.notification_id for d in candidates if d.notification_id})
         notifications = (
             {
                 n.notification_id: n
@@ -402,11 +456,7 @@ class NotificationDeliveryService:
             else {}
         )
         user_ids = list(
-            {
-                n.user_id
-                for n in notifications.values()
-                if n.user_id is not None
-            }
+            {n.user_id for n in notifications.values() if n.user_id is not None}
         )
         users = (
             {
@@ -421,40 +471,43 @@ class NotificationDeliveryService:
             notification = notifications.get(delivery.notification_id)
             if notification is None:
                 continue
-            user = (
-                users.get(notification.user_id)
-                if notification.user_id
-                else None
-            )
+            user = users.get(notification.user_id) if notification.user_id else None
 
             delivery.attempt_count += 1
             db.commit()
 
             try:
                 if delivery.channel == "EMAIL":
-                    result = send_notification_email(
-                        recipient_email=user.email,
-                        title=notification.title,
-                        message=notification.message,
-                        action_url=notification.action_url,
-                        notification_type=notification.notification_type,
-                    ) if user and user.email else {
-                        "success": False,
-                        "provider": "BREVO",
-                        "error": "Recipient has no email address",
-                    }
+                    result = (
+                        send_notification_email(
+                            recipient_email=user.email,
+                            title=notification.title,
+                            message=notification.message,
+                            action_url=notification.action_url,
+                            notification_type=notification.notification_type,
+                        )
+                        if user and user.email
+                        else {
+                            "success": False,
+                            "provider": "BREVO",
+                            "error": "Recipient has no email address",
+                        }
+                    )
                 else:
-                    result = send_sms(
-                        recipient_phone=user.phone,
-                        content=build_notification_sms(notification),
-                    ) if user and user.phone else {
-                        "success": False,
-                        "provider": "BREVO",
-                        "error": "Recipient has no phone number",
-                    }
+                    result = (
+                        send_sms(
+                            recipient_phone=user.phone,
+                            content=build_notification_sms(notification),
+                        )
+                        if user and user.phone
+                        else {
+                            "success": False,
+                            "provider": "BREVO",
+                            "error": "Recipient has no phone number",
+                        }
+                    )
             except Exception as exc:
-                result = {"success": False,
-                    "provider": "BREVO", "error": str(exc)}
+                result = {"success": False, "provider": "BREVO", "error": str(exc)}
 
             now = _now()
             if result.get("success"):
@@ -507,4 +560,3 @@ class NotificationDeliveryService:
                 synchronize_session=False,
             )
         )
-

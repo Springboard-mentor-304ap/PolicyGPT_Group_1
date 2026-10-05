@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, shareReplay, tap } from 'rxjs/operators';
+import { Observable, of, throwError, timeout } from 'rxjs';
+import { catchError, finalize, shareReplay, tap } from 'rxjs/operators';
 import { Auth } from './auth';
 
 import {
@@ -59,6 +59,7 @@ export class PolicyService {
       return ongoing as Observable<T>;
     }
     const req = fetchFn().pipe(
+      timeout(30_000),
       tap((data) => {
         if (this.cache.size >= PolicyService.MAX_ENTRIES) {
           const oldest = this.cache.keys().next();
@@ -67,11 +68,14 @@ export class PolicyService {
           }
         }
         this.cache.set(key, { data, timestamp: Date.now() });
-        this.inflight.delete(key);
       }),
       catchError((err) => {
-        this.inflight.delete(key);
         return throwError(() => err);
+      }),
+      // Release the in-flight slot on success, error, timeout, or
+      // unsubscribe so a hung request never blocks that key forever.
+      finalize(() => {
+        this.inflight.delete(key);
       }),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
@@ -88,6 +92,7 @@ export class PolicyService {
 
   clearCache(): void {
     this.cache.clear();
+    this.inflight.clear();
   }
 
   // ============================================================

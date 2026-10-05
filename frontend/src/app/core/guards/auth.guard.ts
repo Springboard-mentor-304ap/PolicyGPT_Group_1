@@ -8,17 +8,19 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   // =======================================================
-  // CHECK TOKEN
+  // CHECK TOKEN (presence + client-side expiry)
   // =======================================================
+  // An expired JWT must not pass the guard: without the exp check the
+  // user reaches the page and only fails on the first API 401.
 
   const token = authService.getToken();
 
-  // =======================================================
-  // USER IS LOGGED IN
-  // =======================================================
+  if (token && !isTokenExpired(token)) {
+    return true;
+  }
 
   if (token) {
-    return true;
+    authService.logout();
   }
 
   // =======================================================
@@ -31,3 +33,17 @@ export const authGuard: CanActivateFn = (route, state) => {
     },
   });
 };
+
+/** Best-effort client-side exp check; the backend remains authoritative. */
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] ?? ""));
+    const exp = Number(payload?.exp);
+    if (!Number.isFinite(exp)) {
+      return false;
+    }
+    return Date.now() / 1000 >= exp;
+  } catch {
+    return true;
+  }
+}

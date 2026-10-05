@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
 )
@@ -20,8 +21,12 @@ from app.db.database import Base
 
 
 class OTPVerification(Base):
-
     __tablename__ = "otp_verifications"
+    __table_args__ = (
+        # Hot paths: latest-unused OTP per (user, channel) and the hourly
+        # rate-limit count per user.
+        Index("ix_otp_user_channel_used", "user_id", "channel", "used"),
+    )
 
     # =====================================================
     # ID

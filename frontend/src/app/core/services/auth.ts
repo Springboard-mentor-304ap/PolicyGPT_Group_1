@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, Subject, of, shareReplay, tap } from "rxjs";
+import { Observable, Subject, of, shareReplay, tap, timeout } from "rxjs";
 import { finalize } from "rxjs/operators";
 import { environment } from '../../../environments/environment';
 
@@ -50,6 +50,18 @@ export class Auth {
 
   private readonly userKey = "policygpt_user";
 
+  /**
+   * Upper bound for auth HTTP calls. The forgot-password / OTP endpoints
+   * block on Brevo HTTP (10s) + SMTP fallback (10s) by design — the OTP
+   * row is committed before the send and the code must actually be
+   * delivered before the user can proceed — so they get a wider bound.
+   * Everything else (login, verify, reset) is DB-only and uses 30s.
+   * Without a bound a hung socket leaves the UI on "Sending..." forever:
+   * the pages' finalize() only runs when the request terminates.
+   */
+  private static readonly DELIVERY_TIMEOUT_MS = 45_000;
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
+
   /** Emits on logout so live connections (notification WebSocket) can close. */
   private readonly loggedOutSubject = new Subject<void>();
 
@@ -67,6 +79,7 @@ export class Auth {
     };
 
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, loginData).pipe(
+      timeout(Auth.REQUEST_TIMEOUT_MS),
       tap((response: AuthResponse) => {
         if (response?.access_token) {
           this.setToken(response.access_token);
@@ -87,6 +100,7 @@ export class Auth {
 
   loginAsGuest(): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/guest-login`, {}).pipe(
+      timeout(Auth.REQUEST_TIMEOUT_MS),
       tap((response: AuthResponse) => {
         if (response?.access_token) {
           this.setToken(response.access_token);
@@ -148,6 +162,7 @@ export class Auth {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/register`, registerData)
       .pipe(
+        timeout(Auth.REQUEST_TIMEOUT_MS),
         tap((response: AuthResponse) => {
           // ------------------------------------------------
           // PUBLIC REGISTRATION
@@ -208,6 +223,7 @@ export class Auth {
       this.currentUserRequest$ = this.http
         .get<AuthUser>(`${this.apiUrl}/me`)
         .pipe(
+          timeout(Auth.REQUEST_TIMEOUT_MS),
           tap((user: AuthUser) => {
             if (user) {
               this.setUser(user);
@@ -301,7 +317,7 @@ export class Auth {
       email: isEmail ? email.trim().toLowerCase() : null,
       phone: isEmail ? null : phone,
       channel,
-    });
+    }).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -321,7 +337,7 @@ export class Auth {
       email: isEmail ? email.trim().toLowerCase() : null,
       phone: isEmail ? null : phone,
       channel,
-    });
+    }).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -332,7 +348,7 @@ export class Auth {
     return this.http.post<{ message: string }>(
       `${this.apiUrl}/forgot-password-link`,
       { email: email.trim().toLowerCase() },
-    );
+    ).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -344,7 +360,7 @@ export class Auth {
     return this.http.get<{ valid: boolean; message: string }>(
       `${this.apiUrl}/reset-token-status`,
       { params },
-    );
+    ).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -373,7 +389,7 @@ export class Auth {
       phone: isEmail ? null : phone,
       otp: otp.trim(),
       channel,
-    });
+    }).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -391,7 +407,7 @@ export class Auth {
       token,
       new_password: newPassword,
       confirm_password: confirmPassword,
-    });
+    }).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================

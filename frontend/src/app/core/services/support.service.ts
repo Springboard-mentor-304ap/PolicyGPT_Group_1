@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import {
   FAQ,
   SupportRequest,
@@ -15,6 +16,9 @@ import { environment } from '../../../environments/environment';
 })
 export class SupportService {
   private readonly baseUrl = `${environment.apiUrl}/support`;
+  /** Fail-fast bound so a hung POST surfaces an actionable error instead
+   * of a stuck spinner; the backend dedupes retries by content. */
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -30,7 +34,9 @@ export class SupportService {
     if (category && category.trim() && category.trim().toLowerCase() !== 'all') {
       params = params.set('category', category.trim());
     }
-    return this.http.get<FAQ[]>(`${this.baseUrl}/faqs`, { params });
+    return this.http
+      .get<FAQ[]>(`${this.baseUrl}/faqs`, { params })
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -38,7 +44,9 @@ export class SupportService {
    * GET /support/faqs/categories
    */
   getFaqCategories(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/faqs/categories`);
+    return this.http
+      .get<string[]>(`${this.baseUrl}/faqs/categories`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -46,15 +54,31 @@ export class SupportService {
    * GET /support/faqs/{id}
    */
   getFaq(id: number): Observable<FAQ> {
-    return this.http.get<FAQ>(`${this.baseUrl}/faqs/${id}`);
+    return this.http
+      .get<FAQ>(`${this.baseUrl}/faqs/${id}`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
    * Submit a new support request.
    * POST /support/requests
+   * An idempotency key may be supplied per form instance so a retried
+   * POST (timeout, double-click) returns the original ticket instead of
+   * a duplicate; the backend also dedupes by content as the authority.
    */
-  submitSupportRequest(data: SupportRequestCreate): Observable<SupportRequest> {
-    return this.http.post<SupportRequest>(`${this.baseUrl}/requests`, data);
+  submitSupportRequest(
+    data: SupportRequestCreate,
+    idempotencyKey?: string,
+  ): Observable<SupportRequest> {
+    let headers: HttpHeaders | undefined;
+    if (idempotencyKey && idempotencyKey.trim()) {
+      headers = new HttpHeaders({
+        'Idempotency-Key': idempotencyKey.trim(),
+      });
+    }
+    return this.http
+      .post<SupportRequest>(`${this.baseUrl}/requests`, data, { headers })
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -62,7 +86,9 @@ export class SupportService {
    * GET /support/requests
    */
   getMySupportRequests(): Observable<SupportRequest[]> {
-    return this.http.get<SupportRequest[]>(`${this.baseUrl}/requests`);
+    return this.http
+      .get<SupportRequest[]>(`${this.baseUrl}/requests`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -70,7 +96,9 @@ export class SupportService {
    * GET /support/requests/{id}
    */
   getSupportRequest(id: number): Observable<SupportRequest> {
-    return this.http.get<SupportRequest>(`${this.baseUrl}/requests/${id}`);
+    return this.http
+      .get<SupportRequest>(`${this.baseUrl}/requests/${id}`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -92,10 +120,12 @@ export class SupportService {
     if (filters?.search && filters.search.trim()) {
       params = params.set('search', filters.search.trim());
     }
-    return this.http.get<AdminSupportRequest[]>(
-      `${this.baseUrl}/admin/requests`,
-      { params },
-    );
+    return this.http
+      .get<AdminSupportRequest[]>(
+        `${this.baseUrl}/admin/requests`,
+        { params },
+      )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -103,9 +133,11 @@ export class SupportService {
    * GET /support/admin/requests/{id}
    */
   getSupportRequestAdmin(id: number): Observable<AdminSupportRequest> {
-    return this.http.get<AdminSupportRequest>(
-      `${this.baseUrl}/admin/requests/${id}`,
-    );
+    return this.http
+      .get<AdminSupportRequest>(
+        `${this.baseUrl}/admin/requests/${id}`,
+      )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 
   /**
@@ -116,9 +148,11 @@ export class SupportService {
     id: number,
     payload: SupportRequestRespond,
   ): Observable<AdminSupportRequest> {
-    return this.http.patch<AdminSupportRequest>(
-      `${this.baseUrl}/admin/requests/${id}`,
-      payload,
-    );
+    return this.http
+      .patch<AdminSupportRequest>(
+        `${this.baseUrl}/admin/requests/${id}`,
+        payload,
+      )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 }

@@ -86,9 +86,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def in_app_suppressed_types(
-    db: Session, user_id: int, user_role: str
-) -> set[str]:
+def in_app_suppressed_types(db: Session, user_id: int, user_role: str) -> set[str]:
     """Notification types this user has switched off for the in-app channel.
 
     Two database queries, then pure in-memory resolution. The result is cached
@@ -167,9 +165,7 @@ def build_enrichment_prefetch(db: Session, notifs) -> dict[str, dict]:
     policies = (
         {
             p.policy_id: p
-            for p in db.query(Policy)
-            .filter(Policy.policy_id.in_(policy_ids))
-            .all()
+            for p in db.query(Policy).filter(Policy.policy_id.in_(policy_ids)).all()
         }
         if policy_ids
         else {}
@@ -177,9 +173,7 @@ def build_enrichment_prefetch(db: Session, notifs) -> dict[str, dict]:
     schemes = (
         {
             s.scheme_id: s
-            for s in db.query(Scheme)
-            .filter(Scheme.scheme_id.in_(scheme_ids))
-            .all()
+            for s in db.query(Scheme).filter(Scheme.scheme_id.in_(scheme_ids)).all()
         }
         if scheme_ids
         else {}
@@ -214,10 +208,7 @@ def enrich_notification(
     user_role: str = "CITIZEN",
     user_id: int | None = None,
 ) -> dict[str, Any]:
-    (
-        "Enrich notification model with dynamic entity details from "
-        "Policy, Scheme, User, etc."
-    )
+    "Enrich notification model with dynamic entity details from Policy, Scheme, User, etc."
     norm_role = normalize_role(user_role)
     data = {
         "notification_id": notif.notification_id,
@@ -225,8 +216,7 @@ def enrich_notification(
         "title": notif.title,
         "message": notif.message,
         "notification_type": notif.notification_type,
-        "category": notif.category
-        or tax.resolve_category(notif.notification_type),
+        "category": notif.category or tax.resolve_category(notif.notification_type),
         "priority": tax.normalize_priority(notif.priority),
         "channel": notif.channel or "IN_APP",
         "action_url": notif.action_url,
@@ -276,9 +266,7 @@ def enrich_notification(
             prefetch,
             "policies",
             policy_id,
-            lambda: db.query(Policy)
-            .filter(Policy.policy_id == policy_id)
-            .first(),
+            lambda: db.query(Policy).filter(Policy.policy_id == policy_id).first(),
         )
         if policy and _entity_visible(policy, norm_role, user_id):
             data["entity_title"] = policy.title
@@ -305,14 +293,14 @@ def enrich_notification(
                         prefetch,
                         "users",
                         policy.approved_by,
-                        lambda: db.query(User)
-                        .filter(User.user_id == policy.approved_by)
-                        .first(),
+                        lambda: (
+                            db.query(User)
+                            .filter(User.user_id == policy.approved_by)
+                            .first()
+                        ),
                     )
                     if approver:
-                        data["decision_by_name"] = (
-                            approver.full_name or approver.email
-                        )
+                        data["decision_by_name"] = approver.full_name or approver.email
                         data["decision_date"] = policy.updated_at
 
                 if policy.created_by:
@@ -320,14 +308,14 @@ def enrich_notification(
                         prefetch,
                         "users",
                         policy.created_by,
-                        lambda: db.query(User)
-                        .filter(User.user_id == policy.created_by)
-                        .first(),
+                        lambda: (
+                            db.query(User)
+                            .filter(User.user_id == policy.created_by)
+                            .first()
+                        ),
                     )
                     if creator:
-                        data["submitted_by_name"] = (
-                            creator.full_name or creator.email
-                        )
+                        data["submitted_by_name"] = creator.full_name or creator.email
                         data["submitted_date"] = policy.created_at
 
     # Scheme Entity Lookup
@@ -339,9 +327,7 @@ def enrich_notification(
             prefetch,
             "schemes",
             scheme_id,
-            lambda: db.query(Scheme)
-            .filter(Scheme.scheme_id == scheme_id)
-            .first(),
+            lambda: db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first(),
         )
         if scheme and _entity_visible(scheme, norm_role, user_id):
             data["entity_title"] = scheme.name
@@ -364,9 +350,7 @@ def enrich_notification(
                 )
 
             if scheme.application_end_date:
-                data["deadline_date"] = scheme.application_end_date.strftime(
-                    "%d %B %Y"
-                )
+                data["deadline_date"] = scheme.application_end_date.strftime("%d %B %Y")
                 remaining = (
                     scheme.application_end_date.replace(tzinfo=None)
                     - datetime.now().replace(tzinfo=None)
@@ -378,14 +362,14 @@ def enrich_notification(
                     prefetch,
                     "users",
                     scheme.approved_by,
-                    lambda: db.query(User)
-                    .filter(User.user_id == scheme.approved_by)
-                    .first(),
+                    lambda: (
+                        db.query(User)
+                        .filter(User.user_id == scheme.approved_by)
+                        .first()
+                    ),
                 )
                 if approver:
-                    data["decision_by_name"] = (
-                        approver.full_name or approver.email
-                    )
+                    data["decision_by_name"] = approver.full_name or approver.email
                     data["decision_date"] = scheme.updated_at
 
             if not _is_public_role(norm_role) and scheme.created_by:
@@ -393,14 +377,12 @@ def enrich_notification(
                     prefetch,
                     "users",
                     scheme.created_by,
-                    lambda: db.query(User)
-                    .filter(User.user_id == scheme.created_by)
-                    .first(),
+                    lambda: (
+                        db.query(User).filter(User.user_id == scheme.created_by).first()
+                    ),
                 )
                 if creator:
-                    data["submitted_by_name"] = (
-                        creator.full_name or creator.email
-                    )
+                    data["submitted_by_name"] = creator.full_name or creator.email
                     data["submitted_date"] = scheme.created_at
 
     # User Entity Lookup (staff-only: never expose user records to
@@ -414,15 +396,11 @@ def enrich_notification(
             prefetch,
             "users",
             notif.entity_id,
-            lambda: db.query(User)
-            .filter(User.user_id == notif.entity_id)
-            .first(),
+            lambda: db.query(User).filter(User.user_id == notif.entity_id).first(),
         )
         if target_user:
             data["entity_title"] = target_user.full_name or target_user.email
-            data["entity_status"] = (
-                "ACTIVE" if target_user.is_active else "INACTIVE"
-            )
+            data["entity_status"] = "ACTIVE" if target_user.is_active else "INACTIVE"
             data["entity_department"] = target_user.role
 
     # Request Type derivation
@@ -441,9 +419,11 @@ def enrich_notification(
                 prefetch,
                 "schemes",
                 notif.related_scheme_id,
-                lambda: db.query(Scheme)
-                .filter(Scheme.scheme_id == notif.related_scheme_id)
-                .first(),
+                lambda: (
+                    db.query(Scheme)
+                    .filter(Scheme.scheme_id == notif.related_scheme_id)
+                    .first()
+                ),
             )
             if (
                 s_lookup
@@ -463,13 +443,9 @@ def enrich_notification(
     # feedback detail endpoint's ownership rule).
     if notif.entity_type == "FEEDBACK" and notif.entity_id:
         feedback = (
-            db.query(Feedback)
-            .filter(Feedback.feedback_id == notif.entity_id)
-            .first()
+            db.query(Feedback).filter(Feedback.feedback_id == notif.entity_id).first()
         )
-        if feedback and (
-            norm_role == "ADMIN" or feedback.user_id == user_id
-        ):
+        if feedback and (norm_role == "ADMIN" or feedback.user_id == user_id):
             data["feedback_status"] = feedback.status
             data["feedback_subject"] = feedback.subject
             data["feedback_message"] = feedback.message
@@ -501,8 +477,7 @@ def _entity_visible(entity, norm_role: str, user_id: int | None) -> bool:
         return True
     if norm_role == "GOVERNMENT_OFFICIAL":
         return status == "APPROVED" or (
-            user_id is not None
-            and getattr(entity, "created_by", None) == user_id
+            user_id is not None and getattr(entity, "created_by", None) == user_id
         )
     return status == "APPROVED"
 
@@ -510,8 +485,18 @@ def _entity_visible(entity, norm_role: str, user_id: int | None) -> bool:
 def create_notification(
     db: Session,
     data: NotificationCreate,
+    background_tasks=None,
 ) -> Notification:
-    """Create in-app notification in DB and trigger delivery pipeline."""
+    """Create in-app notification in DB and trigger delivery pipeline.
+
+    The in-app row + IN_APP delivery bookkeeping are always committed
+    synchronously before returning. When ``background_tasks`` (a FastAPI
+    BackgroundTasks instance) is supplied, the slow Brevo/SMTP/SMS legs
+    are deferred to a background worker with its own DB session so the
+    API response does not wait on external I/O and never holds its DB
+    connection across network calls. Without it (tests, scheduler,
+    direct service callers) delivery stays fully synchronous.
+    """
     now = _now()
     notification = Notification(
         user_id=data.user_id,
@@ -550,11 +535,29 @@ def create_notification(
         ),
     )
 
-    # Deliver according to user channels and preferences
-    try:
-        NotificationDeliveryService.deliver(db=db, notification=notification)
-    except Exception as e:
-        logger.error(f"Unified delivery execution error: {e}")
+    if background_tasks is not None:
+        # Fast path: record IN_APP synchronously (DB-only, no network),
+        # then hand the slow external legs to the background worker.
+        try:
+            NotificationDeliveryService.deliver_in_app(db=db, notification=notification)
+        except Exception as e:
+            logger.error(f"In-App delivery recording error: {e}")
+        try:
+            from app.services.delivery_queue import (
+                schedule_external_delivery,
+            )
+
+            schedule_external_delivery(
+                background_tasks, int(notification.notification_id)
+            )
+        except Exception as e:
+            logger.error(f"Unified delivery execution error: {e}")
+    else:
+        # Deliver according to user channels and preferences
+        try:
+            NotificationDeliveryService.deliver(db=db, notification=notification)
+        except Exception as e:
+            logger.error(f"Unified delivery execution error: {e}")
 
     # Push to any live WebSocket so the bell and list update without a refresh.
     _publish_notification(notification)
@@ -595,10 +598,7 @@ def _dedupe_key(data: NotificationCreate) -> tuple:
 
 
 def _is_duplicate(db: Session, data: NotificationCreate) -> bool:
-    (
-        "Guard against a repeated business event producing a second "
-        "notification."
-    )
+    "Guard against a repeated business event producing a second notification."
     if not data.user_id or data.entity_id is None:
         return False
     since = _now() - timedelta(minutes=DEDUPE_WINDOW_MINUTES)
@@ -656,6 +656,7 @@ def dispatch_notification(
     db: Session,
     data: NotificationCreate,
     respect_preferences: bool = True,
+    background_tasks=None,
 ) -> Notification | None:
     """Create a notification for a single recipient, honouring their settings.
 
@@ -686,16 +687,14 @@ def dispatch_notification(
                 entity_type=data.entity_type,
                 entity_id=data.entity_id,
                 description=(
-                    f"{data.notification_type} - all channels disabled "
-                    "by preference"
+                    f"{data.notification_type} - all channels disabled by preference"
                 ),
             )
             return None
 
     if _is_duplicate(db, data):
         logger.debug(
-            "Notification suppressed as duplicate: user=%s type=%s "
-            "entity=%s/%s",
+            "Notification suppressed as duplicate: user=%s type=%s entity=%s/%s",
             data.user_id,
             data.notification_type,
             data.entity_type,
@@ -703,17 +702,18 @@ def dispatch_notification(
         )
         return None
 
-    return create_notification(db, data)
+    return create_notification(db, data, background_tasks=background_tasks)
 
 
 def dispatch_to_users(
     db: Session,
     items: list[NotificationCreate],
+    background_tasks=None,
 ) -> list[Notification]:
     """Fan a batch out, applying preference + dedupe per recipient."""
     created: list[Notification] = []
     for item in items:
-        result = dispatch_notification(db, item)
+        result = dispatch_notification(db, item, background_tasks=background_tasks)
         if result is not None:
             created.append(result)
     return created
@@ -745,9 +745,7 @@ def public_audience(
     candidates = (
         db.query(User)
         .filter(
-            User.role.in_(
-                ["CITIZEN", "RESEARCHER", "ORGANIZATION", "ORGANISATION"]
-            ),
+            User.role.in_(["CITIZEN", "RESEARCHER", "ORGANIZATION", "ORGANISATION"]),
             or_(User.is_active.is_(True), User.is_active.is_(None)),
         )
         .all()
@@ -781,9 +779,7 @@ def admin_audience(
     user's id, never by a hard-coded name.
     """
     exclude = exclude_user_ids or set()
-    admins = (
-        db.query(User).filter(User.role.in_(["ADMIN", "ADMINISTRATOR"])).all()
-    )
+    admins = db.query(User).filter(User.role.in_(["ADMIN", "ADMINISTRATOR"])).all()
     return [a for a in admins if a.user_id not in exclude and a.is_active]
 
 
@@ -837,9 +833,7 @@ def get_user_notifications(
     # always agree.
     suppressed = in_app_suppressed_types(db, user_id, norm_role)
     if suppressed:
-        query = query.filter(
-            Notification.notification_type.notin_(sorted(suppressed))
-        )
+        query = query.filter(Notification.notification_type.notin_(sorted(suppressed)))
 
     # Search filter
     if search and search.strip():
@@ -939,9 +933,7 @@ def get_user_notifications(
                     )
                 )
             else:
-                query = query.filter(
-                    Notification.notification_type.ilike(f"%{cat}%")
-                )
+                query = query.filter(Notification.notification_type.ilike(f"%{cat}%"))
         elif norm_role == "GOVERNMENT_OFFICIAL":
             if cat in ("policy_decisions", "policy"):
                 query = query.filter(
@@ -962,31 +954,23 @@ def get_user_notifications(
                     )
                 )
             else:
-                query = query.filter(
-                    Notification.notification_type.ilike(f"%{cat}%")
-                )
+                query = query.filter(Notification.notification_type.ilike(f"%{cat}%"))
         else:
             # CITIZEN, RESEARCHER, ORGANIZATION
             if cat in ("policy_alerts", "policy"):
                 query = query.filter(
-                    Notification.notification_type.in_(
-                        ["NEW_POLICY", "POLICY_UPDATE"]
-                    )
+                    Notification.notification_type.in_(["NEW_POLICY", "POLICY_UPDATE"])
                 )
             elif cat in ("scheme_updates", "scheme"):
                 query = query.filter(
-                    Notification.notification_type.in_(
-                        ["NEW_SCHEME", "SCHEME_UPDATE"]
-                    )
+                    Notification.notification_type.in_(["NEW_SCHEME", "SCHEME_UPDATE"])
                 )
             elif cat in ("deadline_reminders", "deadline"):
                 query = query.filter(
                     Notification.notification_type.in_(["DEADLINE_REMINDER"])
                 )
             else:
-                query = query.filter(
-                    Notification.notification_type.ilike(f"%{cat}%")
-                )
+                query = query.filter(Notification.notification_type.ilike(f"%{cat}%"))
 
     # Read / Unread filter
     if is_read is not None:
@@ -1069,10 +1053,7 @@ def _get_notification_record(
     user_id: int,
     user_role: str = "CITIZEN",
 ) -> Notification | None:
-    (
-        "Internal helper to fetch the raw notification with strict "
-        "role ownership validation."
-    )
+    "Internal helper to fetch the raw notification with strict role ownership validation."
     base_filter = get_base_notification_filter(user_id, user_role)
     return (
         db.query(Notification)
@@ -1090,10 +1071,7 @@ def get_notification_by_id(
     user_id: int,
     user_role: str = "CITIZEN",
 ) -> dict[str, Any] | None:
-    (
-        "Retrieve full-width notification details enriched with actual "
-        "backend entity data."
-    )
+    "Retrieve full-width notification details enriched with actual backend entity data."
     notif = _get_notification_record(db, notification_id, user_id, user_role)
     if not notif:
         return None
@@ -1106,9 +1084,7 @@ def mark_notification_read(
     user_id: int,
     user_role: str = "CITIZEN",
 ) -> dict[str, Any] | None:
-    notification = _get_notification_record(
-        db, notification_id, user_id, user_role
-    )
+    notification = _get_notification_record(db, notification_id, user_id, user_role)
     if not notification:
         return None
 
@@ -1126,9 +1102,7 @@ def mark_notification_unread(
     user_id: int,
     user_role: str = "CITIZEN",
 ) -> dict[str, Any] | None:
-    notification = _get_notification_record(
-        db, notification_id, user_id, user_role
-    )
+    notification = _get_notification_record(db, notification_id, user_id, user_role)
     if not notification:
         return None
 
@@ -1153,7 +1127,11 @@ def mark_all_notifications_read(
         db.query(Notification)
         .filter(base_filter, Notification.is_read.is_(False))
         .update(
-            {Notification.is_read: True, Notification.read_at: now, Notification.updated_at: now},
+            {
+                Notification.is_read: True,
+                Notification.read_at: now,
+                Notification.updated_at: now,
+            },
             synchronize_session=False,
         )
     )
@@ -1171,9 +1149,7 @@ def delete_notification(
     user_id: int,
     user_role: str = "CITIZEN",
 ) -> dict[str, Any] | None:
-    notification = _get_notification_record(
-        db, notification_id, user_id, user_role
-    )
+    notification = _get_notification_record(db, notification_id, user_id, user_role)
     if not notification:
         return None
 
@@ -1201,9 +1177,7 @@ def _visibility_filter(
     filters = [get_base_notification_filter(user_id, norm_role)]
     suppressed = in_app_suppressed_types(db, user_id, norm_role)
     if suppressed:
-        filters.append(
-            Notification.notification_type.notin_(sorted(suppressed))
-        )
+        filters.append(Notification.notification_type.notin_(sorted(suppressed)))
     return and_(*filters)
 
 
@@ -1239,14 +1213,11 @@ def get_notification_summary(
     row = (
         db.query(
             func.count(Notification.notification_id),
-            func.sum(
-                case((Notification.is_read.is_(False), 1), else_=0)
-            ),
+            func.sum(case((Notification.is_read.is_(False), 1), else_=0)),
             func.sum(
                 case(
                     (
-                        Notification.created_at
-                        >= _now() - timedelta(days=7),
+                        Notification.created_at >= _now() - timedelta(days=7),
                         1,
                     ),
                     else_=0,
@@ -1275,10 +1246,7 @@ def get_notification_summary(
 
 
 def get_admin_notification_stats(db: Session) -> dict[str, int]:
-    (
-        "Retrieve system-wide delivery monitoring statistics for "
-        "ADMINISTRATOR."
-    )
+    "Retrieve system-wide delivery monitoring statistics for ADMINISTRATOR."
     total_notifications = (
         db.query(func.count(Notification.notification_id)).scalar() or 0
     )
@@ -1297,13 +1265,9 @@ def get_admin_notification_stats(db: Session) -> dict[str, int]:
     def _d(channel: str, statuses) -> int:
         if isinstance(statuses, str):
             statuses = [statuses]
-        return sum(
-            by_channel_status.get((channel, s), 0) for s in statuses
-        )
+        return sum(by_channel_status.get((channel, s), 0) for s in statuses)
 
-    in_app_count = sum(
-        n for (c, _s), n in by_channel_status.items() if c == "IN_APP"
-    )
+    in_app_count = sum(n for (c, _s), n in by_channel_status.items() if c == "IN_APP")
     email_sent = _d("EMAIL", ["SENT", "DELIVERED"])
     email_failed = _d("EMAIL", "FAILED")
     sms_sent = _d("SMS", ["SENT", "DELIVERED"])
@@ -1314,9 +1278,7 @@ def get_admin_notification_stats(db: Session) -> dict[str, int]:
     delivered_count = sum(
         n for (_c, s), n in by_channel_status.items() if s == "DELIVERED"
     )
-    skipped_count = sum(
-        n for (_c, s), n in by_channel_status.items() if s == "SKIPPED"
-    )
+    skipped_count = sum(n for (_c, s), n in by_channel_status.items() if s == "SKIPPED")
 
     return {
         "total_notifications": total_notifications,
@@ -1355,9 +1317,7 @@ def get_admin_deliveries(
         "total": total,
         "page": page,
         "page_size": page_size,
-        "total_pages": (
-            (total + page_size - 1) // page_size if total > 0 else 1
-        ),
+        "total_pages": ((total + page_size - 1) // page_size if total > 0 else 1),
     }
 
 
@@ -1415,9 +1375,7 @@ def notify_admin_action_on_request(
     if actor is None:
         return []
 
-    others = admin_audience(
-        db, "ADMIN_ACTION_UPDATE", exclude_user_ids={int(actor_id)}
-    )
+    others = admin_audience(db, "ADMIN_ACTION_UPDATE", exclude_user_ids={int(actor_id)})
     if not others:
         return []
 
@@ -1453,14 +1411,10 @@ def notify_admin_action_on_request(
                 entity_id=entity_id,
                 source_name=resolved_actor,
                 related_policy_id=(
-                    entity_id
-                    if (link_entity and entity_type == "POLICY")
-                    else None
+                    entity_id if (link_entity and entity_type == "POLICY") else None
                 ),
                 related_scheme_id=(
-                    entity_id
-                    if (link_entity and entity_type == "SCHEME")
-                    else None
+                    entity_id if (link_entity and entity_type == "SCHEME") else None
                 ),
             )
             for other in others
@@ -1482,13 +1436,9 @@ def _notify_admins_of_request(
 ) -> list[Notification]:
     """Shared fan-out for every 'a government official asked for something'
     event. Every eligible administrator receives it."""
-    admins = admin_audience(
-        db, notification_type, exclude_user_ids=exclude_user_ids
-    )
+    admins = admin_audience(db, notification_type, exclude_user_ids=exclude_user_ids)
     if not admins:
-        logger.warning(
-            "No active administrators to notify for %s", notification_type
-        )
+        logger.warning("No active administrators to notify for %s", notification_type)
         return []
 
     requester_name = _display_name(requester)
@@ -1518,12 +1468,8 @@ def _notify_admins_of_request(
                 entity_type=entity_type,
                 entity_id=entity_id,
                 source_name=source_name or requester_name,
-                related_policy_id=(
-                    entity_id if entity_type == "POLICY" else None
-                ),
-                related_scheme_id=(
-                    entity_id if entity_type == "SCHEME" else None
-                ),
+                related_policy_id=(entity_id if entity_type == "POLICY" else None),
+                related_scheme_id=(entity_id if entity_type == "SCHEME" else None),
             )
             for admin in admins
         ],
@@ -1537,10 +1483,7 @@ def notify_policy_created(
     created_by_id: int,
     department: str | None = None,
 ) -> None:
-    (
-        "Notify every administrator when a Government Official "
-        "creates/adds a policy."
-    )
+    "Notify every administrator when a Government Official creates/adds a policy."
     _notify_admins_of_request(
         db=db,
         notification_type="POLICY_PENDING_REQUEST",
@@ -1549,8 +1492,7 @@ def notify_policy_created(
             f"Government Official "
             f"{_display_name(_user_by_id(db, created_by_id))}"
             f" submitted policy "
-            f'"{policy_title}".'
-            + (f" Department: {department}." if department else "")
+            f'"{policy_title}".' + (f" Department: {department}." if department else "")
         ),
         entity_type="POLICY",
         entity_id=policy_id,
@@ -1567,10 +1509,7 @@ def notify_policy_submitted(
     submitted_by_id: int,
     department: str | None = None,
 ) -> None:
-    (
-        "Notify every administrator when a Government Official "
-        "submits a policy."
-    )
+    "Notify every administrator when a Government Official submits a policy."
     _notify_admins_of_request(
         db=db,
         notification_type="POLICY_APPROVAL_REQUEST",
@@ -1614,11 +1553,7 @@ def notify_policy_approved(
                 title="Policy Approved",
                 message=(
                     f'Your policy "{policy_title}" has been approved'
-                    + (
-                        f" by {actor_name}."
-                        if actor_name
-                        else " by the Administrator."
-                    )
+                    + (f" by {actor_name}." if actor_name else " by the Administrator.")
                 ),
                 notification_type="POLICY_APPROVED",
                 priority=tax.PRIORITY_APPROVAL_RESULT.value,
@@ -1647,9 +1582,7 @@ def notify_policy_approved(
             user_id=actor_id,
             entity_type="POLICY",
             entity_id=policy_id,
-            description=(
-                f'Policy "{policy_title}" approved by admin {actor_id}'
-            ),
+            description=(f'Policy "{policy_title}" approved by admin {actor_id}'),
         )
 
     notify_policy_published(db, policy_id, policy_title, ministry=ministry)
@@ -1664,10 +1597,7 @@ def notify_policy_rejected(
     actor_id: int | None = None,
     actor_name: str | None = None,
 ) -> None:
-    (
-        "An administrator rejected a policy. No public notification "
-        "is emitted."
-    )
+    "An administrator rejected a policy. No public notification is emitted."
     reason_text = f" Reason: {reason}" if reason else ""
 
     if creator_id and creator_id != actor_id:
@@ -1676,17 +1606,14 @@ def notify_policy_rejected(
             NotificationCreate(
                 user_id=creator_id,
                 title="Policy Rejected",
-                message=(
-                    f'Your policy "{policy_title}" was rejected.{reason_text}'
-                ),
+                message=(f'Your policy "{policy_title}" was rejected.{reason_text}'),
                 notification_type="POLICY_REJECTED",
                 priority=tax.PRIORITY_APPROVAL_RESULT.value,
                 channel="IN_APP",
                 action_url=f"/policies/{policy_id}",
                 entity_type="POLICY",
                 entity_id=policy_id,
-                source_name=ministry_label(actor_name)
-                or "Ministry Review Board",
+                source_name=ministry_label(actor_name) or "Ministry Review Board",
                 related_policy_id=policy_id,
             ),
         )
@@ -1735,8 +1662,7 @@ def notify_policy_delete_requested(
             f"Government Official "
             f"{_display_name(_user_by_id(db, requested_by_id))}"
             f" requested deletion of "
-            f'"{policy_title}".'
-            + (f" Reason: {reason}" if reason else "")
+            f'"{policy_title}".' + (f" Reason: {reason}" if reason else "")
         ),
         entity_type="POLICY",
         entity_id=policy_id,
@@ -1762,8 +1688,7 @@ def notify_policy_archive_requested(
             f"Government Official "
             f"{_display_name(_user_by_id(db, requested_by_id))}"
             f" requested archival of "
-            f'"{policy_title}".'
-            + (f" Reason: {reason}" if reason else "")
+            f'"{policy_title}".' + (f" Reason: {reason}" if reason else "")
         ),
         entity_type="POLICY",
         entity_id=policy_id,
@@ -1780,10 +1705,7 @@ def notify_scheme_created(
     created_by_id: int,
     ministry: str | None = None,
 ) -> None:
-    (
-        "Notify every administrator when a Government Official "
-        "creates/adds a scheme."
-    )
+    "Notify every administrator when a Government Official creates/adds a scheme."
     _notify_admins_of_request(
         db=db,
         notification_type="SCHEME_PENDING_REQUEST",
@@ -1792,8 +1714,7 @@ def notify_scheme_created(
             f"Government Official "
             f"{_display_name(_user_by_id(db, created_by_id))}"
             f" submitted scheme "
-            f'"{scheme_title}".'
-            + (f" Ministry: {ministry}." if ministry else "")
+            f'"{scheme_title}".' + (f" Ministry: {ministry}." if ministry else "")
         ),
         entity_type="SCHEME",
         entity_id=scheme_id,
@@ -1810,10 +1731,7 @@ def notify_scheme_submitted(
     submitted_by_id: int,
     ministry: str | None = None,
 ) -> None:
-    (
-        "Notify every administrator when a Government Official "
-        "submits a scheme."
-    )
+    "Notify every administrator when a Government Official submits a scheme."
     _notify_admins_of_request(
         db=db,
         notification_type="SCHEME_APPROVAL_REQUEST",
@@ -1851,11 +1769,7 @@ def notify_scheme_approved(
                 title="Scheme Approved",
                 message=(
                     f'Your scheme "{scheme_title}" has been approved'
-                    + (
-                        f" by {actor_name}."
-                        if actor_name
-                        else " by the Administrator."
-                    )
+                    + (f" by {actor_name}." if actor_name else " by the Administrator.")
                 ),
                 notification_type="SCHEME_APPROVED",
                 priority=tax.PRIORITY_APPROVAL_RESULT.value,
@@ -1891,10 +1805,7 @@ def notify_scheme_rejected(
     actor_id: int | None = None,
     actor_name: str | None = None,
 ) -> None:
-    (
-        "An administrator rejected a scheme. No public notification "
-        "is emitted."
-    )
+    "An administrator rejected a scheme. No public notification is emitted."
     reason_text = f" Reason: {reason}" if reason else ""
 
     if creator_id and creator_id != actor_id:
@@ -1903,9 +1814,7 @@ def notify_scheme_rejected(
             NotificationCreate(
                 user_id=creator_id,
                 title="Scheme Rejected",
-                message=(
-                    f'Your scheme "{scheme_title}" was rejected.{reason_text}'
-                ),
+                message=(f'Your scheme "{scheme_title}" was rejected.{reason_text}'),
                 notification_type="SCHEME_REJECTED",
                 priority=tax.PRIORITY_APPROVAL_RESULT.value,
                 channel="IN_APP",
@@ -1946,8 +1855,7 @@ def notify_scheme_delete_requested(
             f"Government Official "
             f"{_display_name(_user_by_id(db, requested_by_id))}"
             f" requested deletion of "
-            f'"{scheme_title}".'
-            + (f" Reason: {reason}" if reason else "")
+            f'"{scheme_title}".' + (f" Reason: {reason}" if reason else "")
         ),
         entity_type="SCHEME",
         entity_id=scheme_id,
@@ -1973,8 +1881,7 @@ def notify_scheme_archive_requested(
             f"Government Official "
             f"{_display_name(_user_by_id(db, requested_by_id))}"
             f" requested archival of "
-            f'"{scheme_title}".'
-            + (f" Reason: {reason}" if reason else "")
+            f'"{scheme_title}".' + (f" Reason: {reason}" if reason else "")
         ),
         entity_type="SCHEME",
         entity_id=scheme_id,
@@ -2013,14 +1920,12 @@ def notify_request_decision(
     by_str = f" by {decision_by}" if decision_by else ""
     action = "approved" if is_approved else "rejected"
     msg = (
-        f'Your {request_type.lower()} request for {entity_type.lower()} '
+        f"Your {request_type.lower()} request for {entity_type.lower()} "
         f'"{entity_title}" has been {action}{by_str}.{reason_str}'
     )
 
     action_url = (
-        f"/policies/{entity_id}"
-        if entity_type == "POLICY"
-        else f"/schemes/{entity_id}"
+        f"/policies/{entity_id}" if entity_type == "POLICY" else f"/schemes/{entity_id}"
     )
 
     created = None
@@ -2039,14 +1944,10 @@ def notify_request_decision(
                 entity_id=entity_id,
                 source_name=decision_by or "Administrative Review Board",
                 related_policy_id=(
-                    entity_id
-                    if (link_entity and entity_type == "POLICY")
-                    else None
+                    entity_id if (link_entity and entity_type == "POLICY") else None
                 ),
                 related_scheme_id=(
-                    entity_id
-                    if (link_entity and entity_type == "SCHEME")
-                    else None
+                    entity_id if (link_entity and entity_type == "SCHEME") else None
                 ),
             ),
         )
@@ -2260,9 +2161,7 @@ def notify_scheme_updated(
 
     launched = action == "launched"
     title = (
-        f"New {ministry or 'Public'} Scheme Launched"
-        if launched
-        else "Scheme Updated"
+        f"New {ministry or 'Public'} Scheme Launched" if launched else "Scheme Updated"
     )
     message = (
         f'The {ministry or "Government"} has {action} "{scheme_title}". '
@@ -2454,9 +2353,7 @@ def notify_application_updated(
     """Notify applicant when scheme application status updates."""
     clean_status = status.replace("_", " ").title()
     title = f"Application Status: {clean_status}"
-    msg = (
-        f'Your application for "{scheme_name}" is now {clean_status.lower()}.'
-    )
+    msg = f'Your application for "{scheme_name}" is now {clean_status.lower()}.'
     if remarks:
         msg += f" Remarks: {remarks}"
 
@@ -2514,10 +2411,7 @@ def notify_deadline(
     deadline_date: str,
     days_remaining: int,
 ) -> Notification | None:
-    (
-        "Notify Citizen / Researcher / Organization about upcoming "
-        "scheme deadline."
-    )
+    "Notify Citizen / Researcher / Organization about upcoming scheme deadline."
     return dispatch_notification(
         db,
         NotificationCreate(
@@ -2545,11 +2439,9 @@ def notify_feedback_received(
     feedback_id: int,
     subject: str,
     user_id: int | None = None,
+    background_tasks=None,
 ) -> None:
-    (
-        "Notify ADMINISTRATORS ONLY when new feedback or grievance "
-        "is submitted."
-    )
+    "Notify ADMINISTRATORS ONLY when new feedback or grievance is submitted."
     for admin in admin_audience(db, "NEW_FEEDBACK"):
         dispatch_notification(
             db,
@@ -2568,6 +2460,7 @@ def notify_feedback_received(
                 entity_id=feedback_id,
                 source_name="Citizen Grievance Cell",
             ),
+            background_tasks=background_tasks,
         )
 
 
@@ -2577,11 +2470,9 @@ def notify_feedback_updated(
     subject: str,
     user_id: int,
     response_summary: str | None = None,
+    background_tasks=None,
 ) -> Notification | None:
-    (
-        "Notify the citizen who submitted the feedback that an "
-        "official response has been posted."
-    )
+    "Notify the citizen who submitted the feedback that an official response has been posted."
     resp_text = f": {response_summary}" if response_summary else "."
     return dispatch_notification(
         db,
@@ -2600,6 +2491,7 @@ def notify_feedback_updated(
             entity_id=feedback_id,
             source_name="Public Grievance Redressal",
         ),
+        background_tasks=background_tasks,
     )
 
 
@@ -2644,9 +2536,9 @@ def notify_new_user(db: Session, new_user: User) -> None:
                 user_id=admin.user_id,
                 title="New User Registration",
                 message=(
-                f'{new_user.full_name or "New user"} ({new_user.email}) '
-                f"registered as {new_user.role}."
-            ),
+                    f"{new_user.full_name or 'New user'} ({new_user.email}) "
+                    f"registered as {new_user.role}."
+                ),
                 notification_type="NEW_USER",
                 priority=tax.NotificationPriority.LOW.value,
                 channel="IN_APP",
@@ -2701,22 +2593,14 @@ class NotificationService:
     notify_policy_submitted = staticmethod(notify_policy_submitted)
     notify_policy_approved = staticmethod(notify_policy_approved)
     notify_policy_rejected = staticmethod(notify_policy_rejected)
-    notify_policy_delete_requested = staticmethod(
-        notify_policy_delete_requested
-    )
-    notify_policy_archive_requested = staticmethod(
-        notify_policy_archive_requested
-    )
+    notify_policy_delete_requested = staticmethod(notify_policy_delete_requested)
+    notify_policy_archive_requested = staticmethod(notify_policy_archive_requested)
     notify_scheme_created = staticmethod(notify_scheme_created)
     notify_scheme_submitted = staticmethod(notify_scheme_submitted)
     notify_scheme_approved = staticmethod(notify_scheme_approved)
     notify_scheme_rejected = staticmethod(notify_scheme_rejected)
-    notify_scheme_delete_requested = staticmethod(
-        notify_scheme_delete_requested
-    )
-    notify_scheme_archive_requested = staticmethod(
-        notify_scheme_archive_requested
-    )
+    notify_scheme_delete_requested = staticmethod(notify_scheme_delete_requested)
+    notify_scheme_archive_requested = staticmethod(notify_scheme_archive_requested)
     notify_request_decision = staticmethod(notify_request_decision)
     notify_scheme_updated = staticmethod(notify_scheme_updated)
     notify_application_submitted = staticmethod(notify_application_submitted)
@@ -2741,9 +2625,7 @@ class NotificationService:
     dispatch_to_users = staticmethod(dispatch_to_users)
     public_audience = staticmethod(public_audience)
     admin_audience = staticmethod(admin_audience)
-    notify_admin_action_on_request = staticmethod(
-        notify_admin_action_on_request
-    )
+    notify_admin_action_on_request = staticmethod(notify_admin_action_on_request)
 
     # Admin diagnostics
     get_admin_notification_stats = staticmethod(get_admin_notification_stats)

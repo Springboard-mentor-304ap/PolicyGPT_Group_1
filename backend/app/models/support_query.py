@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
@@ -7,7 +7,12 @@ from app.db.database import Base
 
 class SupportQuery(Base):
     __tablename__ = "support_queries"
-    __table_args__ = {"schema": "extensions"}
+    __table_args__ = (
+        # User ticket lists + retry-window dedupe filter on
+        # (user_id, created_at); most selective first.
+        Index("ix_support_queries_user_created", "user_id", "created_at"),
+        {"schema": "extensions"},
+    )
 
     query_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -78,8 +83,7 @@ class SupportQuery(Base):
     )
 
     user = relationship("User", foreign_keys=[user_id], lazy="joined")
-    assigned_user = relationship(
-        "User", foreign_keys=[assigned_to], lazy="select")
+    assigned_user = relationship("User", foreign_keys=[assigned_to], lazy="select")
 
     @property
     def request_id(self) -> str:

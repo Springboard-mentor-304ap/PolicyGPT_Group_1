@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject, finalize, takeUntil } from 'rxjs';
 import {
   AdminSupportRequest,
   SupportRequestRespond,
@@ -24,10 +25,11 @@ import {
     '../../feedback/admin-feedback/admin-feedback.component.scss',
   ],
 })
-export class AdminSupportComponent implements OnInit {
+export class AdminSupportComponent implements OnInit, OnDestroy {
   requests = signal<AdminSupportRequest[]>([]);
   loading = signal<boolean>(true);
   error = signal<string | null>(null);
+  private readonly destroy$ = new Subject<void>();
 
   // Filters
   searchQuery = signal<string>('');
@@ -117,21 +119,33 @@ export class AdminSupportComponent implements OnInit {
     this.loadAllRequests();
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadAllRequests(): void {
     this.loading.set(true);
     this.error.set(null);
 
-    this.supportService.getAllSupportRequests().subscribe({
-      next: (data) => {
-        this.requests.set(data || []);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to load support requests:', err);
-        this.error.set('Failed to load support requests from the server.');
-        this.loading.set(false);
-      },
-    });
+    this.supportService
+      .getAllSupportRequests()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.loading.set(false)),
+      )
+      .subscribe({
+        next: (data) => {
+          this.requests.set(data || []);
+        },
+        error: (err) => {
+          this.error.set(
+            err?.name === 'TimeoutError'
+              ? 'The request timed out. Please try again.'
+              : 'Failed to load support requests from the server.',
+          );
+        },
+      });
   }
 
   // =========================================================
@@ -153,7 +167,7 @@ export class AdminSupportComponent implements OnInit {
 
   saveResponse(): void {
     const item = this.selectedRequest();
-    if (!item) return;
+    if (!item || this.modalSubmitting()) return;
 
     this.modalSubmitting.set(true);
 
@@ -162,27 +176,32 @@ export class AdminSupportComponent implements OnInit {
       response: this.responseMessage().trim() || null,
     };
 
-    this.supportService.respondToSupportRequest(item.query_id, payload).subscribe({
-      next: (updated) => {
-        this.toastService.success(
-          'Response Saved',
-          'Official response has been recorded and the user was notified.'
-        );
-        this.requests.update((list) =>
-          list.map((r) => (r.query_id === updated.query_id ? updated : r))
-        );
-        this.modalSubmitting.set(false);
-        this.closeRespondModal();
-      },
-      error: (err) => {
-        console.error('Error saving support response:', err);
-        this.toastService.error(
-          'Update Failed',
-          err.error?.detail || 'Could not save support response.'
-        );
-        this.modalSubmitting.set(false);
-      },
-    });
+    this.supportService
+      .respondToSupportRequest(item.query_id, payload)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.modalSubmitting.set(false)),
+      )
+      .subscribe({
+        next: (updated) => {
+          this.toastService.success(
+            'Response Saved',
+            'Official response has been recorded and the user was notified.',
+          );
+          this.requests.update((list) =>
+            list.map((r) => (r.query_id === updated.query_id ? updated : r)),
+          );
+          this.closeRespondModal();
+        },
+        error: (err) => {
+          this.toastService.error(
+            'Update Failed',
+            err?.name === 'TimeoutError'
+              ? 'The request timed out. Please check whether the response was saved before retrying.'
+              : err.error?.detail || 'Could not save support response.',
+          );
+        },
+      });
   }
 
   resetFilters(): void {

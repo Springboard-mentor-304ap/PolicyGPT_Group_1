@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
 )
@@ -19,9 +20,13 @@ from app.db.database import Base
 # PASSWORD RESET TOKEN MODEL
 # =========================================================
 
-class PasswordResetToken(Base):
 
+class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
+    __table_args__ = (
+        # Reset-link validation looks up by token hash on every request.
+        Index("ix_password_reset_token_hash", "token_hash"),
+    )
 
     # =====================================================
     # ID

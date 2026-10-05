@@ -1,7 +1,15 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { BehaviorSubject, Observable, Subject, of, tap, throwError } from 'rxjs';
-import { catchError, shareReplay } from 'rxjs/operators';
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  of,
+  tap,
+  throwError,
+  timeout,
+} from 'rxjs';
+import { catchError, finalize, shareReplay } from 'rxjs/operators';
 import { Auth } from './auth';
 import {
   AdminNotificationStats,
@@ -59,6 +67,9 @@ export class NotificationService {
    * sequential calls within 20s reuse it. Mutations clear it; logout too.
    */
   private static readonly READ_TTL_MS = 20_000;
+  /** Upper bound so a hung request surfaces an error instead of a
+   * permanently stuck badge/list loader. */
+  private static readonly READ_TIMEOUT_MS = 30_000;
   private static readonly MAX_ENTRIES = 50;
   private readCache = new Map<string, { at: number; data: unknown }>();
   private readInflight = new Map<string, Observable<unknown>>();
@@ -68,6 +79,7 @@ export class NotificationService {
     // Optional-chained: specs may provide a partial Auth double.
     this.auth.onLoggedOut?.(() => {
       this.readCache.clear();
+      this.readInflight.clear();
       this.unreadCountSubject.next(0);
     });
   }
@@ -91,6 +103,7 @@ export class NotificationService {
       return ongoing as Observable<T>;
     }
     const req = fetchFn().pipe(
+      timeout(NotificationService.READ_TIMEOUT_MS),
       tap((data) => {
         if (this.readCache.size >= NotificationService.MAX_ENTRIES) {
           const oldest = this.readCache.keys().next();
@@ -99,11 +112,14 @@ export class NotificationService {
           }
         }
         this.readCache.set(skey, { at: Date.now(), data });
-        this.readInflight.delete(skey);
       }),
       catchError((err) => {
-        this.readInflight.delete(skey);
         return throwError(() => err);
+      }),
+      // Always release the in-flight slot — success, error, timeout, or
+      // unsubscribe — so one hung request can never block that key forever.
+      finalize(() => {
+        this.readInflight.delete(skey);
       }),
       shareReplay({ bufferSize: 1, refCount: false }),
     );

@@ -1,7 +1,18 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, catchError, map, of, shareReplay, tap, throwError } from "rxjs";
+import {
+  Observable,
+  catchError,
+  finalize,
+  map,
+  of,
+  shareReplay,
+  tap,
+  throwError,
+  timeout,
+} from "rxjs";
 import { environment } from '../../../environments/environment';
+import { Auth } from './auth';
 
 export interface DashboardAnalyticsResponse {
   total_policies: number;
@@ -464,7 +475,16 @@ export class AnalyticsService {
 
   private readonly notificationsUrl = `${environment.apiUrl}/notifications`;
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly auth = inject(Auth);
+
+  constructor(private readonly http: HttpClient) {
+    // User-scoped caches must never survive logout/user-switch in a
+    // shared tab; drop both settled and in-flight entries.
+    this.auth.onLoggedOut?.(() => {
+      this.jsonCache.clear();
+      this.jsonInflight.clear();
+    });
+  }
 
   // --------------------------------------------------
   // DASHBOARD
@@ -614,32 +634,38 @@ export class AnalyticsService {
    * without refetching, one in-flight request per key, no cross-user leak
    * (per-browser-memory + existing auth interceptor on every request). */
   private cachedGet<T>(key: string, url: string, forceRefresh = false): Observable<T> {
+    const uid = this.auth.getStoredUser()?.user_id ?? 'anon';
+    const skey = `${uid}|${key}`;
     if (!forceRefresh) {
-      const cached = this.jsonCache.get(key);
+      const cached = this.jsonCache.get(skey);
       if (cached && Date.now() - cached.at < AnalyticsService.OVERVIEW_TTL_MS) {
         return of(cached.data as T);
       }
-      const inflight = this.jsonInflight.get(key);
+      const inflight = this.jsonInflight.get(skey);
       if (inflight) {
         return inflight as Observable<T>;
       }
     }
 
     const request = this.http.get<T>(url).pipe(
+      timeout(30_000),
       tap((data) => {
-        this.jsonCache.set(key, { at: Date.now(), data });
-        this.jsonInflight.delete(key);
+        this.jsonCache.set(skey, { at: Date.now(), data });
       }),
       catchError((err) => {
-        this.jsonInflight.delete(key);
         // Must return an error Observable: a synchronous `throw` here would
         // escape as an uncaught exception and the subscriber's error
         // callback (loading/error states, retry UI) would never run.
         return throwError(() => err);
       }),
+      // Release the slot on success, error, timeout, or unsubscribe so a
+      // hung overview can never block that key forever.
+      finalize(() => {
+        this.jsonInflight.delete(skey);
+      }),
       shareReplay(1),
     );
-    this.jsonInflight.set(key, request);
+    this.jsonInflight.set(skey, request);
     return request;
   }
 
@@ -648,18 +674,10 @@ export class AnalyticsService {
     params: PersonalAnalyticsParams,
     forceRefresh = false,
   ): Observable<PersonalAnalyticsOverview> {
+    // Cache + in-flight scoping (including the per-user prefix) lives in
+    // cachedGet; checking the maps here with an unscoped key would serve
+    // one user's overview to the next user of this tab.
     const key = `${role}|${params.range}|${params.date_from ?? ""}|${params.date_to ?? ""}`;
-
-    if (!forceRefresh) {
-      const cached = this.jsonCache.get(key);
-      if (cached && Date.now() - cached.at < AnalyticsService.OVERVIEW_TTL_MS) {
-        return of(cached.data as PersonalAnalyticsOverview);
-      }
-      const inflight = this.jsonInflight.get(key);
-      if (inflight) {
-        return inflight as Observable<PersonalAnalyticsOverview>;
-      }
-    }
 
     let query = `range=${encodeURIComponent(params.range)}`;
     if (params.range === "custom") {

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models.policy import Policy
 from app.models.user import User
 from app.schemas.policy import PolicyCreate, PolicyUpdate
+from app.api.routes.auth import normalize_role
 
 # ============================================================
 # HELPERS
@@ -33,7 +34,6 @@ def _clean_benefits(
     cleaned = []
 
     for benefit in benefits:
-
         if benefit is None:
             continue
 
@@ -61,7 +61,6 @@ def _clean_eligibility_rules(
     cleaned = []
 
     for rule in rules:
-
         if not isinstance(rule, dict):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -106,9 +105,7 @@ def _validate_policy_duplicate(
     exclude_policy_id: int | None = None,
 ) -> None:
 
-    query = db.query(Policy).filter(
-        func.lower(Policy.title) == title.strip().lower()
-    )
+    query = db.query(Policy).filter(func.lower(Policy.title) == title.strip().lower())
 
     if exclude_policy_id is not None:
         query = query.filter(Policy.policy_id != exclude_policy_id)
@@ -151,9 +148,7 @@ def create_policy(
         publication_date=data.publication_date,
         effective_date=data.effective_date,
         status="DRAFT",
-        document_url=(
-            data.document_url.strip() if data.document_url else None
-        ),
+        document_url=(data.document_url.strip() if data.document_url else None),
         source_url=(data.source_url.strip() if data.source_url else None),
         benefits=_clean_benefits(data.benefits),
         eligibility_rules=_clean_eligibility_rules(data.eligibility_rules),
@@ -176,11 +171,10 @@ def create_policy(
     db.refresh(policy)
 
     norm_role = str(getattr(current_user, "role", "") or "").strip().upper()
-    if norm_role in (
-                "GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"
-            ):
+    if norm_role in ("GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"):
         try:
             from app.services.notification_service import notify_policy_created
+
             notify_policy_created(
                 db=db,
                 policy_id=policy.policy_id,
@@ -235,6 +229,19 @@ def update_policy(
         policy_id=policy_id,
     )
 
+    # Ownership: a government official may only mutate policies they
+    # created (mirrors scheme_service.update_scheme). Admins are exempt.
+    if (
+        current_user
+        and normalize_role(getattr(current_user, "role", "")) == ("GOVERNMENT_OFFICIAL")
+        and getattr(policy, "created_by", None) is not None
+        and policy.created_by != current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only edit policies created by yourself.",
+        )
+
     allowed_statuses = (
         {"DRAFT", "REJECTED", "ARCHIVED", "APPROVED"}
         if (current_user and current_user.role == "ADMIN")
@@ -264,7 +271,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "title" in update_data:
-
         title = update_data["title"]
 
         if title is None or not str(title).strip():
@@ -286,7 +292,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "description" in update_data:
-
         description = update_data["description"]
 
         if description is None or not str(description).strip():
@@ -302,7 +307,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "category" in update_data:
-
         category = update_data["category"]
 
         if category is None or not str(category).strip():
@@ -318,11 +322,8 @@ def update_policy(
     # --------------------------------------------------------
 
     if "ministry" in update_data:
-
         policy.ministry = (
-            str(update_data["ministry"]).strip()
-            if update_data["ministry"]
-            else None
+            str(update_data["ministry"]).strip() if update_data["ministry"] else None
         )
 
     # --------------------------------------------------------
@@ -330,7 +331,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "department" in update_data:
-
         policy.department = (
             str(update_data["department"]).strip()
             if update_data["department"]
@@ -342,7 +342,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "state" in update_data:
-
         policy.state = (
             str(update_data["state"]).strip() if update_data["state"] else None
         )
@@ -352,11 +351,8 @@ def update_policy(
     # --------------------------------------------------------
 
     if "sector" in update_data:
-
         policy.sector = (
-            str(update_data["sector"]).strip()
-            if update_data["sector"]
-            else None
+            str(update_data["sector"]).strip() if update_data["sector"] else None
         )
 
     # --------------------------------------------------------
@@ -374,7 +370,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "document_url" in update_data:
-
         policy.document_url = (
             str(update_data["document_url"]).strip()
             if update_data["document_url"]
@@ -386,7 +381,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "source_url" in update_data:
-
         policy.source_url = (
             str(update_data["source_url"]).strip()
             if update_data["source_url"]
@@ -398,7 +392,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "benefits" in update_data:
-
         policy.benefits = _clean_benefits(update_data["benefits"])
 
     # --------------------------------------------------------
@@ -406,7 +399,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if "eligibility_rules" in update_data:
-
         policy.eligibility_rules = _clean_eligibility_rules(
             update_data["eligibility_rules"]
         )
@@ -422,7 +414,6 @@ def update_policy(
     # --------------------------------------------------------
 
     if old_status == "ARCHIVED":
-
         policy.status = "DRAFT"
 
         # Previous approval is no longer valid
@@ -441,7 +432,6 @@ def update_policy(
     # --------------------------------------------------------
 
     elif old_status == "REJECTED":
-
         policy.rejection_reason = None
 
     policy.updated_at = _now()
@@ -452,8 +442,10 @@ def update_policy(
     if policy.status == "APPROVED":
         try:
             from app.services.notification_service import notify_policy_updated
+
             notify_policy_updated(
-                db=db, policy_id=policy.policy_id, policy_title=policy.title)
+                db=db, policy_id=policy.policy_id, policy_title=policy.title
+            )
         except Exception as e:
             print(f"Notification error on policy update: {e}")
 
@@ -479,12 +471,10 @@ def delete_policy(
     )
 
     try:
-
         db.delete(policy)
         db.commit()
 
     except Exception as exc:
-
         db.rollback()
 
         raise HTTPException(
@@ -518,7 +508,9 @@ def submit_policy(
     )
 
     # Creator-only submission check: only the creator (or Admin) can submit
-    is_admin = current_user and str(getattr(current_user, "role", "")).strip().upper() in {"ADMIN", "ADMINISTRATOR"}
+    is_admin = current_user and str(
+        getattr(current_user, "role", "")
+    ).strip().upper() in {"ADMIN", "ADMINISTRATOR"}
     if current_user and not is_admin:
         if policy.created_by != current_user.user_id:
             raise HTTPException(
@@ -535,10 +527,7 @@ def submit_policy(
     }:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Only DRAFT or REJECTED policies "
-                "can be submitted for approval."
-            ),
+            detail=("Only DRAFT or REJECTED policies can be submitted for approval."),
         )
 
     policy.status = "PENDING_APPROVAL"
@@ -552,6 +541,7 @@ def submit_policy(
 
     try:
         from app.services.notification_service import notify_policy_submitted
+
         notify_policy_submitted(
             db=db,
             policy_id=policy.policy_id,
@@ -586,7 +576,7 @@ def approve_policy(
     if policy.status != "PENDING_APPROVAL":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only policies pending approval " "can be approved."),
+            detail=("Only policies pending approval can be approved."),
         )
 
     policy.status = "APPROVED"
@@ -602,6 +592,7 @@ def approve_policy(
 
     try:
         from app.services.notification_service import notify_policy_approved
+
         notify_policy_approved(
             db=db,
             policy_id=policy.policy_id,
@@ -639,7 +630,7 @@ def reject_policy(
     if policy.status != "PENDING_APPROVAL":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only policies pending approval " "can be rejected."),
+            detail=("Only policies pending approval can be rejected."),
         )
 
     if not reason or not reason.strip():
@@ -661,6 +652,7 @@ def reject_policy(
 
     try:
         from app.services.notification_service import notify_policy_rejected
+
         notify_policy_rejected(
             db=db,
             policy_id=policy.policy_id,
@@ -697,10 +689,20 @@ def request_archive_policy(
         policy_id=policy_id,
     )
 
+    if (
+        normalize_role(getattr(current_user, "role", "")) == ("GOVERNMENT_OFFICIAL")
+        and getattr(policy, "created_by", None) is not None
+        and policy.created_by != current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=("You can only request archive for policies created by yourself."),
+        )
+
     if policy.status != "APPROVED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only APPROVED policies can have " "an archive request."),
+            detail=("Only APPROVED policies can have an archive request."),
         )
 
     if not reason or not reason.strip():
@@ -726,6 +728,7 @@ def request_archive_policy(
         from app.services.notification_service import (
             notify_policy_archive_requested,
         )
+
         notify_policy_archive_requested(
             db=db,
             policy_id=policy.policy_id,
@@ -799,10 +802,7 @@ def approve_archive_policy(
     if policy.status != "ARCHIVE_REQUESTED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Only policies with an "
-                "ARCHIVE_REQUESTED status can be archived."
-            ),
+            detail=("Only policies with an ARCHIVE_REQUESTED status can be archived."),
         )
 
     req_user = policy.archive_requested_by
@@ -820,6 +820,7 @@ def approve_archive_policy(
             from app.services.notification_service import (
                 notify_request_decision,
             )
+
             notify_request_decision(
                 db=db,
                 user_id=req_user,
@@ -882,6 +883,7 @@ def reject_archive_policy(
             from app.services.notification_service import (
                 notify_request_decision,
             )
+
             notify_request_decision(
                 db=db,
                 user_id=req_user,
@@ -939,6 +941,7 @@ def restore_policy(
             from app.services.notification_service import (
                 notify_request_decision,
             )
+
             notify_request_decision(
                 db=db,
                 user_id=policy.created_by,
@@ -978,6 +981,16 @@ def request_delete_policy(
         policy_id=policy_id,
     )
 
+    if (
+        normalize_role(getattr(current_user, "role", "")) == ("GOVERNMENT_OFFICIAL")
+        and getattr(policy, "created_by", None) is not None
+        and policy.created_by != current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=("You can only request deletion for policies created by yourself."),
+        )
+
     if policy.status not in {
         "APPROVED",
         "ARCHIVED",
@@ -985,8 +998,7 @@ def request_delete_policy(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                "Deletion can only be requested for "
-                "APPROVED or ARCHIVED policies."
+                "Deletion can only be requested for APPROVED or ARCHIVED policies."
             ),
         )
 
@@ -1016,6 +1028,7 @@ def request_delete_policy(
         from app.services.notification_service import (
             notify_policy_delete_requested,
         )
+
         notify_policy_delete_requested(
             db=db,
             policy_id=policy.policy_id,
@@ -1099,7 +1112,6 @@ def approve_delete_policy(
     title = policy.title
 
     try:
-
         # Notifications for this policy hold a related_policy_id FK, so
         # they must go first or the delete below is always refused. They are
         # transient UI messages about a row that is about to disappear, so
@@ -1122,6 +1134,7 @@ def approve_delete_policy(
                 from app.services.notification_service import (
                     notify_request_decision,
                 )
+
                 notify_request_decision(
                     db=db,
                     user_id=req_user,
@@ -1138,7 +1151,6 @@ def approve_delete_policy(
                 print(f"Notification error on policy delete approve: {e}")
 
     except Exception as exc:
-
         db.rollback()
 
         raise HTTPException(
@@ -1192,8 +1204,7 @@ def reject_delete_policy(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=(
-                "Previous policy status for the delete "
-                "request could not be determined."
+                "Previous policy status for the delete request could not be determined."
             ),
         )
 
@@ -1218,6 +1229,7 @@ def reject_delete_policy(
             from app.services.notification_service import (
                 notify_request_decision,
             )
+
             notify_request_decision(
                 db=db,
                 user_id=req_user,
@@ -1266,14 +1278,16 @@ def search_policies(
     if current_user is not None:
         query = query.filter(
             or_(
-                    Policy.status != "DRAFT",
-                    Policy.created_by == current_user.user_id,
-                )
+                Policy.status != "DRAFT",
+                Policy.created_by == current_user.user_id,
+            )
         )
         if str(current_user.role).strip().upper() != "ADMIN":
             query = query.filter(
-                or_(Policy.status != "PENDING_APPROVAL",
-                    Policy.created_by == current_user.user_id)
+                or_(
+                    Policy.status != "PENDING_APPROVAL",
+                    Policy.created_by == current_user.user_id,
+                )
             )
 
     # --------------------------------------------------------
@@ -1288,7 +1302,6 @@ def search_policies(
     # --------------------------------------------------------
 
     if search:
-
         search_term = f"%{search.strip()}%"
 
         query = query.filter(
@@ -1328,8 +1341,7 @@ def search_policies(
 
     if publication_date:
         query = query.filter(
-            cast(Policy.publication_date, String).ilike(
-                f"%{publication_date.strip()}%")
+            cast(Policy.publication_date, String).ilike(f"%{publication_date.strip()}%")
         )
 
     # --------------------------------------------------------
@@ -1337,7 +1349,6 @@ def search_policies(
     # --------------------------------------------------------
 
     if policy_status and policy_status.strip().upper() != "ALL":
-
         query = query.filter(Policy.status == policy_status.strip().upper())
 
     # NOTE: When no status filter is given, staff (ADMIN / GOVERNMENT_OFFICIAL)

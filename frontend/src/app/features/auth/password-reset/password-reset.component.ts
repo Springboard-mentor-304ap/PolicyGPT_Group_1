@@ -689,6 +689,10 @@ export class PasswordResetComponent implements OnDestroy, OnInit {
   // =========================================================
 
   private extractErrorMessage(err: any, fallback: string): string {
+    if (err?.name === "TimeoutError") {
+      return "The request timed out. Your code may still have been sent — please wait a moment, then use Resend if needed.";
+    }
+
     if (typeof err?.error === "string") {
       return err.error.trim() || fallback;
     }

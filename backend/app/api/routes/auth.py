@@ -1,6 +1,6 @@
 import hashlib
+import hmac
 import logging
-import random
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -49,9 +49,7 @@ def _password_reset_rate_limited(db: Session, user_id: int) -> bool:
     send-otp request creates exactly one). Prevents unlimited email/SMS
     abuse while keeping the check cheap and race-tolerant.
     """
-    window_start = datetime.now(timezone.utc).replace(
-        tzinfo=None
-    ) - timedelta(hours=1)
+    window_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
     recent = (
         db.query(OTPVerification)
         .filter(
@@ -160,9 +158,7 @@ def get_current_user(
     # TOKEN VERSION CHECK
     # -----------------------------------------------------
 
-    if (token_version if token_version is not None else 0) != (
-        user.token_version or 0
-    ):
+    if (token_version if token_version is not None else 0) != (user.token_version or 0):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -309,9 +305,7 @@ def hash_reset_token(token: str) -> str:
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def register(
-    data: RegisterRequest, request: Request, db: Session = Depends(get_db)
-):
+def register(data: RegisterRequest, request: Request, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
     # CLEAN EMAIL
@@ -336,13 +330,10 @@ def register(
     # -----------------------------------------------------
 
     if data.phone:
-
         normalized_registration_phone = re.sub(r"\D", "", data.phone)
 
         existing_phone = (
-            db.query(User)
-            .filter(User.phone == normalized_registration_phone)
-            .first()
+            db.query(User).filter(User.phone == normalized_registration_phone).first()
         )
 
         if existing_phone:
@@ -393,7 +384,6 @@ def register(
     # -----------------------------------------------------
 
     try:
-
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -415,7 +405,6 @@ def register(
             )
 
     except IntegrityError:
-
         db.rollback()
 
         raise HTTPException(
@@ -493,7 +482,6 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # -----------------------------------------------------
 
     if not user:
-
         log_request_action(
             request,
             db,
@@ -521,7 +509,6 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # -----------------------------------------------------
 
     if not password_valid:
-
         log_request_action(
             request,
             db,
@@ -543,7 +530,6 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # -----------------------------------------------------
 
     if not user.is_active:
-
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive"
         )
@@ -614,15 +600,11 @@ def guest_login(db: Session = Depends(get_db)):
             db.refresh(guest_user)
         except IntegrityError:
             db.rollback()
-            guest_user = (
-                db.query(User).filter(User.email == guest_email).first()
-            )
+            guest_user = db.query(User).filter(User.email == guest_email).first()
 
     token = create_user_token(guest_user)
 
-    return AuthResponse(
-        access_token=token, token_type="bearer", user=guest_user
-    )
+    return AuthResponse(access_token=token, token_type="bearer", user=guest_user)
 
 
 # =========================================================
@@ -656,7 +638,6 @@ def update_profile(
     # -----------------------------------------------------
 
     if updates.get("phone"):
-
         if not updates["phone"].isdigit():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -683,7 +664,6 @@ def update_profile(
     # -----------------------------------------------------
 
     for field, value in updates.items():
-
         setattr(current_user, field, value)
 
     # -----------------------------------------------------
@@ -697,12 +677,10 @@ def update_profile(
     # -----------------------------------------------------
 
     try:
-
         db.commit()
         db.refresh(current_user)
 
     except IntegrityError:
-
         db.rollback()
 
         raise HTTPException(
@@ -844,9 +822,7 @@ def logout(
 
 
 @router.post("/send-otp")
-def send_otp(
-    data: SendOTPRequest, request: Request, db: Session = Depends(get_db)
-):
+def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
     # CLEAN EMAIL + RESOLVE CHANNEL
@@ -920,7 +896,7 @@ def send_otp(
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
-    otp = str(random.randint(100000, 999999))
+    otp = f"{secrets.randbelow(900000) + 100000:06d}"
 
     # -----------------------------------------------------
     # HASH OTP
@@ -966,9 +942,7 @@ def send_otp(
                 or "",
                 otp=otp,
             )
-            provider_error = (
-                result.get("error") if isinstance(result, dict) else None
-            )
+            provider_error = result.get("error") if isinstance(result, dict) else None
             if not isinstance(result, dict) or not result.get("success"):
                 try:
                     otp_record.used = True
@@ -978,8 +952,7 @@ def send_otp(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                        f"SMS delivery failed: "
-                        f"{provider_error or 'unknown error'}"
+                        f"SMS delivery failed: {provider_error or 'unknown error'}"
                     ),
                 )
         else:
@@ -987,9 +960,7 @@ def send_otp(
                 recipient_email=user.email,
                 otp=otp,
             )
-            provider_error = (
-                result.get("error") if isinstance(result, dict) else None
-            )
+            provider_error = result.get("error") if isinstance(result, dict) else None
             if isinstance(result, dict) and not result.get("success"):
                 try:
                     otp_record.used = True
@@ -999,8 +970,7 @@ def send_otp(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                        f"Email delivery failed: "
-                        f"{provider_error or 'unknown error'}"
+                        f"Email delivery failed: {provider_error or 'unknown error'}"
                     ),
                 )
 
@@ -1046,9 +1016,7 @@ def send_otp(
 
 
 @router.post("/verify-otp")
-def verify_otp(
-    data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)
-):
+def verify_otp(data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
     # CLEAN IDENTIFIER AND FIND USER
@@ -1097,7 +1065,6 @@ def verify_otp(
     )
 
     if not otp_record:
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="OTP not found or already used",
@@ -1114,7 +1081,6 @@ def verify_otp(
     # -----------------------------------------------------
 
     if otp_record.expires_at < now:
-
         otp_record.used = True
 
         db.commit()
@@ -1130,11 +1096,10 @@ def verify_otp(
     entered_otp_hash = hashlib.sha256(data.otp.encode("utf-8")).hexdigest()
 
     # -----------------------------------------------------
-    # CHECK OTP
+    # CHECK OTP (constant-time compare to avoid timing oracle)
     # -----------------------------------------------------
 
-    if entered_otp_hash != otp_record.otp_hash:
-
+    if not hmac.compare_digest(entered_otp_hash, otp_record.otp_hash):
         log_request_action(
             request,
             db,
@@ -1190,13 +1155,11 @@ def verify_otp(
     # -----------------------------------------------------
 
     try:
-
         db.add(reset_record)
 
         db.commit()
 
     except Exception as exc:
-
         db.rollback()
 
         print("PASSWORD RESET TOKEN ERROR:", exc)
@@ -1285,7 +1248,6 @@ def forgot_password(
     # -----------------------------------------------------
 
     if not user:
-
         return generic_response
 
     # Inactive accounts get the same generic response without an email,
@@ -1295,9 +1257,7 @@ def forgot_password(
 
     # Abuse protection: same generic response, no new OTP/email.
     if _password_reset_rate_limited(db, user.user_id):
-        logger.warning(
-            "Password-reset rate limited for user_id=%s", user.user_id
-        )
+        logger.warning("Password-reset rate limited for user_id=%s", user.user_id)
         return generic_response
 
     # -----------------------------------------------------
@@ -1323,7 +1283,7 @@ def forgot_password(
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
-    otp = str(random.randint(100000, 999999))
+    otp = f"{secrets.randbelow(900000) + 100000:06d}"
 
     # -----------------------------------------------------
     # HASH OTP
@@ -1357,11 +1317,9 @@ def forgot_password(
     db.add(otp_record)
 
     try:
-
         db.commit()
 
     except Exception:
-
         db.rollback()
 
         raise HTTPException(
@@ -1374,18 +1332,14 @@ def forgot_password(
     # -----------------------------------------------------
 
     try:
-
         if channel == "sms":
-
             result = send_otp_sms(
                 recipient_phone=normalized_phone
                 or normalize_indian_phone(user.phone)
                 or "",
                 otp=otp,
             )
-            provider_error = (
-                result.get("error") if isinstance(result, dict) else None
-            )
+            provider_error = result.get("error") if isinstance(result, dict) else None
             if not isinstance(result, dict) or not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1395,20 +1349,16 @@ def forgot_password(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                        f"SMS delivery failed: "
-                        f"{provider_error or 'unknown error'}"
+                        f"SMS delivery failed: {provider_error or 'unknown error'}"
                     ),
                 )
 
         else:
-
             result = send_otp_email(
                 recipient_email=user.email,
                 otp=otp,
             )
-            provider_error = (
-                result.get("error") if isinstance(result, dict) else None
-            )
+            provider_error = result.get("error") if isinstance(result, dict) else None
             if isinstance(result, dict) and not result.get("success"):
                 try:
                     otp_record.used = True
@@ -1418,27 +1368,22 @@ def forgot_password(
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=(
-                        f"Email delivery failed: "
-                        f"{provider_error or 'unknown error'}"
+                        f"Email delivery failed: {provider_error or 'unknown error'}"
                     ),
                 )
 
     except HTTPException:
-
         raise
 
     except Exception as exc:
-
         logger.error(f"Forgot-password delivery error ({channel}): {exc}")
 
         try:
-
             otp_record.used = True
 
             db.commit()
 
         except Exception:
-
             db.rollback()
 
         raise HTTPException(
@@ -1494,9 +1439,7 @@ def forgot_password_link(
     if not user or not user.is_active:
         return generic_response
     if _password_reset_rate_limited(db, user.user_id):
-        logger.warning(
-            "Password-reset-link rate limited for user_id=%s", user.user_id
-        )
+        logger.warning("Password-reset-link rate limited for user_id=%s", user.user_id)
         return generic_response
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -1536,8 +1479,7 @@ def forgot_password_link(
             db.rollback()
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Email delivery failed: "
-            f"{result.get('error') or 'unknown error'}",
+            detail=f"Email delivery failed: {result.get('error') or 'unknown error'}",
         )
 
     log_request_action(
@@ -1574,9 +1516,7 @@ def reset_token_status(
         )
     record = (
         db.query(PasswordResetToken)
-        .filter(
-            PasswordResetToken.token_hash == hash_reset_token(token.strip())
-        )
+        .filter(PasswordResetToken.token_hash == hash_reset_token(token.strip()))
         .first()
     )
     if not record:
@@ -1675,8 +1615,7 @@ def delete_account(
         "AUTH_ACCOUNT_DELETED",
         "USER",
         None,
-        f"Account {deleted_email} ({deleted_role}, user_id {user_id}) "
-        "self-deleted.",
+        f"Account {deleted_email} ({deleted_role}, user_id {user_id}) self-deleted.",
     )
 
     return {"message": "Account deleted successfully"}
@@ -1721,8 +1660,7 @@ def delete_user(
         "AUTH_ADMIN_USER_DELETED",
         "USER",
         None,
-        f"Admin deleted user {email} ({removed_role}, "
-        f"user_id {removed_id}).",
+        f"Admin deleted user {email} ({removed_role}, user_id {removed_id}).",
     )
 
     return {"message": "User deleted successfully", "email": email}
@@ -1830,7 +1768,6 @@ def reset_password(
     # -----------------------------------------------------
 
     if reset_record.expires_at < now:
-
         reset_record.used = True
 
         db.commit()
@@ -1847,7 +1784,6 @@ def reset_password(
     user = db.query(User).filter(User.user_id == reset_record.user_id).first()
 
     if not user:
-
         reset_record.used = True
 
         db.commit()

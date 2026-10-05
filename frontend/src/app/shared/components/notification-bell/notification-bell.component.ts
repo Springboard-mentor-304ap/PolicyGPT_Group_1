@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, finalize, take } from 'rxjs';
 
 import { NotificationService } from '../../../core/services/notification.service';
 import { Auth } from '../../../core/services/auth';
@@ -88,15 +88,18 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.hasError = false;
     this.notificationService
       .getNotifications({ page: 1, page_size: 5, sort_by: 'unread_first' })
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+        }),
+      )
       .subscribe({
         next: (res) => {
           this.recentNotifications = res.items || [];
           this.seenIds = new Set(this.recentNotifications.map((n) => n.notification_id));
-          this.loading = false;
           this.hasError = false;
         },
         error: () => {
-          this.loading = false;
           this.hasError = true;
         },
       });
@@ -140,7 +143,11 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     this.isOpen = false;
 
     if (!item.is_read) {
-      this.notificationService.markAsRead(item.notification_id).subscribe();
+      // Single-shot read; failures leave the badge untouched so the UI
+      // never claims a read that the server rejected.
+      this.notificationService.markAsRead(item.notification_id).pipe(take(1)).subscribe({
+        error: () => undefined,
+      });
     }
 
     this.router.navigate([this.getNotificationsRoute()], {
@@ -150,10 +157,16 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   markAllAsRead(event: Event): void {
     event.stopPropagation();
-    this.notificationService.markAllAsRead().subscribe({
+    this.notificationService.markAllAsRead().pipe(take(1)).subscribe({
       next: () => {
         this.recentNotifications.forEach((n) => (n.is_read = true));
         this.unreadCount = 0;
+        this.hasError = false;
+      },
+      error: () => {
+        // Keep the current badge/list state and surface retry affordance
+        // instead of silently zeroing the count on failure.
+        this.hasError = true;
       },
     });
   }

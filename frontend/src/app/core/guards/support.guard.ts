@@ -11,7 +11,11 @@ export const supportRoleGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   const role = (authService.getUserRole() || '').toUpperCase().trim();
-  if (role === 'ADMIN' || role === 'ADMINISTRATOR') {
+  if (
+    role === 'ADMIN' ||
+    role === 'ADMINISTRATOR' ||
+    role === 'ADMINISTRATOR_ROLE'
+  ) {
     return router.createUrlTree(['/dashboard/admin/faqs']);
   }
 
@@ -29,7 +33,11 @@ export const supportRedirectGuard: CanActivateFn = (route: ActivatedRouteSnapsho
   const role = (authService.getUserRole() || '').toUpperCase().trim();
 
   let prefix = 'citizen';
-  if (role === 'ADMIN' || role === 'ADMINISTRATOR') {
+  if (
+    role === 'ADMIN' ||
+    role === 'ADMINISTRATOR' ||
+    role === 'ADMINISTRATOR_ROLE'
+  ) {
     return router.createUrlTree(['/dashboard/admin/faqs']);
   } else if (
     role === 'GOVERNMENT_OFFICIAL' ||

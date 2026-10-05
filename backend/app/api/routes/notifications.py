@@ -1,7 +1,15 @@
 from datetime import datetime, timezone
 from typing import Any
 import hmac
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    status,
+)
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
@@ -78,8 +86,7 @@ def _verify_role(user: User, allowed_roles: set[str] | None = None) -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                f"Access denied. Role '{user.role}' not permitted "
-                "for notifications."
+                f"Access denied. Role '{user.role}' not permitted for notifications."
             ),
         )
 
@@ -97,25 +104,23 @@ def _verify_admin(user: User) -> None:
 # LIST NOTIFICATIONS (MAIN ENDPOINT)
 # ============================================================
 
+
 @router.get(
     "",
     response_model=NotificationListResponse,
 )
 def list_notifications(
-    search: str | None = Query(
-        None, description="Search term for title/message"),
+    search: str | None = Query(None, description="Search term for title/message"),
     category: str | None = Query(
-        None, description=(
-            "Tab category filter e.g. policy, scheme, application"
-        )),
-    is_read: bool | None = Query(
-        None, description="Filter by read/unread status"),
+        None, description=("Tab category filter e.g. policy, scheme, application")
+    ),
+    is_read: bool | None = Query(None, description="Filter by read/unread status"),
     priority: str | None = Query(None, description="Filter by priority"),
     channel: str | None = Query(None, description="Filter by channel"),
     date_range: str | None = Query(
-        None, description="Date filter e.g. today, this_week, this_month"),
-    sort_by: str = Query(
-        "latest", description="Sort by: latest, oldest, unread_first"),
+        None, description="Date filter e.g. today, this_week, this_month"
+    ),
+    sort_by: str = Query("latest", description="Sort by: latest, oldest, unread_first"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
@@ -144,6 +149,7 @@ def list_notifications(
 # UNREAD COUNT (FOR TOPBAR BELL BADGE)
 # ============================================================
 
+
 @router.get(
     "/unread-count",
     response_model=UnreadCountResponse,
@@ -161,6 +167,7 @@ def get_my_unread_count(
 # NOTIFICATION SUMMARY (FOR SUMMARY CARDS)
 # ============================================================
 
+
 @router.get(
     "/summary",
     response_model=NotificationSummaryResponse,
@@ -170,14 +177,13 @@ def get_my_notification_summary(
     current_user: User = Depends(get_current_user),
 ):
     _verify_role(current_user)
-    return get_notification_summary(
-        db, current_user.user_id, current_user.role
-    )
+    return get_notification_summary(db, current_user.user_id, current_user.role)
 
 
 # ============================================================
 # USER DASHBOARD COMPATIBILITY ENDPOINTS
 # ============================================================
+
 
 @router.get(
     "/me/{user_id}/stats",
@@ -189,13 +195,13 @@ def get_user_notification_stats(
     current_user: User = Depends(get_current_user),
 ):
     _verify_role(current_user)
-    target_id = current_user.user_id if normalize_role(
-        current_user.role) != "ADMIN" else user_id
+    target_id = (
+        current_user.user_id
+        if normalize_role(current_user.role) != "ADMIN"
+        else user_id
+    )
     target_role = current_user.role
-    if (
-        normalize_role(current_user.role) == "ADMIN"
-        and user_id != current_user.user_id
-    ):
+    if normalize_role(current_user.role) == "ADMIN" and user_id != current_user.user_id:
         target_user = db.query(User).filter(User.user_id == user_id).first()
         if target_user:
             target_role = target_user.role
@@ -218,17 +224,21 @@ def get_user_notifications_by_id(
     current_user: User = Depends(get_current_user),
 ):
     _verify_role(current_user)
-    target_id = current_user.user_id if normalize_role(
-        current_user.role) != "ADMIN" else user_id
+    target_id = (
+        current_user.user_id
+        if normalize_role(current_user.role) != "ADMIN"
+        else user_id
+    )
+    # Reuse the authoritative visibility filter so this compatibility
+    # endpoint agrees with the badge, the list, and the summary instead
+    # of applying its own ad-hoc SYSTEM_ALERT-only rule.
+    from app.services.notification_service import get_base_notification_filter
+
+    target_user = db.query(User).filter(User.user_id == target_id).first()
+    target_role = target_user.role if target_user is not None else current_user.role
     notifs = (
         db.query(Notification)
-        .filter(
-            or_(
-                Notification.user_id == target_id,
-                and_(Notification.user_id.is_(None),
-                     Notification.notification_type == "SYSTEM_ALERT")
-            )
-        )
+        .filter(get_base_notification_filter(target_id, target_role))
         .order_by(Notification.created_at.desc())
         .limit(50)
         .all()
@@ -239,6 +249,7 @@ def get_user_notifications_by_id(
 # ============================================================
 # PREFERENCES ROUTES UNDER /notifications/preferences
 # ============================================================
+
 
 @router.get(
     "/preferences",
@@ -298,6 +309,7 @@ def reset_preferences_endpoint(
 # MARK ALL NOTIFICATIONS AS READ
 # ============================================================
 
+
 @router.post(
     "/mark-all-read",
 )
@@ -326,6 +338,7 @@ def mark_all_as_read(
 # GET SINGLE NOTIFICATION DETAILS
 # ============================================================
 
+
 @router.get(
     "/{notification_id}",
     response_model=NotificationResponse,
@@ -353,6 +366,7 @@ def get_notification(
 # ============================================================
 # MARK ONE AS READ
 # ============================================================
+
 
 @router.patch(
     "/{notification_id}/read",
@@ -386,6 +400,7 @@ def mark_as_read(
 # MARK ONE AS UNREAD
 # ============================================================
 
+
 @router.patch(
     "/{notification_id}/unread",
     response_model=NotificationResponse,
@@ -418,6 +433,7 @@ def mark_as_unread(
 # DELETE NOTIFICATION
 # ============================================================
 
+
 @router.delete(
     "/{notification_id}",
 )
@@ -445,21 +461,24 @@ def delete_single_notification(
 # CREATE NOTIFICATION (ADMIN / GOVT / SYSTEM)
 # ============================================================
 
+
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
 )
 def create_new_notification(
     data: NotificationCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     _verify_role(current_user, {"ADMIN", "GOVERNMENT_OFFICIAL"})
     # Preference + dedupe aware so repeated calls cannot double-email
-    # and users who disabled every channel are not mailed. Email
-    # failures stay non-fatal inside the delivery pipeline; the in-app
-    # record is preserved.
-    result = dispatch_notification(db=db, data=data)
+    # and users who disabled every channel are not mailed. External
+    # email/SMS legs run in a background worker; the committed in-app
+    # record is returned immediately. Failures stay non-fatal inside
+    # the delivery pipeline; the in-app record is preserved.
+    result = dispatch_notification(db=db, data=data, background_tasks=background_tasks)
     if result is None:
         return {
             "message": "Notification suppressed by preferences or duplicate",
@@ -471,6 +490,7 @@ def create_new_notification(
 # ============================================================
 # ADMIN DIAGNOSTICS & DELIVERY MONITORING ROUTES
 # ============================================================
+
 
 @admin_router.get(
     "/statistics",
@@ -489,12 +509,14 @@ def get_admin_statistics(
 )
 def get_admin_delivery_status(
     channel: str | None = Query(
-        "ALL", description="Filter by channel: ALL, IN_APP, EMAIL, SMS"),
+        "ALL", description="Filter by channel: ALL, IN_APP, EMAIL, SMS"
+    ),
     status: str | None = Query(
-        "ALL", description=(
-            "Filter by status: ALL, SENT, DELIVERED, FAILED, "
-            "SKIPPED, PENDING"
-        )),
+        "ALL",
+        description=(
+            "Filter by status: ALL, SENT, DELIVERED, FAILED, SKIPPED, PENDING"
+        ),
+    ),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -542,8 +564,7 @@ def admin_test_sms(
     res = send_sms(
         recipient_phone=payload.phone_number,
         content=(
-            "PolicyGPT: Official test SMS verifying Brevo "
-            "Transactional SMS delivery."
+            "PolicyGPT: Official test SMS verifying Brevo Transactional SMS delivery."
         ),
     )
     return res
@@ -560,6 +581,7 @@ def admin_trigger_deadline_reminders(
     deadlines and trigger reminders."""
     _verify_admin(current_user)
     from app.services.deadline_service import DeadlineReminderService
+
     return DeadlineReminderService.check_and_trigger_deadline_reminders(db=db)
 
 
@@ -598,9 +620,7 @@ def admin_retry_failed_deliveries(
         NotificationDeliveryService,
     )
 
-    return NotificationDeliveryService.retry_failed_deliveries(
-        db=db, limit=limit
-    )
+    return NotificationDeliveryService.retry_failed_deliveries(db=db, limit=limit)
 
 
 # ============================================================
@@ -649,8 +669,9 @@ def brevo_email_webhook(
         )
 
     event = payload.get("event")
-    msg_id = payload.get(
-        "message-id") or payload.get("messageId") or payload.get("msg_id")
+    msg_id = (
+        payload.get("message-id") or payload.get("messageId") or payload.get("msg_id")
+    )
     if not msg_id:
         return {"status": "ignored", "reason": "no_message_id"}
 
@@ -672,7 +693,11 @@ def brevo_email_webhook(
             delivery.status = "DELIVERED"
             delivery.delivered_at = now
         elif event in (
-            "soft_bounce", "hard_bounce", "blocked", "spam", "invalid_email"
+            "soft_bounce",
+            "hard_bounce",
+            "blocked",
+            "spam",
+            "invalid_email",
         ):
             delivery.status = "FAILED"
             delivery.failed_at = now
@@ -708,8 +733,9 @@ def brevo_sms_webhook(
     delivered, answered, soft_bounce, hard_bounce, blocked
     """
     event = payload.get("event")
-    msg_id = payload.get(
-        "message-id") or payload.get("messageId") or payload.get("msg_id")
+    msg_id = (
+        payload.get("message-id") or payload.get("messageId") or payload.get("msg_id")
+    )
     if not msg_id:
         return {"status": "ignored", "reason": "no_message_id"}
 

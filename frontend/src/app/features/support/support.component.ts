@@ -2,7 +2,14 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
+import {
+  Subject,
+  Subscription,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  takeUntil,
+} from 'rxjs';
 
 import { SupportService } from '../../core/services/support.service';
 import { Auth, AuthUser } from '../../core/services/auth';
@@ -42,6 +49,11 @@ export class SupportComponent implements OnInit, OnDestroy {
   // Search debounce stream
   private readonly searchSubject = new Subject<string>();
   private searchSubscription?: Subscription;
+  /** Cancels in-flight requests when the component is destroyed. */
+  private readonly destroy$ = new Subject<void>();
+  /** One idempotency key per modal opening; retries of the same form
+   * carry the same key so a timeout retry cannot create a duplicate. */
+  private submitIdempotencyKey: string | null = null;
 
   // Loading, error, empty states
   loadingFaqs = true;
@@ -114,6 +126,8 @@ export class SupportComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.searchSubscription?.unsubscribe();
   }
 
@@ -122,7 +136,10 @@ export class SupportComponent implements OnInit, OnDestroy {
   // =========================================================
 
   loadCategories(): void {
-    this.supportService.getFaqCategories().subscribe({
+    this.supportService
+      .getFaqCategories()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
       next: (backendCats) => {
         const unique = new Set<string>();
         unique.add('All');
@@ -142,33 +159,43 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.loadingFaqs = true;
     this.faqError = null;
 
-    this.supportService.getFaqs(search, category).subscribe({
-      next: (data) => {
-        this.faqs = data || [];
-        if (category === 'All' && !search) {
-          this.totalFaqCount = this.faqs.length;
-        } else if (this.totalFaqCount === 0) {
-          this.totalFaqCount = this.faqs.length;
-        }
+    this.supportService
+      .getFaqs(search, category)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          // Guaranteed cleanup: success, error, timeout, or teardown.
+          this.loadingFaqs = false;
+          if (!this.destroy$.closed) {
+            this.cdr.detectChanges();
+          }
+        }),
+      )
+      .subscribe({
+        next: (data) => {
+          this.faqs = data || [];
+          if (category === 'All' && !search) {
+            this.totalFaqCount = this.faqs.length;
+          } else if (this.totalFaqCount === 0) {
+            this.totalFaqCount = this.faqs.length;
+          }
 
-        // Expand first FAQ by default if it's the initial full load
-        if (this.faqs.length > 0 && this.expandedFaqIds.size === 0 && !search && category === 'All') {
-          this.expandedFaqIds.add(this.faqs[0].faq_id);
-        }
-
-        this.loadingFaqs = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loadingFaqs = false;
-        if (err.status === 403) {
-          this.faqError = 'Access denied: Administrators use the Admin FAQ Management portal.';
-        } else {
-          this.faqError = 'Unable to load FAQs. Please check your network or try again.';
-        }
-        this.cdr.detectChanges();
-      },
-    });
+          // Expand first FAQ by default if it's the initial full load
+          if (this.faqs.length > 0 && this.expandedFaqIds.size === 0 && !search && category === 'All') {
+            this.expandedFaqIds.add(this.faqs[0].faq_id);
+          }
+        },
+        error: (err) => {
+          if (err?.name === 'TimeoutError') {
+            this.faqError =
+              'The request timed out. Please check your connection and try again.';
+          } else if (err.status === 403) {
+            this.faqError = 'Access denied: Administrators use the Admin FAQ Management portal.';
+          } else {
+            this.faqError = 'Unable to load FAQs. Please check your network or try again.';
+          }
+        },
+      });
   }
 
   onSearchChange(query: string): void {
@@ -226,18 +253,28 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.loadingRequests = true;
     this.requestsError = null;
 
-    this.supportService.getMySupportRequests().subscribe({
-      next: (requests) => {
-        this.myRequests = requests || [];
-        this.loadingRequests = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.loadingRequests = false;
-        this.requestsError = 'Unable to retrieve your support requests.';
-        this.cdr.detectChanges();
-      },
-    });
+    this.supportService
+      .getMySupportRequests()
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.loadingRequests = false;
+          if (!this.destroy$.closed) {
+            this.cdr.detectChanges();
+          }
+        }),
+      )
+      .subscribe({
+        next: (requests) => {
+          this.myRequests = requests || [];
+        },
+        error: (err) => {
+          this.requestsError =
+            err?.name === 'TimeoutError'
+              ? 'The request timed out. Please try again.'
+              : 'Unable to retrieve your support requests.';
+        },
+      });
   }
 
   setActiveTab(tab: SupportTab): void {
@@ -265,6 +302,11 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.formSubject = '';
     this.formDescription = '';
     this.formPriority = 'MEDIUM';
+    // Fresh key per opening so retries of this form dedupe server-side.
+    this.submitIdempotencyKey =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 
   closeSubmitModal(): void {
@@ -274,6 +316,10 @@ export class SupportComponent implements OnInit, OnDestroy {
   }
 
   submitRequest(): void {
+    // Guard against double-clicks while a submission is in flight.
+    if (this.submittingRequest) {
+      return;
+    }
     const subject = this.formSubject.trim();
     const description = this.formDescription.trim();
 
@@ -304,27 +350,46 @@ export class SupportComponent implements OnInit, OnDestroy {
       priority: this.formPriority,
     };
 
-    this.supportService.submitSupportRequest(payload).subscribe({
-      next: (created) => {
-        this.submittingRequest = false;
-        this.submittedSuccessRequest = created;
-        this.toastService.success(
-          'Support Request Submitted',
-          `Your request has been registered as ${created.request_id}.`,
-        );
+    this.supportService
+      .submitSupportRequest(payload, this.submitIdempotencyKey ?? undefined)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          // Always re-enable the button: success, error, timeout, or
+          // navigation away. Form data is retained on failure.
+          this.submittingRequest = false;
+          if (!this.destroy$.closed) {
+            this.cdr.detectChanges();
+          }
+        }),
+      )
+      .subscribe({
+        next: (created) => {
+          this.submittedSuccessRequest = created;
+          this.toastService.success(
+            'Support Request Submitted',
+            `Your request has been registered as ${created.request_id}.`,
+          );
 
-        // Prepend to requests list
-        this.myRequests = [created, ...this.myRequests];
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.submittingRequest = false;
-        this.submitError =
-          err?.error?.detail ||
-          'Unable to submit your support request right now. Please try again.';
-        this.cdr.detectChanges();
-      },
-    });
+          // Refresh from the confirmed server state (avoids stale lists
+          // and duplicate rows), then reset + close only on success.
+          this.loadMyRequests();
+          this.formSubject = '';
+          this.formDescription = '';
+          this.showSubmitModal = false;
+        },
+        error: (err) => {
+          if (err?.name === 'TimeoutError') {
+            this.submitError =
+              'The request timed out. Your ticket may still have been created — ' +
+              'please check My Requests before retrying (retrying is safe).';
+          } else {
+            this.submitError =
+              err?.error?.detail ||
+              'Unable to submit your support request right now. Please try again.';
+          }
+        },
+      });
   }
 
   // =========================================================

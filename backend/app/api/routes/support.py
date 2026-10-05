@@ -1,6 +1,15 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -32,8 +41,7 @@ optional_security = HTTPBearer(auto_error=False)
 
 
 def _get_optional_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        optional_security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
     """Extract authenticated user if bearer token is supplied, else
@@ -76,6 +84,7 @@ def _verify_not_admin(user: Optional[User]):
 # PUBLISHED FAQ ENDPOINTS (PUBLIC / NON-ADMIN)
 # ============================================================
 
+
 @router.get(
     "/faqs",
     response_model=list[FAQResponse],
@@ -83,7 +92,8 @@ def _verify_not_admin(user: Optional[User]):
 )
 def get_support_faqs(
     search: Optional[str] = Query(
-        None, description="Search keyword in question, answer, or category"),
+        None, description="Search keyword in question, answer, or category"
+    ),
     category: Optional[str] = Query(None, description="Category filter"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
@@ -140,6 +150,7 @@ def get_support_faq_detail(
 # SUPPORT REQUEST ENDPOINTS (AUTHENTICATED NON-ADMIN ONLY)
 # ============================================================
 
+
 @router.post(
     "/requests",
     response_model=SupportRequestResponse,
@@ -148,15 +159,25 @@ def get_support_faq_detail(
 )
 def submit_support_request(
     data: SupportRequestCreate,
+    background_tasks: BackgroundTasks,
+    idempotency_key: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Submit a support request. Available to non-admin authenticated users."""
+    """Submit a support request. Available to non-admin authenticated users.
+
+    Accepts an optional ``Idempotency-Key`` header: when the client retries
+    the same submission (timeout, double-click), the key lets a repeated
+    POST safely return the already-created ticket instead of a duplicate.
+    Content-based deduplication in the service is the authoritative guard,
+    so retries are safe even without the header.
+    """
     _verify_not_admin(current_user)
     return support_service.create_support_request(
         db=db,
         user_id=current_user.user_id,
         data=data,
+        background_tasks=background_tasks,
     )
 
 
@@ -166,14 +187,18 @@ def submit_support_request(
     summary="List current user's support requests",
 )
 def list_my_support_requests(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Retrieve all support requests submitted by the logged-in user."""
+    """Retrieve support requests submitted by the logged-in user (paged)."""
     _verify_not_admin(current_user)
     return support_service.get_user_support_requests(
         db=db,
         user_id=current_user.user_id,
+        skip=skip,
+        limit=limit,
     )
 
 
@@ -216,6 +241,8 @@ def list_all_support_requests(
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -225,6 +252,8 @@ def list_all_support_requests(
         status=status,
         category=category,
         search=search,
+        skip=skip,
+        limit=limit,
     )
 
 
@@ -260,6 +289,7 @@ def respond_to_support_request(
     query_id: int,
     data: SupportRequestUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -271,6 +301,7 @@ def respond_to_support_request(
             admin_user_id=current_user.user_id,
             response=data.response,
             status=data.status,
+            background_tasks=background_tasks,
         )
     except ValueError as exc:
         raise HTTPException(

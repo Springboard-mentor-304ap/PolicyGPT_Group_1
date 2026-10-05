@@ -136,10 +136,9 @@ def compare_policies_route(
         "GUEST",
     }
 
-    role = str(current_user.role).strip().upper()
+    role = normalize_role(current_user.role)
 
     if role in public_roles:
-
         if policy_1.status != "APPROVED":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -233,10 +232,7 @@ def search_policy_route(
     # --------------------------------------------------------
     else:
         if role in public_roles:
-            if (
-                policy_status is not None
-                and policy_status.upper() != "APPROVED"
-            ):
+            if policy_status is not None and policy_status.upper() != "APPROVED":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You can only view approved policies.",
@@ -448,7 +444,7 @@ def get_policy_route(
     current_user: User = Depends(get_current_user),
 ):
 
-    role = str(current_user.role).strip().upper()
+    role = normalize_role(current_user.role)
 
     public_roles = {
         "CITIZEN",
@@ -463,9 +459,7 @@ def get_policy_route(
     )
 
     if role in public_roles:
-
         if policy.status != "APPROVED":
-
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Policy not found.",
@@ -895,11 +889,7 @@ def approve_delete_policy_route(
         f"Delete approved; policy #{policy_id} permanently deleted.",
     )
 
-    return {
-        "message": (
-            "Policy deletion approved and " "policy permanently deleted."
-        )
-    }
+    return {"message": ("Policy deletion approved and policy permanently deleted.")}
 
 
 # ============================================================

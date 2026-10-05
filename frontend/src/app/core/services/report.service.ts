@@ -24,6 +24,15 @@ export class ReportService {
   /** Session cache for static filter options, keyed by role+type+field. */
   private readonly optionsCache = new Map<string, Observable<ReportOptionsResponse>>();
 
+  constructor() {
+    // Role-keyed options must not survive logout/user-switch in a
+    // shared tab.
+    this.auth.onLoggedOut?.(() => {
+      this.optionsCache.clear();
+      this.previewInflight.clear();
+    });
+  }
+
   /** In-flight preview dedup, keyed by serialized params. */
   private readonly previewInflight = new Map<string, Observable<ReportDataset>>();
 

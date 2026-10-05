@@ -25,7 +25,7 @@ from app.schemas.notification_preference import (
     NotificationPreferenceUpdate,
 )
 from app.services.notification_service import (
-    create_notification,
+    dispatch_notification,
     get_user_notifications,
     get_notification_by_id,
     mark_notification_read,
@@ -447,7 +447,6 @@ def delete_single_notification(
 
 @router.post(
     "",
-    response_model=NotificationResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_new_notification(
@@ -456,7 +455,17 @@ def create_new_notification(
     current_user: User = Depends(get_current_user),
 ):
     _verify_role(current_user, {"ADMIN", "GOVERNMENT_OFFICIAL"})
-    return create_notification(db=db, data=data)
+    # Preference + dedupe aware so repeated calls cannot double-email
+    # and users who disabled every channel are not mailed. Email
+    # failures stay non-fatal inside the delivery pipeline; the in-app
+    # record is preserved.
+    result = dispatch_notification(db=db, data=data)
+    if result is None:
+        return {
+            "message": "Notification suppressed by preferences or duplicate",
+            "suppressed": True,
+        }
+    return NotificationResponse.model_validate(result)
 
 
 # ============================================================

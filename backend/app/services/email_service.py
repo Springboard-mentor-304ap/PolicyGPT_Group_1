@@ -448,6 +448,37 @@ def send_system_email(
 # BACKWARDS COMPATIBILITY FOR AUTH OTP
 # =========================================================
 
+def send_password_reset_email(
+    recipient_email: str,
+    reset_token: str,
+) -> dict[str, Any]:
+    """Send a password-reset link pointing at the Angular frontend.
+
+    Uses the centralized ``FRONTEND_URL`` so dev and production links
+    stay correct without hardcoded origins. The raw (unhashed) token is
+    embedded in the link; only its SHA-256 hash is stored in the DB.
+    """
+    base_portal_url = settings.FRONTEND_URL.rstrip("/")
+    reset_link = f"{base_portal_url}/auth/password-reset?token={reset_token}"
+    subject = "PolicyGPT Password Reset"
+    html = f"""
+    <div style="font-family: sans-serif; padding: 20px;">
+      <h2>PolicyGPT Password Reset</h2>
+      <p>You requested a password reset. Click the link below to set a
+        new password. This link is valid for 15 minutes and can only be
+        used once.</p>
+      <p><a href="{reset_link}">Reset your password</a></p>
+      <p>If you did not request this, you can safely ignore this email.</p>
+      <p>Regards,<br>PolicyGPT Team</p>
+    </div>
+    """
+    text = (
+        "You requested a PolicyGPT password reset. Use this link "
+        f"(valid 15 minutes, single use): {reset_link}"
+    )
+    return send_email(recipient_email, subject, html, text_content=text)
+
+
 def send_otp_email(recipient_email: str, otp: str) -> dict[str, Any]:
     """Preserve existing OTP email behavior for app.api.routes.auth.
 

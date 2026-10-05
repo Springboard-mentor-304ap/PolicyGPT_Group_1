@@ -292,11 +292,14 @@ export class Auth {
     phone: string | null = null,
     channel: string = "email",
   ): Observable<{ message: string }> {
+    // Send null (not "") for the unused channel field: the backend
+    // Pydantic schema rejects "" as an email and would 422 SMS requests.
+    const isEmail = channel === "email";
     return this.http.post<{
       message: string;
     }>(`${this.apiUrl}/forgot-password`, {
-      email: email.trim().toLowerCase(),
-      phone,
+      email: isEmail ? email.trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
       channel,
     });
   }
@@ -310,14 +313,38 @@ export class Auth {
     phone: string | null = null,
     channel: string = "email",
   ): Observable<{ message: string; channel: string }> {
+    const isEmail = channel === "email";
     return this.http.post<{
       message: string;
       channel: string;
     }>(`${this.apiUrl}/send-otp`, {
-      email: email.trim().toLowerCase(),
-      phone,
+      email: isEmail ? email.trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
       channel,
     });
+  }
+
+  // =========================================================
+  // FORGOT PASSWORD (RESET LINK)
+  // =========================================================
+
+  requestPasswordResetLink(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/forgot-password-link`,
+      { email: email.trim().toLowerCase() },
+    );
+  }
+
+  // =========================================================
+  // VALIDATE RESET LINK (without consuming it)
+  // =========================================================
+
+  validateResetToken(token: string): Observable<{ valid: boolean; message: string }> {
+    const params = { token: token.trim() };
+    return this.http.get<{ valid: boolean; message: string }>(
+      `${this.apiUrl}/reset-token-status`,
+      { params },
+    );
   }
 
   // =========================================================
@@ -325,20 +352,25 @@ export class Auth {
   // =========================================================
 
   verifyOtp(
-    email: string,
+    email: string | null,
     otp: string,
     channel: string = "email",
+    phone: string | null = null,
   ): Observable<{
     message: string;
     verified: boolean;
     reset_token: string;
   }> {
+    // SMS must send the phone field (not a phone number stuffed into the
+    // email field, which the backend EmailStr schema rejects with 422).
+    const isEmail = channel === "email";
     return this.http.post<{
       message: string;
       verified: boolean;
       reset_token: string;
     }>(`${this.apiUrl}/verify-otp`, {
-      email: email.trim().toLowerCase(),
+      email: isEmail ? (email ?? "").trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
       otp: otp.trim(),
       channel,
     });

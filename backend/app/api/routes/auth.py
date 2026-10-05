@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -35,10 +36,31 @@ from app.schemas.auth import (
     VerifyOTPRequest,
 )
 from app.services.audit_log_service import log_request_action
-from app.services.email_service import send_otp_email
+from app.services.email_service import send_otp_email, send_password_reset_email
 from app.services.sms_service import normalize_indian_phone, send_otp_sms
 
 logger = logging.getLogger("uvicorn.error")
+
+
+def _password_reset_rate_limited(db: Session, user_id: int) -> bool:
+    """True when this user already hit the hourly OTP/reset request cap.
+
+    Counts OTP rows created in the last hour (each forgot-password /
+    send-otp request creates exactly one). Prevents unlimited email/SMS
+    abuse while keeping the check cheap and race-tolerant.
+    """
+    window_start = datetime.now(timezone.utc).replace(
+        tzinfo=None
+    ) - timedelta(hours=1)
+    recent = (
+        db.query(OTPVerification)
+        .filter(
+            OTPVerification.user_id == user_id,
+            OTPVerification.created_at >= window_start,
+        )
+        .count()
+    )
+    return recent >= max(1, settings.PASSWORD_RESET_MAX_REQUESTS_PER_HOUR)
 
 
 # =========================================================
@@ -875,6 +897,16 @@ def send_otp(
             )
 
     # -----------------------------------------------------
+    # RATE LIMIT (abuse protection)
+    # -----------------------------------------------------
+
+    if _password_reset_rate_limited(db, user.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many verification requests. Please try again later.",
+        )
+
+    # -----------------------------------------------------
     # INVALIDATE PREVIOUS UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
 
@@ -910,7 +942,7 @@ def send_otp(
         user_id=user.user_id,
         otp_hash=otp_hash,
         channel=channel,
-        expires_at=now + timedelta(minutes=5),
+        expires_at=now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
         used=False,
         created_at=now,
     )
@@ -952,7 +984,7 @@ def send_otp(
                 )
         else:
             result = send_otp_email(
-                recipient_email=email or user.email,
+                recipient_email=user.email,
                 otp=otp,
             )
             provider_error = (
@@ -1141,7 +1173,8 @@ def verify_otp(
     reset_record = PasswordResetToken(
         user_id=user.user_id,
         token_hash=token_hash,
-        expires_at=now + timedelta(minutes=15),
+        expires_at=now
+        + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
         used=False,
         created_at=now,
     )
@@ -1255,6 +1288,18 @@ def forgot_password(
 
         return generic_response
 
+    # Inactive accounts get the same generic response without an email,
+    # so existence/activity cannot be probed.
+    if not user.is_active:
+        return generic_response
+
+    # Abuse protection: same generic response, no new OTP/email.
+    if _password_reset_rate_limited(db, user.user_id):
+        logger.warning(
+            "Password-reset rate limited for user_id=%s", user.user_id
+        )
+        return generic_response
+
     # -----------------------------------------------------
     # INVALIDATE OLD UNUSED OTPS FOR THIS CHANNEL
     # -----------------------------------------------------
@@ -1300,7 +1345,7 @@ def forgot_password(
         user_id=user.user_id,
         otp_hash=otp_hash,
         channel=channel,
-        expires_at=now + timedelta(minutes=5),
+        expires_at=now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
         used=False,
         created_at=now,
     )
@@ -1333,7 +1378,9 @@ def forgot_password(
         if channel == "sms":
 
             result = send_otp_sms(
-                recipient_phone=normalized_phone or "",
+                recipient_phone=normalized_phone
+                or normalize_indian_phone(user.phone)
+                or "",
                 otp=otp,
             )
             provider_error = (
@@ -1356,7 +1403,7 @@ def forgot_password(
         else:
 
             result = send_otp_email(
-                recipient_email=email,
+                recipient_email=user.email,
                 otp=otp,
             )
             provider_error = (
@@ -1414,6 +1461,141 @@ def forgot_password(
     )
 
     return generic_response
+
+
+# =========================================================
+# FORGOT PASSWORD (RESET LINK)
+# =========================================================
+
+
+@router.post("/forgot-password-link")
+def forgot_password_link(
+    data: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Link-based reset: email a single-use FRONTEND_URL reset link.
+
+    Keeps the OTP flow untouched. The link points at the Angular route
+    /auth/password-reset?token=... so the frontend can validate it and
+    let the user set a new password without an OTP round-trip.
+    """
+    email = str(data.email).lower().strip() if data.email else None
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Email address is required",
+        )
+    generic_response = {
+        "message": "If an account exists with this email, "
+        "a password reset link has been sent."
+    }
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        return generic_response
+    if _password_reset_rate_limited(db, user.user_id):
+        logger.warning(
+            "Password-reset-link rate limited for user_id=%s", user.user_id
+        )
+        return generic_response
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.user_id,
+        PasswordResetToken.used.is_(False),
+    ).update({"used": True})
+
+    raw_token = secrets.token_urlsafe(32)
+    record = PasswordResetToken(
+        user_id=user.user_id,
+        token_hash=hash_reset_token(raw_token),
+        expires_at=now
+        + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+        used=False,
+        created_at=now,
+    )
+    db.add(record)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to create password reset link",
+        )
+
+    result = send_password_reset_email(
+        recipient_email=user.email,
+        reset_token=raw_token,
+    )
+    if isinstance(result, dict) and not result.get("success"):
+        try:
+            record.used = True
+            db.commit()
+        except Exception:
+            db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Email delivery failed: "
+            f"{result.get('error') or 'unknown error'}",
+        )
+
+    log_request_action(
+        request,
+        db,
+        user,
+        "AUTH_PASSWORD_RESET_LINK_SENT",
+        "USER",
+        user.user_id,
+        "Password reset link sent.",
+    )
+    return generic_response
+
+
+# =========================================================
+# RESET TOKEN STATUS (for frontend link validation)
+# =========================================================
+
+
+@router.get("/reset-token-status")
+def reset_token_status(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    """Validate a reset link without consuming it.
+
+    Returns distinct statuses so the frontend can show valid / expired /
+    invalid / already-used messages.
+    """
+    if not token or not token.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset link",
+        )
+    record = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token_hash == hash_reset_token(token.strip())
+        )
+        .first()
+    )
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset link",
+        )
+    if record.used:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link has already been used",
+        )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if record.expires_at < now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link has expired",
+        )
+    return {"valid": True, "message": "Reset link is valid"}
 
 
 # =========================================================

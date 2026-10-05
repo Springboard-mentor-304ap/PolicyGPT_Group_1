@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnDestroy } from "@angular/core";
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -8,7 +8,8 @@ import {
   ValidationErrors,
   Validators,
 } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { finalize } from "rxjs/operators";
 
 import { Auth } from "../../../core/services/auth";
 
@@ -73,7 +74,7 @@ function identifierValidator(
   templateUrl: "./password-reset.component.html",
   styleUrl: "./password-reset.component.scss",
 })
-export class PasswordResetComponent implements OnDestroy {
+export class PasswordResetComponent implements OnDestroy, OnInit {
   currentStep = 1;
 
   loading = false;
@@ -85,6 +86,10 @@ export class PasswordResetComponent implements OnDestroy {
   submittedIdentifier = "";
   submittedEmail = "";
   submittedPhone = "";
+
+  /** True when opened via emailed reset link (?token=...). Skips OTP. */
+  linkMode = false;
+  linkValidating = false;
 
   get channel(): "email" | "sms" {
     return this.identifierType === "phone" ? "sms" : "email";
@@ -109,6 +114,7 @@ export class PasswordResetComponent implements OnDestroy {
     private fb: FormBuilder,
     private auth: Auth,
     private router: Router,
+    private route: ActivatedRoute,
     private cdr: ChangeDetectorRef,
   ) {
     this.identifierForm = this.fb.group({
@@ -141,6 +147,40 @@ export class PasswordResetComponent implements OnDestroy {
         validators: this.passwordMatchValidator,
       },
     );
+  }
+
+  ngOnInit(): void {
+    const token = String(
+      this.route.snapshot.queryParamMap.get("token") || "",
+    ).trim();
+    if (token) {
+      this.linkMode = true;
+      this.resetToken = token;
+      this.linkValidating = true;
+      this.currentStep = 3;
+      this.cdr.detectChanges();
+      this.auth
+        .validateResetToken(token)
+        .pipe(
+          finalize(() => {
+            this.linkValidating = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+        next: () => {
+          this.errorMessage = "";
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => {
+          this.errorMessage = this.extractErrorMessage(
+            err,
+            "This reset link is invalid or has expired.",
+          );
+          this.cdr.detectChanges();
+        },
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -255,9 +295,16 @@ export class PasswordResetComponent implements OnDestroy {
 
     const phone = this.identifierType === "phone" ? this.submittedPhone : null;
 
-    this.auth.requestPasswordReset(email, phone, channel).subscribe({
+    this.auth
+      .requestPasswordReset(email, phone, channel)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
       next: (response) => {
-        this.loading = false;
         this.otp = ["", "", "", "", "", ""];
         this.resetToken = "";
 
@@ -280,7 +327,6 @@ export class PasswordResetComponent implements OnDestroy {
         });
       },
       error: (err: any) => {
-        this.loading = false;
         this.errorMessage = this.extractErrorMessage(
           err,
           "Unable to send verification code. Please try again.",
@@ -326,9 +372,21 @@ export class PasswordResetComponent implements OnDestroy {
         ? this.submittedPhone
         : this.submittedEmail;
 
-    this.auth.verifyOtp(verificationIdentifier, code, channel).subscribe({
+    this.auth
+      .verifyOtp(
+        this.identifierType === "phone" ? null : verificationIdentifier,
+        code,
+        channel,
+        this.identifierType === "phone" ? verificationIdentifier : null,
+      )
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
       next: (response) => {
-        this.loading = false;
         this.resetToken = response?.reset_token || "";
 
         if (!this.resetToken) {
@@ -342,7 +400,6 @@ export class PasswordResetComponent implements OnDestroy {
         this.cdr.detectChanges();
       },
       error: (err: any) => {
-        this.loading = false;
         this.errorMessage = this.extractErrorMessage(
           err,
           "Invalid OTP. Please try again.",
@@ -516,9 +573,14 @@ export class PasswordResetComponent implements OnDestroy {
 
     this.auth
       .resetPassword(this.resetToken, newPassword, confirmPassword)
+      .pipe(
+        finalize(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        }),
+      )
       .subscribe({
         next: () => {
-          this.loading = false;
           this.errorMessage = "";
           this.successMessage = "";
           this.currentStep = 4;
@@ -526,7 +588,6 @@ export class PasswordResetComponent implements OnDestroy {
           this.cdr.detectChanges();
         },
         error: (err: any) => {
-          this.loading = false;
           this.errorMessage = this.extractErrorMessage(
             err,
             "Unable to reset password. Please try again.",
@@ -605,7 +666,7 @@ export class PasswordResetComponent implements OnDestroy {
   // =========================================================
 
   goBack(): void {
-    if (this.currentStep === 1) {
+    if (this.currentStep === 1 || this.currentStep === 4 || this.linkMode) {
       this.goToLogin();
       return;
     }

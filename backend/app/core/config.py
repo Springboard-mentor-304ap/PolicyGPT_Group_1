@@ -60,6 +60,13 @@ class Settings(BaseSettings):
 
     DEBUG: bool = False
 
+    # Password-reset abuse protection. Limits OTP / reset-link emails per
+    # user per rolling window. Defaults preserve existing 5-min OTP and
+    # 15-min reset-token lifetimes.
+    PASSWORD_RESET_MAX_REQUESTS_PER_HOUR: int = 5
+    OTP_EXPIRE_MINUTES: int = 5
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+
     # Primary frontend URL used for user-facing backend-generated links
     # (emails, notifications). No trailing slash; normalized by validator.
     # Development default is the local Angular dev server. Production must

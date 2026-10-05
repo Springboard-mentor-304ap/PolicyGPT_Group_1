@@ -9,6 +9,7 @@ import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
 import { NotificationService } from "../../../../core/services/notification.service";
 import { SearchHistoryService } from "../../../../core/services/search-history.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 
 describe("CitizenComponent", () => {
   let component: CitizenComponent;
@@ -18,6 +19,7 @@ describe("CitizenComponent", () => {
   let mockSchemeService: any;
   let mockNotificationService: any;
   let mockSearchHistoryService: any;
+  let mockSavedItemsService: any;
 
   const mockCitizen = {
     user_id: 10,
@@ -75,10 +77,46 @@ describe("CitizenComponent", () => {
     },
   ];
 
-  beforeEach(async () => {
-    localStorage.setItem("policy_bookmarks", JSON.stringify([50]));
-    localStorage.setItem("scheme_bookmarks", JSON.stringify([60, 61]));
+  const mockSavedPolicies = [
+    {
+      saved_id: 1,
+      policy_id: 50,
+      title: "National Education Policy",
+      category: "Education",
+      ministry: "Ministry of Education",
+      department: null,
+      state: null,
+      status: "APPROVED",
+      saved_at: "2025-01-15T08:00:00Z",
+    },
+  ];
 
+  const mockSavedSchemes = [
+    {
+      saved_id: 2,
+      scheme_id: 60,
+      name: "PM Scholarship Scheme",
+      category: "Education",
+      ministry: "Ministry of Education",
+      department: null,
+      state: null,
+      status: "APPROVED",
+      saved_at: "2025-01-15T08:00:00Z",
+    },
+    {
+      saved_id: 3,
+      scheme_id: 61,
+      name: "Health Cover Scheme",
+      category: "Health",
+      ministry: "Ministry of Health",
+      department: null,
+      state: null,
+      status: "APPROVED",
+      saved_at: "2025-01-16T08:00:00Z",
+    },
+  ];
+
+  beforeEach(async () => {
     mockAuth = {
       getStoredUser: vi.fn().mockReturnValue(mockCitizen),
       getToken: vi.fn().mockReturnValue("citizen-token"),
@@ -102,6 +140,11 @@ describe("CitizenComponent", () => {
       getUserSearchHistory: vi.fn().mockReturnValue(of(mockSearchHistory)),
     };
 
+    mockSavedItemsService = {
+      getSavedPolicies: vi.fn().mockReturnValue(of(mockSavedPolicies)),
+      getSavedSchemes: vi.fn().mockReturnValue(of(mockSavedSchemes)),
+    };
+
     await TestBed.configureTestingModule({
       imports: [CitizenComponent],
       providers: [
@@ -111,6 +154,7 @@ describe("CitizenComponent", () => {
         { provide: SchemeService, useValue: mockSchemeService },
         { provide: NotificationService, useValue: mockNotificationService },
         { provide: SearchHistoryService, useValue: mockSearchHistoryService },
+        { provide: SavedItemsService, useValue: mockSavedItemsService },
       ],
     }).compileComponents();
 
@@ -121,6 +165,8 @@ describe("CitizenComponent", () => {
   afterEach(() => {
     localStorage.removeItem("policy_bookmarks");
     localStorage.removeItem("scheme_bookmarks");
+    localStorage.removeItem("saved_policies");
+    localStorage.removeItem("bookmarked_schemes");
   });
 
   it("should create CitizenComponent and populate user profile fields", () => {
@@ -163,5 +209,26 @@ describe("CitizenComponent", () => {
     fixture.detectChanges();
 
     expect(component.loadingStats).toBe(false);
+  });
+
+  it("should show zero saved items for a citizen with no saved records", () => {
+    mockSavedItemsService.getSavedPolicies.mockReturnValue(of([]));
+    mockSavedItemsService.getSavedSchemes.mockReturnValue(of([]));
+    fixture.detectChanges();
+
+    expect(mockSavedItemsService.getSavedPolicies).toHaveBeenCalled();
+    expect(mockSavedItemsService.getSavedSchemes).toHaveBeenCalled();
+    expect(component.statCards[2].value).toBe(0);
+    expect(component.statCards[2].sub).toBe("0 policies, 0 schemes");
+  });
+
+  it("should ignore stale localStorage bookmarks from another citizen", () => {
+    localStorage.setItem("policy_bookmarks", JSON.stringify([1, 2, 3, 4, 5]));
+    localStorage.setItem("scheme_bookmarks", JSON.stringify([9, 8, 7]));
+    fixture.detectChanges();
+
+    // Counts come from the authenticated user's API records (1 + 2),
+    // not the stale global bookmark cache (5 + 3).
+    expect(component.statCards[2].value).toBe(3);
   });
 });

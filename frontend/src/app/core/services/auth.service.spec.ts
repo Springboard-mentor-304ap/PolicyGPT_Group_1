@@ -86,4 +86,22 @@ describe("Auth password-reset API integration", () => {
     expect(get.request.method).toBe("GET");
     get.flush({ valid: true, message: "ok" });
   });
+
+  it("clears stale per-user bookmark caches on logout", () => {
+    localStorage.setItem("policy_bookmarks", JSON.stringify([50]));
+    localStorage.setItem("scheme_bookmarks", JSON.stringify([60, 61]));
+    localStorage.setItem("saved_policies", JSON.stringify([50]));
+    localStorage.setItem("bookmarked_schemes", JSON.stringify([60]));
+    localStorage.setItem("policygpt_token", "tok");
+    localStorage.setItem("policygpt_user", JSON.stringify({ user_id: 10 }));
+
+    service.logout();
+
+    expect(localStorage.getItem("policy_bookmarks")).toBeNull();
+    expect(localStorage.getItem("scheme_bookmarks")).toBeNull();
+    expect(localStorage.getItem("saved_policies")).toBeNull();
+    expect(localStorage.getItem("bookmarked_schemes")).toBeNull();
+    expect(localStorage.getItem("policygpt_token")).toBeNull();
+    expect(localStorage.getItem("policygpt_user")).toBeNull();
+  });
 });

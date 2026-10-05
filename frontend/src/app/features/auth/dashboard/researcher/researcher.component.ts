@@ -20,6 +20,7 @@ import {
 } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
@@ -75,6 +76,7 @@ export class ResearcherComponent implements OnInit {
   private readonly analyticsService = inject(AnalyticsService);
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
+  private readonly savedItemsService = inject(SavedItemsService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -179,8 +181,8 @@ export class ResearcherComponent implements OnInit {
     this.error = "";
     this.cdr.markForCheck();
 
-    const savedCount = this.getSavedItemsCount();
-
+    // Saved count from the authenticated user's backend records (same
+    // source as the Saved Items page), never global localStorage caches.
     forkJoin({
       policyAnalytics: this.analyticsService.getPolicyAnalytics().pipe(
         catchError(() =>
@@ -229,6 +231,12 @@ export class ResearcherComponent implements OnInit {
             of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }),
           ),
         ),
+      savedPolicies: this.savedItemsService
+        .getSavedPolicies()
+        .pipe(catchError(() => of([]))),
+      savedSchemes: this.savedItemsService
+        .getSavedSchemes()
+        .pipe(catchError(() => of([]))),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({
         policyAnalytics,
@@ -236,6 +244,8 @@ export class ResearcherComponent implements OnInit {
         trends,
         policies,
         schemes,
+        savedPolicies,
+        savedSchemes,
       }) => {
         const approvedPolicies =
           policyAnalytics.approved || policyAnalytics.total || 0;
@@ -244,6 +254,9 @@ export class ResearcherComponent implements OnInit {
         const totalCategories =
           (policyAnalytics.by_category?.length || 0) +
           (schemeAnalytics.by_category?.length || 0);
+        const savedCount =
+          (Array.isArray(savedPolicies) ? savedPolicies.length : 0) +
+          (Array.isArray(savedSchemes) ? savedSchemes.length : 0);
 
         this.researchStats = [
           {
@@ -364,22 +377,6 @@ export class ResearcherComponent implements OnInit {
         };
       });
       this.monthlyPoliciesCount = 0;
-    }
-  }
-
-  private getSavedItemsCount(): number {
-    try {
-      const p =
-        localStorage.getItem("policy_bookmarks") ||
-        localStorage.getItem("saved_policies");
-      const s =
-        localStorage.getItem("scheme_bookmarks") ||
-        localStorage.getItem("bookmarked_schemes");
-      const pCount = p ? (JSON.parse(p) as any[]).length : 0;
-      const sCount = s ? (JSON.parse(s) as any[]).length : 0;
-      return pCount + sCount;
-    } catch {
-      return 0;
     }
   }
 

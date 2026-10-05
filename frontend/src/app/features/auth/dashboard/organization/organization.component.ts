@@ -13,6 +13,7 @@ import {
 } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 
@@ -93,6 +94,7 @@ export class OrganizationComponent implements OnInit {
   private readonly analyticsService = inject(AnalyticsService);
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
+  private readonly savedItemsService = inject(SavedItemsService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -245,8 +247,9 @@ export class OrganizationComponent implements OnInit {
   }
 
   private loadDashboardData(): void {
-    const savedCount = this.getSavedItemsCount();
-
+    // Saved-item counts and list come from the authenticated user's
+    // backend records (same source as the Saved Items page), never
+    // global localStorage bookmark caches which leak across users.
     forkJoin({
       policyAnalytics: this.analyticsService
         .getPolicyAnalytics()
@@ -260,11 +263,20 @@ export class OrganizationComponent implements OnInit {
       schemes: this.schemeService
         .getSchemes({ status: "APPROVED", limit: 3 })
         .pipe(catchError(() => of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }))),
+      savedPolicies: this.savedItemsService
+        .getSavedPolicies()
+        .pipe(catchError(() => of([]))),
+      savedSchemes: this.savedItemsService
+        .getSavedSchemes()
+        .pipe(catchError(() => of([]))),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ policyAnalytics, schemeAnalytics, policies, schemes }) => {
+      next: ({ policyAnalytics, schemeAnalytics, policies, schemes, savedPolicies, savedSchemes }) => {
         const approvedPolicies = policyAnalytics.approved || policyAnalytics.total || 0;
         const activeSchemes = schemeAnalytics.active || schemeAnalytics.total || 0;
         const totalCategories = (policyAnalytics.by_category?.length || 0) + (schemeAnalytics.by_category?.length || 0);
+        const savedPoliciesCount = Array.isArray(savedPolicies) ? savedPolicies.length : 0;
+        const savedSchemesCount = Array.isArray(savedSchemes) ? savedSchemes.length : 0;
+        const savedCount = savedPoliciesCount + savedSchemesCount;
 
         this.organizationStats = [
           {
@@ -332,8 +344,27 @@ export class OrganizationComponent implements OnInit {
         this.recentActivity = activityList.slice(0, 4);
         this.loadingActivity = false;
 
-        // Load saved items from bookmarks
-        this.loadSavedItemsFromStorage();
+        // Saved list from the same backend records as the counts above.
+        this.savedItems = [
+          ...(Array.isArray(savedPolicies) ? savedPolicies : [])
+            .slice(0, 2)
+            .map((item: any) => ({
+              id: item.policy_id,
+              type: "policy" as const,
+              name: item.title || "Saved Policy",
+              ministry: item.ministry || "Policy Repository",
+              savedOn: "Bookmarked",
+            })),
+          ...(Array.isArray(savedSchemes) ? savedSchemes : [])
+            .slice(0, 2)
+            .map((item: any) => ({
+              id: item.scheme_id,
+              type: "scheme" as const,
+              name: item.name || "Saved Scheme",
+              ministry: item.ministry || "Scheme Repository",
+              savedOn: "Bookmarked",
+            })),
+        ];
 
         this.cdr.detectChanges();
       },
@@ -374,60 +405,6 @@ export class OrganizationComponent implements OnInit {
     if (cat.includes("tech") || cat.includes("digital")) return "computer";
     if (cat.includes("finance") || cat.includes("bank")) return "account_balance";
     return "business";
-  }
-
-  private loadSavedItemsFromStorage(): void {
-    try {
-      const p = localStorage.getItem("policy_bookmarks") || localStorage.getItem("saved_policies");
-      const s = localStorage.getItem("scheme_bookmarks") || localStorage.getItem("bookmarked_schemes");
-      const items: SavedOrganizationItem[] = [];
-
-      if (p) {
-        const parsedPolicies = JSON.parse(p);
-        if (Array.isArray(parsedPolicies)) {
-          parsedPolicies.slice(0, 2).forEach((item: any) => {
-            items.push({
-              id: item.id || item.policy_id,
-              type: "policy",
-              name: item.title || item.name || "Saved Policy",
-              ministry: item.ministry || "Policy Repository",
-              savedOn: "Bookmarked",
-            });
-          });
-        }
-      }
-
-      if (s) {
-        const parsedSchemes = JSON.parse(s);
-        if (Array.isArray(parsedSchemes)) {
-          parsedSchemes.slice(0, 2).forEach((item: any) => {
-            items.push({
-              id: item.id || item.scheme_id,
-              type: "scheme",
-              name: item.name || item.title || "Saved Scheme",
-              ministry: item.ministry || "Scheme Repository",
-              savedOn: "Bookmarked",
-            });
-          });
-        }
-      }
-
-      this.savedItems = items;
-    } catch {
-      this.savedItems = [];
-    }
-  }
-
-  private getSavedItemsCount(): number {
-    try {
-      const p = localStorage.getItem("policy_bookmarks") || localStorage.getItem("saved_policies");
-      const s = localStorage.getItem("scheme_bookmarks") || localStorage.getItem("bookmarked_schemes");
-      const pCount = p ? (JSON.parse(p) as any[]).length : 0;
-      const sCount = s ? (JSON.parse(s) as any[]).length : 0;
-      return pCount + sCount;
-    } catch {
-      return 0;
-    }
   }
 
   private setUserDetails(user: AuthUser): void {

@@ -10,6 +10,7 @@ import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
 import { NotificationService } from "../../../../core/services/notification.service";
 import { SearchHistoryService, SearchHistoryItem } from "../../../../core/services/search-history.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 
@@ -84,6 +85,7 @@ export class CitizenComponent implements OnInit {
   private readonly schemeService = inject(SchemeService);
   private readonly notificationService = inject(NotificationService);
   private readonly searchHistoryService = inject(SearchHistoryService);
+  private readonly savedItemsService = inject(SavedItemsService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -206,11 +208,11 @@ export class CitizenComponent implements OnInit {
   private fetchCitizenData(): void {
     const userId = this.user?.user_id;
 
-    // Read saved items count from localStorage
-    const savedPoliciesCount = this.getSavedPoliciesCount();
-    const savedSchemesCount = this.getSavedSchemesCount();
-    const totalSaved = savedPoliciesCount + savedSchemesCount;
-
+    // Saved-item counts come from the authenticated user's backend
+    // records (single source of truth, same as the Saved Items page),
+    // never from global localStorage bookmark caches which leak across
+    // users and go stale. loadingStats stays true until all resolve so
+    // a transient zero is never presented as final.
     forkJoin({
       policies: this.policyService
         .getPolicies({ status: "APPROVED", limit: 4 })
@@ -223,13 +225,23 @@ export class CitizenComponent implements OnInit {
             .getNotificationStats(userId)
             .pipe(catchError(() => of({ total: 0, read: 0, unread: 0 })))
         : of({ total: 0, read: 0, unread: 0 }),
+      savedPolicies: this.savedItemsService
+        .getSavedPolicies()
+        .pipe(catchError(() => of([]))),
+      savedSchemes: this.savedItemsService
+        .getSavedSchemes()
+        .pipe(catchError(() => of([]))),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ policies, schemes, notificationStats }) => {
+      next: ({ policies, schemes, notificationStats, savedPolicies, savedSchemes }) => {
         const policyList: PolicyResponse[] = Array.isArray(policies?.policies) ? policies.policies : [];
         const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes) ? schemes.schemes : [];
 
         const totalPolicies = typeof policies?.total === "number" ? policies.total : policyList.length;
         const totalSchemes = typeof schemes?.total === "number" ? schemes.total : schemeList.length;
+
+        const savedPoliciesCount = Array.isArray(savedPolicies) ? savedPolicies.length : 0;
+        const savedSchemesCount = Array.isArray(savedSchemes) ? savedSchemes.length : 0;
+        const totalSaved = savedPoliciesCount + savedSchemesCount;
 
         this.statCards = [
           {
@@ -322,32 +334,6 @@ export class CitizenComponent implements OnInit {
     // Application Status: backend does not have an applications submission API.
     this.applications = [];
     this.loadingApplications = false;
-  }
-
-  private getSavedPoliciesCount(): number {
-    try {
-      const stored = localStorage.getItem("policy_bookmarks") || localStorage.getItem("saved_policies");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return Array.isArray(parsed) ? parsed.length : 0;
-      }
-    } catch {
-      // Fallback
-    }
-    return 0;
-  }
-
-  private getSavedSchemesCount(): number {
-    try {
-      const stored = localStorage.getItem("scheme_bookmarks") || localStorage.getItem("bookmarked_schemes");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return Array.isArray(parsed) ? parsed.length : 0;
-      }
-    } catch {
-      // Fallback
-    }
-    return 0;
   }
 
   // =====================================================

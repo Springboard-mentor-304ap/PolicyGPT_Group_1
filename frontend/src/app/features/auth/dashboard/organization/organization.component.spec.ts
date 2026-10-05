@@ -8,6 +8,7 @@ import { Auth } from "../../../../core/services/auth";
 import { AnalyticsService } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 
 describe("OrganizationComponent", () => {
   let component: OrganizationComponent;
@@ -17,6 +18,7 @@ describe("OrganizationComponent", () => {
   let mockAnalyticsService: any;
   let mockPolicyService: any;
   let mockSchemeService: any;
+  let mockSavedItemsService: any;
 
   const mockOrgUser = {
     user_id: 88,
@@ -83,10 +85,12 @@ describe("OrganizationComponent", () => {
   };
 
   beforeEach(async () => {
-    localStorage.setItem(
-      "policy_bookmarks",
-      JSON.stringify([{ policy_id: 10, title: "National AI Strategy", ministry: "MeitY" }])
-    );
+    mockSavedItemsService = {
+      getSavedPolicies: vi.fn().mockReturnValue(
+        of([{ policy_id: 10, title: "National AI Strategy" }]),
+      ),
+      getSavedSchemes: vi.fn().mockReturnValue(of([])),
+    };
 
     mockRouter = {
       navigate: vi.fn(),
@@ -120,6 +124,7 @@ describe("OrganizationComponent", () => {
         { provide: AnalyticsService, useValue: mockAnalyticsService },
         { provide: PolicyService, useValue: mockPolicyService },
         { provide: SchemeService, useValue: mockSchemeService },
+        { provide: SavedItemsService, useValue: mockSavedItemsService },
       ],
     }).compileComponents();
 
@@ -129,6 +134,9 @@ describe("OrganizationComponent", () => {
 
   afterEach(() => {
     localStorage.removeItem("policy_bookmarks");
+    localStorage.removeItem("scheme_bookmarks");
+    localStorage.removeItem("saved_policies");
+    localStorage.removeItem("bookmarked_schemes");
   });
 
   it("should create OrganizationComponent and populate stats from analytics", () => {

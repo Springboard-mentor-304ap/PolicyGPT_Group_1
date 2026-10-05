@@ -435,6 +435,13 @@ export class Auth {
   logout(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
+    // User-scoped bookmark mirrors written by the search pages. They are
+    // global keys, so a stale copy would leak the previous citizen's
+    // saved-item counts into the next session before the API resolves.
+    localStorage.removeItem("policy_bookmarks");
+    localStorage.removeItem("saved_policies");
+    localStorage.removeItem("scheme_bookmarks");
+    localStorage.removeItem("bookmarked_schemes");
     this.invalidateMe();
     this.loggedOutSubject.next();
   }

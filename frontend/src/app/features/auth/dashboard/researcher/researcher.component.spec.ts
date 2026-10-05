@@ -7,6 +7,7 @@ import { ResearcherComponent } from "./researcher.component";
 import { AnalyticsService } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
 
 describe("ResearcherComponent", () => {
   let component: ResearcherComponent;
@@ -15,6 +16,7 @@ describe("ResearcherComponent", () => {
   let mockAnalyticsService: any;
   let mockPolicyService: any;
   let mockSchemeService: any;
+  let mockSavedItemsService: any;
 
   const mockPolicyAnalytics = {
     total: 50,
@@ -76,7 +78,10 @@ describe("ResearcherComponent", () => {
   };
 
   beforeEach(async () => {
-    localStorage.setItem("policy_bookmarks", JSON.stringify([1]));
+    mockSavedItemsService = {
+      getSavedPolicies: vi.fn().mockReturnValue(of([{ policy_id: 1 }])),
+      getSavedSchemes: vi.fn().mockReturnValue(of([])),
+    };
 
     mockRouter = {
       navigateByUrl: vi.fn().mockResolvedValue(true),
@@ -103,6 +108,7 @@ describe("ResearcherComponent", () => {
         { provide: AnalyticsService, useValue: mockAnalyticsService },
         { provide: PolicyService, useValue: mockPolicyService },
         { provide: SchemeService, useValue: mockSchemeService },
+        { provide: SavedItemsService, useValue: mockSavedItemsService },
       ],
     }).compileComponents();
 
@@ -112,6 +118,9 @@ describe("ResearcherComponent", () => {
 
   afterEach(() => {
     localStorage.removeItem("policy_bookmarks");
+    localStorage.removeItem("scheme_bookmarks");
+    localStorage.removeItem("saved_policies");
+    localStorage.removeItem("bookmarked_schemes");
   });
 
   it("should create ResearcherComponent and populate researchStats from analytics", () => {

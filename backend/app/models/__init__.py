@@ -12,6 +12,7 @@ from app.models.support_query import SupportQuery
 from app.models.report import Report
 from app.models.saved_policy import SavedPolicy
 from app.models.saved_scheme import SavedScheme
+from app.models.saved_eligibility_result import SavedEligibilityResult
 from app.models.search_history import SearchHistory
 from app.models.audit_log import AuditLog
 from app.models.eligibility_rule import EligibilityRule
@@ -31,6 +32,7 @@ __all__ = [
     "Report",
     "SavedPolicy",
     "SavedScheme",
+    "SavedEligibilityResult",
     "SearchHistory",
     "AuditLog",
     "EligibilityRule",

@@ -1,7 +1,7 @@
 <div class="eligibility-page">
 
   @if (breadcrumbItems.length > 0) {
-    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
   }
 
   <!-- Page Header -->
@@ -62,7 +62,7 @@
                 Age <span class="required-star">*</span>
               </label>
               <input id="age" name="age" type="number" min="0" max="120" [(ngModel)]="profile.age"
-                placeholder="Enter age (0-120)" />
+                placeholder="Enter your age" />
             </div>
 
             <!-- Gender -->
@@ -71,6 +71,7 @@
                 Gender <span class="required-star">*</span>
               </label>
               <select id="gender" name="gender" [(ngModel)]="profile.gender">
+                <option value="">Select gender</option>
                 <option *ngFor="let gender of genders" [value]="gender">
                   {{ gender }}
                 </option>
@@ -151,6 +152,7 @@
                 Disability Status
               </label>
               <select id="disability" name="disability" [(ngModel)]="profile.disability_status">
+                <option [ngValue]="null">Select disability status</option>
                 <option [ngValue]="false">No</option>
                 <option [ngValue]="true">Yes</option>
               </select>
@@ -263,19 +265,16 @@
                 <p class="entity-desc">{{ item.message }}</p>
               </div>
 
-              <div class="result-status-tag status-eligible">
-                <span class="material-icons">check_circle</span>
-                <span>Eligible</span>
-              </div>
-
               <div class="result-actions">
-                <button type="button" class="btn-save" [class.saved]="isSaved('scheme', item.entity_id)"
+                <button type="button" class="btn-save" *ngIf="!isGuestView"
+                  [class.saved]="isSaved('scheme', item.entity_id)" [disabled]="savingKey !== null"
                   (click)="toggleSave('scheme', item)"
                   [attr.aria-label]="isSaved('scheme', item.entity_id) ? 'Saved' : 'Save Result'">
                   <span class="material-icons btn-save-icon">
                     {{ isSaved('scheme', item.entity_id) ? 'bookmark' : 'bookmark_border' }}
                   </span>
-                  <span>{{ isSaved('scheme', item.entity_id) ? 'Saved' : 'Save Result' }}</span>
+                  <span>{{ savingKey === 'scheme_' + item.entity_id ? 'Saving...' : (isSaved('scheme', item.entity_id) ?
+                    'Saved' : 'Save Result') }}</span>
                 </button>
 
                 <button type="button" class="btn-action" (click)="viewEntity('scheme', item.entity_id)"
@@ -306,19 +305,16 @@
                 <p class="entity-desc">{{ item.message }}</p>
               </div>
 
-              <div class="result-status-tag status-eligible">
-                <span class="material-icons">check_circle</span>
-                <span>Eligible</span>
-              </div>
-
               <div class="result-actions">
-                <button type="button" class="btn-save" [class.saved]="isSaved('policy', item.entity_id)"
+                <button type="button" class="btn-save" *ngIf="!isGuestView"
+                  [class.saved]="isSaved('policy', item.entity_id)" [disabled]="savingKey !== null"
                   (click)="toggleSave('policy', item)"
                   [attr.aria-label]="isSaved('policy', item.entity_id) ? 'Saved' : 'Save Result'">
                   <span class="material-icons btn-save-icon">
                     {{ isSaved('policy', item.entity_id) ? 'bookmark' : 'bookmark_border' }}
                   </span>
-                  <span>{{ isSaved('policy', item.entity_id) ? 'Saved' : 'Save Result' }}</span>
+                  <span>{{ savingKey === 'policy_' + item.entity_id ? 'Saving...' : (isSaved('policy', item.entity_id) ?
+                    'Saved' : 'Save Result') }}</span>
                 </button>
 
                 <button type="button" class="btn-action" (click)="viewEntity('policy', item.entity_id)"
@@ -393,8 +389,28 @@
         </button>
       </div>
 
+      <!-- Loading State -->
+      <div class="saved-empty-state" *ngIf="loadingSaved">
+        <div class="spinner"></div>
+        <h3>Loading Saved Results...</h3>
+        <p>Fetching your saved eligibility results.</p>
+      </div>
+
+      <!-- Error State -->
+      <div class="saved-empty-state" *ngIf="!loadingSaved && savedError">
+        <div class="empty-icon-circle">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Unable to Load Saved Results</h3>
+        <p>{{ savedError }}</p>
+        <button type="button" class="primary-button btn-empty-action" (click)="loadSavedResults()">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+
       <!-- Empty State -->
-      <div class="saved-empty-state" *ngIf="savedResults.length === 0">
+      <div class="saved-empty-state" *ngIf="!loadingSaved && !savedError && savedResults.length === 0">
         <div class="empty-icon-circle">
           <span class="material-icons">bookmark_border</span>
         </div>
@@ -407,7 +423,7 @@
       </div>
 
       <!-- List of Saved Results -->
-      <div class="saved-list" *ngIf="savedResults.length > 0">
+      <div class="saved-list" *ngIf="!loadingSaved && !savedError && savedResults.length > 0">
         <article class="saved-item-row" *ngFor="let item of savedResults; trackBy: trackBySaved">
           <!-- Type Tag -->
           <div class="result-type-tag" [class.scheme-tag]="item.entity_type === 'scheme'"
@@ -433,9 +449,9 @@
                 <span class="material-icons meta-icon">schedule</span>
                 <span>Saved on {{ formatSavedDate(item.saved_at) }}</span>
               </span>
-              <span class="meta-category" *ngIf="item.category">
-                <span class="material-icons meta-icon">category</span>
-                <span>{{ item.category }}</span>
+              <span class="meta-category" *ngIf="profileSummary(item)">
+                <span class="material-icons meta-icon">person</span>
+                <span>{{ profileSummary(item) }}</span>
               </span>
             </div>
           </div>

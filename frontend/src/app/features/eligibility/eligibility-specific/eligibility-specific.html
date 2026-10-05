@@ -1,7 +1,7 @@
 <div class="eligibility-page">
 
   @if (breadcrumbItems.length > 0) {
-    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
   }
 
   <!-- Page Header -->
@@ -132,10 +132,6 @@
               <strong class="meta-value">{{ selectedEntity.category }}</strong>
             </div>
 
-            <div class="meta-pill" *ngIf="selectedEntity.status">
-              <span class="meta-label">Status:</span>
-              <strong class="meta-value status-active">{{ selectedEntity.status }}</strong>
-            </div>
           </div>
         </div>
       </div>
@@ -172,6 +168,7 @@
             </label>
             <div class="select-wrapper">
               <select id="gender" [(ngModel)]="profile.gender" class="form-control">
+                <option value="">Select gender</option>
                 <option *ngFor="let gender of genders" [value]="gender">
                   {{ gender }}
                 </option>
@@ -263,6 +260,7 @@
             </label>
             <div class="select-wrapper">
               <select id="disability" [(ngModel)]="profile.disability_status" class="form-control">
+                <option [ngValue]="null">Select disability status</option>
                 <option [ngValue]="false">No</option>
                 <option [ngValue]="true">Yes</option>
               </select>
@@ -328,12 +326,13 @@
           </p>
         </div>
 
-        <button type="button" class="btn-save-specific" [class.saved]="isResultSaved()" (click)="toggleSaveResult()"
+        <button type="button" class="btn-save-specific" *ngIf="!isGuestView" [class.saved]="isResultSaved()"
+          [disabled]="savingResult" (click)="toggleSaveResult()"
           [attr.aria-label]="isResultSaved() ? 'Saved' : 'Save Result'">
           <span class="material-icons">
             {{ isResultSaved() ? 'bookmark' : 'bookmark_border' }}
           </span>
-          <span>{{ isResultSaved() ? 'Saved' : 'Save Result' }}</span>
+          <span>{{ savingResult ? 'Saving...' : (isResultSaved() ? 'Saved' : 'Save Result') }}</span>
         </button>
       </div>
 

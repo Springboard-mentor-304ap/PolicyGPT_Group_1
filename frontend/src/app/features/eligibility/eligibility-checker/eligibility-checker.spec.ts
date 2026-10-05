@@ -47,6 +47,7 @@ describe("EligibilityChecker", () => {
     };
 
     let savedStorage: any[] = [];
+    let nextSavedId = 1000;
 
     mockEligibilityService = {
       findEligible: vi.fn().mockImplementation((_profile: any, type: string) => {
@@ -55,21 +56,35 @@ describe("EligibilityChecker", () => {
         }
         return of(mockPolicyMatch);
       }),
-      getSavedResults: vi.fn().mockImplementation(() => [...savedStorage]),
-      saveResult: vi.fn().mockImplementation((item: any) => {
-        const exists = savedStorage.some(
-          (s) => s.id === item.id || (s.entity_type === item.entity_type && s.entity_id === item.entity_id)
+      getSavedResults: vi.fn().mockImplementation(() => of([...savedStorage])),
+      getSavedResult: vi.fn().mockImplementation((savedId: number) => {
+        const found = savedStorage.find((s) => s.saved_id === savedId);
+        return found ? of({ ...found }) : throwError(() => ({ status: 404 }));
+      }),
+      saveResult: vi.fn().mockImplementation((type: string, entityId: number, _profile: any) => {
+        const existing = savedStorage.find(
+          (s) => s.entity_type === type && s.entity_id === entityId
         );
-        if (exists) return false;
-        savedStorage.unshift(item);
-        return true;
+        if (existing) {
+          return of({ ...existing });
+        }
+        const entity = type === "scheme" ? mockSchemeMatch.eligible_entities[0] : mockPolicyMatch.eligible_entities[0];
+        const row = {
+          saved_id: nextSavedId++,
+          entity_id: entityId,
+          entity_name: entity.entity_name,
+          entity_type: type,
+          eligible: entity.eligible,
+          message: entity.message,
+          profile_data: { age: 30 },
+          saved_at: new Date().toISOString(),
+        };
+        savedStorage.unshift(row);
+        return of({ ...row });
       }),
-      removeSavedResult: vi.fn().mockImplementation((id: string) => {
-        savedStorage = savedStorage.filter((s) => s.id !== id);
-        return true;
-      }),
-      isResultSaved: vi.fn().mockImplementation((type: string, id: number) => {
-        return savedStorage.some((s) => s.entity_type === type && s.entity_id === id);
+      removeSavedResult: vi.fn().mockImplementation((savedId: number) => {
+        savedStorage = savedStorage.filter((s) => s.saved_id !== savedId);
+        return of({ message: "Saved result removed." });
       }),
     };
 
@@ -89,11 +104,24 @@ describe("EligibilityChecker", () => {
     fixture.detectChanges();
   });
 
-  it("1. should create the component and have initial profile defaults", () => {
+  it("1. should create the component and start with a blank profile", () => {
     expect(component).toBeTruthy();
-    expect(component.profile.age).toBe(22);
-    expect(component.profile.gender).toBe("Female");
+    expect(component.profile.age).toBeNull();
+    expect(component.profile.gender).toBe("");
+    expect(component.profile.annual_income).toBeNull();
+    expect(component.profile.occupation).toBe("");
+    expect(component.profile.education).toBe("");
+    expect(component.profile.state).toBe("");
+    expect(component.profile.social_category).toBe("");
+    expect(component.profile.disability_status).toBeNull();
     expect(component.activeTab).toBe("find");
+  });
+
+  it("1b. should reject a blank age before calling the backend", () => {
+    component.findEligible();
+
+    expect(component.errorMessage).toBe("Please enter a valid age between 0 and 120.");
+    expect(mockEligibilityService.findEligible).not.toHaveBeenCalled();
   });
 
   it("2. should validate age and display error if invalid", () => {
@@ -124,7 +152,8 @@ describe("EligibilityChecker", () => {
     expect(fixture.debugElement.query(By.css(".profile-card"))).toBeTruthy();
     expect(fixture.debugElement.query(By.css(".results-card"))).toBeNull();
 
-    // Trigger Check Eligibility
+    // Trigger Check Eligibility (with a filled-in age; the form starts blank)
+    component.profile.age = 30;
     component.findEligible();
     fixture.detectChanges();
 
@@ -147,6 +176,7 @@ describe("EligibilityChecker", () => {
       of({ entity_type: "scheme", total_checked: 5, eligible_entities: [], ineligible_entities: [] })
     );
 
+    component.profile.age = 30;
     component.findEligible();
     fixture.detectChanges();
 
@@ -162,6 +192,7 @@ describe("EligibilityChecker", () => {
       throwError(() => ({ status: 500, error: { detail: "Database connection failed" } }))
     );
 
+    component.profile.age = 30;
     component.findEligible();
     fixture.detectChanges();
 
@@ -178,41 +209,42 @@ describe("EligibilityChecker", () => {
     expect(component.activeTab).toBe("saved");
   });
 
-  it("8. should save an eligibility result and prevent duplicates", () => {
+  it("8. should save an eligibility result to the server and remove it on second toggle", () => {
+    component.profile.age = 30;
     component.findEligible();
     fixture.detectChanges();
 
     const entity = component.schemeResults[0];
     component.toggleSave("scheme", entity);
 
-    expect(mockEligibilityService.saveResult).toHaveBeenCalled();
+    expect(mockEligibilityService.saveResult).toHaveBeenCalledWith(
+      "scheme",
+      entity.entity_id,
+      component.profile
+    );
     expect(component.savedResults.length).toBe(1);
     expect(component.savedResults[0].entity_name).toBe("Post-Matric Scholarship for SC/ST");
     expect(component.isSaved("scheme", entity.entity_id)).toBe(true);
 
-    // Attempt to save the same result twice directly
-    const secondSave = mockEligibilityService.saveResult({
-      id: "scheme_101",
-      entity_id: 101,
-      entity_type: "scheme",
-      entity_name: "Post-Matric Scholarship for SC/ST",
-      eligible: true,
-      message: "Testing duplicate",
-      saved_at: new Date().toISOString(),
-    });
-    expect(secondSave).toBe(false);
-    expect(component.savedResults.length).toBe(1);
+    const createdId = component.savedResults[0].saved_id;
+
+    // Toggling again removes the server row and refreshes the list.
+    component.toggleSave("scheme", entity);
+    expect(mockEligibilityService.removeSavedResult).toHaveBeenCalledWith(createdId);
+    expect(component.savedResults.length).toBe(0);
+    expect(component.isSaved("scheme", entity.entity_id)).toBe(false);
   });
 
   it("9. should render saved results list when savedTab is active and has items", () => {
     component.savedResults = [
       {
-        id: "scheme_101",
+        saved_id: 101,
         entity_id: 101,
         entity_name: "Post-Matric Scholarship for SC/ST",
         entity_type: "scheme",
         eligible: true,
         message: "You satisfy income, category, and educational qualifications.",
+        profile_data: { age: 30, gender: "Female" },
         saved_at: "2026-09-23T10:00:00.000Z",
       },
     ];
@@ -240,12 +272,13 @@ describe("EligibilityChecker", () => {
 
   it("11. should open confirmation modal and remove saved result on confirmation", () => {
     const item = {
-      id: "scheme_101",
+      saved_id: 101,
       entity_id: 101,
       entity_name: "Post-Matric Scholarship for SC/ST",
       entity_type: "scheme" as const,
       eligible: true,
       message: "Test message",
+      profile_data: null,
       saved_at: "2026-09-23T10:00:00.000Z",
     };
     component.savedResults = [item];
@@ -259,7 +292,7 @@ describe("EligibilityChecker", () => {
 
     // Confirm delete
     component.confirmDelete();
-    expect(mockEligibilityService.removeSavedResult).toHaveBeenCalledWith("scheme_101");
+    expect(mockEligibilityService.removeSavedResult).toHaveBeenCalledWith(101);
     expect(component.deleteModalOpen).toBe(false);
     expect(component.itemToDelete).toBeNull();
   });

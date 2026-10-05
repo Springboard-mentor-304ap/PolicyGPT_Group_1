@@ -3,7 +3,7 @@ import {
   HttpClient,
   HttpErrorResponse,
 } from "@angular/common/http";
-import { Observable } from "rxjs";
+import { Observable, timeout } from "rxjs";
 import { environment } from '../../../environments/environment';
 
 export type EntityType = "policy" | "scheme";
@@ -56,13 +56,15 @@ export interface EligibilityMatchResponse {
 
 
 export interface SavedEligibilityResult {
-  id: string; // e.g. "scheme_101" or "policy_201"
+  /** Server primary key. Rows are owned by the authenticated user. */
+  saved_id: number;
   entity_id: number;
   entity_name: string;
   entity_type: EntityType;
   eligible: boolean;
   message: string;
-  category?: string | null;
+  /** Input snapshot the server evaluated, for display/reproducibility. */
+  profile_data?: Record<string, unknown> | null;
   saved_at: string; // ISO date timestamp
 }
 
@@ -71,10 +73,11 @@ export interface SavedEligibilityResult {
   providedIn: "root",
 })
 export class EligibilityService {
-  private readonly SAVED_RESULTS_KEY = "policygpt_saved_eligibility_results";
-
   private readonly apiUrl =
     `${environment.apiUrl}/eligibility`;
+
+  /** Upper bound for eligibility HTTP calls (DB-only, no external I/O). */
+  private static readonly REQUEST_TIMEOUT_MS = 30000;
 
 
   constructor(
@@ -89,7 +92,7 @@ export class EligibilityService {
     return this.http.post<EligibilityCheckResponse>(
       `${this.apiUrl}/check`,
       request
-    );
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 
 
@@ -134,7 +137,7 @@ export class EligibilityService {
     return this.http.post<EligibilityMatchResponse>(
       `${this.apiUrl}/match`,
       request
-    );
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 
 
@@ -145,70 +148,79 @@ export class EligibilityService {
 
     return this.http.get<any[]>(
       `${this.apiUrl}/${entityType}/${entityId}`
-    );
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
+  }
+
+  // ============================================================
+  // SAVED ELIGIBILITY RESULTS (server-persisted, per-user)
+  // ============================================================
+  // The backend derives the owner from the JWT on every call, so one
+  // user can never read or mutate another user's rows. The server —
+  // never localStorage — is the source of truth, which also keeps
+  // saved results user-isolated across logins on a shared browser.
+
+  /**
+   * List the current user's saved eligibility results.
+   * Mirrors GET /eligibility/saved.
+   */
+  getSavedResults(): Observable<SavedEligibilityResult[]> {
+    return this.http.get<SavedEligibilityResult[]>(
+      `${this.apiUrl}/saved`
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 
   /**
-   * Fetch saved eligibility results from localStorage.
+   * Fetch one saved result owned by the current user.
+   * Mirrors GET /eligibility/saved/{saved_id}.
    */
-  getSavedResults(): SavedEligibilityResult[] {
-    try {
-      const data = localStorage.getItem(this.SAVED_RESULTS_KEY);
-      if (!data) return [];
-      const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error("Error reading saved eligibility results:", e);
-      return [];
-    }
+  getSavedResult(savedId: number): Observable<SavedEligibilityResult> {
+    return this.http.get<SavedEligibilityResult>(
+      `${this.apiUrl}/saved/${savedId}`
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 
   /**
-   * Save an eligibility result to localStorage with duplicate protection.
-   * Returns true if saved, false if already exists.
+   * Bookmark an eligibility outcome for the current user. The backend
+   * re-evaluates the outcome with the real matching engine and stores
+   * the input profile snapshot alongside it. Idempotent: saving the
+   * same entity twice returns the existing row.
+   * Mirrors POST /eligibility/saved.
    */
-  saveResult(result: SavedEligibilityResult): boolean {
-    const list = this.getSavedResults();
-    const exists = list.some(
-      (item) =>
-        item.id === result.id ||
-        (item.entity_type === result.entity_type && item.entity_id === result.entity_id)
-    );
-    if (exists) {
-      return false; // Prevent duplicates
-    }
-    list.unshift(result);
-    try {
-      localStorage.setItem(this.SAVED_RESULTS_KEY, JSON.stringify(list));
-      return true;
-    } catch (e) {
-      console.error("Error saving eligibility result:", e);
-      return false;
-    }
+  saveResult(
+    entityType: EntityType,
+    entityId: number,
+    profile: EligibilityProfile
+  ): Observable<SavedEligibilityResult> {
+    return this.http.post<SavedEligibilityResult>(
+      `${this.apiUrl}/saved`,
+      {
+        entity_type: entityType,
+        entity_id: entityId,
+        profile: {
+          age: Number(profile.age),
+          gender: profile.gender,
+          annual_income:
+            profile.annual_income === null ||
+              profile.annual_income === undefined
+              ? null
+              : Number(profile.annual_income),
+          occupation: profile.occupation || null,
+          education: profile.education || null,
+          state: profile.state || null,
+          social_category: profile.social_category || null,
+          disability_status: profile.disability_status ?? null,
+        },
+      }
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 
   /**
-   * Remove a saved eligibility result from localStorage by id.
+   * Remove one of the current user's saved results.
+   * Mirrors DELETE /eligibility/saved/{saved_id}.
    */
-  removeSavedResult(id: string): boolean {
-    const list = this.getSavedResults();
-    const filtered = list.filter((item) => item.id !== id);
-    try {
-      localStorage.setItem(this.SAVED_RESULTS_KEY, JSON.stringify(filtered));
-      return true;
-    } catch (e) {
-      console.error("Error removing saved eligibility result:", e);
-      return false;
-    }
-  }
-
-  /**
-   * Check if an entity is already saved in localStorage.
-   */
-  isResultSaved(entityType: EntityType, entityId: number): boolean {
-    const list = this.getSavedResults();
-    return list.some(
-      (item) => item.entity_type === entityType && item.entity_id === entityId
-    );
+  removeSavedResult(savedId: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/saved/${savedId}`
+    ).pipe(timeout(EligibilityService.REQUEST_TIMEOUT_MS));
   }
 }

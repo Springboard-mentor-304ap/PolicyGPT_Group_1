@@ -12,6 +12,7 @@ import {
   SchemeUpdate,
   SchemeAnalyticsResponse,
 } from "../models/scheme.model";
+import { environment } from '../../../environments/environment';
 
 export type Scheme = SchemeResponse;
 export type {
@@ -27,9 +28,9 @@ export type {
   providedIn: "root",
 })
 export class SchemeService {
-  private readonly apiUrl = "http://localhost:8000/schemes";
-  private readonly eligibilityApiUrl = "http://localhost:8000/eligibility";
-  private readonly analyticsUrl = "http://localhost:8000/analytics/schemes";
+  private readonly apiUrl = `${environment.apiUrl}/schemes`;
+  private readonly eligibilityApiUrl = `${environment.apiUrl}/eligibility`;
+  private readonly analyticsUrl = `${environment.apiUrl}/analytics/schemes`;
 
   private cache = new Map<string, { data: any; timestamp: number }>();
   private inflight = new Map<string, Observable<any>>();

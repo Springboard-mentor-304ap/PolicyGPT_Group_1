@@ -6,12 +6,13 @@ import {
   FeedbackCreate,
   FeedbackUpdate,
 } from '../models/feedback.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FeedbackService {
-  private readonly baseUrl = 'http://localhost:8000/feedback';
+  private readonly baseUrl = `${environment.apiUrl}/feedback`;
 
   constructor(private readonly http: HttpClient) {}
 

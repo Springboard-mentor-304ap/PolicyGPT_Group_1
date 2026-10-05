@@ -16,6 +16,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../shared/components/breadcrumb/breadcrumb.component";
+import { environment } from '../../../environments/environment';
 
 // =========================================================
 // USER PROFILE INTERFACE
@@ -93,7 +94,7 @@ export class ProfileComponent implements OnInit {
   // API
   // =========================================================
 
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   // =========================================================
   // MODALS

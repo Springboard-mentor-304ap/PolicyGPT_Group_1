@@ -13,6 +13,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: "app-change-password",
@@ -30,7 +31,7 @@ export class ChangePasswordComponent {
   // API
   // =========================================================
 
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   // =========================================================
   // FORM VALUES

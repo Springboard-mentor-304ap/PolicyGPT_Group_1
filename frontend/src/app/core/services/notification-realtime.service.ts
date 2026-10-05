@@ -2,6 +2,7 @@ import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject, Subject, Subscription, timer } from 'rxjs';
 
 import { Auth } from './auth';
+import { environment } from '../../../environments/environment';
 
 /**
  * Server -> client event shapes emitted by the FastAPI notification socket.
@@ -315,7 +316,7 @@ export class NotificationRealtimeService {
    * so the JWT travels as a query parameter, matching the server.
    */
   private buildUrl(token: string): string {
-    const httpBase = 'http://localhost:8000';
+    const httpBase = `${environment.apiUrl}`;
     const base = this.resolveApiBase(httpBase);
     const wsBase = base.replace(/^http/, 'ws').replace(/\/+$/, '');
     return `${wsBase}/ws/notifications?token=${encodeURIComponent(token)}`;

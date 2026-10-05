@@ -322,6 +322,14 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
           k["total_searches"],
         ),
         card(
+          "eligibility_checks",
+          "Eligibility Checks",
+          "fact_check",
+          "purple",
+          "Eligibility checks are not stored by the backend yet.",
+          k["eligibility_checks"],
+        ),
+        card(
           "notifications",
           "Notifications",
           "notifications",

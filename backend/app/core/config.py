@@ -1,5 +1,15 @@
+from pathlib import Path
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve backend/.env relative to this file so Uvicorn loads the same
+# values regardless of the current working directory
+# (e.g. `uvicorn app.main:app` from backend/ vs `--app-dir backend`
+# from the repo root). Deployment environment variables still take
+# precedence over the file; a missing file is fine in production.
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_ENV_FILE = str(_BACKEND_DIR / ".env")
 
 
 class Settings(BaseSettings):
@@ -50,11 +60,19 @@ class Settings(BaseSettings):
 
     DEBUG: bool = False
 
-    # Comma-separated extra frontend origins allowed to call the API
-    # (export endpoints included). Defaults cover local development;
-    # set FRONTEND_ORIGINS in production, e.g.
-    # FRONTEND_ORIGINS=https://app.example.com,https://admin.example.com
-    FRONTEND_ORIGINS: str = ""
+    # Primary frontend URL used for user-facing backend-generated links
+    # (emails, notifications). No trailing slash; normalized by validator.
+    # Development default is the local Angular dev server. Production must
+    # provide the real deployed frontend domain via env, e.g.
+    # FRONTEND_URL=https://your-production-frontend-domain.com
+    FRONTEND_URL: str = "http://localhost:4200"
+
+    # Comma-separated frontend origins allowed to call the API (CORS,
+    # export endpoints included). Development default covers the local
+    # Angular dev server on localhost and 127.0.0.1. Set FRONTEND_ORIGINS
+    # in production, e.g.
+    # FRONTEND_ORIGINS=https://your-production-frontend-domain.com
+    FRONTEND_ORIGINS: str = "http://localhost:4200,http://127.0.0.1:4200"
 
     # =========================================================
     # CHATBOT (PolicyGPT Assistant) CONFIGURATION
@@ -89,10 +107,36 @@ class Settings(BaseSettings):
         return value
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @field_validator("FRONTEND_URL", mode="before")
+    @classmethod
+    def _normalize_frontend_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            cleaned = value.strip().rstrip("/")
+            return cleaned or "http://localhost:4200"
+        return value
+
+    @property
+    def frontend_origins_list(self) -> list[str]:
+        """Parse FRONTEND_ORIGINS into a clean list of origins.
+
+        Supports multiple comma-separated origins, strips whitespace,
+        drops empty entries, removes trailing slashes (so
+        `https://app.example.com/` matches the browser origin
+        `https://app.example.com`), and de-duplicates while
+        preserving order.
+        """
+        raw = self.FRONTEND_ORIGINS or ""
+        origins: list[str] = []
+        for part in raw.split(","):
+            candidate = part.strip().rstrip("/")
+            if candidate and candidate not in origins:
+                origins.append(candidate)
+        return origins
 
     def model_post_init(self, __context: object) -> None:
         if not self.SMTP_EMAIL and self.SMTP_USERNAME:

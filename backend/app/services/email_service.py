@@ -21,7 +21,7 @@ def _generate_policygpt_html(
     action_label: str = "View Details",
 ) -> str:
     """Generate PolicyGPT branded responsive HTML email template."""
-    base_portal_url = "http://localhost:4200"
+    base_portal_url = settings.FRONTEND_URL.rstrip("/")
     full_action_url = (
         f"{base_portal_url}{action_url}"
         if action_url and action_url.startswith("/")

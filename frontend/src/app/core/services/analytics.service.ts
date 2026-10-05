@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable, catchError, map, of, shareReplay, tap, throwError } from "rxjs";
+import { environment } from '../../../environments/environment';
 
 export interface DashboardAnalyticsResponse {
   total_policies: number;
@@ -459,9 +460,9 @@ export interface GovtUserNotifications {
   providedIn: "root",
 })
 export class AnalyticsService {
-  private readonly baseUrl = "http://localhost:8000/analytics";
+  private readonly baseUrl = `${environment.apiUrl}/analytics`;
 
-  private readonly notificationsUrl = "http://localhost:8000/notifications";
+  private readonly notificationsUrl = `${environment.apiUrl}/notifications`;
 
   constructor(private readonly http: HttpClient) {}
 

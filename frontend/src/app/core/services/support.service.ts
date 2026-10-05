@@ -8,12 +8,13 @@ import {
   AdminSupportRequest,
   SupportRequestRespond,
 } from '../models/support.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SupportService {
-  private readonly baseUrl = 'http://localhost:8000/support';
+  private readonly baseUrl = `${environment.apiUrl}/support`;
 
   constructor(private readonly http: HttpClient) {}
 

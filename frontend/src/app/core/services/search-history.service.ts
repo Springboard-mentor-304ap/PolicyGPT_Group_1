@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface SearchHistoryItem {
   history_id: number;
@@ -27,7 +28,7 @@ export interface SearchHistoryStatsResponse {
   providedIn: 'root',
 })
 export class SearchHistoryService {
-  private readonly baseUrl = 'http://localhost:8000/search-history';
+  private readonly baseUrl = `${environment.apiUrl}/search-history`;
 
   constructor(private readonly http: HttpClient) {}
 

@@ -7,12 +7,13 @@ import {
   NotificationMatrixResponse,
   NotificationMatrixUpdatePayload,
 } from '../models/notification.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotificationPreferencesService {
-  private readonly baseUrl = 'http://localhost:8000/notification-preferences';
+  private readonly baseUrl = `${environment.apiUrl}/notification-preferences`;
 
   constructor(private readonly http: HttpClient) {}
 

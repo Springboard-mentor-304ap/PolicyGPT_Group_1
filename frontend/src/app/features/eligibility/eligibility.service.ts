@@ -4,6 +4,7 @@ import {
   HttpErrorResponse,
 } from "@angular/common/http";
 import { Observable } from "rxjs";
+import { environment } from '../../../environments/environment';
 
 export type EntityType = "policy" | "scheme";
 
@@ -73,7 +74,7 @@ export class EligibilityService {
   private readonly SAVED_RESULTS_KEY = "policygpt_saved_eligibility_results";
 
   private readonly apiUrl =
-    "http://localhost:8000/eligibility";
+    `${environment.apiUrl}/eligibility`;
 
 
   constructor(

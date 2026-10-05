@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable, Subject, of, shareReplay, tap } from "rxjs";
 import { finalize } from "rxjs/operators";
+import { environment } from '../../../environments/environment';
 
 export interface AuthUser {
   user_id: number;
@@ -43,7 +44,7 @@ export interface AuthResponse {
   providedIn: "root",
 })
 export class Auth {
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private readonly tokenKey = "policygpt_token";
 

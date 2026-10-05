@@ -10,12 +10,13 @@ import {
   ChatMessageResponse,
   ChatUsage,
 } from "../models/chatbot.model";
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: "root",
 })
 export class ChatbotService {
-  private readonly baseUrl = "http://localhost:8000/chatbot";
+  private readonly baseUrl = `${environment.apiUrl}/chatbot`;
 
   private readonly http = inject(HttpClient);
 

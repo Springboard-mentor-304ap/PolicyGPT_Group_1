@@ -22,6 +22,7 @@ import {
   NotificationRealtimeEvent,
   NotificationRealtimeService,
 } from './notification-realtime.service';
+import { environment } from '../../../environments/environment';
 
 /** Payload of a live `notification` frame, mapped onto the REST item shape. */
 type LiveNotificationPayload = Extract<NotificationRealtimeEvent, { type: 'notification' }>['data'];
@@ -30,8 +31,8 @@ type LiveNotificationPayload = Extract<NotificationRealtimeEvent, { type: 'notif
   providedIn: 'root',
 })
 export class NotificationService {
-  private readonly baseUrl = 'http://localhost:8000/notifications';
-  private readonly preferencesUrl = 'http://localhost:8000/notification-preferences';
+  private readonly baseUrl = `${environment.apiUrl}/notifications`;
+  private readonly preferencesUrl = `${environment.apiUrl}/notification-preferences`;
 
   private readonly unreadCountSubject = new BehaviorSubject<number>(0);
   public readonly unreadCount$ = this.unreadCountSubject.asObservable();
@@ -386,21 +387,21 @@ export class NotificationService {
   // ============================================================
 
   getAdminStatistics(): Observable<AdminNotificationStats> {
-    return this.http.get<AdminNotificationStats>('http://localhost:8000/admin/notifications/statistics');
+    return this.http.get<AdminNotificationStats>(`${environment.apiUrl}/admin/notifications/statistics`);
   }
 
   getAdminDeliveries(limit: number = 50): Observable<{ items: NotificationDeliveryRecord[]; total: number }> {
-    return this.http.get<{ items: NotificationDeliveryRecord[]; total: number }>('http://localhost:8000/admin/notifications/delivery-status', {
+    return this.http.get<{ items: NotificationDeliveryRecord[]; total: number }>(`${environment.apiUrl}/admin/notifications/delivery-status`, {
       params: new HttpParams().set('page_size', limit.toString()),
     });
   }
 
   testEmail(email: string): Observable<TestDeliveryResponse> {
-    return this.http.post<TestDeliveryResponse>('http://localhost:8000/admin/notifications/test-email', { email });
+    return this.http.post<TestDeliveryResponse>(`${environment.apiUrl}/admin/notifications/test-email`, { email });
   }
 
   testSms(phoneNumber: string): Observable<TestDeliveryResponse> {
-    return this.http.post<TestDeliveryResponse>('http://localhost:8000/admin/notifications/test-sms', { phone_number: phoneNumber });
+    return this.http.post<TestDeliveryResponse>(`${environment.apiUrl}/admin/notifications/test-sms`, { phone_number: phoneNumber });
   }
 
   // ============================================================

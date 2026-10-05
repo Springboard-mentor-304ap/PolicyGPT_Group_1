@@ -30,6 +30,7 @@ import {
   AdminDepartmentAnalyticsResponse,
   AdminUsageStatisticsResponse,
 } from "../models/admin-analytics.models";
+import { environment } from '../../../../../environments/environment';
 
 @Injectable({
   providedIn: "root",
@@ -37,8 +38,8 @@ import {
 export class AdminAnalyticsDataService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(Auth);
-  private readonly baseUrl = "http://localhost:8000/analytics/admin";
-  private readonly reportsUrl = "http://localhost:8000/reports";
+  private readonly baseUrl = `${environment.apiUrl}/analytics/admin`;
+  private readonly reportsUrl = `${environment.apiUrl}/reports`;
 
   // Flag indicating real backend dynamic data mode
   readonly isSampleData = false;

@@ -2,6 +2,7 @@ import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
+import { environment } from '../../../environments/environment';
 
 export interface AdminUserApi {
   user_id: number;
@@ -34,9 +35,9 @@ export interface UserAuditLogApi {
   providedIn: "root",
 })
 export class AdminUsersService {
-  private readonly apiUrl = "http://localhost:8000/admin/users";
-  private readonly authUsersUrl = "http://localhost:8000/auth/users";
-  private readonly auditLogsUrl = "http://localhost:8000/audit-logs";
+  private readonly apiUrl = `${environment.apiUrl}/admin/users`;
+  private readonly authUsersUrl = `${environment.apiUrl}/auth/users`;
+  private readonly auditLogsUrl = `${environment.apiUrl}/audit-logs`;
 
   constructor(private http: HttpClient) {}
 

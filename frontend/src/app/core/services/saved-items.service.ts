@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
+import { environment } from '../../../environments/environment';
 
 export interface SavedPolicyItem {
   saved_id: number;
@@ -46,7 +47,7 @@ export interface UnsaveResponse {
   providedIn: "root",
 })
 export class SavedItemsService {
-  private readonly baseUrl = "http://localhost:8000/saved-items";
+  private readonly baseUrl = `${environment.apiUrl}/saved-items`;
 
   constructor(private readonly http: HttpClient) {}
 

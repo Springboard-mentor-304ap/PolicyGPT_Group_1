@@ -10,12 +10,13 @@ import {
   ReportTypesResponse,
 } from '../models/report.model';
 import { Auth } from './auth';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ReportService {
-  private readonly baseUrl = 'http://localhost:8000/reports';
+  private readonly baseUrl = `${environment.apiUrl}/reports`;
 
   private readonly http = inject(HttpClient);
   private readonly auth = inject(Auth);

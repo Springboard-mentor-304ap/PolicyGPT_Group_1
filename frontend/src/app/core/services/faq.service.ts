@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { FAQ, FAQCreate, FAQUpdate } from '../models/faq.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FaqService {
-  private readonly baseUrl = 'http://localhost:8000/faqs';
+  private readonly baseUrl = `${environment.apiUrl}/faqs`;
 
   constructor(private readonly http: HttpClient) {}
 

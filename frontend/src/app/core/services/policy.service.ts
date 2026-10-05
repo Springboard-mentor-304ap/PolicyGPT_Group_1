@@ -13,13 +13,14 @@ import {
   PolicyAnalyticsResponse,
   PolicyComparisonResponse,
 } from '../models/policy.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PolicyService {
-  private readonly apiUrl = 'http://localhost:8000/policies';
-  private readonly analyticsUrl = 'http://localhost:8000/analytics/policies';
+  private readonly apiUrl = `${environment.apiUrl}/policies`;
+  private readonly analyticsUrl = `${environment.apiUrl}/analytics/policies`;
 
   private cache = new Map<string, { data: any; timestamp: number }>();
   private inflight = new Map<string, Observable<any>>();
@@ -444,7 +445,7 @@ export class PolicyService {
       key,
       () =>
         this.http.get<any[]>(
-          `http://localhost:8000/eligibility/policy/${policyId}`
+          `${environment.apiUrl}/eligibility/policy/${policyId}`
         ),
     );
   }

@@ -57,7 +57,11 @@
 
           <div class="profile-summary">
             <div class="profile-avatar" aria-hidden="true">
+              @if (avatarSrc) {
+              <img [src]="avatarSrc" alt="" class="profile-avatar-photo" />
+              } @else {
               <span class="material-icons">person</span>
+              }
             </div>
 
             <div class="profile-identity">

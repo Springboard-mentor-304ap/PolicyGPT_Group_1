@@ -240,7 +240,7 @@
   box-shadow: 0 5px 15px rgba(15, 23, 42, 0.08);
 }
 
-.avatar-svg {
+app-user-avatar {
   display: block;
 
   width: 100%;
@@ -476,169 +476,188 @@
 }
 
 // =========================================================
-// MODAL BACKDROP
+// SHARED MODAL OVERLAY (same system as ConfirmModal /
+// ChangePasswordModal: dark + blur, above topbar/sidebar/chatbot)
 // =========================================================
 
-.modal-backdrop {
+.delpw-overlay {
   position: fixed;
 
   inset: 0;
 
-  z-index: 9999;
+  z-index: 99999;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
 
-  padding: 20px;
+  padding: 16px;
 
   box-sizing: border-box;
 
-  background: rgba(15, 23, 42, 0.48);
+  background: rgba(5, 15, 35, 0.65);
+
+  backdrop-filter: blur(6px);
+
+  -webkit-backdrop-filter: blur(6px);
 
   animation: fadeIn 0.2s ease-out;
 }
 
 // =========================================================
-// DELETE ACCOUNT MODAL
+// DELETE PASSWORD CARD
 // =========================================================
 
-.delete-modal-card {
-  padding: 36px 32px;
+.delpw-card {
+  position: relative;
+
+  width: min(440px, 100%);
+
+  max-height: calc(100vh - 32px);
+
+  overflow-y: auto;
+
+  padding: 30px 28px 26px;
 
   box-sizing: border-box;
 
   background: #ffffff;
 
-  border-radius: 20px;
+  border-radius: 18px;
 
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
 
   text-align: center;
 
-  animation: modalScale 0.2s ease-out;
+  animation: modalScale 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 // =========================================================
-// MODAL TITLE
+// MODAL CLOSE / ICON / TITLE
 // =========================================================
 
-.modal-title {
-  margin: 0 0 28px;
+.delpw-close {
+  position: absolute;
 
-  color: #17233d;
+  top: 12px;
+  right: 12px;
 
-  font-size: 18px;
-  font-weight: 700;
-
-  line-height: 1.4;
-}
-
-// =========================================================
-// MODAL ACTIONS
-// =========================================================
-
-.modal-actions {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  gap: 20px;
-}
+  width: 34px;
+  height: 34px;
 
-// =========================================================
-// DELETE MODAL BUTTONS
-// =========================================================
+  padding: 0;
 
-.delete-modal-card {
-  .modal-actions button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  border: none;
+  border-radius: 50%;
 
-    width: 135px;
-    height: 43px;
+  background: #f1f5f9;
 
-    padding: 0;
+  color: #64748b;
 
-    border: none;
-    border-radius: 10px;
+  cursor: pointer;
 
-    font-family: inherit;
+  &:hover:not(:disabled) {
+    background: #e2e8f0;
 
-    font-size: 14px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition:
-      background-color 0.2s ease,
-      transform 0.15s ease;
-
-    &:active {
-      transform: scale(0.97);
-    }
+    color: #0f172a;
   }
 
-  .btn-yes {
-    background: #d8ebd3;
-    color: #16a34a;
+  &:disabled {
+    cursor: not-allowed;
 
-    &:hover {
-      background: #c9e4c3;
-    }
+    opacity: 0.6;
   }
 
-  .btn-no {
-    background: #ffd6d6;
-    color: #dc2626;
-
-    &:hover {
-      background: #fcc2c2;
-    }
+  .material-icons {
+    font-size: 20px;
   }
 }
 
-// =========================================================
-// PASSWORD CONFIRMATION MODAL
-// =========================================================
+.delpw-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-.password-modal-card {
-  width: min(458px, calc(100vw - 40px));
+  width: 52px;
+  height: 52px;
 
-  padding: 38px 38px 36px;
+  margin: 0 auto 14px;
 
-  box-sizing: border-box;
+  border: 1px solid #fee2e2;
+  border-radius: 50%;
 
-  background: #ffffff;
+  background: #fef2f2;
 
-  border-radius: 21px;
+  color: #dc2626;
 
-  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
-
-  text-align: center;
-
-  animation: modalScale 0.2s ease-out;
+  .material-icons {
+    font-size: 28px;
+  }
 }
 
-// =========================================================
-// PASSWORD MODAL TITLE
-// =========================================================
+.delpw-title {
+  margin: 0;
 
-.password-modal-card .modal-title {
-  margin: 0 0 26px;
+  color: #0f172a;
 
-  color: #17233d;
-
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
 
-  line-height: 1.35;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+}
 
-  text-align: center;
+.delpw-message {
+  margin: 10px 0 18px;
+
+  color: #475569;
+
+  font-size: 14px;
+
+  line-height: 1.55;
+}
+
+.delpw-error {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 0 0 16px;
+
+  padding: 10px 14px;
+
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+
+  background: #fef2f2;
+
+  color: #b91c1c;
+
+  font-size: 13px;
+
+  line-height: 1.4;
+
+  text-align: left;
+
+  word-break: break-word;
+
+  .material-icons {
+    flex-shrink: 0;
+
+    color: #dc2626;
+
+    font-size: 18px;
+  }
 }
 
 // =========================================================
@@ -924,38 +943,38 @@
 }
 
 // =========================================================
-// PASSWORD MODAL ACTIONS
+// DELETE PASSWORD ACTIONS
 // =========================================================
 
-.password-modal-card .modal-actions {
+.delpw-actions {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  gap: 12px;
 
   width: 100%;
 }
 
 // =========================================================
-// CONFIRM BUTTON
+// DELETE PASSWORD BUTTONS
 // =========================================================
 
-.password-modal-card .btn-confirm {
+.delpw-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  width: 153px;
-  height: 43px;
+  flex: 1;
 
-  padding: 0;
+  min-width: 100px;
+  height: 44px;
 
-  border: none;
+  padding: 0 18px;
 
-  border-radius: 13px;
+  box-sizing: border-box;
 
-  background: #dff1dc;
-
-  color: #16a34a;
+  border-radius: 10px;
 
   font-family: inherit;
 
@@ -964,19 +983,69 @@
 
   cursor: pointer;
 
-  transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.15s ease;
+  transition: background-color 0.15s ease;
 
-  &:hover {
-    background: #d0eacc;
+  &:disabled {
+    opacity: 0.65;
 
-    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+    cursor: not-allowed;
+
+    box-shadow: none;
   }
 
-  &:active {
-    transform: scale(0.97);
+  &:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+}
+
+.delpw-btn--cancel {
+  border: 1px solid #cbd5e1;
+
+  background: #ffffff;
+
+  color: #475569;
+
+  &:hover:not(:disabled) {
+    border-color: #94a3b8;
+
+    background: #f8fafc;
+
+    color: #1e293b;
+  }
+}
+
+.delpw-btn--danger {
+  border: 1px solid #dc2626;
+
+  background: #dc2626;
+
+  color: #ffffff;
+
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+
+  &:hover:not(:disabled) {
+    border-color: #b91c1c;
+
+    background: #b91c1c;
+  }
+}
+
+.delpw-spinner {
+  width: 16px;
+  height: 16px;
+
+  margin-right: 8px;
+
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+
+  animation: delpwSpin 0.7s linear infinite;
+}
+
+@keyframes delpwSpin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -1250,24 +1319,24 @@
   // MOBILE MODALS
   // ---------------------------------------------
 
-  .delete-modal-card,
-  .password-modal-card {
+  .delpw-card {
     width: calc(100vw - 32px);
 
-    padding: 28px 20px;
+    padding: 26px 20px;
 
     border-radius: 18px;
   }
 
-  .password-modal-card {
-    padding-top: 30px;
-    padding-bottom: 30px;
+  .delpw-title {
+    font-size: 18px;
   }
 
-  .password-modal-card .modal-title {
-    font-size: 18px;
+  .delpw-actions {
+    flex-direction: column-reverse;
+  }
 
-    margin-bottom: 24px;
+  .delpw-btn {
+    width: 100%;
   }
 
   .password-input-wrapper {
@@ -1289,8 +1358,7 @@
     }
   }
 
-  .password-modal-card .btn-confirm {
-    width: 140px;
+  .delpw-btn {
     height: 42px;
 
     font-size: 13px;
@@ -1315,28 +1383,26 @@
     gap: 18px;
   }
 
-  .delete-modal-card {
-    .modal-actions {
-      flex-direction: column;
-
-      width: 100%;
-
-      gap: 12px;
-
-      button {
-        width: 100%;
-      }
-    }
-  }
-
-  .password-modal-card {
+  .delpw-card {
     width: calc(100vw - 24px);
 
-    padding: 26px 16px;
+    padding: 24px 16px;
   }
 
-  .password-modal-card .modal-title {
+  .delpw-title {
     font-size: 17px;
+  }
+
+  .delpw-actions {
+    flex-direction: column-reverse;
+
+    width: 100%;
+
+    gap: 12px;
+  }
+
+  .delpw-btn {
+    width: 100%;
   }
 }
 
@@ -1366,12 +1432,10 @@ select:focus-visible {
   }
 }
 
-.password-modal-card {
-  .btn-confirm {
-    &:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
+.delpw-btn {
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
   }
 }

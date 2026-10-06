@@ -5,11 +5,20 @@ import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import func, or_, text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.core.config import settings
 from app.core.security import (
@@ -129,10 +138,18 @@ def get_current_user(
         )
 
     # -----------------------------------------------------
-    # FIND USER
+    # FIND USER (PK lookup; photo bytes deferred — every
+    # authenticated request hits this, and pulling up to 5 MB
+    # of BYTEA on each call makes even text-only saves slow
+    # on remote Postgres)
     # -----------------------------------------------------
 
-    user = db.query(User).filter(User.user_id == user_id).first()
+    user = (
+        db.query(User)
+        .options(defer(User.profile_photo))
+        .filter(User.user_id == user_id)
+        .first()
+    )
 
     # -----------------------------------------------------
     # USER DOES NOT EXIST
@@ -673,12 +690,31 @@ def update_profile(
     current_user.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     # -----------------------------------------------------
-    # SAVE
+    # SAVE (single business transaction; photo bytes are
+    # deferred so refresh must NOT pull the up-to-5 MB BYTEA
+    # back on a text-only save — refresh only the small
+    # columns the response actually serializes)
     # -----------------------------------------------------
 
     try:
         db.commit()
-        db.refresh(current_user)
+        db.refresh(
+            current_user,
+            attribute_names=[
+                "full_name",
+                "phone",
+                "gender",
+                "date_of_birth",
+                "state",
+                "district",
+                "occupation",
+                "organization",
+                "is_active",
+                "profile_photo_updated_at",
+                "profile_photo_mime",
+                "updated_at",
+            ],
+        )
 
     except IntegrityError:
         db.rollback()
@@ -699,6 +735,117 @@ def update_profile(
     )
 
     return current_user
+
+
+# =========================================================
+# PROFILE PHOTO (avatar for the authenticated user)
+# =========================================================
+# Identity always comes from the JWT via get_current_user. No user_id
+# is accepted from the client, so a user can only ever read, change,
+# or remove their OWN photo. Guests share one row and have no
+# personal photo: upload/removal is rejected for them.
+
+
+def _require_personal_profile(current_user: User) -> None:
+    if normalize_role(current_user.role) == "GUEST":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Guest users do not have a personal profile photo.",
+        )
+
+
+@router.put("/profile/photo", response_model=UserResponse)
+async def update_profile_photo(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Upload a new profile photo for the authenticated user."""
+    _require_personal_profile(current_user)
+
+    from app.services.profile_photo_service import (
+        MAX_PHOTO_BYTES,
+        set_profile_photo,
+    )
+
+    # Read with a one-byte cap so an oversize upload is rejected
+    # without buffering an unbounded body in memory.
+    try:
+        content = await file.read(MAX_PHOTO_BYTES + 1)
+    except Exception as exc:
+        logger.error(f"Profile photo read error: {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unable to read the uploaded file.",
+        )
+    finally:
+        try:
+            await file.close()
+        except Exception:
+            pass
+
+    updated = set_profile_photo(
+        db=db,
+        user=current_user,
+        filename=file.filename,
+        content=content,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_PROFILE_PHOTO_UPDATED",
+        "USER",
+        current_user.user_id,
+        "Profile photo updated.",
+    )
+
+    return updated
+
+
+@router.get("/profile/photo")
+def get_profile_photo(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the authenticated user's own profile photo bytes."""
+    if not current_user.profile_photo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No profile photo.",
+        )
+    return Response(
+        content=bytes(current_user.profile_photo),
+        media_type=current_user.profile_photo_mime or "image/jpeg",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.delete("/profile/photo", response_model=UserResponse)
+def delete_profile_photo(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Remove the authenticated user's profile photo."""
+    _require_personal_profile(current_user)
+
+    from app.services.profile_photo_service import remove_profile_photo
+
+    updated = remove_profile_photo(db=db, user=current_user)
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_PROFILE_PHOTO_REMOVED",
+        "USER",
+        current_user.user_id,
+        "Profile photo removed.",
+    )
+
+    return updated
 
 
 # =========================================================

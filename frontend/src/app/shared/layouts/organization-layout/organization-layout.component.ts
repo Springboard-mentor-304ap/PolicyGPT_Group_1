@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -9,8 +9,10 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
@@ -64,8 +66,18 @@ export class OrganizationLayoutComponent implements OnInit {
 
   user: AuthUser | null = null;
 
-  userName = "Organization";
-  userRole = "ORGANIZATION";
+  userName = signal("Organization");
+  userRole = signal("ORGANIZATION");
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc = signal<string | null>(null);
+
+  /**
+   * True while the avatar image is being resolved (stored user known,
+   * photo blob still loading). The template shows a subtle placeholder
+   * — never the default avatar as if it were the user's actual photo.
+   */
+  avatarLoading = signal(false);
 
   // =========================================================
   // SIDEBAR
@@ -152,13 +164,33 @@ export class OrganizationLayoutComponent implements OnInit {
   constructor(
     private readonly authService: Auth,
     private readonly router: Router,
+    private readonly avatarService: AvatarService,
   ) {}
+
+  private readonly destroyRef = inject(DestroyRef);
 
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
+    // Shared current-user state FIRST: the BehaviorSubject replays the
+    // stored/login user synchronously, so name/role/photo-version are
+    // available before the background /me refresh below resolves.
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (!user) {
+          this.userName.set("Organization");
+          this.userRole.set("ORGANIZATION");
+          this.avatarSrc.set(null);
+          this.avatarLoading.set(false);
+          return;
+        }
+        this.setUserDetails(user);
+        this.refreshAvatar(user);
+      });
+
     this.loadCurrentUser();
 
     if (this.isAnalyticsRouteActive()) {
@@ -197,14 +229,17 @@ export class OrganizationLayoutComponent implements OnInit {
   // =========================================================
 
   private loadCurrentUser(): void {
-    // -------------------------------------------------------
-    // GET STORED USER
-    // -------------------------------------------------------
+    const snapshot =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
-
-    if (storedUser) {
-      this.setUserDetails(storedUser);
+    if (snapshot) {
+      this.setUserDetails(snapshot);
+      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(true);
+      } else if (!snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(false);
+      }
     }
 
     // -------------------------------------------------------
@@ -234,6 +269,7 @@ export class OrganizationLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
+        this.refreshAvatar(user);
       },
 
       error: (error: unknown) => {
@@ -263,9 +299,38 @@ export class OrganizationLayoutComponent implements OnInit {
   private setUserDetails(user: AuthUser): void {
     this.user = user;
 
-    this.userName = user.full_name?.trim() || "Organization";
+    this.userName.set(user.full_name?.trim() || "Organization");
 
-    this.userRole = user.role?.trim().toUpperCase() || "ORGANIZATION";
+    this.userRole.set(user.role?.trim().toUpperCase() || "ORGANIZATION");
+  }
+
+  /**
+   * Resolve the avatar image for the given user through the shared
+   * AvatarService (per-version cached blob URL, default icon when the
+   * user has no photo). While a photo blob is loading, `avatarLoading`
+   * stays true so the template shows a placeholder instead of
+   * presenting the default avatar as the user's actual photo.
+   */
+  private refreshAvatar(user: AuthUser): void {
+    if (!user?.profile_photo_updated_at) {
+      this.avatarSrc.set(null);
+      this.avatarLoading.set(false);
+      return;
+    }
+    // Photo exists on the backend: show placeholder until bytes arrive.
+    if (!this.avatarSrc()) {
+      this.avatarLoading.set(true);
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc.set(src);
+        this.avatarLoading.set(false);
+      },
+      error: () => {
+        this.avatarSrc.set(null);
+        this.avatarLoading.set(false);
+      },
+    });
   }
 
   // =========================================================
@@ -273,7 +338,7 @@ export class OrganizationLayoutComponent implements OnInit {
   // =========================================================
 
   get displayRole(): string {
-    switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
+    switch ((this.userRole() || "").toUpperCase().replace(/[\s-]+/g, "_")) {
       case "ORGANIZATION":
       case "ORGANISATION":
         return "Organization";
@@ -385,8 +450,11 @@ export class OrganizationLayoutComponent implements OnInit {
 
     this.user = null;
 
-    this.userName = "Organization";
-    this.userRole = "ORGANIZATION";
+    this.userName.set("Organization");
+    this.userRole.set("ORGANIZATION");
+
+    this.avatarSrc.set(null);
+    this.avatarLoading.set(false);
 
     // -------------------------------------------------------
     // RESET LAYOUT

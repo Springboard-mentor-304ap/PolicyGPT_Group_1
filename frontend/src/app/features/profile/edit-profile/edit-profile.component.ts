@@ -16,14 +16,18 @@ import {
 } from "@angular/forms";
 
 import { Router } from "@angular/router";
+import { Observable, of, timeout } from "rxjs";
 
 import { HttpClient } from "@angular/common/http";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
+import { ToastService } from "../../../core/services/toast.service";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { UserAvatarComponent } from "../../../shared/components/user-avatar/user-avatar.component";
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -31,7 +35,7 @@ import { environment } from '../../../../environments/environment';
 
   standalone: true,
 
-  imports: [CommonModule, ReactiveFormsModule, BreadcrumbComponent],
+  imports: [CommonModule, ReactiveFormsModule, BreadcrumbComponent, UserAvatarComponent],
 
   templateUrl: "./edit-profile.component.html",
 
@@ -52,9 +56,17 @@ export class EditProfileComponent implements OnInit {
 
   private readonly authService = inject(Auth);
 
+  private readonly avatarService = inject(AvatarService);
+
+  private readonly toast = inject(ToastService);
+
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl = `${environment.apiUrl}/auth`;
+
+  /** Safety net for the profile-fields PUT (project uses 30s for
+   * DB-only auth calls). Produces a real error state — never fake success. */
+  private static readonly SAVE_TIMEOUT_MS = 30_000;
 
   // =========================================================
   // FORM
@@ -67,6 +79,15 @@ export class EditProfileComponent implements OnInit {
   // =========================================================
 
   selectedPhotoUrl: string | null = null;
+
+  /** File chosen this session, uploaded on Save (not immediately). */
+  private pendingPhotoFile: File | null = null;
+
+  /** True when the user asked to delete the current photo on Save. */
+  private removePhotoRequested = false;
+
+  /** Photo-specific validation/selection error (inline, no alert). */
+  photoError = "";
 
   // =========================================================
   // UI STATE
@@ -1105,17 +1126,19 @@ export class EditProfileComponent implements OnInit {
 
   private loadCurrentUser(): void {
     // -------------------------------------------------------
-    // FIRST USE STORED USER
+    // FIRST USE SHARED SNAPSHOT (login/app-init, incl. photo)
     // -------------------------------------------------------
 
-    const cachedUser = this.authService.getStoredUser();
+    const cachedUser =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
     if (cachedUser) {
       this.patchUserData(cachedUser);
     }
 
     // -------------------------------------------------------
-    // THEN GET FRESH USER FROM BACKEND
+    // THEN REFRESH SHARED STATE FROM BACKEND (deduplicated)
     // -------------------------------------------------------
 
     this.authService.getCurrentUser().subscribe({
@@ -1137,7 +1160,6 @@ export class EditProfileComponent implements OnInit {
 
   private patchUserData(user: AuthUser): void {
     this.currentUser = user;
-    const extendedUser = user as AuthUser & { gender?: string };
     const state = user.state || "";
 
     // Update district list BEFORE
@@ -1152,7 +1174,7 @@ export class EditProfileComponent implements OnInit {
         ? this.formatDateForInput(user.date_of_birth)
         : "",
 
-      gender: extendedUser.gender || "",
+      gender: user.gender || "",
 
       state: state,
 
@@ -1166,6 +1188,25 @@ export class EditProfileComponent implements OnInit {
 
       email: user.email || "",
     });
+
+    // Show the persisted photo (server source of truth) unless the
+    // user already picked a replacement or asked for removal.
+    if (!this.pendingPhotoFile && !this.removePhotoRequested) {
+      this.avatarService.photoSrcFor(user).subscribe({
+        next: (src) => {
+          if (!this.pendingPhotoFile && !this.removePhotoRequested) {
+            this.selectedPhotoUrl = src;
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          if (!this.pendingPhotoFile && !this.removePhotoRequested) {
+            this.selectedPhotoUrl = null;
+          }
+          this.cdr.markForCheck();
+        },
+      });
+    }
 
     this.cdr.markForCheck();
   }
@@ -1380,46 +1421,61 @@ export class EditProfileComponent implements OnInit {
   // CHANGE PHOTO
   // =========================================================
 
-  onChangePhoto(): void {
-    const fileInput = document.createElement("input");
+  onPhotoSelected(event: Event): void {
+    const target = event.target as HTMLInputElement;
 
-    fileInput.type = "file";
+    if (!target.files || !target.files[0]) {
+      return;
+    }
 
-    fileInput.accept = "image/jpeg,image/png";
+    const file = target.files[0];
 
-    fileInput.onchange = (event: Event) => {
-      const target = event.target as HTMLInputElement;
+    // Reset the input so choosing the same file again still fires.
+    target.value = "";
 
-      if (!target.files || !target.files[0]) {
-        return;
-      }
+    // Client-side validation mirrors the backend rules (the backend
+    // re-validates the actual bytes and remains authoritative).
+    const validationError = this.avatarService.validateImageFile(file);
 
-      const file = target.files[0];
+    if (validationError) {
+      this.photoError = validationError;
+      this.cdr.markForCheck();
+      return;
+    }
 
-      // Basic file validation
+    this.photoError = "";
+    this.pendingPhotoFile = file;
+    this.removePhotoRequested = false;
 
-      if (!["image/jpeg", "image/png"].includes(file.type)) {
-        alert("Please select a JPG or PNG image.");
+    // Immediate local preview; the file is uploaded on Save Changes.
+    const reader = new FileReader();
 
-        return;
-      }
+    reader.onload = () => {
+      this.selectedPhotoUrl = reader.result as string;
 
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        this.selectedPhotoUrl = reader.result as string;
-
-        this.cdr.markForCheck();
-      };
-
-      reader.onerror = () => {
-        alert("Unable to read the selected image.");
-      };
-
-      reader.readAsDataURL(file);
+      this.cdr.markForCheck();
     };
 
-    fileInput.click();
+    reader.onerror = () => {
+      this.photoError = "Unable to read the selected image.";
+      this.pendingPhotoFile = null;
+      this.cdr.markForCheck();
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * Discard the pending selection / mark the persisted photo for
+   * removal on Save. The backend reference is only cleared when the
+   * user confirms via Save Changes.
+   */
+  onRemovePhoto(): void {
+    this.pendingPhotoFile = null;
+    this.removePhotoRequested = true;
+    this.selectedPhotoUrl = null;
+    this.photoError = "";
+    this.cdr.markForCheck();
   }
 
   // =========================================================
@@ -1427,6 +1483,10 @@ export class EditProfileComponent implements OnInit {
   // =========================================================
 
   onSave(): void {
+    if (this.saving) {
+      return;
+    }
+
     this.successMessage = "";
     this.errorMessage = "";
 
@@ -1437,11 +1497,89 @@ export class EditProfileComponent implements OnInit {
       return;
     }
 
+    this.saving = true;
+    this.cdr.markForCheck();
+
+    // Photo first (if changed): a failed upload aborts the save so a
+    // "Profile Updated" message is never shown for a failed photo.
+    // AvatarService already applies the project's 30s timeout.
+    const photoRequest: Observable<AuthUser | null> = this.pendingPhotoFile
+      ? this.avatarService.uploadPhoto(this.pendingPhotoFile)
+      : this.removePhotoRequested
+        ? this.avatarService.removePhoto()
+        : of(null);
+
+    photoRequest.subscribe({
+      next: (photoUser: AuthUser | null) => {
+        if (photoUser) {
+          this.currentUser = photoUser;
+          this.authService.publishCurrentUser(photoUser);
+          this.pendingPhotoFile = null;
+          this.removePhotoRequested = false;
+        }
+        this.saveProfileFields();
+      },
+      error: (photoError: unknown) => {
+        console.error("Unable to update profile photo:", photoError);
+        this.saving = false;
+        this.errorMessage = this.photoErrorMessage(photoError);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /**
+   * True when the text fields match the current shared user and no
+   * photo change is pending — saving would be a wasted expensive round
+   * trip (PUT + audit commit + refresh), so skip the API entirely.
+   */
+  private hasNoChanges(payload: {
+    full_name: string;
+    phone: string;
+    gender: string | null;
+    date_of_birth: string | null;
+    state: string | null;
+    district: string | null;
+    occupation: string | null;
+    organization: string | null;
+  }): boolean {
+    if (this.pendingPhotoFile || this.removePhotoRequested) {
+      return false;
+    }
+    const current = this.currentUser;
+    if (!current) {
+      return false;
+    }
+    const norm = (value: string | null | undefined) =>
+      (value ?? "").trim();
+    const normDob = (value: string | null | undefined) =>
+      value ? this.formatDateForInput(String(value)) : "";
+    return (
+      norm(payload.full_name) === norm(current.full_name) &&
+      norm(payload.phone) ===
+        norm(this.cleanPhone(current.phone || "")) &&
+      norm(payload.gender) === norm(current.gender) &&
+      normDob(payload.date_of_birth) ===
+        normDob(current.date_of_birth as unknown as string) &&
+      norm(payload.state) === norm(current.state) &&
+      norm(payload.district) === norm(current.district) &&
+      norm(payload.occupation) === norm(current.occupation) &&
+      norm(payload.organization) === norm(current.organization)
+    );
+  }
+
+  /**
+   * Persist the text profile fields. Runs after any photo change, so
+   * one Save Changes click covers the whole form. Uses the PUT response
+   * directly for shared state — no follow-up /me fetch.
+   */
+  private saveProfileFields(): void {
     const formValue = this.profileForm.getRawValue();
 
     const payload = {
       full_name: String(formValue.fullName || "").trim(),
       phone: String(formValue.phone || "").trim(),
+      gender: String(formValue.gender || "").trim() || null,
       date_of_birth: formValue.dob || null,
       state: formValue.state || null,
       district: formValue.district || null,
@@ -1449,66 +1587,112 @@ export class EditProfileComponent implements OnInit {
       organization: formValue.organization || null,
     };
 
-    this.saving = true;
-    this.cdr.markForCheck();
+    // No-op save: skip the expensive PUT + audit round trip entirely.
+    if (this.hasNoChanges(payload)) {
+      this.saving = false;
+      this.successMessage = "No changes to save.";
+      this.errorMessage = "";
+      this.cdr.markForCheck();
+      this.navigateToProfile();
+      return;
+    }
 
-    this.http.put<AuthUser>(`${this.apiUrl}/profile`, payload).subscribe({
-      next: (updatedUser: AuthUser) => {
-        this.currentUser = updatedUser || this.currentUser;
-        this.saving = false;
-        this.successMessage = "Profile updated successfully.";
-        this.errorMessage = "";
-        this.cdr.markForCheck();
+    this.http
+      .put<AuthUser>(`${this.apiUrl}/profile`, payload)
+      .pipe(timeout(EditProfileComponent.SAVE_TIMEOUT_MS))
+      .subscribe({
+        next: (updatedUser: AuthUser) => {
+          this.currentUser = updatedUser || this.currentUser;
+          if (updatedUser) {
+            // Shared state: topbar/sidebar/profile update immediately.
+            this.authService.publishCurrentUser(updatedUser);
+            this.patchUserData(updatedUser);
+          }
+          this.saving = false;
+          this.successMessage = "Profile updated successfully.";
+          this.errorMessage = "";
+          this.toast.success(
+            "Profile updated",
+            "Your changes were saved.",
+          );
+          this.cdr.markForCheck();
 
-        // Refresh Auth/localStorage. If refresh fails, the backend
-        // update has still succeeded, so keep the success message.
-        this.authService.getCurrentUser().subscribe({
-          next: (freshUser: AuthUser) => {
-            if (freshUser) {
-              this.currentUser = freshUser;
-              this.patchUserData(freshUser);
-            }
-            this.cdr.markForCheck();
-            setTimeout(() => this.navigateToProfile(), 700);
-          },
-          error: (refreshError: unknown) => {
-            console.error(
-              "Profile updated, but user refresh failed:",
-              refreshError,
+          this.navigateToProfile();
+        },
+        error: (error: unknown) => {
+          console.error("Unable to update profile:", error);
+          this.saving = false;
+
+          const response = error as {
+            status?: number;
+            name?: string;
+            error?: { detail?: string | { msg?: string }[] };
+          };
+
+          if (response?.name === "TimeoutError") {
+            this.errorMessage =
+              "Saving is taking too long. Please check your connection and try again.";
+            this.toast.error(
+              "Save timed out",
+              "Please check your connection and try again.",
             );
             this.cdr.markForCheck();
-            setTimeout(() => this.navigateToProfile(), 1000);
-          },
-        });
-      },
-      error: (error: unknown) => {
-        console.error("Unable to update profile:", error);
-        this.saving = false;
+            return;
+          }
 
-        const response = error as {
-          status?: number;
-          error?: { detail?: string | { msg?: string }[] };
-        };
+          let detail = response?.error?.detail;
+          if (Array.isArray(detail)) {
+            detail = detail
+              .map((item) => item?.msg || "Invalid value")
+              .join("; ");
+          }
 
-        let detail = response?.error?.detail;
-        if (Array.isArray(detail)) {
-          detail = detail
-            .map((item) => item?.msg || "Invalid value")
-            .join("; ");
-        }
+          this.errorMessage =
+            String(detail || "") ||
+            (response?.status === 400
+              ? "Invalid profile information."
+              : response?.status === 401
+                ? "Your session has expired. Please log in again."
+                : response?.status === 409
+                  ? "This phone number is already registered."
+                  : "Unable to update your profile. Please try again.");
 
-        this.errorMessage =
-          String(detail || "") ||
-          (response?.status === 400
-            ? "Invalid profile information."
-            : response?.status === 401
-              ? "Your session has expired. Please log in again."
-              : response?.status === 409
-                ? "This phone number is already registered."
-                : "Unable to update your profile. Please try again.");
+          this.cdr.markForCheck();
+        },
+      });
+  }
 
-        this.cdr.markForCheck();
-      },
-    });
+  /**
+   * User-friendly message for photo upload/removal failures. The
+   * profile fields are untouched in this case (save aborted first).
+   */
+  private photoErrorMessage(error: unknown): string {
+    const response = error as {
+      status?: number;
+      error?: { detail?: string };
+      name?: string;
+    };
+    if (response?.name === "TimeoutError") {
+      return "Photo upload timed out. Please try again.";
+    }
+    const detail =
+      typeof response?.error?.detail === "string"
+        ? response.error.detail
+        : "";
+    if (detail) {
+      return detail;
+    }
+    switch (response?.status) {
+      case 401:
+        return "Your session has expired. Please log in again.";
+      case 403:
+        return "Profile photos are not available for this account.";
+      case 413:
+        return "Profile photo must be 5 MB or smaller.";
+      case 422:
+        return "Only JPG, PNG, and WEBP images are allowed.";
+      default:
+        return "Unable to update the profile photo. Please try again.";
+    }
   }
 }

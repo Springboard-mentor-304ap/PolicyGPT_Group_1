@@ -39,24 +39,7 @@
 
       <div class="avatar-wrapper">
 
-        <svg viewBox="0 0 100 100" class="avatar-svg" role="img" aria-label="Profile avatar">
-
-          <!-- Background -->
-          <circle cx="50" cy="50" r="50" fill="#c0dbea" />
-
-          <!-- Head -->
-          <circle cx="50" cy="38" r="18" fill="#2d3748" />
-
-          <!-- Body -->
-          <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
-
-          <!-- Shirt collar -->
-          <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
-
-          <!-- Tie -->
-          <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
-
-        </svg>
+        <app-user-avatar [photoSrc]="avatarSrc" label="Profile avatar" />
 
       </div>
 
@@ -174,12 +157,12 @@
        ========================================================= -->
   <div class="action-buttons-row">
 
-    <button type="button" class="btn-change-password" (click)="onChangePassword()">
+    <button type="button" #changePasswordBtn class="btn-change-password" (click)="onChangePassword()">
       Change Password
     </button>
 
 
-    <button type="button" class="btn-delete-account" (click)="onDeleteAccount()">
+    <button type="button" #deleteAccountBtn class="btn-delete-account" (click)="onDeleteAccount()">
       Delete Account
     </button>
 
@@ -187,56 +170,79 @@
 
 
   <!-- =========================================================
-       DELETE ACCOUNT CONFIRMATION MODAL
+       CHANGE PASSWORD MODAL (over this page, no navigation)
        ========================================================= -->
-  @if (showDeleteModal) {
 
-  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
-
-    <div class="delete-modal-card" (click)="$event.stopPropagation()">
-
-      <h2 class="modal-title">
-        Want to delete your account?
-      </h2>
-
-
-      <div class="modal-actions">
-
-        <button type="button" class="btn-yes" (click)="confirmDeleteAccount()">
-          YES
-        </button>
-
-
-        <button type="button" class="btn-no" (click)="cancelDeleteAccount()">
-          NO
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  }
+  <app-change-password-modal
+    [isOpen]="showChangePasswordModal"
+    (closed)="closeChangePasswordModal()"
+    (passwordChanged)="onPasswordChanged()"
+  ></app-change-password-modal>
 
 
   <!-- =========================================================
-       PASSWORD CONFIRMATION MODAL
+       DELETE ACCOUNT CONFIRMATION (shared modal infrastructure)
+       ========================================================= -->
+
+  <app-confirm-modal
+    [isOpen]="showDeleteModal"
+    [title]="'Delete Account?'"
+    [message]="'Are you sure you want to delete your account?\nThis action cannot be undone.'"
+    [confirmText]="deletingAccount ? 'Deleting…' : 'Delete Account'"
+    [cancelText]="'Cancel'"
+    [variant]="'danger'"
+    [showCancel]="true"
+    [isLoading]="deletingAccount"
+    (confirmed)="confirmDeleteAccount()"
+    (cancelled)="cancelDeleteAccount()"
+  ></app-confirm-modal>
+
+
+  <!-- =========================================================
+       DELETE PASSWORD CONFIRMATION (same overlay system)
        ========================================================= -->
   @if (showPasswordModal) {
 
-  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
+  <div class="delpw-overlay" (click)="cancelDeleteAccount()">
 
-    <div class="password-modal-card" (click)="$event.stopPropagation()">
+    <div
+      class="delpw-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delpw-title"
+      (click)="$event.stopPropagation()"
+    >
 
-      <h2 class="modal-title">
-        To confirm Enter your password
+      <button
+        type="button"
+        class="delpw-close"
+        aria-label="Close delete account dialog"
+        [disabled]="deletingAccount"
+        (click)="cancelDeleteAccount()"
+      >
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+
+      <div class="delpw-icon" aria-hidden="true">
+        <span class="material-icons">warning</span>
+      </div>
+
+      <h2 class="delpw-title" id="delpw-title">
+        Delete Account?
       </h2>
 
+      <p class="delpw-message">
+        Enter your password to confirm deletion.
+        This action cannot be undone.
+      </p>
 
-      <!-- ===================================================
-             PASSWORD INPUT
-             =================================================== -->
+      @if (deleteError) {
+      <div class="delpw-error" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <span>{{ deleteError }}</span>
+      </div>
+      }
+
       <div class="password-input-wrapper">
 
         <span class="material-symbols-outlined icon-left">
@@ -245,7 +251,7 @@
 
 
         <input [type]="showPasswordText ? 'text' : 'password'" placeholder="Enter your password"
-          [(ngModel)]="confirmPasswordValue" autocomplete="current-password" />
+          [(ngModel)]="confirmPasswordValue" autocomplete="current-password" aria-label="Confirm your password" />
 
 
         <button type="button" class="icon-eye" (click)="togglePasswordVisibility()"
@@ -264,17 +270,22 @@
       </div>
 
 
-      <!-- ===================================================
-             CONFIRM BUTTON
-             =================================================== -->
-      <div class="modal-actions">
+      <div class="delpw-actions">
 
-        <button type="button" class="btn-confirm" (click)="submitPasswordConfirmation()" [disabled]="deletingAccount">
-          {{
-          deletingAccount
-          ? "Deleting..."
-          : "Confirm"
-          }}
+        <button type="button" class="delpw-btn delpw-btn--cancel" (click)="cancelDeleteAccount()"
+          [disabled]="deletingAccount">
+          Cancel
+        </button>
+
+
+        <button type="button" class="delpw-btn delpw-btn--danger" (click)="submitPasswordConfirmation()"
+          [disabled]="deletingAccount">
+          @if (deletingAccount) {
+          <span class="delpw-spinner" aria-hidden="true"></span>
+          <span>Deleting…</span>
+          } @else {
+          <span>Delete Account</span>
+          }
         </button>
 
       </div>

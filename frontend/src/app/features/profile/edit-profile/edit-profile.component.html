@@ -1,43 +1,17 @@
 <div class="edit-profile-page">
 
-  <app-breadcrumb
-    *ngIf="breadcrumbItems.length > 0"
-    [items]="breadcrumbItems"
-  ></app-breadcrumb>
+  <app-breadcrumb *ngIf="breadcrumbItems.length > 0" [items]="breadcrumbItems"></app-breadcrumb>
 
   <!-- =========================================================
        PROFILE HEADER
        ========================================================= -->
   <div class="profile-header">
-
     <div class="title-group">
-      <button type="button" class="back-button" (click)="goBack()">
-        <span class="material-icons">arrow_back</span>
-        <span>Back</span>
-      </button>
-
       <div>
         <h2>Edit Profile</h2>
         <p>Update your personal information</p>
       </div>
     </div>
-
-    <div class="header-actions">
-      <button type="button" class="cancel-button" (click)="goBack()" [disabled]="saving">
-        Cancel
-      </button>
-
-      <button type="button" class="save-button" (click)="onSave()" [disabled]="saving">
-        @if (saving) {
-        <span class="spinner"></span>
-        Saving...
-        } @else {
-        <span class="material-icons">save</span>
-        Save Changes
-        }
-      </button>
-    </div>
-
   </div>
 
 
@@ -69,19 +43,42 @@
          ======================================================= -->
     <div class="avatar-section">
 
+      <p class="avatar-label">Profile Photo</p>
+
       <div class="avatar-wrapper">
 
-        @if (profileImage) {
-        <img [src]="profileImage" alt="Profile photo" class="profile-avatar" />
-        } @else {
-        <div class="profile-avatar profile-avatar--default">
-          <span class="material-icons">
-            account_circle
-          </span>
-        </div>
-        }
+        <app-user-avatar [photoSrc]="profileImage" label="Profile photo" />
+
+        <button type="button" class="avatar-camera-button" (click)="photoInput.click()" [disabled]="saving"
+          aria-label="Change profile photo" title="Change photo">
+          <span class="material-icons">photo_camera</span>
+        </button>
 
       </div>
+
+      <input #photoInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoSelected($event)"
+        hidden />
+
+      <div class="avatar-actions">
+        <button type="button" class="avatar-action-button" (click)="photoInput.click()" [disabled]="saving">
+          <span class="material-icons">photo_camera</span>
+          <span>Change Photo</span>
+        </button>
+
+        @if (profileImage) {
+        <button type="button" class="avatar-action-button avatar-action-button--danger" (click)="onRemovePhoto()"
+          [disabled]="saving">
+          <span class="material-icons">delete_outline</span>
+          <span>Remove</span>
+        </button>
+        }
+      </div>
+
+      <p class="avatar-hint">JPG, PNG or WEBP • Max 5 MB</p>
+
+      @if (photoError) {
+      <p class="avatar-error" role="alert">{{ photoError }}</p>
+      }
 
       <h3>{{ userName || 'User' }}</h3>
 
@@ -89,9 +86,6 @@
         {{ displayRole }}
       </p>
 
-      <p class="avatar-description">
-        Keep your profile information up to date.
-      </p>
 
     </div>
 

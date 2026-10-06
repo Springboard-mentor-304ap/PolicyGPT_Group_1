@@ -1,4 +1,4 @@
-import { Component, effect, input, OnDestroy, output } from '@angular/core';
+import { Component, HostListener, effect, input, OnDestroy, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -65,8 +65,9 @@ import { CommonModule } from '@angular/common';
       inset: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
+      background: rgba(5, 15, 35, 0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -338,6 +339,13 @@ export class ConfirmModalComponent implements OnDestroy {
       return;
     }
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+      this.onCancel();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.isOpen() && !this.isLoading()) {
       this.onCancel();
     }
   }

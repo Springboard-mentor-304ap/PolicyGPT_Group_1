@@ -10,6 +10,7 @@ import {
 } from "@angular/forms";
 
 import { Auth } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 
 @Component({
   selector: "app-login",
@@ -40,6 +41,7 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: Auth,
+    private avatarService: AvatarService,
     private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
@@ -355,6 +357,23 @@ export class LoginComponent {
         console.log("USER:", user);
 
         console.log("RAW ROLE:", role);
+
+        // ---------------------------------------------------
+        // WARM AVATAR CACHE (photo available before dashboard)
+        // ---------------------------------------------------
+        // The login response already carries the persisted
+        // `profile_photo_updated_at` version signal. Prefetching the
+        // blob here (fire-and-forget, shared via AvatarService's
+        // per-version cache) means the topbar's first photoSrcFor —
+        // mounted a moment later — hits the in-flight request or the
+        // cached object URL instead of starting cold after render.
+        // No second /me call: we reuse response.user directly.
+
+        try {
+          this.avatarService.prefetchForUser(user);
+        } catch {
+          /* prefetch is best-effort only */
+        }
 
         // ---------------------------------------------------
         // REDIRECT
@@ -735,6 +754,13 @@ export class LoginComponent {
       next: (response) => {
         this.loading = false;
         console.log("Guest login success:", response);
+        try {
+          if (response?.user) {
+            this.avatarService.prefetchForUser(response.user);
+          }
+        } catch {
+          /* prefetch is best-effort only */
+        }
         this.router.navigate(["/dashboard/guest"]);
       },
       error: (error) => {

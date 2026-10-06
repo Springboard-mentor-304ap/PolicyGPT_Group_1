@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -9,8 +9,10 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
@@ -56,8 +58,18 @@ export class GovernmentLayoutComponent implements OnInit {
   // USER
   // =======================================================
 
-  userName = "Government Official";
-  userRole = "Government Official";
+  userName = signal("Government Official");
+  userRole = signal("Government Official");
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc = signal<string | null>(null);
+
+  /**
+   * True while the avatar image is being resolved (stored user known,
+   * photo blob still loading). The template shows a subtle placeholder
+   * — never the default avatar as if it were the user's actual photo.
+   */
+  avatarLoading = signal(false);
 
   // =======================================================
   // SIDEBAR
@@ -141,13 +153,33 @@ export class GovernmentLayoutComponent implements OnInit {
   constructor(
     private authService: Auth,
     private router: Router,
+    private avatarService: AvatarService,
   ) {}
+
+  private readonly destroyRef = inject(DestroyRef);
 
   // =======================================================
   // INITIALIZATION
   // =======================================================
 
   ngOnInit(): void {
+    // Shared current-user state: refreshes name, role and avatar
+    // immediately after login, profile edits and photo changes,
+    // with no refresh, re-login or navigation required.
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (!user) {
+          this.userName.set("Government Official");
+          this.userRole.set("Government Official");
+          this.avatarSrc.set(null);
+          this.avatarLoading.set(false);
+          return;
+        }
+        this.setUserDetails(user);
+        this.refreshAvatar(user);
+      });
+
     this.loadCurrentUser();
 
     if (this.isPoliciesRouteActive()) {
@@ -164,14 +196,21 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   private loadCurrentUser(): void {
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
+    const snapshot =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
     // -----------------------------------------------------
-    // USE STORED USER FIRST
+    // USE SNAPSHOT FIRST
     // -----------------------------------------------------
 
-    if (storedUser) {
-      this.setUserDetails(storedUser);
+    if (snapshot) {
+      this.setUserDetails(snapshot);
+      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(true);
+      } else if (!snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(false);
+      }
     }
 
     // -----------------------------------------------------
@@ -199,6 +238,7 @@ export class GovernmentLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
+        this.refreshAvatar(user);
       },
 
       error: (error: unknown) => {
@@ -230,9 +270,38 @@ export class GovernmentLayoutComponent implements OnInit {
       return;
     }
 
-    this.userName = user.full_name || "Government Official";
+    this.userName.set(user.full_name || "Government Official");
 
-    this.userRole = this.formatRole(user.role || "GOVERNMENT_OFFICIAL");
+    this.userRole.set(this.formatRole(user.role || "GOVERNMENT_OFFICIAL"));
+  }
+
+  /**
+   * Resolve the avatar image for the given user through the shared
+   * AvatarService (per-version cached blob URL, default icon when the
+   * user has no photo). While a photo blob is loading, `avatarLoading`
+   * stays true so the template shows a placeholder instead of
+   * presenting the default avatar as the user's actual photo.
+   */
+  private refreshAvatar(user: AuthUser): void {
+    if (!user?.profile_photo_updated_at) {
+      this.avatarSrc.set(null);
+      this.avatarLoading.set(false);
+      return;
+    }
+    // Photo exists on the backend: show placeholder until bytes arrive.
+    if (!this.avatarSrc()) {
+      this.avatarLoading.set(true);
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc.set(src);
+        this.avatarLoading.set(false);
+      },
+      error: () => {
+        this.avatarSrc.set(null);
+        this.avatarLoading.set(false);
+      },
+    });
   }
 
   // =======================================================
@@ -486,8 +555,10 @@ export class GovernmentLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset layout
-    this.userName = "Government Official";
-    this.userRole = "Government Official";
+    this.userName.set("Government Official");
+    this.userRole.set("Government Official");
+    this.avatarSrc.set(null);
+    this.avatarLoading.set(false);
 
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;

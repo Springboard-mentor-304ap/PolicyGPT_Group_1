@@ -76,9 +76,17 @@
 
       <!-- AVATAR -->
       <div class="dash-user__avatar" aria-hidden="true">
+        @if (avatarLoading()) {
+        <span class="material-icons dash-user__avatar-placeholder" aria-label="Loading profile photo">
+          person
+        </span>
+        } @else if (avatarSrc()) {
+        <img [src]="avatarSrc()" alt="" class="dash-user__photo" />
+        } @else {
         <span class="material-icons">
           account_circle
         </span>
+        }
       </div>
 
 
@@ -86,7 +94,7 @@
       <div class="dash-user__info">
 
         <p class="dash-user__name">
-          {{ userName }}
+          {{ userName() }}
         </p>
 
         <p class="dash-user__role">

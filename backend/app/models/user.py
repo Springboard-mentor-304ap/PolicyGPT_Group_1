@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Date, DateTime, Integer, LargeBinary, String
+from sqlalchemy.orm import Mapped, deferred, mapped_column
 
 from app.db.database import Base
 
@@ -40,6 +40,11 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(
         String(20),
         unique=True,
+        nullable=True
+    )
+
+    gender: Mapped[str | None] = mapped_column(
+        String(30),
         nullable=True
     )
 
@@ -88,4 +93,30 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False
+    )
+
+    # Profile photo bytes (TOASTed out of line, so the main tuple stays
+    # small). NULL until the user uploads a photo. Served via
+    # GET /auth/profile/photo, never embedded in JSON responses.
+    # Deferred: ordinary queries (auth on every request, profile text
+    # updates) must NOT pull up to 5 MB of bytes over the wire — the
+    # bytes load lazily only when the photo endpoint accesses them.
+    # No migration: query-time loading only, storage unchanged.
+    profile_photo: Mapped[bytes | None] = deferred(
+        mapped_column(
+            LargeBinary,
+            nullable=True,
+        )
+    )
+
+    profile_photo_mime: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+
+    # Version signal for avatar caching: NULL means "no photo", any
+    # change means "refetch". Stable while the photo is unchanged.
+    profile_photo_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
     )

@@ -1,6 +1,14 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, Subject, of, shareReplay, tap, timeout } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  of,
+  shareReplay,
+  tap,
+  timeout,
+} from "rxjs";
 import { finalize } from "rxjs/operators";
 import { environment } from '../../../environments/environment';
 
@@ -15,6 +23,8 @@ export interface AuthUser {
 
   phone: string | null;
 
+  gender?: string | null;
+
   date_of_birth: string | null;
 
   state: string | null;
@@ -26,6 +36,14 @@ export interface AuthUser {
   organization: string | null;
 
   is_active: boolean;
+
+  /**
+   * Avatar version signal from the backend (NULL = no photo).
+   * The bytes themselves are fetched separately via AvatarService;
+   * this field only tells avatar consumers when to (re)fetch.
+   * Optional: sessions cached before this field existed omit it.
+   */
+  profile_photo_updated_at?: string | null;
 
   created_at: string;
 
@@ -65,7 +83,48 @@ export class Auth {
   /** Emits on logout so live connections (notification WebSocket) can close. */
   private readonly loggedOutSubject = new Subject<void>();
 
-  constructor(private http: HttpClient) {}
+  /**
+   * Single source of truth for the authenticated user. Emits the stored
+   * snapshot immediately, then every refreshed user (login, register,
+   * /auth/me refresh, profile/photo updates) and null on logout, so
+   * topbars and profile views update without refresh or re-login.
+   */
+  private readonly currentUserSubject =
+    new BehaviorSubject<AuthUser | null>(null);
+
+  /** Shared authenticated-user stream (topbar, profile, settings). */
+  public readonly currentUser$ = this.currentUserSubject.asObservable();
+
+  constructor(private http: HttpClient) {
+    this.currentUserSubject.next(this.getStoredUser());
+  }
+
+  /**
+   * Synchronous snapshot of the shared current user (stored user on
+   * bootstrap, login/register//me user afterwards, null on logout).
+   * Components use this for instant paint (name, role, photo version)
+   * and subscribe to `currentUser$` for reactive updates, so the topbar
+   * never waits for Profile to trigger the first /me fetch.
+   */
+  getCurrentUserSnapshot(): AuthUser | null {
+    return (
+      this.currentUserSubject.value ?? this.getStoredUser()
+    );
+  }
+
+  /**
+   * Publish a backend-confirmed user as the shared current user:
+   * persists it, refreshes the /auth/me cache, and notifies all
+   * subscribers (topbar, profile) immediately.
+   */
+  publishCurrentUser(user: AuthUser | null): void {
+    if (!user) {
+      return;
+    }
+    this.setUser(user);
+    this.cachedMe = user;
+    this.lastMeAt = Date.now();
+  }
 
   // =========================================================
   // LOGIN
@@ -217,6 +276,19 @@ export class Auth {
       this.cachedMe &&
       Date.now() - this.lastMeAt < Auth.ME_TTL_MS;
     if (!forceRefresh && fresh && this.cachedMe) {
+      // Keep the shared BehaviorSubject in sync even on the TTL fast
+      // path (login/register publish via setUser, but a stale subject
+      // — e.g. after storage was edited externally — must not leave
+      // the topbar showing the default avatar while this returns the
+      // fresh cached user that already carries profile_photo_updated_at).
+      const current = this.currentUserSubject.value;
+      if (
+        current?.user_id !== this.cachedMe.user_id ||
+        (current?.profile_photo_updated_at ?? null) !==
+          (this.cachedMe.profile_photo_updated_at ?? null)
+      ) {
+        this.currentUserSubject.next(this.cachedMe);
+      }
       return of(this.cachedMe);
     }
     if (!this.currentUserRequest$) {
@@ -297,6 +369,7 @@ export class Auth {
     }
 
     localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 
   // =========================================================
@@ -459,6 +532,7 @@ export class Auth {
     localStorage.removeItem("scheme_bookmarks");
     localStorage.removeItem("bookmarked_schemes");
     this.invalidateMe();
+    this.currentUserSubject.next(null);
     this.loggedOutSubject.next();
   }
 

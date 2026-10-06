@@ -537,6 +537,12 @@ class UserResponse(BaseModel):
     phone: str | None
 
     # =====================================================
+    # GENDER
+    # =====================================================
+
+    gender: str | None = None
+
+    # =====================================================
     # PERSONAL INFORMATION
     # =====================================================
 
@@ -563,6 +569,15 @@ class UserResponse(BaseModel):
     # =====================================================
 
     is_active: bool
+
+    # =====================================================
+    # PROFILE PHOTO
+    # =====================================================
+    # Version signal for avatar caching. None means the user has no
+    # photo (frontend shows the default avatar). The bytes themselves
+    # are served via GET /auth/profile/photo, never in JSON.
+
+    profile_photo_updated_at: datetime | None = None
 
     # =====================================================
     # TIMESTAMPS
@@ -610,6 +625,15 @@ class ProfileUpdateRequest(BaseModel):
         default=None,
         min_length=10,
         max_length=20
+    )
+
+    # =====================================================
+    # GENDER
+    # =====================================================
+
+    gender: str | None = Field(
+        default=None,
+        max_length=30
     )
 
     # =====================================================
@@ -701,6 +725,29 @@ class ProfileUpdateRequest(BaseModel):
         if len(value) > 20:
             raise ValueError(
                 "Phone number must not exceed 20 digits"
+            )
+
+        return value
+
+    # =====================================================
+    # GENDER VALIDATOR
+    # =====================================================
+
+    @field_validator("gender")
+    @classmethod
+    def validate_gender(
+        cls,
+        value: str | None
+    ) -> str | None:
+
+        if value is None:
+            return None
+
+        value = value.strip()
+
+        if not value:
+            raise ValueError(
+                "Gender cannot be empty"
             )
 
         return value

@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -9,8 +9,10 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
@@ -57,8 +59,18 @@ export class AdminLayoutComponent implements OnInit {
   // USER
   // =======================================================
 
-  userName = "Admin User";
-  userRole = "Administrator";
+  userName = signal("Admin User");
+  userRole = signal("Administrator");
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc = signal<string | null>(null);
+
+  /**
+   * True while the avatar image is being resolved (stored user known,
+   * photo blob still loading). The template shows a subtle placeholder
+   * — never the default avatar as if it were the user's actual photo.
+   */
+  avatarLoading = signal(false);
 
   // =======================================================
   // SIDEBAR
@@ -145,13 +157,33 @@ export class AdminLayoutComponent implements OnInit {
   constructor(
     private authService: Auth,
     private router: Router,
+    private avatarService: AvatarService,
   ) {}
+
+  private readonly destroyRef = inject(DestroyRef);
 
   // =======================================================
   // INIT
   // =======================================================
 
   ngOnInit(): void {
+    // Shared current-user state FIRST: the BehaviorSubject replays the
+    // stored/login user synchronously, so name/role/photo-version are
+    // available before the background /me refresh below resolves.
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (!user) {
+          this.userName.set("Admin User");
+          this.userRole.set("Administrator");
+          this.avatarSrc.set(null);
+          this.avatarLoading.set(false);
+          return;
+        }
+        this.setUserDetails(user);
+        this.refreshAvatar(user);
+      });
+
     this.loadCurrentUser();
 
     if (this.isUsersRouteActive()) {
@@ -170,10 +202,17 @@ export class AdminLayoutComponent implements OnInit {
   // =======================================================
 
   private loadCurrentUser(): void {
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
+    const snapshot =
+      (this.authService as unknown as { getCurrentUserSnapshot?: () => AuthUser | null }).getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
-    if (storedUser) {
-      this.setUserDetails(storedUser);
+    if (snapshot) {
+      this.setUserDetails(snapshot);
+      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(true);
+      } else if (!snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(false);
+      }
     }
 
     if (!this.authService.isLoggedIn()) {
@@ -191,6 +230,7 @@ export class AdminLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
+        this.refreshAvatar(user);
       },
 
       error: (error: unknown) => {
@@ -223,10 +263,36 @@ export class AdminLayoutComponent implements OnInit {
     }
 
     if (typeof user.full_name === "string" && user.full_name.trim()) {
-      this.userName = user.full_name.trim();
+      this.userName.set(user.full_name.trim());
     }
 
-    this.userRole = this.formatRole(user.role);
+    this.userRole.set(this.formatRole(user.role));
+  }
+
+  /**
+   * Resolve the avatar image for the given user through the shared
+   * AvatarService (per-version cached blob URL, default icon on
+   * error or when the user has no photo).
+   */
+  private refreshAvatar(user: AuthUser): void {
+    if (!user?.profile_photo_updated_at) {
+      this.avatarSrc.set(null);
+      this.avatarLoading.set(false);
+      return;
+    }
+    if (!this.avatarSrc()) {
+      this.avatarLoading.set(true);
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc.set(src);
+        this.avatarLoading.set(false);
+      },
+      error: () => {
+        this.avatarSrc.set(null);
+        this.avatarLoading.set(false);
+      },
+    });
   }
 
   // =======================================================
@@ -565,8 +631,10 @@ export class AdminLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset UI
-    this.userName = "Admin User";
-    this.userRole = "Administrator";
+    this.userName.set("Admin User");
+    this.userRole.set("Administrator");
+    this.avatarSrc.set(null);
+    this.avatarLoading.set(false);
 
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;

@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -9,8 +9,10 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
@@ -64,8 +66,18 @@ export class ResearcherLayoutComponent implements OnInit {
 
   user: AuthUser | null = null;
 
-  userName = "Researcher";
-  userRole = "Researcher";
+  userName = signal("Researcher");
+  userRole = signal("Researcher");
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc = signal<string | null>(null);
+
+  /**
+   * True while the avatar image is being resolved (stored user known,
+   * photo blob still loading). The template shows a subtle placeholder
+   * — never the default avatar as if it were the user's actual photo.
+   */
+  avatarLoading = signal(false);
 
   loadingUser = true;
 
@@ -160,13 +172,33 @@ export class ResearcherLayoutComponent implements OnInit {
   constructor(
     private readonly router: Router,
     private readonly authService: Auth,
+    private readonly avatarService: AvatarService,
   ) {}
+
+  private readonly destroyRef = inject(DestroyRef);
 
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
+    // Shared current-user state: refreshes name, role and avatar
+    // immediately after login, profile edits and photo changes,
+    // with no refresh, re-login or navigation required.
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (!user) {
+          this.userName.set("Researcher");
+          this.userRole.set("Researcher");
+          this.avatarSrc.set(null);
+          this.avatarLoading.set(false);
+          return;
+        }
+        this.setUserDetails(user);
+        this.refreshAvatar(user);
+      });
+
     this.loadCurrentUser();
 
     if (this.isAnalyticsRouteActive()) {
@@ -211,10 +243,17 @@ export class ResearcherLayoutComponent implements OnInit {
     // STORED USER
     // -------------------------------------------------------
 
-    const cachedUser = this.authService.getStoredUser();
+    const snapshot =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
-    if (cachedUser) {
-      this.setUserDetails(cachedUser);
+    if (snapshot) {
+      this.setUserDetails(snapshot);
+      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(true);
+      } else if (!snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(false);
+      }
       this.loadingUser = false;
     }
 
@@ -246,6 +285,7 @@ export class ResearcherLayoutComponent implements OnInit {
         }
 
         this.setUserDetails(user);
+        this.refreshAvatar(user);
 
         this.loadingUser = false;
       },
@@ -279,9 +319,38 @@ export class ResearcherLayoutComponent implements OnInit {
   private setUserDetails(user: AuthUser): void {
     this.user = user;
 
-    this.userName = user.full_name?.trim() || "Researcher";
+    this.userName.set(user.full_name?.trim() || "Researcher");
 
-    this.userRole = this.formatRole(user.role);
+    this.userRole.set(this.formatRole(user.role));
+  }
+
+  /**
+   * Resolve the avatar image for the given user through the shared
+   * AvatarService (per-version cached blob URL, default icon when the
+   * user has no photo). While a photo blob is loading, `avatarLoading`
+   * stays true so the template shows a placeholder instead of
+   * presenting the default avatar as the user's actual photo.
+   */
+  private refreshAvatar(user: AuthUser): void {
+    if (!user?.profile_photo_updated_at) {
+      this.avatarSrc.set(null);
+      this.avatarLoading.set(false);
+      return;
+    }
+    // Photo exists on the backend: show placeholder until bytes arrive.
+    if (!this.avatarSrc()) {
+      this.avatarLoading.set(true);
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc.set(src);
+        this.avatarLoading.set(false);
+      },
+      error: () => {
+        this.avatarSrc.set(null);
+        this.avatarLoading.set(false);
+      },
+    });
   }
 
   // =========================================================
@@ -390,8 +459,10 @@ export class ResearcherLayoutComponent implements OnInit {
 
     this.user = null;
 
-    this.userName = "Researcher";
-    this.userRole = "Researcher";
+    this.userName.set("Researcher");
+    this.userRole.set("Researcher");
+    this.avatarSrc.set(null);
+    this.avatarLoading.set(false);
 
     // -------------------------------------------------------
     // RESET LAYOUT

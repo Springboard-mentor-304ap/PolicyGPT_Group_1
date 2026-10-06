@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -9,8 +9,10 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
@@ -61,8 +63,18 @@ export class CitizenLayoutComponent implements OnInit {
 
   user: AuthUser | null = null;
 
-  userName = "User Name";
-  userRole = "Citizen";
+  userName = signal("User Name");
+  userRole = signal("Citizen");
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc = signal<string | null>(null);
+
+  /**
+   * True while the avatar image is being resolved (stored user known,
+   * photo blob still loading). The template shows a subtle placeholder
+   * — never the default avatar as if it were the user's actual photo.
+   */
+  avatarLoading = signal(false);
 
   loadingUser = true;
 
@@ -163,13 +175,37 @@ export class CitizenLayoutComponent implements OnInit {
   constructor(
     private readonly router: Router,
     private readonly authService: Auth,
+    private readonly avatarService: AvatarService,
   ) {}
+
+  private readonly destroyRef = inject(DestroyRef);
 
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
+    // Shared current-user state FIRST: the BehaviorSubject replays the
+    // stored/login user synchronously, so name/role/photo-version are
+    // available before the background /me refresh below resolves. This
+    // is what lets the topbar show the saved photo immediately after
+    // login instead of waiting for Profile to trigger the first fetch.
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (!user) {
+          this.user = null;
+          this.userName.set("User Name");
+          this.userRole.set("Citizen");
+          this.avatarSrc.set(null);
+          this.avatarLoading.set(false);
+          this.loadingUser = false;
+          return;
+        }
+        this.setUserDetails(user);
+        this.refreshAvatar(user);
+      });
+
     this.loadCurrentUser();
 
     if (this.isAnalyticsRouteActive()) {
@@ -211,13 +247,25 @@ export class CitizenLayoutComponent implements OnInit {
     this.loadingUser = true;
 
     // -------------------------------------------------------
-    // STORED USER
+    // INSTANT PAINT FROM SHARED STATE (login/app-init user)
     // -------------------------------------------------------
+    // The currentUser$ subscription above already painted name/role
+    // and kicked off the avatar blob fetch. Only fall back to storage
+    // here when the shared state has not emitted yet (defensive).
 
-    const cachedUser = this.authService.getStoredUser();
+    const snapshot =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
-    if (cachedUser) {
-      this.setUserDetails(cachedUser);
+    if (snapshot) {
+      this.setUserDetails(snapshot);
+      // Avatar itself resolves via the currentUser$ subscription, so
+      // the topbar never shows the default as final while loading.
+      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(true);
+      } else if (!snapshot.profile_photo_updated_at) {
+        this.avatarLoading.set(false);
+      }
       this.loadingUser = false;
     }
 
@@ -238,8 +286,12 @@ export class CitizenLayoutComponent implements OnInit {
     }
 
     // -------------------------------------------------------
-    // BACKEND USER
+    // BACKGROUND REFRESH (deduplicated + TTL by AuthService)
     // -------------------------------------------------------
+    // Reconciles the stored snapshot with the backend (photo version
+    // included). The shared subject emission — not this callback —
+    // drives the avatar update, so Topbar/Profile/Settings stay in
+    // sync with ONE fetch even when layout + page mount together.
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -248,7 +300,12 @@ export class CitizenLayoutComponent implements OnInit {
           return;
         }
 
+        // currentUser$ already applied this via setUser emission, but
+        // apply directly too for the TTL fast path (of(cachedMe)),
+        // which emits no new subject value yet carries the fresh
+        // photo version needed for the immediate avatar fetch.
         this.setUserDetails(user);
+        this.refreshAvatar(user);
         this.loadingUser = false;
       },
 
@@ -281,9 +338,38 @@ export class CitizenLayoutComponent implements OnInit {
   private setUserDetails(user: AuthUser): void {
     this.user = user;
 
-    this.userName = user.full_name?.trim() || "User Name";
+    this.userName.set(user.full_name?.trim() || "User Name");
 
-    this.userRole = this.formatRole(user.role);
+    this.userRole.set(this.formatRole(user.role));
+  }
+
+  /**
+   * Resolve the avatar image for the given user through the shared
+   * AvatarService (per-version cached blob URL, default icon when the
+   * user has no photo). While a photo blob is loading, `avatarLoading`
+   * stays true so the template shows a placeholder instead of
+   * presenting the default avatar as the user's actual photo.
+   */
+  private refreshAvatar(user: AuthUser): void {
+    if (!user?.profile_photo_updated_at) {
+      this.avatarSrc.set(null);
+      this.avatarLoading.set(false);
+      return;
+    }
+    // Photo exists on the backend: show placeholder until bytes arrive.
+    if (!this.avatarSrc()) {
+      this.avatarLoading.set(true);
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc.set(src);
+        this.avatarLoading.set(false);
+      },
+      error: () => {
+        this.avatarSrc.set(null);
+        this.avatarLoading.set(false);
+      },
+    });
   }
 
   // =========================================================
@@ -374,8 +460,10 @@ export class CitizenLayoutComponent implements OnInit {
 
     this.user = null;
 
-    this.userName = "User Name";
-    this.userRole = "Citizen";
+    this.userName.set("User Name");
+    this.userRole.set("Citizen");
+    this.avatarSrc.set(null);
+    this.avatarLoading.set(false);
 
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;

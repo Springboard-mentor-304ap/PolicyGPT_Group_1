@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { forkJoin, of } from "rxjs";
 import { catchError } from "rxjs/operators";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../core/services/auth";
+import { AvatarService } from "../../core/services/avatar.service";
 import { NotificationPreferencesService } from "../../core/services/notification-preferences.service";
 import { NotificationPreferences } from "../../core/models/notification.model";
 import { SavedItemsService } from "../../core/services/saved-items.service";
@@ -53,11 +55,13 @@ export interface SettingsSection {
 export class SettingsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly auth = inject(Auth);
+  private readonly avatarService = inject(AvatarService);
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly preferenceService = inject(NotificationPreferencesService);
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly searchHistoryService = inject(SearchHistoryService);
+  private readonly destroyRef = inject(DestroyRef);
 
   role: SettingsRole = "citizen";
   roleLabel = "Citizen";
@@ -66,6 +70,9 @@ export class SettingsComponent implements OnInit {
 
   user: AuthUser | null = null;
   backendConnected = false;
+
+  /** Object URL of the authenticated user's photo; null = default icon. */
+  avatarSrc: string | null = null;
 
   prefs: NotificationPreferences | null = null;
   prefsLoading = true;
@@ -92,13 +99,31 @@ export class SettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.resolveRole();
-    // Instant paint from the stored session; refresh in the background
-    // (AuthService deduplicates this with the layout's own /auth/me call).
-    this.user = this.auth.getStoredUser();
+    // Shared current-user state FIRST (instant paint incl. photo
+    // version from login/app-init), so Settings shows the same saved
+    // photo as Topbar/Profile without opening Profile first. Later
+    // shared updates (photo change in Edit) reflect here live.
+    this.auth.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (user) {
+          this.user = user;
+          this.backendConnected = true;
+          this.refreshAvatar(user);
+          this.cdr.markForCheck();
+        }
+      });
+    // Instant paint from the shared snapshot; background refresh below
+    // (deduplicated with the layout's own /auth/me call by AuthService)
+    // reconciles with the backend and emits via the shared subject.
+    this.user =
+      this.auth.getCurrentUserSnapshot?.() ?? this.auth.getStoredUser();
+    this.refreshAvatar(this.user);
     this.auth.getCurrentUser().subscribe({
       next: (user) => {
         this.user = user;
         this.backendConnected = true;
+        this.refreshAvatar(user);
         this.cdr.markForCheck();
       },
       error: () => {
@@ -110,6 +135,27 @@ export class SettingsComponent implements OnInit {
     if (this.hasSavedItems) {
       this.loadSavedCounts();
     }
+  }
+
+  // =========================================================
+  // AVATAR (same shared source as topbar/profile)
+  // =========================================================
+
+  private refreshAvatar(user: AuthUser | null): void {
+    if (!user) {
+      this.avatarSrc = null;
+      return;
+    }
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc = src;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.avatarSrc = null;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // =========================================================

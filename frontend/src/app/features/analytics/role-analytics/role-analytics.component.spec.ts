@@ -64,12 +64,21 @@ describe("RoleAnalyticsComponent (citizen)", () => {
       (c.textContent ?? "").replace(/\s+/g, " ").trim(),
     );
     expect(cards.some((t) => t.includes("Saved Policies"))).toBe(true);
+    expect(cards.some((t) => t.includes("Eligibility Checks"))).toBe(false);
+    expect(cards.length).toBe(4);
     // Live values from the captured payload, read from the value elements
-    // in KPI order: policies=1, schemes=2, searches=2, eligibility=0, notifications=16.
+    // in KPI order: policies=1, schemes=2, searches=2, notifications=16.
     const values = Array.from(el.querySelectorAll(".stat-value")).map((v) =>
       (v.textContent ?? "").trim(),
     );
-    expect(values).toEqual(["1", "2", "2", "0", "16"]);
+    expect(values).toEqual(["1", "2", "2", "16"]);
+
+    // No meaningless dash placeholders under the cards; the only
+    // secondary line is real data ("3 unread" on Notifications).
+    const subs = Array.from(el.querySelectorAll(".stat-sub")).map((s) =>
+      (s.textContent ?? "").trim(),
+    );
+    expect(subs).toEqual(["3 unread"]);
 
     // Trend + donut present, saved tables rendered separately.
     expect(el.querySelector("app-analytics-line-chart")).toBeTruthy();

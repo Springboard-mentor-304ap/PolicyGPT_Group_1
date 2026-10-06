@@ -930,6 +930,43 @@ $white: #ffffff;
 }
 
 /* ============================================================
+   CITIZEN-ONLY LAYOUT TUNING (researcher/organization untouched)
+   ============================================================ */
+
+.role-citizen .grid-trend {
+  grid-template-columns: 2fr minmax(0, 1fr);
+}
+
+.role-citizen .grid-activity {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.role-citizen .grid-saved {
+  grid-template-columns: 1fr;
+}
+
+.role-citizen .data-table td:first-child {
+  max-width: 240px;
+}
+
+@media (max-width: 1100px) {
+  .role-citizen .grid-trend,
+  .role-citizen .grid-activity,
+  .role-citizen .grid-saved {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .role-citizen .grid-trend,
+  .role-citizen .grid-activity,
+  .role-citizen .grid-saved {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
    PRINT (Download Report → PDF)
    ============================================================ */
 

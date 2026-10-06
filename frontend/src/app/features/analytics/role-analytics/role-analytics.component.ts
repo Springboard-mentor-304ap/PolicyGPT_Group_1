@@ -48,7 +48,7 @@ const ROLE_CONFIGS: Record<AnalyticsRole, RoleConfig> = {
     filePrefix: "citizen",
     pageTitle: "Analytics",
     pageDescription:
-      "Your activity, saved items, searches, eligibility checks and recent notifications.",
+      "Your activity, saved items, searches and recent notifications.",
     homeRoute: ["/dashboard/citizen"],
   },
   researcher: {
@@ -320,14 +320,6 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
           "orange",
           "Policy and scheme searches you ran in this period.",
           k["total_searches"],
-        ),
-        card(
-          "eligibility_checks",
-          "Eligibility Checks",
-          "fact_check",
-          "purple",
-          "Eligibility checks are not stored by the backend yet.",
-          k["eligibility_checks"],
         ),
         card(
           "notifications",

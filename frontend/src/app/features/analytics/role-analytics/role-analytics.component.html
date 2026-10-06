@@ -1,4 +1,4 @@
-<div class="role-analytics-page">
+<div class="role-analytics-page" [class.role-citizen]="role === 'citizen'">
   <app-breadcrumb [items]="crumbs"></app-breadcrumb>
 
   <header class="analytics-header">
@@ -50,7 +50,7 @@
 
   @if (loading) {
   <div class="stats-grid" aria-label="Loading analytics">
-    @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+    @for (i of (role === "citizen" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6]); track i) {
     <div class="stat-card stat-card--skeleton" aria-hidden="true">
       <span class="skeleton skeleton-icon"></span>
       <span class="skeleton-body">
@@ -99,7 +99,7 @@
             }}</span>
           {{ kpi.delta >= 0 ? "+" : "" }}{{ kpi.delta }}%
         </span>
-        } @else {
+        } @else if (role !== "citizen") {
         <span class="stat-sub" [attr.title]="kpi.deltaHint">—</span>
         }
         @if (kpi.key === "notifications" && unreadCount > 0) {
@@ -111,7 +111,7 @@
   </div>
 
   <!-- TREND + DONUT -->
-  <div class="grid-2">
+  <div class="grid-2 grid-trend">
     <section class="data-card" aria-label="Activity trend">
       <div class="card-head">
         <div>
@@ -137,7 +137,7 @@
 
   <!-- CITIZEN: ACTIVITY + KEYWORDS + NOTIFICATIONS -->
   @if (role === "citizen") {
-  <div class="grid-3">
+  <div class="grid-3 grid-activity">
     <section class="data-card" aria-label="Recent activity">
       <div class="card-head">
         <h2>Recent Activity</h2>
@@ -207,7 +207,7 @@
   </div>
 
   <!-- CITIZEN: SAVED TABLES -->
-  <div class="grid-2">
+  <div class="grid-2 grid-saved">
     <section class="data-card" aria-label="Saved policies">
       <div class="card-head">
         <h2>Saved Policies</h2>

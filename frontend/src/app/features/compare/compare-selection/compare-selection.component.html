@@ -134,54 +134,6 @@
       </div>
 
 
-      <!-- Filters -->
-      <div class="filters-row">
-
-        <div class="filter-group">
-          <label>Category</label>
-
-          <select [(ngModel)]="filterItem1.selectedCategory" (change)="applyFilters(1)">
-            <option value="">All Categories</option>
-
-            <option *ngFor="let cat of categories" [value]="cat">
-              {{ cat }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>Ministry</label>
-
-          <select [(ngModel)]="filterItem1.selectedMinistry" (change)="applyFilters(1)">
-            <option value="">All Ministries</option>
-
-            <option *ngFor="let min of ministries" [value]="min">
-              {{ min }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>State</label>
-
-          <select [(ngModel)]="filterItem1.selectedState" (change)="applyFilters(1)">
-            <option value="">All States</option>
-
-            <option *ngFor="let st of states" [value]="st">
-              {{ st }}
-            </option>
-          </select>
-        </div>
-
-
-        <button type="button" class="clear-filters-btn" (click)="clearFilters(1)">
-          Clear Filters
-        </button>
-
-      </div>
-
 
       <!-- Suggestions -->
       <div class="suggestions" *ngIf="showSuggestions(1)">
@@ -285,54 +237,6 @@
 
       </div>
 
-
-      <!-- Filters -->
-      <div class="filters-row">
-
-        <div class="filter-group">
-          <label>Category</label>
-
-          <select [(ngModel)]="filterItem2.selectedCategory" (change)="applyFilters(2)">
-            <option value="">All Categories</option>
-
-            <option *ngFor="let cat of categories" [value]="cat">
-              {{ cat }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>Ministry</label>
-
-          <select [(ngModel)]="filterItem2.selectedMinistry" (change)="applyFilters(2)">
-            <option value="">All Ministries</option>
-
-            <option *ngFor="let min of ministries" [value]="min">
-              {{ min }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>State</label>
-
-          <select [(ngModel)]="filterItem2.selectedState" (change)="applyFilters(2)">
-            <option value="">All States</option>
-
-            <option *ngFor="let st of states" [value]="st">
-              {{ st }}
-            </option>
-          </select>
-        </div>
-
-
-        <button type="button" class="clear-filters-btn" (click)="clearFilters(2)">
-          Clear Filters
-        </button>
-
-      </div>
 
 
       <!-- Suggestions -->
@@ -447,54 +351,6 @@
 
       </div>
 
-
-      <!-- Filters -->
-      <div class="filters-row">
-
-        <div class="filter-group">
-          <label>Category</label>
-
-          <select [(ngModel)]="filterItem3.selectedCategory" (change)="applyFilters(3)">
-            <option value="">All Categories</option>
-
-            <option *ngFor="let cat of categories" [value]="cat">
-              {{ cat }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>Ministry</label>
-
-          <select [(ngModel)]="filterItem3.selectedMinistry" (change)="applyFilters(3)">
-            <option value="">All Ministries</option>
-
-            <option *ngFor="let min of ministries" [value]="min">
-              {{ min }}
-            </option>
-          </select>
-        </div>
-
-
-        <div class="filter-group">
-          <label>State</label>
-
-          <select [(ngModel)]="filterItem3.selectedState" (change)="applyFilters(3)">
-            <option value="">All States</option>
-
-            <option *ngFor="let st of states" [value]="st">
-              {{ st }}
-            </option>
-          </select>
-        </div>
-
-
-        <button type="button" class="clear-filters-btn" (click)="clearFilters(3)">
-          Clear Filters
-        </button>
-
-      </div>
 
 
       <!-- Suggestions -->

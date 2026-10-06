@@ -377,22 +377,90 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   }
 
   get filteredItem1(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem1, this.filterItem1);
+    return this.getFilteredItems(
+      this.searchItem1,
+      this.filterItem1,
+      this.selectedItemKeys(),
+    );
   }
 
   get filteredItem2(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem2, this.filterItem2);
+    return this.getFilteredItems(
+      this.searchItem2,
+      this.filterItem2,
+      this.selectedItemKeys(),
+    );
   }
 
   get filteredItem3(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem3, this.filterItem3);
+    return this.getFilteredItems(
+      this.searchItem3,
+      this.filterItem3,
+      this.selectedItemKeys(),
+    );
+  }
+
+  /**
+   * Unique identity of a comparison record: backend policy_ids and
+   * scheme_ids come from independent sequences, so the numeric id
+   * alone is NOT unique — the type is part of the key. Records
+   * sharing a title but carrying different keys stay distinct.
+   */
+  private itemKey(item: CompareItem): string {
+    return `${item.type}:${item.id}`;
+  }
+
+  /**
+   * Keys of all currently selected slots. Recomputed on every call
+   * from live state, so removing a selection immediately makes that
+   * record selectable again everywhere.
+   */
+  private selectedItemKeys(): Set<string> {
+    const keys = new Set<string>();
+
+    for (const selected of [
+      this.selectedItem1,
+      this.selectedItem2,
+      this.selectedItem3,
+    ]) {
+      if (selected) {
+        keys.add(this.itemKey(selected));
+      }
+    }
+
+    return keys;
+  }
+
+  /**
+   * Defensive guard: refuse a record already held by another slot,
+   * even if a stale autocomplete list offered it.
+   */
+  private isSelectedElsewhere(item: CompareItem, slot: 1 | 2 | 3): boolean {
+    const key = this.itemKey(item);
+
+    const others =
+      slot === 1
+        ? [this.selectedItem2, this.selectedItem3]
+        : slot === 2
+          ? [this.selectedItem1, this.selectedItem3]
+          : [this.selectedItem1, this.selectedItem2];
+
+    return others.some(
+      (selected) => !!selected && this.itemKey(selected) === key,
+    );
   }
 
   private getFilteredItems(
     search: string,
     filters: FilterOptions,
+    exclude: Set<string> | null = null,
   ): CompareItem[] {
     let items = [...this.allItems];
+
+    // Never offer a record already selected in another slot.
+    if (exclude && exclude.size > 0) {
+      items = items.filter((item) => !exclude.has(this.itemKey(item)));
+    }
 
     const query = search.toLowerCase().trim();
 
@@ -432,32 +500,12 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  clearFilters(itemNum: number): void {
-    if (itemNum === 1) {
-      this.filterItem1 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    } else if (itemNum === 2) {
-      this.filterItem2 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    } else {
-      this.filterItem3 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    }
-
-    this.cdr.detectChanges();
-  }
-
   selectItem1(item: CompareItem): void {
     if (!this.isApprovedItem(item)) {
+      return;
+    }
+
+    if (this.isSelectedElsewhere(item, 1)) {
       return;
     }
 
@@ -473,6 +521,10 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.isSelectedElsewhere(item, 2)) {
+      return;
+    }
+
     this.selectedItem2 = item;
     this.searchItem2 = item.title;
     this.activeInput = null;
@@ -482,6 +534,10 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
   selectItem3(item: CompareItem): void {
     if (!this.isApprovedItem(item)) {
+      return;
+    }
+
+    if (this.isSelectedElsewhere(item, 3)) {
       return;
     }
 

@@ -568,6 +568,46 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     return String(value);
   }
 
+  /**
+   * Whether a comparison cell holds displayable content. Empty means:
+   * null, undefined, empty/whitespace-only strings, and the "-" / "—"
+   * placeholders the getters emit for missing values. Numbers
+   * (including 0), booleans, non-empty strings, valid dates and
+   * non-empty arrays are meaningful.
+   */
+  hasMeaningfulValue(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value === "number") {
+      return Number.isFinite(value);
+    }
+
+    if (typeof value === "boolean") {
+      return true;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed !== "" && trimmed !== "-" && trimmed !== "—";
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
+  }
+
+  /**
+   * Show a comparison row when at least one compared column carries a
+   * meaningful value; hide it only when every column is empty.
+   */
+  showRow(...values: unknown[]): boolean {
+    return values.some((value) => this.hasMeaningfulValue(value));
+  }
+
   getDocumentUrl(data: CompareEntity | null): string | null {
     if (this.isPolicy(data) && data.document_url && data.document_url.trim()) {
       return data.document_url.trim();
@@ -612,6 +652,26 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
       month: "short",
       day: "numeric",
     });
+  }
+
+  /**
+   * Open the existing Policy/Scheme details page for a compared item.
+   * Reuses the role-based details routes (same as the Saved Items page):
+   * /dashboard/:role/policies/:id or /dashboard/:role/schemes/:id.
+   */
+  viewDetails(item: CompareItem | null): void {
+    if (
+      !item ||
+      !Number.isFinite(item.id) ||
+      (item.type !== "Policy" && item.type !== "Scheme")
+    ) {
+      return;
+    }
+
+    const prefix = this.dashboardPrefix() ?? "guest";
+    const section = item.type === "Policy" ? "policies" : "schemes";
+
+    void this.router.navigate(["/dashboard", prefix, section, item.id]);
   }
 
   goBack(): void {

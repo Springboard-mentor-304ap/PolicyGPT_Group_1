@@ -231,4 +231,114 @@ describe("CitizenComponent", () => {
     // not the stale global bookmark cache (5 + 3).
     expect(component.statCards[2].value).toBe(3);
   });
+
+  it("should hide empty sections only after loading finishes", () => {
+    // Loading in progress: panels stay visible (loader), never treated as empty.
+    component.loadingHistory = true;
+    component.searchHistory = [];
+    component.loadingSavedItems = true;
+    component.savedItemsPreview = [];
+    expect(component.showHistoryPanel).toBe(true);
+    expect(component.showSavedItemsPanel).toBe(true);
+
+    // Loaded with items: visible.
+    component.loadingHistory = false;
+    component.searchHistory = [{ name: "Scholarship", filters: "schemes" }];
+    component.loadingSavedItems = false;
+    component.savedItemsPreview = [
+      { kind: "policy", id: 50, name: "National Education Policy", ministry: "Ministry of Education" },
+    ];
+    expect(component.showHistoryPanel).toBe(true);
+    expect(component.showSavedItemsPanel).toBe(true);
+
+    // Loaded and empty: hidden completely.
+    component.searchHistory = [];
+    component.savedItemsPreview = [];
+    expect(component.showHistoryPanel).toBe(false);
+    expect(component.showSavedItemsPanel).toBe(false);
+
+    // Mixed: history visible, saved items hidden.
+    component.searchHistory = [{ name: "Scholarship", filters: "schemes" }];
+    expect(component.showHistoryPanel).toBe(true);
+    expect(component.showSavedItemsPanel).toBe(false);
+  });
+
+  it("should hide empty scheme and policy panels only after loading", () => {
+    component.loadingSchemes = true;
+    component.eligibleSchemes = [];
+    component.loadingPolicies = true;
+    component.savedPolicies = [];
+    expect(component.showSchemesPanel).toBe(true);
+    expect(component.showPoliciesPanel).toBe(true);
+
+    component.loadingSchemes = false;
+    component.loadingPolicies = false;
+    expect(component.showSchemesPanel).toBe(false);
+    expect(component.showPoliciesPanel).toBe(false);
+  });
+
+  it("should build the saved-items preview from real API records", () => {
+    // Fixture-shaped data: 1 saved policy + 2 saved schemes.
+    const preview = CitizenComponent.buildSavedItemsPreview(
+      mockSavedPolicies,
+      mockSavedSchemes,
+    );
+    expect(preview.length).toBe(3);
+    expect(preview[0]).toMatchObject({
+      kind: "policy",
+      id: 50,
+      name: "National Education Policy",
+    });
+    expect(preview[1]).toMatchObject({
+      kind: "scheme",
+      id: 60,
+      name: "PM Scholarship Scheme",
+    });
+    expect(preview[2]).toMatchObject({ kind: "scheme", id: 61 });
+  });
+
+  it("should cap the saved-items preview at 4", () => {
+    const manyPolicies = [1, 2, 3].map((n) => ({
+      saved_id: n,
+      policy_id: 50 + n,
+      title: `Policy ${n}`,
+      category: null,
+      ministry: "Ministry",
+      department: null,
+      state: null,
+      status: "APPROVED",
+      saved_at: "2025-01-15T08:00:00Z",
+    }));
+    const manySchemes = [1, 2, 3].map((n) => ({
+      saved_id: 10 + n,
+      scheme_id: 60 + n,
+      name: `Scheme ${n}`,
+      category: null,
+      ministry: "Ministry",
+      department: null,
+      state: null,
+      status: "APPROVED",
+      saved_at: "2025-01-16T08:00:00Z",
+    }));
+
+    // 6 records → preview capped at 4 (policies first).
+    const preview = CitizenComponent.buildSavedItemsPreview(
+      manyPolicies,
+      manySchemes,
+    );
+    expect(preview.length).toBe(4);
+    expect(preview.map((item) => item.kind)).toEqual([
+      "policy",
+      "policy",
+      "policy",
+      "scheme",
+    ]);
+  });
+
+  it("should return an empty preview when the user saved nothing", () => {
+    expect(CitizenComponent.buildSavedItemsPreview([], [])).toEqual([]);
+    expect(
+      CitizenComponent.buildSavedItemsPreview(null, undefined),
+    ).toEqual([]);
+  });
 });

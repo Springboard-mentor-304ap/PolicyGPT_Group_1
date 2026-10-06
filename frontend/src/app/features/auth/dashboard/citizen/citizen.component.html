@@ -135,8 +135,10 @@
 
 
   <!-- =====================================================
-       FIRST ROW
+       FIRST ROW (panels render only with data or while loading)
        ===================================================== -->
+
+  @if (showSchemesPanel || showPoliciesPanel) {
 
   <section class="dash-panels">
 
@@ -144,6 +146,8 @@
     <!-- ===================================================
          ELIGIBLE SCHEMES
          =================================================== -->
+
+    @if (showSchemesPanel) {
 
     <article class="dash-panel">
 
@@ -168,20 +172,6 @@
 
         <span>
           Loading schemes...
-        </span>
-
-      </div>
-
-      } @else if (eligibleSchemes.length === 0) {
-
-      <div class="dash-loader">
-
-        <span class="material-icons">
-          account_balance
-        </span>
-
-        <span>
-          No schemes available currently
         </span>
 
       </div>
@@ -247,10 +237,14 @@
 
     </article>
 
+    }
+
 
     <!-- ===================================================
          SAVED / RECOMMENDED POLICIES
          =================================================== -->
+
+    @if (showPoliciesPanel) {
 
     <article class="dash-panel">
 
@@ -279,20 +273,6 @@
 
       </div>
 
-      } @else if (savedPolicies.length === 0) {
-
-      <div class="dash-loader">
-
-        <span class="material-icons">
-          policy
-        </span>
-
-        <span>
-          No policies available currently
-        </span>
-
-      </div>
-
       } @else {
 
       <ul class="dash-list">
@@ -305,9 +285,18 @@
         <li class="dash-list__item">
 
           <div class="
-                  dash-list__details
-                  dash-list__details--no-icon
+                  dash-list__icon-wrap
+                  dash-list__icon-wrap--policy
                 ">
+
+            <span class="material-icons" aria-hidden="true">
+              policy
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
 
             <p class="dash-list__title">
               {{ policy.name }}
@@ -349,12 +338,18 @@
 
     </article>
 
+    }
+
   </section>
+
+  }
 
 
   <!-- =====================================================
-       SECOND ROW
+       SECOND ROW (panels render only with data or while loading)
        ===================================================== -->
+
+  @if (showHistoryPanel || showSavedItemsPanel) {
 
   <section class="dash-panels dash-panels--bottom">
 
@@ -362,6 +357,8 @@
     <!-- ===================================================
          SEARCH HISTORY
          =================================================== -->
+
+    @if (showHistoryPanel) {
 
     <article class="dash-panel">
 
@@ -390,20 +387,6 @@
 
       </div>
 
-      } @else if (searchHistory.length === 0) {
-
-      <div class="dash-loader">
-
-        <span class="material-icons">
-          history
-        </span>
-
-        <span>
-          No search history yet
-        </span>
-
-      </div>
-
       } @else {
 
       <ul class="dash-list">
@@ -417,7 +400,7 @@
 
           <div class="
                   dash-list__icon-wrap
-                  dash-list__icon-wrap--neutral
+                  dash-list__icon-wrap--policy
                 ">
 
             <span class="material-icons" aria-hidden="true">
@@ -456,48 +439,38 @@
 
     </article>
 
+    }
+
 
     <!-- ===================================================
-         APPLICATION STATUS
+         SAVED ITEMS (real user records from Saved Items API)
          =================================================== -->
+
+    @if (showSavedItemsPanel) {
 
     <article class="dash-panel">
 
       <div class="dash-panel__header">
 
         <h2>
-          Application Status
+          Saved Items
         </h2>
 
-        <span class="dash-panel__link" style="opacity: 0.7;">
-          Applications
-        </span>
+        <a routerLink="/dashboard/citizen/saved" class="dash-panel__link">
+          View All
+        </a>
 
       </div>
 
 
-      @if (loadingApplications) {
+      @if (loadingSavedItems) {
 
       <div class="dash-loader">
 
         <div class="dash-spinner"></div>
 
         <span>
-          Loading applications...
-        </span>
-
-      </div>
-
-      } @else if (applications.length === 0) {
-
-      <div class="dash-loader">
-
-        <span class="material-icons">
-          assignment
-        </span>
-
-        <span>
-          No submitted applications found
+          Loading saved items...
         </span>
 
       </div>
@@ -507,19 +480,23 @@
       <ul class="dash-list">
 
         @for (
-        app of applications;
-        track app.appId
+        item of savedItemsPreview;
+        track (item.kind + ':' + item.id)
         ) {
 
         <li class="dash-list__item">
 
-          <div class="
-                  dash-list__icon-wrap
-                  dash-list__icon-wrap--neutral
-                ">
+          <div
+            [class]="
+              'dash-list__icon-wrap ' +
+              (item.kind === 'policy'
+                ? 'dash-list__icon-wrap--policy'
+                : 'dash-list__icon-wrap--health')
+            "
+          >
 
             <span class="material-icons" aria-hidden="true">
-              insert_chart_outlined
+              {{ item.kind === 'policy' ? 'policy' : 'account_balance' }}
             </span>
 
           </div>
@@ -528,20 +505,21 @@
           <div class="dash-list__details">
 
             <p class="dash-list__title">
-              {{ app.name }}
+              {{ item.name }}
             </p>
 
             <p class="dash-list__meta">
-              Application ID:
-              {{ app.appId }}
+              {{ item.kind === 'policy' ? 'Policy' : 'Scheme' }} · {{ item.ministry }}
             </p>
 
           </div>
 
 
-          <span class="dash-list__action">
+          <a [routerLink]="item.kind === 'policy'
+            ? (item.id ? ['/dashboard/citizen/policies', item.id] : '/dashboard/citizen/policies')
+            : (item.id ? ['/dashboard/citizen/schemes', item.id] : '/dashboard/citizen/schemes')" class="dash-list__action">
             View Details
-          </span>
+          </a>
 
         </li>
 
@@ -551,19 +529,12 @@
 
       }
 
-
-      <a routerLink="/dashboard/citizen/schemes" class="dash-panel__footer-link">
-
-        Find New Schemes
-
-        <span class="material-icons" aria-hidden="true">
-          arrow_forward
-        </span>
-
-      </a>
-
     </article>
 
+    }
+
   </section>
+
+  }
 
 </div>

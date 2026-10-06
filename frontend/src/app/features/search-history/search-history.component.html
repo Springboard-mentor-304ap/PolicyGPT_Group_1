@@ -17,22 +17,30 @@
         </h1>
 
         <p>
-          Your recent searches.
+          Your recent searches and previously explored policies and schemes.
         </p>
 
       </div>
 
-      <a class="back-button" routerLink="..">
+      @if (!loading && !error && rows.length > 0) {
 
-        <span class="material-icons back-icon" aria-hidden="true">
-          arrow_back
+      <button type="button" class="btn-danger-ghost clear-history-button" (click)="askClear()" [disabled]="clearing">
+
+        <span class="material-icons" aria-hidden="true">
+          delete_sweep
         </span>
 
         <span>
-          Back
+          {{
+          clearing
+          ? 'Clearing…'
+          : 'Clear History'
+          }}
         </span>
 
-      </a>
+      </button>
+
+      }
 
     </div>
 
@@ -116,7 +124,7 @@
          EMPTY STATE
          ========================================================== -->
 
-  @if (filteredRows.length === 0) {
+  @if (rows.length === 0) {
 
   <section class="empty-state">
 
@@ -129,13 +137,12 @@
     </div>
 
     <h2>
-      No search history yet
+      No Search History
     </h2>
 
     <p>
-      Your searches will appear here
-      when you search for policies or
-      schemes.
+      Your recent policy and scheme searches
+      will appear here.
     </p>
 
     <div class="empty-actions">
@@ -145,14 +152,15 @@
               'policies',
               'search'
             ]">
-        Search Policies
-      </a>
 
-      <a class="btn-secondary" [routerLink]="[
-              '..',
-              'schemes'
-            ]">
-        Search Schemes
+        <span class="material-icons" aria-hidden="true">
+          search
+        </span>
+
+        <span>
+          Search Policies
+        </span>
+
       </a>
 
     </div>
@@ -168,170 +176,280 @@
 
   @else {
 
-  <section class="results-section">
+  <!-- ======================================================
+           SUMMARY CARD
+           ====================================================== -->
 
-    <!-- ======================================================
-             RESULTS HEADER
-             ====================================================== -->
+  <section class="summary-card" aria-label="Search history summary">
 
-    <div class="results-header">
+    <div class="summary-main">
 
-      <!-- LEFT -->
-      <div class="results-header-main">
+      <div class="summary-icon" aria-hidden="true">
 
-        <h2>
+        <span class="material-icons">
+          history
+        </span>
 
-          {{ filteredRows.length }}
+      </div>
 
-          {{
-          filteredRows.length === 1
-          ? 'Search'
-          : 'Searches'
-          }}
+      <div class="summary-text">
 
-        </h2>
+        <div class="summary-title-row">
+
+          <h2>
+            Search History
+          </h2>
+
+          <span class="count-badge">
+            {{ totalCount }} {{ totalCount === 1 ? 'Search' : 'Searches' }}
+          </span>
+
+        </div>
 
         <p>
-          Your recent policy and
-          scheme searches.
+          Your recent policy and scheme searches.
         </p>
 
       </div>
 
+    </div>
 
-      <!-- RIGHT -->
-      @if (rows.length > 0) {
+    <div class="summary-stats">
 
-      <button type="button" class="btn-danger-ghost clear-history-button" (click)="askClear()" [disabled]="clearing">
+      <div class="stat-item">
 
-        {{
-        clearing
-        ? 'Clearing…'
-        : 'Clear History'
-        }}
+        <span class="material-icons stat-icon" aria-hidden="true">
+          search
+        </span>
 
-      </button>
+        <div class="stat-text">
+
+          <strong>
+            {{ totalCount }}
+          </strong>
+
+          <span>
+            Total
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="stat-item">
+
+        <span class="material-icons stat-icon stat-icon--policy" aria-hidden="true">
+          description
+        </span>
+
+        <div class="stat-text">
+
+          <strong>
+            {{ policyCount }}
+          </strong>
+
+          <span>
+            Policy
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="stat-item">
+
+        <span class="material-icons stat-icon stat-icon--scheme" aria-hidden="true">
+          account_balance
+        </span>
+
+        <div class="stat-text">
+
+          <strong>
+            {{ schemeCount }}
+          </strong>
+
+          <span>
+            Scheme
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ======================================================
+           RECENT SEARCHES LIST
+           ====================================================== -->
+
+  <section class="results-card" aria-label="Recent searches">
+
+    <div class="results-card-header">
+
+      <h2>
+        Recent Searches
+      </h2>
+
+      <div class="type-tabs" role="group" aria-label="Filter by search type">
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'ALL'"
+          (click)="setFilter('ALL')" [attr.aria-pressed]="activeFilter === 'ALL'">
+          All
+        </button>
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'POLICY'"
+          (click)="setFilter('POLICY')" [attr.aria-pressed]="activeFilter === 'POLICY'">
+          Policy
+        </button>
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'SCHEME'"
+          (click)="setFilter('SCHEME')" [attr.aria-pressed]="activeFilter === 'SCHEME'">
+          Scheme
+        </button>
+
+      </div>
+
+    </div>
+
+    @if (filteredRows.length === 0) {
+
+    <p class="no-match-note">
+      No searches match this filter. Try a different type.
+    </p>
+
+    }
+
+    @else {
+
+    <ul class="history-list">
+
+      @for (
+      row of filteredRows;
+      track row.history_id
+      ) {
+
+      <li class="history-item">
+
+        <!-- ICON -->
+        <div class="item-icon" [class.item-icon--scheme]="isScheme(row)" aria-hidden="true">
+
+          <span class="material-icons">
+            {{ isScheme(row) ? 'account_balance' : 'description' }}
+          </span>
+
+        </div>
+
+        <!-- QUERY + TYPE + FILTERS -->
+        <div class="item-main">
+
+          <div class="item-query">
+            {{ row.search_query }}
+          </div>
+
+          <span class="type-badge" [class.type-badge--scheme]="isScheme(row)">
+            {{ isScheme(row) ? 'SCHEME' : 'POLICY' }}
+          </span>
+
+          <div class="item-filters">
+
+            @if (filterChips(row).length === 0) {
+
+            <span class="no-filters">
+              No filters
+            </span>
+
+            }
+
+            @else {
+
+            @for (
+            chip of filterChips(row);
+            track chip.key
+            ) {
+
+            <span class="filter-chip">
+              {{ chip.label }}
+            </span>
+
+            }
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- DATE -->
+        <div class="item-date">
+
+          <span class="material-icons" aria-hidden="true">
+            schedule
+          </span>
+
+          <div class="item-date-text">
+
+            <strong>
+              {{ formatDateParts(row.searched_at).date }}
+            </strong>
+
+            @if (formatDateParts(row.searched_at).time) {
+
+            <span>
+              {{ formatDateParts(row.searched_at).time }}
+            </span>
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="item-actions">
+
+          <button type="button" class="btn-secondary btn-small" (click)="searchAgain(row)"
+            [attr.aria-label]="'Search again for ' + row.search_query">
+
+            <span class="material-icons" aria-hidden="true">
+              refresh
+            </span>
+
+            <span>
+              Search Again
+            </span>
+
+          </button>
+
+          <button type="button" class="btn-danger-ghost btn-small" (click)="askDelete(row)" [disabled]="
+                      deletingId === row.history_id
+                    " [attr.aria-label]="'Delete search record ' + row.search_query">
+
+            <span class="material-icons" aria-hidden="true">
+              delete_outline
+            </span>
+
+            <span>
+              {{
+              deletingId === row.history_id
+              ? 'Deleting…'
+              : 'Delete'
+              }}
+            </span>
+
+          </button>
+
+        </div>
+
+      </li>
 
       }
 
-    </div>
+    </ul>
 
-
-    <!-- ======================================================
-             TABLE
-             ====================================================== -->
-
-    <div class="users-table-wrap">
-
-      <table class="users-table">
-
-        <thead>
-
-          <tr>
-
-            <th scope="col">
-              Search Query
-            </th>
-
-            <th scope="col">
-              Type
-            </th>
-
-            <th scope="col">
-              Filters
-            </th>
-
-            <th scope="col">
-              Date
-            </th>
-
-            <th scope="col">
-              Actions
-            </th>
-
-          </tr>
-
-        </thead>
-
-
-        <tbody>
-
-          @for (
-          row of filteredRows;
-          track row.history_id
-          ) {
-
-          <tr>
-
-            <!-- SEARCH QUERY -->
-            <td>
-              {{ row.search_query }}
-            </td>
-
-
-            <!-- TYPE -->
-            <td>
-
-              <span class="metadata-item type-badge">
-
-                {{
-                row.search_type === 'SCHEME'
-                ? 'Scheme'
-                : 'Policy'
-                }}
-
-              </span>
-
-            </td>
-
-
-            <!-- FILTERS -->
-            <td class="filters-cell">
-              {{ filterSummary(row) }}
-            </td>
-
-
-            <!-- DATE -->
-            <td>
-              {{ formatDate(row.searched_at) }}
-            </td>
-
-
-            <!-- ACTIONS -->
-            <td>
-
-              <div class="row-actions">
-
-                <button type="button" class="btn-secondary btn-small" (click)="searchAgain(row)">
-                  Search Again
-                </button>
-
-
-                <button type="button" class="btn-danger-ghost btn-small" (click)="askDelete(row)" [disabled]="
-                          deletingId === row.history_id
-                        " aria-label="Delete search record">
-
-                  {{
-                  deletingId === row.history_id
-                  ? 'Deleting…'
-                  : 'Delete'
-                  }}
-
-                </button>
-
-              </div>
-
-            </td>
-
-          </tr>
-
-          }
-
-        </tbody>
-
-      </table>
-
-    </div>
+    }
 
   </section>
 

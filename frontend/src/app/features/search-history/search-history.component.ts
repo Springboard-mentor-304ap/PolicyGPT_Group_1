@@ -2,10 +2,11 @@ import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { finalize, timeout } from "rxjs";
+import { finalize, timeout, catchError, of } from "rxjs";
 import {
   SearchHistoryItem,
   SearchHistoryService,
+  SearchHistoryStatsResponse,
 } from "../../core/services/search-history.service";
 import { Auth } from "../../core/services/auth";
 import { ToastService } from "../../core/services/toast.service";
@@ -35,6 +36,9 @@ export class SearchHistoryComponent implements OnInit {
   rows: SearchHistoryItem[] = [];
   loading = true;
   error: string | null = null;
+
+  /** Backend-provided counts; falls back to rows-derived counts when unavailable. */
+  stats: SearchHistoryStatsResponse | null = null;
 
   activeFilter: HistoryFilter = "ALL";
   searchQuery = "";
@@ -90,6 +94,45 @@ export class SearchHistoryComponent implements OnInit {
           this.cdr.markForCheck();
         },
       });
+    // Summary counts (non-blocking): fall back to rows-derived counts on failure.
+    this.searchHistoryService
+      .getSearchHistoryStatistics()
+      .pipe(catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          this.stats = res;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  /** Total searches: backend count when available, otherwise loaded rows. */
+  get totalCount(): number {
+    return this.stats?.total_searches ?? this.rows.length;
+  }
+
+  /** Policy searches: backend count when available, otherwise derived from rows. */
+  get policyCount(): number {
+    return (
+      this.stats?.policy_searches ??
+      this.rows.filter((row) => !this.isScheme(row)).length
+    );
+  }
+
+  /** Scheme searches: backend count when available, otherwise derived from rows. */
+  get schemeCount(): number {
+    return (
+      this.stats?.scheme_searches ??
+      this.rows.filter((row) => this.isScheme(row)).length
+    );
+  }
+
+  isScheme(row: SearchHistoryItem): boolean {
+    return row.search_type === "SCHEME";
+  }
+
+  typeLabel(row: SearchHistoryItem): string {
+    return this.isScheme(row) ? "Scheme" : "Policy";
   }
 
   get filteredRows(): SearchHistoryItem[] {
@@ -112,27 +155,50 @@ export class SearchHistoryComponent implements OnInit {
     this.activeFilter = filter;
   }
 
-  filterSummary(row: SearchHistoryItem): string {
+  /** Compact filter chips for display; empty when the record has no filters. */
+  filterChips(row: SearchHistoryItem): { key: string; label: string }[] {
     const filters = row.filters;
     if (!filters || typeof filters !== "object") {
-      return "—";
+      return [];
     }
-    const parts = Object.entries(filters)
+    return Object.entries(filters)
       .filter(
         ([, value]) => value !== "" && value !== null && value !== undefined,
       )
-      .map(([key, value]) => `${key}: ${value}`);
-    return parts.length > 0 ? parts.join(" · ") : "—";
+      .map(([key, value]) => ({
+        key,
+        label: `${this.prettyFilterKey(key)}: ${
+          Array.isArray(value) ? value.join(", ") : String(value)
+        }`,
+      }));
   }
 
-  formatDate(value: string | null): string {
+  private prettyFilterKey(key: string): string {
+    return String(key)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  /** Split date/time parts for the two-line date display. */
+  formatDateParts(value: string | null): { date: string; time: string } {
     if (!value) {
-      return "—";
+      return { date: "—", time: "" };
     }
     const date = new Date(value);
-    return Number.isNaN(date.getTime())
-      ? String(value)
-      : `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    if (Number.isNaN(date.getTime())) {
+      return { date: String(value), time: "" };
+    }
+    return {
+      date: date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+      time: date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
   }
 
   searchAgain(row: SearchHistoryItem): void {

@@ -223,6 +223,30 @@ export class SavedItemsComponent implements OnInit {
     }
   }
 
+  /** Citizen portal uses the redesigned "My Saved Items" library UI. */
+  get isCitizen(): boolean {
+    return this.rolePrefix === "citizen";
+  }
+
+  /**
+   * Primary metadata line: Category • Ministry/Department • State.
+   * Empty parts are omitted (state falls back to "All India").
+   */
+  metaLine(
+    category: string | null | undefined,
+    place: string | null | undefined,
+    state: string | null | undefined,
+  ): string {
+    const parts = [category, place, state || "All India"].filter(
+      (part) => part && part.trim().length > 0,
+    );
+    return parts.join(" • ");
+  }
+
+  /** Secondary line: Status • Saved date. */
+  statusLine(status: string | null, savedAt: string | null | undefined): string {
+    return `${this.formatStatus(status)} • Saved ${this.formatDate(savedAt ?? null)}`;
+  }
   /** Role-aware breadcrumb trail: Home > Saved Items. */
   get breadcrumbItems(): BreadcrumbItem[] {
     return [

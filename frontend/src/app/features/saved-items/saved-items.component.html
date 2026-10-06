@@ -78,29 +78,8 @@
   </div>
 
 
-  <!-- TABS + SEARCH -->
+  <!-- SEARCH -->
   <div class="saved-toolbar">
-
-    <nav class="saved-tabs" aria-label="Saved item categories">
-
-      <button type="button" class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
-        All
-        <span class="tab-count">{{ totalCount }}</span>
-      </button>
-
-      <button type="button" class="tab-btn" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
-        Policies
-        <span class="tab-count">{{ policyCount }}</span>
-      </button>
-
-      <button type="button" class="tab-btn" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
-        Schemes
-        <span class="tab-count">{{ schemeCount }}</span>
-      </button>
-
-    </nav>
-
-
     <div class="search-box">
 
       <span class="material-icons search-icon" aria-hidden="true">

@@ -16,12 +16,8 @@
     </div>
 
     <div class="header-right">
-      <button
-        type="button"
-        class="btn btn-outline refresh-btn"
-        (click)="loadSavedItems()"
-        aria-label="Refresh saved items"
-      >
+      <button type="button" class="btn btn-outline refresh-btn" (click)="loadSavedItems()"
+        aria-label="Refresh saved items">
         <span class="material-icons" aria-hidden="true">
           refresh
         </span>
@@ -38,12 +34,7 @@
   <!-- SUMMARY CARDS -->
   <div class="summary-cards">
 
-    <button
-      type="button"
-      class="summary-card"
-      [class.active]="activeTab === 'all'"
-      (click)="setTab('all')"
-    >
+    <button type="button" class="summary-card" [class.active]="activeTab === 'all'" (click)="setTab('all')">
       <span class="summary-icon summary-icon--bookmark" aria-hidden="true">
         <span class="material-icons">
           bookmarks
@@ -57,12 +48,7 @@
     </button>
 
 
-    <button
-      type="button"
-      class="summary-card"
-      [class.active]="activeTab === 'policies'"
-      (click)="setTab('policies')"
-    >
+    <button type="button" class="summary-card" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
       <span class="summary-icon summary-icon--policy" aria-hidden="true">
         <span class="material-icons">
           description
@@ -76,12 +62,7 @@
     </button>
 
 
-    <button
-      type="button"
-      class="summary-card"
-      [class.active]="activeTab === 'schemes'"
-      (click)="setTab('schemes')"
-    >
+    <button type="button" class="summary-card" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
       <span class="summary-icon summary-icon--scheme" aria-hidden="true">
         <span class="material-icons">
           account_balance
@@ -102,32 +83,17 @@
 
     <nav class="saved-tabs" aria-label="Saved item categories">
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === 'all'"
-        (click)="setTab('all')"
-      >
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'all'" (click)="setTab('all')">
         All
         <span class="tab-count">{{ totalCount }}</span>
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === 'policies'"
-        (click)="setTab('policies')"
-      >
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'policies'" (click)="setTab('policies')">
         Policies
         <span class="tab-count">{{ policyCount }}</span>
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === 'schemes'"
-        (click)="setTab('schemes')"
-      >
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'schemes'" (click)="setTab('schemes')">
         Schemes
         <span class="tab-count">{{ schemeCount }}</span>
       </button>
@@ -141,21 +107,10 @@
         search
       </span>
 
-      <input
-        type="search"
-        placeholder="Search saved items..."
-        aria-label="Search saved items"
-        [value]="searchTerm"
-        (input)="onSearch($event)"
-      />
+      <input type="search" placeholder="Search saved items..." aria-label="Search saved items" [value]="searchTerm"
+        (input)="onSearch($event)" />
 
-      <button
-        type="button"
-        class="clear-btn"
-        *ngIf="searchTerm"
-        (click)="searchTerm = ''"
-        aria-label="Clear search"
-      >
+      <button type="button" class="clear-btn" *ngIf="searchTerm" (click)="searchTerm = ''" aria-label="Clear search">
         <span class="material-icons" aria-hidden="true">
           close
         </span>
@@ -233,10 +188,10 @@
         searchTerm
         ? 'No saved items found'
         : activeTab === 'policies'
-          ? 'No saved policies yet'
-          : activeTab === 'schemes'
-            ? 'No saved schemes yet'
-            : 'No saved items yet'
+        ? 'No saved policies yet'
+        : activeTab === 'schemes'
+        ? 'No saved schemes yet'
+        : 'No saved items yet'
         }}
       </h3>
 
@@ -297,7 +252,6 @@
           <div>Department</div>
           <div>State</div>
           <div>Status</div>
-          <div>Saved On</div>
           <div></div>
 
         </div>
@@ -320,10 +274,6 @@
               <button type="button" class="item-title" (click)="openPolicy(policy.policy_id)">
                 {{ policy.title }}
               </button>
-
-              <span class="item-id">
-                Policy #{{ policy.policy_id }}
-              </span>
             </div>
 
           </div>
@@ -361,22 +311,17 @@
           </div>
 
 
-          <div>
-            <span class="saved-date">
-              {{ formatDate(policy.saved_at) }}
-            </span>
-          </div>
-
-
           <div class="actions">
 
-            <button type="button" class="view-button" title="View policy" aria-label="View policy" (click)="openPolicy(policy.policy_id)">
+            <button type="button" class="view-button" title="View policy" aria-label="View policy"
+              (click)="openPolicy(policy.policy_id)">
               <span class="material-icons" aria-hidden="true">
                 open_in_new
               </span>
             </button>
 
-            <button type="button" class="remove-button" title="Remove from saved items" aria-label="Remove from saved items" [disabled]="isRemoving(
+            <button type="button" class="remove-button" title="Remove from saved items"
+              aria-label="Remove from saved items" [disabled]="isRemoving(
                 policy.policy_id,
                 'policy'
               )" (click)="removePolicy(policy)">
@@ -446,7 +391,6 @@
           <div>Department</div>
           <div>State</div>
           <div>Status</div>
-          <div>Saved On</div>
           <div></div>
 
         </div>
@@ -470,10 +414,6 @@
               <button type="button" class="item-title" (click)="openScheme(scheme.scheme_id)">
                 {{ scheme.name }}
               </button>
-
-              <span class="item-id">
-                Scheme #{{ scheme.scheme_id }}
-              </span>
 
             </div>
 
@@ -512,22 +452,17 @@
           </div>
 
 
-          <div>
-            <span class="saved-date">
-              {{ formatDate(scheme.saved_at) }}
-            </span>
-          </div>
-
-
           <div class="actions">
 
-            <button type="button" class="view-button" title="View scheme" aria-label="View scheme" (click)="openScheme(scheme.scheme_id)">
+            <button type="button" class="view-button" title="View scheme" aria-label="View scheme"
+              (click)="openScheme(scheme.scheme_id)">
               <span class="material-icons" aria-hidden="true">
                 open_in_new
               </span>
             </button>
 
-            <button type="button" class="remove-button" title="Remove from saved items" aria-label="Remove from saved items" [disabled]="isRemoving(
+            <button type="button" class="remove-button" title="Remove from saved items"
+              aria-label="Remove from saved items" [disabled]="isRemoving(
                 scheme.scheme_id,
                 'scheme'
               )" (click)="removeScheme(scheme)">

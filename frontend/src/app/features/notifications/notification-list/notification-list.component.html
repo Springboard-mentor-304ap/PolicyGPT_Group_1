@@ -21,7 +21,8 @@
       <span class="material-icons">lock</span>
     </div>
     <h2>Sign in to access your notifications</h2>
-    <p>Sign in to view personalized alerts regarding policies, public schemes, application deadlines, and official announcements.</p>
+    <p>Sign in to view personalized alerts regarding policies, public schemes, application deadlines, and official
+      announcements.</p>
     <div class="guest-prompt-actions">
       <a routerLink="/auth/login" class="btn btn-primary">
         <span class="material-icons">login</span>
@@ -47,7 +48,8 @@
       </div>
 
       <div class="header-right">
-        <button type="button" class="btn btn-outline pref-btn" (click)="navigateToPreferences()" aria-label="Notification Preferences">
+        <button type="button" class="btn btn-outline pref-btn" (click)="navigateToPreferences()"
+          aria-label="Notification Preferences">
           <span class="material-icons">settings</span>
           <span>Notification Preferences</span>
         </button>
@@ -56,13 +58,8 @@
 
     <!-- ROLE-AWARE TABS (Section 13) -->
     <nav class="notifications-tabs" aria-label="Notification Categories">
-      <button
-        *ngFor="let tab of tabs"
-        type="button"
-        class="tab-btn"
-        [class.active]="activeTab === tab.id"
-        (click)="selectTab(tab.id)"
-      >
+      <button *ngFor="let tab of tabs" type="button" class="tab-btn" [class.active]="activeTab === tab.id"
+        (click)="selectTab(tab.id)">
         <span>{{ tab.label }}</span>
         <span *ngIf="tab.id === 'all' && summary.unread > 0" class="tab-badge">
           {{ summary.unread }}
@@ -132,14 +129,10 @@
           <!-- Search Input -->
           <div class="search-box">
             <span class="material-icons search-icon">search</span>
-            <input
-              type="search"
-              [(ngModel)]="searchQuery"
-              (keyup.enter)="onSearch()"
-              placeholder="Search notifications by title, message, entity..."
-              aria-label="Search notifications"
-            />
-            <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="clearSearch()" aria-label="Clear search">
+            <input type="search" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()"
+              placeholder="Search notifications by title, message, entity..." aria-label="Search notifications" />
+            <button *ngIf="searchQuery" type="button" class="clear-btn" (click)="clearSearch()"
+              aria-label="Clear search">
               <span class="material-icons">close</span>
             </button>
           </div>
@@ -147,13 +140,8 @@
           <div class="toolbar-actions">
             <!-- Filters Popover Toggle -->
             <div class="filter-dropdown-wrapper">
-              <button
-                type="button"
-                class="btn btn-outline filter-toggle-btn"
-                [class.active]="hasActiveFilters"
-                (click)="$event.stopPropagation(); toggleFiltersDropdown()"
-                aria-label="Toggle Filters"
-              >
+              <button type="button" class="btn btn-outline filter-toggle-btn" [class.active]="hasActiveFilters"
+                (click)="$event.stopPropagation(); toggleFiltersDropdown()" aria-label="Toggle Filters">
                 <span class="material-icons">filter_list</span>
                 <span>Filters</span>
                 <span class="material-icons chevron">expand_more</span>
@@ -213,13 +201,8 @@
             </div>
 
             <!-- Mark All Read -->
-            <button
-              *ngIf="summary.unread > 0"
-              type="button"
-              class="btn btn-outline mark-all-btn"
-              (click)="markAllAsRead()"
-              title="Mark all notifications as read"
-            >
+            <button *ngIf="summary.unread > 0" type="button" class="btn btn-outline mark-all-btn"
+              (click)="markAllAsRead()" title="Mark all notifications as read">
               <span class="material-icons">done_all</span>
               <span>Mark All Read</span>
             </button>
@@ -256,29 +239,24 @@
               <span class="material-icons">notifications_none</span>
             </div>
             <h3 *ngIf="filterReadStatus === 'unread' && !searchQuery">You're all caught up</h3>
-            <h3 *ngIf="filterReadStatus !== 'unread' && (searchQuery || hasActiveFilters)">No notifications match your search</h3>
+            <h3 *ngIf="filterReadStatus !== 'unread' && (searchQuery || hasActiveFilters)">No notifications match your
+              search</h3>
             <h3 *ngIf="filterReadStatus !== 'unread' && !searchQuery && !hasActiveFilters">No notifications yet</h3>
             <p *ngIf="filterReadStatus === 'unread' && !searchQuery">You have no unread notifications.</p>
-            <p *ngIf="filterReadStatus !== 'unread' && (searchQuery || hasActiveFilters)">Try adjusting your filters or search keywords.</p>
-            <p *ngIf="filterReadStatus !== 'unread' && !searchQuery && !hasActiveFilters">You'll see relevant policy, scheme and important updates here.</p>
-            <button *ngIf="searchQuery || hasActiveFilters" type="button" class="btn btn-outline btn-sm" (click)="resetFilters(); clearSearch()">
+            <p *ngIf="filterReadStatus !== 'unread' && (searchQuery || hasActiveFilters)">Try adjusting your filters or
+              search keywords.</p>
+            <p *ngIf="filterReadStatus !== 'unread' && !searchQuery && !hasActiveFilters">You'll see relevant policy,
+              scheme and important updates here.</p>
+            <button *ngIf="searchQuery || hasActiveFilters" type="button" class="btn btn-outline btn-sm"
+              (click)="resetFilters(); clearSearch()">
               Clear Filters
             </button>
           </div>
 
           <!-- NOTIFICATION CARD (FULL WIDTH) -->
-          <div
-            *ngFor="let item of notifications"
-            class="notification-card full-width-card"
-            [class.unread]="!item.is_read"
-            (click)="openDetail(item)"
-            tabindex="0"
-            (keyup.enter)="openDetail(item)"
-            role="button"
-            [attr.aria-label]="item.title"
-          >
-            <!-- Unread Dot Indicator -->
-            <div class="unread-indicator" [class.active]="!item.is_read" aria-hidden="true"></div>
+          <div *ngFor="let item of notifications" class="notification-card full-width-card"
+            [class.unread]="!item.is_read" (click)="openDetail(item)" tabindex="0" (keyup.enter)="openDetail(item)"
+            role="button" [attr.aria-label]="item.title">
 
             <!-- Type Icon -->
             <div class="card-icon" [ngClass]="getIconClass(item.notification_type)">
@@ -298,7 +276,8 @@
                 <span class="badge" [ngClass]="getBadgeClass(item.notification_type)">
                   {{ getBadgeLabel(item.notification_type) }}
                 </span>
-                <span *ngIf="item.priority === 'URGENT' || item.priority === 'HIGH'" class="badge badge--priority" [class.badge--urgent]="item.priority === 'URGENT'">
+                <span *ngIf="item.priority === 'URGENT' || item.priority === 'HIGH'" class="badge badge--priority"
+                  [class.badge--urgent]="item.priority === 'URGENT'">
                   {{ item.priority }}
                 </span>
                 <span *ngIf="item.source_name" class="card-source text-muted">
@@ -309,13 +288,8 @@
 
             <!-- 3-Dots Action Menu (Section 11) -->
             <div class="card-actions" (click)="$event.stopPropagation()">
-              <button
-                type="button"
-                class="icon-menu-btn"
-                (click)="toggleMenu(item.notification_id, $event)"
-                [attr.aria-label]="'Options for ' + item.title"
-                title="More actions"
-              >
+              <button type="button" class="icon-menu-btn" (click)="toggleMenu(item.notification_id, $event)"
+                [attr.aria-label]="'Options for ' + item.title" title="More actions">
                 <span class="material-icons">more_vert</span>
               </button>
 
@@ -365,33 +339,18 @@
               </div>
 
               <div class="page-controls">
-                <button
-                  type="button"
-                  class="page-button"
-                  [disabled]="currentPage === 1"
-                  (click)="previousPage()"
-                  aria-label="Previous page"
-                >
+                <button type="button" class="page-button" [disabled]="currentPage === 1" (click)="previousPage()"
+                  aria-label="Previous page">
                   <span class="material-icons">chevron_left</span>
                 </button>
 
-                <button
-                  type="button"
-                  *ngFor="let page of visiblePages"
-                  class="page-button page-number"
-                  [class.current]="currentPage === page"
-                  (click)="goToPage(page)"
-                >
+                <button type="button" *ngFor="let page of visiblePages" class="page-button page-number"
+                  [class.current]="currentPage === page" (click)="goToPage(page)">
                   {{ page }}
                 </button>
 
-                <button
-                  type="button"
-                  class="page-button"
-                  [disabled]="currentPage === totalPages"
-                  (click)="nextPage()"
-                  aria-label="Next page"
-                >
+                <button type="button" class="page-button" [disabled]="currentPage === totalPages" (click)="nextPage()"
+                  aria-label="Next page">
                   <span class="material-icons">chevron_right</span>
                 </button>
               </div>
@@ -410,29 +369,18 @@
         <!-- BACK BUTTON BAR (single bottom button; actions stay top-right) -->
         <div class="detail-top-nav detail-top-nav--actions-only">
           <div class="detail-top-actions" (click)="$event.stopPropagation()">
-            <button
-              *ngIf="!selectedNotification.is_read"
-              type="button"
-              class="btn btn-outline btn-sm"
-              (click)="markItemAsRead(selectedNotification, $event)"
-            >
+            <button *ngIf="!selectedNotification.is_read" type="button" class="btn btn-outline btn-sm"
+              (click)="markItemAsRead(selectedNotification, $event)">
               <span class="material-icons">check</span>
               <span>Mark as Read</span>
             </button>
-            <button
-              *ngIf="selectedNotification.is_read"
-              type="button"
-              class="btn btn-outline btn-sm"
-              (click)="markItemAsUnread(selectedNotification, $event)"
-            >
+            <button *ngIf="selectedNotification.is_read" type="button" class="btn btn-outline btn-sm"
+              (click)="markItemAsUnread(selectedNotification, $event)">
               <span class="material-icons">mark_as_unread</span>
               <span>Mark as Unread</span>
             </button>
-            <button
-              type="button"
-              class="btn btn-outline btn-sm btn-delete"
-              (click)="deleteItem(selectedNotification, $event)"
-            >
+            <button type="button" class="btn btn-outline btn-sm btn-delete"
+              (click)="deleteItem(selectedNotification, $event)">
               <span class="material-icons">delete_outline</span>
               <span>Delete</span>
             </button>
@@ -454,12 +402,14 @@
                   <span class="badge" [ngClass]="getBadgeClass(selectedNotification.notification_type)">
                     {{ getBadgeLabel(selectedNotification.notification_type) }}
                   </span>
-                  <span *ngIf="selectedNotification.priority === 'URGENT' || selectedNotification.priority === 'HIGH'" class="badge badge--priority" [class.badge--urgent]="selectedNotification.priority === 'URGENT'">
+                  <span *ngIf="selectedNotification.priority === 'URGENT' || selectedNotification.priority === 'HIGH'"
+                    class="badge badge--priority" [class.badge--urgent]="selectedNotification.priority === 'URGENT'">
                     {{ selectedNotification.priority }}
                   </span>
                   <span class="detail-time">
                     <span class="material-icons text-xs">schedule</span>
-                    {{ formatRelativeTime(selectedNotification.created_at) }} ({{ selectedNotification.created_at | date:'medium' }})
+                    {{ formatRelativeTime(selectedNotification.created_at) }} ({{ selectedNotification.created_at |
+                    date:'medium' }})
                   </span>
                   <span *ngIf="selectedNotification.source_name" class="detail-source">
                     From: <strong>{{ selectedNotification.source_name }}</strong>
@@ -478,7 +428,9 @@
             <!-- DYNAMIC ENTITY DETAILS BY NOTIFICATION TYPE (Section 23) -->
 
             <!-- 1. POLICY INFORMATION -->
-            <div *ngIf="(selectedNotification.entity_type === 'POLICY' || selectedNotification.related_policy_id || selectedNotification.notification_type.includes('POLICY')) && hasPolicyDetails(selectedNotification)" class="entity-info-card">
+            <div
+              *ngIf="(selectedNotification.entity_type === 'POLICY' || selectedNotification.related_policy_id || selectedNotification.notification_type.includes('POLICY')) && hasPolicyDetails(selectedNotification)"
+              class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-purple">description</span>
                 <h3>Policy Information</h3>
@@ -488,9 +440,11 @@
                   <span class="field-label">Policy Title:</span>
                   <strong class="field-value">{{ selectedNotification.entity_title }}</strong>
                 </div>
-                <div class="entity-field" *ngIf="!isPublicRole && (selectedNotification.related_policy_id || selectedNotification.entity_id)">
+                <div class="entity-field"
+                  *ngIf="!isPublicRole && (selectedNotification.related_policy_id || selectedNotification.entity_id)">
                   <span class="field-label">Policy ID:</span>
-                  <span class="field-value font-mono">#{{ selectedNotification.related_policy_id || selectedNotification.entity_id }}</span>
+                  <span class="field-value font-mono">#{{ selectedNotification.related_policy_id ||
+                    selectedNotification.entity_id }}</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.entity_status">
                   <span class="field-label">Current Status:</span>
@@ -519,7 +473,8 @@
                   <span class="field-value">{{ selectedNotification.entity_category }}</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_by_name">
-                  <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected By:' : 'Approved By:' }}</span>
+                  <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected
+                    By:' : 'Approved By:' }}</span>
                   <span class="field-value">{{ selectedNotification.decision_by_name }}</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_date">
@@ -551,7 +506,8 @@
                 <p>{{ selectedNotification.entity_description }}</p>
               </div>
 
-              <div *ngIf="selectedNotification.entity_benefits && selectedNotification.entity_benefits.length > 0" class="highlights-box">
+              <div *ngIf="selectedNotification.entity_benefits && selectedNotification.entity_benefits.length > 0"
+                class="highlights-box">
                 <h4>Key Policy Benefits:</h4>
                 <ul>
                   <li *ngFor="let benefit of selectedNotification.entity_benefits">{{ benefit }}</li>
@@ -560,7 +516,9 @@
             </div>
 
             <!-- 2. SCHEME INFORMATION -->
-            <div *ngIf="(selectedNotification.entity_type === 'SCHEME' || selectedNotification.related_scheme_id || selectedNotification.notification_type.includes('SCHEME')) && hasSchemeDetails(selectedNotification)" class="entity-info-card">
+            <div
+              *ngIf="(selectedNotification.entity_type === 'SCHEME' || selectedNotification.related_scheme_id || selectedNotification.notification_type.includes('SCHEME')) && hasSchemeDetails(selectedNotification)"
+              class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-blue">campaign</span>
                 <h3>Scheme Information</h3>
@@ -570,9 +528,11 @@
                   <span class="field-label">Scheme Name:</span>
                   <strong class="field-value">{{ selectedNotification.entity_title }}</strong>
                 </div>
-                <div class="entity-field" *ngIf="!isPublicRole && (selectedNotification.related_scheme_id || selectedNotification.entity_id)">
+                <div class="entity-field"
+                  *ngIf="!isPublicRole && (selectedNotification.related_scheme_id || selectedNotification.entity_id)">
                   <span class="field-label">Scheme ID:</span>
-                  <span class="field-value font-mono">#{{ selectedNotification.related_scheme_id || selectedNotification.entity_id }}</span>
+                  <span class="field-value font-mono">#{{ selectedNotification.related_scheme_id ||
+                    selectedNotification.entity_id }}</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.entity_status">
                   <span class="field-label">Current Status:</span>
@@ -600,12 +560,14 @@
                   <span class="field-label">Application Deadline:</span>
                   <span class="field-value font-semibold text-danger">{{ selectedNotification.deadline_date }}</span>
                 </div>
-                <div class="entity-field" *ngIf="selectedNotification.days_remaining !== undefined && selectedNotification.days_remaining !== null">
+                <div class="entity-field"
+                  *ngIf="selectedNotification.days_remaining !== undefined && selectedNotification.days_remaining !== null">
                   <span class="field-label">Time Remaining:</span>
                   <span class="badge badge--deadline">{{ selectedNotification.days_remaining }} days remaining</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_by_name">
-                  <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected By:' : 'Approved By:' }}</span>
+                  <span class="field-label">{{ selectedNotification.notification_type.includes('REJECT') ? 'Rejected
+                    By:' : 'Approved By:' }}</span>
                   <span class="field-value">{{ selectedNotification.decision_by_name }}</span>
                 </div>
                 <div class="entity-field" *ngIf="!isPublicRole && selectedNotification.decision_date">
@@ -629,7 +591,8 @@
                 <p>{{ selectedNotification.entity_description }}</p>
               </div>
 
-              <div *ngIf="selectedNotification.entity_benefits && selectedNotification.entity_benefits.length > 0" class="highlights-box">
+              <div *ngIf="selectedNotification.entity_benefits && selectedNotification.entity_benefits.length > 0"
+                class="highlights-box">
                 <h4>Key Scheme Benefits:</h4>
                 <ul>
                   <li *ngFor="let benefit of selectedNotification.entity_benefits">{{ benefit }}</li>
@@ -638,7 +601,9 @@
             </div>
 
             <!-- 3. USER ALERTS (ADMIN ONLY) -->
-            <div *ngIf="selectedNotification.entity_type === 'USER' || selectedNotification.notification_type.includes('USER')" class="entity-info-card">
+            <div
+              *ngIf="selectedNotification.entity_type === 'USER' || selectedNotification.notification_type.includes('USER')"
+              class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-teal">person</span>
                 <h3>User Information</h3>
@@ -666,7 +631,9 @@
             </div>
 
             <!-- 4. FEEDBACK & ISSUES -->
-            <div *ngIf="selectedNotification.notification_type.includes('FEEDBACK') || selectedNotification.notification_type.includes('ISSUE')" class="entity-info-card">
+            <div
+              *ngIf="selectedNotification.notification_type.includes('FEEDBACK') || selectedNotification.notification_type.includes('ISSUE')"
+              class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-teal">feedback</span>
                 <h3>Feedback &amp; Grievance Submission</h3>
@@ -686,7 +653,8 @@
                 </div>
                 <div class="entity-field">
                   <span class="field-label">Source Channel:</span>
-                  <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—' }}</span>
+                  <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—'
+                    }}</span>
                 </div>
                 <div class="entity-field" *ngIf="selectedNotification.feedback_created_at">
                   <span class="field-label">Received Date:</span>
@@ -701,14 +669,16 @@
                 <div class="entity-grid">
                   <div class="entity-field">
                     <span class="field-label">Source Channel:</span>
-                    <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—' }}</span>
+                    <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—'
+                      }}</span>
                   </div>
                   <div class="entity-field">
                     <span class="field-label">Received Date:</span>
                     <span class="field-value">{{ selectedNotification.created_at | date:'medium' }}</span>
                   </div>
                 </div>
-                <p class="text-muted text-xs" style="margin: 8px 0 0;">No linked feedback record available for this notification.</p>
+                <p class="text-muted text-xs" style="margin: 8px 0 0;">No linked feedback record available for this
+                  notification.</p>
               </ng-template>
               <div *ngIf="selectedNotification.feedback_response" class="reason-alert-box">
                 <span class="material-icons">verified</span>
@@ -720,7 +690,9 @@
             </div>
 
             <!-- 5. DELIVERY / SYSTEM ALERTS -->
-            <div *ngIf="selectedNotification.notification_type.includes('DELIVERY') || selectedNotification.notification_type.includes('SYSTEM')" class="entity-info-card">
+            <div
+              *ngIf="selectedNotification.notification_type.includes('DELIVERY') || selectedNotification.notification_type.includes('SYSTEM')"
+              class="entity-info-card">
               <div class="entity-card-header">
                 <span class="material-icons text-danger">dns</span>
                 <h3>Operational Log Details</h3>
@@ -728,7 +700,8 @@
               <div class="entity-grid">
                 <div class="entity-field">
                   <span class="field-label">Component / Gateway:</span>
-                  <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—' }}</span>
+                  <span class="field-value">{{ selectedNotification.source_name || selectedNotification.channel || '—'
+                    }}</span>
                 </div>
                 <div class="entity-field">
                   <span class="field-label">Channel:</span>
@@ -743,31 +716,18 @@
 
             <!-- PRIMARY ACTION BUTTONS -->
             <div class="detail-action-buttons">
-              <button
-                type="button"
-                class="btn btn-primary"
-                (click)="navigateToResource(selectedNotification)"
-              >
+              <button type="button" class="btn btn-primary" (click)="navigateToResource(selectedNotification)">
                 <span>{{ getActionLabel(selectedNotification) }}</span>
                 <span class="material-icons">arrow_forward</span>
               </button>
 
-              <a
-                *ngIf="selectedNotification.application_url"
-                [href]="selectedNotification.application_url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-outline"
-              >
+              <a *ngIf="selectedNotification.application_url" [href]="selectedNotification.application_url"
+                target="_blank" rel="noopener noreferrer" class="btn btn-outline">
                 <span>Visit Application Portal</span>
                 <span class="material-icons">open_in_new</span>
               </a>
 
-              <button
-                type="button"
-                class="btn btn-outline"
-                (click)="backToList()"
-              >
+              <button type="button" class="btn btn-outline" (click)="backToList()">
                 <span>Back to Notifications</span>
               </button>
             </div>
@@ -853,19 +813,9 @@
           </div>
           <p>Dispatches a live transactional email via Brevo SMTP / API to verify delivery and templates.</p>
           <div class="test-input-group">
-            <input
-              type="email"
-              [(ngModel)]="testEmailAddress"
-              placeholder="admin@example.com"
-              [disabled]="testingEmail"
-              aria-label="Test Email Address"
-            />
-            <button
-              type="button"
-              class="btn btn-primary"
-              (click)="sendTestEmail()"
-              [disabled]="testingEmail"
-            >
+            <input type="email" [(ngModel)]="testEmailAddress" placeholder="admin@example.com" [disabled]="testingEmail"
+              aria-label="Test Email Address" />
+            <button type="button" class="btn btn-primary" (click)="sendTestEmail()" [disabled]="testingEmail">
               <span class="material-icons" *ngIf="!testingEmail">send</span>
               <span class="material-icons spin" *ngIf="testingEmail">sync</span>
               <span>{{ testingEmail ? 'Sending...' : 'Send Test Email' }}</span>
@@ -881,19 +831,9 @@
           </div>
           <p>Dispatches a transactional SMS via Brevo (automatically normalized to +91XXXXXXXXXX).</p>
           <div class="test-input-group">
-            <input
-              type="tel"
-              [(ngModel)]="testPhoneNumber"
-              placeholder="+919876543210"
-              [disabled]="testingSms"
-              aria-label="Test Phone Number"
-            />
-            <button
-              type="button"
-              class="btn btn-primary"
-              (click)="sendTestSms()"
-              [disabled]="testingSms"
-            >
+            <input type="tel" [(ngModel)]="testPhoneNumber" placeholder="+919876543210" [disabled]="testingSms"
+              aria-label="Test Phone Number" />
+            <button type="button" class="btn btn-primary" (click)="sendTestSms()" [disabled]="testingSms">
               <span class="material-icons" *ngIf="!testingSms">send</span>
               <span class="material-icons spin" *ngIf="testingSms">sync</span>
               <span>{{ testingSms ? 'Sending...' : 'Send Test SMS' }}</span>

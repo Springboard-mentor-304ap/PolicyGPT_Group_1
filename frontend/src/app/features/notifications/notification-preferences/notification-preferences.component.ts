@@ -58,7 +58,12 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   isGuest = false;
 
   // Loading & State
+  // `loading` gates the skeleton and is only true when there is no UI to
+  // show yet. `syncing` / `syncError` track the background preference sync
+  // and must NEVER hide the already-visible preferences UI.
   loading = true;
+  syncing = false;
+  syncError = false;
   matrixLoaded = false;
   saving = false;
   autoSaving = false;
@@ -261,7 +266,12 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   // ============================================================
 
   loadMatrix(): void {
+    // Only show the skeleton when there is genuinely nothing to render yet.
+    // The role-config prepopulation in ngOnInit means the preferences UI is
+    // already visible here, so a slow/erroring API must not hide the page.
     this.loading = this.workingGroups.length === 0;
+    this.syncing = true;
+    this.syncError = false;
     this.errorMessage = '';
     this.savedSuccessfully = false;
 
@@ -270,10 +280,18 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
         this.applyMatrixData(data);
         this.matrixLoaded = true;
         this.loading = false;
+        this.syncing = false;
+        this.syncError = false;
+        this.errorMessage = '';
         this.cdr.detectChanges();
       },
       error: (err: HttpErrorResponse) => {
+        // Non-blocking failure: keep the existing/default preferences UI
+        // visible and usable. The error is surfaced as a small sync banner
+        // (plus toast), never as a full-page replacement.
         this.loading = false;
+        this.syncing = false;
+        this.syncError = true;
         if (err.status === 401) {
           this.errorMessage = 'Please sign in to manage your notification preferences.';
         } else if (err.status === 403) {
@@ -281,9 +299,22 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
         } else {
           this.errorMessage = 'Unable to load notification preferences. Please check your connection and try again.';
         }
+        this.toastService.warning(
+          'Preferences Not Synced',
+          'Unable to sync your latest preferences. Your current settings are still available.'
+        );
         this.cdr.detectChanges();
       },
     });
+  }
+
+  /**
+   * Retry only re-runs the background synchronization. The preferences UI
+   * stays visible throughout; on success the server values are applied,
+   * on failure the existing UI is kept.
+   */
+  retrySync(): void {
+    this.loadMatrix();
   }
 
   private applyMatrixData(data: NotificationMatrixResponse): void {
@@ -304,6 +335,20 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     );
 
     const rawGroups: NotificationPreferenceGroup[] = Array.isArray(data.groups) ? data.groups : [];
+
+    // Defensive: never wipe an already-visible role-specific UI because of
+    // an anomalous empty payload. Keep the existing groups, but still sync
+    // the global settings/frequency returned by the server.
+    if (rawGroups.length === 0 && this.workingGroups.length > 0) {
+      if (data.global_settings) {
+        this.globalSettings = data.global_settings;
+        this.frequency = (data.global_settings?.frequency as NotificationFrequency) || this.frequency;
+        this.preferences = { ...data.global_settings };
+      }
+      this.takeSnapshot();
+      this.hasUnsavedChanges = false;
+      return;
+    }
 
     this.workingGroups = rawGroups.map((g) => {
       const meta: NotificationGroupMeta = getNotificationGroupMeta(g.key, g.label, g.description);

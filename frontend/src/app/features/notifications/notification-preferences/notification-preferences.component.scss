@@ -189,6 +189,21 @@ $red-border: #fecaca;
       color: #059669;
     }
   }
+
+  &--syncing {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+
+    .btn-spinner--dark {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(71, 85, 105, 0.25);
+      border-top-color: #475569;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+  }
 }
 
 .unsaved-badge {
@@ -1069,6 +1084,44 @@ $red-border: #fecaca;
     background: $red-bg;
     border: 1px solid $red-border;
     color: #991b1b;
+  }
+
+  // Non-blocking background-sync warning: amber, compact, shown above the
+  // still-visible preferences grid. Never replaces the page.
+  &.alert-sync {
+    background: $amber-bg;
+    border: 1px solid $amber-border;
+    color: #92400e;
+
+    .material-icons {
+      color: $amber;
+    }
+
+    .btn-sm {
+      background: #ffffff;
+      border: 1px solid $amber-border;
+      color: #92400e;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+
+      &:hover:not(:disabled) {
+        background: #fef3c7;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .material-icons {
+        font-size: 14px;
+        color: inherit;
+      }
+    }
   }
 
   .alert-content {

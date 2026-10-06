@@ -348,7 +348,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="New Policy Alerts",
         description=(
             "Receive notifications when new government policies "
-            "are published.",
+            "are published."
         ),
         types=("NEW_POLICY", "POLICY_PUBLISHED"),
         section=POLICY_AND_SCHEME_SECTION,
@@ -358,7 +358,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Policy Updates",
         description=(
             "Receive notifications when published policies "
-            "are updated.",
+            "are updated."
         ),
         types=("POLICY_UPDATED",),
         section=POLICY_AND_SCHEME_SECTION,
@@ -369,7 +369,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="New Scheme Alerts",
         description=(
             "Receive notifications when new government schemes "
-            "are launched.",
+            "are launched."
         ),
         types=("NEW_SCHEME", "SCHEME_PUBLISHED"),
         section=POLICY_AND_SCHEME_SECTION,
@@ -379,7 +379,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Scheme Updates",
         description=(
             "Receive notifications when published schemes "
-            "are updated.",
+            "are updated."
         ),
         types=("SCHEME_UPDATED",),
         section=POLICY_AND_SCHEME_SECTION,
@@ -390,7 +390,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Scheme Deadline Alerts",
         description=(
             "Receive reminders when relevant scheme deadlines "
-            "are approaching.",
+            "are approaching."
         ),
         types=("DEADLINE_REMINDER", "SCHEME_ENDING"),
         section=POLICY_AND_SCHEME_SECTION,
@@ -401,7 +401,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Scheme Ended Notices",
         description=(
             "Receive notifications when schemes have reached their "
-            "application deadline.",
+            "application deadline."
         ),
         types=("SCHEME_ENDED",),
         section=POLICY_AND_SCHEME_SECTION,
@@ -413,7 +413,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Policy Approval Results",
         description=(
             "Notifications when your submitted policies are "
-            "approved or rejected.",
+            "approved or rejected."
         ),
         types=("POLICY_APPROVED", "POLICY_REJECTED"),
         section=APPROVAL_SECTION,
@@ -423,7 +423,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Scheme Approval Results",
         description=(
             "Notifications when your submitted schemes are "
-            "approved or rejected.",
+            "approved or rejected."
         ),
         types=("SCHEME_APPROVED", "SCHEME_REJECTED"),
         section=APPROVAL_SECTION,
@@ -433,7 +433,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Archive & Delete Request Results",
         description=(
             "Notifications when your archive or deletion requests "
-            "are approved or rejected.",
+            "are approved or rejected."
         ),
         types=("REQUEST_APPROVED", "REQUEST_REJECTED"),
         section=APPROVAL_SECTION,
@@ -444,7 +444,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Policy Requests",
         description=(
             "Submissions and approval requests for government "
-            "policies.",
+            "policies."
         ),
         types=("POLICY_APPROVAL_REQUEST",
                "POLICY_PENDING_REQUEST", "POLICY_SUBMITTED"),
@@ -455,7 +455,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Scheme Requests",
         description=(
             "Submissions and approval requests for government "
-            "schemes.",
+            "schemes."
         ),
         types=("SCHEME_APPROVAL_REQUEST", "SCHEME_APPROVAL_REQUIRED",
                "SCHEME_PENDING_REQUEST", "SCHEME_SUBMITTED"),
@@ -474,7 +474,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Delete Requests",
         description=(
             "Requests to delete policies or schemes from "
-            "the repository.",
+            "the repository."
         ),
         types=("POLICY_DELETE_REQUEST", "SCHEME_DELETE_REQUEST"),
         section=ADMIN_SECTION,
@@ -484,7 +484,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Other Administrator Updates",
         description=(
             "Workflow updates when another administrator reviews, "
-            "approves, or rejects requests.",
+            "approves, or rejects requests."
         ),
         types=("ADMIN_ACTION_UPDATE", "ADMIN_REQUEST_UPDATED"),
         section=ADMIN_SECTION,
@@ -494,7 +494,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="User Administration",
         description=(
             "New user registrations, role modifications, and "
-            "account status updates.",
+            "account status updates."
         ),
         types=("NEW_USER", "USER_ROLE_CHANGE", "USER_STATUS_CHANGE"),
         section=ADMIN_SECTION,
@@ -505,7 +505,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Application Updates",
         description=(
             "Status changes and updates for scheme applications "
-            "you have submitted.",
+            "you have submitted."
         ),
         types=(
             "APPLICATION_UPDATE",
@@ -521,7 +521,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Research & Regulatory Updates",
         description=(
             "Regulatory frameworks, analytical reports, and saved "
-            "search intelligence alerts.",
+            "search intelligence alerts."
         ),
         types=("REGULATORY_UPDATE", "RESEARCH_REPORT",
                "REPORT_COMPLETED", "SAVED_SEARCH_ALERT"),
@@ -533,7 +533,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="System Alerts",
         description=(
             "Platform health events, maintenance notices, and "
-            "delivery service monitoring.",
+            "delivery service monitoring."
         ),
         types=(
             "SYSTEM_ALERT",
@@ -558,7 +558,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
         label="Support & Feedback",
         description=(
             "Feedback reports, user inquiries, ticket escalations, "
-            "and resolution updates.",
+            "and resolution updates."
         ),
         types=(
             "NEW_FEEDBACK",

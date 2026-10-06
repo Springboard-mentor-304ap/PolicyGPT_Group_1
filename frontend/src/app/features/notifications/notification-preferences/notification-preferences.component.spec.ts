@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError, Subject } from 'rxjs';
 import { NotificationPreferencesComponent } from './notification-preferences.component';
 import { NotificationPreferencesService } from '../../../core/services/notification-preferences.service';
 import { Auth } from '../../../core/services/auth';
@@ -260,5 +261,172 @@ describe('NotificationPreferencesComponent', () => {
     expect(component.savedSuccessfully).toBe(true);
     expect(component.hasUnsavedChanges).toBe(false);
     vi.useRealTimers();
+  });
+});
+
+describe('NotificationPreferencesComponent resilient sync', () => {
+  let component: NotificationPreferencesComponent;
+  let fixture: ComponentFixture<NotificationPreferencesComponent>;
+  let prefServiceMock: any;
+  let authServiceMock: any;
+  let toastServiceMock: any;
+
+  const mockLegacyPrefs: NotificationPreferences = {
+    preference_id: 1,
+    user_id: 1,
+    email_enabled: true,
+    sms_enabled: false,
+    in_app_enabled: true,
+    policy_alerts: true,
+    scheme_updates: true,
+    deadline_reminders: true,
+    application_updates: true,
+    government_announcements: false,
+    regulatory_updates: true,
+    research_reports: false,
+    system_alerts: true,
+    frequency: 'INSTANT',
+    updated_at: '2026-09-24T10:00:00Z',
+  };
+
+  const mockMatrix: NotificationMatrixResponse = {
+    user_id: 1,
+    role: 'CITIZEN',
+    global_settings: mockLegacyPrefs,
+    groups: [
+      {
+        key: 'new_policy',
+        label: 'New Policy Alerts',
+        description: 'Receive notifications when new government policies are published.',
+        section: 'general',
+        types: ['NEW_POLICY', 'POLICY_PUBLISHED'],
+        default_channels: { in_app: true, email: true, sms: false },
+        type_preferences: [
+          {
+            notification_type: 'NEW_POLICY',
+            in_app_enabled: true,
+            email_enabled: true,
+            sms_enabled: false,
+            explicit: false,
+          },
+        ],
+      },
+    ],
+  };
+
+  function configureTestBed(matrixObservableFactory: () => any): void {
+    prefServiceMock = {
+      getPreferenceMatrix: vi.fn().mockImplementation(matrixObservableFactory),
+      savePreferenceMatrix: vi.fn().mockReturnValue(of(mockMatrix)),
+      resetTypeMatrix: vi.fn().mockReturnValue(of(mockMatrix)),
+      getPreferences: vi.fn().mockReturnValue(of(mockLegacyPrefs)),
+      updatePreferences: vi.fn().mockReturnValue(of(mockLegacyPrefs)),
+      resetPreferences: vi.fn().mockReturnValue(of(mockLegacyPrefs)),
+    };
+
+    authServiceMock = {
+      isLoggedIn: vi.fn().mockReturnValue(true),
+      isGuest: vi.fn().mockReturnValue(false),
+      getToken: vi.fn().mockReturnValue('mock-jwt-token'),
+      getStoredUser: vi.fn().mockReturnValue({
+        user_id: 1,
+        email: 'citizen@gmail.com',
+        phone: '+919876543210',
+        role: 'CITIZEN',
+      }),
+      getUserRole: vi.fn().mockReturnValue('CITIZEN'),
+      getCurrentUser: vi.fn().mockReturnValue(of(null)),
+    };
+
+    toastServiceMock = {
+      success: vi.fn(),
+      info: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+    };
+
+    TestBed.configureTestingModule({
+      imports: [NotificationPreferencesComponent],
+      providers: [
+        provideRouter([]),
+        { provide: NotificationPreferencesService, useValue: prefServiceMock },
+        { provide: Auth, useValue: authServiceMock },
+        { provide: ToastService, useValue: toastServiceMock },
+      ],
+    });
+  }
+
+  it('11. should keep the preferences UI visible when the matrix GET fails', async () => {
+    configureTestBed(() =>
+      throwError(() => new HttpErrorResponse({ status: 0, statusText: 'Unknown Error' }))
+    );
+    await TestBed.compileComponents();
+    fixture = TestBed.createComponent(NotificationPreferencesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Default/role-config UI renders immediately from the existing config.
+    expect(component.workingGroups.length).toBeGreaterThan(0);
+    // No full-page loading/error takeover: grid renders, skeleton hidden.
+    expect(component.loading).toBe(false);
+    expect(component.syncing).toBe(false);
+    // Failure is tracked as a non-blocking sync error only.
+    expect(component.syncError).toBe(true);
+    expect(component.errorMessage).toContain('Unable to load notification preferences');
+    // Grid visibility condition used by the template stays true.
+    expect(component.workingGroups.length > 0).toBe(true);
+    // A non-blocking warning is surfaced instead of a page replacement.
+    expect(toastServiceMock.warning).toHaveBeenCalled();
+    TestBed.resetTestingModule();
+  });
+
+  it('12. should retry sync and apply server values on success', async () => {
+    configureTestBed(() =>
+      throwError(() => new HttpErrorResponse({ status: 500, statusText: 'Server Error' }))
+    );
+    await TestBed.compileComponents();
+    fixture = TestBed.createComponent(NotificationPreferencesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const defaultGroupCount = component.workingGroups.length;
+    expect(defaultGroupCount).toBeGreaterThan(0);
+    expect(component.syncError).toBe(true);
+
+    // Retry uses the same sync path and applies real server data on success.
+    prefServiceMock.getPreferenceMatrix.mockReturnValue(of(mockMatrix));
+    component.retrySync();
+
+    expect(prefServiceMock.getPreferenceMatrix).toHaveBeenCalledTimes(2);
+    expect(component.syncError).toBe(false);
+    expect(component.matrixLoaded).toBe(true);
+    expect(component.workingGroups.length).toBe(1);
+    expect(component.workingGroups[0].key).toBe('new_policy');
+    TestBed.resetTestingModule();
+  });
+
+  it('13. should keep the UI visible while the matrix GET is slow', async () => {
+    const matrixSubject = new Subject<NotificationMatrixResponse>();
+    configureTestBed(() => matrixSubject.asObservable());
+    await TestBed.compileComponents();
+    fixture = TestBed.createComponent(NotificationPreferencesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Request in flight: default UI visible, subtle syncing state, no error.
+    expect(component.workingGroups.length).toBeGreaterThan(0);
+    expect(component.loading).toBe(false);
+    expect(component.syncing).toBe(true);
+    expect(component.syncError).toBe(false);
+
+    // Late success applies the server values without any page replacement.
+    matrixSubject.next(mockMatrix);
+    matrixSubject.complete();
+
+    expect(component.syncing).toBe(false);
+    expect(component.syncError).toBe(false);
+    expect(component.matrixLoaded).toBe(true);
+    expect(component.workingGroups.length).toBe(1);
+    TestBed.resetTestingModule();
   });
 });

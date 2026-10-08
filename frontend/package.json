@@ -22,8 +22,10 @@
     "@angular/router": "^22.1.0",
     "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
+    "jspdf": "^4.2.1",
     "rxjs": "~7.8.0",
-    "tslib": "^2.3.0"
+    "tslib": "^2.3.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@angular/build": "^22.1.6",

@@ -74,4 +74,59 @@ describe('AuditLogComponent', () => {
     component.searchQuery.set('LOGIN');
     expect(component.filteredLogs().length).toBe(1);
   });
+
+  it('5. formatAction should replace underscores for display only', () => {
+    expect(component.formatAction('SUPPORT_REQUEST_RESPONDED')).toBe('SUPPORT REQUEST RESPONDED');
+    expect(component.formatAction('AUTH_LOGIN_SUCCESS')).toBe('AUTH LOGIN SUCCESS');
+  });
+
+  it('6. pagination should page filtered logs ten at a time', () => {
+    fixture.detectChanges();
+    const many = Array.from({ length: 25 }, (_, i) => ({
+      audit_id: 100 + i,
+      user_id: 3,
+      user_name: 'Test Citizen',
+      user_email: 'citizen@gmail.com',
+      user_role: 'CITIZEN',
+      action: 'AUTH_LOGIN_SUCCESS',
+      entity_type: 'USER',
+      entity_id: 3,
+      description: 'Login ok.',
+      ip_address: '127.0.0.1',
+      created_at: '2026-09-30T10:32:14.000Z',
+    }));
+    component.logs.set(many as never);
+    expect(component.totalPages()).toBe(3);
+    expect(component.pagedLogs().length).toBe(10);
+    expect(component.pageRangeText()).toContain('1–10');
+    component.goToPage(3);
+    expect(component.pagedLogs().length).toBe(5);
+    component.goToPage(99);
+    expect(component.currentPage()).toBe(3);
+  });
+
+  it('7. filter changes should reset to the first page', () => {
+    fixture.detectChanges();
+    const many = Array.from({ length: 25 }, (_, i) => ({
+      audit_id: 200 + i,
+      user_id: 3,
+      user_name: 'Test Citizen',
+      user_email: 'citizen@gmail.com',
+      user_role: 'CITIZEN',
+      action: 'AUTH_LOGIN_SUCCESS',
+      entity_type: 'USER',
+      entity_id: 3,
+      description: 'Login ok.',
+      ip_address: '127.0.0.1',
+      created_at: '2026-09-30T10:32:14.000Z',
+    }));
+    component.logs.set(many as never);
+    component.goToPage(3);
+    expect(component.currentPage()).toBe(3);
+    component.onSearchChanged('LOGIN');
+    expect(component.currentPage()).toBe(1);
+    component.goToPage(3);
+    component.onRoleChanged('CITIZEN');
+    expect(component.currentPage()).toBe(1);
+  });
 });

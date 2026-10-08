@@ -1,4 +1,4 @@
-<div class="admin-feedback-page">
+<div class="admin-feedback-page audit-log-page">
 
   <!-- =========================================================
      PAGE HEADER (PolicyGPT Standard)
@@ -10,22 +10,11 @@
       <div class="header-main">
         <h1>Audit Logs</h1>
         <p>
-          Track important actions and changes across the PolicyGPT platform — authentication, user management, policy and scheme workflows, feedback, support, FAQ, and report activity.
+          Track important actions and changes across the PolicyGPT platform.
         </p>
       </div>
 
       <div class="header-actions">
-        <!-- REFRESH BUTTON -->
-        <button
-          type="button"
-          class="btn-refresh"
-          (click)="loadLogs()"
-          [disabled]="loading()"
-          title="Refresh records"
-        >
-          <span class="material-icons" [class.spinning]="loading()">refresh</span>
-          <span>Refresh</span>
-        </button>
 
         <!-- BACK BUTTON -->
         <button type="button" class="back-button" (click)="goBack()">
@@ -87,28 +76,17 @@
   <section class="toolbar-card">
     <div class="toolbar-top">
       <!-- SEARCH INPUT -->
-      <div class="search-input-wrapper">
+      <div class="search-input-wrapper audit-search">
         <span class="search-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
             <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </span>
-        <input
-          type="text"
-          placeholder="Search by action, user, email, entity, or description..."
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          autocomplete="off"
-          aria-label="Search audit logs"
-        />
-        <button
-          *ngIf="searchQuery()"
-          type="button"
-          class="clear-search"
-          (click)="searchQuery.set('')"
-          aria-label="Clear search"
-        >
+        <input type="text" placeholder="Search by action, user, email, entity or ID..." [ngModel]="searchQuery()"
+          (ngModelChange)="onSearchChanged($event)" autocomplete="off" aria-label="Search audit logs" />
+        <button *ngIf="searchQuery()" type="button" class="clear-search" (click)="searchQuery.set('')"
+          aria-label="Clear search">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -118,40 +96,27 @@
 
       <!-- ACTION FILTER DROPDOWN (server-side) -->
       <div class="filter-dropdown">
-        <label for="actionSelect" class="filter-label">Action:</label>
-        <select
-          id="actionSelect"
-          [ngModel]="actionFilter()"
-          (ngModelChange)="actionFilter.set($event); applyServerFilters()"
-        >
+        <select id="actionSelect" [ngModel]="actionFilter()"
+          (ngModelChange)="actionFilter.set($event); applyServerFilters()">
           <option *ngFor="let a of availableActions()" [value]="a">
-            {{ a === 'ALL' ? 'All Actions' : a }}
+            {{ a === 'ALL' ? 'All Actions' : formatAuditLabel(a) }}
           </option>
         </select>
       </div>
 
       <!-- ENTITY FILTER DROPDOWN (server-side) -->
       <div class="filter-dropdown">
-        <label for="entitySelect" class="filter-label">Entity:</label>
-        <select
-          id="entitySelect"
-          [ngModel]="entityFilter()"
-          (ngModelChange)="entityFilter.set($event); applyServerFilters()"
-        >
+        <select id="entitySelect" [ngModel]="entityFilter()"
+          (ngModelChange)="entityFilter.set($event); applyServerFilters()">
           <option *ngFor="let e of availableEntities()" [value]="e">
-            {{ e === 'ALL' ? 'All Entities' : e }}
+            {{ e === 'ALL' ? 'All Entities' : formatAuditLabel(e) }}
           </option>
         </select>
       </div>
 
       <!-- ROLE FILTER DROPDOWN -->
       <div class="filter-dropdown">
-        <label for="roleSelect" class="filter-label">Role:</label>
-        <select
-          id="roleSelect"
-          [ngModel]="roleFilter()"
-          (ngModelChange)="roleFilter.set($event)"
-        >
+        <select id="roleSelect" [ngModel]="roleFilter()" (ngModelChange)="onRoleChanged($event)">
           <option value="ALL">All Roles</option>
           <option value="ADMIN">Admin</option>
           <option value="GOVERNMENT_OFFICIAL">Government Official</option>
@@ -163,30 +128,51 @@
     </div>
 
     <!-- DATE RANGE ROW -->
-    <div class="status-tabs-row">
-      <div class="filter-dropdown">
-        <label for="fromDate" class="filter-label">From:</label>
-        <input
-          id="fromDate"
-          type="date"
-          [ngModel]="fromDate()"
-          (ngModelChange)="fromDate.set($event); applyServerFilters()"
-        />
+    <div class="status-tabs-row audit-date-row">
+      <div class="filter-dropdown audit-date-field">
+        <label for="fromDate" class="filter-label">
+          <span class="material-icons" aria-hidden="true">calendar_today</span>
+          <span>From:</span>
+        </label>
+        <input id="fromDate" type="date" [ngModel]="fromDate()"
+          (ngModelChange)="fromDate.set($event); applyServerFilters()" />
       </div>
 
-      <div class="filter-dropdown">
-        <label for="toDate" class="filter-label">To:</label>
-        <input
-          id="toDate"
-          type="date"
-          [ngModel]="toDate()"
-          (ngModelChange)="toDate.set($event); applyServerFilters()"
-        />
+      <div class="filter-dropdown audit-date-field">
+        <label for="toDate" class="filter-label">
+          <span class="material-icons" aria-hidden="true">calendar_today</span>
+          <span>To:</span>
+        </label>
+        <input id="toDate" type="date" [ngModel]="toDate()"
+          (ngModelChange)="toDate.set($event); applyServerFilters()" />
       </div>
 
-      <div class="results-meta">
-        Showing <strong>{{ filteredLogs().length }}</strong> of
-        <strong>{{ stats().total }}</strong> records
+      <div class="export-wrap export-wrap--filter">
+        <button type="button" class="btn-refresh export-btn" (click)="toggleExportMenu($event)"
+          [disabled]="exporting() || loading() || filteredLogs().length === 0" aria-haspopup="menu"
+          [attr.aria-expanded]="exportMenuOpen()" title="Export audit logs">
+          @if (exporting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="export-label">Exporting...</span>
+          } @else {
+          <span class="material-icons export-icon" aria-hidden="true">download</span>
+          <span class="export-label">Export</span>
+          <span class="material-icons dropdown-icon" aria-hidden="true">expand_more</span>
+          }
+        </button>
+        @if (exportMenuOpen() && !exporting()) {
+        <div class="export-menu" role="menu" aria-label="Export audit logs">
+          <p class="export-menu-title">Export Audit Logs</p>
+          <button type="button" role="menuitem" class="export-item" (click)="exportPdf()">
+            <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            <span>Export as PDF</span>
+          </button>
+          <button type="button" role="menuitem" class="export-item" (click)="exportExcel()">
+            <span class="material-icons" aria-hidden="true">table_view</span>
+            <span>Export as Excel</span>
+          </button>
+        </div>
+        }
       </div>
     </div>
   </section>
@@ -198,7 +184,7 @@
 
     <!-- LOADING SKELETON -->
     <div *ngIf="loading()" class="skeleton-table">
-      <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
+      <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5, 6, 7]"></div>
     </div>
 
     <!-- ERROR STATE -->
@@ -226,12 +212,7 @@
       <p *ngIf="!hasActiveFilters()">
         No audited actions have been recorded yet.
       </p>
-      <button
-        type="button"
-        class="back-button"
-        *ngIf="hasActiveFilters()"
-        (click)="resetFilters()"
-      >
+      <button type="button" class="back-button" *ngIf="hasActiveFilters()" (click)="resetFilters()">
         <span class="material-icons back-icon">filter_alt_off</span>
         <span>Reset All Filters</span>
       </button>
@@ -240,7 +221,14 @@
     <!-- DESKTOP TABLE VIEW -->
     <div *ngIf="!loading() && !error() && filteredLogs().length > 0" class="table-card desktop-table-wrap">
       <div class="table-responsive">
-        <table class="feedback-table">
+        <table class="feedback-table audit-table">
+          <colgroup>
+            <col class="col-timestamp" />
+            <col class="col-user" />
+            <col class="col-role" />
+            <col class="col-action" />
+            <col class="col-entity" />
+          </colgroup>
           <thead>
             <tr>
               <th>Timestamp</th>
@@ -248,12 +236,10 @@
               <th>Role</th>
               <th>Action</th>
               <th>Entity</th>
-              <th>Entity ID</th>
-              <th>Details</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of filteredLogs()" (click)="openDetails(item)" class="clickable-row" title="View details">
+            <tr *ngFor="let item of pagedLogs()" (click)="openDetails(item)" class="clickable-row" title="View details">
               <!-- TIMESTAMP -->
               <td class="date-cell">
                 <time>{{ item.created_at | date: 'mediumDate' }}</time>
@@ -282,28 +268,44 @@
 
               <!-- ACTION -->
               <td>
-                <span class="type-tag">{{ item.action }}</span>
+                <span class="audit-action">{{ formatAuditLabel(item.action) }}</span>
               </td>
 
               <!-- ENTITY -->
-              <td>{{ item.entity_type || '—' }}</td>
-
-              <!-- ENTITY ID -->
-              <td>{{ item.entity_id ?? '—' }}</td>
-
-              <!-- DETAILS -->
-              <td>
-                <div class="message-preview">{{ item.description || '—' }}</div>
-              </td>
+              <td class="entity-cell">{{ formatAuditLabel(item.entity_type) || '—' }}</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- PAGINATION FOOTER -->
+      <div class="table-pagination table-pagination--end" *ngIf="totalPages() > 1">
+        <nav class="pagination-controls" aria-label="Audit log pages">
+          <button type="button" class="page-btn page-nav" (click)="prevPage()" [disabled]="currentPage() <= 1"
+            aria-label="Previous page">
+            <span class="material-icons" aria-hidden="true">chevron_left</span>
+          </button>
+          @for (p of pageNumbers(); track $index) {
+          @if (p === '…') {
+          <span class="page-ellipsis" aria-hidden="true">…</span>
+          } @else {
+          <button type="button" class="page-btn page-num" [class.active]="p === currentPage()" (click)="goToPage(p)"
+            [attr.aria-label]="'Page ' + p" [attr.aria-current]="p === currentPage() ? 'page' : null">
+            {{ p }}
+          </button>
+          }
+          }
+          <button type="button" class="page-btn page-nav" (click)="nextPage()"
+            [disabled]="currentPage() >= totalPages()" aria-label="Next page">
+            <span class="material-icons" aria-hidden="true">chevron_right</span>
+          </button>
+        </nav>
       </div>
     </div>
 
     <!-- MOBILE & TABLET CARD VIEW (Visible on <= 860px) -->
     <div *ngIf="!loading() && !error() && filteredLogs().length > 0" class="mobile-card-list">
-      <article *ngFor="let item of filteredLogs()" class="mobile-feedback-card" (click)="openDetails(item)">
+      <article *ngFor="let item of pagedLogs()" class="mobile-feedback-card" (click)="openDetails(item)">
         <header class="card-head">
           <div class="user-block">
             <div class="user-avatar">
@@ -320,8 +322,8 @@
         </header>
 
         <div class="card-tags">
-          <span class="type-tag">{{ item.action }}</span>
-          <span class="ref-tag" *ngIf="item.entity_type">{{ item.entity_type }} #{{ item.entity_id }}</span>
+          <span class="type-tag">{{ formatAuditLabel(item.action) }}</span>
+          <span class="ref-tag" *ngIf="item.entity_type">{{ formatAuditLabel(item.entity_type) }}</span>
         </div>
 
         <div class="card-body-content">
@@ -366,9 +368,9 @@
           </div>
 
           <div class="recap-category-row">
-            <span class="type-tag">{{ selectedLog()?.action }}</span>
+            <span class="type-tag">{{ formatAuditLabel(selectedLog()?.action) }}</span>
             <span class="ref-tag" *ngIf="selectedLog()?.entity_type">
-              {{ selectedLog()?.entity_type }} #{{ selectedLog()?.entity_id }}
+              {{ formatAuditLabel(selectedLog()?.entity_type) }} #{{ selectedLog()?.entity_id }}
             </span>
           </div>
 

@@ -186,10 +186,24 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
         path: "support",
         loadComponent: () =>
           import("../../support/support.component").then(
             (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
           ),
       },
 
@@ -525,10 +539,24 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
         path: "support",
         loadComponent: () =>
           import("../../support/support.component").then(
             (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
           ),
       },
 
@@ -1002,10 +1030,24 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
         path: "support",
         loadComponent: () =>
           import("../../support/support.component").then(
             (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
           ),
       },
 
@@ -1453,6 +1495,13 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.FaqListComponent,
           ),
       },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
 
       // ADMIN CANNOT ACCESS USER SUPPORT PAGE - REDIRECT TO ADMIN FAQS
       {
@@ -1480,6 +1529,30 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../support/admin-support/admin-support.component").then(
             (m) => m.AdminSupportComponent,
+          ),
+      },
+
+      // QUERY RESOLUTION (ADMIN MANAGEMENT)
+      // Alias view over the support ticket queue, where submitted
+      // queries are reviewed and resolved. Reuses AdminSupportComponent
+      // so there is exactly one implementation (and one sidebar entry
+      // target) for ticket resolution — no duplicate component.
+      // /dashboard/admin/query-resolution
+      {
+        path: "query-resolution",
+        loadComponent: () =>
+          import("../../support/admin-support/admin-support.component").then(
+            (m) => m.AdminSupportComponent,
+          ),
+      },
+
+      // SUPPORT ANALYTICS (ADMIN ONLY)
+      // /dashboard/admin/support-analytics
+      {
+        path: "support-analytics",
+        loadComponent: () =>
+          import("../../support/support-analytics/support-analytics.component").then(
+            (m) => m.SupportAnalyticsComponent,
           ),
       },
 
@@ -1671,10 +1744,24 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
       {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
         path: "support",
         loadComponent: () =>
           import("../../support/support.component").then(
             (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
           ),
       },
 
@@ -1955,6 +2042,13 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../support/support.component").then(
             (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
           ),
       },
       {

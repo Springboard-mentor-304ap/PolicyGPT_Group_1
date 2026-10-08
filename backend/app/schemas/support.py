@@ -37,9 +37,29 @@ class SupportRequestResponse(BaseModel):
 class SupportRequestUpdate(BaseModel):
     response: str | None = None
     status: str | None = None
+    assigned_to: int | None = None
+    priority: str | None = None
+
+
+class SupportTicketMessageCreate(BaseModel):
+    message: str = Field(..., min_length=1, max_length=5000,
+                         description="Reply text for the ticket conversation")
+
+
+class SupportTicketMessageResponse(BaseModel):
+    id: int
+    ticket_id: int
+    sender_id: int
+    sender_role: str
+    sender_name: str | None = None
+    message: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AdminSupportRequestResponse(SupportRequestResponse):
     user_name: str | None = None
     user_email: str | None = None
     user_role: str | None = None
+    assigned_to: int | None = None

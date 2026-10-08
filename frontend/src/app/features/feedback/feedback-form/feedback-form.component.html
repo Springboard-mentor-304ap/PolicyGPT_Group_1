@@ -8,9 +8,9 @@
   <header class="page-header">
     <div class="header-content">
       <div class="header-main">
-        <h1>Feedback & Grievance Desk</h1>
+        <h1>Feedback</h1>
         <p>
-          Submit your queries, report technical issues, or share constructive feedback. Official responses will appear directly under your submissions.
+          Share your experience and help us improve PolicyGPT.
         </p>
       </div>
 
@@ -25,26 +25,14 @@
 
     <!-- TABS BAR -->
     <div class="feedback-tabs-nav" role="tablist">
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="activeTab() === 'submit'"
-        (click)="setTab('submit')"
-        role="tab"
-        [attr.aria-selected]="activeTab() === 'submit'"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'submit'" (click)="setTab('submit')"
+        role="tab" [attr.aria-selected]="activeTab() === 'submit'">
         <span class="material-icons">edit_note</span>
         <span>Submit Feedback</span>
       </button>
 
-      <button
-        type="button"
-        class="nav-tab-btn"
-        [class.active]="activeTab() === 'history'"
-        (click)="setTab('history')"
-        role="tab"
-        [attr.aria-selected]="activeTab() === 'history'"
-      >
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'history'" (click)="setTab('history')"
+        role="tab" [attr.aria-selected]="activeTab() === 'history'">
         <span class="material-icons">history</span>
         <span>My Submissions</span>
         <span class="tab-count-badge" *ngIf="userFeedbacks().length > 0">
@@ -71,15 +59,9 @@
         </div>
 
         <div class="type-grid">
-          <div
-            *ngFor="let t of feedbackTypes"
-            class="type-card"
-            [class.selected]="feedbackType === t.value"
-            (click)="selectFeedbackType(t.value)"
-            tabindex="0"
-            role="radio"
-            [attr.aria-checked]="feedbackType === t.value"
-          >
+          <div *ngFor="let t of feedbackTypes" class="type-card" [class.selected]="feedbackType === t.value"
+            (click)="selectFeedbackType(t.value)" tabindex="0" role="radio"
+            [attr.aria-checked]="feedbackType === t.value">
             <div class="type-icon-box">
               <span class="material-icons">{{ t.icon }}</span>
             </div>
@@ -109,34 +91,20 @@
           <!-- SUBJECT -->
           <div class="form-group">
             <label for="feedbackSubject">Subject / Topic Summary</label>
-            <input
-              id="feedbackSubject"
-              type="text"
-              placeholder="e.g. Inconsistency in PM Kisan document eligibility checklist"
-              [(ngModel)]="subject"
-              maxlength="200"
-            />
+            <input id="feedbackSubject" type="text"
+              placeholder="e.g. Inconsistency in PM Kisan document eligibility checklist" [(ngModel)]="subject"
+              maxlength="200" />
           </div>
 
           <!-- OPTIONAL REFERENCES (POLICY & SCHEME IDS) -->
           <div class="form-row">
             <div class="form-group col-half">
               <label for="policyId">Related Policy ID <span class="optional-tag">(Optional)</span></label>
-              <input
-                id="policyId"
-                type="number"
-                placeholder="e.g. 101"
-                [(ngModel)]="policyId"
-              />
+              <input id="policyId" type="number" placeholder="e.g. 101" [(ngModel)]="policyId" />
             </div>
             <div class="form-group col-half">
               <label for="schemeId">Related Scheme ID <span class="optional-tag">(Optional)</span></label>
-              <input
-                id="schemeId"
-                type="number"
-                placeholder="e.g. 204"
-                [(ngModel)]="schemeId"
-              />
+              <input id="schemeId" type="number" placeholder="e.g. 204" [(ngModel)]="schemeId" />
             </div>
           </div>
 
@@ -146,31 +114,15 @@
               <label for="feedbackMessage">Message / Description <span class="required">*</span></label>
               <span class="char-counter">{{ message.length }} characters</span>
             </div>
-            <textarea
-              id="feedbackMessage"
-              rows="6"
+            <textarea id="feedbackMessage" rows="6"
               placeholder="Describe your question, observation, or grievance in clear detail..."
-              [(ngModel)]="message"
-            ></textarea>
-          </div>
-
-          <!-- OFFICIAL VERIFICATION NOTICE -->
-          <div class="user-verification-banner" *ngIf="currentUser()">
-            <span class="material-icons verify-icon">verified_user</span>
-            <div class="verify-text">
-              <span>Officially logged as: <strong>{{ currentUser()?.full_name }}</strong> ({{ currentUser()?.email }})</span>
-              <span class="role-pill">{{ userRole() }}</span>
-            </div>
+              [(ngModel)]="message"></textarea>
           </div>
 
           <!-- ACTIONS -->
           <div class="form-actions">
-            <button
-              type="button"
-              class="btn-primary-action submit-action-btn"
-              (click)="submitFeedback()"
-              [disabled]="submitting() || !message.trim()"
-            >
+            <button type="button" class="btn-primary-action submit-action-btn" (click)="submitFeedback()"
+              [disabled]="submitting() || !message.trim()">
               <span class="material-icons" *ngIf="!submitting()">send</span>
               <span class="spinner" *ngIf="submitting()"></span>
               <span>{{ submitting() ? 'Submitting...' : 'Submit Feedback' }}</span>
@@ -189,6 +141,23 @@
   <main *ngIf="activeTab() === 'history'" class="tab-content">
     <div class="history-container">
 
+      <!-- SUMMARY CARDS (real backend-driven counts) -->
+      <section class="history-summary" aria-label="Feedback summary"
+        *ngIf="!loadingHistory() && !historyError() && userFeedbacks().length > 0">
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().total }}</span>
+          <span class="summary-label">Total Feedback</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().reviewed }}</span>
+          <span class="summary-label">Reviewed</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().pending }}</span>
+          <span class="summary-label">Pending</span>
+        </div>
+      </section>
+
       <!-- FILTER CONTROLS BAR -->
       <section class="history-filter-card">
         <!-- SEARCH -->
@@ -199,21 +168,10 @@
               <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </span>
-          <input
-            type="text"
-            placeholder="Search within your submissions..."
-            [ngModel]="historySearch()"
-            (ngModelChange)="historySearch.set($event)"
-            autocomplete="off"
-            aria-label="Search submissions"
-          />
-          <button
-            *ngIf="historySearch()"
-            type="button"
-            class="clear-search"
-            (click)="historySearch.set('')"
-            aria-label="Clear search"
-          >
+          <input type="text" placeholder="Search within your submissions..." [ngModel]="historySearch()"
+            (ngModelChange)="historySearch.set($event)" autocomplete="off" aria-label="Search submissions" />
+          <button *ngIf="historySearch()" type="button" class="clear-search" (click)="historySearch.set('')"
+            aria-label="Clear search">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
               <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
@@ -221,40 +179,30 @@
           </button>
         </div>
 
-        <!-- STATUS CHIPS -->
-        <div class="status-chips-group">
-          <button
-            type="button"
-            class="status-chip"
-            [class.active]="historyStatusFilter() === 'ALL'"
-            (click)="historyStatusFilter.set('ALL')"
-          >
-            All
-          </button>
-          <button
-            type="button"
-            class="status-chip"
-            [class.active]="historyStatusFilter() === 'OPEN'"
-            (click)="historyStatusFilter.set('OPEN')"
-          >
-            Under Review
-          </button>
-          <button
-            type="button"
-            class="status-chip"
-            [class.active]="historyStatusFilter() === 'IN_PROGRESS'"
-            (click)="historyStatusFilter.set('IN_PROGRESS')"
-          >
-            In Progress
-          </button>
-          <button
-            type="button"
-            class="status-chip"
-            [class.active]="historyStatusFilter() === 'RESOLVED'"
-            (click)="historyStatusFilter.set('RESOLVED')"
-          >
-            Resolved
-          </button>
+        <!-- STATUS + CATEGORY FILTERS -->
+        <div class="history-selects">
+          <label class="history-select-wrap">
+            <span class="visually-hidden">Filter by status</span>
+            <select class="history-select" [ngModel]="historyStatusFilter()"
+              (ngModelChange)="historyStatusFilter.set($event)" aria-label="Filter by status">
+              <option value="ALL">All Statuses</option>
+              <option value="OPEN">Under Review</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+            <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+          </label>
+          <label class="history-select-wrap">
+            <span class="visually-hidden">Filter by category</span>
+            <select class="history-select" [ngModel]="historyCategoryFilter()"
+              (ngModelChange)="historyCategoryFilter.set($event)" aria-label="Filter by category">
+              <option *ngFor="let t of historyTypeOptions()" [value]="t">
+                {{ formatFeedbackType(t) }}
+              </option>
+            </select>
+            <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+          </label>
         </div>
       </section>
 
@@ -289,84 +237,54 @@
           No submissions matched your search or status filter.
         </p>
         <div class="empty-actions">
-          <button
-            type="button"
-            class="btn-primary-action"
-            (click)="setTab('submit')"
-            *ngIf="userFeedbacks().length === 0"
-          >
+          <button type="button" class="btn-primary-action" (click)="setTab('submit')"
+            *ngIf="userFeedbacks().length === 0">
             <span class="material-icons">rate_review</span>
             <span>Submit Your First Feedback</span>
           </button>
-          <button
-            type="button"
-            class="back-button"
-            (click)="historySearch.set(''); historyStatusFilter.set('ALL')"
-            *ngIf="userFeedbacks().length > 0"
-          >
+          <button type="button" class="back-button"
+            (click)="historySearch.set(''); historyStatusFilter.set('ALL'); historyCategoryFilter.set('ALL')"
+            *ngIf="userFeedbacks().length > 0">
             <span class="material-icons back-icon">clear_all</span>
             <span>Clear Filters</span>
           </button>
         </div>
       </div>
 
-      <!-- SUBMISSIONS LIST -->
-      <div *ngIf="!loadingHistory() && !historyError() && filteredHistory().length > 0" class="submissions-list">
-        <article *ngFor="let item of filteredHistory()" class="submission-card"
+      <!-- SUBMISSIONS LIST (compact rows, real backend data) -->
+      <ul *ngIf="!loadingHistory() && !historyError() && filteredHistory().length > 0" class="history-list"
+        aria-label="Feedback submissions">
+        <li *ngFor="let item of filteredHistory()" class="history-row"
           [attr.id]="'feedback-' + item.feedback_id"
           [class.highlighted]="highlightedFeedbackId() === item.feedback_id">
-          <!-- CARD HEADER -->
-          <header class="submission-card-header">
-            <div class="header-leading-tags">
-              <span class="category-type-pill">
-                {{ item.feedback_type }}
-              </span>
-              <span class="status-badge" [ngClass]="getStatusClass(item.status)">
-                {{ getStatusLabel(item.status) }}
-              </span>
-            </div>
-            <time class="submission-timestamp">
-              <span class="material-icons">calendar_today</span>
-              <span>{{ item.created_at | date: 'medium' }}</span>
-            </time>
-          </header>
-
-          <!-- CARD BODY -->
-          <div class="submission-card-body">
-            <h3 class="submission-title">{{ item.subject || 'General Submission' }}</h3>
-            <p class="submission-text">{{ item.message }}</p>
-
-            <div class="ref-tags-row" *ngIf="item.policy_id || item.scheme_id">
-              <span class="ref-pill" *ngIf="item.policy_id">
-                <span class="material-icons">policy</span> Policy #{{ item.policy_id }}
-              </span>
-              <span class="ref-pill" *ngIf="item.scheme_id">
-                <span class="material-icons">account_balance</span> Scheme #{{ item.scheme_id }}
-              </span>
-            </div>
+          <div class="history-row-main">
+            <span class="history-text">
+              <span class="history-subject">{{ item.subject || 'General Submission' }}</span>
+              <span class="history-message">{{ item.message }}</span>
+            </span>
+            <span class="history-cat">{{ formatFeedbackType(item.feedback_type) }}</span>
+            <span class="status-badge" [ngClass]="getStatusClass(item.status)">
+              {{ getStatusLabel(item.status) }}
+            </span>
+            <span class="history-date">{{ item.created_at | date: 'mediumDate' }}</span>
           </div>
 
           <!-- ADMIN OFFICIAL RESPONSE -->
-          <footer class="admin-response-block" *ngIf="item.admin_response">
-            <div class="admin-response-card">
-              <div class="admin-response-header">
-                <span class="material-icons verified-seal-icon">verified</span>
-                <strong>Official Administrative Response</strong>
-                <span class="response-date" *ngIf="item.updated_at">
-                  &bull; {{ item.updated_at | date: 'mediumDate' }}
-                </span>
-              </div>
-              <p class="admin-response-content">{{ item.admin_response }}</p>
-            </div>
-          </footer>
+          <div class="history-response" *ngIf="item.admin_response">
+            <span class="material-icons" aria-hidden="true">verified</span>
+            <span class="history-response-body">
+              <strong>Official Administrative Response</strong>
+              <span class="history-response-text">{{ item.admin_response }}</span>
+            </span>
+          </div>
 
-          <!-- PENDING RESPONSE BANNER -->
-          <footer class="pending-review-banner" *ngIf="!item.admin_response">
-            <span class="material-icons">hourglass_empty</span>
-            <span>Awaiting administrative review. You will receive an in-app notification when an official response is posted.</span>
-          </footer>
-        </article>
-      </div>
+          <!-- PENDING RESPONSE NOTE -->
+          <div class="history-pending" *ngIf="!item.admin_response">
+            <span class="material-icons" aria-hidden="true">hourglass_empty</span>
+            <span>Awaiting administrative review.</span>
+          </div>
+        </li>
+      </ul>
 
     </div>
   </main>

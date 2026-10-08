@@ -8,7 +8,9 @@ from app.models.notification_preference import NotificationPreference
 from app.models.notification_preference_rule import NotificationPreferenceRule
 from app.models.notification_delivery import NotificationDelivery
 from app.models.faq import FAQ
+from app.models.feedback import Feedback
 from app.models.support_query import SupportQuery
+from app.models.support_ticket_message import SupportTicketMessage
 from app.models.report import Report
 from app.models.saved_policy import SavedPolicy
 from app.models.saved_scheme import SavedScheme
@@ -28,7 +30,9 @@ __all__ = [
     "NotificationPreferenceRule",
     "NotificationDelivery",
     "FAQ",
+    "Feedback",
     "SupportQuery",
+    "SupportTicketMessage",
     "Report",
     "SavedPolicy",
     "SavedScheme",

@@ -71,24 +71,25 @@
       </div>
     </div>
 
-    <!-- CATEGORY CHIPS BAR -->
-    <div class="category-chips-bar" role="tablist" aria-label="FAQ Categories">
-      <button
-        *ngFor="let cat of categories()"
-        type="button"
-        class="category-chip"
-        [class.active]="selectedCategory() === cat"
-        (click)="selectCategory(cat)"
-      >
-        <span>{{ cat }}</span>
-      </button>
-    </div>
-
-    <!-- CONTROLS META (Count + Expand/Collapse) -->
-    <div class="controls-meta">
+    <!-- FAQ FILTER ROW ( Citizen Support style: search + category + expand ) -->
+    <div class="faq-filter-row">
       <span class="result-count">
         Showing <strong>{{ filteredFaqs().length }}</strong> of {{ faqs().length }} questions
       </span>
+      <label class="filter-select-wrap">
+        <span class="visually-hidden">Filter by category</span>
+        <select
+          class="filter-select"
+          [ngModel]="selectedCategory()"
+          (ngModelChange)="selectCategory($event)"
+          aria-label="Filter by category"
+        >
+          <option *ngFor="let cat of categories()" [value]="cat">
+            {{ cat === 'All' ? 'All Categories' : cat }}
+          </option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
       <div class="toggle-actions" *ngIf="filteredFaqs().length > 0">
         <button type="button" class="meta-action-btn" (click)="expandAll()">
           <span class="material-icons">unfold_more</span>
@@ -160,103 +161,138 @@
       </div>
     </div>
 
-    <!-- FAQ ACCORDION GROUP -->
-    <div *ngIf="!loading() && !error() && filteredFaqs().length > 0" class="faq-accordion-group">
-      <article
-        *ngFor="let faq of filteredFaqs()"
-        class="faq-card"
-        [class.is-expanded]="isExpanded(faq.faq_id)"
+    <!-- FAQ ROWS (Citizen Support visual language + admin controls) -->
+    <ol *ngIf="!loading() && !error() && filteredFaqs().length > 0" class="faq-rows" aria-label="FAQ list">
+      <li
+        *ngFor="let faq of filteredFaqs(); let i = index"
+        class="faq-row"
+        [class.faq-row--expanded]="isExpanded(faq.faq_id)"
+        (mouseenter)="setHover(faq.faq_id)"
+        (mouseleave)="clearHover()"
+        (focusin)="setHover(faq.faq_id)"
+        (focusout)="clearHover()"
       >
-        <!-- CARD HEADER / QUESTION -->
-        <header
-          class="faq-card-header"
+        <!-- ROW HEADER / QUESTION -->
+        <div
+          class="faq-row-btn"
           (click)="toggleFaq(faq.faq_id)"
+          (keydown.enter)="toggleFaq(faq.faq_id)"
+          (keydown.space)="$event.preventDefault(); toggleFaq(faq.faq_id)"
           tabindex="0"
           role="button"
           [attr.aria-expanded]="isExpanded(faq.faq_id)"
+          [attr.aria-controls]="'faq-content-' + faq.faq_id"
         >
-          <div class="faq-header-leading">
-            <span class="q-badge" aria-hidden="true">Q</span>
-            <div class="faq-question-col">
-              <div class="faq-meta-tags" *ngIf="faq.category">
-                <span class="category-tag">{{ faq.category }}</span>
-              </div>
-              <div class="faq-meta-tags" *ngIf="isAdmin()">
-                <span
-                  class="status-tag"
-                  [class.status-tag--published]="isPublished(faq)"
-                  [class.status-tag--draft]="!isPublished(faq)"
-                >
-                  {{ isPublished(faq) ? 'Published' : 'Unpublished' }}
-                </span>
-              </div>
-              <h2 class="faq-question-title">{{ faq.question }}</h2>
-            </div>
-          </div>
+          <span class="faq-num" aria-hidden="true">{{ (i + 1) | number: '2.0-0' }}</span>
+          <span class="faq-qcol">
+            <span class="faq-q">{{ faq.question }}</span>
+            <span class="faq-tags">
+              <span *ngIf="faq.category" class="faq-tag">{{ faq.category }}</span>
+              <span
+                *ngIf="isAdmin()"
+                class="faq-status"
+                [class.faq-status--published]="isPublished(faq)"
+                [class.faq-status--draft]="!isPublished(faq)"
+              >
+                {{ isPublished(faq) ? 'Published' : 'Unpublished' }}
+              </span>
+            </span>
+          </span>
 
-          <div class="faq-header-actions" (click)="$event.stopPropagation()">
-            <!-- ADMIN ACTIONS -->
-            <div class="admin-actions-bar" *ngIf="isAdmin()">
-              <button
-                type="button"
-                class="admin-icon-btn edit-btn"
-                (click)="openEditModal(faq, $event)"
-                title="Edit FAQ"
-                aria-label="Edit FAQ"
-              >
-                <span class="material-icons">edit</span>
-              </button>
-              <button
-                type="button"
-                class="admin-icon-btn publish-btn"
-                (click)="togglePublish(faq, $event)"
-                [title]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
-                [attr.aria-label]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
-              >
-                <span class="material-icons">{{ isPublished(faq) ? 'visibility_off' : 'visibility' }}</span>
-              </button>
-              <button
-                type="button"
-                class="admin-icon-btn delete-btn"
-                (click)="confirmDelete(faq, $event)"
-                title="Delete FAQ"
-                aria-label="Delete FAQ"
-              >
-                <span class="material-icons">delete_outline</span>
-              </button>
-            </div>
-
-            <!-- EXPAND / COLLAPSE CHEVRON -->
+          <!-- ADMIN CONTROLS (stopPropagation keeps row toggle intact) -->
+          <span
+            class="faq-tools"
+            *ngIf="isAdmin()"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+          >
             <button
               type="button"
-              class="chevron-btn"
-              (click)="toggleFaq(faq.faq_id)"
-              [attr.aria-label]="isExpanded(faq.faq_id) ? 'Collapse answer' : 'Expand answer'"
+              class="admin-icon-btn order-btn"
+              (click)="moveFaq(faq, -1); $event.stopPropagation()"
+              title="Move up (order {{ faq.display_order ?? 0 }})"
+              aria-label="Move FAQ up"
             >
-              <span class="material-icons">expand_more</span>
+              <span class="material-icons">arrow_upward</span>
             </button>
-          </div>
-        </header>
+            <button
+              type="button"
+              class="admin-icon-btn order-btn"
+              (click)="moveFaq(faq, 1); $event.stopPropagation()"
+              title="Move down (order {{ faq.display_order ?? 0 }})"
+              aria-label="Move FAQ down"
+            >
+              <span class="material-icons">arrow_downward</span>
+            </button>
+            <button
+              type="button"
+              class="admin-icon-btn edit-btn"
+              (click)="openEditModal(faq, $event)"
+              title="Edit FAQ"
+              aria-label="Edit FAQ"
+            >
+              <span class="material-icons">edit</span>
+            </button>
+            <button
+              type="button"
+              class="admin-icon-btn publish-btn"
+              (click)="togglePublish(faq, $event)"
+              [title]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
+              [attr.aria-label]="isPublished(faq) ? 'Unpublish FAQ' : 'Publish FAQ'"
+            >
+              <span class="material-icons">{{ isPublished(faq) ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+            <button
+              type="button"
+              class="admin-icon-btn delete-btn"
+              (click)="confirmDelete(faq, $event)"
+              title="Delete FAQ"
+              aria-label="Delete FAQ"
+            >
+              <span class="material-icons">delete_outline</span>
+            </button>
+          </span>
 
-        <!-- CARD BODY / ANSWER -->
-        <div class="faq-card-body" *ngIf="isExpanded(faq.faq_id)">
-          <div class="faq-answer-inner">
-            <div class="answer-row">
-              <span class="a-badge" aria-hidden="true">A</span>
-              <div class="answer-content">
-                <div class="answer-text">{{ faq.answer }}</div>
-                <footer class="faq-meta-footer" *ngIf="faq.updated_at || faq.created_at">
-                  <span class="meta-label">
-                    <span class="material-icons">schedule</span>
-                    Last updated: {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
-                  </span>
-                </footer>
-              </div>
-            </div>
+          <span class="material-icons faq-chevron" aria-hidden="true">
+            {{ isExpanded(faq.faq_id) ? 'expand_less' : 'chevron_right' }}
+          </span>
+        </div>
+
+        <!-- HOVER PREVIEW: in-flow section of its own row (never covers neighbours) -->
+        <div
+          class="faq-hover-preview"
+          *ngIf="isHovered(faq.faq_id) && !isExpanded(faq.faq_id)"
+          aria-hidden="true"
+        >
+          <p class="faq-preview-answer">{{ faq.answer }}</p>
+          <div class="faq-preview-meta">
+            <span *ngIf="faq.category" class="faq-hover-cat">{{ faq.category }}</span>
+            <span *ngIf="faq.updated_at || faq.created_at" class="faq-hover-date">
+              Updated {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+            </span>
+            <span class="faq-view">
+              View
+              <span class="material-icons">arrow_forward</span>
+            </span>
           </div>
         </div>
-      </article>
-    </div>
+
+        <!-- ROW BODY / ANSWER -->
+        <div [id]="'faq-content-' + faq.faq_id" class="faq-answer" *ngIf="isExpanded(faq.faq_id)">
+          <p class="faq-answer-text">{{ faq.answer }}</p>
+          <div class="faq-answer-meta">
+            <span *ngIf="faq.updated_at || faq.created_at" class="meta-date">
+              Last updated: {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+            </span>
+            <a class="meta-link" [routerLink]="getFaqDetailsRoute(faq.faq_id)"
+              [attr.aria-label]="'View details for: ' + faq.question">
+              <span>View Details</span>
+              <span class="material-icons" aria-hidden="true">open_in_new</span>
+            </a>
+          </div>
+        </div>
+      </li>
+    </ol>
 
     <!-- STILL HAVE QUESTIONS CTA (FOR NON-ADMIN USERS) -->
     <section class="faq-cta-card" *ngIf="!isAdmin()">
@@ -284,7 +320,8 @@
   <!-- =========================================================
      ADMIN MODAL: ADD / EDIT FAQ
      ========================================================= -->
-  <div class="modal-backdrop" *ngIf="showModal()" (click)="closeModal()">
+  <div class="modal-backdrop" *ngIf="showModal()" (click)="closeModal()" role="dialog" aria-modal="true"
+    aria-label="FAQ editor">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <header class="modal-header">
         <div class="modal-header-icon">
@@ -375,7 +412,8 @@
   <!-- =========================================================
      ADMIN MODAL: CONFIRM DELETE
      ========================================================= -->
-  <div class="modal-backdrop" *ngIf="showDeleteModal()" (click)="closeDeleteModal()">
+  <div class="modal-backdrop" *ngIf="showDeleteModal()" (click)="closeDeleteModal()" role="dialog"
+    aria-modal="true" aria-label="Delete FAQ confirmation">
     <div class="modal-card modal-card--danger" (click)="$event.stopPropagation()">
       <header class="modal-header">
         <div class="modal-header-icon modal-header-icon--danger">

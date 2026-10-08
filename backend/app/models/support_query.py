@@ -85,6 +85,14 @@ class SupportQuery(Base):
     user = relationship("User", foreign_keys=[user_id], lazy="joined")
     assigned_user = relationship("User", foreign_keys=[assigned_to], lazy="select")
 
+    messages = relationship(
+        "SupportTicketMessage",
+        back_populates="ticket",
+        cascade="all, delete-orphan",
+        order_by="SupportTicketMessage.created_at",
+        lazy="select",
+    )
+
     @property
     def request_id(self) -> str:
         return f"SUP-2026-{self.query_id:05d}"

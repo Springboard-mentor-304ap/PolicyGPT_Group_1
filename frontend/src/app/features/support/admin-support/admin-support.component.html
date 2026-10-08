@@ -1,8 +1,8 @@
-<div class="admin-feedback-page">
+<div class="admin-feedback-page sr-page">
 
   <!-- =========================================================
-     PAGE HEADER (PolicyGPT Standard)
-     ========================================================= -->
+      PAGE HEADER (PolicyGPT Standard)
+      ========================================================= -->
   <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
   <header class="page-header">
@@ -10,22 +10,12 @@
       <div class="header-main">
         <h1>Support Request Management</h1>
         <p>
-          Review user support tickets, questions, and reported issues submitted by citizens, researchers, organizations, and officials. Respond directly and update resolution statuses.
+          Review user support tickets, questions, and reported issues submitted by citizens, researchers, organizations,
+          and officials. Respond directly and update resolution statuses.
         </p>
       </div>
 
       <div class="header-actions">
-        <!-- REFRESH BUTTON -->
-        <button
-          type="button"
-          class="btn-refresh"
-          (click)="loadAllRequests()"
-          [disabled]="loading()"
-          title="Refresh records"
-        >
-          <span class="material-icons" [class.spinning]="loading()">refresh</span>
-          <span>Refresh</span>
-        </button>
 
         <!-- BACK BUTTON -->
         <button type="button" class="back-button" (click)="goBack()">
@@ -37,190 +27,122 @@
   </header>
 
   <!-- =========================================================
-     STATISTICS METRIC CARDS
-     ========================================================= -->
+      STATISTICS METRIC CARDS (real analytics aggregates)
+      ========================================================= -->
   <section class="stats-grid" aria-label="Support Request Metrics">
-    <div
-      class="stat-card"
-      [class.active-filter]="statusFilter() === 'ALL'"
-      (click)="statusFilter.set('ALL')"
-      tabindex="0"
-      role="button"
-    >
+    <div class="stat-card" [class.active-filter]="statusFilter() === 'ALL'" (click)="statusFilter.set('ALL')"
+      tabindex="0" role="button">
       <div class="stat-icon-wrap stat-icon-wrap--total">
         <span class="material-icons">support_agent</span>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ stats().total }}</span>
-        <span class="stat-title">Total Requests</span>
+        <span class="stat-value">{{ dashboardStats().total }}</span>
+        <span class="stat-title">Total Tickets</span>
       </div>
     </div>
 
-    <div
-      class="stat-card"
-      [class.active-filter]="statusFilter() === 'OPEN'"
-      (click)="statusFilter.set('OPEN')"
-      tabindex="0"
-      role="button"
-    >
+    <div class="stat-card" [class.active-filter]="statusFilter() === 'OPEN'" (click)="statusFilter.set('OPEN')"
+      tabindex="0" role="button">
       <div class="stat-icon-wrap stat-icon-wrap--open">
         <span class="material-icons">priority_high</span>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ stats().open }}</span>
-        <span class="stat-title">Pending Review</span>
+        <span class="stat-value">{{ dashboardStats().open }}</span>
+        <span class="stat-title">Open</span>
       </div>
     </div>
 
-    <div
-      class="stat-card"
-      [class.active-filter]="statusFilter() === 'IN_PROGRESS'"
-      (click)="statusFilter.set('IN_PROGRESS')"
-      tabindex="0"
-      role="button"
-    >
+    <div class="stat-card" [class.active-filter]="statusFilter() === 'IN_PROGRESS'"
+      (click)="statusFilter.set('IN_PROGRESS')" tabindex="0" role="button">
       <div class="stat-icon-wrap stat-icon-wrap--progress">
         <span class="material-icons">sync</span>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ stats().inProgress }}</span>
+        <span class="stat-value">{{ dashboardStats().inProgress }}</span>
         <span class="stat-title">In Progress</span>
       </div>
     </div>
 
-    <div
-      class="stat-card"
-      [class.active-filter]="statusFilter() === 'RESOLVED'"
-      (click)="statusFilter.set('RESOLVED')"
-      tabindex="0"
-      role="button"
-    >
+    <div class="stat-card" [class.active-filter]="statusFilter() === 'WAITING_FOR_USER'"
+      (click)="statusFilter.set('WAITING_FOR_USER')" tabindex="0" role="button">
+      <div class="stat-icon-wrap stat-icon-wrap--waiting">
+        <span class="material-icons">hourglass_top</span>
+      </div>
+      <div class="stat-content">
+        <span class="stat-value">{{ dashboardStats().waiting }}</span>
+        <span class="stat-title">Waiting</span>
+      </div>
+    </div>
+
+    <div class="stat-card" [class.active-filter]="statusFilter() === 'RESOLVED'" (click)="statusFilter.set('RESOLVED')"
+      tabindex="0" role="button">
       <div class="stat-icon-wrap stat-icon-wrap--resolved">
         <span class="material-icons">task_alt</span>
       </div>
       <div class="stat-content">
-        <span class="stat-value">{{ stats().resolved }}</span>
+        <span class="stat-value">{{ dashboardStats().resolved }}</span>
         <span class="stat-title">Resolved</span>
       </div>
     </div>
   </section>
 
   <!-- =========================================================
-     TOOLBAR: SEARCH & FILTERS
-     ========================================================= -->
+      TOOLBAR: SEARCH & FILTERS
+      ========================================================= -->
   <section class="toolbar-card">
     <div class="toolbar-top">
       <!-- SEARCH INPUT -->
-      <div class="search-input-wrapper">
+      <div class="search-input-wrapper search-span">
         <span class="search-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
             <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </span>
-        <input
-          type="text"
-          placeholder="Search by ticket ID, user, email, subject, or description..."
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event)"
-          autocomplete="off"
-          aria-label="Search support requests"
-        />
-        <button
-          *ngIf="searchQuery()"
-          type="button"
-          class="clear-search"
-          (click)="searchQuery.set('')"
-          aria-label="Clear search"
-        >
+        <input type="text" placeholder="Search by ticket ID, user, email, subject, or description..."
+          [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" autocomplete="off"
+          aria-label="Search support requests" />
+        <button *ngIf="searchQuery()" type="button" class="clear-search" (click)="searchQuery.set('')"
+          aria-label="Clear search">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
       </div>
-
-      <!-- CATEGORY FILTER DROPDOWN -->
-      <div class="filter-dropdown">
-        <label for="categorySelect" class="filter-label">Category:</label>
-        <select
-          id="categorySelect"
-          [ngModel]="categoryFilter()"
-          (ngModelChange)="categoryFilter.set($event)"
-        >
-          <option *ngFor="let cat of categories()" [value]="cat">
-            {{ cat === 'ALL' ? 'All Categories' : cat }}
-          </option>
-        </select>
-      </div>
-
-      <!-- PRIORITY FILTER DROPDOWN -->
-      <div class="filter-dropdown">
-        <label for="prioritySelect" class="filter-label">Priority:</label>
-        <select
-          id="prioritySelect"
-          [ngModel]="priorityFilter()"
-          (ngModelChange)="priorityFilter.set($event)"
-        >
-          <option value="ALL">All Priorities</option>
-          <option value="LOW">Low</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="HIGH">High</option>
-          <option value="URGENT">Urgent</option>
-        </select>
-      </div>
     </div>
 
     <!-- STATUS TABS BAR -->
     <div class="status-tabs-row">
-      <div class="status-tabs-group" role="tablist">
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="statusFilter() === 'ALL'"
-          (click)="statusFilter.set('ALL')"
-        >
+      <div class="status-tabs-group" role="tablist" aria-label="Filter by status">
+        <button type="button" class="status-tab" [class.active]="statusFilter() === 'ALL'"
+          (click)="statusFilter.set('ALL')">
           <span>All Requests</span>
           <span class="tab-badge">{{ stats().total }}</span>
         </button>
 
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="statusFilter() === 'OPEN'"
-          (click)="statusFilter.set('OPEN')"
-        >
+        <button type="button" class="status-tab" [class.active]="statusFilter() === 'OPEN'"
+          (click)="statusFilter.set('OPEN')">
           <span>Pending Review</span>
           <span class="tab-badge" *ngIf="stats().open > 0">{{ stats().open }}</span>
         </button>
 
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="statusFilter() === 'IN_PROGRESS'"
-          (click)="statusFilter.set('IN_PROGRESS')"
-        >
+        <button type="button" class="status-tab" [class.active]="statusFilter() === 'IN_PROGRESS'"
+          (click)="statusFilter.set('IN_PROGRESS')">
           <span>In Progress</span>
           <span class="tab-badge" *ngIf="stats().inProgress > 0">{{ stats().inProgress }}</span>
         </button>
 
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="statusFilter() === 'RESOLVED'"
-          (click)="statusFilter.set('RESOLVED')"
-        >
-          <span>Resolved</span>
-          <span class="tab-badge" *ngIf="stats().resolved > 0">{{ stats().resolved }}</span>
+        <button type="button" class="status-tab" [class.active]="statusFilter() === 'WAITING_FOR_USER'"
+          (click)="statusFilter.set('WAITING_FOR_USER')">
+          <span>Waiting for User</span>
+          <span class="tab-badge" *ngIf="stats().waiting > 0">{{ stats().waiting }}</span>
         </button>
 
-        <button
-          type="button"
-          class="status-tab"
-          [class.active]="statusFilter() === 'CLOSED'"
-          (click)="statusFilter.set('CLOSED')"
-        >
-          <span>Closed</span>
+        <button type="button" class="status-tab" [class.active]="statusFilter() === 'RESOLVED'"
+          (click)="statusFilter.set('RESOLVED')">
+          <span>Resolved</span>
+          <span class="tab-badge" *ngIf="stats().resolved > 0">{{ stats().resolved }}</span>
         </button>
       </div>
 
@@ -231,8 +153,8 @@
   </section>
 
   <!-- =========================================================
-     MAIN CONTENT
-     ========================================================= -->
+      MAIN CONTENT
+      ========================================================= -->
   <main class="content-section">
 
     <!-- LOADING SKELETON -->
@@ -247,7 +169,7 @@
       </div>
       <h3>Failed to load support requests</h3>
       <p>{{ error() }}</p>
-      <button type="button" class="btn-primary-action" (click)="loadAllRequests()">
+      <button type="button" class="btn-primary-action" (click)="refreshAll()">
         <span class="material-icons">refresh</span>
         <span>Retry</span>
       </button>
@@ -265,12 +187,7 @@
       <p *ngIf="!hasActiveFilters()">
         There are currently no user support requests in the database.
       </p>
-      <button
-        type="button"
-        class="back-button"
-        *ngIf="hasActiveFilters()"
-        (click)="resetFilters()"
-      >
+      <button type="button" class="back-button" *ngIf="hasActiveFilters()" (click)="resetFilters()">
         <span class="material-icons back-icon">filter_alt_off</span>
         <span>Reset All Filters</span>
       </button>
@@ -279,20 +196,27 @@
     <!-- DESKTOP TABLE VIEW -->
     <div *ngIf="!loading() && !error() && filteredRequests().length > 0" class="table-card desktop-table-wrap">
       <div class="table-responsive">
-        <table class="feedback-table">
+        <table class="feedback-table sr-table">
+          <colgroup>
+            <col class="col-user" />
+            <col class="col-subject" />
+            <col class="col-status" />
+            <col class="col-response" />
+            <col class="col-date" />
+            <col class="col-action" />
+          </colgroup>
           <thead>
             <tr>
               <th>Ticket / User</th>
-              <th>Category & Subject</th>
-              <th>Priority</th>
+              <th>Category &amp; Subject</th>
               <th>Status</th>
               <th>Official Response</th>
               <th>Date Submitted</th>
-              <th class="actions-col">Actions</th>
+              <th class="actions-col">Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of filteredRequests()" [class.row-open]="item.status.toUpperCase() === 'OPEN'">
+            <tr *ngFor="let item of sortedRequests()" [class.row-open]="item.status.toUpperCase() === 'OPEN'">
               <!-- TICKET + USER -->
               <td>
                 <div class="user-cell">
@@ -300,11 +224,13 @@
                     {{ (item.user_name || 'U').charAt(0).toUpperCase() }}
                   </div>
                   <div class="user-meta">
-                    <span class="request-id-tag">{{ item.request_id }}</span>
                     <span class="user-name">{{ item.user_name || 'Unknown User' }}</span>
                     <span class="user-email">{{ item.user_email || 'No email' }}</span>
                     <span class="role-badge" [ngClass]="getRoleBadgeClass(item.user_role)">
                       {{ item.user_role || 'CITIZEN' }}
+                    </span>
+                    <span class="assignee-line">
+                      Assignee: {{ assigneeName(item.assigned_to) || 'Unassigned' }}
                     </span>
                   </div>
                 </div>
@@ -319,13 +245,6 @@
                   <div class="subject-title">{{ item.subject }}</div>
                   <div class="message-preview">{{ item.description }}</div>
                 </div>
-              </td>
-
-              <!-- PRIORITY -->
-              <td class="priority-cell">
-                <span class="priority-badge" [ngClass]="getPriorityClass(item.priority)">
-                  {{ item.priority }}
-                </span>
               </td>
 
               <!-- STATUS -->
@@ -355,19 +274,18 @@
               <td class="date-cell">
                 <time>{{ item.created_at | date: 'mediumDate' }}</time>
                 <span class="time-sub">{{ item.created_at | date: 'shortTime' }}</span>
+                <span class="time-sub time-sub--updated" [title]="'Updated: ' + (item.updated_at | date: 'medium')">
+                  Updated: {{ item.updated_at | date: 'mediumDate' }}
+                </span>
               </td>
 
               <!-- ACTIONS -->
               <td class="actions-col">
                 <div class="action-buttons">
-                  <button
-                    type="button"
-                    class="btn-table-action btn-respond"
-                    (click)="openRespondModal(item)"
-                    title="Respond / Manage Status"
-                  >
-                    <span class="material-icons">reply</span>
-                    <span>Respond</span>
+                  <button type="button" class="btn-table-action btn-view" (click)="openRespondModal(item)"
+                    title="View ticket details" [attr.aria-label]="'View ticket ' + item.request_id">
+                    <span class="material-icons">visibility</span>
+                    <span>View</span>
                   </button>
                 </div>
               </td>
@@ -379,7 +297,7 @@
 
     <!-- MOBILE & TABLET CARD VIEW (Visible on <= 860px) -->
     <div *ngIf="!loading() && !error() && filteredRequests().length > 0" class="mobile-card-list">
-      <article *ngFor="let item of filteredRequests()" class="mobile-feedback-card">
+      <article *ngFor="let item of sortedRequests()" class="mobile-feedback-card">
         <header class="card-head">
           <div class="user-block">
             <div class="user-avatar">
@@ -396,7 +314,6 @@
         </header>
 
         <div class="card-tags">
-          <span class="request-id-tag">{{ item.request_id }}</span>
           <span class="role-badge" [ngClass]="getRoleBadgeClass(item.user_role)">
             {{ item.user_role || 'CITIZEN' }}
           </span>
@@ -422,13 +339,10 @@
         <footer class="card-foot">
           <span class="foot-date">{{ item.created_at | date: 'mediumDate' }}</span>
           <div class="foot-actions">
-            <button
-              type="button"
-              class="btn-table-action btn-respond"
-              (click)="openRespondModal(item)"
-            >
-              <span class="material-icons">reply</span>
-              <span>Respond</span>
+            <button type="button" class="btn-table-action btn-view" (click)="openRespondModal(item)"
+              [attr.aria-label]="'View ticket ' + item.request_id">
+              <span class="material-icons">visibility</span>
+              <span>View</span>
             </button>
           </div>
         </footer>
@@ -438,92 +352,144 @@
   </main>
 
   <!-- =========================================================
-     MODAL: REVIEW & RESPOND
-     ========================================================= -->
-  <div class="modal-backdrop" *ngIf="showRespondModal()" (click)="closeRespondModal()">
-    <div class="modal-card modal-card--lg" (click)="$event.stopPropagation()">
-      <header class="modal-header">
+      MODAL: REVIEW & RESPOND
+      ========================================================= -->
+  <div class="modal-backdrop" *ngIf="showRespondModal()" (click)="closeRespondModal()" role="dialog" aria-modal="true"
+    aria-label="Review and respond to support request">
+    <div class="modal-card modal-card--lg respond-modal" (click)="$event.stopPropagation()">
+      <header class="modal-header respond-header">
         <div class="modal-header-icon">
-          <span class="material-icons">reply</span>
+          <span class="material-icons">confirmation_number</span>
         </div>
         <div class="modal-title-wrap">
-          <h2>Review & Respond to Support Request</h2>
-          <p>Update ticket status and dispatch an official response to the submitter.</p>
+          <h2>View Details</h2>
+          <p class="respond-ticket-subject">{{ selectedRequest()?.subject || 'Not available' }}</p>
         </div>
         <button type="button" class="close-modal-btn" (click)="closeRespondModal()" aria-label="Close dialog">
           <span class="material-icons">close</span>
         </button>
       </header>
 
-      <div class="modal-body" *ngIf="selectedRequest()">
-        <!-- USER SUBMISSION DETAILS RECAP -->
-        <div class="submission-recap-box">
-          <div class="recap-header">
-            <div class="submitter-info">
-              <strong>{{ selectedRequest()?.user_name || 'User' }}</strong>
-              <span class="sub-text">({{ selectedRequest()?.user_email }})</span>
-              <span class="role-badge" [ngClass]="getRoleBadgeClass(selectedRequest()?.user_role)">
-                {{ selectedRequest()?.user_role }}
-              </span>
-              <span class="request-id-tag">{{ selectedRequest()?.request_id }}</span>
+      <div class="modal-body respond-body" *ngIf="selectedRequest()">
+        <!-- TICKET INFORMATION -->
+        <section class="respond-card" aria-label="Ticket information">
+          <dl class="respond-grid">
+            <div>
+              <dt>Ticket ID</dt>
+              <dd>{{ selectedRequest()?.request_id || 'Not available' }}</dd>
             </div>
-            <time class="recap-time">
-              {{ selectedRequest()?.created_at | date: 'medium' }}
-            </time>
-          </div>
+            <div>
+              <dt>Category</dt>
+              <dd>{{ selectedRequest()?.category || 'Not available' }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="status-badge" [ngClass]="getStatusClass(selectedRequest()?.status || '')">
+                  {{ getStatusLabel(selectedRequest()?.status || '') }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Priority</dt>
+              <dd>
+                <span class="priority-badge" [ngClass]="getPriorityClass(selectedRequest()?.priority || 'MEDIUM')">
+                  {{ selectedRequest()?.priority || 'Not available' }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Submitted</dt>
+              <dd>{{ selectedRequest()?.created_at ? (selectedRequest()?.created_at | date: 'mediumDate') : 'Not
+                available' }}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ selectedRequest()?.updated_at ? (selectedRequest()?.updated_at | date: 'mediumDate') : 'Not
+                available' }}</dd>
+            </div>
+          </dl>
+        </section>
 
-          <div class="recap-category-row">
-            <span class="type-tag">{{ selectedRequest()?.category }}</span>
-            <span class="priority-badge" [ngClass]="getPriorityClass(selectedRequest()?.priority || 'MEDIUM')">
-              {{ selectedRequest()?.priority }}
+        <!-- REQUESTER -->
+        <section class="respond-section" aria-label="Requester">
+          <h3>Requester</h3>
+          <div class="respond-card requester-row">
+            <span class="requester-avatar" aria-hidden="true">
+              {{ (selectedRequest()?.user_name || 'U').charAt(0).toUpperCase() }}
+            </span>
+            <span class="requester-idblock">
+              <strong>{{ selectedRequest()?.user_name || 'Not available' }}</strong>
+              <span>{{ selectedRequest()?.user_email || 'Not available' }}</span>
+            </span>
+            <span class="role-badge" [ngClass]="getRoleBadgeClass(selectedRequest()?.user_role)">
+              {{ selectedRequest()?.user_role || 'Not available' }}
             </span>
           </div>
+        </section>
 
-          <div class="recap-subject">
-            {{ selectedRequest()?.subject }}
+        <!-- REQUEST DETAILS -->
+        <section class="respond-section" aria-label="Request details">
+          <h3>Request Details</h3>
+          <p class="respond-field-label">Subject</p>
+          <p class="respond-field-value">{{ selectedRequest()?.subject || 'Not available' }}</p>
+          <p class="respond-field-label">Description</p>
+          <p class="respond-field-text">{{ selectedRequest()?.description || 'Not available' }}</p>
+        </section>
+
+        <!-- RESOLUTION & ASSIGNMENT -->
+        <section class="respond-card respond-resolution" aria-label="Resolution and assignment">
+          <h3>Resolution &amp; Assignment</h3>
+          <div class="form-group status-select-group">
+            <label for="modalStatus">Resolution Status <span class="required">*</span></label>
+            <select id="modalStatus" [(ngModel)]="responseStatus">
+              <option value="OPEN">Open / Under Review</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="WAITING_FOR_USER">Waiting for User</option>
+              <option value="RESOLVED">Resolved (Issue Addressed)</option>
+            </select>
+            <p class="field-hint"
+              *ngIf="selectedRequest()?.status === 'RESOLVED' || selectedRequest()?.status === 'CLOSED'">
+              Setting the status back to Open reopens this ticket.
+            </p>
           </div>
 
-          <div class="recap-message">
-            {{ selectedRequest()?.description }}
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="modalAssignee">Assign To</label>
+              <select id="modalAssignee" [ngModel]="assigneeId()" (ngModelChange)="assigneeId.set($event)">
+                <option [ngValue]="null">Unassigned</option>
+                <option *ngFor="let admin of adminUsers()" [ngValue]="admin.user_id">
+                  {{ admin.full_name }} ({{ admin.email }})
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modalPriority">Priority</label>
+              <select id="modalPriority" [ngModel]="responsePriority()" (ngModelChange)="responsePriority.set($event)">
+                <option *ngFor="let p of priorityOptions" [value]="p">
+                  {{ p.charAt(0) + p.slice(1).toLowerCase() }}
+                </option>
+              </select>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- RESOLUTION STATUS SELECT -->
-        <div class="form-group status-select-group">
-          <label for="modalStatus">Update Resolution Status <span class="required">*</span></label>
-          <select id="modalStatus" [(ngModel)]="responseStatus">
-            <option value="OPEN">Open / Under Review</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved (Issue Addressed)</option>
-            <option value="CLOSED">Closed</option>
-          </select>
-        </div>
-
-        <!-- RESPONSE TEXTAREA -->
-        <div class="form-group">
-          <label for="adminResponseText">
-            Official Administrative Response
-            <span class="label-hint">(This message will be visible to the user and trigger an in-app notification)</span>
-          </label>
-          <textarea
-            id="adminResponseText"
-            rows="6"
-            placeholder="Type your official response, resolution steps, or status clarification..."
-            [(ngModel)]="responseMessage"
-          ></textarea>
-        </div>
+        <!-- CONVERSATION (single reply composer lives here) -->
+        <section class="respond-section" aria-label="Conversation">
+          <h3>Conversation</h3>
+          @if (selectedRequest()) {
+          <app-ticket-conversation [ticketId]="selectedRequest()!.query_id" mode="admin" [canReply]="true"
+            (replied)="loadAllRequests()"></app-ticket-conversation>
+          }
+        </section>
       </div>
 
       <footer class="modal-footer">
         <button type="button" class="back-button" (click)="closeRespondModal()" [disabled]="modalSubmitting()">
           Cancel
         </button>
-        <button
-          type="button"
-          class="btn-primary-action"
-          (click)="saveResponse()"
-          [disabled]="modalSubmitting()"
-        >
+        <button type="button" class="btn-primary-action" (click)="saveResponse()" [disabled]="modalSubmitting()">
           <span class="material-icons" *ngIf="!modalSubmitting()">send</span>
           <span class="spinner" *ngIf="modalSubmitting()"></span>
           <span>Save & Notify User</span>

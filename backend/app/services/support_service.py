@@ -212,7 +212,15 @@ def get_support_request(
 # ADMIN SUPPORT MANAGEMENT (ADMIN ONLY — no ownership restriction)
 # ============================================================
 
-ALLOWED_SUPPORT_STATUSES = {"OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"}
+ALLOWED_SUPPORT_STATUSES = {
+    "OPEN",
+    "IN_PROGRESS",
+    "WAITING_FOR_USER",
+    "RESOLVED",
+    "CLOSED",
+}
+
+ALLOWED_SUPPORT_PRIORITIES = {"LOW", "MEDIUM", "HIGH", "URGENT"}
 
 
 def _support_request_to_dict(query: SupportQuery) -> dict:
@@ -230,6 +238,7 @@ def _support_request_to_dict(query: SupportQuery) -> dict:
         "description": query.description,
         "priority": query.priority,
         "status": query.status,
+        "assigned_to": query.assigned_to,
         "response": query.response,
         "created_at": query.created_at,
         "updated_at": query.updated_at,
@@ -292,6 +301,8 @@ def respond_to_support_request(
     admin_user_id: int,
     response: Optional[str] = None,
     status: Optional[str] = None,
+    assigned_to: Optional[int] = None,
+    priority: Optional[str] = None,
     background_tasks=None,
 ) -> dict | None:
     """Record an admin response and/or status change on a support request."""
@@ -301,8 +312,20 @@ def respond_to_support_request(
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
+    audit_notes: list[str] = []
+
     if response is not None:
         query.response = response.strip() or None
+        if query.response:
+            _add_ticket_message(
+                db=db,
+                ticket=query,
+                sender_id=admin_user_id,
+                sender_role="ADMIN",
+                message=query.response,
+                commit=False,
+            )
+            audit_notes.append("replied")
 
     if status is not None and status.strip():
         normalized = status.strip().upper()
@@ -313,8 +336,34 @@ def respond_to_support_request(
         query.status = normalized
         if normalized in ("RESOLVED", "CLOSED") and not query.resolved_at:
             query.resolved_at = now
-        if normalized in ("OPEN", "IN_PROGRESS"):
+        if normalized in ("OPEN", "IN_PROGRESS", "WAITING_FOR_USER"):
             query.resolved_at = None
+
+    if priority is not None and str(priority).strip():
+        normalized_priority = str(priority).strip().upper()
+        if normalized_priority not in ALLOWED_SUPPORT_PRIORITIES:
+            raise ValueError(
+                "Priority must be one of: "
+                + ", ".join(sorted(ALLOWED_SUPPORT_PRIORITIES))
+            )
+        if query.priority != normalized_priority:
+            audit_notes.append(
+                f"priority {query.priority}->{normalized_priority}"
+            )
+        query.priority = normalized_priority
+
+    if assigned_to is not None:
+        assignee = db.query(User).filter(User.user_id == assigned_to).first()
+        if not assignee:
+            raise ValueError("Assigned user does not exist.")
+        if str(getattr(assignee, "role", "")).strip().upper() not in (
+            "ADMIN",
+            "ADMINISTRATOR",
+        ):
+            raise ValueError("Tickets can only be assigned to admin users.")
+        if query.assigned_to != assigned_to:
+            audit_notes.append(f"assigned to user {assigned_to}")
+        query.assigned_to = assigned_to
 
     if query.assigned_to is None:
         query.assigned_to = admin_user_id
@@ -322,6 +371,16 @@ def respond_to_support_request(
     query.updated_at = now
     db.commit()
     db.refresh(query)
+
+    for note in audit_notes:
+        log_action(
+            db=db,
+            action="SUPPORT_REQUEST_UPDATED",
+            user_id=admin_user_id,
+            entity_type="SUPPORT_QUERY",
+            entity_id=query.query_id,
+            description=f"Admin ticket update ({note}).",
+        )
 
     # Notify the requesting user (best effort, deferred when possible so
     # the admin response never waits on external email/SMS delivery).
@@ -342,3 +401,198 @@ def respond_to_support_request(
         logger.warning("Support response notification dispatch skipped: %s", exc)
 
     return _support_request_to_dict(query)
+
+
+# ============================================================
+# THREADED TICKET CONVERSATION
+# ============================================================
+
+def _add_ticket_message(
+    db: Session,
+    ticket: SupportQuery,
+    sender_id: int,
+    sender_role: str,
+    message: str,
+    commit: bool = True,
+):
+    """Append one conversation row without touching ticket status."""
+    from app.models.support_ticket_message import SupportTicketMessage
+
+    entry = SupportTicketMessage(
+        ticket_id=ticket.query_id,
+        sender_id=sender_id,
+        sender_role=str(sender_role or "").strip().upper() or "CITIZEN",
+        message=message.strip(),
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+    )
+    db.add(entry)
+    if commit:
+        db.commit()
+        db.refresh(entry)
+    else:
+        db.flush()
+    return entry
+
+
+def _message_to_dict(entry, sender_name: str | None = None) -> dict:
+    return {
+        "id": entry.id,
+        "ticket_id": entry.ticket_id,
+        "sender_id": entry.sender_id,
+        "sender_role": entry.sender_role,
+        "sender_name": sender_name,
+        "message": entry.message,
+        "created_at": entry.created_at,
+    }
+
+
+def list_ticket_messages(
+    db: Session,
+    ticket: SupportQuery,
+) -> list[dict]:
+    """Chronological conversation for a ticket the caller may access."""
+    from app.models.support_ticket_message import SupportTicketMessage
+
+    rows = (
+        db.query(SupportTicketMessage, User.full_name)
+        .outerjoin(User, User.user_id == SupportTicketMessage.sender_id)
+        .filter(SupportTicketMessage.ticket_id == ticket.query_id)
+        .order_by(SupportTicketMessage.created_at.asc())
+        .all()
+    )
+    return [_message_to_dict(entry, sender_name) for entry, sender_name in rows]
+
+
+def post_ticket_message(
+    db: Session,
+    ticket: SupportQuery,
+    sender_id: int,
+    sender_role: str,
+    message: str,
+    background_tasks=None,
+) -> dict:
+    """Append a reply; a user reply reopens RESOLVED/CLOSED tickets."""
+    from app.models.support_ticket_message import SupportTicketMessage  # noqa: F401
+
+    text = (message or "").strip()
+    if not text:
+        raise ValueError("Reply message must not be empty.")
+    if len(text) > 5000:
+        raise ValueError("Reply message must not exceed 5000 characters.")
+
+    normalized_role = str(sender_role or "").strip().upper() or "CITIZEN"
+    entry = _add_ticket_message(
+        db=db,
+        ticket=ticket,
+        sender_id=sender_id,
+        sender_role=normalized_role,
+        message=text,
+        commit=False,
+    )
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    reopened = False
+    if normalized_role != "ADMIN" and ticket.status in ("RESOLVED", "CLOSED"):
+        ticket.status = "IN_PROGRESS"
+        ticket.resolved_at = None
+        reopened = True
+    ticket.updated_at = now
+    db.commit()
+    db.refresh(entry)
+
+    sender = db.query(User).filter(User.user_id == sender_id).first()
+    log_action(
+        db=db,
+        action="SUPPORT_TICKET_REPLIED",
+        user_id=sender_id,
+        entity_type="SUPPORT_QUERY",
+        entity_id=ticket.query_id,
+        description=(
+            f"Ticket reply by {normalized_role}"
+            + (" (ticket reopened to IN_PROGRESS)." if reopened else ".")
+        ),
+    )
+
+    # Notify the other party (best effort, never blocks the reply).
+    try:
+        from app.services.notification_service import notify_feedback_updated
+
+        if normalized_role == "ADMIN":
+            notify_feedback_updated(
+                db=db,
+                feedback_id=ticket.query_id,
+                subject=ticket.subject,
+                user_id=ticket.user_id,
+                response_summary=text[:80],
+                background_tasks=background_tasks,
+            )
+        else:
+            notify_feedback_received(
+                db=db,
+                feedback_id=ticket.query_id,
+                subject=f"Ticket {ticket.request_id}: {ticket.subject}",
+                user_id=None,
+                background_tasks=background_tasks,
+            )
+    except Exception as exc:
+        logger.warning("Ticket reply notification dispatch skipped: %s", exc)
+
+    sender_name = getattr(sender, "full_name", None)
+    return _message_to_dict(entry, sender_name)
+
+
+# ============================================================
+# SUPPORT ANALYTICS (ADMIN)
+# ============================================================
+
+def get_support_analytics(db: Session) -> dict:
+    """Aggregate ticket + feedback counts for the admin dashboard."""
+    from sqlalchemy import func
+    from app.models.feedback import Feedback
+
+    rows = db.query(SupportQuery).all()
+    by_status: dict[str, int] = {}
+    by_category: dict[str, int] = {}
+    by_priority: dict[str, int] = {}
+    by_role: dict[str, int] = {}
+    resolution_seconds: list[float] = []
+
+    for ticket in rows:
+        status = (ticket.status or "OPEN").strip().upper()
+        by_status[status] = by_status.get(status, 0) + 1
+        category = (ticket.category or "General").strip() or "General"
+        by_category[category] = by_category.get(category, 0) + 1
+        priority = (ticket.priority or "MEDIUM").strip().upper()
+        by_priority[priority] = by_priority.get(priority, 0) + 1
+        user = ticket.user
+        role = str(getattr(user, "role", None) or "UNKNOWN").strip().upper()
+        by_role[role] = by_role.get(role, 0) + 1
+        if ticket.resolved_at and ticket.created_at:
+            try:
+                resolution_seconds.append(
+                    (ticket.resolved_at - ticket.created_at).total_seconds()
+                )
+            except Exception:
+                pass
+
+    avg_resolution_hours = (
+        round(sum(resolution_seconds) / len(resolution_seconds) / 3600, 2)
+        if resolution_seconds
+        else None
+    )
+    feedback_count = db.query(func.count(Feedback.feedback_id)).scalar() or 0
+
+    return {
+        "total_tickets": len(rows),
+        "by_status": by_status,
+        "by_category": by_category,
+        "by_priority": by_priority,
+        "by_role": by_role,
+        "resolved_count": sum(
+            count
+            for status, count in by_status.items()
+            if status in ("RESOLVED", "CLOSED")
+        ),
+        "avg_resolution_hours": avg_resolution_hours,
+        "feedback_count": int(feedback_count),
+    }

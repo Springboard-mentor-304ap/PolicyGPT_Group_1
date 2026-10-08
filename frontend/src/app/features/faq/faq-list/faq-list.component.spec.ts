@@ -73,12 +73,16 @@ describe('FaqListComponent', () => {
     expect(component.filteredFaqs()[0].question).toContain('documents');
   });
 
-  it('should toggle FAQ accordion expansion', () => {
-    expect(component.isExpanded(1)).toBe(true); // First item expanded by default
-    component.toggleFaq(1);
+  it('should start with all FAQs collapsed', () => {
     expect(component.isExpanded(1)).toBe(false);
+    expect(component.isExpanded(2)).toBe(false);
+  });
+
+  it('should toggle FAQ accordion expansion', () => {
     component.toggleFaq(1);
     expect(component.isExpanded(1)).toBe(true);
+    component.toggleFaq(1);
+    expect(component.isExpanded(1)).toBe(false);
   });
 
   it('should identify non-admin user mode', () => {

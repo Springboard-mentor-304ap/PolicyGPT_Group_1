@@ -1,275 +1,214 @@
 <div class="support-page">
 
-  <!-- =========================================================
-     BREADCRUMB
-     ========================================================= -->
+  <!-- BREADCRUMB -->
   <nav class="support-breadcrumb" aria-label="Breadcrumb">
     <button type="button" (click)="navigateToHome()">Home</button>
     <span class="material-icons" aria-hidden="true">chevron_right</span>
-    <strong>Support & Help</strong>
+    <strong>Support</strong>
   </nav>
 
-  <!-- =========================================================
-     PAGE HEADER
-     ========================================================= -->
+  <!-- COMPACT HEADER -->
   <header class="support-header">
-    <div class="header-main">
-      <div class="header-title-row">
-        <div class="header-icon-box">
-          <span class="material-icons" aria-hidden="true">support_agent</span>
-        </div>
-        <div>
-          <h1 class="page-title">Support & Help</h1>
-          <p class="page-subtitle">
-            Find answers to common questions, browse policy guides, or submit a support request to our team.
-          </p>
-        </div>
-      </div>
-
-      <div class="header-badge-role">
-        <span class="role-badge" [attr.data-role]="userRole">
-          <span class="material-icons" aria-hidden="true">badge</span>
-          <span>{{ isGuest ? 'Guest Access' : (userRole | titlecase) }}</span>
-        </span>
-      </div>
-    </div>
-
-    <!-- TABS NAVIGATION -->
-    <div class="support-nav-tabs" role="tablist" aria-label="Support Sections">
-      <button type="button" role="tab" class="nav-tab" [class.nav-tab--active]="activeTab === 'faqs'"
-        [attr.aria-selected]="activeTab === 'faqs'" aria-controls="faqs-panel" id="tab-faqs"
-        (click)="setActiveTab('faqs')">
-        <span class="material-icons" aria-hidden="true">quiz</span>
-        <span>Frequently Asked Questions</span>
-        <span *ngIf="faqs.length > 0" class="tab-badge">{{ faqs.length }}</span>
-      </button>
-
-      <button *ngIf="!isGuest" type="button" role="tab" class="nav-tab"
-        [class.nav-tab--active]="activeTab === 'my-requests'" [attr.aria-selected]="activeTab === 'my-requests'"
-        aria-controls="requests-panel" id="tab-requests" (click)="setActiveTab('my-requests')">
-        <span class="material-icons" aria-hidden="true">confirmation_number</span>
-        <span>My Support Requests</span>
-        <span *ngIf="myRequests.length > 0" class="tab-badge tab-badge--blue">{{ myRequests.length }}</span>
-      </button>
-    </div>
+    <h1>Help &amp; Support</h1>
+    <p>Find answers, get assistance, and resolve issues with PolicyGPT.</p>
   </header>
 
-  <!-- =========================================================
-     TAB 1: FAQS VIEW
-     ========================================================= -->
-  <section *ngIf="activeTab === 'faqs'" id="faqs-panel" role="tabpanel" aria-labelledby="tab-faqs"
-    class="support-content">
+  <!-- QUICK SUPPORT NAV -->
+  <nav class="quick-nav" aria-label="Quick support">
+    <button type="button" class="quick-card" (click)="focusFaqSearch()">
+      <span class="material-icons quick-icon" aria-hidden="true">help_outline</span>
+      <span class="quick-body">
+        <strong>FAQs</strong>
+        <small>Browse answers</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+    <button type="button" class="quick-card" (click)="openSubmitModal()">
+      <span class="material-icons quick-icon" aria-hidden="true">report_problem</span>
+      <span class="quick-body">
+        <strong>Report an Issue</strong>
+        <small>{{ isGuest ? 'Sign in to continue' : 'Get assistance' }}</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+    <button *ngIf="!isGuest" type="button" class="quick-card" (click)="setActiveTab('my-requests')">
+      <span class="material-icons quick-icon" aria-hidden="true">confirmation_number</span>
+      <span class="quick-body">
+        <strong>My Requests</strong>
+        <small>{{ myRequests.length > 0 ? myRequests.length + ' submitted — track tickets' : 'Track tickets' }}</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+    <a *ngIf="!isGuest" class="quick-card" [routerLink]="feedbackLink()">
+      <span class="material-icons quick-icon" aria-hidden="true">rate_review</span>
+      <span class="quick-body">
+        <strong>Feedback</strong>
+        <small>Tell us what you think</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </a>
+  </nav>
 
-    <!-- HERO SEARCH & HELP CARD -->
-    <div class="support-search-hero">
-      <div class="search-hero-content">
-        <h2>Need Help Finding Information?</h2>
-        <p>Search across government schemes, policy documents, eligibility rules, and platform guides.</p>
+  <!-- FAQS VIEW -->
+  <section *ngIf="activeTab === 'faqs'" class="support-content" aria-label="Frequently asked questions">
 
-        <div class="faq-search-bar" role="search">
-          <span class="material-icons search-icon" aria-hidden="true">search</span>
-          <input type="search" class="search-input"
-            placeholder="Search FAQs (e.g. eligibility, applications, subsidies, account)..." [ngModel]="searchQuery"
-            (ngModelChange)="onSearchChange($event)" aria-label="Search FAQs" />
-          <button *ngIf="searchQuery" type="button" class="search-clear-btn" aria-label="Clear search"
-            (click)="clearSearch()">
-            <span class="material-icons">close</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- CATEGORY FILTER CHIPS -->
-    <div class="category-filters-container" aria-label="FAQ Categories">
-      <div class="filter-header">
-        <span class="filter-label">Filter by Topic:</span>
-        <div class="expand-collapse-actions" *ngIf="!loadingFaqs && faqs.length > 0">
-          <button type="button" class="btn-text-action" (click)="expandAll()">
-            <span class="material-icons" aria-hidden="true">unfold_more</span>
-            <span>Expand All</span>
-          </button>
-          <span class="divider" aria-hidden="true">|</span>
-          <button type="button" class="btn-text-action" (click)="collapseAll()">
-            <span class="material-icons" aria-hidden="true">unfold_less</span>
-            <span>Collapse All</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="category-chips-list" role="toolbar" aria-label="Category list">
-        <button *ngFor="let cat of categories" type="button" class="category-chip"
-          [class.category-chip--active]="selectedCategory === cat" (click)="selectCategory(cat)"
-          [attr.aria-pressed]="selectedCategory === cat">
-          <span class="chip-text">{{ cat }}</span>
-        </button>
-      </div>
-
-      <!-- RESULTS COUNT & STATUS -->
-      <div class="results-meta-row" *ngIf="!loadingFaqs && !faqError">
-        <span class="results-count">
-          Showing <strong>{{ faqs.length }}</strong>
-          {{ faqs.length === 1 ? 'question' : 'questions' }}
-          <ng-container *ngIf="selectedCategory !== 'All'"> in <em>{{ selectedCategory }}</em></ng-container>
-          <ng-container *ngIf="searchQuery"> matching "<strong>{{ searchQuery }}</strong>"</ng-container>
-        </span>
-
-        <button *ngIf="selectedCategory !== 'All' || searchQuery" type="button" class="btn-reset-filters"
-          (click)="clearFilters()">
-          <span class="material-icons">restart_alt</span>
-          <span>Reset Filters</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- SKELETON LOADING STATE -->
-    <div *ngIf="loadingFaqs" class="faqs-skeleton-list" aria-busy="true" aria-label="Loading FAQs">
-      <div class="faq-skeleton-card" *ngFor="let i of [1, 2, 3, 4, 5]">
-        <div class="skeleton-header">
-          <div class="skeleton-line skeleton-title"></div>
-          <div class="skeleton-badge"></div>
-        </div>
-        <div class="skeleton-line skeleton-sub"></div>
-      </div>
-    </div>
-
-    <!-- ERROR STATE -->
-    <div *ngIf="faqError && !loadingFaqs" class="support-state-box error-state" role="alert">
-      <div class="state-icon-box state-icon-box--danger">
-        <span class="material-icons">error_outline</span>
-      </div>
-      <h3>Unable to load FAQs</h3>
-      <p>{{ faqError }}</p>
-      <button type="button" class="btn-state-action" (click)="fetchFaqs(searchQuery, selectedCategory)">
-        <span class="material-icons">refresh</span>
-        <span>Try Again</span>
-      </button>
-    </div>
-
-    <!-- EMPTY STATE -->
-    <div *ngIf="!loadingFaqs && !faqError && faqs.length === 0" class="support-state-box empty-state">
-      <div class="state-icon-box state-icon-box--info">
-        <span class="material-icons">search_off</span>
-      </div>
-      <h3>No FAQs Found</h3>
-      <p>
-        We couldn't find any questions matching your search criteria.
-        <ng-container *ngIf="searchQuery || selectedCategory !== 'All'">
-          Try adjusting your keywords or clearing the category filter.
-        </ng-container>
+    <div class="faq-head">
+      <h2>Frequently Asked Questions</h2>
+      <p class="results-count" *ngIf="!loadingFaqs && !faqError">
+        <strong>{{ faqs.length }}</strong>
+        {{ faqs.length === 1 ? 'question' : 'questions' }}
       </p>
-      <div class="empty-state-actions">
-        <button *ngIf="searchQuery || selectedCategory !== 'All'" type="button" class="btn-state-action"
-          (click)="clearFilters()">
-          <span class="material-icons">restart_alt</span>
-          <span>Clear Filters</span>
-        </button>
-        <button type="button" class="btn-state-action btn-state-action--secondary" (click)="openSubmitModal()">
-          <span class="material-icons">help_outline</span>
-          <span>Ask Our Support Team</span>
-        </button>
-      </div>
     </div>
 
-    <!-- ACCORDION FAQ LIST -->
-    <div *ngIf="!loadingFaqs && !faqError && faqs.length > 0" class="faq-accordion-list" role="region"
-      aria-label="FAQ Accordion">
-      <article *ngFor="let faq of faqs; trackBy: trackByFaqId" class="faq-accordion-card"
-        [class.faq-accordion-card--expanded]="isExpanded(faq.faq_id)">
-        <button type="button" class="faq-header-button" [attr.aria-expanded]="isExpanded(faq.faq_id)"
-          [attr.aria-controls]="'faq-content-' + faq.faq_id" [id]="'faq-header-' + faq.faq_id"
-          (click)="toggleFaq(faq.faq_id)">
-          <div class="faq-header-left">
-            <span class="faq-icon-indicator" aria-hidden="true">Q</span>
-            <span class="faq-question-text">{{ faq.question }}</span>
-          </div>
+    <div class="faq-filters">
+      <div class="requests-search" role="search">
+        <span class="material-icons search-icon" aria-hidden="true">search</span>
+        <input id="faq-search" type="search" class="search-input" placeholder="Search within FAQs..."
+          [ngModel]="searchQuery" (ngModelChange)="onSearchChange($event)" aria-label="Search within FAQs" />
+      </div>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by category</span>
+        <select class="status-select" [ngModel]="selectedCategory" (change)="onCategorySelect($event)"
+          aria-label="Filter by category">
+          <option *ngFor="let cat of categories" [value]="cat">
+            {{ cat === 'All' ? 'All Categories' : cat }}
+          </option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
+    </div>
 
-          <div class="faq-header-right">
-            <span *ngIf="faq.category" class="faq-category-tag">{{ faq.category }}</span>
-            <span class="material-icons faq-chevron" aria-hidden="true">
-              {{ isExpanded(faq.faq_id) ? 'remove' : 'add' }}
-            </span>
-          </div>
+    <div class="help-main">
+
+      <!-- Skeleton while real data loads -->
+      <div *ngIf="loadingFaqs" class="faq-rows-skeleton" aria-busy="true" aria-label="Loading FAQs">
+        <div class="faq-row-skeleton" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
+          <span class="skeleton-num"></span>
+          <span class="skeleton-line"></span>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div *ngIf="faqError && !loadingFaqs" class="support-state-box error-state" role="alert">
+        <div class="state-icon-box state-icon-box--danger">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Unable to load FAQs</h3>
+        <p>{{ faqError }}</p>
+        <button type="button" class="btn-state-action" (click)="fetchFaqs(searchQuery, selectedCategory)">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
         </button>
+      </div>
 
-        <div [id]="'faq-content-' + faq.faq_id" role="region" [attr.aria-labelledby]="'faq-header-' + faq.faq_id"
-          class="faq-content-panel" *ngIf="isExpanded(faq.faq_id)">
-          <div class="faq-answer-container">
-            <span class="faq-answer-indicator" aria-hidden="true">A</span>
-            <div class="faq-answer-body">
-              <p class="faq-answer-text">{{ faq.answer }}</p>
-              <div class="faq-meta-footer" *ngIf="faq.updated_at || faq.created_at">
-                <span class="meta-item">
-                  <span class="material-icons">event</span>
-                  <span>Last updated: {{ (faq.updated_at || faq.created_at) | date:'mediumDate' }}</span>
-                </span>
-                <span class="meta-item" *ngIf="faq.category">
-                  <span class="material-icons">label</span>
-                  <span>Topic: {{ faq.category }}</span>
-                </span>
-              </div>
+      <!-- Empty -->
+      <div *ngIf="!loadingFaqs && !faqError && faqs.length === 0" class="support-state-box empty-state">
+        <div class="state-icon-box state-icon-box--info">
+          <span class="material-icons">search_off</span>
+        </div>
+        <h3>No FAQs Found</h3>
+        <p>
+          We couldn&apos;t find any questions matching your search criteria.
+          <ng-container *ngIf="searchQuery || selectedCategory !== 'All'">
+            Try adjusting your keywords or clearing the category filter.
+          </ng-container>
+        </p>
+        <div class="empty-state-actions">
+          <button *ngIf="searchQuery || selectedCategory !== 'All'" type="button" class="btn-state-action"
+            (click)="clearFilters()">
+            <span class="material-icons">restart_alt</span>
+            <span>Clear Search</span>
+          </button>
+          <button type="button" class="btn-state-action btn-state-action--secondary" (click)="openSubmitModal()">
+            <span class="material-icons">help_outline</span>
+            <span>Ask Our Support Team</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Compact interactive FAQ rows -->
+      <ol *ngIf="!loadingFaqs && !faqError && faqs.length > 0" class="faq-rows" aria-label="FAQ list">
+        <li *ngFor="let faq of faqs; trackBy: trackByFaqId; let i = index" class="faq-row"
+          [class.faq-row--expanded]="isExpanded(faq.faq_id)" (mouseenter)="setHover(faq.faq_id)"
+          (mouseleave)="clearHover()" (focusin)="setHover(faq.faq_id)" (focusout)="clearHover()">
+          <button type="button" class="faq-row-btn" [attr.aria-expanded]="isExpanded(faq.faq_id)"
+            [attr.aria-controls]="'faq-content-' + faq.faq_id" (click)="toggleFaq(faq.faq_id)">
+            <span class="faq-num" aria-hidden="true">{{ (i + 1) | number: '2.0-0' }}</span>
+            <span class="faq-q">{{ faq.question }}</span>
+            <span class="material-icons faq-chevron" aria-hidden="true">
+              {{ isExpanded(faq.faq_id) ? 'expand_less' : 'chevron_right' }}
+            </span>
+          </button>
+          <!-- Hover preview: absolute overlay, never affects layout -->
+          <div class="faq-hover-preview" *ngIf="isHovered(faq.faq_id) && !isExpanded(faq.faq_id)" aria-hidden="true">
+            <p class="faq-preview-answer">{{ faq.answer }}</p>
+            <div class="faq-preview-meta">
+              <span *ngIf="faq.category" class="faq-hover-cat">{{ faq.category }}</span>
+              <span *ngIf="faq.updated_at || faq.created_at" class="faq-hover-date">
+                Updated {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+              </span>
             </div>
           </div>
-        </div>
-      </article>
+          <div [id]="'faq-content-' + faq.faq_id" class="faq-answer" *ngIf="isExpanded(faq.faq_id)">
+            <p class="faq-answer-text">{{ faq.answer }}</p>
+            <div class="faq-answer-meta">
+              <span *ngIf="faq.category" class="meta-cat">{{ faq.category }}</span>
+              <span *ngIf="faq.updated_at || faq.created_at" class="meta-date">
+                Updated {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+              </span>
+              <a class="meta-link" [routerLink]="faqDetailsLink(faq.faq_id)"
+                [attr.aria-label]="'View details for: ' + faq.question">
+                <span>View Details</span>
+                <span class="material-icons" aria-hidden="true">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+        </li>
+      </ol>
     </div>
 
-    <!-- STILL NEED HELP BOTTOM CARD -->
-    <aside class="support-contact-card" aria-label="Still Need Help">
-      <div class="contact-card-icon">
-        <span class="material-icons">support_agent</span>
+    <!-- Slim bottom CTA -->
+    <div class="slim-cta" aria-label="Need more help">
+      <div class="slim-cta-text">
+        <strong>Still need help?</strong>
+        <span>Our support team can help you with your issue.</span>
       </div>
-      <div class="contact-card-text">
-        <h3>Still Can't Find What You're Looking For?</h3>
-        <p>
-          Our dedicated public service helpdesk is available to help clarify policy nuances, resolve scheme application
-          issues, or address technical problems.
-        </p>
-      </div>
-      <div class="contact-card-actions">
-        <button *ngIf="!isGuest" type="button" class="btn-contact-submit" (click)="openSubmitModal()">
-          <span class="material-icons">send</span>
-          <span>Submit Support Request</span>
-        </button>
-        <button *ngIf="isGuest" type="button" class="btn-contact-submit" (click)="openSubmitModal()">
-          <span class="material-icons">login</span>
-          <span>Sign In to Request Support</span>
-        </button>
-      </div>
-    </aside>
-
+      <button *ngIf="!isGuest" type="button" class="btn-primary-action" (click)="openSubmitModal()">
+        <span>Create Support Request</span>
+        <span class="material-icons" aria-hidden="true">arrow_forward</span>
+      </button>
+      <button *ngIf="isGuest" type="button" class="btn-primary-action" (click)="openSubmitModal()">
+        <span>Sign in to request support</span>
+        <span class="material-icons" aria-hidden="true">arrow_forward</span>
+      </button>
+    </div>
   </section>
 
-  <!-- =========================================================
-     TAB 2: MY SUPPORT REQUESTS VIEW
-     ========================================================= -->
-  <section *ngIf="activeTab === 'my-requests' && !isGuest" id="requests-panel" role="tabpanel"
-    aria-labelledby="tab-requests" class="support-content">
-    <div class="requests-hero-banner">
-      <div class="hero-left">
+  <!-- MY SUPPORT REQUESTS VIEW -->
+  <section *ngIf="activeTab === 'my-requests' && !isGuest" class="support-content" aria-label="My support requests">
+    <div class="requests-head">
+      <div>
         <h2>My Support Requests</h2>
-        <p>Track the progress of your submitted inquiries, grievances, and technical support tickets.</p>
+        <p *ngIf="!loadingRequests && !requestsError">
+          <strong>{{ myRequests.length }}</strong>
+          {{ myRequests.length === 1 ? 'ticket' : 'tickets' }}
+        </p>
       </div>
-      <div class="hero-right">
+      <div class="requests-head-actions">
         <button type="button" class="btn-primary-action" (click)="openSubmitModal()">
           <span class="material-icons">add</span>
-          <span>New Support Ticket</span>
-        </button>
-        <button type="button" class="btn-refresh-action" (click)="loadMyRequests()" title="Refresh ticket list"
-          aria-label="Refresh ticket list">
-          <span class="material-icons" [class.spin]="loadingRequests">refresh</span>
+          <span>New Request</span>
         </button>
       </div>
     </div>
 
-    <!-- SKELETON LOADING STATE -->
-    <div *ngIf="loadingRequests" class="requests-skeleton-list" aria-busy="true">
-      <div class="request-skeleton-card" *ngFor="let i of [1, 2, 3]">
-        <div class="skeleton-line skeleton-title"></div>
-        <div class="skeleton-line skeleton-sub"></div>
+    <div *ngIf="loadingRequests" class="req-list-skeleton" aria-busy="true">
+      <div class="req-row-skeleton" *ngFor="let i of [1, 2, 3]">
+        <span class="skeleton-line skeleton-title"></span>
+        <span class="skeleton-line skeleton-sub"></span>
       </div>
     </div>
 
-    <!-- ERROR STATE -->
     <div *ngIf="requestsError && !loadingRequests" class="support-state-box error-state">
       <div class="state-icon-box state-icon-box--danger">
         <span class="material-icons">error_outline</span>
@@ -282,78 +221,124 @@
       </button>
     </div>
 
-    <!-- EMPTY STATE -->
     <div *ngIf="!loadingRequests && !requestsError && myRequests.length === 0" class="support-state-box empty-state">
       <div class="state-icon-box state-icon-box--info">
         <span class="material-icons">drafts</span>
       </div>
       <h3>No Support Requests Yet</h3>
-      <p>You haven't submitted any support requests. If you have questions about policies or schemes, reach out below.
-      </p>
+      <p>You haven&apos;t submitted any support requests yet.</p>
       <button type="button" class="btn-state-action" (click)="openSubmitModal()">
         <span class="material-icons">add_task</span>
         <span>Submit Your First Request</span>
       </button>
     </div>
 
-    <!-- REQUESTS LIST -->
-    <div *ngIf="!loadingRequests && !requestsError && myRequests.length > 0" class="requests-list">
-      <article *ngFor="let req of myRequests; trackBy: trackByRequestId" class="request-card">
-        <div class="request-card-header">
-          <div class="request-id-badge">
-            <span class="material-icons">confirmation_number</span>
-            <strong>{{ req.request_id }}</strong>
-          </div>
-
-          <div class="request-badges">
-            <span class="badge-category">{{ req.category || 'General' }}</span>
-            <span class="badge-priority" [attr.data-priority]="req.priority">
-              {{ req.priority || 'MEDIUM' }}
-            </span>
-            <span class="badge-status" [attr.data-status]="req.status">
-              {{ req.status }}
-            </span>
-          </div>
-        </div>
-
-        <div class="request-card-body">
-          <h4 class="request-subject">{{ req.subject }}</h4>
-          <p class="request-desc">{{ req.description }}</p>
-        </div>
-
-        <!-- OFFICIAL RESPONSE SECTION IF RESOLVED/IN-PROGRESS -->
-        <div *ngIf="req.response" class="request-response-box">
-          <div class="response-header">
-            <span class="material-icons">support_agent</span>
-            <strong>Official Support Response</strong>
-            <span *ngIf="req.responded_at" class="response-date">
-              — {{ req.responded_at | date:'medium' }}
-            </span>
-          </div>
-          <p class="response-text">{{ req.response }}</p>
-        </div>
-
-        <div class="request-card-footer">
-          <span class="footer-timestamp">
-            <span class="material-icons">schedule</span>
-            Submitted: {{ req.created_at | date:'medium' }}
-          </span>
-          <span class="footer-timestamp" *ngIf="req.updated_at && req.updated_at !== req.created_at">
-            <span class="material-icons">update</span>
-            Updated: {{ req.updated_at | date:'medium' }}
-          </span>
-        </div>
-      </article>
+    <div class="requests-filters" *ngIf="!loadingRequests && !requestsError && myRequests.length > 0">
+      <div class="requests-search" role="search">
+        <span class="material-icons search-icon" aria-hidden="true">search</span>
+        <input type="search" class="search-input" placeholder="Search by ID, subject, or description..."
+          [(ngModel)]="requestSearch" aria-label="Search support requests" />
+      </div>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by status</span>
+        <select class="status-select" [(ngModel)]="requestStatus" aria-label="Filter by status">
+          <option value="ALL">All Statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="WAITING_FOR_USER">Waiting for User</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by category</span>
+        <select class="status-select" [(ngModel)]="requestCategory" aria-label="Filter by category">
+          <option *ngFor="let cat of requestCategoryOptions" [value]="cat">
+            {{ cat === 'ALL' ? 'All Categories' : cat }}
+          </option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by priority</span>
+        <select class="status-select" [(ngModel)]="requestPriority" aria-label="Filter by priority">
+          <option value="ALL">All Priorities</option>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+          <option value="URGENT">Urgent</option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
     </div>
 
+    <!-- Modern request list with hover actions -->
+    <ul *ngIf="!loadingRequests && !requestsError && filteredRequests.length > 0" class="req-list"
+      aria-label="Support requests">
+      <li *ngFor="let req of filteredRequests; trackBy: trackByRequestId" class="req-row"
+        [class.req-row--expanded]="isRequestExpanded(req.query_id)">
+        <div class="req-row-main">
+          <button type="button" class="req-toggle" (click)="toggleRequest(req.query_id)"
+            [attr.aria-expanded]="isRequestExpanded(req.query_id)"
+            [attr.aria-label]="(isRequestExpanded(req.query_id) ? 'Collapse' : 'Expand') + ' ticket ' + req.request_id">
+            <span class="req-main">
+              <span class="req-subject">{{ req.subject }}</span>
+              <span class="req-category">{{ req.category || 'General' }}</span>
+            </span>
+            <span class="badge-status" [attr.data-status]="req.status">{{ req.status }}</span>
+            <span class="req-updated">Updated {{ req.updated_at | date: 'mediumDate' }}</span>
+          </button>
+          <span class="req-hover-actions" aria-hidden="false">
+            <button type="button" class="req-view-btn" (click)="openTicket(req)"
+              [attr.aria-label]="'View ticket ' + req.request_id">
+              <span>View</span>
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </button>
+          </span>
+          <span class="material-icons req-chevron" aria-hidden="true">
+            {{ isRequestExpanded(req.query_id) ? 'expand_less' : 'chevron_right' }}
+          </span>
+        </div>
+        <div *ngIf="isRequestExpanded(req.query_id)" class="req-detail">
+          <p class="req-desc">{{ req.description }}</p>
+          <div class="req-detail-meta">
+            <span class="badge-category">{{ req.category || 'General' }}</span>
+            <span class="badge-priority" [attr.data-priority]="req.priority">{{ req.priority || 'MEDIUM' }}</span>
+          </div>
+          <div *ngIf="req.response" class="request-response-box">
+            <div class="response-header">
+              <span class="material-icons">support_agent</span>
+              <strong>Official Support Response</strong>
+              <span *ngIf="req.responded_at" class="response-date">— {{ req.responded_at | date: 'medium' }}</span>
+            </div>
+            <p class="response-text">{{ req.response }}</p>
+          </div>
+          <button type="button" class="req-open-btn" (click)="openTicket(req)">
+            <span>Open ticket</span>
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <div *ngIf="!loadingRequests && !requestsError && myRequests.length > 0 && filteredRequests.length === 0"
+      class="support-state-box empty-state">
+      <div class="state-icon-box state-icon-box--info">
+        <span class="material-icons">search_off</span>
+      </div>
+      <h3>No matching tickets</h3>
+      <p>Try adjusting your search or filters.</p>
+      <button type="button" class="btn-state-action" (click)="clearRequestFilters()">
+        <span class="material-icons">restart_alt</span>
+        <span>Clear Filters</span>
+      </button>
+    </div>
   </section>
 
-  <!-- =========================================================
-     MODAL: SUBMIT SUPPORT REQUEST
-     ========================================================= -->
+  <!-- SUBMIT SUPPORT REQUEST MODAL -->
   <div *ngIf="showSubmitModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-dialog">
-      <!-- MODAL HEADER -->
       <div class="modal-header">
         <div class="modal-header-title">
           <span class="material-icons">support_agent</span>
@@ -366,27 +351,20 @@
         </button>
       </div>
 
-      <!-- FORM STATE: NOT YET SUBMITTED -->
       <form *ngIf="!submittedSuccessRequest" (ngSubmit)="submitRequest()" class="modal-form" novalidate>
         <div class="modal-body">
-          <!-- ERROR NOTICE -->
           <div *ngIf="submitError" class="form-alert form-alert--danger" role="alert">
             <span class="material-icons">error</span>
             <span>{{ submitError }}</span>
           </div>
-
-          <!-- CATEGORY & PRIORITY ROW -->
           <div class="form-row form-row--two-col">
             <div class="form-group">
               <label for="reqCategory">Topic Category <span class="required">*</span></label>
               <select id="reqCategory" name="category" [(ngModel)]="formCategory" class="form-control form-select"
                 required>
-                <option *ngFor="let cat of requestCategories" [value]="cat">
-                  {{ cat }}
-                </option>
+                <option *ngFor="let cat of requestCategories" [value]="cat">{{ cat }}</option>
               </select>
             </div>
-
             <div class="form-group">
               <label for="reqPriority">Priority Level</label>
               <select id="reqPriority" name="priority" [(ngModel)]="formPriority" class="form-control form-select">
@@ -397,16 +375,12 @@
               </select>
             </div>
           </div>
-
-          <!-- SUBJECT FIELD -->
           <div class="form-group">
             <label for="reqSubject">Subject <span class="required">*</span></label>
             <input type="text" id="reqSubject" name="subject" [(ngModel)]="formSubject" class="form-control"
               placeholder="Brief summary of your question or issue..." maxlength="200" required />
             <span class="form-hint">At least 3 characters. Be as specific as possible.</span>
           </div>
-
-          <!-- DESCRIPTION FIELD -->
           <div class="form-group">
             <label for="reqDescription">Detailed Description <span class="required">*</span></label>
             <textarea id="reqDescription" name="description" [(ngModel)]="formDescription"
@@ -416,8 +390,6 @@
             <span class="form-hint">Please do not include sensitive credentials or banking passwords.</span>
           </div>
         </div>
-
-        <!-- MODAL FOOTER -->
         <div class="modal-footer">
           <button type="button" class="btn-modal-cancel" (click)="closeSubmitModal()" [disabled]="submittingRequest">
             Cancel
@@ -431,33 +403,139 @@
         </div>
       </form>
 
-      <!-- SUCCESS STATE: SUBMITTED -->
       <div *ngIf="submittedSuccessRequest" class="modal-success-view">
         <div class="success-icon-box">
           <span class="material-icons">check_circle</span>
         </div>
         <h3>Request Submitted Successfully</h3>
         <p>Your support ticket has been received and registered with our service desk.</p>
-
         <div class="ticket-id-display">
           <span class="id-label">Support Ticket Reference Number:</span>
           <span class="id-value">{{ submittedSuccessRequest.request_id }}</span>
         </div>
-
         <p class="success-note">
           You can track updates and official responses anytime under the <strong>My Support Requests</strong> tab.
         </p>
-
         <div class="modal-footer modal-footer--centered">
-          <button type="button" class="btn-modal-cancel" (click)="closeSubmitModal()">
-            Close
-          </button>
+          <button type="button" class="btn-modal-cancel" (click)="closeSubmitModal()">Close</button>
           <button type="button" class="btn-modal-submit" (click)="closeSubmitModal(); setActiveTab('my-requests')">
             <span class="material-icons">visibility</span>
             <span>View My Requests</span>
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+      MODAL: TICKET DETAILS (View opens here, no navigation)
+      ========================================================= -->
+  <div *ngIf="showTicketModal" class="modal-backdrop" role="dialog" aria-modal="true"
+    aria-labelledby="ticket-modal-title" (click)="closeTicketModal()">
+    <div class="modal-dialog modal-dialog--lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span class="material-icons">confirmation_number</span>
+          <div class="modal-title-text">
+            <h2 id="ticket-modal-title">View Details</h2>
+            <p class="modal-ticket-subject">{{ selectedTicket?.subject || 'Ticket Details' }}</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" aria-label="Close dialog" (click)="closeTicketModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      @if (ticketLoading) {
+      <div class="modal-body ticket-modal-state" aria-busy="true">
+        <span class="ticket-modal-spinner" aria-hidden="true"></span>
+        <span>Loading ticket...</span>
+      </div>
+      } @else if (ticketError) {
+      <div class="modal-body ticket-modal-state ticket-modal-state--error" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <span>{{ ticketError }}</span>
+        <div class="ticket-modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="retryTicketModal()">Retry</button>
+          <button type="button" class="btn-modal-submit" (click)="closeTicketModal()">Close</button>
+        </div>
+      </div>
+      } @else if (selectedTicket) {
+      <div class="modal-body ticket-modal-body">
+        <div class="ticket-modal-section">
+          <h3>Ticket Information</h3>
+          <dl class="ticket-modal-grid">
+            <div>
+              <dt>Ticket ID</dt>
+              <dd>{{ selectedTicket.request_id }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="badge-status" [attr.data-status]="selectedTicket.status">
+                  {{ statusLabel(selectedTicket.status) }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Category</dt>
+              <dd>{{ selectedTicket.category || 'General' }}</dd>
+            </div>
+            <div>
+              <dt>Priority</dt>
+              <dd>
+                <span class="badge-priority" [attr.data-priority]="selectedTicket.priority">
+                  {{ selectedTicket.priority || 'MEDIUM' }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Submitted</dt>
+              <dd>{{ selectedTicket.created_at | date: 'mediumDate' }}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ selectedTicket.updated_at | date: 'mediumDate' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="ticket-modal-section">
+          <h3>Request Details</h3>
+          <p class="ticket-modal-field-label">Subject</p>
+          <p class="ticket-modal-field-value">{{ selectedTicket.subject }}</p>
+          <p class="ticket-modal-field-label">Description</p>
+          <p class="ticket-modal-desc">{{ selectedTicket.description }}</p>
+        </div>
+
+        @if (selectedTicket.response) {
+        <div class="ticket-modal-section">
+          <h3>Official Response</h3>
+          <div class="request-response-box">
+            <div class="response-header">
+              <span class="material-icons">support_agent</span>
+              <strong>Official Support Response</strong>
+            </div>
+            <p class="response-text">{{ selectedTicket.response }}</p>
+          </div>
+        </div>
+        }
+
+        <div class="ticket-modal-section">
+          <h3>Conversation</h3>
+          @if (selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED') {
+          <p class="ticket-reopen-hint">Replying below will reopen this ticket.</p>
+          }
+          <app-ticket-conversation [ticketId]="selectedTicket.query_id" mode="user"
+            [canReply]="selectedTicket.status !== 'CLOSED'" (replied)="onModalReplied()">
+          </app-ticket-conversation>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="closeTicketModal()">Close</button>
+      </div>
+      }
     </div>
   </div>
 

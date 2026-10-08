@@ -28,7 +28,10 @@ from app.schemas.support import (
     SupportRequestCreate,
     SupportRequestResponse,
     SupportRequestUpdate,
+    SupportTicketMessageCreate,
+    SupportTicketMessageResponse,
 )
+from app.models.support_query import SupportQuery
 from app.services import support_service
 from app.services.audit_log_service import log_request_action
 
@@ -228,6 +231,77 @@ def get_my_support_request(
 
 
 # ============================================================
+# TICKET CONVERSATION (OWNER ONLY — non-admin authenticated users)
+# ============================================================
+
+
+@router.get(
+    "/requests/{query_id}/messages",
+    response_model=list[SupportTicketMessageResponse],
+    summary="List conversation messages for own support request",
+)
+def list_my_ticket_messages(
+    query_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Chronological replies on the caller's own ticket."""
+    _verify_not_admin(current_user)
+    query = support_service.get_support_request(
+        db=db,
+        query_id=query_id,
+        user_id=current_user.user_id,
+    )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    return support_service.list_ticket_messages(db=db, ticket=query)
+
+
+@router.post(
+    "/requests/{query_id}/messages",
+    response_model=SupportTicketMessageResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Reply to own support request",
+)
+def reply_to_my_ticket(
+    query_id: int,
+    data: SupportTicketMessageCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Post a user reply; replying to a RESOLVED/CLOSED ticket reopens it."""
+    _verify_not_admin(current_user)
+    query = support_service.get_support_request(
+        db=db,
+        query_id=query_id,
+        user_id=current_user.user_id,
+    )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    try:
+        return support_service.post_ticket_message(
+            db=db,
+            ticket=query,
+            sender_id=current_user.user_id,
+            sender_role=current_user.role,
+            message=data.message,
+            background_tasks=background_tasks,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+
+
+# ============================================================
 # ADMIN SUPPORT MANAGEMENT (ADMIN ONLY)
 # ============================================================
 
@@ -301,6 +375,8 @@ def respond_to_support_request(
             admin_user_id=current_user.user_id,
             response=data.response,
             status=data.status,
+            assigned_to=data.assigned_to,
+            priority=data.priority,
             background_tasks=background_tasks,
         )
     except ValueError as exc:
@@ -326,3 +402,98 @@ def respond_to_support_request(
     )
 
     return query
+
+
+@router.get(
+    "/admin/requests/{query_id}/messages",
+    response_model=list[SupportTicketMessageResponse],
+    summary="List conversation messages for a support request (Admin)",
+)
+def list_ticket_messages_admin(
+    query_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Chronological replies on any ticket (Admin only)."""
+    query = support_service.get_support_request_by_id(
+        db=db,
+        query_id=query_id,
+    )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    ticket = (
+        db.query(SupportQuery)
+        .filter(SupportQuery.query_id == query_id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    return support_service.list_ticket_messages(db=db, ticket=ticket)
+
+
+@router.post(
+    "/admin/requests/{query_id}/messages",
+    response_model=SupportTicketMessageResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Reply to a support request (Admin)",
+)
+def reply_to_ticket_admin(
+    query_id: int,
+    data: SupportTicketMessageCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Post an admin reply without touching response/status fields."""
+    query = support_service.get_support_request_by_id(
+        db=db,
+        query_id=query_id,
+    )
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    ticket = (
+        db.query(SupportQuery)
+        .filter(SupportQuery.query_id == query_id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Support request not found",
+        )
+    try:
+        message = support_service.post_ticket_message(
+            db=db,
+            ticket=ticket,
+            sender_id=current_user.user_id,
+            sender_role="ADMIN",
+            message=data.message,
+            background_tasks=background_tasks,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    return message
+
+
+@router.get(
+    "/admin/analytics",
+    summary="Support analytics aggregates (Admin)",
+)
+def get_support_analytics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    """Ticket/feedback counts by status, category, priority and role."""
+    return support_service.get_support_analytics(db=db)

@@ -87,6 +87,7 @@ export class AdminLayoutComponent implements OnInit {
   policiesMenuOpen = false;
   schemesMenuOpen = false;
   analyticsMenuOpen = false;
+  supportMenuOpen = false;
 
   // =======================================================
   // SEARCH
@@ -194,6 +195,8 @@ export class AdminLayoutComponent implements OnInit {
       this.schemesMenuOpen = true;
     } else if (this.isAnalyticsRouteActive()) {
       this.analyticsMenuOpen = true;
+    } else if (this.isSupportRouteActive()) {
+      this.supportMenuOpen = true;
     }
   }
 
@@ -392,6 +395,7 @@ export class AdminLayoutComponent implements OnInit {
     this.policiesMenuOpen = false;
     this.schemesMenuOpen = false;
     this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
     this.closeMobileMenu();
     this.router.navigate(["/dashboard/admin/users"]);
   }
@@ -412,6 +416,7 @@ export class AdminLayoutComponent implements OnInit {
       this.policiesMenuOpen = false;
       this.schemesMenuOpen = false;
       this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     }
   }
 
@@ -435,6 +440,7 @@ export class AdminLayoutComponent implements OnInit {
     this.usersMenuOpen = false;
     this.schemesMenuOpen = false;
     this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
     this.closeMobileMenu();
     this.router.navigate(['/dashboard/admin/policies/search']);
   }
@@ -455,6 +461,7 @@ export class AdminLayoutComponent implements OnInit {
       this.usersMenuOpen = false;
       this.schemesMenuOpen = false;
       this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     }
   }
 
@@ -478,6 +485,7 @@ export class AdminLayoutComponent implements OnInit {
     this.usersMenuOpen = false;
     this.policiesMenuOpen = false;
     this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
     this.closeMobileMenu();
     this.router.navigate(['/dashboard/admin/schemes']);
   }
@@ -498,6 +506,7 @@ export class AdminLayoutComponent implements OnInit {
       this.usersMenuOpen = false;
       this.policiesMenuOpen = false;
       this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     }
   }
 
@@ -515,7 +524,7 @@ export class AdminLayoutComponent implements OnInit {
     }
 
     this.toggleAnalyticsMenu();
-  }
+  };
 
   toggleAnalyticsMenuOnly(event: Event): void {
     event.preventDefault();
@@ -533,6 +542,7 @@ export class AdminLayoutComponent implements OnInit {
       this.usersMenuOpen = false;
       this.policiesMenuOpen = false;
       this.schemesMenuOpen = false;
+      this.supportMenuOpen = false;
     }
   }
 
@@ -540,11 +550,49 @@ export class AdminLayoutComponent implements OnInit {
     this.analyticsMenuOpen = false;
   }
 
+  onSupportNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleSupportMenu();
+      return;
+    }
+
+    // Parent toggles only — it never navigates to a separate page.
+    this.toggleSupportMenu();
+  }
+
+  toggleSupportMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleSupportMenu();
+  }
+
+  toggleSupportMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.supportMenuOpen = !this.supportMenuOpen;
+    if (this.supportMenuOpen) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+    }
+  }
+
+  closeSupportMenu(): void {
+    this.supportMenuOpen = false;
+  }
+
   closeAllSubmenus(): void {
     this.usersMenuOpen = false;
     this.policiesMenuOpen = false;
     this.schemesMenuOpen = false;
     this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
   }
 
   // =======================================================
@@ -557,6 +605,7 @@ export class AdminLayoutComponent implements OnInit {
       !this.policiesMenuOpen &&
       !this.schemesMenuOpen &&
       !this.analyticsMenuOpen &&
+      !this.supportMenuOpen &&
       this.router.url === "/dashboard/admin"
     );
   }
@@ -578,6 +627,16 @@ export class AdminLayoutComponent implements OnInit {
 
   isAnalyticsRouteActive(): boolean {
     return this.router.url.startsWith("/dashboard/admin/analytics");
+  }
+
+  isSupportRouteActive(): boolean {
+    const url = this.router.url;
+    return (
+      url.startsWith("/dashboard/admin/feedback") ||
+      url.startsWith("/dashboard/admin/support-requests") ||
+      url.startsWith("/dashboard/admin/faqs") ||
+      url.startsWith("/dashboard/admin/query-resolution")
+    );
   }
 
   // =======================================================

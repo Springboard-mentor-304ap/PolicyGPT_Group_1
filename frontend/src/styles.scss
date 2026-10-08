@@ -112,6 +112,22 @@ body {
   overflow-x: hidden;
 }
 
+/* =========================================================
+   APPLICATION Z-INDEX HIERARCHY (authoritative order)
+   Normal content ............ 0–100
+   Sticky navbar / sidebar ... 100–1100
+   Chatbot ................... 1250–1300
+   Dropdowns / CDK overlays .. 1000–2500
+   Modal backdrop ............ 9000  (covers all of the above)
+   Modal dialog .............. 9000+ (inside backdrop stacking context)
+   Toasts .................... 999999 (always on top)
+   Background scrolling is frozen via body.modal-open while any
+   viewport-level modal is open (see BodyScrollLockService).
+   ========================================================= */
+body.modal-open {
+  overflow: hidden;
+}
+
 /* Base typography elements */
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;

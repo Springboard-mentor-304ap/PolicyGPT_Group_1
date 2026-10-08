@@ -40,6 +40,7 @@ export class FeedbackFormComponent implements OnInit {
   historyError = signal<string | null>(null);
   historySearch = signal<string>('');
   historyStatusFilter = signal<string>('ALL');
+  historyCategoryFilter = signal<string>('ALL');
 
   // Deep link to one record (e.g. from a notification's Review Feedback).
   highlightedFeedbackId = signal<number | null>(null);
@@ -90,9 +91,13 @@ export class FeedbackFormComponent implements OnInit {
     const list = this.userFeedbacks();
     const query = this.historySearch().toLowerCase().trim();
     const status = this.historyStatusFilter();
+    const category = this.historyCategoryFilter();
 
     return list.filter((item) => {
       const matchStatus = status === 'ALL' || item.status.toUpperCase() === status;
+      const matchCategory =
+        category === 'ALL' ||
+        (item.feedback_type || '').toUpperCase() === category.toUpperCase();
       const matchQuery =
         !query ||
         (item.subject && item.subject.toLowerCase().includes(query)) ||
@@ -100,8 +105,34 @@ export class FeedbackFormComponent implements OnInit {
         item.feedback_type.toLowerCase().includes(query) ||
         (item.admin_response && item.admin_response.toLowerCase().includes(query));
 
-      return matchStatus && matchQuery;
+      return matchStatus && matchCategory && matchQuery;
     });
+  });
+
+  /** Distinct feedback categories derived from the user's own history (real data). */
+  historyTypeOptions = computed<string[]>(() => {
+    const set = new Set<string>(['ALL']);
+    for (const item of this.userFeedbacks()) {
+      if (item.feedback_type && item.feedback_type.trim()) {
+        set.add(item.feedback_type.trim().toUpperCase());
+      }
+    }
+    return Array.from(set);
+  });
+
+  /** Summary counts derived from the user's own history (real data). */
+  historySummary = computed(() => {
+    const list = this.userFeedbacks();
+    const closed = (s: string): boolean => {
+      const u = (s || '').toUpperCase();
+      return u === 'RESOLVED' || u === 'CLOSED';
+    };
+    const reviewed = list.filter((i) => closed(i.status)).length;
+    return {
+      total: list.length,
+      reviewed,
+      pending: list.length - reviewed,
+    };
   });
 
   constructor(
@@ -141,6 +172,7 @@ export class FeedbackFormComponent implements OnInit {
     this.highlightedFeedbackId.set(feedbackId);
     this.historySearch.set('');
     this.historyStatusFilter.set('ALL');
+    this.historyCategoryFilter.set('ALL');
     this.activeTab.set('history');
     this.loadHistory();
   }
@@ -241,8 +273,21 @@ export class FeedbackFormComponent implements OnInit {
     }, 80);
   }
 
-  getStatusClass(status: string): string {
-    switch (status.toUpperCase()) {
+  /** Display label for a feedback type value (real backend value). */
+  formatFeedbackType(type: string | null | undefined): string {
+    if (!type || !type.trim()) {
+      return 'General';
+    }
+    if (type.trim().toUpperCase() === 'ALL') {
+      return 'All Categories';
+    }
+    return type
+      .split('_')
+      .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  getStatusClass(status: string): string {    switch (status.toUpperCase()) {
       case 'RESOLVED':
         return 'status-badge--resolved';
       case 'IN_PROGRESS':
@@ -277,10 +322,11 @@ export class FeedbackFormComponent implements OnInit {
     return '/dashboard/citizen';
   }
 
-  /** Breadcrumb trail: Home > Feedback (role-aware via getHomeRoute). */
+  /** Breadcrumb trail: Home > Support > Feedback (role-aware). */
   get breadcrumbItems(): BreadcrumbItem[] {
     return [
       { label: 'Home', route: [this.getHomeRoute()] },
+      { label: 'Support', route: [`${this.getHomeRoute()}/support`] },
       { label: 'Feedback' },
     ];
   }

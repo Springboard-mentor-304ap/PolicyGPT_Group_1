@@ -5,11 +5,19 @@ import { Router } from '@angular/router';
 import { Subject, finalize, takeUntil } from 'rxjs';
 import {
   AdminSupportRequest,
+  SupportAnalytics,
   SupportRequestRespond,
+  SUPPORT_PRIORITIES,
 } from '../../../core/models/support.model';
+import {
+  AdminUsersService,
+  AdminUserApi,
+} from '../../../core/services/admin-user.service';
+import { TicketConversationComponent } from '../../../shared/components/ticket-conversation/ticket-conversation.component';
 import { SupportService } from '../../../core/services/support.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import { BodyScrollLockService } from '../../../core/services/body-scroll-lock.service';
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -18,7 +26,7 @@ import {
 @Component({
   selector: 'app-admin-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, TicketConversationComponent],
   templateUrl: './admin-support.component.html',
   styleUrls: [
     './admin-support.component.scss',
@@ -31,11 +39,19 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
   error = signal<string | null>(null);
   private readonly destroy$ = new Subject<void>();
 
+  // Real analytics aggregates (GET /support/admin/analytics). Loaded in
+  // parallel with the ticket list; the stat cards prefer these server
+  // aggregates and fall back to client-side counts while loading.
+  analytics = signal<SupportAnalytics | null>(null);
+  analyticsError = signal<string | null>(null);
+
   // Filters
   searchQuery = signal<string>('');
   statusFilter = signal<string>('ALL');
   categoryFilter = signal<string>('ALL');
   priorityFilter = signal<string>('ALL');
+  assigneeFilter = signal<string>('ALL');
+  sortOrder = signal<'updated_desc' | 'updated_asc' | 'priority'>('updated_desc');
 
   // Stats computed
   stats = computed(() => {
@@ -51,7 +67,29 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     const closed = list.filter(
       (r) => r.status.toUpperCase() === 'CLOSED'
     ).length;
-    return { total, open, inProgress, resolved, closed };
+    const waiting = list.filter(
+      (r) => r.status.toUpperCase() === 'WAITING_FOR_USER'
+    ).length;
+    return { total, open, inProgress, waiting, resolved, closed };
+  });
+
+  // Dashboard numbers: prefer real server analytics (by_status), fall back
+  // to client-side counts so cards render instantly without blocking.
+  dashboardStats = computed(() => {
+    const a = this.analytics();
+    if (a) {
+      const by = a.by_status ?? {};
+      const get = (k: string): number => by[k] ?? 0;
+      return {
+        total: a.total_tickets,
+        open: get('OPEN'),
+        inProgress: get('IN_PROGRESS'),
+        waiting: get('WAITING_FOR_USER'),
+        resolved: get('RESOLVED'),
+        closed: get('CLOSED'),
+      };
+    }
+    return this.stats();
   });
 
   // Dynamic categories derived from loaded requests
@@ -90,8 +128,44 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
         (item.user_name && item.user_name.toLowerCase().includes(query)) ||
         (item.user_email && item.user_email.toLowerCase().includes(query));
 
-      return matchStatus && matchCategory && matchPriority && matchQuery;
+      const assignee = this.assigneeFilter();
+      const matchAssignee =
+        assignee === 'ALL' ||
+        (assignee === 'UNASSIGNED' && (item as AdminSupportRequest).assigned_to == null) ||
+        String((item as AdminSupportRequest).assigned_to ?? '') === assignee;
+
+      return (
+        matchStatus &&
+        matchCategory &&
+        matchPriority &&
+        matchAssignee &&
+        matchQuery
+      );
     });
+  });
+
+  // Sorted view (client-side; server already supports status/category/search filters)
+  sortedRequests = computed<AdminSupportRequest[]>(() => {
+    const list = [...this.filteredRequests()];
+    const rank: Record<string, number> = { URGENT: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    switch (this.sortOrder()) {
+      case 'updated_asc':
+        return list.sort(
+          (a, b) => +new Date(a.updated_at) - +new Date(b.updated_at),
+        );
+      case 'priority':
+        return list.sort(
+          (a, b) =>
+            (rank[a.priority?.toUpperCase() ?? 'MEDIUM'] ?? 2) -
+              (rank[b.priority?.toUpperCase() ?? 'MEDIUM'] ?? 2) ||
+            +new Date(b.updated_at) - +new Date(a.updated_at),
+        );
+      case 'updated_desc':
+      default:
+        return list.sort(
+          (a, b) => +new Date(b.updated_at) - +new Date(a.updated_at),
+        );
+    }
   });
 
   // Modal State: Review & Respond
@@ -99,13 +173,21 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
   selectedRequest = signal<AdminSupportRequest | null>(null);
   responseStatus = signal<string>('IN_PROGRESS');
   responseMessage = signal<string>('');
+  responsePriority = signal<string>('MEDIUM');
+  assigneeId = signal<number | null>(null);
   modalSubmitting = signal<boolean>(false);
+
+  readonly priorityOptions = [...SUPPORT_PRIORITIES];
+
+  adminUsers = signal<AdminUserApi[]>([]);
 
   constructor(
     private readonly supportService: SupportService,
     private readonly authService: Auth,
     private readonly toastService: ToastService,
     private readonly router: Router,
+    private readonly adminUsersService: AdminUsersService,
+    private readonly scrollLock: BodyScrollLockService,
   ) {}
 
   ngOnInit(): void {
@@ -117,11 +199,44 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     }
 
     this.loadAllRequests();
+    this.loadAnalytics();
+    this.loadAdminUsers();
+  }
+
+  private loadAdminUsers(): void {
+    this.adminUsersService
+      .getUsers()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (users) =>
+          this.adminUsers.set(
+            (Array.isArray(users) ? users : []).filter(
+              (u) =>
+                u.is_active &&
+                ['ADMIN', 'ADMINISTRATOR'].includes(
+                  (u.role || '').toUpperCase().trim(),
+                ),
+            ),
+          ),
+        error: () => this.adminUsers.set([]),
+      });
+  }
+
+  assigneeName(id: number | null | undefined): string | null {
+    if (id === null || id === undefined) {
+      return null;
+    }
+    return (
+      this.adminUsers().find((u) => u.user_id === id)?.full_name ?? null
+    );
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.showRespondModal()) {
+      this.scrollLock.unlock();
+    }
   }
 
   loadAllRequests(): void {
@@ -148,6 +263,24 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Load real server aggregates without blocking the ticket table. */
+  loadAnalytics(): void {
+    this.analyticsError.set(null);
+    this.supportService
+      .getSupportAnalytics()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => this.analytics.set(data),
+        error: () =>
+          this.analyticsError.set('Analytics unavailable — showing live ticket counts.'),
+      });
+  }
+
+  refreshAll(): void {
+    this.loadAllRequests();
+    this.loadAnalytics();
+  }
+
   // =========================================================
   // RESPOND MODAL ACTIONS
   // =========================================================
@@ -156,13 +289,40 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     this.selectedRequest.set(item);
     this.responseStatus.set(item.status.toUpperCase());
     this.responseMessage.set(item.response || '');
+    this.responsePriority.set((item.priority || 'MEDIUM').toUpperCase());
+    this.assigneeId.set(
+      (item as AdminSupportRequest).assigned_to ?? null,
+    );
     this.showRespondModal.set(true);
+    this.scrollLock.lock();
   }
 
   closeRespondModal(): void {
     this.showRespondModal.set(false);
     this.selectedRequest.set(null);
     this.modalSubmitting.set(false);
+    this.scrollLock.unlock();
+  }
+
+  /** Copy a ticket reference to the clipboard (overflow-menu action). */
+  copyTicketId(item: AdminSupportRequest): void {
+    const id = item.request_id;
+    if (
+      !id ||
+      typeof navigator === 'undefined' ||
+      !navigator.clipboard?.writeText
+    ) {
+      this.toastService.info('Ticket ID', id || 'Unknown');
+      return;
+    }
+    void navigator.clipboard.writeText(id).then(
+      () =>
+        this.toastService.success(
+          'Copied',
+          `Ticket ${id} copied to clipboard.`,
+        ),
+      () => this.toastService.info('Ticket ID', id),
+    );
   }
 
   saveResponse(): void {
@@ -171,9 +331,16 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
 
     this.modalSubmitting.set(true);
 
+    const priority = this.responsePriority().toUpperCase();
+    if (!SUPPORT_PRIORITIES.includes(priority as never)) {
+      this.toastService.error('Invalid Priority', 'Select a valid priority.');
+      return;
+    }
     const payload: SupportRequestRespond = {
       status: this.responseStatus(),
       response: this.responseMessage().trim() || null,
+      assigned_to: this.assigneeId(),
+      priority,
     };
 
     this.supportService
@@ -209,6 +376,8 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     this.statusFilter.set('ALL');
     this.categoryFilter.set('ALL');
     this.priorityFilter.set('ALL');
+    this.assigneeFilter.set('ALL');
+    this.sortOrder.set('updated_desc');
   }
 
   hasActiveFilters(): boolean {
@@ -216,7 +385,9 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
       !!this.searchQuery() ||
       this.statusFilter() !== 'ALL' ||
       this.categoryFilter() !== 'ALL' ||
-      this.priorityFilter() !== 'ALL'
+      this.priorityFilter() !== 'ALL' ||
+      this.assigneeFilter() !== 'ALL' ||
+      this.sortOrder() !== 'updated_desc'
     );
   }
 
@@ -226,6 +397,8 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
         return 'status-badge--resolved';
       case 'IN_PROGRESS':
         return 'status-badge--progress';
+      case 'WAITING_FOR_USER':
+        return 'status-badge--waiting';
       case 'CLOSED':
         return 'status-badge--closed';
       case 'OPEN':
@@ -238,6 +411,8 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     switch ((status || '').toUpperCase()) {
       case 'IN_PROGRESS':
         return 'In Progress';
+      case 'WAITING_FOR_USER':
+        return 'Waiting for User';
       case 'RESOLVED':
         return 'Resolved';
       case 'CLOSED':
@@ -284,6 +459,13 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
 
   /** Breadcrumb trail: Home > Support Requests (admin-only page). */
   get breadcrumbItems(): BreadcrumbItem[] {
+    const url = this.router.url || '';
+    if (url.includes('/dashboard/admin/query-resolution')) {
+      return [
+        { label: 'Home', route: ['/dashboard/admin'] },
+        { label: 'Query Resolution' },
+      ];
+    }
     return [
       { label: 'Home', route: ['/dashboard/admin'] },
       { label: 'Support Requests' },

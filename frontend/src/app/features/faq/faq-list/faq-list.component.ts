@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { FAQ, FAQCreate, FAQUpdate } from '../../../core/models/faq.model';
 import { FaqService } from '../../../core/services/faq.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
+import { BodyScrollLockService } from '../../../core/services/body-scroll-lock.service';
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -18,7 +19,7 @@ import {
   templateUrl: './faq-list.component.html',
   styleUrl: './faq-list.component.scss',
 })
-export class FaqListComponent implements OnInit {
+export class FaqListComponent implements OnInit, OnDestroy {
   // State Signals
   faqs = signal<FAQ[]>([]);
   loading = signal<boolean>(true);
@@ -99,11 +100,21 @@ export class FaqListComponent implements OnInit {
     private readonly authService: Auth,
     private readonly toastService: ToastService,
     private readonly router: Router,
+    private readonly scrollLock: BodyScrollLockService,
   ) {}
 
   ngOnInit(): void {
     this.checkUserRole();
     this.loadFaqs();
+  }
+
+  ngOnDestroy(): void {
+    // Safety net: never leave the page scroll-locked. At most one of
+    // the two modals can be open at a time, so a single release pairs
+    // exactly with the outstanding lock.
+    if (this.showModal() || this.showDeleteModal()) {
+      this.scrollLock.unlock();
+    }
   }
 
   checkUserRole(): void {
@@ -121,12 +132,7 @@ export class FaqListComponent implements OnInit {
       next: (data) => {
         this.faqs.set(data || []);
         this.loading.set(false);
-        // Expand first FAQ by default if available
-        if (data && data.length > 0) {
-          const initialSet = new Set<number>();
-          initialSet.add(data[0].faq_id);
-          this.expandedFaqIds.set(initialSet);
-        }
+        // All FAQs start collapsed; answers open on demand.
       },
       error: (err) => {
         console.error('Failed to load FAQs:', err);
@@ -148,6 +154,21 @@ export class FaqListComponent implements OnInit {
 
   isExpanded(faqId: number): boolean {
     return this.expandedFaqIds().has(faqId);
+  }
+
+  /** Single hover-preview target: only one preview visible at a time. */
+  hoveredFaqId: number | null = null;
+
+  setHover(faqId: number): void {
+    this.hoveredFaqId = faqId;
+  }
+
+  clearHover(): void {
+    this.hoveredFaqId = null;
+  }
+
+  isHovered(faqId: number): boolean {
+    return this.hoveredFaqId === faqId;
   }
 
   isPublished(faq: FAQ): boolean {
@@ -200,6 +221,23 @@ export class FaqListComponent implements OnInit {
     return `/dashboard/${r}/feedback`;
   }
 
+  getFaqDetailsRoute(faqId: number): string[] {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') {
+      return ['/dashboard/admin/faqs', String(faqId)];
+    }
+    if (r === 'government_official' || r === 'government') {
+      return ['/dashboard/government/faqs', String(faqId)];
+    }
+    if (r === 'researcher') {
+      return ['/dashboard/researcher/faqs', String(faqId)];
+    }
+    if (r === 'organization') {
+      return ['/dashboard/organization/faqs', String(faqId)];
+    }
+    return ['/dashboard/citizen/faqs', String(faqId)];
+  }
+
   getHomeRoute(): string {
     const r = this.userRole().toLowerCase();
     if (r === 'admin' || r === 'administrator') return '/dashboard/admin';
@@ -238,6 +276,7 @@ export class FaqListComponent implements OnInit {
     this.customCategory = '';
     this.formStatus = 'PUBLISHED';
     this.showModal.set(true);
+    this.scrollLock.lock();
   }
 
   openEditModal(faq: FAQ, event: Event): void {
@@ -260,11 +299,13 @@ export class FaqListComponent implements OnInit {
     }
 
     this.showModal.set(true);
+    this.scrollLock.lock();
   }
 
   closeModal(): void {
     this.showModal.set(false);
     this.modalSubmitting.set(false);
+    this.scrollLock.unlock();
   }
 
   saveFaq(): void {
@@ -328,6 +369,58 @@ export class FaqListComponent implements OnInit {
   }
 
   // =========================================================
+  // ADMIN ACTIONS: DISPLAY ORDER
+  // =========================================================
+
+  orderedFaqs(): FAQ[] {
+    return [...this.faqs()].sort(
+      (a, b) =>
+        (a.display_order ?? 0) - (b.display_order ?? 0) ||
+        String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')),
+    );
+  }
+
+  moveFaq(faq: FAQ, direction: -1 | 1): void {
+    const list = this.orderedFaqs();
+    const index = list.findIndex((f) => f.faq_id === faq.faq_id);
+    const neighbor = list[index + direction];
+    if (index < 0 || !neighbor) {
+      return;
+    }
+    const faqOrder = faq.display_order ?? 0;
+    const neighborOrder = neighbor.display_order ?? 0;
+    // Swap the two display orders so the public list order changes.
+    this.faqService.updateFaq(faq.faq_id, { display_order: neighborOrder }).subscribe({
+      next: () => {
+        this.faqService
+          .updateFaq(neighbor.faq_id, { display_order: faqOrder })
+          .subscribe({
+            next: () => {
+              this.toastService.success('FAQ Reordered', 'Display order updated.');
+              this.loadFaqs();
+            },
+            error: (err) => {
+              // Roll back the first write so ordering never corrupts.
+              this.faqService
+                .updateFaq(faq.faq_id, { display_order: faqOrder })
+                .subscribe();
+              this.toastService.error(
+                'Reorder Failed',
+                err.error?.detail || 'Could not update display order.',
+              );
+            },
+          });
+      },
+      error: (err) => {
+        this.toastService.error(
+          'Reorder Failed',
+          err.error?.detail || 'Could not update display order.',
+        );
+      },
+    });
+  }
+
+  // =========================================================
   // ADMIN ACTIONS: DELETE
   // =========================================================
 
@@ -336,6 +429,7 @@ export class FaqListComponent implements OnInit {
     this.faqToDelete.set(faq);
     this.deletingFaqId.set(faq.faq_id);
     this.showDeleteModal.set(true);
+    this.scrollLock.lock();
   }
 
   closeDeleteModal(): void {
@@ -343,6 +437,7 @@ export class FaqListComponent implements OnInit {
     this.deletingFaqId.set(null);
     this.faqToDelete.set(null);
     this.deleteSubmitting.set(false);
+    this.scrollLock.unlock();
   }
 
   executeDelete(): void {

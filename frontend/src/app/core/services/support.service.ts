@@ -8,6 +8,9 @@ import {
   SupportRequestCreate,
   AdminSupportRequest,
   SupportRequestRespond,
+  TicketMessage,
+  TicketMessageCreate,
+  SupportAnalytics,
 } from '../models/support.model';
 import { environment } from '../../../environments/environment';
 
@@ -153,6 +156,68 @@ export class SupportService {
         `${this.baseUrl}/admin/requests/${id}`,
         payload,
       )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
+  }
+
+  /**
+   * Conversation messages on the caller's own ticket.
+   * GET /support/requests/{id}/messages
+   */
+  getTicketMessages(id: number): Observable<TicketMessage[]> {
+    return this.http
+      .get<TicketMessage[]>(`${this.baseUrl}/requests/${id}/messages`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
+  }
+
+  /**
+   * Reply to the caller's own ticket (reopens RESOLVED/CLOSED server-side).
+   * POST /support/requests/{id}/messages
+   */
+  postTicketMessage(
+    id: number,
+    payload: TicketMessageCreate,
+  ): Observable<TicketMessage> {
+    return this.http
+      .post<TicketMessage>(
+        `${this.baseUrl}/requests/${id}/messages`,
+        payload,
+      )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
+  }
+
+  /**
+   * Conversation messages on any ticket (Admin only).
+   * GET /support/admin/requests/{id}/messages
+   */
+  getTicketMessagesAdmin(id: number): Observable<TicketMessage[]> {
+    return this.http
+      .get<TicketMessage[]>(`${this.baseUrl}/admin/requests/${id}/messages`)
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
+  }
+
+  /**
+   * Admin reply without touching response/status fields (Admin only).
+   * POST /support/admin/requests/{id}/messages
+   */
+  postTicketMessageAdmin(
+    id: number,
+    payload: TicketMessageCreate,
+  ): Observable<TicketMessage> {
+    return this.http
+      .post<TicketMessage>(
+        `${this.baseUrl}/admin/requests/${id}/messages`,
+        payload,
+      )
+      .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
+  }
+
+  /**
+   * Support aggregates for the admin dashboard (Admin only).
+   * GET /support/admin/analytics
+   */
+  getSupportAnalytics(): Observable<SupportAnalytics> {
+    return this.http
+      .get<SupportAnalytics>(`${this.baseUrl}/admin/analytics`)
       .pipe(timeout(SupportService.REQUEST_TIMEOUT_MS));
   }
 }

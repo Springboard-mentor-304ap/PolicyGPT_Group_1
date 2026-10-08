@@ -32,7 +32,7 @@ def get_all_faqs(
 ):
     return (
         db.query(FAQ)
-        .order_by(FAQ.created_at.desc())
+        .order_by(FAQ.display_order.asc(), FAQ.created_at.desc())
         .all()
     )
 

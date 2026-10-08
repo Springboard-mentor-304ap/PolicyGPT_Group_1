@@ -3,17 +3,24 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import {
+  Observable,
   Subject,
   Subscription,
   debounceTime,
   distinctUntilChanged,
   finalize,
+  switchMap,
+  catchError,
+  of,
   takeUntil,
 } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 
 import { SupportService } from '../../core/services/support.service';
 import { Auth, AuthUser } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
+import { BodyScrollLockService } from '../../core/services/body-scroll-lock.service';
+import { TicketConversationComponent } from '../../shared/components/ticket-conversation/ticket-conversation.component';
 import {
   FAQ,
   SupportRequest,
@@ -22,10 +29,13 @@ import {
 
 export type SupportTab = 'faqs' | 'my-requests';
 
+/** Safety bound so a hung ticket fetch can never strand the modal spinner. */
+const TicketDetailsTimeoutMs = 10_000;
+
 @Component({
   selector: 'app-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent],
   templateUrl: './support.component.html',
   styleUrls: ['./support.component.scss'],
 })
@@ -65,10 +75,16 @@ export class SupportComponent implements OnInit, OnDestroy {
   requestsError: string | null = null;
 
   // Submit Modal State
-  showSubmitModal = false;
-  submittingRequest = false;
+  showSubmitModal = false;  submittingRequest = false;
   submitError: string | null = null;
   submittedSuccessRequest: SupportRequest | null = null;
+
+  // Ticket Details Modal State (View opens here, page never navigates)
+  showTicketModal = false;
+  selectedTicket: SupportRequest | null = null;
+  ticketLoading = false;
+  ticketError: string | null = null;
+  modalTicketId: number | null = null;
 
   // Form Fields
   formCategory = 'General Inquiry';
@@ -92,6 +108,7 @@ export class SupportComponent implements OnInit, OnDestroy {
     private readonly toastService: ToastService,
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
+    private readonly scrollLock: BodyScrollLockService,
   ) {}
 
   ngOnInit(): void {
@@ -109,11 +126,34 @@ export class SupportComponent implements OnInit, OnDestroy {
       this.authService.isGuest() ||
       (!this.authService.isLoggedIn() && !this.authService.getToken());
 
-    // Setup debounced search (300ms)
+    // Setup debounced search (200ms) with stale-request cancellation.
+    // Server-side search is required: GET /support/faqs supports
+    // ?search=&category=. switchMap cancels the in-flight request when
+    // the user keeps typing, avoiding out-of-order results.
     this.searchSubscription = this.searchSubject
-      .pipe(debounceTime(300), distinctUntilChanged())
-      .subscribe((query) => {
-        this.fetchFaqs(query, this.selectedCategory);
+      .pipe(
+        debounceTime(200),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          this.loadingFaqs = true;
+          this.faqError = null;
+          return this.supportService.getFaqs(query, this.selectedCategory).pipe(
+            catchError((err) => {
+              this.handleFaqError(err);
+              return of([]);
+            }),
+            finalize(() => {
+              this.loadingFaqs = false;
+              if (!this.destroy$.closed) {
+                this.cdr.detectChanges();
+              }
+            }),
+          );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe((data) => {
+        this.applyFaqResult(data || [], this.searchQuery, this.selectedCategory);
       });
 
     // Initial data fetch from backend
@@ -129,6 +169,13 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.searchSubscription?.unsubscribe();
+    // Release one scroll lock per open modal (service is ref-counted).
+    if (this.showSubmitModal) {
+      this.scrollLock.unlock();
+    }
+    if (this.showTicketModal) {
+      this.scrollLock.unlock();
+    }
   }
 
   // =========================================================
@@ -173,29 +220,40 @@ export class SupportComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (data) => {
-          this.faqs = data || [];
-          if (category === 'All' && !search) {
-            this.totalFaqCount = this.faqs.length;
-          } else if (this.totalFaqCount === 0) {
-            this.totalFaqCount = this.faqs.length;
-          }
-
-          // Expand first FAQ by default if it's the initial full load
-          if (this.faqs.length > 0 && this.expandedFaqIds.size === 0 && !search && category === 'All') {
-            this.expandedFaqIds.add(this.faqs[0].faq_id);
-          }
+          this.applyFaqResult(data || [], search, category);
         },
         error: (err) => {
-          if (err?.name === 'TimeoutError') {
-            this.faqError =
-              'The request timed out. Please check your connection and try again.';
-          } else if (err.status === 403) {
-            this.faqError = 'Access denied: Administrators use the Admin FAQ Management portal.';
-          } else {
-            this.faqError = 'Unable to load FAQs. Please check your network or try again.';
-          }
+          this.handleFaqError(err);
         },
       });
+  }
+
+  private applyFaqResult(data: FAQ[], search?: string, category?: string): void {
+    this.faqs = data;
+    const isInitialLoad =
+      (!search || !search.trim()) &&
+      (!category || category === 'All');
+    if (isInitialLoad) {
+      this.totalFaqCount = this.faqs.length;
+    } else if (this.totalFaqCount === 0) {
+      this.totalFaqCount = this.faqs.length;
+    }
+    // All FAQs start collapsed. Details are revealed via hover preview
+    // (desktop) or click-to-expand (touch / keyboard / full answer).
+  }
+
+  private handleFaqError(err: unknown): void {
+    const e = err as { name?: string; status?: number };
+    if (e?.name === 'TimeoutError') {
+      this.faqError =
+        'The request timed out. Please check your connection and try again.';
+    } else if (e?.status === 403) {
+      this.faqError =
+        'Access denied: Administrators use the Admin FAQ Management portal.';
+    } else {
+      this.faqError =
+        'Unable to load FAQs. Please check your network or try again.';
+    }
   }
 
   onSearchChange(query: string): void {
@@ -234,6 +292,21 @@ export class SupportComponent implements OnInit, OnDestroy {
 
   isExpanded(faqId: number): boolean {
     return this.expandedFaqIds.has(faqId);
+  }
+
+  /** Single hover-preview target: only one preview visible at a time. */
+  hoveredFaqId: number | null = null;
+
+  setHover(faqId: number): void {
+    this.hoveredFaqId = faqId;
+  }
+
+  clearHover(): void {
+    this.hoveredFaqId = null;
+  }
+
+  isHovered(faqId: number): boolean {
+    return this.hoveredFaqId === faqId;
   }
 
   expandAll(): void {
@@ -298,6 +371,7 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.showSubmitModal = true;
     this.submitError = null;
     this.submittedSuccessRequest = null;
+    this.scrollLock.lock();
     this.formCategory = 'General Inquiry';
     this.formSubject = '';
     this.formDescription = '';
@@ -313,6 +387,7 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.showSubmitModal = false;
     this.submitError = null;
     this.submittedSuccessRequest = null;
+    this.scrollLock.unlock();
   }
 
   submitRequest(): void {
@@ -371,12 +446,18 @@ export class SupportComponent implements OnInit, OnDestroy {
             `Your request has been registered as ${created.request_id}.`,
           );
 
-          // Refresh from the confirmed server state (avoids stale lists
-          // and duplicate rows), then reset + close only on success.
-          this.loadMyRequests();
+          // Prepend the confirmed server object for an instant update
+          // (single POST, no extra GET round-trip). Dedupe by query_id
+          // in case the same ticket is already listed.
+          this.myRequests = [
+            created,
+            ...this.myRequests.filter(
+              (r) => r.query_id !== created.query_id,
+            ),
+          ];
           this.formSubject = '';
           this.formDescription = '';
-          this.showSubmitModal = false;
+          this.closeSubmitModal();
         },
         error: (err) => {
           if (err?.name === 'TimeoutError') {
@@ -410,11 +491,243 @@ export class SupportComponent implements OnInit, OnDestroy {
     this.router.navigate([`/dashboard/${prefix}`]);
   }
 
+  openTicket(ticket: SupportRequest): void {
+    // Ticket details open in a modal on this page (no navigation away).
+    // Guests never reach this (View is hidden), but guard regardless.
+    if (this.isGuest) {
+      this.router.navigate(['/auth/login'], {
+        queryParams: { returnUrl: this.router.url },
+      });
+      return;
+    }
+    // Render instantly from the already-loaded list row, then refresh
+    // silently in the background (single API call, no spinner delay).
+    this.selectedTicket = ticket;
+    this.ticketLoading = false;
+    this.ticketError = null;
+    this.modalTicketId = null;
+    this.showTicketModal = true;
+    this.scrollLock.lock();
+
+    // Real backend id first (query_id), with fallbacks for safety.
+    const source = ticket as SupportRequest & Record<string, unknown>;
+    const raw = source.query_id ?? source['id'] ?? source['ticket_id'] ?? source['support_request_id'];
+    const ticketId = typeof raw === 'number' ? raw : Number(raw);
+    if (!Number.isFinite(ticketId) || ticketId <= 0) {
+      this.ticketError = 'Invalid support ticket ID.';
+      return;
+    }
+    this.loadTicketDetails(ticketId, { silent: true });
+  }
+
+  /**
+   * Fetch complete ticket data for the modal (existing API, single call).
+   * Silent mode refreshes already-visible content without a spinner;
+   * failures surface as a toast so the visible ticket is never lost.
+   */
+  loadTicketDetails(ticketId: number, opts?: { silent?: boolean }): void {
+    const silent = opts?.silent === true && this.selectedTicket !== null;
+    this.modalTicketId = ticketId;
+    this.ticketLoading = !silent;
+    this.ticketError = silent ? null : this.ticketError;
+    if (!silent) {
+      this.ticketError = null;
+    }
+    let request$: Observable<SupportRequest>;
+    try {
+      console.log('[Support Ticket] Loading ticket:', ticketId);
+      request$ = this.supportService.getSupportRequest(ticketId);
+    } catch {
+      this.ticketLoading = false;
+      this.ticketError = 'Unable to load this support request.';
+      return;
+    }
+    request$
+      .pipe(
+        timeout(TicketDetailsTimeoutMs),
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.ticketLoading = false;
+          if (!this.destroy$.closed) {
+            this.cdr.detectChanges();
+          }
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('[Support Ticket] API response:', response);
+          const found =
+            (response as { data?: SupportRequest } | null)?.data ??
+            (response as { ticket?: SupportRequest } | null)?.ticket ??
+            response ??
+            null;
+          if (!found) {
+            if (silent) {
+              return;
+            }
+            this.ticketError = 'Support ticket data was not returned.';
+            return;
+          }
+          this.selectedTicket = found;
+        },
+        error: (err) => {
+          console.error('[Support Ticket] API error:', err);
+          const message =
+            err?.status === 404
+              ? 'Support request not found.'
+              : err?.status === 403
+                ? 'You do not have permission to view this ticket.'
+                : err?.name === 'TimeoutError'
+                  ? 'The support request is taking too long to load. Please try again.'
+                  : 'Unable to load this support request.';
+          if (silent && this.selectedTicket) {
+            this.toastService.error('Refresh Failed', message);
+            return;
+          }
+          this.ticketError = message;
+        },
+      });
+  }
+
+  /** Retry uses the same loader — never a full page reload. */
+  retryTicketModal(): void {
+    if (this.modalTicketId !== null) {
+      this.loadTicketDetails(this.modalTicketId);
+    }
+  }
+
+  closeTicketModal(): void {
+    this.showTicketModal = false;
+    this.selectedTicket = null;
+    this.ticketLoading = false;
+    this.ticketError = null;
+    this.modalTicketId = null;
+    this.scrollLock.unlock();
+  }
+
+  /** Refresh modal details after a reply (status may have changed). */
+  onModalReplied(): void {
+    if (this.modalTicketId !== null) {
+      this.loadTicketDetails(this.modalTicketId);
+    }
+    this.loadMyRequests();
+  }
+
+  faqDetailsLink(faqId: number): string[] {
+    return ['/dashboard', this.getRolePrefix(), 'faqs', String(faqId)];
+  }
+
+  /** Feedback page for the current role (Submit Feedback action). */
+  feedbackLink(): string[] {
+    return ['/dashboard', this.getRolePrefix(), 'feedback'];
+  }
+
+  /** Help-topic shortcut: searches FAQs by topic keyword. */
+  searchTopic(keyword: string): void {
+    this.setActiveTab('faqs');
+    this.selectedCategory = 'All';
+    this.searchQuery = keyword;
+    this.onSearchChange(keyword);
+  }
+
+  /** Quick Help: focus the FAQ search without extra navigation. */
+  focusFaqSearch(): void {
+    this.setActiveTab('faqs');
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('faq-search');
+      el?.focus();
+    }
+  }
+
+  /** Category dropdown change handler. */
+  onCategorySelect(event: Event): void {
+    const value = (event.target as HTMLSelectElement | null)?.value ?? 'All';
+    this.selectCategory(value);
+  }
+
+  /** Expanded inline detail rows in the My Requests table. */
+  private readonly expandedRequestIds = new Set<number>();
+
+  /** Client-side filters for the My Requests table (server data reused). */
+  requestSearch = '';
+  requestStatus = 'ALL';
+  requestCategory = 'ALL';
+  requestPriority = 'ALL';
+
+  /** Distinct categories derived from the user's own tickets (real data). */
+  get requestCategoryOptions(): string[] {
+    const set = new Set<string>(['ALL']);
+    for (const req of this.myRequests) {
+      if (req.category && req.category.trim()) {
+        set.add(req.category.trim());
+      }
+    }
+    return Array.from(set);
+  }
+
+  get filteredRequests(): SupportRequest[] {
+    const query = this.requestSearch.trim().toLowerCase();
+    return this.myRequests.filter((req) => {
+      const matchStatus =
+        this.requestStatus === 'ALL' || req.status === this.requestStatus;
+      const matchCategory =
+        this.requestCategory === 'ALL' ||
+        (req.category || '').toLowerCase() ===
+          this.requestCategory.toLowerCase();
+      const matchPriority =
+        this.requestPriority === 'ALL' ||
+        (req.priority || '').toUpperCase() ===
+          this.requestPriority.toUpperCase();
+      const matchQuery =
+        !query ||
+        req.subject.toLowerCase().includes(query) ||
+        req.description.toLowerCase().includes(query) ||
+        req.request_id.toLowerCase().includes(query) ||
+        (req.category || '').toLowerCase().includes(query);
+      return matchStatus && matchCategory && matchPriority && matchQuery;
+    });
+  }
+
+  clearRequestFilters(): void {
+    this.requestSearch = '';
+    this.requestStatus = 'ALL';
+    this.requestCategory = 'ALL';
+    this.requestPriority = 'ALL';
+  }
+
+  isRequestExpanded(queryId: number): boolean {
+    return this.expandedRequestIds.has(queryId);
+  }
+
+  toggleRequest(queryId: number): void {
+    if (this.expandedRequestIds.has(queryId)) {
+      this.expandedRequestIds.delete(queryId);
+    } else {
+      this.expandedRequestIds.add(queryId);
+    }
+  }
+
   trackByFaqId(_index: number, item: FAQ): number {
     return item.faq_id;
   }
 
   trackByRequestId(_index: number, item: SupportRequest): number {
     return item.query_id;
+  }
+
+  statusLabel(status: string | null | undefined): string {
+    switch ((status || '').toUpperCase()) {
+      case 'IN_PROGRESS':
+        return 'In Progress';
+      case 'WAITING_FOR_USER':
+        return 'Waiting for User';
+      case 'RESOLVED':
+        return 'Resolved';
+      case 'CLOSED':
+        return 'Closed';
+      case 'OPEN':
+      default:
+        return 'Open';
+    }
   }
 }

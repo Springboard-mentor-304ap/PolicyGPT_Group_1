@@ -168,18 +168,78 @@
             }
 
 
-            <!-- NOTIFICATIONS -->
-            <a class="dash-nav__item" routerLink="/dashboard/admin/notifications" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Notifications' : null">
+            <!-- USERS -->
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                usersMenuOpen || isUsersRouteActive()
+            " (click)="onUsersNavClick($event)" [attr.title]="sidebarCollapsed ? 'Users' : null"
+                [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
+
                 <span class="material-icons dash-nav__icon">
-                    notifications_none
+                    groups
                 </span>
 
                 <span class="dash-nav__label">
-                    Notifications
+                    Users
                 </span>
-            </a>
+
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="usersMenuOpen"
+                    (click)="toggleUsersMenuOnly($event)" title="Toggle Users submenu">
+                    chevron_right
+                </span>
+
+            </button>
+
+
+            <!-- USERS SUBMENU -->
+            @if (usersMenuOpen && !sidebarCollapsed) {
+
+            <div id="admin-users-submenu" class="dash-nav__submenu" aria-label="Users management">
+
+                <!-- VIEW USERS -->
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        person_search
+                    </span>
+
+                    <span>
+                        View Users
+                    </span>
+                </a>
+
+
+                <!-- ADD USER -->
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users/add"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        person_add
+                    </span>
+
+                    <span>
+                        Add User
+                    </span>
+                </a>
+
+
+                <!-- REMOVE USER -->
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users/remove"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        person_remove
+                    </span>
+
+                    <span>
+                        Remove User
+                    </span>
+                </a>
+
+            </div>
+
+            }
+
 
             <!-- ANALYTICS -->
             <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
@@ -279,118 +339,15 @@
                     </span>
                 </a>
 
-            </div>
-
-            }
-
-
-            <!-- FAQS -->
-            <a class="dash-nav__item" routerLink="/dashboard/admin/faqs" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'FAQs' : null">
-                <span class="material-icons dash-nav__icon">
-                    quiz
-                </span>
-
-                <span class="dash-nav__label">
-                    FAQs
-                </span>
-            </a>
-
-
-            <!-- FEEDBACK & GRIEVANCES -->
-            <a class="dash-nav__item" routerLink="/dashboard/admin/feedback" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Feedback' : null">
-                <span class="material-icons dash-nav__icon">
-                    rate_review
-                </span>
-
-                <span class="dash-nav__label">
-                    Feedback
-                </span>
-            </a>
-
-
-            <!-- SUPPORT REQUESTS -->
-            <a class="dash-nav__item" routerLink="/dashboard/admin/support-requests" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeUsersMenu(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Support Requests' : null">
-                <span class="material-icons dash-nav__icon">
-                    support_agent
-                </span>
-
-                <span class="dash-nav__label">
-                    Support Requests
-                </span>
-            </a>
-
-
-            <!-- USERS -->
-            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
-                usersMenuOpen || isUsersRouteActive()
-            " (click)="onUsersNavClick($event)" [attr.title]="sidebarCollapsed ? 'Users' : null"
-                [attr.aria-expanded]="usersMenuOpen" aria-controls="admin-users-submenu">
-
-                <span class="material-icons dash-nav__icon">
-                    groups
-                </span>
-
-                <span class="dash-nav__label">
-                    Users
-                </span>
-
-                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="usersMenuOpen"
-                    (click)="toggleUsersMenuOnly($event)" title="Toggle Users submenu">
-                    chevron_right
-                </span>
-
-            </button>
-
-
-            <!-- USERS SUBMENU -->
-            @if (usersMenuOpen && !sidebarCollapsed) {
-
-            <div id="admin-users-submenu" class="dash-nav__submenu" aria-label="Users management">
-
-                <!-- VIEW USERS -->
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users"
-                    routerLinkActive="dash-nav__submenu-item--active"
-                    [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
-                    <span class="material-icons">
-                        person_search
-                    </span>
-
-                    <span>
-                        View Users
-                    </span>
-                </a>
-
-
-                <!-- ADD USER -->
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users/add"
+                <a class="dash-nav__item" routerLink="/dashboard/admin/support-analytics"
                     routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
                     (click)="closeMobileMenu()">
                     <span class="material-icons">
-                        person_add
+                        insights
                     </span>
 
-                    <span>
-                        Add User
-                    </span>
-                </a>
-
-
-                <!-- REMOVE USER -->
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/users/remove"
-                    routerLinkActive="dash-nav__submenu-item--active"
-                    [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
-                    <span class="material-icons">
-                        person_remove
-                    </span>
-
-                    <span>
-                        Remove User
+                    <span class="dash-nav__label">
+                        Support Analytics
                     </span>
                 </a>
 
@@ -411,6 +368,99 @@
                     Reports
                 </span>
             </a>
+
+
+            <!-- NOTIFICATIONS -->
+            <a class="dash-nav__item" routerLink="/dashboard/admin/notifications"
+                routerLinkActive="dash-nav__item--active" [routerLinkActiveOptions]="{ exact: true }"
+                (click)="closeUsersMenu(); closeMobileMenu()" [attr.title]="sidebarCollapsed ? 'Notifications' : null">
+                <span class="material-icons dash-nav__icon">
+                    notifications_none
+                </span>
+
+                <span class="dash-nav__label">
+                    Notifications
+                </span>
+            </a>
+
+
+            <!-- SUPPORT & FEEDBACK -->
+            <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+                supportMenuOpen || isSupportRouteActive()
+            " (click)="onSupportNavClick($event)" [attr.title]="sidebarCollapsed ? 'Support & Feedback' : null"
+                [attr.aria-expanded]="supportMenuOpen" aria-controls="admin-support-submenu">
+
+                <span class="material-icons dash-nav__icon">
+                    contact_support
+                </span>
+
+                <span class="dash-nav__label">
+                    Support &amp; Feedback
+                </span>
+
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="supportMenuOpen"
+                    (click)="toggleSupportMenuOnly($event)" title="Toggle Support & Feedback submenu">
+                    chevron_right
+                </span>
+
+            </button>
+
+            <!-- SUPPORT & FEEDBACK SUBMENU -->
+            @if ((supportMenuOpen || isSupportRouteActive()) && !sidebarCollapsed) {
+
+            <div id="admin-support-submenu" class="dash-nav__submenu" aria-label="Support and feedback">
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/feedback"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        rate_review
+                    </span>
+
+                    <span>
+                        Feedback
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/support-requests"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        support_agent
+                    </span>
+
+                    <span>
+                        Support Requests
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/faqs"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        quiz
+                    </span>
+
+                    <span>
+                        FAQs
+                    </span>
+                </a>
+
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/admin/query-resolution"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        mark_chat_read
+                    </span>
+
+                    <span>
+                        Query Resolution
+                    </span>
+                </a>
+
+            </div>
+
+            }
 
 
             <!-- AUDIT LOGS -->
@@ -544,7 +594,7 @@
             <div class="dash-user">
 
                 <app-notification-bell></app-notification-bell>
-            <app-toast-container></app-toast-container>
+                <app-toast-container></app-toast-container>
 
 
                 <div class="dash-user__avatar" aria-hidden="true">

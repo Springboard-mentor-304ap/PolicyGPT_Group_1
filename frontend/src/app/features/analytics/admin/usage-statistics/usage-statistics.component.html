@@ -1,4 +1,4 @@
-<div class="usage-statistics-page">
+<div class="usage-statistics-page" [attr.aria-busy]="isLoading()">
   <!-- Breadcrumb -->
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a routerLink="/dashboard/admin" class="breadcrumb-link">Home</a>
@@ -17,13 +17,46 @@
       <p class="page-subtitle">Track platform usage and engagement across all users</p>
     </div>
     <div class="header-right">
-      <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
+      <app-date-range-picker [value]="currentRange()" (rangeChange)="onDateRangeChange($event)"
+        (rangeSelect)="onDateRangeSelect($event)" />
       <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
         aria-label="Download Usage Statistics Report">
         <span class="material-icons" aria-hidden="true">download</span>
         <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
       </button>
     </div>
+  </div>
+
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
+  </p>
+  }
+
+  <!-- 6 KPI Cards Grid -->
+  <div class="kpi-grid">
+    @for (kpi of kpis(); track kpi.label) {
+    <div class="kpi-card">
+      <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">{{ kpi.label }}</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
+        </div>
+        @if (kpi.change) {
+        <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
+          {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
+        </span>
+        } @else if (kpi.subtext) {
+        <span class="kpi-trend">
+          <span class="trend-sub">{{ kpi.subtext }}</span>
+        </span>
+        }
+      </div>
+    </div>
+    }
   </div>
 
   <!-- Row 2: 3 Visualizations (User Activity Trend, Daily Usage, User Distribution by Role) -->
@@ -106,6 +139,9 @@
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Top 10 Searched Policies</h2>
+        <button type="button" class="btn-view-all" (click)="openModal('policies')">
+          View All
+        </button>
       </div>
 
       <div class="table-responsive">
@@ -132,6 +168,9 @@
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Top 10 Searched Schemes</h2>
+        <button type="button" class="btn-view-all" (click)="openModal('schemes')">
+          View All
+        </button>
       </div>
 
       <div class="table-responsive">
@@ -162,6 +201,9 @@
     <div class="table-card">
       <div class="card-header-row">
         <h2 class="card-title">Most Active Users</h2>
+        <button type="button" class="btn-view-all" (click)="openAuditLogs()">
+          View All
+        </button>
       </div>
 
       <div class="table-responsive">

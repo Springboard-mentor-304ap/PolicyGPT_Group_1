@@ -9,6 +9,8 @@ from fastapi import (
 
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timedelta, timezone
+
 from app.api.routes.auth import (
     get_current_user,
     require_roles,
@@ -16,6 +18,7 @@ from app.api.routes.auth import (
 
 from app.db.database import get_db
 from app.models.user import User
+from app.models.audit_log import AuditLog
 from app.services.audit_log_service import (
     ACTION_APPROVAL_EVENT,
     ACTION_REJECTION_EVENT,
@@ -278,6 +281,7 @@ def delete_requests(
 )
 def get_scheme_api(
     scheme_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -314,6 +318,34 @@ def get_scheme_api(
                 status_code=404,
                 detail="Scheme not found",
             )
+
+    # View tracking (observability only): one SCHEME_VIEW per user/scheme
+    # per 30 minutes, so refetches and double renders never inflate Usage
+    # Statistics counts. Never affects the response.
+    window_start = datetime.now(timezone.utc).replace(
+        tzinfo=None
+    ) - timedelta(minutes=30)
+    recent_view = (
+        db.query(AuditLog.audit_id)
+        .filter(
+            AuditLog.action == "SCHEME_VIEW",
+            AuditLog.entity_type == "SCHEME",
+            AuditLog.entity_id == scheme_id,
+            AuditLog.user_id == current_user.user_id,
+            AuditLog.created_at >= window_start,
+        )
+        .first()
+    )
+    if recent_view is None:
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "SCHEME_VIEW",
+            "SCHEME",
+            scheme_id,
+            f"Scheme '{scheme.name}' viewed.",
+        )
 
     return scheme
 

@@ -453,10 +453,14 @@ def department_schemes(
 @router.get("/admin/overview")
 def admin_overview(
     timeframe: str = Query(default="Last 9 Months"),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
-    return get_admin_overview_analytics(db=db, timeframe=timeframe)
+    return get_admin_overview_analytics(
+        db=db, timeframe=timeframe, start_date=start_date, end_date=end_date
+    )
 
 
 @router.get("/admin/policies")
@@ -466,6 +470,8 @@ def admin_policies(
     ministry: str | None = Query(default=None),
     department: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -475,6 +481,8 @@ def admin_policies(
         "ministry": ministry,
         "department": department,
         "status": status,
+        "start_date": start_date,
+        "end_date": end_date,
     }
     return get_admin_policy_analytics(db=db, filters=filters)
 
@@ -485,6 +493,8 @@ def admin_schemes(
     category: str | None = Query(default=None),
     ministry: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -493,6 +503,8 @@ def admin_schemes(
         "category": category,
         "ministry": ministry,
         "status": status,
+        "start_date": start_date,
+        "end_date": end_date,
     }
     return get_admin_scheme_analytics(db=db, filters=filters)
 
@@ -503,6 +515,8 @@ def admin_users(
     reg_period: str = Query(default="Last 6 Months"),
     state_limit: int = Query(default=10),
     heatmap_period: str = Query(default="Last 4 Weeks"),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -512,6 +526,8 @@ def admin_users(
         reg_period=reg_period,
         state_limit=state_limit,
         heatmap_period=heatmap_period,
+        start_date=start_date,
+        end_date=end_date,
     )
 
 
@@ -519,6 +535,8 @@ def admin_users(
 def admin_departments(
     search: str | None = Query(default=None),
     selected_department: str = Query(default="all"),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -526,6 +544,8 @@ def admin_departments(
         db=db,
         search=search,
         selected_department=selected_department,
+        start_date=start_date,
+        end_date=end_date,
     )
 
 
@@ -533,6 +553,8 @@ def admin_departments(
 def admin_usage(
     activity_period: str = Query(default="Last 12 Months"),
     daily_period: str = Query(default="Last 30 Days"),
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -540,4 +562,6 @@ def admin_usage(
         db=db,
         activity_period=activity_period,
         daily_period=daily_period,
+        start_date=start_date,
+        end_date=end_date,
     )

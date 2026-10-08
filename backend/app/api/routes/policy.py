@@ -8,6 +8,8 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
+from datetime import datetime, timedelta, timezone
+
 from app.api.routes.auth import (
     get_current_user,
     normalize_role,
@@ -15,6 +17,7 @@ from app.api.routes.auth import (
 )
 from app.db.database import get_db
 from app.models.user import User
+from app.models.audit_log import AuditLog
 from app.services.audit_log_service import log_request_action
 
 from app.schemas.policy import (
@@ -440,6 +443,7 @@ def save_policy_draft_route(
 )
 def get_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -464,6 +468,34 @@ def get_policy_route(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Policy not found.",
             )
+
+    # View tracking (observability only): one POLICY_VIEW per user/policy
+    # per 30 minutes, so workflow refetches and double renders never
+    # inflate Usage Statistics counts. Never affects the response.
+    window_start = datetime.now(timezone.utc).replace(
+        tzinfo=None
+    ) - timedelta(minutes=30)
+    recent_view = (
+        db.query(AuditLog.audit_id)
+        .filter(
+            AuditLog.action == "POLICY_VIEW",
+            AuditLog.entity_type == "POLICY",
+            AuditLog.entity_id == policy_id,
+            AuditLog.user_id == current_user.user_id,
+            AuditLog.created_at >= window_start,
+        )
+        .first()
+    )
+    if recent_view is None:
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "POLICY_VIEW",
+            "POLICY",
+            policy_id,
+            f"Policy '{policy.title}' viewed.",
+        )
 
     return policy
 

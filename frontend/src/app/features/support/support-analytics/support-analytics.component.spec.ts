@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SupportAnalyticsComponent } from './support-analytics.component';
 import { SupportService } from '../../../core/services/support.service';
+import { AdminAnalyticsDataService } from '../../analytics/admin/services/admin-analytics-data.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 
@@ -69,6 +70,7 @@ describe('SupportAnalyticsComponent', () => {
       imports: [SupportAnalyticsComponent],
       providers: [
         { provide: SupportService, useValue: supportService },
+        { provide: AdminAnalyticsDataService, useValue: { downloadReport: vi.fn().mockReturnValue(of(new Blob())) } },
         { provide: Auth, useValue: { getUserRole: () => 'ADMIN' } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: Router, useValue: { navigate: vi.fn() } },
@@ -96,6 +98,21 @@ describe('SupportAnalyticsComponent', () => {
     expect(component.roleBars()[0]).toEqual({ label: 'CITIZEN', value: 8 });
   });
 
+  it('2c. should always list all five roles with zero-fill', () => {
+    fixture.detectChanges();
+    expect(component.roleRequestCounts()).toEqual([
+      { label: 'Citizen', value: 8 },
+      { label: 'Government Official', value: 0 },
+      { label: 'Organization', value: 0 },
+      { label: 'Researcher', value: 2 },
+      { label: 'Admin', value: 0 },
+    ]);
+    expect(component.roleLabels()).toHaveLength(5);
+    expect(component.roleData()).toEqual([8, 0, 0, 2, 0]);
+    expect(component.roleLabels()).not.toContain('Guest');
+    expect(fixture.nativeElement.textContent).toContain('Support Requests by User');
+  });
+
   it('2b. should derive KPI and trend data from aggregates and tickets', () => {
     fixture.detectChanges();
     expect(component.inProgressCount()).toBe(3);
@@ -121,6 +138,7 @@ describe('SupportAnalyticsComponent', () => {
       imports: [SupportAnalyticsComponent],
       providers: [
         { provide: SupportService, useValue: supportService },
+        { provide: AdminAnalyticsDataService, useValue: { downloadReport: vi.fn().mockReturnValue(of(new Blob())) } },
         { provide: Auth, useValue: { getUserRole: () => 'CITIZEN' } },
         { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
         { provide: Router, useValue: { navigate } },

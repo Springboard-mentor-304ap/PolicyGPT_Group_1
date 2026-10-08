@@ -163,9 +163,22 @@
   }
 }
 
-// KPI Grid (6 Cards)
+// KPI Grid (5 Cards, single row on desktop)
 .kpi-grid {
   @include tokens.analytics-stat-grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 
   .kpi-card {
     @include tokens.analytics-stat-card;
@@ -208,6 +221,14 @@
       &.blue-light {
         background: #e0f2fe;
         color: #0284c7;
+      }
+      &.teal {
+        background: #e0f2f1;
+        color: #0e7490;
+      }
+      &.red {
+        background: #fee2e2;
+        color: #dc2626;
       }
     }
 
@@ -312,6 +333,7 @@
   min-width: 0;
 
   .card-header-row {
+    @include tokens.analytics-card-header-row;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -382,6 +404,7 @@
       0 10px 25px -5px rgba(15, 23, 42, 0.1),
       0 8px 10px -6px rgba(15, 23, 42, 0.05);
     min-width: 140px;
+    max-width: min(220px, calc(100vw - 48px));
     z-index: 30;
     padding: 4px 0;
 
@@ -424,6 +447,7 @@
   flex-direction: column;
 
   .card-header-row {
+    @include tokens.analytics-card-header-row;
     display: flex;
     justify-content: space-between;
     align-items: center;

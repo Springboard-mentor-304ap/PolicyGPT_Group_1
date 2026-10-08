@@ -31,6 +31,7 @@ import {
   AdminUsageStatisticsResponse,
 } from "../models/admin-analytics.models";
 import { environment } from '../../../../../environments/environment';
+import { AnalyticsDateRangeService } from '../../shared/analytics-date-range.service';
 
 @Injectable({
   providedIn: "root",
@@ -38,6 +39,7 @@ import { environment } from '../../../../../environments/environment';
 export class AdminAnalyticsDataService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(Auth);
+  private readonly rangeService = inject(AnalyticsDateRangeService);
   private readonly baseUrl = `${environment.apiUrl}/analytics/admin`;
   private readonly reportsUrl = `${environment.apiUrl}/reports`;
 
@@ -59,6 +61,18 @@ export class AdminAnalyticsDataService {
   constructor() {
     // Never retain one user's protected analytics after logout.
     this.auth.onLoggedOut(() => this.clearCache());
+  }
+
+  /**
+   * Global date-filter bounds merged into every admin analytics request
+   * so all pages aggregate the same selected window. Cache keys embed the
+   * full params, so a range change always misses the cache (never stale).
+   */
+  private rangeParams(): { start_date: string; end_date: string } {
+    return {
+      start_date: this.rangeService.startISO(),
+      end_date: this.rangeService.endISO(),
+    };
   }
 
   private scopedKey(key: string): string {
@@ -133,9 +147,11 @@ export class AdminAnalyticsDataService {
   // =========================================================
 
   getAdminOverview(timeframe: string = "Last 9 Months"): Observable<AdminOverviewResponse> {
-    const key = `overview:${timeframe}`;
+    const range = this.rangeParams();
+    const key = `overview:${timeframe}:${range.start_date}:${range.end_date}`;
     return this.getCached(key, () => {
       let params = new HttpParams().set("timeframe", timeframe);
+      params = params.set("start_date", range.start_date).set("end_date", range.end_date);
       return this.http.get<AdminOverviewResponse>(`${this.baseUrl}/overview`, { params });
     });
   }
@@ -165,7 +181,7 @@ export class AdminAnalyticsDataService {
   // =========================================================
 
   getAdminPolicyAnalytics(filters?: Record<string, string>): Observable<AdminPolicyAnalyticsResponse> {
-    const normalized = this.normalizeFilters(filters);
+    const normalized = { ...this.normalizeFilters(filters), ...this.rangeParams() };
     const filterKey = JSON.stringify(normalized);
     const key = `policies:${filterKey}`;
     return this.getCached(key, () => {
@@ -206,7 +222,7 @@ export class AdminAnalyticsDataService {
   // =========================================================
 
   getAdminSchemeAnalytics(filters?: Record<string, string>): Observable<AdminSchemeAnalyticsResponse> {
-    const normalized = this.normalizeFilters(filters);
+    const normalized = { ...this.normalizeFilters(filters), ...this.rangeParams() };
     const filterKey = JSON.stringify(normalized);
     const key = `schemes:${filterKey}`;
     return this.getCached(key, () => {
@@ -253,6 +269,7 @@ export class AdminAnalyticsDataService {
       state_limit: "10",
       heatmap_period: "Last 4 Weeks",
       ...(paramsObj || {}),
+      ...this.rangeParams(),
     };
     const key = `users:${JSON.stringify(finalParams)}`;
     return this.getCached(key, () => {
@@ -308,12 +325,14 @@ export class AdminAnalyticsDataService {
     search?: string,
     selectedDept: string = "all"
   ): Observable<AdminDepartmentAnalyticsResponse> {
-    const key = `depts:${search || ""}:${selectedDept}`;
+    const range = this.rangeParams();
+    const key = `depts:${search || ""}:${selectedDept}:${range.start_date}:${range.end_date}`;
     return this.getCached(key, () => {
       let params = new HttpParams().set("selected_department", selectedDept || "all");
       if (search && search.trim()) {
         params = params.set("search", search.trim());
       }
+      params = params.set("start_date", range.start_date).set("end_date", range.end_date);
       return this.http.get<AdminDepartmentAnalyticsResponse>(`${this.baseUrl}/departments`, { params });
     });
   }
@@ -335,6 +354,7 @@ export class AdminAnalyticsDataService {
       activity_period: "Last 12 Months",
       daily_period: "Last 30 Days",
       ...(paramsObj || {}),
+      ...this.rangeParams(),
     };
     const key = `usage:${JSON.stringify(finalParams)}`;
     return this.getCached(key, () => {

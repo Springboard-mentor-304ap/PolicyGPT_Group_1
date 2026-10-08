@@ -263,7 +263,7 @@
             </button>
 
             <!-- ANALYTICS SUBMENU -->
-            @if (analyticsMenuOpen && !sidebarCollapsed) {
+            @if ((analyticsMenuOpen || isAnalyticsRouteActive()) && !sidebarCollapsed) {
 
             <div id="admin-analytics-submenu" class="dash-nav__submenu" aria-label="Analytics">
 

@@ -105,7 +105,7 @@
     gap: 12px;
     flex-wrap: wrap;
 
-    .btn-export {
+    .btn-download {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -126,10 +126,15 @@
         color: #0879ed;
       }
 
-      &:hover {
+      &:hover:not(:disabled) {
         border-color: #0879ed;
         color: #0879ed;
         background: #f8fafc;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
     }
   }
@@ -158,9 +163,22 @@
   }
 }
 
-// 5 Stat Cards Row
+// 5 Stat Cards Row (single row on desktop)
 .stats-row {
   @include tokens.analytics-stat-grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 
   .stat-card {
     @include tokens.analytics-stat-card;
@@ -233,16 +251,12 @@
   }
 }
 
-// 3 Chart Cards Row
-.charts-three-row {
+// Full-width single chart row (Scheme Trend, Schemes by Ministry)
+.charts-full-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   margin-bottom: 24px;
-
-  @media (max-width: 1280px) {
-    grid-template-columns: 1fr;
-  }
 }
 
 // 2 Chart/Table Cards Row
@@ -274,9 +288,12 @@
   flex-direction: column;
 
   .card-header-row {
+    @include tokens.analytics-card-header-row;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
     margin-bottom: 18px;
 
     .card-title {
@@ -285,6 +302,7 @@
       color: #111827;
       margin: 0;
       letter-spacing: -0.01em;
+      min-width: 0;
     }
 
     .badge-filter {
@@ -298,6 +316,77 @@
       border-radius: 6px;
       padding: 3px 8px;
       background: #f8fafc;
+      white-space: nowrap;
+    }
+
+    .dropdown-wrapper {
+      position: relative;
+      min-width: 0;
+    }
+
+    .badge-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 3px 8px;
+      background: #f8fafc;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: border-color 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        border-color: #0879ed;
+        color: #0879ed;
+      }
+
+      .material-icons {
+        font-size: 14px;
+        color: #64748b;
+      }
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 4px);
+      background: #ffffff;
+      border: 1px solid #e4e9f1;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+      min-width: 150px;
+      max-width: min(220px, calc(100vw - 48px));
+      z-index: 30;
+      padding: 4px 0;
+
+      .dropdown-item {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #334155;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+
+        &:hover {
+          background: #f1f5f9;
+          color: #0879ed;
+        }
+
+        &.active {
+          font-weight: 600;
+          color: #0879ed;
+          background: #eff6ff;
+        }
+      }
     }
   }
 
@@ -323,6 +412,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
     margin-bottom: 18px;
 
     .card-title {
@@ -331,6 +422,7 @@
       color: #111827;
       margin: 0;
       letter-spacing: -0.01em;
+      min-width: 0;
     }
 
     .table-tag {
@@ -341,6 +433,7 @@
       border-radius: 6px;
       border: 1px solid #e4e9f1;
       font-weight: 500;
+      white-space: nowrap;
     }
   }
 

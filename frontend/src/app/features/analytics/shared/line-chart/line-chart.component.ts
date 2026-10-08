@@ -73,9 +73,17 @@ export class LineChartComponent implements OnChanges, OnDestroy {
   @Input() datasets: LineDataset[] = [];
   @Input() yMin?: number;
   @Input() yMax?: number;
+  /**
+   * When false, Chart.js renders the final state immediately with no
+   * entry/update animation. Defaults to true so existing callers
+   * (e.g. Admin Analytics) keep their current behavior.
+   */
+  @Input() animationsEnabled = true;
 
   private chartInstance: Chart | null = null;
   private isInitialized = false;
+  private pendingFrame: number | null = null;
+  private destroyed = false;
 
   constructor() {
     afterNextRender(() => {
@@ -91,15 +99,25 @@ export class LineChartComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyed = true;
+    this.cancelPendingRender();
     if (this.chartInstance) {
       this.chartInstance.destroy();
       this.chartInstance = null;
     }
   }
 
+  private cancelPendingRender(): void {
+    if (this.pendingFrame !== null) {
+      cancelAnimationFrame(this.pendingFrame);
+      this.pendingFrame = null;
+    }
+  }
+
   private createOrUpdateChart(): void {
     if (!this.chartCanvas?.nativeElement) return;
     if (this.labels.length === 0 || this.datasets.length === 0) {
+      this.cancelPendingRender();
       if (this.chartInstance) {
         this.chartInstance.destroy();
         this.chartInstance = null;
@@ -126,6 +144,10 @@ export class LineChartComponent implements OnChanges, OnDestroy {
         pointHoverBorderColor: '#ffffff',
         pointHoverBorderWidth: 2.5
       }));
+      if (!this.animationsEnabled && this.chartInstance.options) {
+        this.chartInstance.options.animation = false;
+        (this.chartInstance.options as any).animations = {};
+      }
       if (this.chartInstance.options.scales?.['y']) {
         if (this.yMin !== undefined) {
           this.chartInstance.options.scales['y'].min = this.yMin;
@@ -142,7 +164,28 @@ export class LineChartComponent implements OnChanges, OnDestroy {
       return;
     }
 
-    const ctx = this.chartCanvas.nativeElement.getContext('2d');
+    // Defer creation to the next animation frame so the browser has
+    // applied layout first. The canvas flips from display:none to block
+    // in the same change-detection cycle that delivers the data; creating
+    // the Chart synchronously would measure a not-yet-laid-out canvas and
+    // freeze it at a tiny size (Chart.js observes the parent container,
+    // whose dimensions never change, so it never recovers).
+    this.cancelPendingRender();
+    this.pendingFrame = requestAnimationFrame(() => {
+      this.pendingFrame = null;
+      if (this.destroyed || !this.chartCanvas?.nativeElement) return;
+      if (this.labels.length === 0 || this.datasets.length === 0 || this.chartInstance) return;
+      this.renderChart();
+      // Re-measure once layout has settled so the first paint is already
+      // at the final size (no small → large jump).
+      requestAnimationFrame(() => {
+        if (!this.destroyed) this.chartInstance?.resize();
+      });
+    });
+  }
+
+  private renderChart(): void {
+    const ctx = this.chartCanvas?.nativeElement.getContext('2d');
     if (!ctx) return;
 
     this.chartInstance = new Chart(ctx, {
@@ -170,8 +213,8 @@ export class LineChartComponent implements OnChanges, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: getLineChartAnimationConfig(),
-        animations: getLineChartAnimationsProperty(),
+        animation: this.animationsEnabled ? getLineChartAnimationConfig() : false,
+        animations: this.animationsEnabled ? getLineChartAnimationsProperty() : {},
         hover: CHART_HOVER_OPTIONS,
         plugins: {
           legend: {

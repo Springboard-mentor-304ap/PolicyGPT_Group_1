@@ -118,44 +118,117 @@ def _parse_months_count(value: str, default: int) -> int:
     return default
 
 
+def _parse_iso_day(value: Optional[str]) -> Optional[datetime]:
+    """'YYYY-MM-DD' → naive 00:00 datetime; None when absent/invalid."""
+    if not value:
+        return None
+    try:
+        text = str(value).strip()[:10]
+        return datetime(int(text[0:4]), int(text[5:7]), int(text[8:10]))
+    except (ValueError, IndexError):
+        return None
+
+
+def _window_month_buckets(
+    win_start: datetime, win_end_excl: datetime
+) -> list:
+    """Calendar-month buckets intersecting [win_start, win_end_excl).
+
+    Same tuple shape as _month_bounds so trend code is unchanged.
+    """
+    out = []
+    year, month = win_start.year, win_start.month
+    while True:
+        start = datetime(year, month, 1)
+        end = datetime(year + month // 12, month % 12 + 1, 1)
+        if start >= win_end_excl:
+            break
+        out.append((year, month, start.strftime("%b"), start, end))
+        year, month = (year, month + 1) if month < 12 else (year + 1, 1)
+    return out
+
+
+def _resolve_window(
+    start_iso: Optional[str],
+    end_iso: Optional[str],
+    default_months: int,
+) -> tuple[datetime, datetime, datetime, list]:
+    """Resolve the single analytics window for an aggregate call.
+
+    Explicit ISO day bounds win (inclusive start/end days → half-open
+    [win_start, win_end_excl), so custom ranges never drop the end day).
+    Otherwise the trailing `default_months` calendar months (legacy
+    behavior for callers without bounds). Returns
+    (win_start, win_end_excl, prev_start, month_buckets) where buckets
+    are the calendar months intersecting the window and prev_start opens
+    the equal-length baseline window immediately before win_start (used
+    for every "% change" comparison). All naive datetimes, matching the
+    existing UTC-naive storage convention.
+    """
+    start = _parse_iso_day(start_iso)
+    end = _parse_iso_day(end_iso)
+    if start is not None and end is not None and end >= start:
+        win_start = start
+        win_end_excl = end + timedelta(days=1)
+        buckets = _window_month_buckets(win_start, win_end_excl)
+    else:
+        buckets = _month_bounds(default_months)
+        win_start = buckets[0][3]
+        win_end_excl = buckets[-1][4]
+    span = win_end_excl - win_start
+    if span.total_seconds() <= 0:
+        span = timedelta(days=1)
+    return win_start, win_end_excl, win_start - span, buckets
+
+
 # =========================================================================
 # 1. ADMIN OVERVIEW ANALYTICS
 # =========================================================================
 
 
 def get_admin_overview_analytics(
-    db: Session, timeframe: str = "Last 9 Months"
+    db: Session,
+    timeframe: str = "Last 9 Months",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    thirty_days_ago = now - timedelta(days=30)
-    sixty_days_ago = now - timedelta(days=60)
+    # Single global window: explicit ISO bounds win, else the trailing
+    # `timeframe` months (legacy). Every count below is created inside
+    # [win_start, win_end_excl); every "% change" compares against the
+    # equal-length window immediately before win_start.
+    win_start, win_end_excl, prev_start, _ = _resolve_window(
+        start_date, end_date, _parse_months_count(timeframe, 9)
+    )
+
+    def _in_win(col):
+        return and_(col >= win_start, col < win_end_excl)
+
+    def _in_prev(col):
+        return and_(col >= prev_start, col < win_start)
 
     # 1. KPI Cards Aggregates — 4 grouped queries instead of 16 COUNTs.
     # Each returns current + prev-period in one roundtrip via conditional SUM.
-    # Prev-period columns mirror the legacy logic: totals/notifs on
-    # created_at, per-status buckets on updated_at.
     users_row = db.query(
-        func.count(User.user_id),
-        func.sum(case((User.created_at < thirty_days_ago, 1), else_=0)),
+        func.sum(case((_in_win(User.created_at), 1), else_=0)),
+        func.sum(case((_in_prev(User.created_at), 1), else_=0)),
     ).first()
-    total_users = users_row[0] or 0
+    total_users = int(users_row[0] or 0)
     users_prev = int(users_row[1] or 0)
     users_chg, users_pos = _calc_change(total_users, users_prev)
 
     pol_rows = (
         db.query(
             Policy.status,
-            func.count(Policy.policy_id),
-            func.sum(case((Policy.updated_at < thirty_days_ago, 1), else_=0)),
+            func.sum(case((_in_win(Policy.created_at), 1), else_=0)),
+            func.sum(case((_in_prev(Policy.created_at), 1), else_=0)),
         )
         .group_by(Policy.status)
         .all()
     )
-    pol_by_status = {s: (c, int(p or 0)) for s, c, p in pol_rows}
+    pol_by_status = {s: (int(c or 0), int(p or 0)) for s, c, p in pol_rows}
     total_policies = sum(c for c, _ in pol_by_status.values())
-    policies_prev = (
-        db.query(Policy).filter(Policy.created_at < thirty_days_ago).count()
-    )
+    policies_prev = sum(p for _, p in pol_by_status.values())
     policies_chg, policies_pos = _calc_change(total_policies, policies_prev)
 
     def _pol(statuses):
@@ -175,17 +248,15 @@ def get_admin_overview_analytics(
     sch_rows = (
         db.query(
             Scheme.status,
-            func.count(Scheme.scheme_id),
-            func.sum(case((Scheme.updated_at < thirty_days_ago, 1), else_=0)),
+            func.sum(case((_in_win(Scheme.created_at), 1), else_=0)),
+            func.sum(case((_in_prev(Scheme.created_at), 1), else_=0)),
         )
         .group_by(Scheme.status)
         .all()
     )
-    sch_by_status = {s: (c, int(p or 0)) for s, c, p in sch_rows}
+    sch_by_status = {s: (int(c or 0), int(p or 0)) for s, c, p in sch_rows}
     total_schemes = sum(c for c, _ in sch_by_status.values())
-    schemes_prev = (
-        db.query(Scheme).filter(Scheme.created_at < thirty_days_ago).count()
-    )
+    schemes_prev = sum(p for _, p in sch_by_status.values())
     schemes_chg, schemes_pos = _calc_change(total_schemes, schemes_prev)
 
     active_schemes, act_prev = sch_by_status.get("APPROVED", (0, 0))
@@ -193,12 +264,10 @@ def get_admin_overview_analytics(
     act_chg, act_pos = _calc_change(active_schemes, act_prev)
 
     notifs_row = db.query(
-        func.count(Notification.notification_id),
-        func.sum(
-            case((Notification.created_at < thirty_days_ago, 1), else_=0)
-        ),
+        func.sum(case((_in_win(Notification.created_at), 1), else_=0)),
+        func.sum(case((_in_prev(Notification.created_at), 1), else_=0)),
     ).first()
-    total_notifs = notifs_row[0] or 0
+    total_notifs = int(notifs_row[0] or 0)
     notifs_prev = int(notifs_row[1] or 0)
     notifs_chg, notifs_pos = _calc_change(total_notifs, notifs_prev)
 
@@ -255,11 +324,12 @@ def get_admin_overview_analytics(
     ]
 
     # 2. Policy Status Trend — 1 grouped query instead of 3×N COUNTs.
+    # Buckets are the window's calendar months (day-bounded so partial
+    # edge months only count in-window days).
     months_count = _parse_months_count(timeframe, 9)
 
-    month_buckets = _month_bounds(months_count)
+    month_buckets = _resolve_window(start_date, end_date, months_count)[3]
     labels = [b[2] for b in month_buckets]
-    window_start = month_buckets[0][3]
 
     trend_rows = (
         db.query(
@@ -268,7 +338,7 @@ def get_admin_overview_analytics(
             Policy.status,
             func.count(Policy.policy_id),
         )
-        .filter(Policy.created_at >= window_start)
+        .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .group_by(
             func.extract("year", Policy.created_at),
             func.extract("month", Policy.created_at),
@@ -303,6 +373,7 @@ def get_admin_overview_analytics(
     category_counts = (
         db.query(Scheme.category, func.count(Scheme.scheme_id))
         .filter(Scheme.category.isnot(None))
+        .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(Scheme.category)
         .all()
     )
@@ -318,7 +389,10 @@ def get_admin_overview_analytics(
 
     # 4. User Distribution by Role
     role_counts = (
-        db.query(User.role, func.count(User.user_id)).group_by(User.role).all()
+        db.query(User.role, func.count(User.user_id))
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
+        .group_by(User.role)
+        .all()
     )
     role_labels = []
     role_data = []
@@ -348,6 +422,7 @@ def get_admin_overview_analytics(
     recent_logs = (
         db.query(AuditLog, User.email)
         .outerjoin(User, AuditLog.user_id == User.user_id)
+        .filter(AuditLog.created_at >= win_start, AuditLog.created_at < win_end_excl)
         .order_by(AuditLog.created_at.desc())
         .limit(5)
         .all()
@@ -377,6 +452,7 @@ def get_admin_overview_analytics(
     # 6. Latest Notifications
     latest_notifs = (
         db.query(Notification)
+        .filter(Notification.created_at >= win_start, Notification.created_at < win_end_excl)
         .order_by(Notification.created_at.desc())
         .limit(5)
         .all()
@@ -453,9 +529,16 @@ def get_admin_policy_analytics(
         else:
             q = q.filter(Policy.status == status_norm)
 
+    # Global date window (explicit bounds, else trailing 12 months):
+    # stats, breakdowns and the trend below all aggregate rows created
+    # inside [win_start, win_end_excl); "% change" compares against the
+    # equal-length window immediately before win_start.
+    win_start, win_end_excl, prev_start, _ = _resolve_window(
+        filters.get("start_date"), filters.get("end_date"), 12
+    )
+    q = q.filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
+
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    thirty_days_ago = now - timedelta(days=30)
-    sixty_days_ago = now - timedelta(days=60)
 
     # Stats — 1 grouped query (current + prev via conditional SUM)
     # instead of 10 COUNTs on the filtered base.
@@ -463,7 +546,18 @@ def get_admin_policy_analytics(
         q.with_entities(
             Policy.status,
             func.count(Policy.policy_id),
-            func.sum(case((Policy.created_at < thirty_days_ago, 1), else_=0)),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            Policy.created_at >= prev_start,
+                            Policy.created_at < win_start,
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ),
         )
         .group_by(Policy.status)
         .all()
@@ -534,30 +628,48 @@ def get_admin_policy_analytics(
         for c in cat_counts
     ]
 
-    # Trend — 1 grouped query instead of 6 COUNTs.
-    month_buckets = _month_bounds(6)
+    # Trend by status — 1 grouped query (year/month/status) instead of
+    # 3xN COUNTs. Buckets are the global window's calendar months
+    # (day-bounded so partial edge months only count in-window days).
+    # Pending covers PENDING + PENDING_APPROVAL, matching the stats
+    # aggregation above (policies have no DRAFT status).
+    month_buckets = _resolve_window(
+        filters.get("start_date"), filters.get("end_date"), 12
+    )[3]
     trend_labels = [b[2] for b in month_buckets]
-    trend_start = month_buckets[0][3]
-    month_rows = (
+    status_rows = (
         q.with_entities(
             func.extract("year", Policy.created_at),
             func.extract("month", Policy.created_at),
+            Policy.status,
             func.count(Policy.policy_id),
         )
-        .filter(Policy.created_at >= trend_start)
+        .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .group_by(
             func.extract("year", Policy.created_at),
             func.extract("month", Policy.created_at),
+            Policy.status,
         )
         .all()
     )
-    month_map = {(int(y), int(m)): c for y, m, c in month_rows}
-    trend_data = [month_map.get((y, m), 0) for y, m, _, _, _ in month_buckets]
+    status_map = {(int(y), int(m), s): c for y, m, s, c in status_rows}
+    approved_data = []
+    pending_data = []
+    rejected_data = []
+    for y, m, _, _, _ in month_buckets:
+        approved_data.append(status_map.get((y, m, "APPROVED"), 0))
+        pending_data.append(
+            status_map.get((y, m, "PENDING"), 0)
+            + status_map.get((y, m, "PENDING_APPROVAL"), 0)
+        )
+        rejected_data.append(status_map.get((y, m, "REJECTED"), 0))
 
     trend = {
         "labels": trend_labels,
         "series": [
-            {"label": "Policies", "data": trend_data, "color": "#2f6fed"}
+            {"label": "Approved", "data": approved_data, "color": "#3cb371"},
+            {"label": "Pending", "data": pending_data, "color": "#f5a524"},
+            {"label": "Rejected", "data": rejected_data, "color": "#e5484d"},
         ],
     }
 
@@ -652,15 +764,34 @@ def get_admin_scheme_analytics(
         else:
             q = q.filter(Scheme.status == s_filter)
 
+    # Global date window (explicit bounds, else trailing 12 months):
+    # stats, breakdowns and the trend below all aggregate rows created
+    # inside [win_start, win_end_excl); "% change" compares against the
+    # equal-length window immediately before win_start.
+    win_start, win_end_excl, prev_start, _ = _resolve_window(
+        filters.get("start_date"), filters.get("end_date"), 12
+    )
+    q = q.filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
+
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    thirty_days_ago = now - timedelta(days=30)
 
     # Stats — 1 grouped query instead of 10 COUNTs.
     status_rows = (
         q.with_entities(
             Scheme.status,
             func.count(Scheme.scheme_id),
-            func.sum(case((Scheme.created_at < thirty_days_ago, 1), else_=0)),
+            func.sum(
+                case(
+                    (
+                        and_(
+                            Scheme.created_at >= prev_start,
+                            Scheme.created_at < win_start,
+                        ),
+                        1,
+                    ),
+                    else_=0,
+                )
+            ),
         )
         .group_by(Scheme.status)
         .all()
@@ -731,30 +862,47 @@ def get_admin_scheme_analytics(
         for c in cat_counts
     ]
 
-    # Trend — 1 grouped query instead of 6 COUNTs.
-    month_buckets = _month_bounds(6)
+    # Trend by status — 1 grouped query (year/month/status). Buckets are
+    # the global window's calendar months (day-bounded so partial edge
+    # months only count in-window days).
+    month_buckets = _resolve_window(
+        filters.get("start_date"), filters.get("end_date"), 12
+    )[3]
     trend_labels = [b[2] for b in month_buckets]
-    trend_start = month_buckets[0][3]
-    month_rows = (
+    status_rows = (
         q.with_entities(
             func.extract("year", Scheme.created_at),
             func.extract("month", Scheme.created_at),
+            Scheme.status,
             func.count(Scheme.scheme_id),
         )
-        .filter(Scheme.created_at >= trend_start)
+        .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(
             func.extract("year", Scheme.created_at),
             func.extract("month", Scheme.created_at),
+            Scheme.status,
         )
         .all()
     )
-    month_map = {(int(y), int(m)): c for y, m, c in month_rows}
-    trend_data = [month_map.get((y, m), 0) for y, m, _, _, _ in month_buckets]
+    status_map = {(int(y), int(m), s): c for y, m, s, c in status_rows}
+    approved_data = []
+    pending_data = []
+    rejected_data = []
+    for y, m, _, _, _ in month_buckets:
+        approved_data.append(status_map.get((y, m, "APPROVED"), 0))
+        pending_data.append(
+            status_map.get((y, m, "PENDING"), 0)
+            + status_map.get((y, m, "PENDING_APPROVAL"), 0)
+            + status_map.get((y, m, "DRAFT"), 0)
+        )
+        rejected_data.append(status_map.get((y, m, "REJECTED"), 0))
 
     trend = {
         "labels": trend_labels,
         "series": [
-            {"label": "Schemes", "data": trend_data, "color": "#3cb371"}
+            {"label": "Approved", "data": approved_data, "color": "#3cb371"},
+            {"label": "Pending", "data": pending_data, "color": "#f5a524"},
+            {"label": "Rejected", "data": rejected_data, "color": "#e5484d"},
         ],
     }
 
@@ -769,6 +917,20 @@ def get_admin_scheme_analytics(
     )
     by_state = [
         {"label": s[0] or "Unknown", "value": s[1]} for s in state_counts
+    ]
+
+    # By Ministry (mirrors the policy aggregate: top 10 by scheme count;
+    # the frontend slices Top 5 / Top 10 / All client-side).
+    min_counts = (
+        q.with_entities(Scheme.ministry, func.count(Scheme.scheme_id))
+        .filter(Scheme.ministry.isnot(None))
+        .group_by(Scheme.ministry)
+        .order_by(desc(func.count(Scheme.scheme_id)))
+        .limit(10)
+        .all()
+    )
+    by_ministry = [
+        {"label": m[0] or "Unknown", "value": m[1]} for m in min_counts
     ]
 
     # Top schemes: newest 10. No views/applications table exists in the
@@ -806,6 +968,7 @@ def get_admin_scheme_analytics(
         "by_category": by_category,
         "trend": trend,
         "by_state": by_state,
+        "by_ministry": by_ministry,
         "top_schemes": top_schemes,
         "recent_updates": recent_updates,
     }
@@ -822,57 +985,51 @@ def get_admin_user_analytics(
     reg_period: str = "Last 6 Months",
     state_limit: int = 10,
     heatmap_period: str = "Last 4 Weeks",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    thirty_days_ago = now - timedelta(days=30)
-    sixty_days_ago = now - timedelta(days=60)
+    # Global date window (explicit bounds, else trailing 12 months): every
+    # count below covers users/records created inside
+    # [win_start, win_end_excl); "% change" compares against the
+    # equal-length window immediately before win_start.
+    win_start, win_end_excl, prev_start, _ = _resolve_window(
+        start_date, end_date, 12
+    )
+
+    def _in_win(col):
+        return and_(col >= win_start, col < win_end_excl)
+
+    def _in_prev(col):
+        return and_(col >= prev_start, col < win_start)
 
     # KPI base — 2 grouped queries instead of 12 COUNTs.
     user_row = db.query(
-        func.count(User.user_id),
-        func.sum(case((User.is_active == True, 1), else_=0)),
-        func.sum(case((User.created_at >= thirty_days_ago, 1), else_=0)),
+        func.sum(case((_in_win(User.created_at), 1), else_=0)),
         func.sum(
-            case(
-                (
-                    and_(
-                        User.created_at >= sixty_days_ago,
-                        User.created_at < thirty_days_ago,
-                    ),
-                    1,
-                ),
-                else_=0,
-            )
+            case((and_(User.is_active == True, _in_win(User.created_at)), 1), else_=0)
         ),
+        func.sum(case((_in_prev(User.created_at), 1), else_=0)),
         func.sum(
-            case(
-                (
-                    and_(
-                        User.is_active == True,
-                        User.created_at < thirty_days_ago,
-                    ),
-                    1,
-                ),
-                else_=0,
-            )
+            case((and_(User.is_active == True, _in_prev(User.created_at)), 1), else_=0)
         ),
     ).first()
-    total_users = user_row[0] or 0
+    total_users = int(user_row[0] or 0)
     active_users = int(user_row[1] or 0)
-    new_users = int(user_row[2] or 0)
-    new_prev = int(user_row[3] or 0)
-    active_prev = int(user_row[4] or 0)
+    new_users = total_users
+    new_prev = int(user_row[2] or 0)
+    active_prev = int(user_row[3] or 0)
 
     role_prev_rows = (
         db.query(
             User.role,
-            func.count(User.user_id),
-            func.sum(case((User.created_at < thirty_days_ago, 1), else_=0)),
+            func.sum(case((_in_win(User.created_at), 1), else_=0)),
+            func.sum(case((_in_prev(User.created_at), 1), else_=0)),
         )
         .group_by(User.role)
         .all()
     )
-    role_totals = {r: (c, int(p or 0)) for r, c, p in role_prev_rows}
+    role_totals = {r: (int(c or 0), int(p or 0)) for r, c, p in role_prev_rows}
     total_prev = sum(p for _, p in role_totals.values())
     officials, officials_prev = role_totals.get("GOVERNMENT_OFFICIAL", (0, 0))
     orgs, orgs_prev = role_totals.get("ORGANIZATION", (0, 0))
@@ -935,11 +1092,13 @@ def get_admin_user_analytics(
         },
     ]
 
-    # Growth trend — 1 grouped query instead of 3×N COUNTs.
+    # Growth trend — 1 grouped query instead of 3×N COUNTs. Buckets are
+    # the global window's calendar months (day-bounded so partial edge
+    # months only count in-window days); the period dropdown slices the
+    # newest N points client-side.
     growth_months = _parse_months_count(growth_period, 3)
-    buckets = _month_bounds(growth_months)
+    buckets = _window_month_buckets(win_start, win_end_excl)
     growth_labels = [b[2] for b in buckets]
-    growth_start = buckets[0][3]
 
     growth_rows = (
         db.query(
@@ -948,7 +1107,7 @@ def get_admin_user_analytics(
             User.role,
             func.count(User.user_id),
         )
-        .filter(User.created_at >= growth_start)
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
         .group_by(
             func.extract("year", User.created_at),
             func.extract("month", User.created_at),
@@ -961,12 +1120,27 @@ def get_admin_user_analytics(
     citizen_series = []
     officials_series = []
     researchers_series = []
+    admins_series = []
+    guests_series = []
+    organizations_series = []
     for y, m, _, _, _ in buckets:
         citizen_series.append(growth_map.get((y, m, "CITIZEN"), 0))
         officials_series.append(
             growth_map.get((y, m, "GOVERNMENT_OFFICIAL"), 0)
         )
         researchers_series.append(growth_map.get((y, m, "RESEARCHER"), 0))
+        # ADMIN covers both ADMIN and ADMINISTRATOR role values (mirrors
+        # the Admins KPI merge); ORGANIZATION covers the ORGANISATION
+        # spelling variant accepted by the auth/role guards.
+        admins_series.append(
+            growth_map.get((y, m, "ADMIN"), 0)
+            + growth_map.get((y, m, "ADMINISTRATOR"), 0)
+        )
+        guests_series.append(growth_map.get((y, m, "GUEST"), 0))
+        organizations_series.append(
+            growth_map.get((y, m, "ORGANIZATION"), 0)
+            + growth_map.get((y, m, "ORGANISATION"), 0)
+        )
 
     growth_trend = {
         "labels": growth_labels,
@@ -981,6 +1155,21 @@ def get_admin_user_analytics(
                 "label": "Researchers",
                 "data": researchers_series,
                 "color": "#8b5cf6",
+            },
+            {
+                "label": "Admins",
+                "data": admins_series,
+                "color": "#e5484d",
+            },
+            {
+                "label": "Guests",
+                "data": guests_series,
+                "color": "#94a3b8",
+            },
+            {
+                "label": "Organizations",
+                "data": organizations_series,
+                "color": "#f5a524",
             },
         ],
     }
@@ -1012,18 +1201,19 @@ def get_admin_user_analytics(
         "total": f"{total_users:,}",
     }
 
-    # Registration trend — 1 grouped query instead of N COUNTs.
+    # Registration trend — 1 grouped query instead of N COUNTs. Buckets
+    # are the global window's calendar months; the period dropdown slices
+    # the newest N points client-side.
     reg_months = 6 if "6" in reg_period else 3
-    reg_buckets = _month_bounds(reg_months)
+    reg_buckets = _window_month_buckets(win_start, win_end_excl)
     reg_trend_labels = [b[2] for b in reg_buckets]
-    reg_start = reg_buckets[0][3]
     reg_rows = (
         db.query(
             func.extract("year", User.created_at),
             func.extract("month", User.created_at),
             func.count(User.user_id),
         )
-        .filter(User.created_at >= reg_start)
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
         .group_by(
             func.extract("year", User.created_at),
             func.extract("month", User.created_at),
@@ -1040,10 +1230,11 @@ def get_admin_user_analytics(
         "values": reg_trend_values,
     }
 
-    # Users by state
+    # Users by state (windowed)
     state_counts = (
         db.query(User.state, func.count(User.user_id))
         .filter(User.state.isnot(None))
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
         .group_by(User.state)
         .order_by(desc(func.count(User.user_id)))
         .limit(state_limit)
@@ -1055,50 +1246,37 @@ def get_admin_user_analytics(
     }
 
     # Engagement metrics — 4 single-row conditional queries instead of 8.
+    # Windowed on each record's own timestamp.
     login_cond = or_(
         AuditLog.action.ilike("%login%"), AuditLog.action.ilike("%auth%")
     )
     logins_row = (
         db.query(
-            func.count(AuditLog.audit_id),
-            func.sum(
-                case(
-                    (
-                        and_(
-                            login_cond, AuditLog.created_at < thirty_days_ago
-                        ),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ),
+            func.sum(case((and_(login_cond, _in_win(AuditLog.created_at)), 1), else_=0)),
+            func.sum(case((and_(login_cond, _in_prev(AuditLog.created_at)), 1), else_=0)),
         )
         .filter(login_cond)
         .first()
     )
-    total_logins = logins_row[0] or 0
+    total_logins = int(logins_row[0] or 0)
     logins_prev = int(logins_row[1] or 0)
     searches_row = db.query(
-        func.count(SearchHistory.history_id),
-        func.sum(
-            case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
-        ),
+        func.sum(case((_in_win(SearchHistory.searched_at), 1), else_=0)),
+        func.sum(case((_in_prev(SearchHistory.searched_at), 1), else_=0)),
     ).first()
-    search_queries = searches_row[0] or 0
+    search_queries = int(searches_row[0] or 0)
     searches_prev = int(searches_row[1] or 0)
     reports_row = db.query(
-        func.count(Report.report_id),
-        func.sum(case((Report.generated_at < thirty_days_ago, 1), else_=0)),
+        func.sum(case((_in_win(Report.generated_at), 1), else_=0)),
+        func.sum(case((_in_prev(Report.generated_at), 1), else_=0)),
     ).first()
-    reports_gen = reports_row[0] or 0
+    reports_gen = int(reports_row[0] or 0)
     reports_prev = int(reports_row[1] or 0)
     notifs_row = db.query(
-        func.count(Notification.notification_id),
-        func.sum(
-            case((Notification.created_at < thirty_days_ago, 1), else_=0)
-        ),
+        func.sum(case((_in_win(Notification.created_at), 1), else_=0)),
+        func.sum(case((_in_prev(Notification.created_at), 1), else_=0)),
     ).first()
-    notifs_sent = notifs_row[0] or 0
+    notifs_sent = int(notifs_row[0] or 0)
     notifs_prev = int(notifs_row[1] or 0)
     logins_chg, logins_pos = _calc_change(total_logins, logins_prev)
     searches_chg, searches_pos = _calc_change(search_queries, searches_prev)
@@ -1142,6 +1320,10 @@ def get_admin_user_analytics(
 
     # Heatmap — 1 grouped query instead of 56 COUNTs.
     # PostgreSQL: isodow 1=Mon..7=Sun; 3-hour buckets via hour/3.
+    # Bounded to the heatmap period intersected with the global window.
+    heat_weeks = 8 if "8" in heatmap_period else (2 if heatmap_period.startswith("Last 2") else 4)
+    heat_start = max(now - timedelta(weeks=heat_weeks), win_start)
+    heat_end = min(now, win_end_excl)
     days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     times = ["12 AM", "3 AM", "6 AM", "9 AM", "12 PM", "3 PM", "6 PM", "9 PM"]
     heat_rows = (
@@ -1150,6 +1332,7 @@ def get_admin_user_analytics(
             (func.extract("hour", AuditLog.created_at) / 3).cast(Integer),
             func.count(AuditLog.audit_id),
         )
+        .filter(AuditLog.created_at >= heat_start, AuditLog.created_at < heat_end)
         .group_by(
             func.extract("isodow", AuditLog.created_at),
             (func.extract("hour", AuditLog.created_at) / 3).cast(Integer),
@@ -1180,9 +1363,13 @@ def get_admin_user_analytics(
         "cells": cells,
     }
 
-    # Recent registered users
+    # Recent registered users (windowed)
     recent_users_db = (
-        db.query(User).order_by(User.created_at.desc()).limit(10).all()
+        db.query(User)
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
+        .order_by(User.created_at.desc())
+        .limit(10)
+        .all()
     )
     recent_registered_users = [
         {
@@ -1201,10 +1388,11 @@ def get_admin_user_analytics(
     ]
 
     # Top active users from AuditLog — batch User + SearchHistory lookups
-    # (2 queries) instead of N+1 per-user queries.
+    # (2 queries) instead of N+1 per-user queries. Windowed on activity.
     active_user_counts = (
         db.query(AuditLog.user_id, func.count(AuditLog.audit_id))
         .filter(AuditLog.user_id.isnot(None))
+        .filter(AuditLog.created_at >= win_start, AuditLog.created_at < win_end_excl)
         .group_by(AuditLog.user_id)
         .order_by(desc(func.count(AuditLog.audit_id)))
         .limit(10)
@@ -1222,6 +1410,10 @@ def get_admin_user_analytics(
     search_rows = (
         db.query(SearchHistory.user_id, func.count(SearchHistory.history_id))
         .filter(SearchHistory.user_id.in_(top_uids))
+        .filter(
+            SearchHistory.searched_at >= win_start,
+            SearchHistory.searched_at < win_end_excl,
+        )
         .group_by(SearchHistory.user_id)
         .all()
         if top_uids
@@ -1266,9 +1458,18 @@ def get_admin_department_analytics(
     db: Session,
     search: Optional[str] = None,
     selected_department: str = "all",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     # Distinct department names come from the grouped aggregate queries
     # below (no separate DISTINCT roundtrips).
+    # Global date window (explicit bounds, else trailing 12 months): every
+    # count below aggregates rows created inside
+    # [win_start, win_end_excl). lastUpdated stays the latest sync
+    # metadata (not windowed) by design.
+    win_start, win_end_excl, _, _ = _resolve_window(
+        start_date, end_date, 12
+    )
 
     # Department styling palettes
     palette = [
@@ -1281,7 +1482,7 @@ def get_admin_department_analytics(
     ]
 
     # Per-department aggregates — 2 grouped queries with conditional SUMs
-    # instead of 8 COUNTs per department (N+1).
+    # instead of 8 COUNTs per department (N+1). Windowed on created_at.
     pol_dept_rows = (
         db.query(
             Policy.department,
@@ -1296,6 +1497,7 @@ def get_admin_department_analytics(
             func.sum(case((Policy.status == "REJECTED", 1), else_=0)),
         )
         .filter(Policy.department.isnot(None))
+        .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .group_by(Policy.department)
         .all()
     )
@@ -1322,6 +1524,7 @@ def get_admin_department_analytics(
             func.sum(case((Scheme.status == "REJECTED", 1), else_=0)),
         )
         .filter(Scheme.department.isnot(None))
+        .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(Scheme.department)
         .all()
     )
@@ -1343,6 +1546,7 @@ def get_admin_department_analytics(
         null_pols = (
             db.query(func.count(Policy.policy_id))
             .filter(Policy.department.is_(None))
+            .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
             .scalar()
             or 0
         )
@@ -1356,6 +1560,7 @@ def get_admin_department_analytics(
         null_schs = (
             db.query(func.count(Scheme.scheme_id))
             .filter(Scheme.department.is_(None))
+            .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
             .scalar()
             or 0
         )
@@ -1436,12 +1641,16 @@ def get_admin_department_analytics(
         selected_overview = matched["overview"]
 
     # Trend datasets — 2 grouped queries instead of 2×N COUNTs.
-    month_buckets = _month_bounds(6)
+    # Buckets are the global window's calendar months (day-bounded so
+    # partial edge months only count in-window days).
+    month_buckets = _resolve_window(start_date, end_date, 12)[3]
     month_labels = [b[2] for b in month_buckets]
-    trend_start = month_buckets[0][3]
 
     def _trend_rows(model, created_col):
-        filt = [created_col >= trend_start]
+        filt = [
+            created_col >= win_start,
+            created_col < win_end_excl,
+        ]
         if matched and matched["id"] != "all":
             filt.append(model.department == matched["name"])
         rows = (
@@ -1482,10 +1691,11 @@ def get_admin_department_analytics(
         },
     ]
 
-    # Top by policies & schemes
+    # Top by policies & schemes (windowed)
     top_pols = (
         db.query(Policy.department, func.count(Policy.policy_id))
         .filter(Policy.department.isnot(None))
+        .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .group_by(Policy.department)
         .order_by(desc(func.count(Policy.policy_id)))
         .limit(5)
@@ -1498,6 +1708,7 @@ def get_admin_department_analytics(
     top_schs = (
         db.query(Scheme.department, func.count(Scheme.scheme_id))
         .filter(Scheme.department.isnot(None))
+        .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(Scheme.department)
         .order_by(desc(func.count(Scheme.scheme_id)))
         .limit(5)
@@ -1505,9 +1716,71 @@ def get_admin_department_analytics(
     )
     top_by_schemes = [{"label": s[0], "value": s[1]} for s in top_schs if s[0]]
 
-    # Performance table: views/downloads have no source table
-    # (no policy/scheme view counters in schema), so they are honestly
-    # unavailable ("—"). lastUpdated is the real max(updated_at) per dept —
+    # Performance table: per-department view counts come from the SAME
+    # POLICY_VIEW / SCHEME_VIEW audit rows the Usage Statistics KPIs
+    # count (single source of truth — no separate counters). The schema
+    # stores department as a name string (no department FK), so each view
+    # is attributed through its policy/scheme row's department value —
+    # the same strings the aggregates above group by. Views are bounded
+    # to the global window via the audit row's own timestamp, so the
+    # table (and the details modal) respect the selected date range.
+    # Two grouped join queries (never one request per department).
+    pol_view_rows = (
+        db.query(Policy.department, func.count(AuditLog.audit_id))
+        .join(
+            AuditLog,
+            and_(
+                AuditLog.action == "POLICY_VIEW",
+                AuditLog.entity_type == "POLICY",
+                AuditLog.entity_id == Policy.policy_id,
+            ),
+        )
+        .filter(Policy.department.isnot(None))
+        .filter(
+            AuditLog.created_at >= win_start,
+            AuditLog.created_at < win_end_excl,
+        )
+        .group_by(Policy.department)
+        .all()
+    )
+    sch_view_rows = (
+        db.query(Scheme.department, func.count(AuditLog.audit_id))
+        .join(
+            AuditLog,
+            and_(
+                AuditLog.action == "SCHEME_VIEW",
+                AuditLog.entity_type == "SCHEME",
+                AuditLog.entity_id == Scheme.scheme_id,
+            ),
+        )
+        .filter(Scheme.department.isnot(None))
+        .filter(
+            AuditLog.created_at >= win_start,
+            AuditLog.created_at < win_end_excl,
+        )
+        .group_by(Scheme.department)
+        .all()
+    )
+    policy_views_by_dept: Dict[str, int] = {}
+    for d_name, cnt in pol_view_rows:
+        if d_name:
+            policy_views_by_dept[d_name] = int(cnt or 0)
+    scheme_views_by_dept: Dict[str, int] = {}
+    for d_name, cnt in sch_view_rows:
+        if d_name:
+            scheme_views_by_dept[d_name] = int(cnt or 0)
+    views_by_dept: Dict[str, int] = {}
+    for d_name, cnt in list(pol_view_rows) + list(sch_view_rows):
+        if d_name:
+            views_by_dept[d_name] = views_by_dept.get(d_name, 0) + int(
+                cnt or 0
+            )
+    view_totals = {
+        "policy_views": sum(policy_views_by_dept.values()),
+        "scheme_views": sum(scheme_views_by_dept.values()),
+        "total_views": sum(views_by_dept.values()),
+    }
+    # lastUpdated is the real max(updated_at) per dept —
     # 2 grouped queries instead of 2×N MAX lookups.
     pol_max_rows = (
         db.query(Policy.department, func.max(Policy.updated_at))
@@ -1540,10 +1813,13 @@ def get_admin_department_analytics(
                 "name": d_item["name"],
                 "totalPolicies": ov["totalPolicies"],
                 "activePolicies": ov["activePolicies"],
+                "pendingPolicies": ov["pendingPolicies"],
+                "rejectedPolicies": ov["rejectedPolicies"],
                 "totalSchemes": ov["totalSchemes"],
                 "activeSchemes": ov["activeSchemes"],
-                "totalViews": "—",
-                "downloads": "—",
+                "pendingSchemes": ov["pendingSchemes"],
+                "rejectedSchemes": ov["rejectedSchemes"],
+                "totalViews": views_by_dept.get(d_item["name"], 0),
                 "lastUpdated": last_updated,
             }
         )
@@ -1557,6 +1833,7 @@ def get_admin_department_analytics(
         "top_by_policies": top_by_policies,
         "top_by_schemes": top_by_schemes,
         "performance_table": performance_table,
+        "view_totals": view_totals,
     }
 
 
@@ -1569,50 +1846,80 @@ def get_admin_usage_statistics(
     db: Session,
     activity_period: str = "Last 12 Months",
     daily_period: str = "Last 30 Days",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
 ) -> Dict[str, Any]:
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-    thirty_days_ago = now - timedelta(days=30)
+    # Global date window (explicit bounds, else trailing 12 months):
+    # every count below covers records created inside
+    # [win_start, win_end_excl); "% change" compares against the
+    # equal-length window immediately before win_start.
+    win_start, win_end_excl, prev_start, _ = _resolve_window(
+        start_date, end_date, 12
+    )
+
+    def _in_win(col):
+        return and_(col >= win_start, col < win_end_excl)
+
+    def _in_prev(col):
+        return and_(col >= prev_start, col < win_start)
+
     login_cond = or_(
         AuditLog.action.ilike("%login%"), AuditLog.action.ilike("%auth%")
     )
     # KPIs — 3 single-row conditional queries instead of 7 COUNTs.
     searches_row = db.query(
-        func.count(SearchHistory.history_id),
-        func.sum(
-            case((SearchHistory.searched_at < thirty_days_ago, 1), else_=0)
-        ),
+        func.sum(case((_in_win(SearchHistory.searched_at), 1), else_=0)),
+        func.sum(case((_in_prev(SearchHistory.searched_at), 1), else_=0)),
     ).first()
-    total_searches = searches_row[0] or 0
+    total_searches = int(searches_row[0] or 0)
     searches_prev = int(searches_row[1] or 0)
     logins_row = (
         db.query(
-            func.count(AuditLog.audit_id),
-            func.sum(
-                case(
-                    (
-                        and_(
-                            login_cond, AuditLog.created_at < thirty_days_ago
-                        ),
-                        1,
-                    ),
-                    else_=0,
-                )
-            ),
+            func.sum(case((and_(login_cond, _in_win(AuditLog.created_at)), 1), else_=0)),
+            func.sum(case((and_(login_cond, _in_prev(AuditLog.created_at)), 1), else_=0)),
         )
         .filter(login_cond)
         .first()
     )
-    total_logins = logins_row[0] or 0
+    total_logins = int(logins_row[0] or 0)
     logins_prev = int(logins_row[1] or 0)
     reports_row = db.query(
-        func.count(Report.report_id),
-        func.sum(case((Report.generated_at < thirty_days_ago, 1), else_=0)),
+        func.sum(case((_in_win(Report.generated_at), 1), else_=0)),
+        func.sum(case((_in_prev(Report.generated_at), 1), else_=0)),
     ).first()
-    reports_count = reports_row[0] or 0
+    reports_count = int(reports_row[0] or 0)
     reports_prev = int(reports_row[1] or 0)
+    # Detail-page views are recorded as POLICY_VIEW / SCHEME_VIEW audit
+    # rows by the GET details routes (one row per user/entity per 30
+    # minutes). Global totals here; per-user scoping is unnecessary on
+    # this platform-wide page and the audit row always carries the real
+    # authenticated user_id server-side.
+    pol_views_row = (
+        db.query(
+            func.sum(case((_in_win(AuditLog.created_at), 1), else_=0)),
+            func.sum(case((_in_prev(AuditLog.created_at), 1), else_=0)),
+        )
+        .filter(AuditLog.action == "POLICY_VIEW")
+        .first()
+    )
+    pol_views = int(pol_views_row[0] or 0)
+    pol_views_prev = int(pol_views_row[1] or 0)
+    sch_views_row = (
+        db.query(
+            func.sum(case((_in_win(AuditLog.created_at), 1), else_=0)),
+            func.sum(case((_in_prev(AuditLog.created_at), 1), else_=0)),
+        )
+        .filter(AuditLog.action == "SCHEME_VIEW")
+        .first()
+    )
+    sch_views = int(sch_views_row[0] or 0)
+    sch_views_prev = int(sch_views_row[1] or 0)
     visits_chg, visits_pos = _calc_change(total_logins, logins_prev)
     searches_chg, searches_pos = _calc_change(total_searches, searches_prev)
     docs_chg, docs_pos = _calc_change(reports_count, reports_prev)
+    pol_views_chg, pol_views_pos = _calc_change(pol_views, pol_views_prev)
+    sch_views_chg, sch_views_pos = _calc_change(sch_views, sch_views_prev)
 
     kpis = [
         {
@@ -1633,19 +1940,17 @@ def get_admin_usage_statistics(
         },
         {
             "label": "Policy Views",
-            "value": "—",
-            "change": "—",
-            "isPositive": True,
-            "subtext": "Not tracked yet",
+            "value": f"{pol_views:,}",
+            "change": pol_views_chg,
+            "isPositive": pol_views_pos,
             "icon": "description",
             "iconClass": "green",
         },
         {
             "label": "Scheme Views",
-            "value": "—",
-            "change": "—",
-            "isPositive": True,
-            "subtext": "Not tracked yet",
+            "value": f"{sch_views:,}",
+            "change": sch_views_chg,
+            "isPositive": sch_views_pos,
             "icon": "folder",
             "iconClass": "teal",
         },
@@ -1668,11 +1973,12 @@ def get_admin_usage_statistics(
         },
     ]
 
-    # Activity trend — 2 grouped queries instead of 2×N COUNTs.
+    # Activity trend — 2 grouped queries instead of 2×N COUNTs. Buckets
+    # are the global window's calendar months (day-bounded so partial
+    # edge months only count in-window days).
     act_months = _parse_months_count(activity_period, 3)
-    buckets = _month_bounds(act_months)
+    buckets = _window_month_buckets(win_start, win_end_excl)
     act_labels = [b[2] for b in buckets]
-    act_start = buckets[0][3]
 
     s_rows = (
         db.query(
@@ -1680,7 +1986,7 @@ def get_admin_usage_statistics(
             func.extract("month", SearchHistory.searched_at),
             func.count(SearchHistory.history_id),
         )
-        .filter(SearchHistory.searched_at >= act_start)
+        .filter(SearchHistory.searched_at >= win_start, SearchHistory.searched_at < win_end_excl)
         .group_by(
             func.extract("year", SearchHistory.searched_at),
             func.extract("month", SearchHistory.searched_at),
@@ -1693,7 +1999,7 @@ def get_admin_usage_statistics(
             func.extract("month", AuditLog.created_at),
             func.count(AuditLog.audit_id),
         )
-        .filter(AuditLog.created_at >= act_start)
+        .filter(AuditLog.created_at >= win_start, AuditLog.created_at < win_end_excl)
         .group_by(
             func.extract("year", AuditLog.created_at),
             func.extract("month", AuditLog.created_at),
@@ -1717,28 +2023,33 @@ def get_admin_usage_statistics(
         ],
     }
 
-    # Daily usage — 1 grouped query instead of N per-day COUNTs.
+    # Daily usage — 1 grouped query instead of N per-day COUNTs. Days
+    # are the trailing `daily_period` days ending at the window end
+    # (clamped to today), intersected with the global window.
     days_count = (
         30 if "30" in daily_period else (14 if "14" in daily_period else 7)
     )
+    last_day = min(now.date(), (win_end_excl - timedelta(days=1)).date())
+    first_day = max(win_start.date(), last_day - timedelta(days=days_count - 1))
     day_starts = []
     daily_labels = []
-    for i in range(days_count - 1, -1, -1):
-        target_day = now - timedelta(days=i)
+    cursor = first_day
+    while cursor <= last_day:
         lbl = (
-            target_day.strftime("%d %b")
+            cursor.strftime("%d %b")
             if days_count <= 14
-            else target_day.strftime("%d")
+            else cursor.strftime("%d")
         )
         daily_labels.append(lbl)
-        day_starts.append(target_day.date())
-    range_start = datetime.combine(day_starts[0], datetime.min.time())
+        day_starts.append(cursor)
+        cursor += timedelta(days=1)
+    range_start = datetime.combine(day_starts[0], datetime.min.time()) if day_starts else win_start
     day_rows = (
         db.query(
             func.date(AuditLog.created_at),
             func.count(AuditLog.audit_id),
         )
-        .filter(AuditLog.created_at >= range_start)
+        .filter(AuditLog.created_at >= range_start, AuditLog.created_at < win_end_excl)
         .group_by(func.date(AuditLog.created_at))
         .all()
     )
@@ -1750,10 +2061,18 @@ def get_admin_usage_statistics(
         "values": daily_values,
     }
 
-    # Role distribution
-    total_users = db.query(User).count()
+    # Role distribution (windowed)
+    total_users = (
+        db.query(func.count(User.user_id))
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
+        .scalar()
+        or 0
+    )
     role_counts = (
-        db.query(User.role, func.count(User.user_id)).group_by(User.role).all()
+        db.query(User.role, func.count(User.user_id))
+        .filter(User.created_at >= win_start, User.created_at < win_end_excl)
+        .group_by(User.role)
+        .all()
     )
     role_labels = []
     role_data = []
@@ -1780,10 +2099,15 @@ def get_admin_usage_statistics(
 
     # Top policies/schemes: SearchHistory has search_query free text with
     # no policy/scheme FK, so per-item search counts cannot be attributed.
-    # Return newest 10 with honestly unavailable counters ("—").
+    # Return newest 10 created inside the window with honestly
+    # unavailable counters ("—").
     # Top policies
     top_pols = (
-        db.query(Policy).order_by(Policy.created_at.desc()).limit(10).all()
+        db.query(Policy)
+        .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
+        .order_by(Policy.created_at.desc())
+        .limit(10)
+        .all()
     )
     top_policies = [
         {
@@ -1798,7 +2122,11 @@ def get_admin_usage_statistics(
 
     # Top schemes
     top_schs = (
-        db.query(Scheme).order_by(Scheme.created_at.desc()).limit(10).all()
+        db.query(Scheme)
+        .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
+        .order_by(Scheme.created_at.desc())
+        .limit(10)
+        .all()
     )
     top_schemes = [
         {
@@ -1812,9 +2140,11 @@ def get_admin_usage_statistics(
     ]
 
     # Most active users — batch User lookup (2 queries) instead of N+1.
+    # Windowed on the activity timestamp.
     active_user_counts = (
         db.query(AuditLog.user_id, func.count(AuditLog.audit_id))
         .filter(AuditLog.user_id.isnot(None))
+        .filter(AuditLog.created_at >= win_start, AuditLog.created_at < win_end_excl)
         .group_by(AuditLog.user_id)
         .order_by(desc(func.count(AuditLog.audit_id)))
         .limit(10)
@@ -1842,10 +2172,11 @@ def get_admin_usage_statistics(
                 }
             )
 
-    # Recent search activities
+    # Recent search activities (windowed)
     recent_searches_db = (
         db.query(SearchHistory, User.full_name)
         .outerjoin(User, SearchHistory.user_id == User.user_id)
+        .filter(SearchHistory.searched_at >= win_start, SearchHistory.searched_at < win_end_excl)
         .order_by(SearchHistory.searched_at.desc())
         .limit(10)
         .all()
@@ -1859,7 +2190,7 @@ def get_admin_usage_statistics(
                 sh.search_type.capitalize() if sh.search_type else "Scheme"
             ),
             "dateTime": (
-                sh.searched_at.strftime("%b %d, %Y %I:%M %p")
+                sh.searched_at.strftime("%d %b %Y, %I:%M %p")
                 if sh.searched_at
                 else "Recently"
             ),

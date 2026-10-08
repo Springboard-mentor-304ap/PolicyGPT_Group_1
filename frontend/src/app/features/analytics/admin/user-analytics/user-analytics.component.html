@@ -1,4 +1,4 @@
-<div class="user-analytics-page">
+<div class="user-analytics-page" [attr.aria-busy]="isLoading()">
   <!-- Breadcrumb -->
   <nav class="breadcrumb" aria-label="Breadcrumb">
     <a routerLink="/dashboard/admin" class="breadcrumb-link">Home</a>
@@ -23,7 +23,8 @@
       <p class="page-subtitle">Understand user engagement and platform usage across all user types</p>
     </div>
     <div class="header-right">
-      <app-date-range-picker (rangeChange)="onDateRangeChange($event)" />
+      <app-date-range-picker [value]="currentRange()" (rangeChange)="onDateRangeChange($event)"
+        (rangeSelect)="onDateRangeSelect($event)" />
       <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
         aria-label="Download User Analytics Report">
         <span class="material-icons" aria-hidden="true">download</span>
@@ -33,13 +34,6 @@
   </div>
 
   <!-- 6 KPI Cards Grid -->
-  @if (isLoading() && !hasLoaded()) {
-  <div class="analytics-skeleton-grid" aria-hidden="true">
-    @for (s of [1, 2, 3, 4, 5, 6]; track s) {
-    <div class="analytics-skeleton-card"></div>
-    }
-  </div>
-  }
   @if (loadError()) {
   <p class="analytics-status error" role="alert">{{ loadError() }}
     <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
@@ -66,9 +60,9 @@
     }
   </div>
 
-  <!-- Row 2: 3 Visualizations (Growth Trend, Distribution by Role, Registration Trend) -->
-  <div class="duo-grid">
-    <!-- A. User Growth Trend -->
+  <!-- Row 1: Growth Trend -->
+  <div class="solo-grid">
+    <!-- User Growth Trend -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Growth Trend</h2>
@@ -95,23 +89,22 @@
         <app-line-chart [labels]="growthLabels()" [datasets]="growthDatasets()" />
       </div>
     </div>
+  </div>
 
+  <!-- Row 2: Registration Trend + User Engagement Metrics -->
+  <div class="duo-grid">
     <!-- B. User Distribution by Role -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Distribution by Role</h2>
       </div>
-
       <div class="chart-body doughnut-body">
         <app-doughnut-chart [labels]="roleLabels()" [data]="roleData()" [colors]="roleColors()"
           [centerMainText]="roleTotal()" centerSubText="Total Users" />
       </div>
     </div>
-  </div>
 
-  <!-- Row 3: 3 Sections (Users by State, User Engagement Metrics, User Activity Heatmap) -->
-  <div class="tri-grid">
-    <!-- E. User Engagement Metrics (4 Mini-Cards) -->
+    <!-- C. User Engagement Metrics (4 Mini-Cards) -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Engagement Metrics</h2>
@@ -136,6 +129,10 @@
         }
       </div>
     </div>
+  </div>
+
+  <!-- Row 3: Users by State + User Engagement Metrics -->
+  <div class="duo-grid">
     <!-- D. Users by State -->
     <div class="chart-card">
       <div class="card-header-row">
@@ -164,7 +161,7 @@
       </div>
     </div>
 
-    <!-- C. User Registration Trend -->
+    <!-- E. User Registration Trend -->
     <div class="chart-card">
       <div class="card-header-row">
         <h2 class="card-title">User Registration Trend</h2>
@@ -208,7 +205,6 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th scope="col" class="col-rank">#</th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Role</th>
@@ -219,7 +215,6 @@
           <tbody>
             @for (user of recentUsers().slice(0, 5); track user.rank) {
             <tr>
-              <td class="col-rank">{{ user.rank }}</td>
               <td class="col-name font-semibold">{{ user.name }}</td>
               <td class="col-email text-muted">{{ user.email }}</td>
               <td>
@@ -249,7 +244,6 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th scope="col" class="col-rank">#</th>
               <th scope="col">Name</th>
               <th scope="col">Role</th>
               <th scope="col">Logins</th>
@@ -258,7 +252,6 @@
           <tbody>
             @for (user of topActiveUsers().slice(0, 5); track user.rank) {
             <tr>
-              <td class="col-rank">{{ user.rank }}</td>
               <td class="col-name font-semibold">{{ user.name }}</td>
               <td>
                 <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
@@ -313,7 +306,6 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th scope="col">#</th>
               <th scope="col">Name</th>
               <th scope="col">Email</th>
               <th scope="col">Role</th>
@@ -346,7 +338,6 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th scope="col">#</th>
               <th scope="col">User</th>
               <th scope="col">Role</th>
               <th scope="col">Logins</th>

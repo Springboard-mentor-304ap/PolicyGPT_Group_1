@@ -3,6 +3,7 @@ import { provideRouter } from "@angular/router";
 import { of } from "rxjs";
 import { AdminDashboardComponent } from "./admin-dashboard.component";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
+import { NotificationService } from "../../../../core/services/notification.service";
 import { AdminOverviewResponse } from "../models/admin-analytics.models";
 
 describe("AdminDashboardComponent", () => {
@@ -51,6 +52,35 @@ describe("AdminDashboardComponent", () => {
         }
         return of(mockOverview);
       },
+      getAdminPolicyAnalytics: () =>
+        of({
+          stats: mockOverview.metrics.filter((m) => m.label.includes("Polic")),
+          by_category: [{ label: "Education", percentage: 50 }],
+          trend: { labels: [], series: [] },
+          by_state: [],
+          by_ministry: [],
+          latest_policies: [],
+        }),
+      getAdminSchemeAnalytics: () =>
+        of({
+          stats: [],
+          by_category: [],
+          trend: { labels: ["Jul"], series: [] },
+          by_state: [],
+          top_schemes: [],
+          recent_updates: [],
+        }),
+      getAdminDepartmentAnalytics: () =>
+        of({
+          departments_list: [],
+          all_departments_list: [],
+          selected_overview: null,
+          month_labels: [],
+          trend_datasets: [],
+          top_by_policies: [{ label: "Education", value: 5 }],
+          top_by_schemes: [],
+          performance_table: [],
+        }),
     };
 
     await TestBed.configureTestingModule({
@@ -58,9 +88,15 @@ describe("AdminDashboardComponent", () => {
       providers: [
         provideRouter([]),
         { provide: AdminAnalyticsDataService, useValue: mockDataService },
+        {
+          provide: NotificationService,
+          useValue: {
+            getNotifications: () =>
+              of({ items: [], total: 0, page: 1, page_size: 5, total_pages: 0, unread_count: 0, summary: undefined }),
+          },
+        },
       ],
     }).compileComponents();
-
     fixture = TestBed.createComponent(AdminDashboardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();

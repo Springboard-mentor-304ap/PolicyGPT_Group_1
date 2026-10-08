@@ -152,6 +152,20 @@ export class AdminLayoutComponent implements OnInit {
   ];
 
   // =======================================================
+  // EXPANDABLE GROUP FIRST-CHILD ROUTES
+  // =======================================================
+
+  /**
+   * Landing route opened when a closed expandable parent is clicked.
+   * Must match the first child link rendered for each group so the
+   * URL, the highlighted child, and the expanded parent always agree.
+   */
+  private static readonly GROUP_FIRST_CHILD: Record<'analytics' | 'support', string> = {
+    analytics: '/dashboard/admin/analytics',
+    support: '/dashboard/admin/feedback',
+  };
+
+  // =======================================================
   // CONSTRUCTOR
   // =======================================================
 
@@ -523,7 +537,7 @@ export class AdminLayoutComponent implements OnInit {
       return;
     }
 
-    this.toggleAnalyticsMenu();
+    this.openGroup('analytics');
   };
 
   toggleAnalyticsMenuOnly(event: Event): void {
@@ -559,8 +573,42 @@ export class AdminLayoutComponent implements OnInit {
       return;
     }
 
-    // Parent toggles only — it never navigates to a separate page.
-    this.toggleSupportMenu();
+    // Parent toggles/expands via openGroup — it never navigates elsewhere.
+    this.openGroup('support');
+  }
+
+  /**
+   * Shared expandable-group behavior for Analytics and Support & Feedback.
+   *
+   * First click on a closed parent: expand it, close every other group,
+   * and navigate exactly once to the group's first child. Clicking an
+   * already-expanded parent collapses it without navigating (when a
+   * child route is active the route itself keeps the group expanded).
+   * Chevron clicks keep the existing toggle-only handlers, and child
+   * links navigate normally without touching these flags.
+   */
+  private openGroup(group: 'analytics' | 'support'): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    const expanded =
+      group === 'analytics'
+        ? this.analyticsMenuOpen || this.isAnalyticsRouteActive()
+        : this.supportMenuOpen || this.isSupportRouteActive();
+    this.closeAllSubmenus();
+    if (expanded) {
+      this.closeMobileMenu();
+      return;
+    }
+
+    if (group === 'analytics') {
+      this.analyticsMenuOpen = true;
+    } else {
+      this.supportMenuOpen = true;
+    }
+    this.closeMobileMenu();
+    void this.router.navigate([AdminLayoutComponent.GROUP_FIRST_CHILD[group]]);
   }
 
   toggleSupportMenuOnly(event: Event): void {
@@ -626,7 +674,10 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   isAnalyticsRouteActive(): boolean {
-    return this.router.url.startsWith("/dashboard/admin/analytics");
+    return (
+      this.router.url.startsWith("/dashboard/admin/analytics") ||
+      this.router.url.startsWith("/dashboard/admin/support-analytics")
+    );
   }
 
   isSupportRouteActive(): boolean {

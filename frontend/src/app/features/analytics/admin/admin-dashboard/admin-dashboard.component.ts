@@ -1,13 +1,16 @@
 import { Component, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
-import { DateRangePickerComponent } from "../../shared/date-range-picker/date-range-picker.component";
+import { NotificationService } from "../../../../core/services/notification.service";
+import { DateRangePickerComponent, type DateRangeSelection } from "../../shared/date-range-picker/date-range-picker.component";
+import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
 import {
   LineChartComponent,
   LineDataset,
 } from "../../shared/line-chart/line-chart.component";
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
+import { VbarChartComponent } from "../../shared/vbar-chart/vbar-chart.component";
 import {
   AnalyticsStat,
   RecentActivityItem,
@@ -24,6 +27,7 @@ import { CountUpDirective } from "../../../../shared/directives/count-up.directi
     DateRangePickerComponent,
     LineChartComponent,
     DoughnutChartComponent,
+    VbarChartComponent,
     CountUpDirective,
   ],
   templateUrl: "./admin-dashboard.component.html",
@@ -31,12 +35,20 @@ import { CountUpDirective } from "../../../../shared/directives/count-up.directi
 })
 export class AdminDashboardComponent implements OnInit {
   private readonly dataService = inject(AdminAnalyticsDataService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly rangeService = inject(AnalyticsDateRangeService);
+  private readonly router = inject(Router);
 
   readonly isSampleData = this.dataService.isSampleData;
 
   isLoading = signal<boolean>(true);
   hasLoaded = signal<boolean>(false);
   loadError = signal<string | null>(null);
+  isDownloading = signal<boolean>(false);
+  /** True while THIS user's notifications are being fetched (vs empty). */
+  notificationsLoading = signal<boolean>(true);
+  /** Current user's API total; null until their request completes. */
+  private userNotificationTotal = signal<string | null>(null);
 
   // Selected date range
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");
@@ -81,21 +93,113 @@ export class AdminDashboardComponent implements OnInit {
   userDistData: number[] = [];
   userDistTotal = signal<string>("0");
 
+  // Policies by Category (reuses the Policy Analytics aggregate)
+  policyCategoryLabels: string[] = [];
+  policyCategoryData: number[] = [];
+  policyCategoryTotal = signal<string>("0");
+
+  // Scheme Trend (reuses the Scheme Analytics aggregate)
+  schemeTrendLabels: string[] = [];
+  schemeTrendDatasets: LineDataset[] = [];
+  schemeTrendPeriod = signal<string>("Last 12 Months");
+  schemeTrendOptions = ["Last 3 Months", "Last 6 Months", "Last 12 Months"];
+  showSchemeMenu = signal<boolean>(false);
+
+  // Department Distribution (reuses the Department Analytics aggregate:
+  // union of top-by-policies and top-by-schemes, ranked per the selected
+  // Both / Policies / Schemes filter and capped at the top 10).
+  deptFilter = signal<string>("Both");
+  deptFilterOptions = ["Both", "Policies", "Schemes"];
+  showDeptMenu = signal<boolean>(false);
+  private deptRows: { label: string; policies: number; schemes: number }[] = [];
+
+  /** Top-10 department rows for the active filter (no extra API calls). */
+  private rankedDeptRows(): { label: string; policies: number; schemes: number }[] {
+    const filter = this.deptFilter();
+    const rows = [...this.deptRows];
+    if (filter === "Policies") {
+      rows.sort((a, b) => b.policies - a.policies);
+    } else if (filter === "Schemes") {
+      rows.sort((a, b) => b.schemes - a.schemes);
+    } else {
+      rows.sort((a, b) => b.policies + b.schemes - (a.policies + a.schemes));
+    }
+    return rows.slice(0, 10);
+  }
+
+  visibleDeptLabels(): string[] {
+    return this.rankedDeptRows().map((r) => r.label);
+  }
+
+  /** Primary column values: policies, or schemes when Schemes is selected. */
+  visibleDeptPrimaryValues(): number[] {
+    const rows = this.rankedDeptRows();
+    return this.deptFilter() === "Schemes"
+      ? rows.map((r) => r.schemes)
+      : rows.map((r) => r.policies);
+  }
+
+  visibleDeptPrimaryColor(): string {
+    return this.deptFilter() === "Schemes" ? "#3cb371" : "#2f6fed";
+  }
+
+  visibleDeptPrimaryLabel(): string {
+    return this.deptFilter() === "Schemes" ? "Schemes" : "Policies";
+  }
+
+  /** Schemes column values for the grouped Both view; null hides the series. */
+  visibleDeptSecondValues(): number[] | null {
+    if (this.deptFilter() !== "Both") return null;
+    return this.rankedDeptRows().map((r) => r.schemes);
+  }
+
+  toggleDeptMenu(event: Event): void {
+    event.stopPropagation();
+    this.showTimeframeMenu.set(false);
+    this.showSchemeMenu.set(false);
+    this.showDeptMenu.update((v) => !v);
+  }
+
+  selectDeptFilter(option: string): void {
+    this.deptFilter.set(option);
+    this.showDeptMenu.set(false);
+  }
+
   // Recent User Activity Data
   recentActivities: RecentActivityItem[] = [];
 
   // Latest Notifications Data
   notifications: NotificationActivityItem[] = [];
 
+  /**
+   * Reload generation: rapidly changing the date range fires overlapping
+   * requests; only the latest generation may touch state so a slow older
+   * response can never overwrite newer data (latest filter always wins).
+   */
+  private loadSeq = 0;
+
   ngOnInit(): void {
-    this.loadOverviewData(this.trendTimeframe());
+    // Shared range (restored after refresh/navigation when previously set).
+    this.currentRange.set(this.rangeService.label());
+    const timeframe = `Last ${this.rangeService.snapMonths([3, 6, 9, 12])} Months`;
+    this.trendTimeframe.set(timeframe);
+    this.schemeTrendPeriod.set(`Last ${this.rangeService.snapMonths([3, 6, 12])} Months`);
+    this.loadOverviewData(timeframe);
+    // User notifications load independently (in parallel): they must appear
+    // even if the overview aggregate is slow or fails, and on every entry
+    // (first open, refresh, back-navigation).
+    this.loadAdminNotifications();
+    // Extra sections reuse their pages' aggregates (no new endpoints).
+    this.loadExtraSections();
   }
 
   loadOverviewData(timeframe: string): void {
+    const seq = ++this.loadSeq;
     this.isLoading.set(true);
     this.loadError.set(null);
     this.dataService.getAdminOverview(timeframe).subscribe({
       next: (res) => {
+        if (seq !== this.loadSeq) return;
         if (res.metrics && res.metrics.length > 0) {
           this.metrics.set(res.metrics);
         }
@@ -121,15 +225,17 @@ export class AdminDashboardComponent implements OnInit {
           this.userDistTotal.set(res.userDistribution.total || "0");
         }
         if (res.recentActivities) {
-          this.recentActivities = res.recentActivities;
+          this.recentActivities = res.recentActivities.slice(0, 5);
         }
-        if (res.notifications) {
-          this.notifications = res.notifications;
-        }
+        // NOTE: res.notifications (platform broadcast history) is
+        // intentionally ignored — the admin sees only their own received
+        // notifications (loadAdminNotifications, token-scoped API).
+        this.applyUserNotificationTotal();
         this.hasLoaded.set(true);
         this.isLoading.set(false);
       },
       error: (err) => {
+        if (seq !== this.loadSeq) return;
         console.error("Failed to load admin overview analytics:", err);
         // No sample fallback: keep empty placeholders and surface error.
         this.loadError.set("Could not load analytics overview. Please retry.");
@@ -163,12 +269,251 @@ export class AdminDashboardComponent implements OnInit {
     return Math.ceil(max * 1.2);
   }
 
+  /** Data-driven Y-axis max for the Scheme Trend chart. */
+  schemeChartYMax(): number {
+    let max = 0;
+    for (const ds of this.visibleSchemeTrendDatasets() || []) {
+      for (const v of ds.data || []) {
+        if (typeof v === "number" && v > max) max = v;
+      }
+    }
+    if (max <= 0) return 10;
+    return Math.ceil(max * 1.2);
+  }
+
+  private schemeWindowSize(): number {
+    const m = /(\d+)/.exec(this.schemeTrendPeriod());
+    return m ? Number(m[1]) : 12;
+  }
+
+  /** Scheme trend labels for the selected window (newest N points). */
+  visibleSchemeTrendLabels(): string[] {
+    const labels = this.schemeTrendLabels;
+    const size = this.schemeWindowSize();
+    return labels.slice(Math.max(0, labels.length - size));
+  }
+
+  /** Scheme trend datasets trimmed to the selected window. */
+  visibleSchemeTrendDatasets(): LineDataset[] {
+    const size = this.schemeWindowSize();
+    return this.schemeTrendDatasets.map((ds) => ({
+      ...ds,
+      data: ds.data.slice(Math.max(0, ds.data.length - size)),
+    }));
+  }
+
+  toggleSchemeMenu(event: Event): void {
+    event.stopPropagation();
+    this.showTimeframeMenu.set(false);
+    this.showDeptMenu.set(false);
+    this.showSchemeMenu.update((v) => !v);
+  }
+
+  selectSchemePeriod(option: string): void {
+    this.schemeTrendPeriod.set(option);
+    this.showSchemeMenu.set(false);
+  }
+
   onDateRangeChange(range: string): void {
     this.currentRange.set(range);
   }
 
+  /**
+   * Scheme Trend, Policies by Category and Department Distribution reuse
+   * the exact aggregates of their dedicated pages (same service methods, no
+   * new endpoints, no duplicated logic). Range changes re-fetch with the
+   * global start/end bounds while charts render their built-in empty
+   * states until data arrives (no skeleton flash, correct first-load
+   * sizing via rAF).
+   */
+  loadExtraSections(): void {
+    const seq = ++this.loadSeq;
+    const isStale = (): boolean => seq !== this.loadSeq;
+    this.dataService.getAdminPolicyAnalytics({}).subscribe({
+      next: (res) => {
+        if (isStale()) return;
+        const cats = res.by_category || [];
+        this.policyCategoryLabels = cats.map((c) => `${c.label} (${c.percentage}%)`);
+        this.policyCategoryData = cats.map((c) => c.percentage);
+        const total = (res.stats || []).find((s) => s.label === "Total Policies")?.value;
+        this.policyCategoryTotal.set(String(total ?? "0"));
+      },
+      error: (err) => console.error("Failed to load overview policy categories:", err),
+    });
+    this.dataService.getAdminSchemeAnalytics({}).subscribe({
+      next: (res) => {
+        if (isStale()) return;
+        this.schemeTrendLabels = res.trend?.labels || [];
+        this.schemeTrendDatasets = (res.trend?.series || []).map((s) => ({
+          label: s.label,
+          data: s.data,
+          borderColor: s.color,
+          backgroundColor: "transparent",
+        }));
+      },
+      error: (err) => console.error("Failed to load overview scheme trend:", err),
+    });
+    this.dataService.getAdminDepartmentAnalytics(undefined, "all").subscribe({
+      next: (res) => {
+        if (isStale()) return;
+        const byPolicies = new Map<string, number>();
+        for (const p of res.top_by_policies || []) {
+          if (p?.label) byPolicies.set(p.label, Number(p.value) || 0);
+        }
+        const bySchemes = new Map<string, number>();
+        for (const s of res.top_by_schemes || []) {
+          if (s?.label) bySchemes.set(s.label, Number(s.value) || 0);
+        }
+        const names = [...new Set([...byPolicies.keys(), ...bySchemes.keys()])];
+        this.deptRows = names.map((label) => ({
+          label,
+          policies: byPolicies.get(label) ?? 0,
+          schemes: bySchemes.get(label) ?? 0,
+        }));
+      },
+      error: (err) => console.error("Failed to load overview department distribution:", err),
+    });
+  }
+
+  /**
+   * Newest 5 notifications RECEIVED BY THE CURRENTLY LOGGED-IN USER.
+   * GET /notifications is scoped server-side to the request token
+   * (user_id=current_user), so no frontend user filtering is needed and no
+   * other users' notifications can appear here. Works for every role.
+   */
+  loadAdminNotifications(): void {
+    const seq = ++this.loadSeq;
+    this.notificationsLoading.set(true);
+    this.notificationService
+      .getNotifications({ page: 1, page_size: 5, sort_by: "latest" })
+      .subscribe({
+        next: (res) => {
+          if (seq !== this.loadSeq) return;
+          const items = (res.items || [])
+            .slice()
+            .sort(
+              (a, b) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            )
+            .slice(0, 5);
+          this.notifications = items.map((n) => ({
+            title: n.title,
+            type: n.notification_type,
+            typeClass: this.notificationTypeClass(n.notification_type),
+            date: this.formatRelativeTime(n.created_at),
+            status: n.is_read ? "Read" : "Unread",
+          }));
+          // Total Notifications card = THIS user's API total (res.total),
+          // never the global overview count.
+          this.userNotificationTotal.set(String(res.total ?? items.length));
+          this.applyUserNotificationTotal();
+          this.notificationsLoading.set(false);
+        },
+        error: (err) => {
+          if (seq !== this.loadSeq) return;
+          console.error("Failed to load admin notifications:", err);
+          this.notifications = [];
+          this.notificationsLoading.set(false);
+        },
+      });
+  }
+
+  /**
+   * Override the "Total Notifications" metric with the current user's total.
+   * Runs after either request finishes so a late overview response can
+   * never clobber the user-scoped value with the global count.
+   */
+  private applyUserNotificationTotal(): void {
+    const total = this.userNotificationTotal();
+    if (total === null) return;
+    this.metrics.update((list) =>
+      list.map((m) =>
+        m.label === "Total Notifications" ? { ...m, value: total } : m,
+      ),
+    );
+  }
+
+  notificationTypeClass(type: string): string {
+    const t = (type || "").toUpperCase();
+    if (t.includes("SYSTEM")) return "blue";
+    if (t.includes("FEEDBACK")) return "purple";
+    if (t.includes("POLICY")) return "orange";
+    if (t.includes("SCHEME")) return "green";
+    if (t.includes("DEADLINE")) return "red";
+    return "gray";
+  }
+
+  /** Same relative-time wording as the Notifications centre. */
+  formatRelativeTime(dateString: string): string {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+    const now = new Date();
+    const diffSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSeconds < 60) return "Just now";
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return "1 day ago";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks === 1) return "1 week ago";
+    return `${diffWeeks} weeks ago`;
+  }
+
+  openAuditLogs(): void {
+    void this.router.navigate(["/dashboard/admin/audit-logs"]);
+  }
+
+  openNotifications(): void {
+    void this.router.navigate(["/dashboard/admin/notifications"]);
+  }
+
+  onDateRangeSelect(sel: DateRangeSelection): void {
+    this.rangeService.applySelection(sel);
+    this.currentRange.set(sel.label);
+    const timeframe = `Last ${this.rangeService.snapMonths([3, 6, 9, 12])} Months`;
+    this.trendTimeframe.set(timeframe);
+    this.schemeTrendPeriod.set(`Last ${this.rangeService.snapMonths([3, 6, 12])} Months`);
+    this.showTimeframeMenu.set(false);
+    this.showSchemeMenu.set(false);
+    this.showDeptMenu.set(false);
+    this.loadOverviewData(timeframe);
+    this.loadExtraSections();
+  }
+
+  downloadReport(): void {
+    if (this.isDownloading()) return;
+    this.isDownloading.set(true);
+    this.dataService
+      .downloadReport("ANALYTICS_REPORT", "PDF", "Admin Analytics Report", {
+        ...this.rangeService.toReportParams(),
+      })
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `admin-analytics-report-${new Date().toISOString().split("T")[0]}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this.isDownloading.set(false);
+        },
+        error: (err) => {
+          console.error("Could not download admin analytics report:", err);
+          this.isDownloading.set(false);
+        },
+      });
+  }
+
   toggleTimeframeMenu(event: Event): void {
     event.stopPropagation();
+    this.showSchemeMenu.set(false);
+    this.showDeptMenu.set(false);
     this.showTimeframeMenu.update((v) => !v);
   }
 

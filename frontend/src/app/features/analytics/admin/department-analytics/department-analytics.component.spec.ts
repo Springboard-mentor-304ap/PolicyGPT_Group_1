@@ -93,13 +93,17 @@ describe("DepartmentAnalyticsComponent", () => {
         name: "Agriculture & Farmers Welfare",
         totalPolicies: 15,
         activePolicies: 12,
+        pendingPolicies: 2,
+        rejectedPolicies: 1,
         totalSchemes: 10,
         activeSchemes: 8,
-        totalViews: "0",
-        downloads: "0",
+        pendingSchemes: 1,
+        rejectedSchemes: 1,
+        totalViews: 24,
         lastUpdated: "Recently",
       },
     ],
+    view_totals: { policy_views: 30, scheme_views: 18, total_views: 48 },
   };
 
   beforeEach(async () => {

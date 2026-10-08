@@ -104,6 +104,39 @@
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 38px;
+      padding: 0 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      background: #ffffff;
+      border: 1px solid #dbe2eb;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: all 0.2s ease;
+
+      .material-icons {
+        font-size: 18px;
+        color: #0879ed;
+      }
+
+      &:hover:not(:disabled) {
+        border-color: #0879ed;
+        color: #0879ed;
+        background: #f8fafc;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
   }
 }
 
@@ -217,7 +250,7 @@
   }
 }
 
-// Charts Row (3 cards)
+// Charts Row (policies trend, full width)
 .charts-row {
   display: flex;
   gap: 20px;
@@ -235,6 +268,44 @@
     flex: 1.2;
     min-width: 0;
   }
+  .flex-full {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+}
+
+// one-column chart rows (collapse to one column on smaller screens)
+.solo-row {
+  min-width: 100%;
+  margin-bottom: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Two-column chart rows (collapse to one column on smaller screens)
+.duo-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Trio-column chart rows (collapse to one column on smaller screens)
+.trio-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 // Chart Card
@@ -249,6 +320,7 @@
   min-width: 0;
 
   .card-header-row {
+    @include tokens.analytics-card-header-row;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -261,6 +333,17 @@
       color: #111827;
       margin: 0;
       letter-spacing: -0.01em;
+    }
+
+    .table-tag {
+      font-size: 12px;
+      color: #64748b;
+      background: #f8fafc;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #e4e9f1;
+      font-weight: 500;
+      white-space: nowrap;
     }
   }
 
@@ -312,6 +395,7 @@
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
       z-index: 20;
       min-width: 140px;
+      max-width: min(220px, calc(100vw - 48px));
       padding: 4px 0;
 
       .timeframe-item {
@@ -338,6 +422,11 @@
       }
     }
   }
+}
+
+// Full-width chart card (department distribution)
+.chart-card.full-row {
+  margin-bottom: 24px;
 }
 
 // Tables Row
@@ -383,6 +472,23 @@
       border-radius: 6px;
       border: 1px solid #e4e9f1;
       font-weight: 500;
+    }
+
+    .btn-view-all {
+      font-size: 13px;
+      font-weight: 600;
+      color: #0879ed;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+
+      &:hover {
+        background: #eff6ff;
+        text-decoration: underline;
+      }
     }
   }
 
@@ -476,6 +582,14 @@
       &.red {
         background: #fee2e2;
         color: #dc2626;
+      }
+      &.green {
+        background: #e8f8ef;
+        color: #078944;
+      }
+      &.gray {
+        background: #f1f5f9;
+        color: #475569;
       }
     }
   }

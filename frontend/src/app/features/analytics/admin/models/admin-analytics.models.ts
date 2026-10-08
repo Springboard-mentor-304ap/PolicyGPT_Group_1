@@ -79,11 +79,20 @@ export interface DepartmentPerformanceRow {
   name: string;
   totalPolicies: number;
   activePolicies: number;
+  pendingPolicies: number;
+  rejectedPolicies: number;
   totalSchemes: number;
   activeSchemes: number;
-  totalViews: string;
-  downloads: string;
+  pendingSchemes: number;
+  rejectedSchemes: number;
+  totalViews: number;
   lastUpdated: string;
+}
+
+export interface DepartmentViewTotals {
+  policy_views: number;
+  scheme_views: number;
+  total_views: number;
 }
 
 export interface RecentActivityItem {
@@ -217,6 +226,7 @@ export interface AdminSchemeAnalyticsResponse {
   by_category: CategorySlice[];
   trend: TrendData;
   by_state: BarChartData[];
+  by_ministry: BarChartData[];
   top_schemes: SchemeRow[];
   recent_updates: SchemeUpdateRow[];
 }
@@ -257,6 +267,7 @@ export interface AdminDepartmentAnalyticsResponse {
   top_by_policies: BarChartData[];
   top_by_schemes: BarChartData[];
   performance_table: DepartmentPerformanceRow[];
+  view_totals: DepartmentViewTotals;
 }
 
 export interface AdminUsageStatisticsResponse {

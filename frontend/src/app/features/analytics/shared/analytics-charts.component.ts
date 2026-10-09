@@ -547,7 +547,7 @@ export class AnalyticsLineChartComponent {
             stroke="#eef2f7"
             stroke-width="26"
           />
-          @for (arc of arcs; track arc.label) {
+          @for (arc of arcs; track arc.label; let i = $index) {
             <circle
               cx="80"
               cy="80"
@@ -557,6 +557,8 @@ export class AnalyticsLineChartComponent {
               stroke-width="26"
               [attr.stroke-dasharray]="arc.dash"
               [attr.stroke-dashoffset]="arc.offset"
+              [style.--sweep-gap.px]="arc.gap"
+              [style.animation-delay]="i * 70 + 'ms'"
               [attr.opacity]="
                 activeLabel === null || activeLabel === arc.label ? 1 : 0.35
               "
@@ -630,6 +632,12 @@ export class AnalyticsLineChartComponent {
           stroke-dasharray 0.6s ease,
           stroke-width 0.2s ease,
           opacity 0.2s ease;
+        animation: donutSweep 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      }
+      @keyframes donutSweep {
+        from {
+          stroke-dasharray: 0 var(--sweep-gap);
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         .donut-svg {
@@ -637,6 +645,7 @@ export class AnalyticsLineChartComponent {
         }
         .donut-segment {
           transition: none;
+          animation: none;
         }
       }
       .donut-svg circle[tabindex] {
@@ -740,6 +749,7 @@ export class AnalyticsDonutChartComponent {
     pct: number;
     dash: string;
     offset: number;
+    gap: number;
     description?: string;
   }[] {
     const circumference = 2 * Math.PI * 62;
@@ -754,6 +764,7 @@ export class AnalyticsDonutChartComponent {
         pct: Math.round(frac * 1000) / 10,
         dash: `${Math.max(frac * circumference - 2, 0.5)} ${circumference}`,
         offset: -cursor * circumference,
+        gap: circumference,
         description: s.description,
       };
       cursor += frac;

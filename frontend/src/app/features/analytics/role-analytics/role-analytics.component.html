@@ -8,27 +8,12 @@
     </div>
 
     <div class="header-right no-print">
-      <div class="range-group" role="group" aria-label="Date range">
-        @for (option of ranges; track option.key) {
-        <button type="button" class="range-pill" [class.range-pill--active]="range === option.key"
-          (click)="setRange(option.key)" [attr.aria-pressed]="range === option.key">
-          {{ option.label }}
-        </button>
-        }
-      </div>
-      @if (range === "custom") {
-      <div class="custom-range">
-        <input type="date" [(ngModel)]="customFrom" aria-label="Start date" />
-        <span aria-hidden="true">–</span>
-        <input type="date" [(ngModel)]="customTo" aria-label="End date" />
-        <button type="button" class="btn btn-primary" (click)="applyCustom()">
-          Apply
-        </button>
-      </div>
-      }
+      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets"
+        (rangeChange)="onPickerLabel($event)" (rangeSelect)="onPickerSelect($event)" />
       <div class="export-wrap">
-        <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
-          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
+        <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || !data"
+          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report"
+          aria-label="Download Report">
           <span class="material-icons" aria-hidden="true">download</span>
           <span>Download Report</span>
         </button>
@@ -79,7 +64,7 @@
   </section>
   } @else if (data) {
   <!-- KPI CARDS -->
-  <div class="stats-grid stats-grid--{{ kpis.length }}" role="list">
+  <div class="stats-grid stats-grid--{{ kpis.length === 6 ? 3 : kpis.length }}" role="list">
     @for (kpi of kpis; track kpi.key) {
     <div class="stat-card" role="listitem" tabindex="0" [attr.title]="kpi.tooltip"
       [class.stat-card--untracked]="!kpi.tracked">

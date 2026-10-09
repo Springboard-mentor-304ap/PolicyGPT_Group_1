@@ -285,6 +285,21 @@ const DEFAULT_END = _defaultSel.endISO;
 export class DateRangePickerComponent {
   /** Controlled display label (pages bind their shared range label). */
   @Input() value: string | null = null;
+  /**
+   * Visible preset options. Defaults to the shared Admin preset list so
+   * existing Admin/Support pages render unchanged; role analytics pages
+   * bind the standardized task list (Last 7/30 Days, Last 6/12 Months)
+   * while keeping the same dropdown styling, custom calendar and
+   * validation behaviour.
+   */
+  @Input() presets: string[] = [
+    'Today',
+    'Last 7 Days',
+    'Sep 1, 2024 - Sep 30, 2024',
+    'Jan 1, 2024 - Sep 30, 2024',
+    'Last 12 Months',
+    'Year to Date'
+  ];
   /** Compat label emission (existing page handlers keep working). */
   @Output() rangeChange = new EventEmitter<string>();
   /** Full selection (label + ISO bounds) pages use to reload + export. */
@@ -294,15 +309,6 @@ export class DateRangePickerComponent {
   isOpen = signal<boolean>(false);
   customStart = signal<string>(DEFAULT_START);
   customEnd = signal<string>(DEFAULT_END);
-
-  presets = [
-    'Today',
-    'Last 7 Days',
-    'Sep 1, 2024 - Sep 30, 2024',
-    'Jan 1, 2024 - Sep 30, 2024',
-    'Last 12 Months',
-    'Year to Date'
-  ];
 
   displayedRange(): string {
     return this.value ?? this.selectedRange();

@@ -1,7 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-} from "@angular/core";
+import { ChangeDetectionStrategy, Component } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -14,10 +11,7 @@ import {
   AnalyticsLineChartComponent,
   LineSeries,
 } from "../shared/analytics-charts.component";
-import {
-  downloadGovtCsv,
-  printAnalyticsPdf,
-} from "../shared/analytics-export";
+import { downloadGovtCsv, printAnalyticsPdf } from "../shared/analytics-export";
 import {
   GovAnalyticsBase,
   GovtKpiCard,
@@ -80,12 +74,48 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
       tracked: true,
     });
     return [
-      card("total_policies", "Total Policies", "description", "blue", "All policy records on the platform."),
-      card("draft_policies", "Draft Policies", "edit_note", "orange", "Policies currently in draft status."),
-      card("total_schemes", "Total Schemes", "account_balance", "green", "All scheme records on the platform."),
-      card("departments", "Departments", "domain", "purple", "Distinct departments across policies and schemes."),
-      card("total_users", "Total Users", "group", "blue", "All registered user accounts."),
-      card("new_notifications", "New Notifications", "notifications", "green", "Broadcast notifications issued in this period."),
+      card(
+        "total_policies",
+        "Total Policies",
+        "description",
+        "blue",
+        "All policy records on the platform.",
+      ),
+      card(
+        "draft_policies",
+        "Draft Policies",
+        "edit_note",
+        "orange",
+        "Policies currently in draft status.",
+      ),
+      card(
+        "total_schemes",
+        "Total Schemes",
+        "account_balance",
+        "green",
+        "All scheme records on the platform.",
+      ),
+      card(
+        "departments",
+        "Departments",
+        "domain",
+        "purple",
+        "Distinct departments across policies and schemes.",
+      ),
+      card(
+        "total_users",
+        "Total Users",
+        "group",
+        "blue",
+        "All registered user accounts.",
+      ),
+      card(
+        "new_notifications",
+        "New Notifications",
+        "notifications",
+        "green",
+        "Broadcast notifications issued in this period.",
+      ),
     ];
   }
 
@@ -95,17 +125,32 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
       return [];
     }
     return [
-      { key: "policies", label: "Policies", color: "#1461a0", values: t.policies },
+      {
+        key: "policies",
+        label: "Policies",
+        color: "#1461a0",
+        values: t.policies,
+      },
       { key: "schemes", label: "Schemes", color: "#17833d", values: t.schemes },
     ];
   }
 
-  get statusSlices(): { label: string; count: number; color: string; description?: string }[] {
+  get statusSlices(): {
+    label: string;
+    count: number;
+    color: string;
+    description?: string;
+  }[] {
     const dist = this.data?.status_distribution;
     if (!dist) {
       return [];
     }
-    const out: { label: string; count: number; color: string; description?: string }[] = [];
+    const out: {
+      label: string;
+      count: number;
+      color: string;
+      description?: string;
+    }[] = [];
     for (const [status, count] of Object.entries(dist.policies)) {
       out.push({
         label: `Policies · ${this.pretty(status)}`,
@@ -131,7 +176,12 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
       .map((r) => ({ label: r.department, value: r.count }));
   }
 
-  get roleSlices(): { label: string; count: number; color: string; description?: string }[] {
+  get roleSlices(): {
+    label: string;
+    count: number;
+    color: string;
+    description?: string;
+  }[] {
     return (this.data?.users_by_role ?? []).map((r) => ({
       label: this.pretty(r.role),
       count: r.count,
@@ -147,7 +197,9 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
   }
 
   get periodLabel(): string {
-    return this.data ? `${this.data.window.from} to ${this.data.window.to}` : "";
+    return this.data
+      ? `${this.data.window.from} to ${this.data.window.to}`
+      : "";
   }
 
   downloadExcel(): void {

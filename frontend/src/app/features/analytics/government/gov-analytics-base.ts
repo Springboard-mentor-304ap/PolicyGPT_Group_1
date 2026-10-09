@@ -22,6 +22,27 @@ export interface GovtKpiCard {
 
 export const GOVT_MONTHS = [6, 9, 12];
 
+export type GovtRangeKey = "7d" | "30d" | "6m" | "9m" | "12m" | "custom";
+
+export const GOVT_RANGE_OPTIONS: { key: GovtRangeKey; label: string }[] = [
+  { key: "7d", label: "Last 7 Days" },
+  { key: "30d", label: "Last 30 Days" },
+  { key: "6m", label: "Last 6 Months" },
+  { key: "9m", label: "Last 9 Months" },
+  { key: "12m", label: "Last 12 Months" },
+  { key: "custom", label: "Custom" },
+];
+
+/** Backend custom windows are capped at 24 months (see resolve_gov_window). */
+const MAX_CUSTOM_DAYS = 731;
+
+function toISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export const ROLE_COLORS: Record<string, string> = {
   CITIZEN: "#1461a0",
   RESEARCHER: "#17833d",
@@ -40,8 +61,8 @@ export const STATUS_COLORS: Record<string, string> = {
 
 /**
  * Shared behaviour for the four Government Analytics pages:
- * month presets + custom range, loading/error states, OnPush refresh,
- * export menu, date formatting and label prettifying.
+ * segmented day/month presets + custom range, loading/error states,
+ * OnPush refresh, export menu, date formatting and label prettifying.
  */
 @Directive()
 export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
@@ -61,6 +82,16 @@ export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
   loading = true;
   error: string | null = null;
 
+  /**
+   * Standardized segmented timeline (Last 7 Days through Custom).
+   * Day-based presets resolve to explicit trailing custom windows because
+   * the backend `months` parameter is calendar-month based; month presets
+   * keep using it directly. Default stays Last 12 Months on every page.
+   */
+  range: GovtRangeKey = "12m";
+  readonly rangeOptions = GOVT_RANGE_OPTIONS;
+  private lastPreset: GovtRangeKey = "12m";
+
   months = 12;
   customFrom = "";
   customTo = "";
@@ -70,6 +101,10 @@ export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
   readonly monthOptions = GOVT_MONTHS;
 
   ngOnInit(): void {
+    this.crumbs = [
+      { label: "Home", route: ["/dashboard/government"] },
+      { label: this.pageTitle },
+    ];
     this.loadData(false);
   }
 
@@ -102,24 +137,60 @@ export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
   }
 
   protected windowParams(): { months: number; date_from?: string; date_to?: string } {
-    if (this.showCustom && this.customFrom && this.customTo) {
+    if (this.range === "7d" || this.range === "30d") {
+      // Trailing day window: custom dates override `months` server-side.
+      const days = this.range === "7d" ? 7 : 30;
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - (days - 1));
+      return { months: 1, date_from: toISODate(start), date_to: toISODate(end) };
+    }
+    if (this.range === "custom" && this.customFrom && this.customTo) {
       return { months: this.months, date_from: this.customFrom, date_to: this.customTo };
     }
     return { months: this.months };
   }
 
-  setMonths(months: number): void {
-    if (this.months === months && !this.showCustom) {
+  setRange(key: GovtRangeKey): void {
+    if (key === "custom") {
+      // Custom pill toggles the calendar open/closed (close cancels
+      // back to the last applied preset).
+      this.toggleCustom();
       return;
     }
-    this.months = months;
+    if (this.range === key && !this.showCustom) {
+      return;
+    }
+    this.range = key;
+    this.lastPreset = key;
+    this.months = key === "7d" || key === "30d" ? 1 : Number(key.replace("m", ""));
     this.showCustom = false;
     this.loadData(false);
   }
 
+  setMonths(months: number): void {
+    if (months === 6) {
+      this.setRange("6m");
+    } else if (months === 9) {
+      this.setRange("9m");
+    } else {
+      this.setRange("12m");
+    }
+  }
+
   toggleCustom(): void {
     this.showCustom = !this.showCustom;
-    if (!this.showCustom) {
+    if (this.showCustom) {
+      this.range = "custom";
+      this.cdr.markForCheck();
+    } else {
+      // Cancel back to the last applied preset (data stays untouched
+      // until a preset or Apply triggers a reload).
+      this.range = this.lastPreset;
+      this.months =
+        this.lastPreset === "7d" || this.lastPreset === "30d"
+          ? 1
+          : Number(this.lastPreset.replace("m", ""));
       this.loadData(false);
     }
   }
@@ -130,6 +201,21 @@ export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
+    if (this.customTo < this.customFrom) {
+      this.error = "End date cannot be before start date.";
+      this.cdr.markForCheck();
+      return;
+    }
+    const spanDays =
+      Math.round(
+        (Date.parse(this.customTo) - Date.parse(this.customFrom)) / 86_400_000,
+      ) + 1;
+    if (Number.isFinite(spanDays) && spanDays > MAX_CUSTOM_DAYS) {
+      this.error = "Date window is limited to 24 months.";
+      this.cdr.markForCheck();
+      return;
+    }
+    this.range = "custom";
     this.loadData(false);
   }
 

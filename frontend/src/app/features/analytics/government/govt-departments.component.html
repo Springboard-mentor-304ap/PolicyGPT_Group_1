@@ -8,16 +8,12 @@
     </div>
     <div class="header-right no-print">
       <div class="range-group" role="group" aria-label="Time range">
-        @for (m of monthOptions; track m) {
-        <button type="button" class="range-pill" [class.range-pill--active]="months === m && !showCustom"
-          (click)="setMonths(m)" [attr.aria-pressed]="months === m && !showCustom">
-          Last {{ m }} Months
+        @for (opt of rangeOptions; track opt.key) {
+        <button type="button" class="range-pill" [class.range-pill--active]="range === opt.key"
+          (click)="setRange(opt.key)" [attr.aria-pressed]="range === opt.key">
+          {{ opt.label }}
         </button>
         }
-        <button type="button" class="range-pill" [class.range-pill--active]="showCustom" (click)="toggleCustom()"
-          [attr.aria-pressed]="showCustom">
-          Custom
-        </button>
       </div>
       @if (showCustom) {
       <div class="custom-range">
@@ -28,7 +24,7 @@
       </div>
       }
       <div class="export-wrap">
-        <button type="button" class="btn btn-primary" (click)="toggleExportMenu()" [disabled]="loading || !data"
+        <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || !data"
           aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
           <span class="material-icons" aria-hidden="true">download</span>
           <span>Download Report</span>

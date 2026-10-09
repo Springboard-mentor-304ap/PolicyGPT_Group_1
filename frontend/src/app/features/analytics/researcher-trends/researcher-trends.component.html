@@ -6,21 +6,39 @@
       <h1>Policy &amp; Scheme Trends</h1>
       <p>Approved policy and scheme publication trends, category distributions and your search activity.</p>
       @if (trends) {
-      <p class="scope-note">Corpus scope: {{ trends.scope }} records only. Personal activity reflects {{ range }}.</p>
+      <p class="scope-note">Corpus scope: {{ trends.scope }} records only. Personal activity reflects {{ pickerLabel }}.</p>
       }
     </div>
 
     <div class="header-right no-print">
-      <div class="range-group" role="group" aria-label="Date range">
-        @for (option of ranges; track option.key) {
-        <button type="button" class="range-pill" [class.range-pill--active]="range === option.key"
-          (click)="setRange(option.key)" [attr.aria-pressed]="range === option.key">
-          {{ option.label }}
+      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets"
+        (rangeChange)="onPickerLabel($event)" (rangeSelect)="onPickerSelect($event)" />
+      <div class="export-wrap">
+        <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || (!trends && !overview)"
+          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this trends report"
+          aria-label="Download Report">
+          <span class="material-icons" aria-hidden="true">download</span>
+          <span>Download Report</span>
         </button>
+        @if (showExportMenu) {
+        <div class="export-menu" role="menu">
+          <button type="button" role="menuitem" (click)="exportCsv()">
+            <span class="material-icons" aria-hidden="true">table_view</span>
+            Excel (CSV)
+          </button>
+          <button type="button" role="menuitem" (click)="exportPdf()">
+            <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            PDF (Print)
+          </button>
+        </div>
         }
       </div>
     </div>
   </header>
+
+  @if (customError) {
+  <p class="analytics-status error" role="alert">{{ customError }}</p>
+  }
 
   @if (loading) {
   <div class="stats-grid" aria-label="Loading trends">
@@ -78,7 +96,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + ownSearches">{{ ownSearches }}</span>
-        <span class="stat-title">My Searches ({{ range }})</span>
+        <span class="stat-title">My Searches ({{ pickerLabel }})</span>
       </span>
     </div>
     <div class="stat-card" role="listitem" title="Policies and schemes you bookmarked in this period.">
@@ -87,7 +105,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + ownSaved">{{ ownSaved }}</span>
-        <span class="stat-title">My Saved Items ({{ range }})</span>
+        <span class="stat-title">My Saved Items ({{ pickerLabel }})</span>
       </span>
     </div>
   </div>
@@ -98,7 +116,7 @@
       <div class="card-head">
         <div>
           <h2>Publication Trend</h2>
-          <p class="card-sub">Approved policies and schemes over time ({{ range }})</p>
+          <p class="card-sub">Approved policies and schemes over time ({{ pickerLabel }})</p>
         </div>
         <a class="link-action" [routerLink]="['/dashboard/researcher/analytics']" title="Open Research Overview">Overview</a>
       </div>
@@ -159,7 +177,7 @@
       <div class="card-head">
         <div>
           <h2>My Search Activity</h2>
-          <p class="card-sub">Your searches in this period ({{ range }})</p>
+          <p class="card-sub">Your searches in this period ({{ pickerLabel }})</p>
         </div>
         <a class="link-action" [routerLink]="['/dashboard/researcher/history']" title="View search history">History</a>
       </div>
@@ -174,7 +192,7 @@
       <div class="card-head">
         <div>
           <h2>Top Searched Keywords</h2>
-          <p class="card-sub">Your most frequent queries ({{ range }})</p>
+          <p class="card-sub">Your most frequent queries ({{ pickerLabel }})</p>
         </div>
       </div>
       @if (topSearchBars.length === 0) {

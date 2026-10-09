@@ -297,7 +297,6 @@ export interface SupportUpdateItem {
               [datasets]="trendDatasets()"
               [yMin]="0"
               [yMax]="chartYMax()"
-              [animationsEnabled]="false"
             />
           </section>
 
@@ -309,7 +308,6 @@ export interface SupportUpdateItem {
               [colors]="statusDonutColors()"
               [centerMainText]="totalText()"
               centerSubText="Total Tickets"
-              [animationsEnabled]="false"
             />
           </section>
         </div>
@@ -322,7 +320,6 @@ export interface SupportUpdateItem {
               [labels]="categoryLabels()"
               [data]="categoryData()"
               primaryColor="#3b82f6"
-              [animationsEnabled]="false"
             />
           </section>
 
@@ -334,7 +331,6 @@ export interface SupportUpdateItem {
               [colors]="priorityDonutColors()"
               [centerMainText]="totalText()"
               centerSubText="Total Tickets"
-              [animationsEnabled]="false"
             />
           </section>
         </div>
@@ -347,7 +343,6 @@ export interface SupportUpdateItem {
               [labels]="roleLabels()"
               [data]="roleData()"
               primaryColor="#0e7490"
-              [animationsEnabled]="false"
             />
           </section>
 

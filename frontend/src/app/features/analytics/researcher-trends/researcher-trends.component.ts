@@ -29,7 +29,12 @@ import {
   AnalyticsLineChartComponent,
   LineSeries,
 } from "../shared/analytics-charts.component";
+import {
+  DateRangePickerComponent,
+  type DateRangeSelection,
+} from "../shared/date-range-picker/date-range-picker.component";
 import { CountUpDirective } from "../../../shared/directives/count-up.directive";
+import { downloadResearcherTrendsCsv, printAnalyticsPdf } from "../shared/analytics-export";
 
 /**
  * Researcher Policy & Scheme Trends.
@@ -51,6 +56,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     FormsModule,
     RouterLink,
     BreadcrumbComponent,
+    DateRangePickerComponent,
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
@@ -75,9 +81,26 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
     { key: "30d", label: "Last 30 Days" },
     { key: "6m", label: "Last 6 Months" },
     { key: "12m", label: "Last 12 Months" },
+    { key: "custom", label: "Custom" },
+  ];
+
+  /**
+   * Standardized Admin-style date-filter presets bound to the shared
+   * app-date-range-picker (same dropdown styling, custom calendar and
+   * end-before-start validation as the Admin Analytics pages).
+   */
+  readonly pickerPresets: string[] = [
+    "Last 7 Days",
+    "Last 30 Days",
+    "Last 6 Months",
+    "Last 12 Months",
   ];
 
   range: PersonalAnalyticsRange = "30d";
+  customFrom = "";
+  customTo = "";
+  customError: string | null = null;
+  showExportMenu = false;
 
   loading = true;
   error: string | null = null;
@@ -98,7 +121,83 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
       return;
     }
     this.range = range;
+    this.customError = null;
     this.load();
+  }
+
+  /** Display label for the shared picker, derived from the active range. */
+  get pickerLabel(): string {
+    switch (this.range) {
+      case "7d":
+        return "Last 7 Days";
+      case "30d":
+        return "Last 30 Days";
+      case "6m":
+        return "Last 6 Months";
+      case "12m":
+        return "Last 12 Months";
+      case "custom":
+        if (this.customFrom && this.customTo) {
+          return `${this.formatPickerDay(this.customFrom)} - ${this.formatPickerDay(this.customTo)}`;
+        }
+        return "Custom";
+    }
+  }
+
+  private formatPickerDay(iso: string): string {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  /**
+   * Map a shared picker selection onto the trends windows. Standard
+   * presets reuse the existing server-side overview range; any other
+   * label or calendar range becomes an explicit custom window so the
+   * personal-activity sections always match the selected period. The
+   * approved-corpus publication series (all-time from the backend) is
+   * sliced client-side to the same window — never fabricated.
+   */
+  onPickerSelect(sel: DateRangeSelection): void {
+    if (this.loading) return;
+    const label = (sel.label || "").trim();
+    if (label === "Last 7 Days") {
+      this.customError = null;
+      this.setRange("7d");
+      return;
+    }
+    if (label === "Last 30 Days") {
+      this.customError = null;
+      this.setRange("30d");
+      return;
+    }
+    if (label === "Last 6 Months") {
+      this.customError = null;
+      this.setRange("6m");
+      return;
+    }
+    if (label === "Last 12 Months") {
+      this.customError = null;
+      this.setRange("12m");
+      return;
+    }
+    if (!sel.startISO || !sel.endISO) return;
+    if (sel.endISO < sel.startISO) {
+      this.customError = "End date cannot be before start date.";
+      this.cdr.markForCheck();
+      return;
+    }
+    this.customError = null;
+    this.range = "custom";
+    this.customFrom = sel.startISO;
+    this.customTo = sel.endISO;
+    this.load();
+  }
+
+  onPickerLabel(_label: string): void {
+    // Display label is derived from `range`; the full selection
+    // (onPickerSelect) drives data loading. Kept for compat.
   }
 
   retry(): void {
@@ -109,12 +208,16 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
     this.subscription?.unsubscribe();
+    const overviewParams =
+      this.range === "custom" && this.customFrom && this.customTo
+        ? { range: this.range, date_from: this.customFrom, date_to: this.customTo }
+        : { range: this.range };
     this.subscription = forkJoin({
       trends: this.analytics.getResearcherTrends(forceRefresh).pipe(
         catchError(() => of(null as ResearcherTrendsResponse | null)),
       ),
       overview: this.analytics
-        .getResearcherOverview({ range: this.range }, forceRefresh)
+        .getResearcherOverview(overviewParams, forceRefresh)
         .pipe(catchError(() => of(null as PersonalAnalyticsOverview | null))),
     }).subscribe({
       next: ({ trends, overview }) => {
@@ -178,7 +281,7 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
   // --------------------------------------------------
   // Publication time-series (APPROVED only, all-time from
   // backend; sliced client-side by the selected window so
-  // the range pills remain functional without refetching
+  // the range filter remains functional without refetching
   // the corpus or fabricating values).
   // --------------------------------------------------
 
@@ -197,8 +300,20 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
   private windowedPoints(): { labels: string[]; policies: number[]; schemes: number[] } {
     const policies = this.trends?.policies.trend ?? [];
     const schemes = this.trends?.schemes.trend ?? [];
-    const limit =
-      this.range === "7d" ? 3 : this.range === "30d" ? 6 : this.range === "6m" ? 6 : 12;
+    let limit: number;
+    if (this.range === "custom" && this.customFrom && this.customTo) {
+      const span = Math.max(
+        1,
+        Math.round(
+          (new Date(`${this.customTo}T00:00:00`).getTime() -
+            new Date(`${this.customFrom}T00:00:00`).getTime()) / 86_400_000,
+        ) + 1,
+      );
+      limit = span <= 14 ? 3 : span <= 62 ? 6 : span <= 186 ? 6 : 12;
+    } else {
+      limit =
+        this.range === "7d" ? 3 : this.range === "30d" ? 6 : this.range === "6m" ? 6 : 12;
+    }
     const keys = Array.from(
       new Set([...policies.map((t) => this.monthKey(t)), ...schemes.map((t) => this.monthKey(t))]),
     ).sort();
@@ -284,5 +399,42 @@ export class ResearcherTrendsComponent implements OnInit, OnDestroy {
     return (this.overview?.top_searches ?? [])
       .slice(0, 7)
       .map((row) => ({ label: row.keyword, value: row.count }));
+  }
+
+  // --------------------------------------------------
+  // Report downloads (same placement and Admin styling as
+  // every other analytics page; exports the selected range
+  // with the current page data — no placeholders).
+  // --------------------------------------------------
+
+  toggleExportMenu(): void {
+    this.showExportMenu = !this.showExportMenu;
+  }
+
+  exportCsv(): void {
+    this.showExportMenu = false;
+    if (!this.trends && !this.overview) return;
+    downloadResearcherTrendsCsv({
+      rangeLabel: this.pickerLabel,
+      customFrom: this.range === "custom" ? this.customFrom : "",
+      customTo: this.range === "custom" ? this.customTo : "",
+      trends: this.trends,
+      overview: this.overview,
+      trendLabels: this.trendLabels,
+      trendSeries: this.trendSeries,
+    });
+  }
+
+  exportPdf(): void {
+    this.showExportMenu = false;
+    if (!this.trends && !this.overview) return;
+    const previous = document.title;
+    const stamp =
+      this.range === "custom" && this.customFrom && this.customTo
+        ? `${this.customFrom}_to_${this.customTo}`
+        : this.overview?.window.to ?? new Date().toISOString().slice(0, 10);
+    document.title = `researcher_trends_${stamp}`;
+    printAnalyticsPdf();
+    document.title = previous;
   }
 }

@@ -28,6 +28,10 @@ import {
   LineSeries,
 } from "../shared/analytics-charts.component";
 import {
+  DateRangePickerComponent,
+  type DateRangeSelection,
+} from "../shared/date-range-picker/date-range-picker.component";
+import {
   downloadAnalyticsCsv,
   printAnalyticsPdf,
 } from "../shared/analytics-export";
@@ -46,7 +50,7 @@ const ROLE_CONFIGS: Record<AnalyticsRole, RoleConfig> = {
   citizen: {
     role: "citizen",
     filePrefix: "citizen",
-    pageTitle: "Analytics",
+    pageTitle: "Citizen Analytics",
     pageDescription:
       "Your activity, saved items, searches and recent notifications.",
     homeRoute: ["/dashboard/citizen"],
@@ -109,6 +113,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     FormsModule,
     RouterLink,
     BreadcrumbComponent,
+    DateRangePickerComponent,
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
@@ -142,6 +147,86 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
     { key: "custom", label: "Custom" },
   ];
 
+  /**
+   * Standardized Admin-style date-filter presets bound to the shared
+   * app-date-range-picker (same dropdown styling, custom calendar and
+   * end-before-start validation as the Admin Analytics pages).
+   */
+  readonly pickerPresets: string[] = [
+    "Last 7 Days",
+    "Last 30 Days",
+    "Last 6 Months",
+    "Last 12 Months",
+  ];
+
+  /** Display label for the shared picker, derived from the backend range. */
+  get pickerLabel(): string {
+    switch (this.range) {
+      case "7d":
+        return "Last 7 Days";
+      case "30d":
+        return "Last 30 Days";
+      case "6m":
+        return "Last 6 Months";
+      case "12m":
+        return "Last 12 Months";
+      case "custom":
+        if (this.customFrom && this.customTo) {
+          return `${this.formatPickerDay(this.customFrom)} - ${this.formatPickerDay(this.customTo)}`;
+        }
+        return "Custom";
+    }
+  }
+
+  private formatPickerDay(iso: string): string {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  /**
+   * Map a shared picker selection onto the personal-overview backend
+   * range. Standard presets reuse the server-side windows (with honest
+   * previous-period deltas); any other label or calendar range becomes
+   * an explicit custom window so displayed metrics always match the
+   * selected period instead of relabelling stale data.
+   */
+  onPickerSelect(sel: DateRangeSelection): void {
+    const label = (sel.label || "").trim();
+    if (label === "Last 7 Days") {
+      this.setRange("7d");
+      return;
+    }
+    if (label === "Last 30 Days") {
+      this.setRange("30d");
+      return;
+    }
+    if (label === "Last 6 Months") {
+      this.setRange("6m");
+      return;
+    }
+    if (label === "Last 12 Months") {
+      this.setRange("12m");
+      return;
+    }
+    if (!sel.startISO || !sel.endISO) return;
+    if (sel.endISO < sel.startISO) {
+      this.error = "End date cannot be before start date.";
+      this.cdr.markForCheck();
+      return;
+    }
+    this.range = "custom";
+    this.customFrom = sel.startISO;
+    this.customTo = sel.endISO;
+    this.load();
+  }
+
+  onPickerLabel(_label: string): void {
+    // Display label is derived from `range`; the full selection
+    // (onPickerSelect) drives data loading. Kept for compat.
+  }
+
   showExportMenu = false;
 
   ngOnInit(): void {
@@ -150,7 +235,7 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
     this.config = ROLE_CONFIGS[this.role];
     this.crumbs = [
       { label: "Home", route: this.config.homeRoute },
-      { label: this.role === "researcher" ? "Research Analytics" : "Analytics" },
+      { label: this.config.pageTitle },
     ];
     this.load();
   }
@@ -226,6 +311,12 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
   applyCustom(): void {
     if (!this.customFrom || !this.customTo) {
       this.error = "Select both a start and an end date for the custom range.";
+      this.cdr.markForCheck();
+      return;
+    }
+    if (this.customTo < this.customFrom) {
+      this.error = "End date cannot be before start date.";
+      this.cdr.markForCheck();
       return;
     }
     this.load();

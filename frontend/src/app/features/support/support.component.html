@@ -46,6 +46,7 @@
 
     <div class="faq-head">
       <h2>Frequently Asked Questions</h2>
+      <p class="faq-subtitle">{{ faqSubtitle }}</p>
       <p class="results-count" *ngIf="!loadingFaqs && !faqError">
         <strong>{{ faqs.length }}</strong>
         {{ faqs.length === 1 ? 'question' : 'questions' }}

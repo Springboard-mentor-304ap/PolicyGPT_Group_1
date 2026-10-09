@@ -83,6 +83,19 @@ def _verify_not_admin(user: Optional[User]):
             )
 
 
+def _request_role(user: Optional[User]) -> str:
+    """Resolve the caller's canonical FAQ audience server-side.
+
+    Authenticated users resolve from their JWT identity; anonymous
+    callers are GUEST. No role is ever accepted from query params or
+    the request body, so clients cannot escalate into another role's
+    FAQs by manipulation.
+    """
+    if not user:
+        return "GUEST"
+    return normalize_role(user.role) or "GUEST"
+
+
 # ============================================================
 # PUBLISHED FAQ ENDPOINTS (PUBLIC / NON-ADMIN)
 # ============================================================
@@ -103,7 +116,11 @@ def get_support_faqs(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(_get_optional_current_user),
 ):
-    """Retrieve published FAQs. Prohibits Administrator access."""
+    """Retrieve published FAQs visible to the caller's role.
+
+    Prohibits Administrator access. Role is derived server-side from
+    the JWT (GUEST when anonymous); query params cannot override it.
+    """
     _verify_not_admin(current_user)
     return support_service.get_published_faqs(
         db=db,
@@ -111,6 +128,7 @@ def get_support_faqs(
         category=category,
         skip=skip,
         limit=limit,
+        role=_request_role(current_user),
     )
 
 
@@ -123,9 +141,10 @@ def get_support_faq_categories(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(_get_optional_current_user),
 ):
-    """Retrieve available categories from published FAQs."""
+    """Retrieve available categories from published FAQs visible to
+    the caller's role."""
     _verify_not_admin(current_user)
-    return support_service.get_faq_categories(db)
+    return support_service.get_faq_categories(db, role=_request_role(current_user))
 
 
 @router.get(
@@ -138,9 +157,12 @@ def get_support_faq_detail(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(_get_optional_current_user),
 ):
-    """Retrieve single published FAQ by ID."""
+    """Retrieve a single published FAQ by ID when visible to the
+    caller's role."""
     _verify_not_admin(current_user)
-    faq = support_service.get_published_faq(db, faq_id)
+    faq = support_service.get_published_faq(
+        db, faq_id, role=_request_role(current_user)
+    )
     if not faq:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

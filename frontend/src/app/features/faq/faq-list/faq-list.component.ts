@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { FAQ, FAQCreate, FAQUpdate } from '../../../core/models/faq.model';
+import { FAQ, FAQCreate, FAQUpdate, FAQ_AUDIENCE_OPTIONS, normalizeFaqAudience, faqAudienceChips, faqAudienceLabel } from '../../../core/models/faq.model';
 import { FaqService } from '../../../core/services/faq.service';
 import { Auth } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
@@ -28,7 +28,11 @@ export class FaqListComponent implements OnInit, OnDestroy {
   // Search & Filter
   searchQuery = signal<string>('');
   selectedCategory = signal<string>('All');
+  selectedAudience = signal<string>('All');
   expandedFaqIds = signal<Set<number>>(new Set<number>());
+
+  // Audience options for the Visible To editor and the audience filter.
+  readonly audienceOptions = FAQ_AUDIENCE_OPTIONS;
 
   // User / Permissions
   isAdmin = signal<boolean>(false);
@@ -46,6 +50,7 @@ export class FaqListComponent implements OnInit, OnDestroy {
   formCategory = 'General';
   customCategory = '';
   formStatus = 'PUBLISHED';
+  formAudience: string[] = ['ALL'];
 
   // Delete Confirmation Modal
   showDeleteModal = signal<boolean>(false);
@@ -76,14 +81,18 @@ export class FaqListComponent implements OnInit, OnDestroy {
     return Array.from(set);
   });
 
-  // Filtered FAQs computed based on search and category
+  // Filtered FAQs computed based on search, category and audience
   filteredFaqs = computed<FAQ[]>(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const category = this.selectedCategory();
+    const audience = this.selectedAudience();
     return this.faqs().filter((faq) => {
       const matchCategory =
         category === 'All' ||
         (faq.category && faq.category.toLowerCase() === category.toLowerCase());
+
+      const matchAudience =
+        audience === 'All' || faqAudienceChips(faq).includes(audience);
 
       const matchQuery =
         !query ||
@@ -91,9 +100,48 @@ export class FaqListComponent implements OnInit, OnDestroy {
         faq.answer.toLowerCase().includes(query) ||
         (faq.category && faq.category.toLowerCase().includes(query));
 
-      return matchCategory && matchQuery;
+      return matchCategory && matchAudience && matchQuery;
     });
   });
+
+  /** Compact audience chip labels for a row (NULL legacy rows → ALL). */
+  audienceChips(faq: FAQ): string[] {
+    return faqAudienceChips(faq);
+  }
+
+  audienceChipLabel(code: string): string {
+    return faqAudienceLabel(code);
+  }
+
+  /** Visible To checkbox toggle: ALL overrides role-specific picks. */
+  toggleAudience(code: string): void {
+    const current = new Set(
+      (this.formAudience || []).map((c) => (c || '').toUpperCase()),
+    );
+    if (current.has(code)) {
+      current.delete(code);
+      if (current.size === 0) {
+        current.add('ALL');
+      }
+    } else if (code === 'ALL') {
+      this.formAudience = ['ALL'];
+      return;
+    } else {
+      current.delete('ALL');
+      current.add(code);
+    }
+    this.formAudience = normalizeFaqAudience(Array.from(current));
+  }
+
+  isAudienceSelected(code: string): boolean {
+    return (this.formAudience || [])
+      .map((c) => (c || '').toUpperCase())
+      .includes(code);
+  }
+
+  selectAudience(audience: string): void {
+    this.selectedAudience.set(audience);
+  }
 
   constructor(
     private readonly faqService: FaqService,
@@ -275,6 +323,7 @@ export class FaqListComponent implements OnInit, OnDestroy {
     this.formCategory = 'General';
     this.customCategory = '';
     this.formStatus = 'PUBLISHED';
+    this.formAudience = ['ALL'];
     this.showModal.set(true);
     this.scrollLock.lock();
   }
@@ -286,6 +335,7 @@ export class FaqListComponent implements OnInit, OnDestroy {
     this.formQuestion = faq.question;
     this.formAnswer = faq.answer;
     this.formStatus = (faq.status || 'PUBLISHED').toUpperCase();
+    this.formAudience = normalizeFaqAudience(faqAudienceChips(faq));
 
     if (this.predefinedCategories.includes(faq.category || '')) {
       this.formCategory = faq.category || 'General';
@@ -327,6 +377,7 @@ export class FaqListComponent implements OnInit, OnDestroy {
         answer: this.formAnswer.trim(),
         category: finalCategory,
         status: this.formStatus,
+        target_roles: normalizeFaqAudience(this.formAudience),
       };
 
       this.faqService.updateFaq(this.editingFaqId()!, payload).subscribe({
@@ -350,6 +401,7 @@ export class FaqListComponent implements OnInit, OnDestroy {
         answer: this.formAnswer.trim(),
         category: finalCategory,
         status: this.formStatus,
+        target_roles: normalizeFaqAudience(this.formAudience),
       };
 
       this.faqService.createFaq(payload).subscribe({

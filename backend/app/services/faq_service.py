@@ -1,9 +1,40 @@
 from datetime import datetime, timezone
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.faq import FAQ
 from app.schemas.faq import FAQCreate, FAQUpdate
+
+
+# Canonical audience codes for FAQ visibility. "ALL" means visible to
+# every role, including unauthenticated guests. Kept in sync with
+# ALLOWED_AUDIENCES in app.schemas.faq.
+FAQ_AUDIENCES = (
+    "ALL",
+    "ADMIN",
+    "GOVERNMENT_OFFICIAL",
+    "CITIZEN",
+    "RESEARCHER",
+    "ORGANIZATION",
+    "GUEST",
+)
+
+
+def audience_filter(query, role: str):
+    """Restrict an FAQ query to rows visible to ``role`` (DB-level).
+
+    Visible = target_roles overlaps {role, ALL}. NULL or empty (legacy
+    rows predating the audience migration) is treated as ALL so
+    existing data keeps working even before the migration runs.
+    """
+    return query.filter(
+        or_(
+            FAQ.target_roles.is_(None),
+            FAQ.target_roles == [],
+            FAQ.target_roles.overlap([role, "ALL"]),
+        )
+    )
 
 
 def create_faq(
@@ -16,6 +47,7 @@ def create_faq(
         category=data.category,
         status=getattr(data, "status", "PUBLISHED") or "PUBLISHED",
         display_order=getattr(data, "display_order", 0) or 0,
+        target_roles=data.target_roles or ["ALL"],
         created_at=datetime.now(timezone.utc).replace(tzinfo=None),
         updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )

@@ -19,16 +19,32 @@ SUPPORT_IDEMPOTENCY_WINDOW_MINUTES = 10
 SUPPORT_LIST_MAX_LIMIT = 200
 
 
+def _visible_to_role(query, role: str):
+    """DB-level FAQ audience filter: rows whose target_roles overlaps
+    {role, ALL}. NULL or empty (rows predating the audience migration)
+    counts as ALL so existing data keeps working."""
+    return query.filter(
+        or_(
+            FAQ.target_roles.is_(None),
+            FAQ.target_roles == [],
+            FAQ.target_roles.overlap([role, "ALL"]),
+        )
+    )
+
+
 def get_published_faqs(
     db: Session,
     search: Optional[str] = None,
     category: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
+    role: str = "GUEST",
 ) -> list[FAQ]:
-    """Retrieve all published FAQs, optionally filtered by keyword
-    and category."""
+    """Retrieve published FAQs visible to ``role``, optionally filtered
+    by keyword and category. Role filtering happens in the database
+    query — never client-side."""
     query = db.query(FAQ).filter(FAQ.status == "PUBLISHED")
+    query = _visible_to_role(query, role)
 
     if category and category.strip() and category.strip().lower() != "all":
         query = query.filter(FAQ.category.ilike(category.strip()))
@@ -51,10 +67,10 @@ def get_published_faqs(
     )
 
 
-def get_faq_categories(db: Session) -> list[str]:
-    """Get all distinct categories across published FAQs."""
+def get_faq_categories(db: Session, role: str = "GUEST") -> list[str]:
+    """Get distinct categories across published FAQs visible to ``role``."""
     rows = (
-        db.query(FAQ.category)
+        _visible_to_role(db.query(FAQ.category), role)
         .filter(
             FAQ.status == "PUBLISHED",
             FAQ.category.isnot(None),
@@ -67,9 +83,15 @@ def get_faq_categories(db: Session) -> list[str]:
     return categories
 
 
-def get_published_faq(db: Session, faq_id: int) -> FAQ | None:
-    """Retrieve a single published FAQ by ID."""
-    return db.query(FAQ).filter(FAQ.faq_id == faq_id, FAQ.status == "PUBLISHED").first()
+def get_published_faq(
+    db: Session, faq_id: int, role: str = "GUEST"
+) -> FAQ | None:
+    """Retrieve a single published FAQ by ID when visible to ``role``."""
+    return (
+        _visible_to_role(db.query(FAQ), role)
+        .filter(FAQ.faq_id == faq_id, FAQ.status == "PUBLISHED")
+        .first()
+    )
 
 
 def _find_recent_duplicate(

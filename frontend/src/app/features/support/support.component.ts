@@ -45,6 +45,26 @@ export class SupportComponent implements OnInit, OnDestroy {
   userRole = 'CITIZEN';
   isGuest = false;
 
+  /** Small contextual line under the FAQ heading, tailored per workspace. */
+  get faqSubtitle(): string {
+    const role = (this.userRole || '').toUpperCase().trim();
+    switch (role) {
+      case 'RESEARCHER':
+        return 'Answers tailored to your Researcher workspace.';
+      case 'CITIZEN':
+        return 'Answers to common questions about policies, schemes, eligibility, and portal services.';
+      case 'ORGANIZATION':
+      case 'ORGANISATION':
+        return 'Answers tailored to your Organization workspace.';
+      case 'GOVERNMENT_OFFICIAL':
+      case 'GOVERNMENT':
+      case 'GOVT':
+        return 'Guidance for managing policies, schemes, approvals, and department activities.';
+      default:
+        return 'Answers to common questions about using PolicyGPT.';
+    }
+  }
+
   // Active view tab
   activeTab: SupportTab = 'faqs';
 

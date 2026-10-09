@@ -506,6 +506,18 @@ $warning-soft: #fef3c7;
     white-space: nowrap;
   }
 
+  .faq-audience {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+  }
+
+  .faq-audience--all {
+    color: #047857;
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+  }
+
   .faq-status {
     font-size: 10.5px;
     font-weight: 700;
@@ -1004,7 +1016,52 @@ $warning-soft: #fef3c7;
       }
     }
 
-    input, select, textarea {
+    .form-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .form-hint {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .audience-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .audience-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid $border;
+      border-radius: 10px;
+      padding: 7px 12px;
+      cursor: pointer;
+      user-select: none;
+
+      input {
+        width: auto;
+        accent-color: $primary;
+        margin: 0;
+      }
+
+      &--active {
+        background: #eff6ff;
+        border-color: #93c5fd;
+        color: #1d4ed8;
+      }
+    }
+
+    input:not([type='checkbox']), select, textarea {
       width: 100%;
       border: 1px solid $border;
       border-radius: 10px;

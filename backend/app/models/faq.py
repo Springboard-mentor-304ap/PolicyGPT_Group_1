@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, String, Text
+from sqlalchemy import BigInteger, DateTime, String, Text, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -41,6 +42,18 @@ class FAQ(Base):
         BigInteger,
         nullable=False,
         default=0,
+    )
+
+    # Role visibility: canonical role codes allowed to see this FAQ,
+    # or ["ALL"] for FAQs visible to everyone (including guests).
+    # Canonical values: ALL, ADMIN, GOVERNMENT_OFFICIAL, CITIZEN,
+    # RESEARCHER, ORGANIZATION, GUEST. Matches the ARRAY(String)
+    # convention used by Policy.benefits / Scheme.benefits.
+    target_roles: Mapped[list[str]] = mapped_column(
+        ARRAY(String(50)),
+        nullable=False,
+        default=list,
+        server_default=text("'{ALL}'"),
     )
 
     created_at: Mapped[datetime] = mapped_column(

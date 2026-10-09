@@ -1532,7 +1532,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // QUERY RESOLUTION (ADMIN MANAGEMENT)
+      // SUPPORT REQUESTS (ADMIN MANAGEMENT)
       // Alias view over the support ticket queue, where submitted
       // queries are reviewed and resolved. Reuses AdminSupportComponent
       // so there is exactly one implementation (and one sidebar entry
@@ -1642,7 +1642,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-            // SCHEMES SEARCH (ALIAS, mirrors policies/search)
+      // SCHEMES SEARCH (ALIAS, mirrors policies/search)
       {
         path: "schemes/search",
 
@@ -1652,7 +1652,7 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-// SCHEME DETAILS
+      // SCHEME DETAILS
       {
         path: "schemes/:id",
 

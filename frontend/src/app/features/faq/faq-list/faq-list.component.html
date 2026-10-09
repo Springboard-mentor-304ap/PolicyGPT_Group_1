@@ -90,6 +90,21 @@
         </select>
         <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
       </label>
+      <label class="filter-select-wrap" *ngIf="isAdmin()">
+        <span class="visually-hidden">Filter by audience</span>
+        <select
+          class="filter-select"
+          [ngModel]="selectedAudience()"
+          (ngModelChange)="selectAudience($event)"
+          aria-label="Filter by audience"
+        >
+          <option value="All">All Audiences</option>
+          <option *ngFor="let opt of audienceOptions" [value]="opt.value">
+            {{ opt.value === 'ALL' ? 'All Users' : opt.label }}
+          </option>
+        </select>
+        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+      </label>
       <div class="toggle-actions" *ngIf="filteredFaqs().length > 0">
         <button type="button" class="meta-action-btn" (click)="expandAll()">
           <span class="material-icons">unfold_more</span>
@@ -133,18 +148,18 @@
         <span class="material-icons">quiz</span>
       </div>
       <h3>No matching questions found</h3>
-      <p *ngIf="searchQuery() || selectedCategory() !== 'All'">
+      <p *ngIf="searchQuery() || selectedCategory() !== 'All' || selectedAudience() !== 'All'">
         We couldn't find any questions matching your current filters. Try searching with different keywords or clear your filters.
       </p>
-      <p *ngIf="!searchQuery() && selectedCategory() === 'All'">
+      <p *ngIf="!searchQuery() && selectedCategory() === 'All' && selectedAudience() === 'All'">
         No FAQs have been added to the knowledge base yet.
       </p>
       <div class="empty-actions">
         <button
-          *ngIf="searchQuery() || selectedCategory() !== 'All'"
+          *ngIf="searchQuery() || selectedCategory() !== 'All' || selectedAudience() !== 'All'"
           type="button"
           class="back-button"
-          (click)="searchQuery.set(''); selectedCategory.set('All')"
+          (click)="searchQuery.set(''); selectedCategory.set('All'); selectAudience('All')"
         >
           <span class="material-icons back-icon">clear_all</span>
           <span>Clear Filters</span>
@@ -188,6 +203,12 @@
             <span class="faq-q">{{ faq.question }}</span>
             <span class="faq-tags">
               <span *ngIf="faq.category" class="faq-tag">{{ faq.category }}</span>
+              <span
+                *ngFor="let chip of audienceChips(faq)"
+                class="faq-tag faq-audience"
+                [class.faq-audience--all]="chip === 'ALL'"
+                [title]="'Visible to: ' + audienceChipLabel(chip)"
+              >{{ audienceChipLabel(chip) }}</span>
               <span
                 *ngIf="isAdmin()"
                 class="faq-status"
@@ -385,9 +406,32 @@
         <div class="form-group">
           <label for="faqStatus">Visibility</label>
           <select id="faqStatus" [(ngModel)]="formStatus">
-            <option value="PUBLISHED">Published (visible to all users)</option>
+            <option value="PUBLISHED">Published (visible to selected audience)</option>
             <option value="DRAFT">Draft (hidden from users)</option>
           </select>
+        </div>
+
+        <!-- TARGET AUDIENCE -->
+        <div class="form-group">
+          <span class="form-label" id="faqAudienceLabel">Visible To</span>
+          <div class="audience-checks" role="group" aria-labelledby="faqAudienceLabel">
+            <label
+              *ngFor="let opt of audienceOptions"
+              class="audience-check"
+              [class.audience-check--active]="isAudienceSelected(opt.value)"
+            >
+              <input
+                type="checkbox"
+                [checked]="isAudienceSelected(opt.value)"
+                (change)="toggleAudience(opt.value)"
+                [attr.aria-label]="'Visible to ' + opt.label"
+              />
+              <span>{{ opt.label }}</span>
+            </label>
+          </div>
+          <p class="form-hint" *ngIf="isAudienceSelected('ALL')">
+            All Users selected — this FAQ is visible to every role, including guests.
+          </p>
         </div>
       </div>
 

@@ -1,19 +1,18 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FaqListComponent } from './faq-list.component';
-import { FaqService } from '../../../core/services/faq.service';
-import { Auth } from '../../../core/services/auth';
 import { FAQ } from '../../../core/models/faq.model';
 
+/**
+ * NOTE: direct instantiation (no TestBed.createComponent) because
+ * constructor-injected components cannot instantiate under this repo's
+ * vitest transform (pre-existing NG0202 failure). All assertions target
+ * component logic; template bindings are covered by tsc.
+ */
 describe('FaqListComponent', () => {
   let component: FaqListComponent;
-  let fixture: ComponentFixture<FaqListComponent>;
-  let faqService: FaqService;
-  let authService: Auth;
+  let faqService: any;
+  let authService: any;
 
   const mockFaqs: FAQ[] = [
     {
@@ -34,25 +33,30 @@ describe('FaqListComponent', () => {
     },
   ];
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [FaqListComponent],
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-        provideRouter([]),
-      ],
-    }).compileComponents();
-
-    faqService = TestBed.inject(FaqService);
-    authService = TestBed.inject(Auth);
-
-    vi.spyOn(faqService, 'getFaqs').mockReturnValue(of(mockFaqs));
-    vi.spyOn(authService, 'getUserRole').mockReturnValue('CITIZEN');
-
-    fixture = TestBed.createComponent(FaqListComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
+  beforeEach(() => {
+    faqService = {
+      getFaqs: vi.fn().mockReturnValue(of(mockFaqs)),
+      createFaq: vi.fn(),
+      updateFaq: vi.fn(),
+      deleteFaq: vi.fn(),
+    };
+    authService = { getUserRole: vi.fn().mockReturnValue('CITIZEN') };
+    const toastService: any = {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    };
+    const router: any = { navigate: vi.fn() };
+    const scrollLock: any = { lock: vi.fn(), unlock: vi.fn() };
+    component = new FaqListComponent(
+      faqService,
+      authService,
+      toastService,
+      router,
+      scrollLock,
+    );
+    component.ngOnInit();
   });
 
   it('should create and load FAQs', () => {
@@ -90,8 +94,74 @@ describe('FaqListComponent', () => {
   });
 
   it('should identify admin user mode when role is ADMIN', () => {
-    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    authService.getUserRole.mockReturnValue('ADMIN');
     component.checkUserRole();
     expect(component.isAdmin()).toBe(true);
+  });
+
+  it('should default new FAQs to the ALL audience', () => {
+    component.openAddModal();
+    expect(component.formAudience).toEqual(['ALL']);
+  });
+
+  it('should let ALL override role-specific picks and vice versa', () => {
+    component.openAddModal();
+    component.toggleAudience('RESEARCHER');
+    expect(component.formAudience).toEqual(['RESEARCHER']);
+    component.toggleAudience('CITIZEN');
+    expect(component.formAudience).toEqual(
+      expect.arrayContaining(['RESEARCHER', 'CITIZEN']),
+    );
+    component.toggleAudience('ALL');
+    expect(component.formAudience).toEqual(['ALL']);
+  });
+
+  it('should filter the admin list by audience', () => {
+    component.faqs.set([
+      ...mockFaqs.map((f) => ({ ...f, target_roles: ['ALL'] as string[] })),
+      {
+        faq_id: 3,
+        question: 'How does Research Analytics work?',
+        answer: 'Research Analytics provides...',
+        category: 'Analytics',
+        target_roles: ['RESEARCHER'],
+        created_at: '2026-01-03T00:00:00Z',
+        updated_at: '2026-01-03T00:00:00Z',
+      },
+    ]);
+    component.selectAudience('RESEARCHER');
+    expect(component.filteredFaqs().map((f) => f.faq_id)).toEqual([3]);
+    component.selectAudience('All');
+    expect(component.filteredFaqs().length).toBe(3);
+  });
+
+  it('should include target_roles in create and update payloads', () => {
+    faqService.createFaq.mockReturnValue(
+      of({ ...mockFaqs[0], target_roles: ['RESEARCHER'] }),
+    );
+    component.openAddModal();
+    component.formQuestion = 'How does Research Analytics work?';
+    component.formAnswer = 'Research Analytics provides...';
+    component.toggleAudience('RESEARCHER');
+    component.saveFaq();
+    expect(faqService.createFaq).toHaveBeenCalledWith(
+      expect.objectContaining({ target_roles: ['RESEARCHER'] }),
+    );
+
+    faqService.updateFaq.mockReturnValue(
+      of({ ...mockFaqs[0], target_roles: ['ALL'] }),
+    );
+    component.openEditModal(
+      { ...mockFaqs[0], target_roles: ['RESEARCHER'] },
+      new MouseEvent('click'),
+    );
+    expect(component.formAudience).toEqual(['RESEARCHER']);
+    component.toggleAudience('RESEARCHER');
+    expect(component.formAudience).toEqual(['ALL']);
+    component.saveFaq();
+    expect(faqService.updateFaq).toHaveBeenCalledWith(
+      mockFaqs[0].faq_id,
+      expect.objectContaining({ target_roles: ['ALL'] }),
+    );
   });
 });

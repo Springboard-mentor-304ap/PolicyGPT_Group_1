@@ -10,11 +10,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-admin-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: './admin-feedback.component.html',
   styleUrl: './admin-feedback.component.scss',
 })
@@ -28,6 +29,31 @@ export class AdminFeedbackComponent implements OnInit {
   statusFilter = signal<string>('ALL');
   roleFilter = signal<string>('ALL');
   typeFilter = signal<string>('ALL');
+
+  readonly roleFilterOptions = [
+    { value: 'ALL', label: 'All Roles' },
+    { value: 'CITIZEN', label: 'Citizens' },
+    { value: 'RESEARCHER', label: 'Researchers' },
+    { value: 'ORGANIZATION', label: 'Organizations' },
+    { value: 'GOVERNMENT_OFFICIAL', label: 'Government Officials' },
+  ];
+
+  readonly typeFilterOptions = [
+    { value: 'ALL', label: 'All Categories' },
+    { value: 'GENERAL', label: 'General' },
+    { value: 'BUG_ISSUE', label: 'Bug / Issue' },
+    { value: 'POLICY_INQUIRY', label: 'Policy Inquiry' },
+    { value: 'SCHEME_QUESTION', label: 'Scheme Question' },
+    { value: 'SUGGESTION', label: 'Suggestion' },
+    { value: 'GRIEVANCE', label: 'Grievance' },
+  ];
+
+  readonly responseStatusOptions = [
+    { value: 'OPEN', label: 'Open / Under Review' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'RESOLVED', label: 'Resolved (Grievance Addressed)' },
+    { value: 'CLOSED', label: 'Closed' },
+  ];
 
   // Stats computed
   stats = computed(() => {

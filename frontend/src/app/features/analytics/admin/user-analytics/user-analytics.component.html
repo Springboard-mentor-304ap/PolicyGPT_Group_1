@@ -65,30 +65,43 @@
     <div class="filters-row">
       <div class="filter-group">
         <label class="filter-label" for="user-filter-role">User Role</label>
-        <select id="user-filter-role" class="filter-select" [ngModel]="fRole()"
-          (ngModelChange)="fRole.set($event)">
-          @for (opt of roleOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
-          }
-        </select>
+        <app-searchable-select
+          id="user-filter-role"
+          size="filter"
+          ariaLabel="User role filter"
+          placeholder="All Roles"
+          [searchable]="true"
+          searchPlaceholder="Search roles..."
+          [options]="roleOptions"
+          [ngModel]="fRole()"
+          (ngModelChange)="fRole.set($event)"
+        />
       </div>
       <div class="filter-group">
         <label class="filter-label" for="user-filter-status">Account Status</label>
-        <select id="user-filter-status" class="filter-select" [ngModel]="fStatus()"
-          (ngModelChange)="fStatus.set($event)">
-          @for (opt of statusOptions; track opt.value) {
-          <option [value]="opt.value">{{ opt.label }}</option>
-          }
-        </select>
+        <app-searchable-select
+          id="user-filter-status"
+          size="filter"
+          ariaLabel="Account status filter"
+          placeholder="All Statuses"
+          [searchable]="false"
+          [options]="statusOptions"
+          [ngModel]="fStatus()"
+          (ngModelChange)="fStatus.set($event)"
+        />
       </div>
       <div class="filter-group">
         <label class="filter-label" for="user-filter-date">Registration Date</label>
-        <select id="user-filter-date" class="filter-select" [ngModel]="fDate()"
-          (ngModelChange)="fDate.set($event)">
-          @for (opt of dateOptions; track opt) {
-          <option [value]="opt">{{ opt }}</option>
-          }
-        </select>
+        <app-searchable-select
+          id="user-filter-date"
+          size="filter"
+          ariaLabel="Registration date filter"
+          placeholder="Select date range"
+          [searchable]="false"
+          [options]="dateOptions"
+          [ngModel]="fDate()"
+          (ngModelChange)="fDate.set($event)"
+        />
       </div>
       <div class="filter-group filter-group--search">
         <label class="filter-label" for="user-filter-search">Search</label>
@@ -356,15 +369,16 @@
         </div>
 
         <div class="role-filter-wrapper">
-          <select class="modal-role-select" [ngModel]="modalRoleFilter()" (ngModelChange)="modalRoleFilter.set($event)"
-            aria-label="Filter by role">
-            <option value="ALL">All Roles</option>
-            <option value="Citizen">Citizen</option>
-            <option value="Govt. Official">Govt. Official</option>
-            <option value="Researcher">Researcher</option>
-            <option value="Organization">Organization</option>
-            <option value="Administrator">Administrator</option>
-          </select>
+          <app-searchable-select
+            id="user-modal-role"
+            size="filter"
+            ariaLabel="Filter by role"
+            placeholder="All Roles"
+            [searchable]="false"
+            [options]="modalRoleOptions"
+            [ngModel]="modalRoleFilter()"
+            (ngModelChange)="modalRoleFilter.set($event)"
+          />
         </div>
       </div>
 

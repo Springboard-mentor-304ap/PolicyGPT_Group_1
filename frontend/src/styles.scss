@@ -443,3 +443,262 @@ label {
   justify-content: center;
   padding: 3rem;
 }
+
+/* =========================================================
+   POLICYGPT GLOBAL DROPDOWN / SELECT STANDARD
+   Every native <select> and custom dropdown menu converges on
+   one visual language: white surface, navy/slate text,
+   grey-blue border, 8px radius, blue focus ring, light-blue
+   hover/selected, custom chevron, shadowed menu.
+
+   - `color-scheme: light` on all controls forces the opened
+     native option list to render as a light PolicyGPT menu
+     even when the OS/browser is in dark mode (fixes the dark
+     browser-style menu seen on Scheme Analytics status).
+   - Custom menus (app-searchable-select panel, .dropdown-menu,
+     .export-menu, bell/workflow menus) share tokens below.
+   ========================================================= */
+
+:root {
+  --pg-select-bg: #ffffff;
+  --pg-select-text: #0f172a;
+  --pg-select-text-muted: #64748b;
+  --pg-select-border: #cbd5e1;
+  --pg-select-border-soft: #dbe2eb;
+  --pg-select-radius: 8px;
+  --pg-select-height: 44px;
+  --pg-select-height-filter: 38px;
+  --pg-select-focus: #1d4ed8;
+  --pg-select-focus-soft: rgba(29, 78, 216, 0.12);
+  --pg-select-hover-bg: #f1f5f9;
+  --pg-select-selected-bg: #eff6ff;
+  --pg-select-shadow: 0 10px 25px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+}
+
+/* ---- Native select reset (all modules) ---- */
+select,
+.filter-select,
+.status-select,
+.history-select,
+.modal-role-select,
+.form-select,
+.form-control.form-select,
+.login-select,
+select.form-control {
+  color-scheme: light;
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--pg-select-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
+  border: 1px solid var(--pg-select-border-soft);
+  border-radius: var(--pg-select-radius);
+  color: var(--pg-select-text);
+  font-size: var(--font-input);
+  font-weight: 500;
+  line-height: 1.4;
+  min-height: var(--pg-select-height-filter);
+  padding: 0 32px 0 12px;
+  outline: none;
+  cursor: pointer;
+  max-width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #94a3b8;
+  }
+
+  &:focus,
+  &:focus-visible {
+    border-color: var(--pg-select-focus);
+    box-shadow: 0 0 0 3px var(--pg-select-focus-soft);
+    background-color: #ffffff;
+  }
+
+  &:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  &.is-invalid,
+  &[aria-invalid='true'] {
+    border-color: #ef4444;
+    background-color: #fef2f2;
+  }
+}
+
+/* Native option list: always light PolicyGPT menu. */
+select option,
+.filter-select option,
+.status-select option,
+.history-select option,
+.modal-role-select option,
+.form-select option,
+.login-select option {
+  background-color: #ffffff;
+  color: #1e293b;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+select option:checked,
+select option:hover {
+  background-color: var(--pg-select-selected-bg);
+  color: var(--pg-select-focus);
+}
+
+/* Filter-bar sized native selects keep 38px height. */
+.filter-select,
+.status-select,
+.history-select {
+  min-height: var(--pg-select-height-filter);
+  height: var(--pg-select-height-filter);
+  font-size: 13px;
+}
+
+/* app-searchable-select in filter rows stretches like a native select. */
+.filter-group app-searchable-select,
+.analytics-filters-bar app-searchable-select,
+.filters-row app-searchable-select,
+.select-box app-searchable-select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---- Shared custom dropdown menus ---- */
+.dropdown-menu,
+.timeframe-dropdown,
+.export-menu,
+.export-dropdown,
+.bell-dropdown,
+.workflow-dropdown,
+.overflow-menu {
+  color-scheme: light;
+  background: #ffffff;
+  border: 1px solid var(--pg-select-border-soft);
+  border-radius: 10px;
+  box-shadow: var(--pg-shadow-popover, 0 8px 24px rgba(15, 23, 42, 0.12));
+  padding: 6px;
+  z-index: 2500;
+  max-height: 260px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: pgDropdownFade 0.15s ease-out;
+}
+
+@keyframes pgDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item,
+.dropdown-menu button,
+.timeframe-item,
+.export-menu button,
+.export-dropdown button,
+.workflow-dropdown button,
+.overflow-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  &:hover {
+    background: var(--pg-select-hover-bg);
+    color: #0f172a;
+  }
+
+  &.active,
+  &[aria-selected='true'] {
+    background: var(--pg-select-selected-bg);
+    color: var(--pg-select-focus);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pg-select-focus);
+    outline-offset: -2px;
+  }
+}
+
+/* Card/menu toggle buttons share one treatment. */
+.badge-filter-btn,
+.dropdown-toggle-btn,
+.time-filter-btn,
+.date-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  background: #ffffff;
+  border: 1px solid var(--pg-select-border-soft);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  max-width: 100%;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: var(--pg-select-focus);
+    color: var(--pg-select-focus);
+    background: #f8fafc;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--pg-select-focus);
+    outline-offset: 2px;
+  }
+
+  .material-icons {
+    font-size: 18px;
+    color: #64748b;
+  }
+}
+
+/* Dropdown wrappers clip correctly inside cards/tables/dialogs. */
+.dropdown-wrapper,
+.timeframe-wrapper,
+.export-wrap,
+.export-dropdown,
+.filter-dropdown-wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+/* High-density pages: keep filter rows aligned and wrapping. */
+.filters-row,
+.analytics-filters-bar {
+  align-items: flex-end;
+}
+
+@media (max-width: 640px) {
+  .filters-row,
+  .analytics-filters-bar {
+    align-items: stretch;
+  }
+}

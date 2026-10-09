@@ -25,6 +25,7 @@ import {
   STATUS_COLORS,
 } from "./gov-analytics-base";
 import { CountUpDirective } from "../../../shared/directives/count-up.directive";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-govt-policy-scheme",
@@ -40,6 +41,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     CountUpDirective,
+    SearchableSelectComponent,
   ],
   templateUrl: "./govt-policy-scheme.component.html",
   styleUrl: "./government-analytics.scss",
@@ -54,6 +56,20 @@ export class GovtPolicySchemeComponent extends GovAnalyticsBase {
   policyStatus = "";
   schemeStatus = "";
   category = "";
+
+  get statusFilterOptions(): { value: string; label: string }[] {
+    return (this.data?.filter_options.statuses ?? []).map((s) => ({
+      value: s,
+      label: this.pretty(s),
+    }));
+  }
+
+  get categoryFilterOptions(): { value: string; label: string }[] {
+    return (this.data?.filter_options.categories ?? []).map((c) => ({
+      value: c,
+      label: c,
+    }));
+  }
 
   loadData(forceRefresh: boolean): void {
     this.subscribe(

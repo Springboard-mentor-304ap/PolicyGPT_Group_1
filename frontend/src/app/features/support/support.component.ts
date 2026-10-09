@@ -20,6 +20,7 @@ import { SupportService } from '../../core/services/support.service';
 import { Auth, AuthUser } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
 import { BodyScrollLockService } from '../../core/services/body-scroll-lock.service';
+import { SearchableSelectComponent } from '../../shared/components/searchable-select/searchable-select.component';
 import { TicketConversationComponent } from '../../shared/components/ticket-conversation/ticket-conversation.component';
 import {
   FAQ,
@@ -35,7 +36,7 @@ const TicketDetailsTimeoutMs = 10_000;
 @Component({
   selector: 'app-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent, SearchableSelectComponent],
   templateUrl: './support.component.html',
   styleUrls: ['./support.component.scss'],
 })
@@ -120,6 +121,45 @@ export class SupportComponent implements OnInit, OnDestroy {
     'Technical Problem',
     'Account & Security',
     'Feedback & Grievance',
+  ];
+
+  /** PolicyGPT dropdown options (values/enums unchanged). */
+  get faqCategoryOptions(): { value: string; label: string }[] {
+    return this.categories.map((c) => ({
+      value: c,
+      label: c === 'All' ? 'All Categories' : c,
+    }));
+  }
+
+  readonly requestStatusOptions = [
+    { value: 'ALL', label: 'All Statuses' },
+    { value: 'OPEN', label: 'Open' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'WAITING_FOR_USER', label: 'Waiting for User' },
+    { value: 'RESOLVED', label: 'Resolved' },
+    { value: 'CLOSED', label: 'Closed' },
+  ];
+
+  get requestCategoryFilterOptions(): { value: string; label: string }[] {
+    return this.requestCategoryOptions.map((c) => ({
+      value: c,
+      label: c === 'ALL' ? 'All Categories' : c,
+    }));
+  }
+
+  readonly requestPriorityOptions = [
+    { value: 'ALL', label: 'All Priorities' },
+    { value: 'LOW', label: 'Low' },
+    { value: 'MEDIUM', label: 'Medium' },
+    { value: 'HIGH', label: 'High' },
+    { value: 'URGENT', label: 'Urgent' },
+  ];
+
+  readonly formPriorityOptions = [
+    { value: 'LOW', label: 'Low (General Query)' },
+    { value: 'MEDIUM', label: 'Medium (Standard Issue)' },
+    { value: 'HIGH', label: 'High (Application Blocked)' },
+    { value: 'URGENT', label: 'Urgent (System Critical)' },
   ];
 
   constructor(

@@ -22,11 +22,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-admin-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, TicketConversationComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, TicketConversationComponent, SearchableSelectComponent],
   templateUrl: './admin-support.component.html',
   styleUrls: [
     './admin-support.component.scss',
@@ -178,6 +179,20 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
   modalSubmitting = signal<boolean>(false);
 
   readonly priorityOptions = [...SUPPORT_PRIORITIES];
+
+  readonly responseStatusOptions = [
+    { value: 'OPEN', label: 'Open / Under Review' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'WAITING_FOR_USER', label: 'Waiting for User' },
+    { value: 'RESOLVED', label: 'Resolved (Issue Addressed)' },
+  ];
+
+  get responsePriorityOptions(): { value: string; label: string }[] {
+    return this.priorityOptions.map((p) => ({
+      value: p,
+      label: p.charAt(0) + p.slice(1).toLowerCase(),
+    }));
+  }
 
   adminUsers = signal<AdminUserApi[]>([]);
 

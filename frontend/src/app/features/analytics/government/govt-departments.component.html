@@ -79,12 +79,17 @@
 
   @if (data) {
   <div class="analytics-filters-bar no-print" role="group" aria-label="Analytics filters">
-    <select class="filter-select" [(ngModel)]="department" (change)="onFilterChange()" aria-label="Department filter">
-      <option value="">Department: All</option>
-      @for (d of data.filter_options.departments; track d) {
-      <option [value]="d">{{ d }}</option>
-      }
-    </select>
+    <app-searchable-select
+      id="govt-dept-filter"
+      size="filter"
+      ariaLabel="Department filter"
+      placeholder="Department: All"
+      [searchable]="true"
+      searchPlaceholder="Search departments..."
+      [options]="departmentFilterOptions"
+      [(ngModel)]="department"
+      (selectionChange)="onFilterChange()"
+    />
   </div>
   }
 

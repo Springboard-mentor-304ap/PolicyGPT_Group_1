@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Auth, AuthResponse } from "../../../../../core/services/auth";
+import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
 
 type AdminUserRole = "GOVERNMENT_OFFICIAL" | "ADMINISTRATOR";
 
@@ -10,7 +11,7 @@ type AdminUserRole = "GOVERNMENT_OFFICIAL" | "ADMINISTRATOR";
   selector: "app-add-user",
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent],
 
   templateUrl: "./add-user.component.html",
   styleUrl: "./add-user.component.scss",

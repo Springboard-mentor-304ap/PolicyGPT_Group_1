@@ -70,12 +70,14 @@
               <label for="gender">
                 Gender <span class="required-star">*</span>
               </label>
-              <select id="gender" name="gender" [(ngModel)]="profile.gender">
-                <option value="">Select gender</option>
-                <option *ngFor="let gender of genders" [value]="gender">
-                  {{ gender }}
-                </option>
-              </select>
+              <app-searchable-select
+                id="gender"
+                placeholder="Select gender"
+                [searchable]="false"
+                [options]="genders"
+                [(ngModel)]="profile.gender"
+                name="gender"
+              />
             </div>
           </div>
         </div>
@@ -102,12 +104,15 @@
               <label for="occupation">
                 Occupation
               </label>
-              <select id="occupation" name="occupation" [(ngModel)]="profile.occupation">
-                <option value="">Select occupation</option>
-                <option *ngFor="let occupation of occupations" [value]="occupation">
-                  {{ occupation }}
-                </option>
-              </select>
+              <app-searchable-select
+                id="occupation"
+                placeholder="Select occupation"
+                [searchable]="true"
+                searchPlaceholder="Search occupations..."
+                [options]="occupations"
+                [(ngModel)]="profile.occupation"
+                name="occupation"
+              />
             </div>
           </div>
         </div>
@@ -125,12 +130,15 @@
               <label for="education">
                 Education Level
               </label>
-              <select id="education" name="education" [(ngModel)]="profile.education">
-                <option value="">Select education</option>
-                <option *ngFor="let education of educationLevels" [value]="education">
-                  {{ education }}
-                </option>
-              </select>
+              <app-searchable-select
+                id="education"
+                placeholder="Select education"
+                [searchable]="true"
+                searchPlaceholder="Search education levels..."
+                [options]="educationLevels"
+                [(ngModel)]="profile.education"
+                name="education"
+              />
             </div>
 
             <!-- Social Category -->
@@ -138,12 +146,14 @@
               <label for="socialCategory">
                 Social Category
               </label>
-              <select id="socialCategory" name="socialCategory" [(ngModel)]="profile.social_category">
-                <option value="">Select category</option>
-                <option *ngFor="let category of socialCategories" [value]="category">
-                  {{ category }}
-                </option>
-              </select>
+              <app-searchable-select
+                id="socialCategory"
+                placeholder="Select category"
+                [searchable]="false"
+                [options]="socialCategories"
+                [(ngModel)]="profile.social_category"
+                name="socialCategory"
+              />
             </div>
 
             <!-- Disability Status -->
@@ -173,12 +183,15 @@
               <label for="state">
                 Location (State / UT)
               </label>
-              <select id="state" name="state" [(ngModel)]="profile.state">
-                <option value="">Select location (state / UT)</option>
-                <option *ngFor="let state of states" [value]="state">
-                  {{ state }}
-                </option>
-              </select>
+              <app-searchable-select
+                id="state"
+                placeholder="Select location (state / UT)"
+                [searchable]="true"
+                searchPlaceholder="Search states..."
+                [options]="states"
+                [(ngModel)]="profile.state"
+                name="state"
+              />
             </div>
           </div>
         </div>

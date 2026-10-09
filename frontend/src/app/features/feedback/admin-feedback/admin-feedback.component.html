@@ -102,27 +102,32 @@
       <!-- ROLE FILTER DROPDOWN -->
       <div class="filter-dropdown">
         <label for="roleSelect" class="filter-label">User Role:</label>
-        <select id="roleSelect" [ngModel]="roleFilter()" (ngModelChange)="roleFilter.set($event)">
-          <option value="ALL">All Roles</option>
-          <option value="CITIZEN">Citizens</option>
-          <option value="RESEARCHER">Researchers</option>
-          <option value="ORGANIZATION">Organizations</option>
-          <option value="GOVERNMENT_OFFICIAL">Government Officials</option>
-        </select>
+        <app-searchable-select
+          id="roleSelect"
+          size="filter"
+          ariaLabel="Filter by user role"
+          placeholder="All Roles"
+          [searchable]="false"
+          [options]="roleFilterOptions"
+          [ngModel]="roleFilter()"
+          (ngModelChange)="roleFilter.set($event)"
+        />
       </div>
 
       <!-- TYPE FILTER DROPDOWN -->
       <div class="filter-dropdown">
         <label for="typeSelect" class="filter-label">Category:</label>
-        <select id="typeSelect" [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)">
-          <option value="ALL">All Categories</option>
-          <option value="GENERAL">General</option>
-          <option value="BUG_ISSUE">Bug / Issue</option>
-          <option value="POLICY_INQUIRY">Policy Inquiry</option>
-          <option value="SCHEME_QUESTION">Scheme Question</option>
-          <option value="SUGGESTION">Suggestion</option>
-          <option value="GRIEVANCE">Grievance</option>
-        </select>
+        <app-searchable-select
+          id="typeSelect"
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="typeFilterOptions"
+          [ngModel]="typeFilter()"
+          (ngModelChange)="typeFilter.set($event)"
+        />
       </div>
     </div>
 
@@ -417,12 +422,14 @@
         <!-- RESOLUTION STATUS SELECT -->
         <div class="form-group status-select-group">
           <label for="modalStatus">Update Resolution Status <span class="required">*</span></label>
-          <select id="modalStatus" [(ngModel)]="responseStatus">
-            <option value="OPEN">Open / Under Review</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved (Grievance Addressed)</option>
-            <option value="CLOSED">Closed</option>
-          </select>
+          <app-searchable-select
+            id="modalStatus"
+            placeholder="Select status"
+            [searchable]="false"
+            [options]="responseStatusOptions"
+            [ngModel]="responseStatus()"
+            (ngModelChange)="responseStatus.set($event)"
+          />
         </div>
 
         <!-- RESPONSE TEXTAREA -->

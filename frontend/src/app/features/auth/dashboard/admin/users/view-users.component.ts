@@ -8,6 +8,7 @@ import {
   AdminUsersService,
   AdminUserApi,
 } from "../../../../../core/services/admin-user.service";
+import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
 
 /* =======================================================
    ALLOWED USER ROLES
@@ -45,7 +46,7 @@ export interface AdminUser {
 @Component({
   selector: "app-view-users",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent],
   templateUrl: "./view-users.component.html",
   styleUrls: ["./view-users.component.scss"],
 })
@@ -57,6 +58,21 @@ export class ViewUsersComponent implements OnInit {
   searchText = "";
   selectedRole = "ALL";
   selectedStatus = "ALL";
+
+  readonly roleFilterOptions = [
+    { value: "ALL", label: "All Roles" },
+    { value: "ADMINISTRATOR", label: "Administrator" },
+    { value: "GOVERNMENT_OFFICIAL", label: "Government Official" },
+    { value: "CITIZEN", label: "Citizen" },
+    { value: "RESEARCHER", label: "Researcher" },
+    { value: "ORGANIZATION", label: "Organization" },
+  ];
+
+  readonly statusFilterOptions = [
+    { value: "ALL", label: "All Status" },
+    { value: "Active", label: "Active" },
+    { value: "Inactive", label: "Inactive" },
+  ];
 
   /* =======================================================
      PAGINATION

@@ -22,6 +22,7 @@ import {
 } from "../models/admin-analytics.models";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
+import { SearchableSelectComponent } from "../../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-usage-statistics",
@@ -35,6 +36,7 @@ import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.ser
     DoughnutChartComponent,
     VbarChartComponent,
     CountUpDirective,
+    SearchableSelectComponent,
   ],
   templateUrl: "./usage-statistics.component.html",
   styleUrl: "./usage-statistics.component.scss",
@@ -141,6 +143,12 @@ export class UsageStatisticsComponent implements OnInit {
   );
   modalSearchTerm = signal<string>("");
   modalTypeFilter = signal<string>("ALL");
+
+  readonly modalTypeFilterOptions = [
+    { value: "ALL", label: "All Types" },
+    { value: "Scheme", label: "Scheme" },
+    { value: "Policy", label: "Policy" },
+  ];
 
   // Filtered lists for modals
   filteredPolicies = computed(() => {

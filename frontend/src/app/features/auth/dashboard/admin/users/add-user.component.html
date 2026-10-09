@@ -388,21 +388,15 @@
                         <span>*</span>
                     </label>
 
-                    <select id="state" [(ngModel)]="state" (ngModelChange)="onStateChange()">
-
-                        <option value="">
-                            Select State
-                        </option>
-
-                        @for (item of states; track item) {
-
-                        <option [value]="item">
-                            {{ item }}
-                        </option>
-
-                        }
-
-                    </select>
+                    <app-searchable-select
+                        id="state"
+                        placeholder="Select State"
+                        [searchable]="true"
+                        searchPlaceholder="Search states..."
+                        [options]="states"
+                        [ngModel]="state"
+                        (ngModelChange)="state = $event; onStateChange()"
+                    />
 
                 </div>
 
@@ -416,24 +410,15 @@
                         <span>*</span>
                     </label>
 
-                    <select id="district" [(ngModel)]="district" [disabled]="!state">
-
-                        <option value="">
-                            {{ state ? "Select District" : "Select State First" }}
-                        </option>
-
-                        @for (
-                        districtItem of districtOptions;
-                        track districtItem
-                        ) {
-
-                        <option [value]="districtItem">
-                            {{ districtItem }}
-                        </option>
-
-                        }
-
-                    </select>
+                    <app-searchable-select
+                        id="district"
+                        [placeholder]="state ? 'Select District' : 'Select State First'"
+                        [searchable]="true"
+                        searchPlaceholder="Search districts..."
+                        [options]="districtOptions"
+                        [disabled]="!state"
+                        [(ngModel)]="district"
+                    />
 
                 </div>
 

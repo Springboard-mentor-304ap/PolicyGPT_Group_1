@@ -177,24 +177,14 @@
 
             <div class="select-wrapper">
 
-              <select id="gender" formControlName="gender">
-
-                <option value="" disabled>
-                  Select your gender
-                </option>
-
-                @for (
-                gender of genderOptions;
-                track gender
-                ) {
-                <option [value]="gender">
-                  {{ gender }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="gender"
+                formControlName="gender"
+                placeholder="Select your gender"
+                [searchable]="false"
+                [options]="genderOptions"
+                [isInvalid]="!!(profileForm.get('gender')?.touched && profileForm.get('gender')?.invalid)"
+              />
 
             </div>
 
@@ -219,24 +209,16 @@
 
             <div class="select-wrapper">
 
-              <select id="state" formControlName="state" (change)="onStateChange()">
-
-                <option value="" disabled>
-                  Select your state
-                </option>
-
-                @for (
-                state of states;
-                track state
-                ) {
-                <option [value]="state">
-                  {{ state }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="state"
+                formControlName="state"
+                placeholder="Select your state"
+                [searchable]="true"
+                searchPlaceholder="Search states..."
+                [options]="states"
+                [isInvalid]="!!(profileForm.get('state')?.touched && profileForm.get('state')?.invalid)"
+                (selectionChange)="onStateChange()"
+              />
 
             </div>
 
@@ -268,24 +250,15 @@
 
             <div class="select-wrapper">
 
-              <select id="district" formControlName="district">
-
-                <option value="" disabled>
-                  Select your district
-                </option>
-
-                @for (
-                district of districts;
-                track district
-                ) {
-                <option [value]="district">
-                  {{ district }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="district"
+                formControlName="district"
+                placeholder="Select your district"
+                [searchable]="true"
+                searchPlaceholder="Search districts..."
+                [options]="districts"
+                [isInvalid]="!!(profileForm.get('district')?.touched && profileForm.get('district')?.invalid)"
+              />
 
             </div>
 
@@ -312,25 +285,15 @@
 
             <div class="select-wrapper">
 
-              <select id="occupation" formControlName="occupation">
-
-                <!-- Placeholder -->
-                <option value="" disabled>
-                  Select your occupation
-                </option>
-
-                @for (
-                occupation of occupationOptions;
-                track occupation
-                ) {
-                <option [value]="occupation">
-                  {{ occupation }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="occupation"
+                formControlName="occupation"
+                placeholder="Select your occupation"
+                [searchable]="true"
+                searchPlaceholder="Search occupations..."
+                [options]="occupationOptions"
+                [isInvalid]="!!(profileForm.get('occupation')?.touched && profileForm.get('occupation')?.invalid)"
+              />
 
             </div>
 
@@ -364,25 +327,14 @@
 
             <div class="select-wrapper">
 
-              <select id="organization" formControlName="organization">
-
-                <!-- Placeholder -->
-                <option value="" disabled>
-                  Select your organization
-                </option>
-
-                @for (
-                organization of organizationOptions;
-                track organization
-                ) {
-                <option [value]="organization">
-                  {{ organization }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="organization"
+                formControlName="organization"
+                placeholder="Select your organization"
+                [searchable]="true"
+                searchPlaceholder="Search organizations..."
+                [options]="organizationOptions"
+              />
 
             </div>
 

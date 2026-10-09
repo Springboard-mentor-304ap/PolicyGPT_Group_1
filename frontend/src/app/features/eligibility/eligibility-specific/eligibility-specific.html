@@ -167,13 +167,13 @@
               Gender <span class="required">*</span>
             </label>
             <div class="select-wrapper">
-              <select id="gender" [(ngModel)]="profile.gender" class="form-control">
-                <option value="">Select gender</option>
-                <option *ngFor="let gender of genders" [value]="gender">
-                  {{ gender }}
-                </option>
-              </select>
-              <span class="material-icons select-arrow">expand_more</span>
+              <app-searchable-select
+                id="gender"
+                placeholder="Select gender"
+                [searchable]="false"
+                [options]="genders"
+                [(ngModel)]="profile.gender"
+              />
             </div>
           </div>
 

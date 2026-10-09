@@ -28,6 +28,7 @@ import {
 } from "../models/admin-analytics.models";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
+import { SearchableSelectComponent } from "../../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-user-analytics",
@@ -42,6 +43,7 @@ import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.ser
     HbarChartComponent,
     VbarChartComponent,
     CountUpDirective,
+    SearchableSelectComponent,
   ],
   templateUrl: "./user-analytics.component.html",
   styleUrl: "./user-analytics.component.scss",
@@ -260,6 +262,14 @@ export class UserAnalyticsComponent implements OnInit {
     "Last 6 Months",
     "Last 12 Months",
     "Custom",
+  ];
+  readonly modalRoleOptions = [
+    { value: "ALL", label: "All Roles" },
+    { value: "Citizen", label: "Citizen" },
+    { value: "Govt. Official", label: "Govt. Official" },
+    { value: "Researcher", label: "Researcher" },
+    { value: "Organization", label: "Organization" },
+    { value: "Administrator", label: "Administrator" },
   ];
 
   // Staged (dropdown/input) selections.

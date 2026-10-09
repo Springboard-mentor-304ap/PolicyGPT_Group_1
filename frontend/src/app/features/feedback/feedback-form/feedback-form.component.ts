@@ -10,11 +10,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-feedback-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: './feedback-form.component.html',
   styleUrl: './feedback-form.component.scss',
 })
@@ -119,6 +120,22 @@ export class FeedbackFormComponent implements OnInit {
     }
     return Array.from(set);
   });
+
+  readonly historyStatusOptions = [
+    { value: 'ALL', label: 'All Statuses' },
+    { value: 'OPEN', label: 'Under Review' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'RESOLVED', label: 'Resolved' },
+    { value: 'CLOSED', label: 'Closed' },
+  ];
+
+  /** Category filter options with readable labels (values unchanged). */
+  historyCategoryOptions = computed<{ value: string; label: string }[]>(() =>
+    this.historyTypeOptions().map((t) => ({
+      value: t,
+      label: t === 'ALL' ? 'All Categories' : this.formatFeedbackType(t),
+    })),
+  );
 
   /** Summary counts derived from the user's own history (real data). */
   historySummary = computed(() => {

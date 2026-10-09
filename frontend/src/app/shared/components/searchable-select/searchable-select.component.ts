@@ -8,10 +8,29 @@ import {
   Output,
   ViewChild,
   forwardRef,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 
+export interface PgDropdownOption {
+  value: string;
+  label: string;
+}
+
+export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
+
+/**
+ * PolicyGPT global dropdown / select.
+ *
+ * Canonical white-card dropdown used for filters and forms:
+ * white menu, navy text, grey-blue border, 8-12px radius,
+ * blue focus ring, light-blue hover/selected, shadowed menu,
+ * custom chevron, searchable variant, keyboard + screen-reader support.
+ *
+ * Backwards compatible: `options` accepts `string[]` (existing callers)
+ * or `{ value, label }[]` (value/label separation for filters).
+ */
 @Component({
   selector: 'app-searchable-select',
   standalone: true,
@@ -29,6 +48,8 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       [class.is-open]="isOpen"
       [class.is-invalid]="isInvalid"
       [class.is-disabled]="disabled"
+      [class.is-filter]="size === 'filter'"
+      [class.is-compact]="size === 'compact'"
       [id]="id ? id + '-container' : null"
     >
       <!-- Trigger Box -->
@@ -38,22 +59,25 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
         (click)="toggleDropdown()"
         (keydown.enter)="$event.preventDefault(); toggleDropdown()"
         (keydown.space)="$event.preventDefault(); toggleDropdown()"
+        (keydown.arrowdown)="$event.preventDefault(); openDropdown()"
+        (keydown.escape)="$event.preventDefault(); closeDropdown()"
         [attr.aria-expanded]="isOpen"
         [attr.aria-disabled]="disabled"
+        [attr.aria-label]="ariaLabel || placeholder"
         [id]="id || null"
         role="combobox"
         aria-haspopup="listbox"
       >
         @if (icon) {
-          <span class="material-icons select-icon">{{ icon }}</span>
+          <span class="material-icons select-icon" aria-hidden="true">{{ icon }}</span>
         }
 
-        <span class="selected-text" [class.placeholder]="!value">
-          {{ value || placeholder }}
+        <span class="selected-text" [class.placeholder]="!hasValue()">
+          {{ displayLabel() }}
         </span>
 
         <div class="trigger-actions">
-          @if (clearable && value && !disabled) {
+          @if (clearable && hasValue() && !disabled) {
             <button
               type="button"
               class="btn-clear"
@@ -61,10 +85,10 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
               title="Clear selection"
               aria-label="Clear selection"
             >
-              <span class="material-icons">close</span>
+              <span class="material-icons" aria-hidden="true">close</span>
             </button>
           }
-          <span class="material-icons arrow-icon">
+          <span class="material-icons arrow-icon" aria-hidden="true">
             {{ isOpen ? 'expand_less' : 'expand_more' }}
           </span>
         </div>
@@ -73,70 +97,93 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
       <!-- Dropdown Panel -->
       @if (isOpen) {
         <div class="dropdown-panel" (click)="$event.stopPropagation()">
-          <!-- Search Input Box -->
-          <div class="search-box">
-            <span class="material-icons search-icon">search</span>
-            <input
-              #searchInput
-              type="text"
-              class="search-input"
-              [placeholder]="searchPlaceholder"
-              [value]="searchTerm"
-              (input)="onSearchInput($event)"
-              (keydown)="onSearchKeyDown($event)"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            @if (searchTerm) {
-              <button
-                type="button"
-                class="btn-clear-search"
-                (click)="clearSearch($event)"
-                title="Clear search text"
-              >
-                <span class="material-icons">close</span>
-              </button>
-            }
-          </div>
+          <!-- Search Input Box (only for searchable lists) -->
+          @if (searchable) {
+            <div class="search-box">
+              <span class="material-icons search-icon" aria-hidden="true">search</span>
+              <input
+                #searchInput
+                type="text"
+                class="search-input"
+                [placeholder]="searchPlaceholder"
+                [value]="searchTerm"
+                (input)="onSearchInput($event)"
+                (keydown)="onSearchKeyDown($event)"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search options"
+              />
+              @if (searchTerm) {
+                <button
+                  type="button"
+                  class="btn-clear-search"
+                  (click)="clearSearch($event)"
+                  title="Clear search text"
+                  aria-label="Clear search text"
+                >
+                  <span class="material-icons" aria-hidden="true">close</span>
+                </button>
+              }
+            </div>
+          }
 
           <!-- Options List -->
-          <div class="options-list" role="listbox">
-            @if (showAllOption) {
-              <div
-                class="option-item is-all-option"
-                [class.is-selected]="!value"
-                (click)="selectOption('')"
-                role="option"
-                [attr.aria-selected]="!value"
-              >
-                <span class="option-label">{{ allOptionLabel }}</span>
-                @if (!value) {
-                  <span class="material-icons check-icon">check</span>
-                }
+          <div
+            class="options-list"
+            role="listbox"
+            [tabindex]="searchable ? -1 : 0"
+            (keydown)="onListKeyDown($event)"
+            #optionsList
+          >
+            @if (loading) {
+              <div class="dropdown-state" role="status">
+                <span class="state-spinner" aria-hidden="true"></span>
+                <span>{{ loadingText }}</span>
               </div>
-            }
-            @if (displayedOptions.length > 0) {
-              @for (option of displayedOptions; track option; let i = $index) {
+            } @else if (errorText) {
+              <div class="dropdown-state is-error" role="alert">
+                <span class="material-icons state-icon" aria-hidden="true">error_outline</span>
+                <span>{{ errorText }}</span>
+              </div>
+            } @else {
+              @if (showAllOption) {
                 <div
-                  class="option-item"
-                  [class.is-selected]="option === value"
-                  [class.is-highlighted]="i === highlightedIndex"
-                  (click)="selectOption(option)"
-                  (mouseenter)="highlightedIndex = i"
+                  class="option-item is-all-option"
+                  [class.is-selected]="!hasValue()"
+                  (click)="selectOption('')"
+                  (mouseenter)="highlightedIndex = -2"
                   role="option"
-                  [attr.aria-selected]="option === value"
+                  [attr.aria-selected]="!hasValue()"
                 >
-                  <span class="option-label">{{ option }}</span>
-                  @if (option === value) {
-                    <span class="material-icons check-icon">check</span>
+                  <span class="option-label">{{ allOptionLabel }}</span>
+                  @if (!hasValue()) {
+                    <span class="material-icons check-icon" aria-hidden="true">check</span>
                   }
                 </div>
               }
-            } @else if (!showAllOption) {
-              <div class="no-options">
-                <span class="material-icons no-options-icon">search_off</span>
-                <span>No matching options</span>
-              </div>
+              @if (displayedOptions.length > 0) {
+                @for (option of displayedOptions; track option.value; let i = $index) {
+                  <div
+                    class="option-item"
+                    [class.is-selected]="option.value === value"
+                    [class.is-highlighted]="i === highlightedIndex"
+                    (click)="selectOption(option.value)"
+                    (mouseenter)="highlightedIndex = i"
+                    role="option"
+                    [attr.aria-selected]="option.value === value"
+                  >
+                    <span class="option-label">{{ option.label }}</span>
+                    @if (option.value === value) {
+                      <span class="material-icons check-icon" aria-hidden="true">check</span>
+                    }
+                  </div>
+                }
+              } @else if (!showAllOption) {
+                <div class="no-options">
+                  <span class="material-icons no-options-icon" aria-hidden="true">search_off</span>
+                  <span>{{ emptyText }}</span>
+                </div>
+              }
             }
           </div>
         </div>
@@ -149,6 +196,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
         display: block;
         width: 100%;
         position: relative;
+        color-scheme: light;
       }
 
       :host(.is-open),
@@ -173,12 +221,13 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
         padding: 0 14px;
         cursor: pointer;
         outline: none;
-        transition: all 0.2s ease;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
         box-sizing: border-box;
         user-select: none;
         gap: 8px;
+        color: #0f172a;
 
-        &:hover:not(.is-disabled) {
+        &:hover {
           border-color: #94a3b8;
         }
 
@@ -186,6 +235,27 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
           border-color: #1d4ed8;
           box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
         }
+      }
+
+      /* Filter-size trigger matches .filter-select control height. */
+      .searchable-select.is-filter .select-trigger,
+      .searchable-select.is-compact .select-trigger {
+        min-height: 38px;
+        padding: 0 10px 0 12px;
+        border-width: 1px;
+        border-color: #dbe2eb;
+        border-radius: 8px;
+        background: #ffffff;
+        font-size: 13px;
+
+        &:hover {
+          border-color: #0879ed;
+        }
+      }
+
+      .searchable-select.is-filter .selected-text,
+      .searchable-select.is-compact .selected-text {
+        font-size: 13px;
       }
 
       .searchable-select.is-open .select-trigger {
@@ -255,6 +325,11 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
           color: #0f172a;
           background: #f1f5f9;
         }
+
+        &:focus-visible {
+          outline: 2px solid #1d4ed8;
+          outline-offset: 1px;
+        }
       }
 
       .arrow-icon {
@@ -276,6 +351,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
         z-index: 1050;
         overflow: hidden;
         animation: selectDropdownFade 0.15s ease-out;
+        color-scheme: light;
       }
 
       @keyframes selectDropdownFade {
@@ -357,6 +433,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
         overflow-y: auto;
         padding: 4px 0;
         overscroll-behavior: contain;
+        outline: none;
       }
 
       .option-item {
@@ -393,6 +470,51 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
           color: #1d4ed8;
           font-weight: 600;
         }
+
+        &:focus-visible {
+          outline: 2px solid #1d4ed8;
+          outline-offset: -2px;
+        }
+      }
+
+      .is-filter .option-item,
+      .is-compact .option-item {
+        font-size: 13px;
+        padding: 8px 12px;
+      }
+
+      .dropdown-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 20px 16px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 500;
+
+        &.is-error {
+          color: #b42318;
+        }
+
+        .state-icon {
+          font-size: 20px;
+        }
+
+        .state-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #cbd5e1;
+          border-top-color: #1d4ed8;
+          border-radius: 50%;
+          animation: pgSelectSpin 0.8s linear infinite;
+        }
+      }
+
+      @keyframes pgSelectSpin {
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       .no-options {
@@ -416,7 +538,7 @@ import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/f
   ],
 })
 export class SearchableSelectComponent implements ControlValueAccessor {
-  @Input() options: string[] = [];
+  @Input() options: PgDropdownOptionsInput = [];
   @Input() placeholder: string = 'Select an option';
   @Input() searchPlaceholder: string = 'Search or select...';
   @Input() icon?: string;
@@ -425,6 +547,15 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   @Input() clearable: boolean = true;
   @Input() id: string = '';
   @Input() allOptionLabel?: string;
+  /** Set false for small fixed lists (status, priority) to keep a compact menu. */
+  @Input() searchable: boolean = true;
+  /** 'default' (46px form control) or 'filter'/'compact' (38px filter control). */
+  @Input() size: 'default' | 'filter' | 'compact' = 'default';
+  @Input() loading: boolean = false;
+  @Input() loadingText: string = 'Loading options...';
+  @Input() errorText: string = '';
+  @Input() emptyText: string = 'No matching options';
+  @Input() ariaLabel: string = '';
 
   @Output() selectionChange = new EventEmitter<string>();
 
@@ -434,11 +565,19 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   }
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('optionsList') optionsList?: ElementRef<HTMLElement>;
 
   value: string = '';
   isOpen: boolean = false;
   searchTerm: string = '';
   highlightedIndex: number = -1;
+
+  /** Normalized value/label pairs (backwards compatible with string[]). */
+  get normalizedOptions(): PgDropdownOption[] {
+    return (this.options ?? []).map((opt) =>
+      typeof opt === 'string' ? { value: opt, label: opt } : opt,
+    );
+  }
 
   get showAllOption(): boolean {
     if (!this.allOptionLabel) {
@@ -454,10 +593,22 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   private onChange: (value: string) => void = () => {};
   private onTouched: () => void = () => {};
 
-  constructor(private readonly elementRef: ElementRef) {}
+  private readonly elementRef = inject(ElementRef);
+
+  hasValue(): boolean {
+    return this.value !== '' && this.value !== null && this.value !== undefined;
+  }
+
+  displayLabel(): string {
+    if (!this.hasValue()) {
+      return this.placeholder;
+    }
+    const found = this.normalizedOptions.find((o) => o.value === this.value);
+    return found ? found.label : this.value || this.placeholder;
+  }
 
   writeValue(val: string | null): void {
-    this.value = val || '';
+    this.value = val ?? '';
   }
 
   registerOnChange(fn: any): void {
@@ -475,20 +626,23 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     }
   }
 
-  get displayedOptions(): string[] {
-    const list = [...this.options];
+  get displayedOptions(): PgDropdownOption[] {
+    const list = [...this.normalizedOptions];
 
     // Ensure currently selected value (e.g. from existing edit mode) is represented in the list
-    if (this.value && !list.includes(this.value)) {
-      list.unshift(this.value);
+    if (this.hasValue() && !list.some((o) => o.value === this.value)) {
+      list.unshift({ value: this.value, label: this.value });
     }
 
     const term = (this.searchTerm || '').trim().toLowerCase();
-    if (!term) {
+    if (!term || !this.searchable) {
       return list;
     }
 
-    return list.filter((opt) => opt.toLowerCase().includes(term));
+    return list.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(term) || opt.value.toLowerCase().includes(term),
+    );
   }
 
   toggleDropdown(): void {
@@ -510,14 +664,19 @@ export class SearchableSelectComponent implements ControlValueAccessor {
 
     this.isOpen = true;
     this.searchTerm = '';
-    this.highlightedIndex = -1;
+    this.highlightedIndex = this.searchable ? -1 : this.currentIndex();
 
     setTimeout(() => {
-      this.searchInput?.nativeElement?.focus();
+      if (this.searchable) {
+        this.searchInput?.nativeElement?.focus();
+      } else {
+        this.optionsList?.nativeElement?.focus();
+        this.scrollHighlightedIntoView();
+      }
     }, 0);
   }
 
-  closeDropdown(): void {
+  closeDropdown(focusTrigger = false): void {
     if (!this.isOpen) {
       return;
     }
@@ -526,6 +685,10 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     this.searchTerm = '';
     this.highlightedIndex = -1;
     this.onTouched();
+    if (focusTrigger) {
+      const trigger = this.elementRef.nativeElement.querySelector('.select-trigger') as HTMLElement | null;
+      trigger?.focus();
+    }
   }
 
   selectOption(option: string): void {
@@ -557,7 +720,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   onSearchInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchTerm = input.value;
-    this.highlightedIndex = 0;
+    this.highlightedIndex = this.displayedOptions.length > 0 ? 0 : -1;
   }
 
   clearSearch(event?: Event): void {
@@ -569,7 +732,27 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     this.searchInput?.nativeElement?.focus();
   }
 
+  private currentIndex(): number {
+    return this.displayedOptions.findIndex((o) => o.value === this.value);
+  }
+
+  private scrollHighlightedIntoView(): void {
+    setTimeout(() => {
+      const list = this.optionsList?.nativeElement;
+      const el = list?.querySelector('.option-item.is-highlighted') as HTMLElement | null;
+      el?.scrollIntoView({ block: 'nearest' });
+    }, 0);
+  }
+
   onSearchKeyDown(event: KeyboardEvent): void {
+    this.handleOptionKey(event);
+  }
+
+  onListKeyDown(event: KeyboardEvent): void {
+    this.handleOptionKey(event);
+  }
+
+  private handleOptionKey(event: KeyboardEvent): void {
     const opts = this.displayedOptions;
 
     switch (event.key) {
@@ -577,6 +760,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
         event.preventDefault();
         if (opts.length > 0) {
           this.highlightedIndex = (this.highlightedIndex + 1) % opts.length;
+          this.scrollHighlightedIntoView();
         }
         break;
 
@@ -585,20 +769,25 @@ export class SearchableSelectComponent implements ControlValueAccessor {
         if (opts.length > 0) {
           this.highlightedIndex =
             this.highlightedIndex <= 0 ? opts.length - 1 : this.highlightedIndex - 1;
+          this.scrollHighlightedIntoView();
         }
         break;
 
       case 'Enter':
         event.preventDefault();
         if (this.highlightedIndex >= 0 && this.highlightedIndex < opts.length) {
-          this.selectOption(opts[this.highlightedIndex]);
+          this.selectOption(opts[this.highlightedIndex].value);
         } else if (opts.length === 1) {
-          this.selectOption(opts[0]);
+          this.selectOption(opts[0].value);
         }
         break;
 
       case 'Escape':
         event.preventDefault();
+        this.closeDropdown(true);
+        break;
+
+      case 'Tab':
         this.closeDropdown();
         break;
     }
@@ -612,6 +801,13 @@ export class SearchableSelectComponent implements ControlValueAccessor {
 
     const clickedInside = this.elementRef.nativeElement.contains(event.target);
     if (!clickedInside) {
+      this.closeDropdown();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onDocumentEscape(): void {
+    if (this.isOpen) {
       this.closeDropdown();
     }
   }

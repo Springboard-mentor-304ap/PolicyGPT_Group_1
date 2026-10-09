@@ -259,12 +259,15 @@
 
         @if (activeModal() === 'searches') {
         <div class="role-filter-wrapper">
-          <select class="modal-role-select" [ngModel]="modalTypeFilter()" (ngModelChange)="modalTypeFilter.set($event)"
-            aria-label="Filter by type">
-            <option value="ALL">All Types</option>
-            <option value="Scheme">Scheme</option>
-            <option value="Policy">Policy</option>
-          </select>
+          <app-searchable-select
+            size="filter"
+            ariaLabel="Filter by type"
+            placeholder="All Types"
+            [searchable]="false"
+            [options]="modalTypeFilterOptions"
+            [ngModel]="modalTypeFilter()"
+            (ngModelChange)="modalTypeFilter.set($event)"
+          />
         </div>
         }
       </div>

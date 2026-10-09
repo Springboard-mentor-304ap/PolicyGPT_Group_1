@@ -183,25 +183,28 @@
         <div class="history-selects">
           <label class="history-select-wrap">
             <span class="visually-hidden">Filter by status</span>
-            <select class="history-select" [ngModel]="historyStatusFilter()"
-              (ngModelChange)="historyStatusFilter.set($event)" aria-label="Filter by status">
-              <option value="ALL">All Statuses</option>
-              <option value="OPEN">Under Review</option>
-              <option value="IN_PROGRESS">In Progress</option>
-              <option value="RESOLVED">Resolved</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-            <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+            <app-searchable-select
+              size="filter"
+              ariaLabel="Filter by status"
+              placeholder="All Statuses"
+              [searchable]="false"
+              [options]="historyStatusOptions"
+              [ngModel]="historyStatusFilter()"
+              (ngModelChange)="historyStatusFilter.set($event)"
+            />
           </label>
           <label class="history-select-wrap">
             <span class="visually-hidden">Filter by category</span>
-            <select class="history-select" [ngModel]="historyCategoryFilter()"
-              (ngModelChange)="historyCategoryFilter.set($event)" aria-label="Filter by category">
-              <option *ngFor="let t of historyTypeOptions()" [value]="t">
-                {{ formatFeedbackType(t) }}
-              </option>
-            </select>
-            <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+            <app-searchable-select
+              size="filter"
+              ariaLabel="Filter by category"
+              placeholder="All Categories"
+              [searchable]="true"
+              searchPlaceholder="Search categories..."
+              [options]="historyCategoryOptions()"
+              [ngModel]="historyCategoryFilter()"
+              (ngModelChange)="historyCategoryFilter.set($event)"
+            />
           </label>
         </div>
       </section>

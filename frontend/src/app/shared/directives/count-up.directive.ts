@@ -5,7 +5,8 @@ import {
   NgZone,
   OnChanges,
   OnDestroy,
-  SimpleChanges
+  SimpleChanges,
+  inject
 } from '@angular/core';
 import { prefersReducedMotion } from '../../features/analytics/shared/chart-animation.config';
 
@@ -28,10 +29,8 @@ export class CountUpDirective implements OnChanges, OnDestroy {
   private previousNum = 0;
   private hasRenderedOnce = false;
 
-  constructor(
-    private el: ElementRef<HTMLElement>,
-    private ngZone: NgZone
-  ) {}
+  private el = inject(ElementRef<HTMLElement>);
+  private ngZone = inject(NgZone);
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('value' in changes) {

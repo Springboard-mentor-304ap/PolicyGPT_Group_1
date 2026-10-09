@@ -77,11 +77,13 @@
       </div>
       <div class="filter-field">
         <label for="notif-read"><span>Status</span></label>
-        <select id="notif-read" [(ngModel)]="notifState.readFilter">
-          <option value="ALL">All</option>
-          <option value="READ">Read</option>
-          <option value="UNREAD">Unread</option>
-        </select>
+        <app-searchable-select
+          id="notif-read"
+          placeholder="All"
+          [searchable]="false"
+          [options]="notifReadOptions"
+          [(ngModel)]="notifState.readFilter"
+        />
       </div>
     </div>
     <div class="filter-actions">
@@ -273,11 +275,14 @@
       @if (tab.types.length > 1) {
       <div class="type-switcher">
         <label [for]="'type-' + tab.key"><span>Report type</span></label>
-        <select [id]="'type-' + tab.key" [(ngModel)]="st.type" (ngModelChange)="onReportTypeChange(tab.key)">
-          @for (t of tab.types; track t) {
-          <option [value]="t">{{ typeTitle(t) }}</option>
-          }
-        </select>
+        <app-searchable-select
+          [id]="'type-' + tab.key"
+          placeholder="Select report type"
+          [searchable]="false"
+          [options]="typeSelectOptions(tab)"
+          [ngModel]="st.type"
+          (ngModelChange)="st.type = $event; onReportTypeChange(tab.key)"
+        />
       </div>
       }
 
@@ -419,22 +424,26 @@
         <div class="filter-field filter-modal-field">
           <label [for]="'filter-' + tab.key + '-' + field.key"><span>{{ field.label }}</span></label>
           @if (field.kind === 'select') {
-          <select [id]="'filter-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]">
-            <option value="">{{ field.allLabel ?? 'All' }}</option>
-            @for (option of field.staticOptions; track option) {
-            <option [value]="option">{{ option }}</option>
-            }
-          </select>
+          <app-searchable-select
+            [id]="'filter-' + tab.key + '-' + field.key"
+            [placeholder]="field.allLabel ?? 'All'"
+            [searchable]="(field.staticOptions?.length ?? 0) > 6"
+            [searchPlaceholder]="'Search ' + field.label.toLowerCase() + '...'"
+            [options]="field.staticOptions ?? []"
+            [(ngModel)]="st.draftValues[field.key]"
+          />
           } @else if (field.kind === 'number') {
           <input type="number" min="1" [id]="'filter-' + tab.key + '-' + field.key"
             [(ngModel)]="st.draftValues[field.key]" placeholder="Any" />
           } @else if (field.kind === 'remote' && st.remoteOptions[field.key]?.length) {
-          <select [id]="'filter-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]">
-            <option value="">{{ field.allLabel ?? 'All' }}</option>
-            @for (option of st.remoteOptions[field.key]; track option) {
-            <option [value]="option">{{ option }}</option>
-            }
-          </select>
+          <app-searchable-select
+            [id]="'filter-' + tab.key + '-' + field.key"
+            [placeholder]="field.allLabel ?? 'All'"
+            [searchable]="true"
+            [searchPlaceholder]="'Search ' + field.label.toLowerCase() + '...'"
+            [options]="st.remoteOptions[field.key]"
+            [(ngModel)]="st.draftValues[field.key]"
+          />
           } @else {
           <input type="text" [id]="'filter-' + tab.key + '-' + field.key" [(ngModel)]="st.draftValues[field.key]"
             [placeholder]="st.loadingOptions ? 'Loading options…' : (field.allLabel ?? 'All')" />

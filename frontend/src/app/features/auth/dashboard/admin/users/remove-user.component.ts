@@ -9,6 +9,7 @@ import {
 } from "../../../../../core/services/admin-user.service";
 import { Auth, AuthUser } from "../../../../../core/services/auth";
 import { ToastService } from "../../../../../core/services/toast.service";
+import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
 
 export type UserRole =
   | "CITIZEN"
@@ -34,7 +35,7 @@ export interface AdminUser {
 @Component({
   selector: "app-remove-user",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent],
   templateUrl: "./remove-user.component.html",
   styleUrls: ["./remove-user.component.scss"],
 })
@@ -42,6 +43,21 @@ export class RemoveUserComponent implements OnInit {
   searchText = "";
   selectedRole = "ALL";
   selectedStatus = "ALL";
+
+  readonly roleFilterOptions = [
+    { value: "ALL", label: "All Roles" },
+    { value: "CITIZEN", label: "Citizen" },
+    { value: "RESEARCHER", label: "Researcher" },
+    { value: "ORGANIZATION", label: "Organization" },
+    { value: "GOVERNMENT_OFFICIAL", label: "Government Official" },
+    { value: "ADMINISTRATOR", label: "Administrator" },
+  ];
+
+  readonly statusFilterOptions = [
+    { value: "ALL", label: "All Status" },
+    { value: "Active", label: "Active" },
+    { value: "Inactive", label: "Inactive" },
+  ];
 
   currentPage = 1;
   pageSize = 6;

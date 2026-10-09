@@ -171,37 +171,30 @@
             <div class="form-field">
                 <label for="scheme-category">Category</label>
 
-                <div class="input-box select-box">
-                    <span class="material-icons input-icon">category</span>
-
-                    <select id="scheme-category" [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
-                        <option value="">All categories</option>
-
-                        <option *ngFor="let cat of categories" [value]="cat">
-                            {{ cat }}
-                        </option>
-                    </select>
-
-                    <span class="material-icons select-chevron">expand_more</span>
-                </div>
+                <app-searchable-select
+                    id="scheme-category"
+                    icon="category"
+                    placeholder="All categories"
+                    [searchable]="true"
+                    searchPlaceholder="Search categories..."
+                    [options]="categories"
+                    [(ngModel)]="selectedCategory"
+                    (selectionChange)="applyFilters()"
+                />
             </div>
 
             <div class="form-field">
                 <label for="scheme-status">Workflow status</label>
 
-                <div class="input-box select-box">
-                    <span class="material-icons input-icon">flag</span>
-
-                    <select id="scheme-status" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
-                        <option value="">All statuses</option>
-
-                        <option *ngFor="let status of statuses" [value]="status">
-                            {{ getStatusLabel(status) }}
-                        </option>
-                    </select>
-
-                    <span class="material-icons select-chevron">expand_more</span>
-                </div>
+                <app-searchable-select
+                    id="scheme-status"
+                    icon="flag"
+                    placeholder="All statuses"
+                    [searchable]="false"
+                    [options]="statusFilterOptions"
+                    [(ngModel)]="selectedStatus"
+                    (selectionChange)="applyFilters()"
+                />
             </div>
 
             <button type="button" class="export-button" (click)="exportSchemes(); $event.stopPropagation()">

@@ -28,6 +28,7 @@ import {
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
 import { UserAvatarComponent } from "../../../shared/components/user-avatar/user-avatar.component";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -35,7 +36,7 @@ import { environment } from '../../../../environments/environment';
 
   standalone: true,
 
-  imports: [CommonModule, ReactiveFormsModule, BreadcrumbComponent, UserAvatarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BreadcrumbComponent, UserAvatarComponent, SearchableSelectComponent],
 
   templateUrl: "./edit-profile.component.html",
 

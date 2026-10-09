@@ -1,86 +1,87 @@
 import { Component, EventEmitter, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { SearchableSelectComponent } from '../../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-filters-bar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent],
   template: `
     <div class="filters-card">
       <div class="filters-row">
         <!-- State Filter -->
         <div class="filter-group">
           <label class="filter-label" for="filter-state">State</label>
-          <select
+          <app-searchable-select
             id="filter-state"
-            class="filter-select"
-            [value]="selectedState()"
-            (change)="onSelectChange('state', $event)"
-          >
-            @for (opt of stateOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
+            size="filter"
+            [options]="stateOptions"
+            [searchable]="true"
+            searchPlaceholder="Search states..."
+            placeholder="All States"
+            [(ngModel)]="stateModel"
+            (selectionChange)="selectedState.set($event || defaultState)"
+          />
         </div>
 
         <!-- Category Filter -->
         <div class="filter-group">
           <label class="filter-label" for="filter-category">Category</label>
-          <select
+          <app-searchable-select
             id="filter-category"
-            class="filter-select"
-            [value]="selectedCategory()"
-            (change)="onSelectChange('category', $event)"
-          >
-            @for (opt of categoryOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
+            size="filter"
+            [options]="categoryOptions"
+            [searchable]="true"
+            searchPlaceholder="Search categories..."
+            placeholder="All Categories"
+            [(ngModel)]="categoryModel"
+            (selectionChange)="selectedCategory.set($event || defaultCategory)"
+          />
         </div>
 
         <!-- Ministry Filter -->
         <div class="filter-group">
           <label class="filter-label" for="filter-ministry">Ministry</label>
-          <select
+          <app-searchable-select
             id="filter-ministry"
-            class="filter-select"
-            [value]="selectedMinistry()"
-            (change)="onSelectChange('ministry', $event)"
-          >
-            @for (opt of ministryOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
+            size="filter"
+            [options]="ministryOptions"
+            [searchable]="true"
+            searchPlaceholder="Search ministries..."
+            placeholder="All Ministries"
+            [(ngModel)]="ministryModel"
+            (selectionChange)="selectedMinistry.set($event || defaultMinistry)"
+          />
         </div>
 
         <!-- Department Filter -->
         <div class="filter-group">
           <label class="filter-label" for="filter-department">Department</label>
-          <select
+          <app-searchable-select
             id="filter-department"
-            class="filter-select"
-            [value]="selectedDepartment()"
-            (change)="onSelectChange('department', $event)"
-          >
-            @for (opt of departmentOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
+            size="filter"
+            [options]="departmentOptions"
+            [searchable]="true"
+            searchPlaceholder="Search departments..."
+            placeholder="All Departments"
+            [(ngModel)]="departmentModel"
+            (selectionChange)="selectedDepartment.set($event || defaultDepartment)"
+          />
         </div>
 
-        <!-- Status Filter -->
+        <!-- Status Filter (small fixed list: compact, no search box) -->
         <div class="filter-group">
           <label class="filter-label" for="filter-status">Status</label>
-          <select
+          <app-searchable-select
             id="filter-status"
-            class="filter-select"
-            [value]="selectedStatus()"
-            (change)="onSelectChange('status', $event)"
-          >
-            @for (opt of statusOptions; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-            }
-          </select>
+            size="filter"
+            [options]="statusOptions"
+            [searchable]="false"
+            placeholder="All Status"
+            [(ngModel)]="statusModel"
+            (selectionChange)="selectedStatus.set($event || defaultStatus)"
+          />
         </div>
 
         <!-- Action Buttons -->
@@ -115,22 +116,48 @@ export class FiltersBarComponent {
   selectedDepartment = signal<string>(this.defaultDepartment);
   selectedStatus = signal<string>(this.defaultStatus);
 
-  // Dropdown options
-  stateOptions = ['All States', 'Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Gujarat'];
-  categoryOptions = ['All Categories', 'Agriculture', 'Education', 'Healthcare', 'Social Welfare', 'Employment', 'Finance', 'Housing', 'Environment'];
-  ministryOptions = ['All Ministries', 'Ministry of Agriculture', 'Ministry of Education', 'Ministry of Health', 'Ministry of Finance', 'Ministry of Housing', 'Ministry of Environment', 'Ministry of Skill Dev'];
-  departmentOptions = ['All Departments', 'Agriculture & Farmers Welfare', 'Education & Literacy', 'Health & Family Welfare', 'Rural Development', 'Urban Development'];
-  statusOptions = ['All Status', 'Approved', 'Pending', 'Active', 'Rejected', 'Archived'];
+  // Dropdown options (first entry is the "All" default; the control
+  // stores '' for it so placeholder text shows until a value is picked).
+  stateOptions = ['Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 'Gujarat'];
+  categoryOptions = ['Agriculture', 'Education', 'Healthcare', 'Social Welfare', 'Employment', 'Finance', 'Housing', 'Environment'];
+  ministryOptions = ['Ministry of Agriculture', 'Ministry of Education', 'Ministry of Health', 'Ministry of Finance', 'Ministry of Housing', 'Ministry of Environment', 'Ministry of Skill Dev'];
+  departmentOptions = ['Agriculture & Farmers Welfare', 'Education & Literacy', 'Health & Family Welfare', 'Rural Development', 'Urban Development'];
+  statusOptions = ['Approved', 'Pending', 'Active', 'Rejected', 'Archived'];
 
-  onSelectChange(field: string, event: Event): void {
-    const val = (event.target as HTMLSelectElement).value;
-    switch (field) {
-      case 'state': this.selectedState.set(val); break;
-      case 'category': this.selectedCategory.set(val); break;
-      case 'ministry': this.selectedMinistry.set(val); break;
-      case 'department': this.selectedDepartment.set(val); break;
-      case 'status': this.selectedStatus.set(val); break;
-    }
+  /** ngModel bridges: '' means the "All ..." default. */
+  get stateModel(): string {
+    return this.selectedState() === this.defaultState ? '' : this.selectedState();
+  }
+  set stateModel(v: string) {
+    this.selectedState.set(v || this.defaultState);
+  }
+
+  get categoryModel(): string {
+    return this.selectedCategory() === this.defaultCategory ? '' : this.selectedCategory();
+  }
+  set categoryModel(v: string) {
+    this.selectedCategory.set(v || this.defaultCategory);
+  }
+
+  get ministryModel(): string {
+    return this.selectedMinistry() === this.defaultMinistry ? '' : this.selectedMinistry();
+  }
+  set ministryModel(v: string) {
+    this.selectedMinistry.set(v || this.defaultMinistry);
+  }
+
+  get departmentModel(): string {
+    return this.selectedDepartment() === this.defaultDepartment ? '' : this.selectedDepartment();
+  }
+  set departmentModel(v: string) {
+    this.selectedDepartment.set(v || this.defaultDepartment);
+  }
+
+  get statusModel(): string {
+    return this.selectedStatus() === this.defaultStatus ? '' : this.selectedStatus();
+  }
+  set statusModel(v: string) {
+    this.selectedStatus.set(v || this.defaultStatus);
   }
 
   onApply(): void {

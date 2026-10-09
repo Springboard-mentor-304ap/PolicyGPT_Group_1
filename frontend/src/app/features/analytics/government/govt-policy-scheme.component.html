@@ -75,26 +75,37 @@
 
   @if (data) {
   <div class="analytics-filters-bar no-print" role="group" aria-label="Analytics filters">
-    <select class="filter-select" [(ngModel)]="policyStatus" (change)="onFilterChange()"
-      aria-label="Policy status filter">
-      <option value="">Policy status: All</option>
-      @for (s of data.filter_options.statuses; track s) {
-      <option [value]="s">{{ pretty(s) }}</option>
-      }
-    </select>
-    <select class="filter-select" [(ngModel)]="schemeStatus" (change)="onFilterChange()"
-      aria-label="Scheme status filter">
-      <option value="">Scheme status: All</option>
-      @for (s of data.filter_options.statuses; track s) {
-      <option [value]="s">{{ pretty(s) }}</option>
-      }
-    </select>
-    <select class="filter-select" [(ngModel)]="category" (change)="onFilterChange()" aria-label="Category filter">
-      <option value="">Category: All</option>
-      @for (c of data.filter_options.categories; track c) {
-      <option [value]="c">{{ c }}</option>
-      }
-    </select>
+    <app-searchable-select
+      id="govt-ps-policy-status"
+      size="filter"
+      ariaLabel="Policy status filter"
+      placeholder="Policy status: All"
+      [searchable]="false"
+      [options]="statusFilterOptions"
+      [(ngModel)]="policyStatus"
+      (selectionChange)="onFilterChange()"
+    />
+    <app-searchable-select
+      id="govt-ps-scheme-status"
+      size="filter"
+      ariaLabel="Scheme status filter"
+      placeholder="Scheme status: All"
+      [searchable]="false"
+      [options]="statusFilterOptions"
+      [(ngModel)]="schemeStatus"
+      (selectionChange)="onFilterChange()"
+    />
+    <app-searchable-select
+      id="govt-ps-category"
+      size="filter"
+      ariaLabel="Category filter"
+      placeholder="Category: All"
+      [searchable]="true"
+      searchPlaceholder="Search categories..."
+      [options]="categoryFilterOptions"
+      [(ngModel)]="category"
+      (selectionChange)="onFilterChange()"
+    />
   </div>
   }
 

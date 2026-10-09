@@ -10,6 +10,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 import {
   ReportDataset,
   ReportFormat,
@@ -124,7 +125,7 @@ function newNotificationsTabState(): NotificationsTabState {
 @Component({
   selector: 'app-report-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   styleUrl: '../reports-shared.scss',
   templateUrl: './report-dashboard.component.html',
 })
@@ -290,6 +291,17 @@ export class ReportDashboardComponent implements OnInit {
   typeTitle(type: ReportType): string {
     return REPORT_TYPE_META[type]?.title ?? type;
   }
+
+  /** PolicyGPT dropdown options for the per-tab report-type switcher. */
+  typeSelectOptions(tab: WorkspaceTab): { value: string; label: string }[] {
+    return tab.types.map((t) => ({ value: t, label: this.typeTitle(t) }));
+  }
+
+  readonly notifReadOptions = [
+    { value: 'ALL', label: 'All' },
+    { value: 'READ', label: 'Read' },
+    { value: 'UNREAD', label: 'Unread' },
+  ];
 
   // ============================================================
   // FILTER MODAL (draft vs applied)

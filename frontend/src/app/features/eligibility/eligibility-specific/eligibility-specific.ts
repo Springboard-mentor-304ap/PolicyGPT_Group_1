@@ -28,10 +28,12 @@ interface SelectableEntity {
   status?: string | null;
 }
 
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+
 @Component({
   selector: "app-eligibility-specific",
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: "./eligibility-specific.html",
   styleUrl: "./eligibility-specific.scss",
 })

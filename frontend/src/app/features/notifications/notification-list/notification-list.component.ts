@@ -8,6 +8,7 @@ import { Subscription } from "rxjs";
 import { NotificationService } from "../../../core/services/notification.service";
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { ToastService } from "../../../core/services/toast.service";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
   AdminNotificationStats,
   NotificationDeliveryRecord,
@@ -21,7 +22,7 @@ import {
 @Component({
   selector: "app-notification-list",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent],
   templateUrl: "./notification-list.component.html",
   styleUrls: ["./notification-list.component.scss"],
 })
@@ -69,6 +70,49 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   filterPriority: string = "ALL"; // 'ALL', 'URGENT', 'HIGH', 'MEDIUM', 'LOW'
   filterChannel: string = "ALL"; // 'ALL', 'IN_APP', 'EMAIL', 'SMS'
   filterDateRange: string = ""; // '', 'today', 'this_week', 'this_month'
+
+  readonly readStatusOptions = [
+    { value: "all", label: "All Notifications" },
+    { value: "unread", label: "Unread Only" },
+    { value: "read", label: "Read Only" },
+  ];
+
+  readonly priorityOptions = [
+    { value: "ALL", label: "All Priorities" },
+    { value: "URGENT", label: "Urgent" },
+    { value: "HIGH", label: "High" },
+    { value: "MEDIUM", label: "Medium" },
+    { value: "LOW", label: "Low" },
+  ];
+
+  readonly dateRangeOptions = [
+    { value: "", label: "Any time" },
+    { value: "today", label: "Today" },
+    { value: "this_week", label: "This Week" },
+    { value: "this_month", label: "This Month" },
+  ];
+
+  readonly sortOptions = [
+    { value: "latest", label: "Latest First" },
+    { value: "oldest", label: "Oldest First" },
+    { value: "unread_first", label: "Unread First" },
+  ];
+
+  readonly deliveryChannelOptions = [
+    { value: "ALL", label: "All Channels" },
+    { value: "IN_APP", label: "In-App" },
+    { value: "EMAIL", label: "Email" },
+    { value: "SMS", label: "SMS" },
+  ];
+
+  readonly deliveryStatusOptions = [
+    { value: "ALL", label: "All Statuses" },
+    { value: "SENT", label: "Sent" },
+    { value: "DELIVERED", label: "Delivered" },
+    { value: "PENDING", label: "Pending" },
+    { value: "FAILED", label: "Failed" },
+    { value: "SKIPPED", label: "Skipped" },
+  ];
 
   // Overflow menu state per item
   activeMenuId: number | null = null;

@@ -11,11 +11,12 @@ import {
 } from "@angular/forms";
 
 import { Auth } from "../../../core/services/auth";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-register",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, SearchableSelectComponent],
   templateUrl: "./register.component.html",
   styleUrl: "./register.component.scss",
 })

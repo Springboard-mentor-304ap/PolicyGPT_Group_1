@@ -18,6 +18,7 @@ import { downloadGovtCsv, printAnalyticsPdf } from "../shared/analytics-export";
 import { GovAnalyticsBase, GovtKpiCard } from "./gov-analytics-base";
 
 import { CountUpDirective } from "../../../shared/directives/count-up.directive";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-govt-departments",
@@ -34,6 +35,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     AnalyticsHBarChartComponent,
     AnalyticsGroupedBarChartComponent,
     CountUpDirective,
+    SearchableSelectComponent,
   ],
   templateUrl: "./govt-departments.component.html",
   styleUrl: "./government-analytics.scss",
@@ -47,6 +49,13 @@ export class GovtDepartmentsComponent extends GovAnalyticsBase {
 
   department = "";
   tableSearch = "";
+
+  get departmentFilterOptions(): { value: string; label: string }[] {
+    return (this.data?.filter_options.departments ?? []).map((d) => ({
+      value: d,
+      label: d,
+    }));
+  }
 
   loadData(forceRefresh: boolean): void {
     this.subscribe(

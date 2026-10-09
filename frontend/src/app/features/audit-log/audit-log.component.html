@@ -96,34 +96,46 @@
 
       <!-- ACTION FILTER DROPDOWN (server-side) -->
       <div class="filter-dropdown">
-        <select id="actionSelect" [ngModel]="actionFilter()"
-          (ngModelChange)="actionFilter.set($event); applyServerFilters()">
-          <option *ngFor="let a of availableActions()" [value]="a">
-            {{ a === 'ALL' ? 'All Actions' : formatAuditLabel(a) }}
-          </option>
-        </select>
+        <app-searchable-select
+          id="actionSelect"
+          size="filter"
+          ariaLabel="Filter by action"
+          placeholder="All Actions"
+          [searchable]="true"
+          searchPlaceholder="Search actions..."
+          [options]="actionFilterOptions"
+          [ngModel]="actionFilter()"
+          (ngModelChange)="actionFilter.set($event); applyServerFilters()"
+        />
       </div>
 
       <!-- ENTITY FILTER DROPDOWN (server-side) -->
       <div class="filter-dropdown">
-        <select id="entitySelect" [ngModel]="entityFilter()"
-          (ngModelChange)="entityFilter.set($event); applyServerFilters()">
-          <option *ngFor="let e of availableEntities()" [value]="e">
-            {{ e === 'ALL' ? 'All Entities' : formatAuditLabel(e) }}
-          </option>
-        </select>
+        <app-searchable-select
+          id="entitySelect"
+          size="filter"
+          ariaLabel="Filter by entity"
+          placeholder="All Entities"
+          [searchable]="true"
+          searchPlaceholder="Search entities..."
+          [options]="entityFilterOptions"
+          [ngModel]="entityFilter()"
+          (ngModelChange)="entityFilter.set($event); applyServerFilters()"
+        />
       </div>
 
       <!-- ROLE FILTER DROPDOWN -->
       <div class="filter-dropdown">
-        <select id="roleSelect" [ngModel]="roleFilter()" (ngModelChange)="onRoleChanged($event)">
-          <option value="ALL">All Roles</option>
-          <option value="ADMIN">Admin</option>
-          <option value="GOVERNMENT_OFFICIAL">Government Official</option>
-          <option value="CITIZEN">Citizen</option>
-          <option value="RESEARCHER">Researcher</option>
-          <option value="ORGANIZATION">Organization</option>
-        </select>
+        <app-searchable-select
+          id="roleSelect"
+          size="filter"
+          ariaLabel="Filter by role"
+          placeholder="All Roles"
+          [searchable]="false"
+          [options]="roleFilterOptions"
+          [ngModel]="roleFilter()"
+          (ngModelChange)="onRoleChanged($event)"
+        />
       </div>
     </div>
 

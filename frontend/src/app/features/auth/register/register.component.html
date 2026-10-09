@@ -398,21 +398,15 @@
 
             <div class="login-select-wrap">
 
-              <select id="state" class="login-select" formControlName="state">
-
-                <option value="">
-                  Select your state
-                </option>
-
-                @for (s of states; track s) {
-
-                <option [value]="s">
-                  {{ s }}
-                </option>
-
-                }
-
-              </select>
+              <app-searchable-select
+                id="state"
+                formControlName="state"
+                placeholder="Select your state"
+                [searchable]="true"
+                searchPlaceholder="Search states..."
+                [options]="states"
+                [isInvalid]="!!(form.get('state')?.invalid && form.get('state')?.touched)"
+              />
 
             </div>
 
@@ -439,21 +433,15 @@
 
             <div class="login-select-wrap">
 
-              <select id="district" class="login-select" formControlName="district">
-
-                <option value="">
-                  Select your district
-                </option>
-
-                @for (d of districts; track d) {
-
-                <option [value]="d">
-                  {{ d }}
-                </option>
-
-                }
-
-              </select>
+              <app-searchable-select
+                id="district"
+                formControlName="district"
+                placeholder="Select your district"
+                [searchable]="true"
+                searchPlaceholder="Search districts..."
+                [options]="districts"
+                [isInvalid]="!!(form.get('district')?.invalid && form.get('district')?.touched)"
+              />
 
             </div>
 
@@ -488,19 +476,14 @@
 
             <div class="login-select-wrap">
 
-              <select id="occupation" class="login-select" formControlName="occupation">
-
-                <option value="">
-                  Select your occupation
-                </option>
-
-                @for (occupation of occupations; track occupation) {
-                <option [value]="occupation">
-                  {{ occupation }}
-                </option>
-                }
-
-              </select>
+              <app-searchable-select
+                id="occupation"
+                formControlName="occupation"
+                placeholder="Select your occupation"
+                [searchable]="true"
+                searchPlaceholder="Search occupations..."
+                [options]="occupations"
+              />
 
             </div>
 
@@ -516,19 +499,14 @@
 
             <div class="login-select-wrap">
 
-              <select id="organization" class="login-select" formControlName="organization">
-
-                <option value="">
-                  Select your organization
-                </option>
-
-                @for (organization of organizations; track organization) {
-                <option [value]="organization">
-                  {{ organization }}
-                </option>
-                }
-
-              </select>
+              <app-searchable-select
+                id="organization"
+                formControlName="organization"
+                placeholder="Select your organization"
+                [searchable]="true"
+                searchPlaceholder="Search organizations..."
+                [options]="organizations"
+              />
 
             </div>
 
@@ -691,21 +669,14 @@
 
         <div class="login-select-wrap">
 
-          <select id="role" class="login-select" formControlName="role">
-
-            <option value="">
-              Select your role
-            </option>
-
-            @for (r of roles; track r.value) {
-
-            <option [value]="r.value">
-              {{ r.label }}
-            </option>
-
-            }
-
-          </select>
+          <app-searchable-select
+            id="role"
+            formControlName="role"
+            placeholder="Select your role"
+            [searchable]="false"
+            [options]="roles"
+            [isInvalid]="!!(form.get('role')?.invalid && form.get('role')?.touched)"
+          />
 
         </div>
 

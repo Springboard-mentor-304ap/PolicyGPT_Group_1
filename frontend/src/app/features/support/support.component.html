@@ -61,13 +61,17 @@
       </div>
       <label class="status-select-wrap">
         <span class="visually-hidden">Filter by category</span>
-        <select class="status-select" [ngModel]="selectedCategory" (change)="onCategorySelect($event)"
-          aria-label="Filter by category">
-          <option *ngFor="let cat of categories" [value]="cat">
-            {{ cat === 'All' ? 'All Categories' : cat }}
-          </option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        <app-searchable-select
+          id="faq-category-filter"
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="faqCategoryOptions"
+          [ngModel]="selectedCategory"
+          (selectionChange)="selectCategory($event)"
+        />
       </label>
     </div>
 
@@ -234,35 +238,40 @@
       </div>
       <label class="status-select-wrap">
         <span class="visually-hidden">Filter by status</span>
-        <select class="status-select" [(ngModel)]="requestStatus" aria-label="Filter by status">
-          <option value="ALL">All Statuses</option>
-          <option value="OPEN">Open</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="WAITING_FOR_USER">Waiting for User</option>
-          <option value="RESOLVED">Resolved</option>
-          <option value="CLOSED">Closed</option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        <app-searchable-select
+          id="support-request-status"
+          size="filter"
+          ariaLabel="Filter by status"
+          placeholder="All Statuses"
+          [searchable]="false"
+          [options]="requestStatusOptions"
+          [(ngModel)]="requestStatus"
+        />
       </label>
       <label class="status-select-wrap">
         <span class="visually-hidden">Filter by category</span>
-        <select class="status-select" [(ngModel)]="requestCategory" aria-label="Filter by category">
-          <option *ngFor="let cat of requestCategoryOptions" [value]="cat">
-            {{ cat === 'ALL' ? 'All Categories' : cat }}
-          </option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        <app-searchable-select
+          id="support-request-category"
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="requestCategoryFilterOptions"
+          [(ngModel)]="requestCategory"
+        />
       </label>
       <label class="status-select-wrap">
         <span class="visually-hidden">Filter by priority</span>
-        <select class="status-select" [(ngModel)]="requestPriority" aria-label="Filter by priority">
-          <option value="ALL">All Priorities</option>
-          <option value="LOW">Low</option>
-          <option value="MEDIUM">Medium</option>
-          <option value="HIGH">High</option>
-          <option value="URGENT">Urgent</option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        <app-searchable-select
+          id="support-request-priority"
+          size="filter"
+          ariaLabel="Filter by priority"
+          placeholder="All Priorities"
+          [searchable]="false"
+          [options]="requestPriorityOptions"
+          [(ngModel)]="requestPriority"
+        />
       </label>
     </div>
 
@@ -353,19 +362,26 @@
           <div class="form-row form-row--two-col">
             <div class="form-group">
               <label for="reqCategory">Topic Category <span class="required">*</span></label>
-              <select id="reqCategory" name="category" [(ngModel)]="formCategory" class="form-control form-select"
-                required>
-                <option *ngFor="let cat of requestCategories" [value]="cat">{{ cat }}</option>
-              </select>
+              <app-searchable-select
+                id="reqCategory"
+                placeholder="Select category"
+                [searchable]="true"
+                searchPlaceholder="Search categories..."
+                [options]="requestCategories"
+                [(ngModel)]="formCategory"
+                name="category"
+              />
             </div>
             <div class="form-group">
               <label for="reqPriority">Priority Level</label>
-              <select id="reqPriority" name="priority" [(ngModel)]="formPriority" class="form-control form-select">
-                <option value="LOW">Low (General Query)</option>
-                <option value="MEDIUM">Medium (Standard Issue)</option>
-                <option value="HIGH">High (Application Blocked)</option>
-                <option value="URGENT">Urgent (System Critical)</option>
-              </select>
+              <app-searchable-select
+                id="reqPriority"
+                placeholder="Select priority"
+                [searchable]="false"
+                [options]="formPriorityOptions"
+                [(ngModel)]="formPriority"
+                name="priority"
+              />
             </div>
           </div>
           <div class="form-group">

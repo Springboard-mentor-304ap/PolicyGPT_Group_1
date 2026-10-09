@@ -9,6 +9,7 @@ import { RouterLink } from "@angular/router";
 import { GovtSchemeAnalytics } from "../../../core/services/analytics.service";
 import { BreadcrumbComponent } from "../../../shared/components/breadcrumb/breadcrumb.component";
 import { DateRangePickerComponent } from "../shared/date-range-picker/date-range-picker.component";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
   AnalyticsDonutChartComponent,
   AnalyticsHBarChartComponent,
@@ -40,6 +41,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     CountUpDirective,
+    SearchableSelectComponent,
   ],
   templateUrl: "./govt-scheme-analytics.component.html",
   styleUrl: "./government-analytics.scss",
@@ -53,6 +55,21 @@ export class GovtSchemeAnalyticsComponent extends GovAnalyticsBase {
 
   status = "";
   category = "";
+
+  /** PolicyGPT dropdown options: status values shown pretty, category raw. */
+  get statusFilterOptions(): { value: string; label: string }[] {
+    return (this.data?.filter_options.statuses ?? []).map((s) => ({
+      value: s,
+      label: this.pretty(s),
+    }));
+  }
+
+  get categoryFilterOptions(): { value: string; label: string }[] {
+    return (this.data?.filter_options.categories ?? []).map((c) => ({
+      value: c,
+      label: c,
+    }));
+  }
 
   loadData(forceRefresh: boolean): void {
     this.subscribe(

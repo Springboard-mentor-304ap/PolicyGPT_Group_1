@@ -14,6 +14,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 import {
   Report,
   ReportFormat,
@@ -52,7 +53,7 @@ const ALL_FILTER_KEYS = [
 @Component({
   selector: 'app-report-generate',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, BreadcrumbComponent, SearchableSelectComponent],
   styleUrl: '../reports-shared.scss',
   template: `
     <div class="reports-page">
@@ -113,11 +114,13 @@ const ALL_FILTER_KEYS = [
               <label for="report-category">
                 <span>Category</span>
               </label>
-              <select id="report-category" formControlName="report_category">
-                @for (category of visibleCategories; track category.key) {
-                  <option [value]="category.key">{{ category.title }}</option>
-                }
-              </select>
+              <app-searchable-select
+                id="report-category"
+                formControlName="report_category"
+                placeholder="Select category"
+                [searchable]="false"
+                [options]="categorySelectOptions"
+              />
             </div>
 
             @if (visibleTypes.length > 1) {
@@ -125,11 +128,13 @@ const ALL_FILTER_KEYS = [
                 <label for="report-type">
                   <span>Report type</span>
                 </label>
-                <select id="report-type" formControlName="report_type">
-                  @for (type of visibleTypes; track type) {
-                    <option [value]="type">{{ typeTitle(type) }}</option>
-                  }
-                </select>
+                <app-searchable-select
+                  id="report-type"
+                  formControlName="report_type"
+                  placeholder="Select report type"
+                  [searchable]="false"
+                  [options]="typeSelectOptions"
+                />
               </div>
             }
 
@@ -138,11 +143,13 @@ const ALL_FILTER_KEYS = [
                 <label for="report-detail">
                   <span>Detail</span>
                 </label>
-                <select id="report-detail" formControlName="report_detail">
-                  @for (detail of availableDetails; track detail) {
-                    <option [value]="detail">{{ detailLabel(detail) }}</option>
-                  }
-                </select>
+                <app-searchable-select
+                  id="report-detail"
+                  formControlName="report_detail"
+                  placeholder="Select detail"
+                  [searchable]="false"
+                  [options]="detailSelectOptions"
+                />
               </div>
             }
 
@@ -150,10 +157,13 @@ const ALL_FILTER_KEYS = [
               <label for="report-format">
                 <span>Format</span>
               </label>
-              <select id="report-format" formControlName="report_format">
-                <option value="PDF">PDF</option>
-                <option value="EXCEL">Excel</option>
-              </select>
+              <app-searchable-select
+                id="report-format"
+                formControlName="report_format"
+                placeholder="Select format"
+                [searchable]="false"
+                [options]="formatSelectOptions"
+              />
             </div>
 
             <div class="filter-field">
@@ -175,12 +185,14 @@ const ALL_FILTER_KEYS = [
                   <span>{{ field.label }}</span>
                 </label>
                 @if (field.kind === 'select') {
-                  <select [id]="'filter-' + field.key" [formControlName]="field.key">
-                    <option value="">Any</option>
-                    @for (option of field.staticOptions; track option) {
-                      <option [value]="option">{{ option }}</option>
-                    }
-                  </select>
+                  <app-searchable-select
+                    [id]="'filter-' + field.key"
+                    [formControlName]="field.key"
+                    placeholder="Any"
+                    [searchable]="(field.staticOptions?.length ?? 0) > 6"
+                    [searchPlaceholder]="'Search ' + field.label.toLowerCase() + '...'"
+                    [options]="field.staticOptions ?? []"
+                  />
                 } @else if (field.kind === 'date') {
                   <input
                     type="date"
@@ -197,12 +209,14 @@ const ALL_FILTER_KEYS = [
                 } @else if (
                   field.kind === 'remote' && remoteOptions[field.key]?.length
                 ) {
-                  <select [id]="'filter-' + field.key" [formControlName]="field.key">
-                    <option value="">Any</option>
-                    @for (option of remoteOptions[field.key]; track option) {
-                      <option [value]="option">{{ option }}</option>
-                    }
-                  </select>
+                  <app-searchable-select
+                    [id]="'filter-' + field.key"
+                    [formControlName]="field.key"
+                    placeholder="Any"
+                    [searchable]="true"
+                    [searchPlaceholder]="'Search ' + field.label.toLowerCase() + '...'"
+                    [options]="remoteOptions[field.key]"
+                  />
                 } @else {
                   <input
                     type="text"
@@ -364,6 +378,24 @@ export class ReportGenerateComponent implements OnInit {
   detailLabel(detail: string): string {
     return detailLabel(detail);
   }
+
+  /** PolicyGPT dropdown options (values unchanged; labels via catalog). */
+  get categorySelectOptions(): { value: string; label: string }[] {
+    return this.visibleCategories.map((c) => ({ value: c.key, label: c.title }));
+  }
+
+  get typeSelectOptions(): { value: string; label: string }[] {
+    return this.visibleTypes.map((t) => ({ value: t, label: this.typeTitle(t) }));
+  }
+
+  get detailSelectOptions(): { value: string; label: string }[] {
+    return this.availableDetails.map((d) => ({ value: d, label: this.detailLabel(d) }));
+  }
+
+  readonly formatSelectOptions = [
+    { value: 'PDF', label: 'PDF' },
+    { value: 'EXCEL', label: 'Excel' },
+  ];
 
   loadTypes(): void {
     this.typesError = null;

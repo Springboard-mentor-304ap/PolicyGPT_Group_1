@@ -709,14 +709,13 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <span class="material-icons input-icon">school</span>
-                                <select class="form-control form-select" formControlName="education">
-                                    <option value="" selected>Select minimum qualification or institution level</option>
-                                    @for (edu of educationOptions; track edu) {
-                                    <option [value]="edu">{{ edu }}</option>
-                                    }
-                                </select>
-                                <span class="material-icons select-arrow">expand_more</span>
+                                <app-searchable-select
+                                    formControlName="education"
+                                    icon="school"
+                                    placeholder="Select minimum qualification or institution level"
+                                    [searchable]="false"
+                                    [options]="educationOptions"
+                                />
                             </div>
                             <span class="form-helper">Applicable academic or institutional level.</span>
                         </div>
@@ -730,14 +729,14 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <span class="material-icons input-icon">location_on</span>
-                                <select class="form-control form-select" formControlName="eligibilityState">
-                                    <option value="" disabled>Select applicable state(s) or region(s)</option>
-                                    @for (st of states; track st) {
-                                    <option [value]="st">{{ st }}</option>
-                                    }
-                                </select>
-                                <span class="material-icons select-arrow">expand_more</span>
+                                <app-searchable-select
+                                    formControlName="eligibilityState"
+                                    icon="location_on"
+                                    placeholder="Select applicable state(s) or region(s)"
+                                    [searchable]="true"
+                                    searchPlaceholder="Search states..."
+                                    [options]="states"
+                                />
                             </div>
                             <span class="form-helper">Geographical applicability of policy benefits.</span>
                         </div>

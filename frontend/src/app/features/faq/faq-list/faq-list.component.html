@@ -78,32 +78,28 @@
       </span>
       <label class="filter-select-wrap">
         <span class="visually-hidden">Filter by category</span>
-        <select
-          class="filter-select"
+        <app-searchable-select
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="categoryFilterOptions()"
           [ngModel]="selectedCategory()"
           (ngModelChange)="selectCategory($event)"
-          aria-label="Filter by category"
-        >
-          <option *ngFor="let cat of categories()" [value]="cat">
-            {{ cat === 'All' ? 'All Categories' : cat }}
-          </option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        />
       </label>
       <label class="filter-select-wrap" *ngIf="isAdmin()">
         <span class="visually-hidden">Filter by audience</span>
-        <select
-          class="filter-select"
+        <app-searchable-select
+          size="filter"
+          ariaLabel="Filter by audience"
+          placeholder="All Audiences"
+          [searchable]="false"
+          [options]="audienceFilterOptions()"
           [ngModel]="selectedAudience()"
           (ngModelChange)="selectAudience($event)"
-          aria-label="Filter by audience"
-        >
-          <option value="All">All Audiences</option>
-          <option *ngFor="let opt of audienceOptions" [value]="opt.value">
-            {{ opt.value === 'ALL' ? 'All Users' : opt.label }}
-          </option>
-        </select>
-        <span class="material-icons select-chevron" aria-hidden="true">expand_more</span>
+        />
       </label>
       <div class="toggle-actions" *ngIf="filteredFaqs().length > 0">
         <button type="button" class="meta-action-btn" (click)="expandAll()">
@@ -373,10 +369,14 @@
         <!-- CATEGORY SELECT -->
         <div class="form-group">
           <label for="faqCategory">Category</label>
-          <select id="faqCategory" [(ngModel)]="formCategory">
-            <option *ngFor="let c of predefinedCategories" [value]="c">{{ c }}</option>
-            <option value="Custom">+ Custom Category...</option>
-          </select>
+          <app-searchable-select
+            id="faqCategory"
+            placeholder="Select category"
+            [searchable]="true"
+            searchPlaceholder="Search or pick a category..."
+            [options]="formCategoryOptions"
+            [(ngModel)]="formCategory"
+          />
         </div>
 
         <!-- CUSTOM CATEGORY INPUT (IF CUSTOM SELECTED) -->
@@ -405,10 +405,13 @@
         <!-- VISIBILITY STATUS -->
         <div class="form-group">
           <label for="faqStatus">Visibility</label>
-          <select id="faqStatus" [(ngModel)]="formStatus">
-            <option value="PUBLISHED">Published (visible to selected audience)</option>
-            <option value="DRAFT">Draft (hidden from users)</option>
-          </select>
+          <app-searchable-select
+            id="faqStatus"
+            placeholder="Select visibility"
+            [searchable]="false"
+            [options]="formStatusOptions"
+            [(ngModel)]="formStatus"
+          />
         </div>
 
         <!-- TARGET AUDIENCE -->

@@ -11,11 +11,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-faq-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: './faq-list.component.html',
   styleUrl: './faq-list.component.scss',
 })
@@ -80,6 +81,31 @@ export class FaqListComponent implements OnInit, OnDestroy {
     }
     return Array.from(set);
   });
+
+  /** PolicyGPT dropdown options (values unchanged). */
+  categoryFilterOptions = computed<{ value: string; label: string }[]>(() =>
+    this.categories().map((c) => ({
+      value: c,
+      label: c === 'All' ? 'All Categories' : c,
+    })),
+  );
+
+  audienceFilterOptions = computed<{ value: string; label: string }[]>(() => [
+    { value: 'All', label: 'All Audiences' },
+    ...this.audienceOptions.map((opt) => ({
+      value: opt.value,
+      label: opt.value === 'ALL' ? 'All Users' : opt.label,
+    })),
+  ]);
+
+  get formCategoryOptions(): string[] {
+    return [...this.predefinedCategories, 'Custom'];
+  }
+
+  readonly formStatusOptions = [
+    { value: 'PUBLISHED', label: 'Published (visible to selected audience)' },
+    { value: 'DRAFT', label: 'Draft (hidden from users)' },
+  ];
 
   // Filtered FAQs computed based on search, category and audience
   filteredFaqs = computed<FAQ[]>(() => {

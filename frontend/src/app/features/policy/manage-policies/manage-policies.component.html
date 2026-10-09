@@ -178,19 +178,15 @@
             <div class="form-field">
                 <label for="policy-status">Workflow status</label>
 
-                <div class="input-box select-box">
-                    <span class="material-icons input-icon">flag</span>
-
-                    <select id="policy-status" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
-                        <option value="">All statuses</option>
-
-                        <option *ngFor="let status of statuses" [value]="status">
-                            {{ getStatusLabel(status) }}
-                        </option>
-                    </select>
-
-                    <span class="material-icons select-chevron">expand_more</span>
-                </div>
+                <app-searchable-select
+                    id="policy-status"
+                    icon="flag"
+                    placeholder="All statuses"
+                    [searchable]="false"
+                    [options]="statusFilterOptions"
+                    [(ngModel)]="selectedStatus"
+                    (selectionChange)="applyFilters()"
+                />
             </div>
 
             <button type="button" class="export-button" (click)="exportPolicies(); $event.stopPropagation()">

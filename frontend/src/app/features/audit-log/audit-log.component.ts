@@ -11,11 +11,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../shared/components/breadcrumb/breadcrumb.component';
+import { SearchableSelectComponent } from '../../shared/components/searchable-select/searchable-select.component';
 
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: './audit-log.component.html',
   styleUrls: [
     './audit-log.component.scss',
@@ -66,6 +67,30 @@ export class AuditLogComponent implements OnInit {
     }
     return ['ALL', ...Array.from(set).sort()];
   });
+
+  /** PolicyGPT dropdown options with readable labels (values unchanged). */
+  get actionFilterOptions(): { value: string; label: string }[] {
+    return this.availableActions().map((a) => ({
+      value: a,
+      label: a === 'ALL' ? 'All Actions' : formatAuditLabel(a),
+    }));
+  }
+
+  get entityFilterOptions(): { value: string; label: string }[] {
+    return this.availableEntities().map((e) => ({
+      value: e,
+      label: e === 'ALL' ? 'All Entities' : formatAuditLabel(e),
+    }));
+  }
+
+  readonly roleFilterOptions = [
+    { value: 'ALL', label: 'All Roles' },
+    { value: 'ADMIN', label: 'Admin' },
+    { value: 'GOVERNMENT_OFFICIAL', label: 'Government Official' },
+    { value: 'CITIZEN', label: 'Citizen' },
+    { value: 'RESEARCHER', label: 'Researcher' },
+    { value: 'ORGANIZATION', label: 'Organization' },
+  ];
 
   // Client-side search/role narrowing over the server-filtered page
   filteredLogs = computed<AuditLog[]>(() => {

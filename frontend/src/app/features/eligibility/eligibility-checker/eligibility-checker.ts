@@ -17,11 +17,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-eligibility-checker",
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: "./eligibility-checker.html",
   styleUrl: "./eligibility-checker.scss",
 })

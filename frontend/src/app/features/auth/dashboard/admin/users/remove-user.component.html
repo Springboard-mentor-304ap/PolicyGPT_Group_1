@@ -130,24 +130,31 @@
                 <!-- ROLE -->
                 <div class="users-filter">
                     <label for="removeRoleFilter">Role</label>
-                    <select id="removeRoleFilter" [(ngModel)]="selectedRole" (ngModelChange)="applyFilters()">
-                        <option value="ALL">All Roles</option>
-                        <option value="CITIZEN">Citizen</option>
-                        <option value="RESEARCHER">Researcher</option>
-                        <option value="ORGANIZATION">Organization</option>
-                        <option value="GOVERNMENT_OFFICIAL">Government Official</option>
-                        <option value="ADMINISTRATOR">Administrator</option>
-                    </select>
+                    <app-searchable-select
+                        id="removeRoleFilter"
+                        size="filter"
+                        ariaLabel="Filter by role"
+                        placeholder="All Roles"
+                        [searchable]="false"
+                        [options]="roleFilterOptions"
+                        [(ngModel)]="selectedRole"
+                        (selectionChange)="applyFilters()"
+                    />
                 </div>
 
                 <!-- STATUS -->
                 <div class="users-filter">
                     <label for="removeStatusFilter">Status</label>
-                    <select id="removeStatusFilter" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
-                        <option value="ALL">All Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
+                    <app-searchable-select
+                        id="removeStatusFilter"
+                        size="filter"
+                        ariaLabel="Filter by status"
+                        placeholder="All Status"
+                        [searchable]="false"
+                        [options]="statusFilterOptions"
+                        [(ngModel)]="selectedStatus"
+                        (selectionChange)="applyFilters()"
+                    />
                 </div>
             </div>
 

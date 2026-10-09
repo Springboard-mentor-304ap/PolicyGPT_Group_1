@@ -118,6 +118,8 @@ export interface UserKpiCard {
   subtext?: string;
   icon: string;
   iconClass: string;
+  /** Explanatory tooltip for filtered/"—" states (optional, UI-only). */
+  title?: string;
 }
 
 export interface EngagementMetric {

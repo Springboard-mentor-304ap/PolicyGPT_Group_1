@@ -21,7 +21,9 @@ from app.services.personal_analytics_service import get_personal_analytics
 from app.services.government_analytics_service import (
     get_government_departments,
     get_government_overview,
+    get_government_policies,
     get_government_policy_scheme,
+    get_government_schemes,
     get_government_user_notifications,
 )
 
@@ -367,6 +369,52 @@ def government_policy_scheme(
         date_to,
         policy_status,
         scheme_status,
+        category,
+    )
+
+
+@router.get("/government/policies")
+def government_policies(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    """Official-scoped Policy Analytics (own records; identity from JWT)."""
+    return _handle_gov_errors(
+        get_government_policies,
+        db,
+        current_user,
+        months,
+        date_from,
+        date_to,
+        status,
+        category,
+    )
+
+
+@router.get("/government/schemes")
+def government_schemes(
+    months: int = Query(default=12),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    category: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
+):
+    """Official-scoped Scheme Analytics (own records; identity from JWT)."""
+    return _handle_gov_errors(
+        get_government_schemes,
+        db,
+        current_user,
+        months,
+        date_from,
+        date_to,
+        status,
         category,
     )
 

@@ -11,6 +11,7 @@ import {
   AnalyticsLineChartComponent,
   LineSeries,
 } from "../shared/analytics-charts.component";
+import { DateRangePickerComponent } from "../shared/date-range-picker/date-range-picker.component";
 import { downloadGovtCsv, printAnalyticsPdf } from "../shared/analytics-export";
 import {
   GovAnalyticsBase,
@@ -29,6 +30,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     FormsModule,
     RouterLink,
     BreadcrumbComponent,
+    DateRangePickerComponent,
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
@@ -82,13 +84,6 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
         "All policy records on the platform.",
       ),
       card(
-        "draft_policies",
-        "Draft Policies",
-        "edit_note",
-        "orange",
-        "Policies currently in draft status.",
-      ),
-      card(
         "total_schemes",
         "Total Schemes",
         "account_balance",
@@ -101,13 +96,6 @@ export class GovtAnalyticsOverviewComponent extends GovAnalyticsBase {
         "domain",
         "purple",
         "Distinct departments across policies and schemes.",
-      ),
-      card(
-        "total_users",
-        "Total Users",
-        "group",
-        "blue",
-        "All registered user accounts.",
       ),
       card(
         "new_notifications",

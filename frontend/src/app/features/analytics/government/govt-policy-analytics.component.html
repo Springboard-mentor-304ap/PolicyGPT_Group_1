@@ -1,0 +1,167 @@
+<div class="govt-analytics-page">
+  <app-breadcrumb [items]="crumbs"></app-breadcrumb>
+
+  <header class="analytics-header">
+    <div class="header-left">
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageDescription }}</p>
+    </div>
+    <div class="header-right no-print">
+      <app-date-range-picker [value]="currentRange" [presets]="datePresets"
+        (rangeChange)="onDateRangeChange($event)" (rangeSelect)="onDateRangeSelect($event)" />
+      <div class="export-wrap">
+        <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || !data"
+          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">
+          <span class="material-icons" aria-hidden="true">download</span>
+          <span>Download Report</span>
+        </button>
+        @if (showExportMenu) {
+        <div class="export-menu" role="menu">
+          <button type="button" role="menuitem" (click)="downloadExcel()">
+            <span class="material-icons" aria-hidden="true">table_view</span>
+            Excel (CSV)
+          </button>
+          <button type="button" role="menuitem" (click)="downloadPdf()">
+            <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+            PDF (Print)
+          </button>
+        </div>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (scopeNote) {
+  <p class="scope-note">{{ scopeNote }}</p>
+  }
+
+  @if (loading) {
+  <div class="stats-grid" aria-label="Loading analytics">
+    @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+    <div class="stat-card stat-card--skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-icon"></span>
+      <span class="skeleton-body">
+        <span class="skeleton skeleton-title"></span>
+        <span class="skeleton skeleton-line"></span>
+      </span>
+    </div>
+    }
+  </div>
+  <div class="table-skeleton" aria-hidden="true">
+    <div class="skeleton skeleton-table-head"></div>
+    @for (i of [1, 2, 3]; track i) {
+    <div class="skeleton skeleton-table-row"></div>
+    }
+  </div>
+  } @else if (error) {
+  <section class="state-card error-state">
+    <div class="state-icon">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+    </div>
+    <h2>Unable to load analytics.</h2>
+    <p>{{ error }}</p>
+    <button type="button" class="retry-button" (click)="retry()">Retry</button>
+  </section>
+  } @else if (data) {
+  <div class="stats-grid" role="list">
+    @for (kpi of kpis; track kpi.key) {
+    <div class="stat-card" role="listitem" tabindex="0" [attr.title]="kpi.tooltip">
+      <span class="stat-icon stat-icon--{{ kpi.tone }}" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
+        <span class="stat-title">{{ kpi.label }}</span>
+      </span>
+    </div>
+    }
+  </div>
+
+  @if (data) {
+  <div class="analytics-filters-bar no-print" role="group" aria-label="Analytics filters">
+    <select class="filter-select" [(ngModel)]="status" (change)="onFilterChange()" aria-label="Status filter">
+      <option value="">Status: All</option>
+      @for (s of data.filter_options.statuses; track s) {
+      <option [value]="s">{{ pretty(s) }}</option>
+      }
+    </select>
+    <select class="filter-select" [(ngModel)]="category" (change)="onFilterChange()" aria-label="Category filter">
+      <option value="">Category: All</option>
+      @for (c of data.filter_options.categories; track c) {
+      <option [value]="c">{{ c }}</option>
+      }
+    </select>
+  </div>
+  }
+
+  <div class="grid-2">
+    <section class="data-card" aria-label="Policy status trend">
+      <div class="card-head">
+        <div>
+          <h2>Policy Status Trend</h2>
+          <p class="card-sub">Policies you created · {{ periodLabel }}</p>
+        </div>
+      </div>
+      <app-analytics-line-chart [series]="trendSeries" [labels]="data.trends.labels"></app-analytics-line-chart>
+    </section>
+
+    <section class="data-card" aria-label="Policy distribution by status">
+      <div class="card-head">
+        <div>
+          <h2>Policy Distribution by Status</h2>
+          <p class="card-sub">Your records by status</p>
+        </div>
+      </div>
+      <app-analytics-donut-chart [slices]="statusSlices"></app-analytics-donut-chart>
+    </section>
+  </div>
+
+  <div class="grid-2 grid-2--even">
+    <section class="data-card" aria-label="Policies by category">
+      <div class="card-head">
+        <div>
+          <h2>Policies by Category</h2>
+          <p class="card-sub">Your records by category</p>
+        </div>
+      </div>
+      <app-analytics-hbar-chart [items]="categoryBars" color="#3b82f6"></app-analytics-hbar-chart>
+    </section>
+
+    <section class="data-card" aria-label="Recent policies">
+      <div class="card-head">
+        <h2>Recent Policies</h2>
+        <a class="link-action" [routerLink]="['/dashboard/government/policies']" title="View all policies">View All</a>
+      </div>
+      @if (data.recent_policies.length === 0) {
+      <p class="empty-text">No policies match the active filters.</p>
+      } @else {
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of data.recent_policies; track row.policy_id) {
+            <tr>
+              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td>{{ row.category ?? "—" }}</td>
+              <td>{{ pretty(row.status) }}</td>
+              <td>
+                <a class="link-action" [routerLink]="['/dashboard/government/policies', row.policy_id]"
+                  [attr.title]="'View policy: ' + row.title">View</a>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </section>
+  </div>
+  }
+</div>

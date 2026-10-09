@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
+import type { ChartDataset } from 'chart.js';
 import {
   CHART_HOVER_OPTIONS,
   getLineChartAnimationConfig,
@@ -25,6 +26,19 @@ export interface LineDataset {
   backgroundColor?: string;
   fill?: boolean;
 }
+
+/**
+ * Marker-clipping guard (see LINE_DATASET_CLIP / LINE_CHART_LAYOUT_PADDING).
+ *
+ * Circular markers (r=4.5, 2.5px outline → 5.75px outer radius; 8.25px on
+ * hover) sit exactly on the chart-area edges for min/max/first/last
+ * values. Chart.js clips dataset drawing to the chart area by default,
+ * which cuts those markers in half. Disabling per-dataset clipping plus
+ * layout padding (breathing room inside the canvas) keeps every marker
+ * fully visible without changing axes, data or styling.
+ */
+const LINE_DATASET_CLIP = false as const;
+const LINE_CHART_LAYOUT_PADDING = { top: 10, right: 10, bottom: 8, left: 8 };
 
 @Component({
   selector: 'app-line-chart',
@@ -114,6 +128,29 @@ export class LineChartComponent implements OnChanges, OnDestroy {
     }
   }
 
+  /** Shared dataset mapping so create + update paths stay identical. */
+  private toChartDataset(ds: LineDataset): ChartDataset<'line', number[]> {
+    return {
+      label: ds.label,
+      data: ds.data,
+      borderColor: ds.borderColor,
+      backgroundColor: ds.backgroundColor || 'transparent',
+      fill: ds.fill ?? false,
+      tension: 0.38,
+      borderWidth: 2.5,
+      pointRadius: 4.5,
+      pointHoverRadius: 7,
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: ds.borderColor,
+      pointBorderWidth: 2.5,
+      pointHoverBackgroundColor: ds.borderColor,
+      pointHoverBorderColor: '#ffffff',
+      pointHoverBorderWidth: 2.5,
+      // Never clip markers at the chart-area edges (min/max/first/last).
+      clip: LINE_DATASET_CLIP
+    };
+  }
+
   private createOrUpdateChart(): void {
     if (!this.chartCanvas?.nativeElement) return;
     if (this.labels.length === 0 || this.datasets.length === 0) {
@@ -127,23 +164,7 @@ export class LineChartComponent implements OnChanges, OnDestroy {
 
     if (this.chartInstance) {
       this.chartInstance.data.labels = this.labels;
-      this.chartInstance.data.datasets = this.datasets.map(ds => ({
-        label: ds.label,
-        data: ds.data,
-        borderColor: ds.borderColor,
-        backgroundColor: ds.backgroundColor || 'transparent',
-        fill: ds.fill ?? false,
-        tension: 0.38,
-        borderWidth: 2.5,
-        pointRadius: 4.5,
-        pointHoverRadius: 7,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: ds.borderColor,
-        pointBorderWidth: 2.5,
-        pointHoverBackgroundColor: ds.borderColor,
-        pointHoverBorderColor: '#ffffff',
-        pointHoverBorderWidth: 2.5
-      }));
+      this.chartInstance.data.datasets = this.datasets.map(ds => this.toChartDataset(ds));
       if (!this.animationsEnabled && this.chartInstance.options) {
         this.chartInstance.options.animation = false;
         (this.chartInstance.options as any).animations = {};
@@ -192,27 +213,13 @@ export class LineChartComponent implements OnChanges, OnDestroy {
       type: 'line',
       data: {
         labels: this.labels,
-        datasets: this.datasets.map(ds => ({
-          label: ds.label,
-          data: ds.data,
-          borderColor: ds.borderColor,
-          backgroundColor: ds.backgroundColor || 'transparent',
-          fill: ds.fill ?? false,
-          tension: 0.38,
-          borderWidth: 2.5,
-          pointRadius: 4.5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#ffffff',
-          pointBorderColor: ds.borderColor,
-          pointBorderWidth: 2.5,
-          pointHoverBackgroundColor: ds.borderColor,
-          pointHoverBorderColor: '#ffffff',
-          pointHoverBorderWidth: 2.5
-        }))
+        datasets: this.datasets.map(ds => this.toChartDataset(ds))
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        // Breathing room so unclipped edge markers stay inside the canvas.
+        layout: { padding: LINE_CHART_LAYOUT_PADDING },
         animation: this.animationsEnabled ? getLineChartAnimationConfig() : false,
         animations: this.animationsEnabled ? getLineChartAnimationsProperty() : {},
         hover: CHART_HOVER_OPTIONS,

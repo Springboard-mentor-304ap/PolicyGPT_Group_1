@@ -163,6 +163,153 @@
   }
 }
 
+// Filter Panel (matches Policy Analytics filters-bar styling)
+.filters-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e4e9f1;
+  padding: 18px 20px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  margin-bottom: 24px;
+}
+
+.filters-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  &--custom {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eef2f7;
+  }
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 140px;
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .filter-select {
+    width: 100%;
+    height: 38px;
+    padding: 0 10px;
+    background-color: #f8fafc;
+    border: 1px solid #dbe2eb;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    color: #1e293b;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover,
+    &:focus {
+      border-color: #0879ed;
+      background-color: #ffffff;
+    }
+
+    option {
+      background-color: #ffffff;
+      color: #1e293b;
+    }
+  }
+
+  &--search {
+    flex: 1.4;
+  }
+
+  .filter-search {
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    background-color: #f8fafc;
+    border: 1px solid #dbe2eb;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: #1e293b;
+    outline: none;
+    transition: all 0.15s ease;
+
+    &::placeholder {
+      color: #94a3b8;
+    }
+
+    &:hover,
+    &:focus {
+      border-color: #0879ed;
+      background-color: #ffffff;
+    }
+  }
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+
+  .btn-apply {
+    background-color: #0879ed;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    height: 38px;
+    padding: 0 1.25rem;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background-color: #075dcc;
+    }
+  }
+
+  .btn-reset {
+    background-color: #ffffff;
+    color: #475569;
+    border: 1px solid #dbe2eb;
+    border-radius: 8px;
+    height: 38px;
+    padding: 0 1rem;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+
+    &:hover {
+      border-color: #0879ed;
+      color: #0879ed;
+      background-color: #f8fafc;
+    }
+  }
+}
+
+.filter-error {
+  margin: 0.75rem 0 0;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #b42318;
+}
+
 // KPI Grid (8 Cards, single row on desktop)
 .kpi-grid {
   @include tokens.analytics-stat-grid;

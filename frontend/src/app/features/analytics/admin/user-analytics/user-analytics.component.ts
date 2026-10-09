@@ -9,6 +9,10 @@ import {
   type DateRangeSelection,
 } from "../../shared/date-range-picker/date-range-picker.component";
 import {
+  selectionForCustom,
+  selectionForLabel,
+} from "../../shared/analytics-date-range.service";
+import {
   LineChartComponent,
   LineDataset,
 } from "../../shared/line-chart/line-chart.component";
@@ -218,6 +222,326 @@ export class UserAnalyticsComponent implements OnInit {
   modalSearchTerm = signal<string>("");
   modalRoleFilter = signal<string>("ALL");
 
+  // =========================================================
+  // FILTER PANEL (Policy Analytics styling; staged selections
+  // applied explicitly via Apply, cleared via Reset).
+  //
+  // Backend honesty note: GET /analytics/admin/users accepts only
+  // growth/reg/state/heatmap periods plus the global start/end
+  // window — it has NO role/status/search params. Role, status and
+  // search are therefore scoped client-side from this same
+  // response (role shares from the per-role growth series, status
+  // from the windowed active/total counts, search across the
+  // returned user rows). Anything that cannot be scoped is shown
+  // as "—" with an explanatory tooltip instead of a fabricated
+  // number. Registration-date presets reuse the shared
+  // rangeService flow, so they refetch server-windowed data like
+  // the header picker.
+  // =========================================================
+
+  readonly roleOptions = [
+    { value: "ALL", label: "All Roles" },
+    { value: "CITIZEN", label: "Citizen" },
+    { value: "GOVERNMENT_OFFICIAL", label: "Government Official" },
+    { value: "ADMINISTRATOR", label: "Administrator" },
+    { value: "RESEARCHER", label: "Researcher" },
+    { value: "ORGANIZATION", label: "Organization" },
+    { value: "GUEST", label: "Guest" },
+  ];
+  readonly statusOptions = [
+    { value: "ALL", label: "All Statuses" },
+    { value: "ACTIVE", label: "Active" },
+    { value: "INACTIVE", label: "Inactive" },
+  ];
+  readonly dateOptions = [
+    "All Dates",
+    "Last 7 Days",
+    "Last 30 Days",
+    "Last 6 Months",
+    "Last 12 Months",
+    "Custom",
+  ];
+
+  // Staged (dropdown/input) selections.
+  fRole = signal<string>("ALL");
+  fStatus = signal<string>("ALL");
+  fDate = signal<string>("Last 12 Months");
+  fCustomFrom = signal<string>("");
+  fCustomTo = signal<string>("");
+  fSearch = signal<string>("");
+  filterError = signal<string | null>(null);
+
+  // Applied selections (drive the visible views).
+  aRole = signal<string>("ALL");
+  aStatus = signal<string>("ALL");
+  aSearch = signal<string>("");
+
+  /** Active (non-default) filter summary for tooltips/empty states. */
+  filtersActive = computed(
+    () => this.aRole() !== "ALL" || this.aStatus() !== "ALL" || this.aSearch().trim() !== "",
+  );
+
+  // ---------- filtered views (default = raw response, unchanged) ----------
+
+  /** Growth series scoped to the applied role (all series by default). */
+  visibleGrowthDatasets = computed<LineDataset[]>(() => {
+    const all = this.growthDatasets();
+    if (this.aRole() === "ALL") return all;
+    return all.filter((s) => canonicalUserRole(s.label) === this.aRole());
+  });
+
+  /** Role donut scoped to the applied role (all slices by default). */
+  visibleRoleLabels = computed<string[]>(() => {
+    if (this.aRole() === "ALL") return this.roleLabels();
+    return this.roleLabels().filter((l) => canonicalUserRole(l) === this.aRole());
+  });
+
+  visibleRoleData = computed<number[]>(() => {
+    const labels = this.roleLabels();
+    const data = this.roleData();
+    if (this.aRole() === "ALL") return data;
+    return labels
+      .map((l, i) => ({ l, v: data[i] ?? 0 }))
+      .filter((r) => canonicalUserRole(r.l) === this.aRole())
+      .map((r) => r.v);
+  });
+
+  visibleRoleColors = computed<string[]>(() => {
+    const labels = this.roleLabels();
+    const colors = this.roleColors();
+    if (this.aRole() === "ALL") return colors;
+    return labels
+      .map((l, i) => ({ l, c: colors[i] ?? "#64748b" }))
+      .filter((r) => canonicalUserRole(r.l) === this.aRole())
+      .map((r) => r.c);
+  });
+
+  visibleRoleTotal = computed<string>(() => {
+    if (this.aRole() === "ALL" && this.aStatus() === "ALL") return this.roleTotal();
+    if (this.aRole() !== "ALL" && this.aStatus() === "ALL") {
+      return fmtCount(this.visibleRoleData().reduce((s, v) => s + v, 0));
+    }
+    // Status-scoped donut composition is not tracked by the backend.
+    return "—";
+  });
+
+  /**
+   * KPI cards scoped to the applied role/status. Role shares come from
+   * the windowed per-role growth series (same source as the growth
+   * chart, so totals stay consistent); status shares come from the
+   * windowed active/total counts. Combinations the dataset cannot back
+   * render as "—" with a tooltip — never a fabricated value.
+   */
+  visibleKpis = computed<UserKpiCard[]>(() => {
+    const raw = this.kpis();
+    const role = this.aRole();
+    const status = this.aStatus();
+    if (role === "ALL" && status === "ALL") return raw;
+    const withTitle = (k: UserKpiCard, title: string): UserKpiCard => ({ ...k, title });
+    const blank = (k: UserKpiCard, title: string): UserKpiCard =>
+      withTitle({ ...k, value: "—", change: "" }, title);
+    const num = (v: string): number => Number(String(v).replace(/[^0-9.-]/g, "")) || 0;
+    const find = (label: string): UserKpiCard | undefined =>
+      raw.find((k) => k.label === label);
+
+    if (role !== "ALL" && status === "ALL") {
+      const sums = this.roleSeriesSums();
+      const scoped = (key: string): number => sums.get(key) ?? 0;
+      return raw.map((k) => {
+        switch (k.label) {
+          case "Total Users":
+            return withTitle(
+              { ...k, value: fmtCount(scoped(role)), change: "" },
+              `Registered ${this.roleDisplayName(role)} in the selected window.`,
+            );
+          case "New Users":
+            return withTitle(
+              { ...k, value: fmtCount(scoped(role)), change: "" },
+              `Registered ${this.roleDisplayName(role)} in the selected window.`,
+            );
+          case "Active Users":
+            return blank(k, "Active status is not tracked per role by the backend.");
+          case "Govt. Officials":
+            return withTitle(
+              { ...k, value: fmtCount(scoped("GOVERNMENT_OFFICIAL")), change: "" },
+              "Registered government officials in the selected window.",
+            );
+          case "Organizations":
+            return withTitle(
+              { ...k, value: fmtCount(scoped("ORGANIZATION")), change: "" },
+              "Registered organizations in the selected window.",
+            );
+          case "Researchers":
+            return withTitle(
+              { ...k, value: fmtCount(scoped("RESEARCHER")), change: "" },
+              "Registered researchers in the selected window.",
+            );
+          case "Admins":
+            return withTitle(
+              { ...k, value: fmtCount(scoped("ADMINISTRATOR")), change: "" },
+              "Registered administrators in the selected window.",
+            );
+          case "Citizens":
+            return withTitle(
+              { ...k, value: fmtCount(scoped("CITIZEN")), change: "" },
+              "Registered citizens in the selected window.",
+            );
+          default:
+            return blank(k, "Not scoped by the applied filters.");
+        }
+      });
+    }
+
+    // Status scope (with or without a role): only headline registration
+    // totals can be scoped — active/inactive is not tracked per role or
+    // per series by the backend.
+    const total = num(find("Total Users")?.value ?? "0");
+    const active = num(find("Active Users")?.value ?? "0");
+    const scoped = status === "ACTIVE" ? active : Math.max(0, total - active);
+    const statusName = status === "ACTIVE" ? "Active" : "Inactive";
+    return raw.map((k) => {
+      if (k.label === "Total Users") {
+        return withTitle(
+          { ...k, value: fmtCount(scoped), change: "" },
+          `${statusName} users registered in the selected window.`,
+        );
+      }
+      if (k.label === "Active Users" && status === "ACTIVE") {
+        return withTitle({ ...k, change: "" }, "Active users registered in the selected window.");
+      }
+      return blank(
+        k,
+        role !== "ALL"
+          ? "Role and status cannot be combined: activity by role and status is not tracked by the backend."
+          : "Only headline totals can be scoped by account status with the available data.",
+      );
+    });
+  });
+
+  /** Recent users scoped by applied role + search (top-5 in template). */
+  visibleRecentUsers = computed<RecentRegisteredUser[]>(() => {
+    let list = this.recentUsers();
+    const role = this.aRole();
+    if (role !== "ALL") {
+      list = list.filter((u) => canonicalUserRole(u.role) === role);
+    }
+    const q = this.aSearch().toLowerCase().trim();
+    if (q) {
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          u.state.toLowerCase().includes(q),
+      );
+    }
+    return list;
+  });
+
+  /** Top active users scoped by applied role + search (top-5 in template). */
+  visibleTopActiveUsers = computed<TopActiveUser[]>(() => {
+    let list = this.topActiveUsers();
+    const role = this.aRole();
+    if (role !== "ALL") {
+      list = list.filter((u) => canonicalUserRole(u.role) === role);
+    }
+    const q = this.aSearch().toLowerCase().trim();
+    if (q) {
+      list = list.filter(
+        (u) =>
+          u.name.toLowerCase().includes(q) ||
+          (u.email && u.email.toLowerCase().includes(q)),
+      );
+    }
+    return list;
+  });
+
+  /** Windowed per-role registration totals from the growth series. */
+  private roleSeriesSums(): Map<string, number> {
+    const sums = new Map<string, number>();
+    for (const s of this.growthDatasets()) {
+      const key = canonicalUserRole(s.label);
+      const total = (s.data || []).reduce((a, v) => a + (Number(v) || 0), 0);
+      sums.set(key, (sums.get(key) ?? 0) + total);
+    }
+    return sums;
+  }
+
+  private roleDisplayName(key: string): string {
+    return (
+      this.roleOptions.find((o) => o.value === key)?.label.toLowerCase() ?? key.toLowerCase()
+    );
+  }
+
+  // ---------- filter actions ----------
+
+  /** Non-default applied filters merged into report parameters. */
+  private activeFilterParams(): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (this.aRole() !== "ALL") out["role"] = this.aRole();
+    if (this.aStatus() !== "ALL") out["status"] = this.aStatus();
+    const q = this.aSearch().trim();
+    if (q) out["search"] = q;
+    return out;
+  }
+
+  onApplyFilters(): void {
+    this.filterError.set(null);
+    if (this.fDate() === "Custom") {
+      if (!this.fCustomFrom() || !this.fCustomTo()) {
+        this.filterError.set("Select both a start and an end date for the custom range.");
+        return;
+      }
+      const sel = selectionForCustom(this.fCustomFrom(), this.fCustomTo());
+      if (!sel) {
+        this.filterError.set("End date cannot be before start date.");
+        return;
+      }
+      this.aRole.set(this.fRole());
+      this.aStatus.set(this.fStatus());
+      this.aSearch.set(this.fSearch());
+      this.onDateRangeSelect(sel);
+      return;
+    }
+    this.aRole.set(this.fRole());
+    this.aStatus.set(this.fStatus());
+    this.aSearch.set(this.fSearch());
+    if (this.fDate() === "All Dates") {
+      // The backend is always windowed (default trailing 12 months);
+      // "All Dates" restores that default window rather than implying
+      // unwindowed all-time data the API cannot provide.
+      this.rangeService.clear();
+      this.currentRange.set(this.rangeService.label());
+      this.growthPeriod.set("Last 12 Months");
+      this.regPeriod.set("Last 6 Months");
+      this.loadAllData();
+      return;
+    }
+    const sel = selectionForLabel(this.fDate());
+    if (sel) {
+      this.onDateRangeSelect(sel);
+      return;
+    }
+    this.cdr.markForCheck();
+  }
+
+  onResetFilters(): void {
+    this.fRole.set("ALL");
+    this.fStatus.set("ALL");
+    this.fDate.set("Last 12 Months");
+    this.fCustomFrom.set("");
+    this.fCustomTo.set("");
+    this.fSearch.set("");
+    this.filterError.set(null);
+    this.aRole.set("ALL");
+    this.aStatus.set("ALL");
+    this.aSearch.set("");
+    this.rangeService.clear();
+    this.currentRange.set(this.rangeService.label());
+    this.growthPeriod.set("Last 12 Months");
+    this.regPeriod.set("Last 6 Months");
+    this.loadAllData();
+  }
+
   // Computed filtered list for Recent Users modal
   filteredRecentUsers = computed(() => {
     let list = this.recentUsers();
@@ -357,6 +681,7 @@ export class UserAnalyticsComponent implements OnInit {
     this.dataService
       .downloadReport("USER_REPORT", "PDF", "User Analytics Report", {
         ...this.rangeService.toReportParams(),
+        ...this.activeFilterParams(),
       })
       .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
@@ -572,4 +897,30 @@ function withAdminCitizenKpis(
     (k) => k.label !== "Admins" && k.label !== "Citizens",
   );
   return [...rest, admins, citizens];
+}
+
+/** Format a count with locale grouping (matches backend "1,234" style). */
+export function fmtCount(n: number): string {
+  return (Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0).toLocaleString("en-US");
+}
+
+/**
+ * Canonical role key for any role label variant found in user-analytics
+ * payloads ("Citizen", "Govt. Official", "Government Official",
+ * "Official", "Admin"/"Administrator", "Organisation", "Guests",
+ * growth-series names like "Govt. Officials", ...). Unknown labels map
+ * to "" so they never match a real filter and are excluded honestly.
+ */
+export function canonicalUserRole(label: string): string {
+  const key = (label || "").replace(/[^a-z0-9]/gi, "").toUpperCase();
+  if (!key) return "";
+  if (key.includes("GOVERNMENT") || key.includes("OFFICIAL")) {
+    return "GOVERNMENT_OFFICIAL";
+  }
+  if (key.includes("ORGANI") || key === "ORG") return "ORGANIZATION";
+  if (key.includes("RESEARCH")) return "RESEARCHER";
+  if (key.includes("ADMIN")) return "ADMINISTRATOR";
+  if (key.includes("CITIZEN")) return "CITIZEN";
+  if (key.includes("GUEST")) return "GUEST";
+  return "";
 }

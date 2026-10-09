@@ -40,8 +40,8 @@
   </p>
   }
   <div class="kpi-grid">
-    @for (kpi of kpis(); track kpi.label) {
-    <div class="kpi-card">
+    @for (kpi of visibleKpis(); track kpi.label) {
+    <div class="kpi-card" [attr.title]="kpi.title ?? kpi.label">
       <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
         <span class="material-icons">{{ kpi.icon }}</span>
       </div>
@@ -57,6 +57,65 @@
         }
       </div>
     </div>
+    }
+  </div>
+
+  <!-- Filter Panel (Policy Analytics styling) -->
+  <div class="filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-role">User Role</label>
+        <select id="user-filter-role" class="filter-select" [ngModel]="fRole()"
+          (ngModelChange)="fRole.set($event)">
+          @for (opt of roleOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-status">Account Status</label>
+        <select id="user-filter-status" class="filter-select" [ngModel]="fStatus()"
+          (ngModelChange)="fStatus.set($event)">
+          @for (opt of statusOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-date">Registration Date</label>
+        <select id="user-filter-date" class="filter-select" [ngModel]="fDate()"
+          (ngModelChange)="fDate.set($event)">
+          @for (opt of dateOptions; track opt) {
+          <option [value]="opt">{{ opt }}</option>
+          }
+        </select>
+      </div>
+      <div class="filter-group filter-group--search">
+        <label class="filter-label" for="user-filter-search">Search</label>
+        <input id="user-filter-search" type="search" class="filter-search" placeholder="Name or email..."
+          [ngModel]="fSearch()" (ngModelChange)="fSearch.set($event)" />
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="btn-apply" (click)="onApplyFilters()">Apply Filters</button>
+        <button type="button" class="btn-reset" (click)="onResetFilters()">Reset</button>
+      </div>
+    </div>
+    @if (fDate() === 'Custom') {
+    <div class="filters-row filters-row--custom">
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-from">Start date</label>
+        <input id="user-filter-from" type="date" class="filter-select" [ngModel]="fCustomFrom()"
+          (ngModelChange)="fCustomFrom.set($event)" [max]="fCustomTo() || undefined" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-to">End date</label>
+        <input id="user-filter-to" type="date" class="filter-select" [ngModel]="fCustomTo()"
+          (ngModelChange)="fCustomTo.set($event)" [min]="fCustomFrom() || undefined" />
+      </div>
+    </div>
+    }
+    @if (filterError()) {
+    <p class="filter-error" role="alert">{{ filterError() }}</p>
     }
   </div>
 
@@ -86,7 +145,7 @@
       </div>
 
       <div class="chart-body">
-        <app-line-chart [labels]="growthLabels()" [datasets]="growthDatasets()" />
+        <app-line-chart [labels]="growthLabels()" [datasets]="visibleGrowthDatasets()" />
       </div>
     </div>
   </div>
@@ -99,8 +158,8 @@
         <h2 class="card-title">User Distribution by Role</h2>
       </div>
       <div class="chart-body doughnut-body">
-        <app-doughnut-chart [labels]="roleLabels()" [data]="roleData()" [colors]="roleColors()"
-          [centerMainText]="roleTotal()" centerSubText="Total Users" />
+        <app-doughnut-chart [labels]="visibleRoleLabels()" [data]="visibleRoleData()" [colors]="visibleRoleColors()"
+          [centerMainText]="visibleRoleTotal()" centerSubText="Total Users" />
       </div>
     </div>
 
@@ -213,7 +272,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (user of recentUsers().slice(0, 5); track user.rank) {
+            @for (user of visibleRecentUsers().slice(0, 5); track user.rank) {
             <tr>
               <td class="col-name font-semibold">{{ user.name }}</td>
               <td class="col-email text-muted">{{ user.email }}</td>
@@ -224,6 +283,10 @@
               </td>
               <td class="text-secondary">{{ user.state }}</td>
               <td class="text-muted">{{ user.joinDate }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No users found matching the active filters.</td>
             </tr>
             }
           </tbody>
@@ -250,7 +313,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (user of topActiveUsers().slice(0, 5); track user.rank) {
+            @for (user of visibleTopActiveUsers().slice(0, 5); track user.rank) {
             <tr>
               <td class="col-name font-semibold">{{ user.name }}</td>
               <td>
@@ -259,6 +322,10 @@
                 </span>
               </td>
               <td class="text-secondary">{{ user.logins | number }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="3" class="text-center py-4 text-muted">No active users found matching the active filters.</td>
             </tr>
             }
           </tbody>

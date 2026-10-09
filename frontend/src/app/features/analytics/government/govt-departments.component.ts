@@ -13,6 +13,7 @@ import {
   GroupedBarSeries,
   LineSeries,
 } from "../shared/analytics-charts.component";
+import { DateRangePickerComponent } from "../shared/date-range-picker/date-range-picker.component";
 import { downloadGovtCsv, printAnalyticsPdf } from "../shared/analytics-export";
 import { GovAnalyticsBase, GovtKpiCard } from "./gov-analytics-base";
 
@@ -27,6 +28,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     FormsModule,
     RouterLink,
     BreadcrumbComponent,
+    DateRangePickerComponent,
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,

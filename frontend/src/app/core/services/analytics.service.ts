@@ -353,6 +353,39 @@ export interface GovtPolicySchemeParams extends GovtAnalyticsParams {
   category?: string;
 }
 
+export interface GovtOwnAnalyticsParams extends GovtAnalyticsParams {
+  status?: string;
+  category?: string;
+}
+
+export interface GovtPolicyAnalytics {
+  window: { from: string; to: string };
+  generated_at: string;
+  scope: string;
+  filters: { status: string | null; category: string | null };
+  filter_options: { statuses: string[]; categories: string[] };
+  kpis: Record<string, GovtKpi>;
+  trends: { labels: string[]; policies: number[] };
+  policy_status: Record<string, number>;
+  policies_by_category: { category: string; count: number }[];
+  recent_policies: GovtRecentPolicy[];
+  limitations: string[];
+}
+
+export interface GovtSchemeAnalytics {
+  window: { from: string; to: string };
+  generated_at: string;
+  scope: string;
+  filters: { status: string | null; category: string | null };
+  filter_options: { statuses: string[]; categories: string[] };
+  kpis: Record<string, GovtKpi>;
+  trends: { labels: string[]; schemes: number[] };
+  scheme_status: Record<string, number>;
+  schemes_by_category: { category: string; count: number }[];
+  recent_schemes: GovtRecentScheme[];
+  limitations: string[];
+}
+
 export interface GovtDepartmentParams extends GovtAnalyticsParams {
   department?: string;
 }
@@ -366,6 +399,9 @@ export interface GovtKpi {
   value: number;
   tracked?: boolean;
   reason?: string;
+  /** Pending-request breakdown (delete vs archive) where provided. */
+  delete?: number;
+  archive?: number;
 }
 
 export interface GovtRecentPolicy {
@@ -755,6 +791,30 @@ export class AnalyticsService {
     return this.cachedGet<GovtPolicyScheme>(
       `govt-policy-scheme|${query}`,
       `${this.baseUrl}/government/policy-scheme?${query}`,
+      forceRefresh,
+    );
+  }
+
+  getGovernmentPolicies(
+    params: GovtOwnAnalyticsParams = {},
+    forceRefresh = false,
+  ): Observable<GovtPolicyAnalytics> {
+    const query = this.govtParams(params);
+    return this.cachedGet<GovtPolicyAnalytics>(
+      `govt-policies|${query}`,
+      `${this.baseUrl}/government/policies?${query}`,
+      forceRefresh,
+    );
+  }
+
+  getGovernmentSchemes(
+    params: GovtOwnAnalyticsParams = {},
+    forceRefresh = false,
+  ): Observable<GovtSchemeAnalytics> {
+    const query = this.govtParams(params);
+    return this.cachedGet<GovtSchemeAnalytics>(
+      `govt-schemes|${query}`,
+      `${this.baseUrl}/government/schemes?${query}`,
       forceRefresh,
     );
   }

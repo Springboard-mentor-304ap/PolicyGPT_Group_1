@@ -80,7 +80,7 @@ export interface BarItem {
               [attr.stroke]="s.color"
               stroke-width="2.5"
               class="chart-marker"
-              [style.animation-delay]="$index * 50 + 'ms'"
+              [style.--rise.px]="216 - yFor(v)"
             />
           }
         }
@@ -201,14 +201,21 @@ export interface BarItem {
         font-size: 11px;
         fill: #64748b;
       }
+      /* Entry motion mirrors the Admin Analytics Dashboard line chart
+         (Chart.js: 750ms easeOutQuart line reveal, circular markers):
+         same duration, easing family, 2.5px stroke and r=4.5 markers. */
       .chart-path {
         stroke-dasharray: 2000;
         stroke-dashoffset: 2000;
-        animation: drawLine 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: drawLine 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
       }
+      /* Markers rise from the baseline together with the line draw
+         (same 0.75s easeOutQuart progress as the Admin Chart.js
+         y-animation): no per-point stagger, so circles never sequence
+         in from the left independently of the line. */
       .chart-marker {
         opacity: 0;
-        animation: fadeInMarker 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: riseMarker 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         cursor: pointer;
         transition: r 0.15s ease;
       }
@@ -220,14 +227,14 @@ export interface BarItem {
           stroke-dashoffset: 0;
         }
       }
-      @keyframes fadeInMarker {
+      @keyframes riseMarker {
         from {
           opacity: 0;
-          transform: scale(0.3);
+          transform: translateY(var(--rise, 0px));
         }
         to {
           opacity: 1;
-          transform: scale(1);
+          transform: translateY(0);
         }
       }
       @media (prefers-reduced-motion: reduce) {
@@ -371,6 +378,24 @@ export class AnalyticsLineChartComponent {
   @Input() series: LineSeries[] = [];
   @Input() labels: string[] = [];
 
+  /**
+   * Marker-clipping guard for the pure-SVG plot.
+   *
+   * Circular markers (r=4.5, 2.5px outline → 5.75px outer radius; r=7
+   * hover markers → 8.25px) used to sit exactly on the viewBox edges:
+   * first/last points at x=36/640 and min/max values at y=216/20, so
+   * any clipping ancestor cut their outlines. The data plot is inset
+   * by MARKER_PAD on every side so every marker — including its full
+   * border — stays inside the SVG box. Gridlines remain full-bleed
+   * (background only); marker shape, size, colors and animation are
+   * unchanged.
+   */
+  private static readonly PLOT_LEFT = 36;
+  private static readonly PLOT_RIGHT = 640;
+  private static readonly PLOT_TOP = 20;
+  private static readonly PLOT_BOTTOM = 216;
+  private static readonly MARKER_PAD = 9;
+
   hidden = new Set<string>();
   hoverIndex: number | null = null;
 
@@ -435,12 +460,18 @@ export class AnalyticsLineChartComponent {
   }
 
   xFor(index: number): number {
+    const C = AnalyticsLineChartComponent;
     const n = Math.max(this.labels.length - 1, 1);
-    return 36 + ((640 - 36) * index) / n;
+    const left = C.PLOT_LEFT + C.MARKER_PAD;
+    const width = C.PLOT_RIGHT - C.PLOT_LEFT - C.MARKER_PAD * 2;
+    return left + (width * index) / n;
   }
 
   yFor(value: number): number {
-    return 216 - ((216 - 20) * value) / this.maxValue;
+    const C = AnalyticsLineChartComponent;
+    const top = C.PLOT_TOP + C.MARKER_PAD;
+    const bottom = C.PLOT_BOTTOM - C.MARKER_PAD;
+    return bottom - ((bottom - top) * value) / this.maxValue;
   }
 
   pointsFor(s: LineSeries): string {
@@ -490,8 +521,11 @@ export class AnalyticsLineChartComponent {
     const rect = target.getBoundingClientRect();
     const ratio = (event.clientX - rect.left) / Math.max(rect.width, 1);
     const n = Math.max(this.labels.length - 1, 1);
-    // Account for the 36-unit left gutter in a 640-unit viewBox.
-    const adjusted = (ratio * 640 - 36) / (640 - 36);
+    // Inverse of xFor(): account for the gutter plus the marker inset.
+    const C = AnalyticsLineChartComponent;
+    const left = C.PLOT_LEFT + C.MARKER_PAD;
+    const width = C.PLOT_RIGHT - C.PLOT_LEFT - C.MARKER_PAD * 2;
+    const adjusted = (ratio * 640 - left) / width;
     this.hoverIndex = Math.min(n, Math.max(0, Math.round(adjusted * n)));
   }
 
@@ -502,7 +536,10 @@ export class AnalyticsLineChartComponent {
     const rect = target.getBoundingClientRect();
     const ratio = (touch.clientX - rect.left) / Math.max(rect.width, 1);
     const n = Math.max(this.labels.length - 1, 1);
-    const adjusted = (ratio * 640 - 36) / (640 - 36);
+    const C = AnalyticsLineChartComponent;
+    const left = C.PLOT_LEFT + C.MARKER_PAD;
+    const width = C.PLOT_RIGHT - C.PLOT_LEFT - C.MARKER_PAD * 2;
+    const adjusted = (ratio * 640 - left) / width;
     this.hoverIndex = Math.min(n, Math.max(0, Math.round(adjusted * n)));
   }
 
@@ -614,7 +651,7 @@ export class AnalyticsLineChartComponent {
         width: 100%;
         display: block;
         transform: rotate(-90deg);
-        animation: donutSpinIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: donutSpinIn 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
       }
       @keyframes donutSpinIn {
         from {
@@ -626,13 +663,17 @@ export class AnalyticsLineChartComponent {
           opacity: 1;
         }
       }
+      /* Segment sweep + update transitions share the standard
+         easeOutQuart easing with the Chart.js doughnut animation
+         (800ms rotate/scale reveal), so every role's donut moves
+         identically. */
       .donut-segment {
         transition:
-          stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+          stroke-dashoffset 0.6s cubic-bezier(0.25, 1, 0.5, 1),
           stroke-dasharray 0.6s ease,
           stroke-width 0.2s ease,
           opacity 0.2s ease;
-        animation: donutSweep 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        animation: donutSweep 0.55s cubic-bezier(0.25, 1, 0.5, 1) backwards;
       }
       @keyframes donutSweep {
         from {
@@ -875,8 +916,12 @@ export interface GroupedBarSeries {
         position: relative;
       }
       .chart-bar-rect {
-        transform-origin: center bottom;
-        animation: barGrowUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        /* Baseline-anchored vertical growth: each bar scales about its
+           own bottom edge (shared 0.75s easeOutQuart entry, simultaneous
+           across the group — same timing as the Chart.js bar animation). */
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+        animation: barGrowUp 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         transition: opacity 0.2s ease;
       }
       @keyframes barGrowUp {
@@ -1242,9 +1287,9 @@ export class AnalyticsGroupedBarChartComponent {
         min-width: 3px;
         flex-shrink: 0;
         transition:
-          width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+          width 0.5s cubic-bezier(0.25, 1, 0.5, 1),
           filter 0.2s ease;
-        animation: hbarExpand 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: hbarExpand 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
       }
       @keyframes hbarExpand {
         from {

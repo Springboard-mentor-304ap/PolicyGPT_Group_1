@@ -14,6 +14,7 @@ import {
   AnalyticsLineChartComponent,
   LineSeries,
 } from "../shared/analytics-charts.component";
+import { DateRangePickerComponent } from "../shared/date-range-picker/date-range-picker.component";
 import {
   downloadGovtCsv,
   printAnalyticsPdf,
@@ -34,6 +35,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     FormsModule,
     RouterLink,
     BreadcrumbComponent,
+    DateRangePickerComponent,
     AnalyticsLineChartComponent,
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
@@ -97,10 +99,20 @@ export class GovtPolicySchemeComponent extends GovAnalyticsBase {
     return [
       card("total_policies", "Total Policies", "description", "blue", "All policy records on the platform."),
       card("draft_policies", "Draft Policies", "edit_note", "orange", "Policies currently in draft status."),
+      card("pending_policies", "Pending Approval", "pending_actions", "purple", "Policies awaiting an approval decision."),
       card("approved_policies", "Approved Policies", "check_circle", "green", "Policies currently approved."),
+      card("rejected_policies", "Rejected Policies", "cancel", "orange", "Policies whose approval was rejected. Separate from rejected delete requests."),
+      card("pending_policy_deletes", "Pending Delete Requests", "delete", "blue", "Policies with a pending deletion request (DELETE_REQUESTED status)."),
+      card("approved_policy_deletes", "Approved Deletes", "delete_forever", "green", "Policy deletion requests approved and permanently deleted in the selected window."),
+      card("rejected_policy_deletes", "Rejected Deletes", "restore_from_trash", "purple", "Policy deletion requests rejected by an administrator in the selected window; records keep their previous status."),
       card("total_schemes", "Total Schemes", "account_balance", "blue", "All scheme records on the platform."),
       card("draft_schemes", "Draft Schemes", "edit_note", "orange", "Schemes currently in draft status."),
+      card("pending_schemes", "Pending Approval", "pending_actions", "purple", "Schemes awaiting an approval decision."),
       card("approved_schemes", "Approved Schemes", "verified", "green", "Schemes currently approved."),
+      card("rejected_schemes", "Rejected Schemes", "cancel", "orange", "Schemes whose approval was rejected. Separate from rejected delete requests."),
+      card("pending_scheme_deletes", "Pending Delete Requests", "delete", "blue", "Schemes with a pending deletion request (DELETE_REQUESTED status)."),
+      card("approved_scheme_deletes", "Approved Deletes", "delete_forever", "green", "Scheme deletion requests approved and permanently deleted in the selected window."),
+      card("rejected_scheme_deletes", "Rejected Deletes", "restore_from_trash", "purple", "Scheme deletion requests rejected by an administrator in the selected window; records keep their previous status."),
     ];
   }
 

@@ -268,14 +268,24 @@
                         Analytics Overview
                     </span>
                 </a>
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/policy-scheme"
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/policies"
                     routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
                     (click)="closeMobileMenu()">
                     <span class="material-icons">
-                        query_stats
+                        description
                     </span>
                     <span>
-                        Policy &amp; Scheme Analytics
+                        Policy Analytics
+                    </span>
+                </a>
+                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/schemes"
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
+                    <span class="material-icons">
+                        account_balance
+                    </span>
+                    <span>
+                        Scheme Analytics
                     </span>
                 </a>
                 <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/departments"
@@ -286,16 +296,6 @@
                     </span>
                     <span>
                         Department Analytics
-                    </span>
-                </a>
-                <a class="dash-nav__submenu-item" routerLink="/dashboard/government/analytics/user-notifications"
-                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
-                    (click)="closeMobileMenu()">
-                    <span class="material-icons">
-                        notifications
-                    </span>
-                    <span>
-                        User &amp; Notification Statistics
                     </span>
                 </a>
             </div>

@@ -7,22 +7,8 @@
       <p>{{ pageDescription }}</p>
     </div>
     <div class="header-right no-print">
-      <div class="range-group" role="group" aria-label="Time range">
-        @for (opt of rangeOptions; track opt.key) {
-        <button type="button" class="range-pill" [class.range-pill--active]="range === opt.key"
-          (click)="setRange(opt.key)" [attr.aria-pressed]="range === opt.key">
-          {{ opt.label }}
-        </button>
-        }
-      </div>
-      @if (showCustom) {
-      <div class="custom-range">
-        <input type="date" [(ngModel)]="customFrom" aria-label="Start date" />
-        <span aria-hidden="true">–</span>
-        <input type="date" [(ngModel)]="customTo" aria-label="End date" />
-        <button type="button" class="btn btn-primary" (click)="applyCustom()">Apply</button>
-      </div>
-      }
+      <app-date-range-picker [value]="currentRange" [presets]="datePresets"
+        (rangeChange)="onDateRangeChange($event)" (rangeSelect)="onDateRangeSelect($event)" />
       <div class="export-wrap">
         <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || !data"
           aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report">

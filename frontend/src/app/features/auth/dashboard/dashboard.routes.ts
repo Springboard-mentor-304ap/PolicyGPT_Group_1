@@ -1071,6 +1071,28 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // GOVERNMENT POLICY ANALYTICS (sidebar-linked)
+      // /dashboard/government/analytics/policies
+      {
+        path: "analytics/policies",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-policy-analytics.component").then(
+            (m) => m.GovtPolicyAnalyticsComponent,
+          ),
+      },
+
+      // GOVERNMENT SCHEME ANALYTICS (sidebar-linked)
+      // /dashboard/government/analytics/schemes
+      {
+        path: "analytics/schemes",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-scheme-analytics.component").then(
+            (m) => m.GovtSchemeAnalyticsComponent,
+          ),
+      },
+
       {
         path: "analytics/policy-scheme",
 
@@ -1086,15 +1108,6 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../analytics/government/govt-departments.component").then(
             (m) => m.GovtDepartmentsComponent,
-          ),
-      },
-
-      {
-        path: "analytics/user-notifications",
-
-        loadComponent: () =>
-          import("../../analytics/government/govt-user-notifications.component").then(
-            (m) => m.GovtUserNotificationsComponent,
           ),
       },
 

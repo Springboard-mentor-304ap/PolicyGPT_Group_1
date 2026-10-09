@@ -5,6 +5,7 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    Form,
     Header,
     HTTPException,
     Query,
@@ -26,7 +27,6 @@ from app.schemas.notification import (
     UnreadCountResponse,
     AdminNotificationStatsResponse,
     TestEmailRequest,
-    TestSmsRequest,
 )
 from app.schemas.notification_preference import (
     NotificationPreferenceResponse,
@@ -51,7 +51,6 @@ from app.services.notification_preference_service import (
     reset_preferences,
 )
 from app.services.email_service import send_notification_email
-from app.services.sms_service import send_sms
 
 router = APIRouter(
     prefix="/notifications",
@@ -66,6 +65,11 @@ admin_router = APIRouter(
 webhook_router = APIRouter(
     prefix="/webhooks/brevo",
     tags=["Brevo Webhooks"],
+)
+
+twilio_router = APIRouter(
+    prefix="/webhooks/twilio",
+    tags=["Twilio Webhooks"],
 )
 
 ALLOWED_CANONICAL_ROLES = {
@@ -552,22 +556,9 @@ def admin_test_email(
     )
     return res
 
-
-@admin_router.post(
-    "/test-sms",
-)
-def admin_test_sms(
-    payload: TestSmsRequest,
-    current_user: User = Depends(get_current_user),
-):
-    _verify_admin(current_user)
-    res = send_sms(
-        recipient_phone=payload.phone_number,
-        content=(
-            "PolicyGPT: Official test SMS verifying Brevo Transactional SMS delivery."
-        ),
-    )
-    return res
+# NOTE: the generic Admin Test SMS endpoint (/test-sms) was removed: SMS
+# is OTP-only (Twilio Verify for Forgot Password). The only SMS test is
+# the Forgot Password OTP flow itself.
 
 
 @admin_router.post(
@@ -769,3 +760,75 @@ def brevo_sms_webhook(
         }
 
     return {"status": "received", "result": "not_found", "message_id": msg_id}
+
+
+# ============================================================
+# TWILIO SMS STATUS CALLBACK (HISTORICAL NOTIFICATION ROWS ONLY)
+# ============================================================
+# Twilio POSTs `application/x-www-form-urlencoded` status updates to the
+# StatusCallback URL configured in the Twilio Console (per number or per
+# message). Notification SMS is retired (OTP-only via Twilio Verify), so
+# this endpoint now only advances pre-existing notification delivery rows
+# by provider Message SID; it never sends anything.
+#
+# NOTE: Twilio signs callbacks with the account Auth Token
+# (X-Twilio-Signature). This deployment authenticates to Twilio with an
+# API key pair, not the Auth Token, so signature validation is not
+# performed — same posture as the Brevo webhooks when no shared secret is
+# configured. MessageSids are unguessable and this endpoint only advances
+# already-SENT delivery rows, never creates notifications.
+
+
+@twilio_router.post("/status")
+def twilio_status_webhook(
+    MessageSid: str | None = Form(default=None),
+    MessageStatus: str | None = Form(default=None),
+    ErrorCode: str | None = Form(default=None),
+    From: str | None = Form(default=None),
+    To: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+):
+    """Handle Twilio SMS status callbacks: queued/sent/delivered/undelivered/failed."""
+    message_sid = (MessageSid or "").strip()
+    event = (MessageStatus or "").strip().lower()
+    if not message_sid:
+        return {"status": "ignored", "reason": "no_message_sid"}
+
+    delivery = (
+        db.query(NotificationDelivery)
+        .filter(NotificationDelivery.provider_message_id == message_sid)
+        .first()
+    )
+    if not delivery:
+        return {"status": "received", "result": "not_found"}
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if event == "delivered":
+        # Only Twilio reporting delivered marks DELIVERED — acceptance
+        # alone stays SENT.
+        delivery.status = "DELIVERED"
+        delivery.delivered_at = now
+    elif event in ("failed", "undelivered"):
+        delivery.status = "FAILED"
+        delivery.failed_at = now
+        error_code = (ErrorCode or "").strip()
+        delivery.failure_reason = (
+            f"Twilio SMS event: {event}"
+            + (f" (code={error_code})" if error_code else "")
+        )
+    elif event in ("queued", "accepted", "sending", "sent"):
+        # Accepted by Twilio but not yet delivered — keep/confirm SENT,
+        # never jump to DELIVERED.
+        if delivery.status != "DELIVERED":
+            delivery.status = "SENT"
+            if not delivery.sent_at:
+                delivery.sent_at = now
+    else:
+        return {"status": "received", "result": "unhandled_event", "event": event}
+    delivery.updated_at = now
+    db.commit()
+    return {
+        "status": "received",
+        "delivery_id": delivery.delivery_id,
+        "event": event,
+    }

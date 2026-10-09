@@ -231,7 +231,3 @@ class AdminNotificationStatsResponse(BaseModel):
 
 class TestEmailRequest(BaseModel):
     email: str
-
-
-class TestSmsRequest(BaseModel):
-    phone_number: str

@@ -46,7 +46,11 @@ from app.schemas.auth import (
 )
 from app.services.audit_log_service import log_request_action
 from app.services.email_service import send_otp_email, send_password_reset_email
-from app.services.sms_service import normalize_indian_phone, send_otp_sms
+from app.services.sms_service import normalize_indian_phone
+from app.services.twilio_verify_service import (
+    check_sms_verification,
+    start_sms_verification,
+)
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -1040,6 +1044,54 @@ def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_d
     ).update({"used": True})
 
     # -----------------------------------------------------
+    # SMS CHANNEL USES TWILIO VERIFY (NO LOCAL OTP ROW)
+    # -----------------------------------------------------
+    # Twilio Trial rejects custom Messaging bodies (error 21608), so the
+    # SMS OTP path starts a Twilio Verify verification instead. Twilio
+    # owns OTP generation, delivery (trial-approved template) and expiry;
+    # nothing OTP-related is stored locally. Success here means Twilio
+    # *accepted* the verification (status pending) — never "delivered".
+    if channel == "sms":
+        verify_phone = (
+            normalized_phone
+            or normalize_indian_phone(user.phone)
+            or ""
+        )
+        verify_result = start_sms_verification(
+            recipient_phone=verify_phone,
+        )
+        provider_error = (
+            verify_result.get("error")
+            if isinstance(verify_result, dict)
+            else None
+        )
+        if not isinstance(verify_result, dict) or not verify_result.get(
+            "success"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=(
+                    "SMS verification failed: "
+                    f"{provider_error or 'unknown error'}"
+                ),
+            )
+
+        log_request_action(
+            request,
+            db,
+            user,
+            "AUTH_OTP_SENT",
+            "USER",
+            user.user_id if user else None,
+            "Twilio Verify SMS verification started.",
+        )
+
+        return {
+            "message": "OTP sent successfully",
+            "channel": channel,
+        }
+
+    # -----------------------------------------------------
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
@@ -1078,48 +1130,27 @@ def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_d
     db.commit()
 
     # -----------------------------------------------------
-    # SEND VIA EXPLICIT CHANNEL (CHECK SUCCESS DICT)
+    # SEND VIA EMAIL (SMS RETURNS EARLIER VIA TWILIO VERIFY)
     # -----------------------------------------------------
 
     try:
-        if channel == "sms":
-            result = send_otp_sms(
-                recipient_phone=normalized_phone
-                or normalize_indian_phone(user.phone)
-                or "",
-                otp=otp,
+        result = send_otp_email(
+            recipient_email=user.email,
+            otp=otp,
+        )
+        provider_error = result.get("error") if isinstance(result, dict) else None
+        if not isinstance(result, dict) or not result.get("success"):
+            try:
+                otp_record.used = True
+                db.commit()
+            except Exception:
+                db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=(
+                    f"Email delivery failed: {provider_error or 'unknown error'}"
+                ),
             )
-            provider_error = result.get("error") if isinstance(result, dict) else None
-            if not isinstance(result, dict) or not result.get("success"):
-                try:
-                    otp_record.used = True
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=(
-                        f"SMS delivery failed: {provider_error or 'unknown error'}"
-                    ),
-                )
-        else:
-            result = send_otp_email(
-                recipient_email=user.email,
-                otp=otp,
-            )
-            provider_error = result.get("error") if isinstance(result, dict) else None
-            if isinstance(result, dict) and not result.get("success"):
-                try:
-                    otp_record.used = True
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=(
-                        f"Email delivery failed: {provider_error or 'unknown error'}"
-                    ),
-                )
 
     except HTTPException:
         raise
@@ -1197,69 +1228,112 @@ def verify_otp(data: VerifyOTPRequest, request: Request, db: Session = Depends(g
             )
 
     # -----------------------------------------------------
-    # FIND LATEST ACTIVE OTP
+    # SMS CHANNEL IS VERIFIED BY TWILIO VERIFY (NO LOCAL OTP ROW)
     # -----------------------------------------------------
+    # The Verify-started code is checked with Twilio, never against a
+    # local hash. On approval the flow converges below with the email
+    # path at reset-token issuance (same user/channel/expiry/one-time
+    # guarantees; Twilio owns OTP expiry and single-attempt semantics).
 
-    otp_record = (
-        db.query(OTPVerification)
-        .filter(
-            OTPVerification.user_id == user.user_id,
-            OTPVerification.channel == channel,
-            OTPVerification.used.is_(False),
-        )
-        .order_by(OTPVerification.created_at.desc())
-        .first()
-    )
-
-    if not otp_record:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="OTP not found or already used",
-        )
-
-    # -----------------------------------------------------
-    # CURRENT TIME
-    # -----------------------------------------------------
-
+    otp_record = None
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    # -----------------------------------------------------
-    # CHECK OTP EXPIRATION
-    # -----------------------------------------------------
+    if channel == "sms":
+        check_phone = (
+            normalize_indian_phone(data.phone)
+            or (normalize_indian_phone(user.phone) if user else None)
+            or ""
+        )
+        check_result = check_sms_verification(
+            recipient_phone=check_phone,
+            code=data.otp,
+        )
+        if isinstance(check_result, dict) and check_result.get("expired"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP has expired",
+            )
+        if not isinstance(check_result, dict) or not check_result.get(
+            "approved"
+        ):
+            log_request_action(
+                request,
+                db,
+                user,
+                "AUTH_OTP_FAILED",
+                "USER",
+                user.user_id,
+                "OTP verification failed: invalid code (Twilio Verify).",
+            )
 
-    if otp_record.expires_at < now:
-        otp_record.used = True
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP"
+            )
+    else:
+        # -----------------------------------------------------
+        # FIND LATEST ACTIVE OTP
+        # -----------------------------------------------------
 
-        db.commit()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired"
+        otp_record = (
+            db.query(OTPVerification)
+            .filter(
+                OTPVerification.user_id == user.user_id,
+                OTPVerification.channel == channel,
+                OTPVerification.used.is_(False),
+            )
+            .order_by(OTPVerification.created_at.desc())
+            .first()
         )
 
-    # -----------------------------------------------------
-    # HASH ENTERED OTP
-    # -----------------------------------------------------
+        if not otp_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP not found or already used",
+            )
 
-    entered_otp_hash = hashlib.sha256(data.otp.encode("utf-8")).hexdigest()
+        # -----------------------------------------------------
+        # CURRENT TIME
+        # -----------------------------------------------------
 
-    # -----------------------------------------------------
-    # CHECK OTP (constant-time compare to avoid timing oracle)
-    # -----------------------------------------------------
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    if not hmac.compare_digest(entered_otp_hash, otp_record.otp_hash):
-        log_request_action(
-            request,
-            db,
-            user,
-            "AUTH_OTP_FAILED",
-            "USER",
-            user.user_id,
-            "OTP verification failed: invalid code.",
-        )
+        # -----------------------------------------------------
+        # CHECK OTP EXPIRATION
+        # -----------------------------------------------------
 
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP"
-        )
+        if otp_record.expires_at < now:
+            otp_record.used = True
+
+            db.commit()
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired"
+            )
+
+        # -----------------------------------------------------
+        # HASH ENTERED OTP
+        # -----------------------------------------------------
+
+        entered_otp_hash = hashlib.sha256(data.otp.encode("utf-8")).hexdigest()
+
+        # -----------------------------------------------------
+        # CHECK OTP (constant-time compare to avoid timing oracle)
+        # -----------------------------------------------------
+
+        if not hmac.compare_digest(entered_otp_hash, otp_record.otp_hash):
+            log_request_action(
+                request,
+                db,
+                user,
+                "AUTH_OTP_FAILED",
+                "USER",
+                user.user_id,
+                "OTP verification failed: invalid code.",
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP"
+            )
 
     # -----------------------------------------------------
     # INVALIDATE OLD RESET TOKENS
@@ -1292,10 +1366,11 @@ def verify_otp(data: VerifyOTPRequest, request: Request, db: Session = Depends(g
     )
 
     # -----------------------------------------------------
-    # MARK OTP USED
+    # MARK OTP USED (EMAIL PATH ONLY; VERIFY OWNS SMS LIFECYCLE)
     # -----------------------------------------------------
 
-    otp_record.used = True
+    if otp_record is not None:
+        otp_record.used = True
 
     # -----------------------------------------------------
     # SAVE
@@ -1427,6 +1502,51 @@ def forgot_password(
     ).update({"used": True})
 
     # -----------------------------------------------------
+    # SMS CHANNEL USES TWILIO VERIFY (NO LOCAL OTP ROW)
+    # -----------------------------------------------------
+    # Twilio Trial rejects custom Messaging bodies (error 21608), so the
+    # SMS OTP path starts a Twilio Verify verification instead. Twilio
+    # owns OTP generation, delivery (trial-approved template) and expiry;
+    # nothing OTP-related is stored locally. Success here means Twilio
+    # *accepted* the verification (status pending) — never "delivered".
+    if channel == "sms":
+        verify_phone = (
+            normalized_phone
+            or normalize_indian_phone(user.phone)
+            or ""
+        )
+        verify_result = start_sms_verification(
+            recipient_phone=verify_phone,
+        )
+        provider_error = (
+            verify_result.get("error")
+            if isinstance(verify_result, dict)
+            else None
+        )
+        if not isinstance(verify_result, dict) or not verify_result.get(
+            "success"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=(
+                    "SMS verification failed: "
+                    f"{provider_error or 'unknown error'}"
+                ),
+            )
+
+        log_request_action(
+            request,
+            db,
+            user,
+            "AUTH_PASSWORD_RESET_REQUESTED",
+            "USER",
+            user.user_id if user else None,
+            "Twilio Verify SMS verification started.",
+        )
+
+        return generic_response
+
+    # -----------------------------------------------------
     # GENERATE 6 DIGIT OTP
     # -----------------------------------------------------
 
@@ -1475,49 +1595,27 @@ def forgot_password(
         )
 
     # -----------------------------------------------------
-    # SEND OTP VIA EXPLICIT CHANNEL ONLY
+    # SEND OTP VIA EMAIL (SMS RETURNS EARLIER VIA TWILIO VERIFY)
     # -----------------------------------------------------
 
     try:
-        if channel == "sms":
-            result = send_otp_sms(
-                recipient_phone=normalized_phone
-                or normalize_indian_phone(user.phone)
-                or "",
-                otp=otp,
+        result = send_otp_email(
+            recipient_email=user.email,
+            otp=otp,
+        )
+        provider_error = result.get("error") if isinstance(result, dict) else None
+        if not isinstance(result, dict) or not result.get("success"):
+            try:
+                otp_record.used = True
+                db.commit()
+            except Exception:
+                db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=(
+                    f"Email delivery failed: {provider_error or 'unknown error'}"
+                ),
             )
-            provider_error = result.get("error") if isinstance(result, dict) else None
-            if not isinstance(result, dict) or not result.get("success"):
-                try:
-                    otp_record.used = True
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=(
-                        f"SMS delivery failed: {provider_error or 'unknown error'}"
-                    ),
-                )
-
-        else:
-            result = send_otp_email(
-                recipient_email=user.email,
-                otp=otp,
-            )
-            provider_error = result.get("error") if isinstance(result, dict) else None
-            if isinstance(result, dict) and not result.get("success"):
-                try:
-                    otp_record.used = True
-                    db.commit()
-                except Exception:
-                    db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail=(
-                        f"Email delivery failed: {provider_error or 'unknown error'}"
-                    ),
-                )
 
     except HTTPException:
         raise

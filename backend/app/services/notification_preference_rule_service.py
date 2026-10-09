@@ -222,7 +222,13 @@ def resolve_channels(
     preference: NotificationPreference | None,
     rule: NotificationPreferenceRule | None = None,
 ) -> dict[str, bool]:
-    """Final channel decision for one notification type and one user."""
+    """Final channel decision for one notification type and one user.
+
+    SMS is retired application-wide: SMS is OTP-only (Twilio Verify for
+    Forgot Password). The sms channel always resolves to False no matter
+    what any stored rule, group default, or preference says, so no
+    notification path can ever attempt an SMS send.
+    """
     notification_type = str(notification_type or "").strip().upper()
     group_key = tax.group_key_for_type(notification_type)
     group = tax.GROUP_BY_KEY.get(group_key)
@@ -231,10 +237,11 @@ def resolve_channels(
         channels = {
             "in_app": bool(rule.in_app_enabled),
             "email": bool(rule.email_enabled),
-            "sms": bool(rule.sms_enabled),
+            "sms": False,
         }
     elif group is not None:
         channels = dict(group.default_channels)
+        channels["sms"] = False
     else:
         channels = {"in_app": True, "email": True, "sms": False}
 

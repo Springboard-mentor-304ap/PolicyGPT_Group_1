@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
 
     # =========================================================
-    # BREVO CONFIGURATION
+    # BREVO CONFIGURATION (EMAIL ONLY — SMS IS OTP-ONLY VIA TWILIO VERIFY)
     # =========================================================
     BREVO_ENABLED: bool = True
     BREVO_API_KEY: str = ""
@@ -39,11 +39,25 @@ class Settings(BaseSettings):
     BREVO_SMTP_PASSWORD: str = ""
     BREVO_SENDER_EMAIL: str = ""
     BREVO_SENDER_NAME: str = "PolicyGPT"
-    BREVO_SMS_SENDER: str = "PolicyGPT"
     BREVO_EMAIL_ENABLED: bool = True
-    BREVO_SMS_ENABLED: bool = True
     BREVO_SANDBOX_MODE: bool = False
     MAX_NOTIFICATION_RETRIES: int = 3
+
+    # =========================================================
+    # TWILIO CONFIGURATION (SMS OTP ONLY, VIA TWILIO VERIFY)
+    # =========================================================
+    # Read from backend/.env (or process env, which takes precedence).
+    # The Verify service reads these via `settings` so values placed in
+    # backend/.env are honoured; os.getenv() alone would NOT see them.
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_API_KEY: str = ""
+    TWILIO_API_SECRET: str = ""
+    TWILIO_SMS_ENABLED: bool = False
+    # Twilio Verify Service SID (starts with VA...). Required for the
+    # Forgot Password SMS OTP path, which uses Twilio Verify's
+    # trial-approved OTP template. There is no other SMS sender: SMS is
+    # OTP-only and Verify controls its own sender.
+    TWILIO_VERIFY_SERVICE_SID: str = ""
 
     # Optional shared secret for the POST /webhooks/brevo/* callback endpoints.
     # Leave empty to keep them open (existing behaviour). Once set, Brevo must

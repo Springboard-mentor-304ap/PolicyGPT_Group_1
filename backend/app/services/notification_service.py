@@ -486,17 +486,35 @@ def create_notification(
     db: Session,
     data: NotificationCreate,
     background_tasks=None,
+    channels: dict[str, bool] | None = None,
 ) -> Notification:
     """Create in-app notification in DB and trigger delivery pipeline.
 
-    The in-app row + IN_APP delivery bookkeeping are always committed
-    synchronously before returning. When ``background_tasks`` (a FastAPI
-    BackgroundTasks instance) is supplied, the slow Brevo/SMTP/SMS legs
-    are deferred to a background worker with its own DB session so the
-    API response does not wait on external I/O and never holds its DB
-    connection across network calls. Without it (tests, scheduler,
-    direct service callers) delivery stays fully synchronous.
+    The In-App channel is preference-gated: when it is disabled for this
+    recipient + type, the parent row is stored suppressed (``is_read``)
+    purely as the vehicle for email tracking/dedupe — no IN_APP delivery
+    row is recorded and nothing is published realtime, so it never
+    surfaces in the notification centre (suppressed types are filtered
+    from lists, counts, and the live bell).
+
+    When ``background_tasks`` (a FastAPI BackgroundTasks instance) is supplied,
+    the slow Brevo/SMTP legs are deferred to a background worker with its
+    own DB session so the API response does not wait on external I/O and
+    never holds its DB connection across network calls. Without it (tests,
+    scheduler, direct service callers) delivery stays fully synchronous.
     """
+    if channels is None and data.user_id:
+        from app.services.notification_preference_rule_service import (
+            resolve_channels_for_user,
+        )
+
+        channels = resolve_channels_for_user(
+            db=db,
+            user_id=data.user_id,
+            notification_type=data.notification_type,
+        )
+    in_app_enabled = (channels or {}).get("in_app", True)
+
     now = _now()
     notification = Notification(
         user_id=data.user_id,
@@ -512,8 +530,8 @@ def create_notification(
         related_policy_id=data.related_policy_id,
         related_scheme_id=data.related_scheme_id,
         category=tax.resolve_category(data.notification_type),
-        is_read=False,
-        read_at=None,
+        is_read=not in_app_enabled,
+        read_at=now if not in_app_enabled else None,
         created_at=now,
         updated_at=now,
     )
@@ -538,10 +556,12 @@ def create_notification(
     if background_tasks is not None:
         # Fast path: record IN_APP synchronously (DB-only, no network),
         # then hand the slow external legs to the background worker.
-        try:
-            NotificationDeliveryService.deliver_in_app(db=db, notification=notification)
-        except Exception as e:
-            logger.error(f"In-App delivery recording error: {e}")
+        # Suppressed types skip the IN_APP record entirely.
+        if in_app_enabled:
+            try:
+                NotificationDeliveryService.deliver_in_app(db=db, notification=notification)
+            except Exception as e:
+                logger.error(f"In-App delivery recording error: {e}")
         try:
             from app.services.delivery_queue import (
                 schedule_external_delivery,
@@ -560,7 +580,9 @@ def create_notification(
             logger.error(f"Unified delivery execution error: {e}")
 
     # Push to any live WebSocket so the bell and list update without a refresh.
-    _publish_notification(notification)
+    # Suppressed types publish nothing: no in-app delivery happened.
+    if in_app_enabled:
+        _publish_notification(notification)
 
     return notification
 
@@ -664,6 +686,7 @@ def dispatch_notification(
     this notification type, or when an identical notification was already
     issued inside the dedupe window.
     """
+    channels: dict[str, bool] | None = None
     if respect_preferences and data.user_id:
         from app.services.notification_preference_rule_service import (
             resolve_channels_for_user,
@@ -702,7 +725,9 @@ def dispatch_notification(
         )
         return None
 
-    return create_notification(db, data, background_tasks=background_tasks)
+    return create_notification(
+        db, data, background_tasks=background_tasks, channels=channels
+    )
 
 
 def dispatch_to_users(

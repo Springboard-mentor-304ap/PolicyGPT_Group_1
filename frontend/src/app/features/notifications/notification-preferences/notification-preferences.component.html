@@ -126,8 +126,10 @@
           <span class="categories-count-badge">{{ workingGroups.length }} categories</span>
         </div>
 
-        <div class="pref-types-list">
-          <article *ngFor="let group of workingGroups; trackBy: trackByGroupKey" class="pref-group-card"
+        <div *ngFor="let sec of groupedSections; trackBy: trackBySectionKey" class="pref-section">
+          <h3 *ngIf="groupedSections.length > 1" class="pref-section-title">{{ sec.title }}</h3>
+          <div class="pref-types-list">
+          <article *ngFor="let group of sec.groups; trackBy: trackByGroupKey" class="pref-group-card"
             [class.pref-group-card--expanded]="group.isExpanded"
             [class.pref-group-card--custom]="group.hasCustomOverrides">
             <!-- ROW 1: HEADER (Icon + Title + Status Badge) -->
@@ -180,18 +182,6 @@
                   <span class="channel-name">Email</span>
                 </div>
 
-                <!-- SMS TOGGLE (COMING SOON) -->
-                <div class="channel-toggle-pill channel-toggle-pill--disabled"
-                  title="SMS delivery is currently unavailable">
-                  <label class="switch switch--disabled">
-                    <input type="checkbox" [checked]="false" disabled aria-disabled="true"
-                      [attr.aria-label]="group.label + ' SMS notifications (Coming Soon)'" />
-                    <span class="slider"></span>
-                  </label>
-                  <span class="channel-name">SMS</span>
-                  <span class="coming-soon-badge">Coming Soon</span>
-                </div>
-
               </div>
 
               <!-- SUB-TYPES EXPAND BUTTON -->
@@ -219,7 +209,6 @@
                       <th scope="col">Event Alert</th>
                       <th scope="col" class="th-center">In-App</th>
                       <th scope="col" class="th-center">Email</th>
-                      <th scope="col" class="th-center">SMS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -247,14 +236,6 @@
                           <span class="slider"></span>
                         </label>
                       </td>
-
-                      <td class="td-center">
-                        <label class="switch switch--mini switch--disabled" title="SMS delivery is coming soon">
-                          <input type="checkbox" [checked]="false" disabled aria-disabled="true"
-                            [attr.aria-label]="'SMS for ' + formatTypeLabel(tp.notification_type) + ' is coming soon'" />
-                          <span class="slider"></span>
-                        </label>
-                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -262,6 +243,7 @@
             </div>
 
           </article>
+          </div>
         </div>
       </section>
 
@@ -327,25 +309,6 @@
                 <span class="slider"></span>
               </label>
             </div>
-
-            <!-- SMS (COMING SOON) -->
-            <div class="channel-summary-item channel-summary-item--disabled">
-              <div class="channel-summary-icon channel-summary-icon--sms">
-                <span class="material-icons" aria-hidden="true">sms</span>
-              </div>
-              <div class="channel-summary-info">
-                <div class="channel-summary-title-row">
-                  <h4>SMS Notifications</h4>
-                  <span class="channel-status-pill pill--pending">Coming Soon</span>
-                </div>
-                <p>SMS delivery is currently unavailable</p>
-              </div>
-              <label class="switch switch--disabled" title="SMS delivery is currently unavailable">
-                <input type="checkbox" [checked]="false" disabled aria-disabled="true"
-                  aria-label="SMS delivery currently unavailable" />
-                <span class="slider"></span>
-              </label>
-            </div>
           </div>
         </div>
 
@@ -390,6 +353,8 @@
               </div>
             </label>
           </div>
+          <p class="frequency-note">Your choice is saved. Digest scheduling is not active yet, so notifications are
+            delivered instantly — urgent decisions, application updates, and deadline reminders are never delayed.</p>
         </div>
 
         <!-- SUCCESS ALERT BANNER -->

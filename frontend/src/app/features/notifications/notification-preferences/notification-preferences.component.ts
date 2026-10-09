@@ -38,7 +38,6 @@ export interface UiPreferenceGroup {
   type_preferences: NotificationTypePreference[];
   in_app_enabled: boolean;
   email_enabled: boolean;
-  sms_enabled: boolean;
   isExpanded: boolean;
   hasCustomOverrides: boolean;
 }
@@ -244,17 +243,18 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
         iconClass: cat.iconClass,
         section: 'general',
         types: [...cat.types],
-        default_channels: { in_app: true, email: true, sms: false },
+        default_channels: { in_app: true, email: true },
         type_preferences: cat.types.map((t) => ({
           notification_type: t,
           in_app_enabled: true,
           email_enabled: true,
+          // Backend shape still carries sms_enabled; this page neither
+          // displays nor modifies it.
           sms_enabled: false,
           explicit: false,
         })),
         in_app_enabled: true,
         email_enabled: true,
-        sms_enabled: false,
         isExpanded: false,
         hasCustomOverrides: false,
       }));
@@ -352,27 +352,28 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
 
     this.workingGroups = rawGroups.map((g) => {
       const meta: NotificationGroupMeta = getNotificationGroupMeta(g.key, g.label, g.description);
+      // Prefer the role-specific category presentation (label/description/
+      // icon) when this group is part of the logged-in role's configuration.
+      const roleCat = this.findRoleCategoryConfig(g.key);
       const typePrefs = (g.type_preferences || []).map((tp) => ({ ...tp }));
 
       // Calculate composite channel values for the group
       const inAppAll = typePrefs.length > 0 && typePrefs.every((tp) => tp.in_app_enabled);
       const emailAll = typePrefs.length > 0 && typePrefs.every((tp) => tp.email_enabled);
-      const smsAll = typePrefs.length > 0 && typePrefs.every((tp) => tp.sms_enabled);
       const hasCustom = typePrefs.some((tp) => tp.explicit);
 
       return {
         key: g.key,
-        label: meta.label,
-        description: meta.description,
-        icon: meta.icon,
-        iconClass: meta.iconClass,
+        label: roleCat?.label || meta.label,
+        description: roleCat?.description || meta.description,
+        icon: roleCat?.icon || meta.icon,
+        iconClass: roleCat?.iconClass || meta.iconClass,
         section: g.section,
         types: [...g.types],
         default_channels: { ...g.default_channels },
         type_preferences: typePrefs,
         in_app_enabled: inAppAll,
         email_enabled: emailAll,
-        sms_enabled: smsAll,
         isExpanded: expandedKeys.has(g.key),
         hasCustomOverrides: hasCustom,
       };
@@ -391,7 +392,6 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
           type: tp.notification_type,
           in_app: tp.in_app_enabled,
           email: tp.email_enabled,
-          sms: tp.sms_enabled,
         })),
       })),
     });
@@ -406,7 +406,6 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
           type: tp.notification_type,
           in_app: tp.in_app_enabled,
           email: tp.email_enabled,
-          sms: tp.sms_enabled,
         })),
       })),
     });
@@ -415,6 +414,52 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     if (this.hasUnsavedChanges) {
       this.savedSuccessfully = false;
     }
+  }
+
+  /**
+   * Role-specific category presentation for a backend group key.
+   * Returns undefined when the group is not part of the role's
+   * configuration, in which case global/backend metadata applies.
+   */
+  private findRoleCategoryConfig(groupKey: string) {
+    const canonical = (this.userRole || 'CITIZEN').toUpperCase().trim();
+    const categories =
+      ROLE_NOTIFICATION_CONFIG[canonical] ||
+      ROLE_NOTIFICATION_CONFIG['CITIZEN'] ||
+      [];
+    return categories.find((c) => c.key === groupKey);
+  }
+
+  /**
+   * Working groups clustered by backend section so the page renders
+   * titled segments (Policies & Schemes, Approvals, Applications, ...).
+   */
+  get groupedSections(): { key: string; title: string; groups: UiPreferenceGroup[] }[] {
+    const order = ['policy_scheme', 'approval', 'application', 'admin', 'support', 'system'];
+    const titles: Record<string, string> = {
+      policy_scheme: 'Policies & Schemes',
+      approval: 'Approvals & Decisions',
+      application: 'Applications',
+      admin: 'Administration & Requests',
+      support: 'Support & Feedback',
+      system: 'System & Announcements',
+    };
+    const bySection = new Map<string, UiPreferenceGroup[]>();
+    for (const g of this.workingGroups) {
+      const k = (g.section || 'general').trim() || 'general';
+      if (!bySection.has(k)) bySection.set(k, []);
+      bySection.get(k)!.push(g);
+    }
+    const keys = [...bySection.keys()].sort((a, b) => {
+      const ia = order.indexOf(a);
+      const ib = order.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+    return keys.map((k) => ({
+      key: k,
+      title: titles[k] || 'Notifications',
+      groups: bySection.get(k)!,
+    }));
   }
 
   getGroupStatus(group: UiPreferenceGroup): 'enabled' | 'partial' | 'disabled' {
@@ -439,7 +484,7 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
 
   toggleGroupChannel(
     group: UiPreferenceGroup,
-    channel: 'in_app_enabled' | 'email_enabled' | 'sms_enabled',
+    channel: 'in_app_enabled' | 'email_enabled',
     event: Event
   ): void {
     const checked = (event.target as HTMLInputElement).checked;
@@ -448,14 +493,6 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
       this.toastService.warning('Email Required', 'A valid email address is required to enable Email alerts.');
       group.email_enabled = false;
       (event.target as HTMLInputElement).checked = false;
-      this.cdr.detectChanges();
-      return;
-    }
-
-    if (channel === 'sms_enabled') {
-      group.sms_enabled = false;
-      (event.target as HTMLInputElement).checked = false;
-      this.toastService.info('SMS Coming Soon', 'SMS delivery is currently being configured and will be available soon.');
       this.cdr.detectChanges();
       return;
     }
@@ -475,7 +512,7 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   toggleSingleTypeChannel(
     group: UiPreferenceGroup,
     typePref: NotificationTypePreference,
-    channel: 'in_app_enabled' | 'email_enabled' | 'sms_enabled',
+    channel: 'in_app_enabled' | 'email_enabled',
     event: Event
   ): void {
     const checked = (event.target as HTMLInputElement).checked;
@@ -484,14 +521,6 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
       this.toastService.warning('Email Required', 'A valid email address is required for Email alerts.');
       typePref.email_enabled = false;
       (event.target as HTMLInputElement).checked = false;
-      this.cdr.detectChanges();
-      return;
-    }
-
-    if (channel === 'sms_enabled') {
-      typePref.sms_enabled = false;
-      (event.target as HTMLInputElement).checked = false;
-      this.toastService.info('SMS Coming Soon', 'SMS delivery is currently being configured and will be available soon.');
       this.cdr.detectChanges();
       return;
     }
@@ -535,20 +564,12 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     return 'mixed';
   }
 
-  get globalSmsState(): ChannelToggleState {
-    return 'allOff';
-  }
-
   get emailEnabledCount(): number {
     return this.getAllTypePreferences().filter((t) => t.email_enabled).length;
   }
 
   get inAppEnabledCount(): number {
     return this.getAllTypePreferences().filter((t) => t.in_app_enabled).length;
-  }
-
-  get smsEnabledCount(): number {
-    return 0;
   }
 
   get totalTypeCount(): number {
@@ -559,13 +580,7 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     return this.workingGroups.flatMap((g) => g.type_preferences);
   }
 
-  onGlobalChannelToggle(channel: 'email' | 'in_app' | 'sms', event: Event): void {
-    if (channel === 'sms') {
-      (event.target as HTMLInputElement).checked = false;
-      this.toastService.info('SMS Coming Soon', 'SMS delivery is currently being configured and will be available soon.');
-      return;
-    }
-
+  onGlobalChannelToggle(channel: 'email' | 'in_app', event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
 
     if (!checked) {
@@ -595,8 +610,8 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  private applyGlobalChannelToggle(channel: 'email' | 'in_app' | 'sms', enabled: boolean): void {
-    const channelKey: 'in_app_enabled' | 'email_enabled' | 'sms_enabled' =
+  private applyGlobalChannelToggle(channel: 'email' | 'in_app', enabled: boolean): void {
+    const channelKey: 'in_app_enabled' | 'email_enabled' =
       channel === 'email' ? 'email_enabled' : 'in_app_enabled';
 
     if (enabled && channel === 'email' && !this.currentUser?.email) {
@@ -652,11 +667,12 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     const rules: NotificationTypeRuleUpdate[] = [];
     for (const group of this.workingGroups) {
       for (const tp of group.type_preferences) {
+        // SMS is not managed on this page: omitting sms_enabled leaves the
+        // stored SMS value untouched on the backend (upsert keeps None as-is).
         rules.push({
           notification_type: tp.notification_type,
           in_app_enabled: tp.in_app_enabled,
           email_enabled: tp.email_enabled,
-          sms_enabled: false,
         });
       }
     }
@@ -665,7 +681,6 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
       global_settings: {
         frequency: this.frequency,
         email_enabled: this.globalEmailState !== 'allOff',
-        sms_enabled: false,
         in_app_enabled: this.globalInAppState !== 'allOff',
       },
       rules,
@@ -784,6 +799,10 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
 
   formatTypeLabel(type: string): string {
     return formatNotificationTypeLabel(type);
+  }
+
+  trackBySectionKey(_index: number, section: { key: string }): string {
+    return section.key;
   }
 
   trackByGroupKey(_index: number, group: UiPreferenceGroup): string {

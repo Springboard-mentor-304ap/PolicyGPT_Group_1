@@ -8,50 +8,12 @@ from app.models.notification_delivery import NotificationDelivery
 from app.models.notification_preference import NotificationPreference
 from app.models.user import User
 from app.services.email_service import send_notification_email
-from app.services.sms_service import send_sms
 
 logger = logging.getLogger("uvicorn.error")
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
-def _fit(text: str, limit: int) -> str:
-    """Trim to `limit` characters, cutting on a word boundary and adding
-    an ellipsis."""
-    text = " ".join((text or "").split())
-    if len(text) <= limit:
-        return text
-    clipped = text[: limit - 1]
-    if " " in clipped:
-        clipped = clipped[: clipped.rindex(" ")]
-    return clipped.rstrip() + "…"
-
-
-#: Brevo single-part transactional SMS limit, leaving room for the trailing
-#: " Log in to PolicyGPT." call to action.
-SMS_BODY_LIMIT = 118
-
-
-def build_notification_sms(notification: Notification) -> str:
-    """Render a notification as a single SMS body that fits one segment.
-
-    SMS is the wrong medium for a long message, so this keeps the title, the
-    most useful part of the body, and a short call to action.
-    """
-    from app.services import notification_taxonomy as tax
-
-    category = tax.resolve_category(notification.notification_type)
-    prefix = {
-        tax.NotificationCategory.ADMIN_REQUEST.value: ("PolicyGPT: Action needed"),
-        tax.NotificationCategory.APPROVAL.value: "PolicyGPT: Decision",
-        tax.NotificationCategory.DEADLINE.value: "PolicyGPT: Reminder",
-    }.get(category, "PolicyGPT")
-
-    title = _fit(notification.title or "Notification", 40)
-    body = _fit(notification.message or "", SMS_BODY_LIMIT)
-    return _fit(f"{prefix} - {title}: {body}", 160)
 
 
 class NotificationDeliveryService:
@@ -172,78 +134,25 @@ class NotificationDeliveryService:
         user: User | None,
         is_enabled_by_preference: bool = False,
     ) -> NotificationDelivery | None:
-        """Deliver via Brevo SMS or record appropriate
-        skipped/failed delivery."""
+        """SMS channel is retired: SMS is OTP-only (Twilio Verify).
+
+        Never sends, never retries, never calls any SMS provider. Records a
+        SKIPPED delivery so the admin dashboard shows the channel was
+        deliberately not attempted rather than silently forgotten.
+        """
         now = _now()
-
-        if not is_enabled_by_preference:
-            delivery = NotificationDelivery(
-                notification_id=notification.notification_id,
-                channel="SMS",
-                provider="BREVO",
-                status="SKIPPED",
-                failure_reason="PREFERENCE_DISABLED",
-                attempt_count=0,
-                created_at=now,
-                updated_at=now,
-            )
-            db.add(delivery)
-            db.commit()
-            return delivery
-
-        # Check contact info
-        if not user or not user.phone:
-            delivery = NotificationDelivery(
-                notification_id=notification.notification_id,
-                channel="SMS",
-                provider="BREVO",
-                status="SKIPPED",
-                failure_reason="PHONE_NUMBER_NOT_AVAILABLE",
-                attempt_count=0,
-                created_at=now,
-                updated_at=now,
-            )
-            db.add(delivery)
-            db.commit()
-            return delivery
-
-        # Call SMS service. Brevo single-part SMS is capped at 160 characters,
-        # so the body is built deliberately rather than truncated mid-word.
-        res = send_sms(
-            recipient_phone=user.phone,
-            content=build_notification_sms(notification),
+        delivery = NotificationDelivery(
+            notification_id=notification.notification_id,
+            channel="SMS",
+            provider="twilio",
+            status="SKIPPED",
+            failure_reason="SMS_CHANNEL_RETIRED",
+            attempt_count=0,
+            created_at=now,
+            updated_at=now,
         )
-
-        sent_time = _now()
-        if res.get("success"):
-            delivery = NotificationDelivery(
-                notification_id=notification.notification_id,
-                channel="SMS",
-                provider=res.get("provider", "BREVO"),
-                status="SENT",
-                provider_message_id=res.get("message_id"),
-                attempt_count=1,
-                sent_at=sent_time,
-                delivered_at=sent_time,
-                created_at=sent_time,
-                updated_at=sent_time,
-            )
-        else:
-            delivery = NotificationDelivery(
-                notification_id=notification.notification_id,
-                channel="SMS",
-                provider=res.get("provider", "BREVO"),
-                status="FAILED",
-                failure_reason=res.get("error", "SMS transmission failed"),
-                attempt_count=1,
-                failed_at=sent_time,
-                created_at=sent_time,
-                updated_at=sent_time,
-            )
-
         db.add(delivery)
         db.commit()
-        db.refresh(delivery)
         return delivery
 
     @classmethod
@@ -254,11 +163,12 @@ class NotificationDeliveryService:
         user: User | None = None,
         preference: NotificationPreference | None = None,
     ) -> dict[str, Any]:
-        """Send only the EMAIL/SMS legs for an already-stored notification.
+        """Send only the EMAIL leg for an already-stored notification.
 
         Used by background workers after the request has committed the
         in-app row. Never creates the notification itself and never
-        touches in-app delivery bookkeeping.
+        touches in-app delivery bookkeeping. SMS is retired (OTP-only);
+        an SMS leg is recorded as SKIPPED, never sent.
         """
         from app.services.notification_preference_rule_service import (
             resolve_channels_for_user,
@@ -318,27 +228,28 @@ class NotificationDeliveryService:
     ) -> dict[str, Any]:
         """
         Unified delivery pipeline:
-        1. Always record in-app delivery.
-        2. Check user's preferences for Email and SMS.
+        1. Record in-app delivery, but ONLY when the In-App channel is
+           enabled for this user + type. Suppressed types get no IN_APP
+           record at all (and the parent row is kept out of the centre).
+        2. Check user's preferences for Email (SMS is retired: OTP-only).
         3. Deliver via Brevo Email if enabled.
-        4. Deliver via Brevo SMS if enabled.
-        CRITICAL: Never rolls back notification if external email or
-        SMS delivery fails!
+        4. Record SMS as SKIPPED (retired channel; never sent).
+        CRITICAL: Never rolls back notification if external email
+        delivery fails!
         """
         deliveries = []
-
-        # 1. In-App delivery
-        try:
-            in_app_delivery = cls.deliver_in_app(db, notification)
-            deliveries.append(in_app_delivery)
-        except Exception as e:
-            logger.error(f"In-App delivery recording error: {e}")
 
         if not user and notification.user_id:
             user = db.query(User).filter(User.user_id == notification.user_id).first()
 
         # If system broadcast without specific user, in-app is sufficient
+        # (no preferences exist to evaluate).
         if not user:
+            try:
+                in_app_delivery = cls.deliver_in_app(db, notification)
+                deliveries.append(in_app_delivery)
+            except Exception as e:
+                logger.error(f"In-App delivery recording error: {e}")
             return {"deliveries": deliveries}
 
         # Load preference if not provided
@@ -364,11 +275,19 @@ class NotificationDeliveryService:
             preference=preference,
         )
         email_enabled = channels["email"]
-        sms_enabled = channels["sms"]
 
-        if not channels["in_app"]:
-            # The record still exists as the vehicle for email/SMS, but it must
-            # not surface in the notification centre.
+        # 1. In-App delivery, gated by preference. When the channel is
+        # disabled no IN_APP record is created; the parent row stays out
+        # of the notification centre (it exists only as the vehicle for
+        # email tracking/dedupe and is never surfaced: suppressed types
+        # are filtered from lists, counts, and realtime).
+        if channels["in_app"]:
+            try:
+                in_app_delivery = cls.deliver_in_app(db, notification)
+                deliveries.append(in_app_delivery)
+            except Exception as e:
+                logger.error(f"In-App delivery recording error: {e}")
+        else:
             try:
                 notification.is_read = True
                 notification.read_at = _now()
@@ -391,13 +310,14 @@ class NotificationDeliveryService:
         except Exception as e:
             logger.error(f"Email delivery error (non-fatal): {e}")
 
-        # 3. SMS Delivery via Brevo
+        # 3. SMS channel retired (OTP-only via Twilio Verify): record
+        # SKIPPED, never attempt delivery.
         try:
             sms_delivery = cls.deliver_sms(
                 db=db,
                 notification=notification,
                 user=user,
-                is_enabled_by_preference=sms_enabled,
+                is_enabled_by_preference=False,
             )
             if sms_delivery:
                 deliveries.append(sms_delivery)
@@ -415,8 +335,8 @@ class NotificationDeliveryService:
         db: Session,
         limit: int = 50,
     ) -> dict[str, Any]:
-        """Re-attempt FAILED Email/SMS deliveries that still have
-        attempts left.
+        """Re-attempt FAILED Email deliveries that still have
+        attempts left. SMS is retired (OTP-only) and is never retried.
 
         Deliberately bounded: a delivery that has used up
         ``settings.MAX_NOTIFICATION_RETRIES`` is marked EXHAUSTED and left
@@ -430,7 +350,7 @@ class NotificationDeliveryService:
             db.query(NotificationDelivery)
             .filter(
                 NotificationDelivery.status == "FAILED",
-                NotificationDelivery.channel.in_(["EMAIL", "SMS"]),
+                NotificationDelivery.channel == "EMAIL",
                 NotificationDelivery.attempt_count < max_attempts,
             )
             .order_by(NotificationDelivery.failed_at.asc().nullsfirst())
@@ -477,35 +397,21 @@ class NotificationDeliveryService:
             db.commit()
 
             try:
-                if delivery.channel == "EMAIL":
-                    result = (
-                        send_notification_email(
-                            recipient_email=user.email,
-                            title=notification.title,
-                            message=notification.message,
-                            action_url=notification.action_url,
-                            notification_type=notification.notification_type,
-                        )
-                        if user and user.email
-                        else {
-                            "success": False,
-                            "provider": "BREVO",
-                            "error": "Recipient has no email address",
-                        }
+                result = (
+                    send_notification_email(
+                        recipient_email=user.email,
+                        title=notification.title,
+                        message=notification.message,
+                        action_url=notification.action_url,
+                        notification_type=notification.notification_type,
                     )
-                else:
-                    result = (
-                        send_sms(
-                            recipient_phone=user.phone,
-                            content=build_notification_sms(notification),
-                        )
-                        if user and user.phone
-                        else {
-                            "success": False,
-                            "provider": "BREVO",
-                            "error": "Recipient has no phone number",
-                        }
-                    )
+                    if user and user.email
+                    else {
+                        "success": False,
+                        "provider": "BREVO",
+                        "error": "Recipient has no email address",
+                    }
+                )
             except Exception as exc:
                 result = {"success": False, "provider": "BREVO", "error": str(exc)}
 

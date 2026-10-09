@@ -144,14 +144,15 @@ describe('NotificationPreferencesComponent', () => {
     // POLICY_PUBLISHED: email=true, in_app=true
     // SCHEME_PUBLISHED: email=true, in_app=true
     // DEADLINE_REMINDER: email=false, in_app=true
-    // Total types: 3. Email: 2 of 3 (mixed). In-App: 3 of 3 (allOn). SMS: 0 of 3 (allOff).
+    // Total types: 3. Email: 2 of 3 (mixed). In-App: 3 of 3 (allOn).
+    // SMS is not managed on this page (no SMS state is exposed).
     expect(component.totalTypeCount).toBe(3);
     expect(component.emailEnabledCount).toBe(2);
     expect(component.globalEmailState).toBe('mixed');
     expect(component.inAppEnabledCount).toBe(3);
     expect(component.globalInAppState).toBe('allOn');
-    expect(component.smsEnabledCount).toBe(0);
-    expect(component.globalSmsState).toBe('allOff');
+    expect((component as any).smsEnabledCount).toBeUndefined();
+    expect((component as any).globalSmsState).toBeUndefined();
   });
 
   it('3. should toggle group channels and mark dirty unsaved changes', () => {

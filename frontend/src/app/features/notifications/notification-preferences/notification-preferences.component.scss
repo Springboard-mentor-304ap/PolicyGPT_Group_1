@@ -348,6 +348,33 @@ $red-border: #fecaca;
   width: 100%;
 }
 
+.pref-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pref-section-title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $text-muted;
+}
+
+.frequency-note {
+  margin: 10px 2px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: $text-muted;
+}
+
 /* =========================================================
    PREFERENCE GROUP CARD (MULTI-ROW ARCHITECTURE)
 ========================================================= */

@@ -20,6 +20,7 @@ from app.api.routes.notifications import (
     router as notifications_router,
     admin_router as notifications_admin_router,
     webhook_router as notifications_webhook_router,
+    twilio_router as notifications_twilio_router,
 )
 from app.api.routes.notifications_ws import (
     router as notifications_ws_router,
@@ -232,6 +233,7 @@ app.include_router(usage_router)
 app.include_router(notifications_router)
 app.include_router(notifications_admin_router)
 app.include_router(notifications_webhook_router)
+app.include_router(notifications_twilio_router)
 app.include_router(notifications_ws_router)
 app.include_router(notification_preferences_router)
 

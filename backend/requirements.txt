@@ -55,3 +55,4 @@ urllib3==2.7.0
 uvicorn==0.52.4
 fpdf2==2.8.3
 openpyxl==3.1.5
+twilio

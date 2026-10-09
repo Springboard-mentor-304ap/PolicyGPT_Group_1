@@ -2,6 +2,13 @@ from datetime import datetime, timezone
 from app.models.user import User
 from sqlalchemy.orm import Session
 
+
+def _is_admin(role: str | None) -> bool:
+    # Local normalizer to avoid a service->route import cycle.
+    # Mirrors app.api.routes.auth.normalize_role for the ADMIN check.
+    value = str(role or "").strip().upper()
+    return value in ("ADMIN", "ADMINISTRATOR", "ADMINISTRATOR_ROLE")
+
 from app.models.feedback import Feedback
 from app.schemas.feedback import FeedbackCreate, FeedbackUpdate
 
@@ -59,7 +66,7 @@ def get_feedback(
     )
 
     # NORMAL USER → own feedback only; ADMIN → all feedback
-    if user_role != "ADMIN":
+    if not _is_admin(user_role):
         query = query.filter(
             Feedback.user_id == user_id
         )
@@ -81,7 +88,7 @@ def get_all_feedback(
     )
 
     # NORMAL USER → own feedback only; ADMIN → all feedback
-    if user_role != "ADMIN":
+    if not _is_admin(user_role):
         query = query.filter(
             Feedback.user_id == user_id
         )

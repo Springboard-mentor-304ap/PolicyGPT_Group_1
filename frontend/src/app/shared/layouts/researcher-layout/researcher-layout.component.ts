@@ -15,6 +15,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { AvatarService } from "../../../core/services/avatar.service";
+import { SearchHistoryService } from "../../../core/services/search-history.service";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
@@ -137,13 +138,25 @@ export class ResearcherLayoutComponent implements OnInit {
     },
 
     {
-      label: "Analytics",
+      label: "Research Analytics",
       icon: "analytics",
       route: "/dashboard/researcher/analytics",
+      children: [
+        {
+          label: "Research Overview",
+          icon: "insights",
+          route: "/dashboard/researcher/analytics",
+        },
+        {
+          label: "Policy & Scheme Trends",
+          icon: "trending_up",
+          route: "/dashboard/researcher/analytics/trends",
+        },
+      ],
     },
 
     {
-      label: "Saved Research",
+      label: "Saved Items",
       icon: "bookmark",
       route: "/dashboard/researcher/saved",
     },
@@ -161,9 +174,15 @@ export class ResearcherLayoutComponent implements OnInit {
     },
 
     {
-      label: "Support",
+      label: "Help & Support",
       icon: "support_agent",
-      route: "/dashboard/researcher/faqs",
+      route: "/dashboard/researcher/support",
+    },
+
+    {
+      label: "Feedback",
+      icon: "feedback",
+      route: "/dashboard/researcher/feedback",
     },
   ];
 
@@ -175,6 +194,7 @@ export class ResearcherLayoutComponent implements OnInit {
     private readonly router: Router,
     private readonly authService: Auth,
     private readonly avatarService: AvatarService,
+    private readonly searchHistory: SearchHistoryService,
   ) {}
 
   private readonly destroyRef = inject(DestroyRef);
@@ -203,34 +223,36 @@ export class ResearcherLayoutComponent implements OnInit {
 
     this.loadCurrentUser();
 
-    if (this.isAnalyticsRouteActive()) {
-      this.analyticsMenuOpen = true;
-    }
+    this.syncAnalyticsMenuWithRoute();
 
-    // Keep expansion in sync with navigation (direct URL entry, in-app
-    // navigation, back/forward): a matching route re-expands its group.
-    // Arrow clicks always work because submenu visibility depends only
-    // on the flag — a collapsed group stays collapsed until explicitly
-    // reopened or a relevant route change occurs.
+    // Keep expansion in sync with navigation (sidebar links, in-app
+    // navigation, back/forward, direct URL entry): entering the
+    // analytics section re-expands, leaving it always collapses, so the
+    // visible submenu reflects the current route instead of stale state.
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {
-        if (this.isAnalyticsRouteActive()) {
-          this.analyticsMenuOpen = true;
-        }
+        this.syncAnalyticsMenuWithRoute();
       });
   }
 
   onAnalyticsNavClick(event?: MouseEvent): void {
-    const target = event?.target as HTMLElement | undefined;
-    if (target?.closest(".dash-nav__chevron")) {
-      event?.preventDefault();
-      event?.stopPropagation();
+    void event;
+    if (this.isResearchAnalyticsRoute()) {
+      // Already inside Research Analytics: plain expand/collapse toggle.
+      this.toggleAnalyticsMenu();
+      return;
     }
-    this.toggleAnalyticsMenu();
+    // Outside Research Analytics: always land on Research Overview.
+    // Expansion + first-child active state follow from the route change.
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.closeMobileMenu();
+    void this.router.navigate(["/dashboard/researcher/analytics"]);
   }
 
   toggleAnalyticsMenuOnly(event: Event): void {
@@ -247,7 +269,36 @@ export class ResearcherLayoutComponent implements OnInit {
   }
 
   isAnalyticsRouteActive(): boolean {
-    return this.router.url.startsWith("/dashboard/researcher/analytics");
+    return this.isResearchAnalyticsRoute();
+  }
+
+  /**
+   * Route-aware check: true only inside the Research Analytics section
+   * (/dashboard/researcher/analytics and children such as
+   * /analytics/trends). Query params and fragments are ignored so the
+   * state also follows programmatic navigation.
+   */
+  isResearchAnalyticsRoute(): boolean {
+    const clean = (this.router.url || "").split("?")[0].split("#")[0];
+    return (
+      clean === "/dashboard/researcher/analytics" ||
+      clean.startsWith("/dashboard/researcher/analytics/")
+    );
+  }
+
+  /**
+   * Single source of truth for submenu visibility: expanded only while
+   * the current route is inside Research Analytics AND the section is
+   * not manually collapsed. Outside the section this is always false,
+   * so no stale expanded state can survive navigation (sidebar links,
+   * browser Back/Forward, refresh, direct URL, programmatic).
+   */
+  get isAnalyticsExpanded(): boolean {
+    return this.isResearchAnalyticsRoute() && this.analyticsMenuOpen;
+  }
+
+  private syncAnalyticsMenuWithRoute(): void {
+    this.analyticsMenuOpen = this.isResearchAnalyticsRoute();
   }
 
   // =========================================================
@@ -435,9 +486,14 @@ export class ResearcherLayoutComponent implements OnInit {
       return;
     }
 
-    // Keep search inside Researcher Layout.
+    // Keep search inside Researcher Layout and record it once so the
+    // topbar search appears in Search History like policy/scheme
+    // searches do (fire-and-forget; navigation never blocks on it).
+    this.searchHistory
+      .recordSearch({ search_query: query, search_type: "POLICY", filters: {} })
+      .subscribe({ next: () => undefined, error: () => undefined });
 
-    this.router.navigate(["/dashboard/researcher/schemes"], {
+    this.router.navigate(["/dashboard/researcher/policies/search"], {
       queryParams: {
         q: query,
       },

@@ -118,12 +118,12 @@
             @if (item.children && item.children.length > 0) {
 
             <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
-                analyticsMenuOpen || isAnalyticsRouteActive()
+                isResearchAnalyticsRoute()
             " (click)="onAnalyticsNavClick($event)" [attr.title]="
               sidebarCollapsed
                 ? item.label
                 : null
-            " [attr.aria-expanded]="analyticsMenuOpen">
+            " [attr.aria-expanded]="isAnalyticsExpanded">
 
                 <span class="material-icons dash-nav__icon" aria-hidden="true">
                     {{ item.icon }}
@@ -133,14 +133,14 @@
                     {{ item.label }}
                 </span>
 
-                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="analyticsMenuOpen"
+                <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="isAnalyticsExpanded"
                     (click)="toggleAnalyticsMenuOnly($event)" [attr.title]="'Toggle ' + item.label + ' submenu'">
                     chevron_right
                 </span>
 
             </button>
 
-            @if (analyticsMenuOpen && !sidebarCollapsed) {
+            @if (isAnalyticsExpanded && !sidebarCollapsed) {
 
             <div class="dash-nav__submenu" [attr.aria-label]="item.label">
 

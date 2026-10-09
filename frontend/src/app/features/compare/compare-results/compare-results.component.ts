@@ -15,7 +15,7 @@ import { SchemeService } from "../../../core/services/scheme.service";
 import { PolicyResponse } from "../../../core/models/policy.model";
 import { SchemeResponse } from "../../../core/models/scheme.model";
 
-import { CompareItem } from "../compare-selection/compare-selection.component";
+import { CompareItem, MAX_COMPARE_ITEMS } from "../compare-selection/compare-selection.component";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -111,11 +111,10 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     }
 
     /*
-     * Only two or three comparison items are supported.
+     * Only up to MAX_COMPARE_ITEMS records are supported.
      */
-    if (navigation.items.length > 3) {
-      this.errorMessage =
-        "You can compare a maximum of three schemes or policies.";
+    if (navigation.items.length > MAX_COMPARE_ITEMS) {
+      this.errorMessage = `You can compare a maximum of ${MAX_COMPARE_ITEMS} schemes or policies.`;
 
       this.loading = false;
 

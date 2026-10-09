@@ -130,16 +130,18 @@ def get_preferences_by_id(
     _verify_not_guest(current_user)
     if (
         current_user.user_id != user_id
-        and current_user.role not in ["ADMIN", "ADMINISTRATOR"]
+        and normalize_role(current_user.role) != "ADMIN"
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You can only access your own notification preferences",
         )
+    # Defaults must reflect the target user's role, not the viewer's.
+    target = db.query(User).filter(User.user_id == user_id).first()
     return get_or_create_preferences(
         db=db,
         user_id=user_id,
-        user_role=current_user.role,
+        user_role=(target.role if target else current_user.role),
     )
 
 
@@ -156,7 +158,7 @@ def update_preferences_by_id(
     _verify_not_guest(current_user)
     if (
         current_user.user_id != user_id
-        and current_user.role not in ["ADMIN", "ADMINISTRATOR"]
+        and normalize_role(current_user.role) != "ADMIN"
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

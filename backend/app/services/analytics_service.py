@@ -101,7 +101,7 @@ def get_dashboard_analytics(
 # POLICY ANALYTICS
 # ============================================================
 
-def get_policy_analytics(db: Session):
+def get_policy_analytics(db: Session, approved_only: bool = False):
 
     status_rows = (
         db.query(Policy.status, func.count(Policy.policy_id))
@@ -115,12 +115,17 @@ def get_policy_analytics(db: Session):
     rejected = by_status.get("REJECTED", 0)
     archived = by_status.get("ARCHIVED", 0)
 
+    # Public/researcher-safe view: breakdowns cover APPROVED records only
+    # so unpublished workflow volumes are never exposed. Staff callers
+    # keep approved_only=False and receive the full corpus.
+    base_filter = [Policy.status == "APPROVED"] if approved_only else []
+
     by_category = (
         db.query(
             Policy.category,
             func.count(Policy.policy_id).label("count")
         )
-        .filter(Policy.category.isnot(None))
+        .filter(Policy.category.isnot(None), *base_filter)
         .group_by(Policy.category)
         .all()
     )
@@ -130,7 +135,7 @@ def get_policy_analytics(db: Session):
             Policy.state,
             func.count(Policy.policy_id).label("count")
         )
-        .filter(Policy.state.isnot(None))
+        .filter(Policy.state.isnot(None), *base_filter)
         .group_by(Policy.state)
         .all()
     )
@@ -140,10 +145,16 @@ def get_policy_analytics(db: Session):
             Policy.ministry,
             func.count(Policy.policy_id).label("count")
         )
-        .filter(Policy.ministry.isnot(None))
+        .filter(Policy.ministry.isnot(None), *base_filter)
         .group_by(Policy.ministry)
         .all()
     )
+
+    if approved_only:
+        total = approved
+        pending = 0
+        rejected = 0
+        archived = 0
 
     return {
         "total": total,
@@ -176,7 +187,7 @@ def get_policy_analytics(db: Session):
             for ministry, count in by_ministry
         ],
 
-        "monthly_trend": get_policy_trends(db)
+        "monthly_trend": get_policy_trends(db, approved_only=approved_only)
     }
 
 
@@ -184,7 +195,7 @@ def get_policy_analytics(db: Session):
 # SCHEME ANALYTICS
 # ============================================================
 
-def get_scheme_analytics(db: Session):
+def get_scheme_analytics(db: Session, approved_only: bool = False):
 
     status_rows = (
         db.query(Scheme.status, func.count(Scheme.scheme_id))
@@ -198,12 +209,15 @@ def get_scheme_analytics(db: Session):
     rejected = by_status.get("REJECTED", 0)
     archived = by_status.get("ARCHIVED", 0)
 
+    # Public/researcher-safe view: breakdowns cover APPROVED records only.
+    base_filter = [Scheme.status == "APPROVED"] if approved_only else []
+
     by_category = (
         db.query(
             Scheme.category,
             func.count(Scheme.scheme_id).label("count")
         )
-        .filter(Scheme.category.isnot(None))
+        .filter(Scheme.category.isnot(None), *base_filter)
         .group_by(Scheme.category)
         .all()
     )
@@ -213,7 +227,7 @@ def get_scheme_analytics(db: Session):
             Scheme.state,
             func.count(Scheme.scheme_id).label("count")
         )
-        .filter(Scheme.state.isnot(None))
+        .filter(Scheme.state.isnot(None), *base_filter)
         .group_by(Scheme.state)
         .all()
     )
@@ -223,10 +237,16 @@ def get_scheme_analytics(db: Session):
             Scheme.ministry,
             func.count(Scheme.scheme_id).label("count")
         )
-        .filter(Scheme.ministry.isnot(None))
+        .filter(Scheme.ministry.isnot(None), *base_filter)
         .group_by(Scheme.ministry)
         .all()
     )
+
+    if approved_only:
+        total = approved
+        pending = 0
+        rejected = 0
+        archived = 0
 
     return {
         "total": total,
@@ -260,7 +280,7 @@ def get_scheme_analytics(db: Session):
             for ministry, count in by_ministry
         ],
 
-        "monthly_trend": get_scheme_trends(db)
+        "monthly_trend": get_scheme_trends(db, approved_only=approved_only)
     }
 
 
@@ -268,14 +288,17 @@ def get_scheme_analytics(db: Session):
 # POLICY TRENDS
 # ============================================================
 
-def get_policy_trends(db: Session):
+def get_policy_trends(db: Session, approved_only: bool = False):
 
+    query = db.query(
+        extract("year", Policy.created_at).label("year"),
+        extract("month", Policy.created_at).label("month"),
+        func.count(Policy.policy_id).label("count")
+    )
+    if approved_only:
+        query = query.filter(Policy.status == "APPROVED")
     trends = (
-        db.query(
-            extract("year", Policy.created_at).label("year"),
-            extract("month", Policy.created_at).label("month"),
-            func.count(Policy.policy_id).label("count")
-        )
+        query
         .group_by(
             extract("year", Policy.created_at),
             extract("month", Policy.created_at)
@@ -301,14 +324,17 @@ def get_policy_trends(db: Session):
 # SCHEME TRENDS
 # ============================================================
 
-def get_scheme_trends(db: Session):
+def get_scheme_trends(db: Session, approved_only: bool = False):
 
+    query = db.query(
+        extract("year", Scheme.created_at).label("year"),
+        extract("month", Scheme.created_at).label("month"),
+        func.count(Scheme.scheme_id).label("count")
+    )
+    if approved_only:
+        query = query.filter(Scheme.status == "APPROVED")
     trends = (
-        db.query(
-            extract("year", Scheme.created_at).label("year"),
-            extract("month", Scheme.created_at).label("month"),
-            func.count(Scheme.scheme_id).label("count")
-        )
+        query
         .group_by(
             extract("year", Scheme.created_at),
             extract("month", Scheme.created_at)
@@ -334,7 +360,22 @@ def get_scheme_trends(db: Session):
 # SCHEME USAGE
 # ============================================================
 
-def get_scheme_usage(db: Session):
+def get_scheme_usage(db: Session, approved_only: bool = False):
+
+    if approved_only:
+        approved = (
+            db.query(Scheme)
+            .filter(Scheme.status == "APPROVED")
+            .count()
+        )
+        return {
+            "total_schemes": approved,
+            "approved_schemes": approved,
+            "pending_schemes": 0,
+            "rejected_schemes": 0,
+            "archived_schemes": 0,
+            "monthly_trend": get_scheme_trends(db, approved_only=True),
+        }
 
     return {
         "total_schemes": db.query(Scheme).count(),
@@ -608,7 +649,11 @@ def get_role_analytics(
     user: User,
 ):
 
-    role = str(user.role)
+    try:
+        from app.api.routes.auth import normalize_role as _normalize
+        role = _normalize(str(user.role or "")) or str(user.role)
+    except Exception:
+        role = str(user.role)
 
     user_id = user.user_id
     user_role = user.role
@@ -694,13 +739,13 @@ def get_role_analytics(
         return {
             "role": "ORGANIZATION",
 
-            "policies": get_policy_analytics(db),
+            "policies": get_policy_analytics(db, approved_only=True),
 
-            "schemes": get_scheme_analytics(db),
+            "schemes": get_scheme_analytics(db, approved_only=True),
 
-            "policy_trends": get_policy_trends(db),
+            "policy_trends": get_policy_trends(db, approved_only=True),
 
-            "scheme_trends": get_scheme_trends(db),
+            "scheme_trends": get_scheme_trends(db, approved_only=True),
 
             "user": get_user_analytics(
                 db,
@@ -724,13 +769,15 @@ def get_role_analytics(
         return {
             "role": "RESEARCHER",
 
-            "policies": get_policy_analytics(db),
+            # Researcher-safe: APPROVED-only aggregates. Unpublished
+            # workflow volumes are never exposed to researchers.
+            "policies": get_policy_analytics(db, approved_only=True),
 
-            "schemes": get_scheme_analytics(db),
+            "schemes": get_scheme_analytics(db, approved_only=True),
 
-            "policy_trends": get_policy_trends(db),
+            "policy_trends": get_policy_trends(db, approved_only=True),
 
-            "scheme_trends": get_scheme_trends(db),
+            "scheme_trends": get_scheme_trends(db, approved_only=True),
 
             "departments": get_department_analytics(db),
 
@@ -756,9 +803,9 @@ def get_role_analytics(
         return {
             "role": "CITIZEN",
 
-            "policies": get_policy_analytics(db),
+            "policies": get_policy_analytics(db, approved_only=True),
 
-            "schemes": get_scheme_analytics(db),
+            "schemes": get_scheme_analytics(db, approved_only=True),
 
             "user": get_user_analytics(
                 db,
@@ -783,3 +830,48 @@ def get_role_analytics(
             "role": role,
             "message": "No analytics available for this role"
         }
+
+
+# ============================================================
+# RESEARCHER TRENDS (APPROVED-only, researcher-safe)
+# ============================================================
+#
+# Distinct from the personal Research Overview
+# (GET /analytics/researcher/overview). This aggregates the public
+# research corpus only: APPROVED policies/schemes, their category
+# distributions and their publication time-series. No user rows, no
+# audit rows, no unpublished statuses. All queries use existing
+# Policy/Scheme columns only.
+
+def get_researcher_trends(db: Session):
+    policy = get_policy_analytics(db, approved_only=True)
+    scheme = get_scheme_analytics(db, approved_only=True)
+
+    policy_trend = get_policy_trends(db, approved_only=True)
+    scheme_trend = get_scheme_trends(db, approved_only=True)
+
+    return {
+        "generated_at": __import__("datetime").datetime.now(
+            __import__("datetime").timezone.utc
+        ).isoformat(),
+        "scope": "APPROVED",
+        "policies": {
+            "total_approved": policy.get("approved", 0),
+            "by_category": policy.get("by_category", []),
+            "by_state": policy.get("by_state", []),
+            "by_ministry": policy.get("by_ministry", []),
+            "trend": policy_trend,
+        },
+        "schemes": {
+            "total_approved": scheme.get("approved", scheme.get("active", 0)),
+            "by_category": scheme.get("by_category", []),
+            "by_state": scheme.get("by_state", []),
+            "by_ministry": scheme.get("by_ministry", []),
+            "trend": scheme_trend,
+        },
+        "limitations": [
+            "Research trends cover APPROVED policies and schemes only.",
+            "Personal search/save activity is available from "
+            "GET /analytics/researcher/overview and is not duplicated here.",
+        ],
+    }

@@ -126,6 +126,14 @@ def save_policy(
             detail="Policy not found.",
         )
 
+    # Public discovery roles may only bookmark APPROVED records.
+    # Return 404 (not 403) to avoid confirming unpublished existence.
+    if policy.status != "APPROVED":
+        raise HTTPException(
+            status_code=404,
+            detail="Policy not found.",
+        )
+
     return saved_item_service.save_policy(
         db=db,
         user_id=current_user.user_id,
@@ -158,6 +166,13 @@ def save_scheme(
     )
 
     if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found.",
+        )
+
+    # Public discovery roles may only bookmark APPROVED records.
+    if scheme.status != "APPROVED":
         raise HTTPException(
             status_code=404,
             detail="Scheme not found.",

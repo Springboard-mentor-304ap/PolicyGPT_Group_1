@@ -113,7 +113,7 @@ export class ResearcherComponent implements OnInit {
     {
       icon: "bookmark",
       value: "—",
-      label: "Saved Research",
+      label: "Saved Items",
       description: "Saved for later reference",
       type: "purple",
     },
@@ -157,9 +157,9 @@ export class ResearcherComponent implements OnInit {
     },
     {
       icon: "analytics",
-      title: "View Policies & Schemes List",
-      description: "Explore policy and schemes repository and analysis.",
-      route: "/dashboard/researcher/policies",
+      title: "Research Analytics",
+      description: "Review research activity, trends and saved insights.",
+      route: "/dashboard/researcher/analytics",
     },
   ];
 
@@ -283,7 +283,7 @@ export class ResearcherComponent implements OnInit {
           {
             icon: "bookmark",
             value: savedCount,
-            label: "Saved Research",
+            label: "Saved Items",
             description: "Saved for later reference",
             type: "purple",
           },
@@ -397,11 +397,11 @@ export class ResearcherComponent implements OnInit {
   }
 
   viewAnalytics(): void {
-    this.navigateTo("/dashboard/researcher/policies");
+    this.navigateTo("/dashboard/researcher/analytics");
   }
 
   viewSavedResearch(): void {
-    this.navigateTo("/dashboard/researcher/policies");
+    this.navigateTo("/dashboard/researcher/saved");
   }
 
   openResearchItem(item: ResearchItem): void {

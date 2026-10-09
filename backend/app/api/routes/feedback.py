@@ -43,7 +43,7 @@ def create_feedback_route(
 ):
     if not data.user_id:
         data.user_id = current_user.user_id
-    elif current_user.role != "ADMIN" and current_user.user_id != data.user_id:
+    elif normalize_role(current_user.role) != "ADMIN" and current_user.user_id != data.user_id:
         raise HTTPException(
             status_code=403,
             detail="You can only submit feedback for your own account",
@@ -84,7 +84,7 @@ def get_user_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.user_id != user_id and current_user.role != "ADMIN":
+    if current_user.user_id != user_id and normalize_role(current_user.role) != "ADMIN":
         raise HTTPException(
             status_code=403,
             detail="You can only access your own feedback",

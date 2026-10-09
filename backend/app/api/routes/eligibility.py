@@ -169,6 +169,31 @@ def get_rules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Public discovery roles may only inspect rules for APPROVED
+    # records. Staff (ADMIN/GOVERNMENT_OFFICIAL) keep full access.
+    role = normalize_role(str(current_user.role or "")) or ""
+    if role in ("CITIZEN", "RESEARCHER", "ORGANIZATION", "GUEST"):
+        normalized = str(entity_type or "").strip().lower()
+        if normalized == "policy":
+            from app.models.policy import Policy as _Policy
+
+            row = (
+                db.query(_Policy)
+                .filter(_Policy.policy_id == entity_id)
+                .first()
+            )
+            if row is None or row.status != "APPROVED":
+                raise HTTPException(status_code=404, detail="Policy not found")
+        elif normalized == "scheme":
+            from app.models.scheme import Scheme as _Scheme
+
+            row = (
+                db.query(_Scheme)
+                .filter(_Scheme.scheme_id == entity_id)
+                .first()
+            )
+            if row is None or row.status != "APPROVED":
+                raise HTTPException(status_code=404, detail="Scheme not found")
     return get_eligibility_rules(
         db=db,
         entity_type=entity_type,

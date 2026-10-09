@@ -10,6 +10,7 @@ from app.services.analytics_service import (
     get_policy_analytics,
     get_scheme_analytics,
     get_policy_trends,
+    get_researcher_trends,
     get_scheme_usage,
     get_user_analytics,
     get_user_activity,
@@ -83,7 +84,11 @@ def policy_analytics(
         )
     ),
 ):
-    return get_policy_analytics(db)
+    # Public discovery roles (CITIZEN/RESEARCHER/ORGANIZATION) receive
+    # APPROVED-only aggregates; staff roles keep the full corpus.
+    role = normalize_role(current_user.role)
+    public_only = role in ("CITIZEN", "RESEARCHER", "ORGANIZATION")
+    return get_policy_analytics(db, approved_only=public_only)
 
 
 @router.get("/schemes")
@@ -99,7 +104,9 @@ def scheme_analytics(
         )
     ),
 ):
-    return get_scheme_analytics(db)
+    role = normalize_role(current_user.role)
+    public_only = role in ("CITIZEN", "RESEARCHER", "ORGANIZATION")
+    return get_scheme_analytics(db, approved_only=public_only)
 
 
 @router.get("/policies/trends")
@@ -115,7 +122,9 @@ def policy_trends(
         )
     ),
 ):
-    return get_policy_trends(db)
+    role = normalize_role(current_user.role)
+    public_only = role in ("CITIZEN", "RESEARCHER", "ORGANIZATION")
+    return get_policy_trends(db, approved_only=public_only)
 
 
 @router.get("/schemes/usage")
@@ -131,7 +140,9 @@ def scheme_usage(
         )
     ),
 ):
-    return get_scheme_usage(db)
+    role = normalize_role(current_user.role)
+    public_only = role in ("CITIZEN", "RESEARCHER", "ORGANIZATION")
+    return get_scheme_usage(db, approved_only=public_only)
 
 
 # ============================================================
@@ -282,6 +293,21 @@ def researcher_overview(
     return _personal_overview(db, current_user, "RESEARCHER", range, date_from, date_to)
 
 
+@router.get("/researcher/trends")
+def researcher_trends(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("RESEARCHER")),
+):
+    """Researcher-specific Policy & Scheme Trends (APPROVED-only).
+
+    Distinct from the personal Research Overview. Aggregates the public
+    research corpus only: approved totals, category distributions and
+    publication time-series. No user rows, no audit data, no
+    unpublished statuses.
+    """
+    return get_researcher_trends(db)
+
+
 @router.get("/organization/overview")
 def organization_overview(
     range: str = Query(default="30d"),
@@ -404,9 +430,11 @@ def department_analytics(
         )
     ),
 ):
+    role = normalize_role(current_user.role)
     return get_department_analytics(
         db,
         department,
+        approved_only=(role == "RESEARCHER"),
     )
 
 
@@ -422,9 +450,11 @@ def department_policies(
         )
     ),
 ):
+    role = normalize_role(current_user.role)
     return get_department_policies(
         db,
         department,
+        approved_only=(role == "RESEARCHER"),
     )
 
 
@@ -440,9 +470,11 @@ def department_schemes(
         )
     ),
 ):
+    role = normalize_role(current_user.role)
     return get_department_schemes(
         db,
         department,
+        approved_only=(role == "RESEARCHER"),
     )
 
 

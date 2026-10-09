@@ -1,0 +1,188 @@
+<div class="researcher-trends-page">
+  <app-breadcrumb [items]="crumbs"></app-breadcrumb>
+
+  <header class="analytics-header">
+    <div class="header-left">
+      <h1>Policy &amp; Scheme Trends</h1>
+      <p>Approved policy and scheme publication trends, category distributions and your search activity.</p>
+      @if (trends) {
+      <p class="scope-note">Corpus scope: {{ trends.scope }} records only. Personal activity reflects {{ range }}.</p>
+      }
+    </div>
+
+    <div class="header-right no-print">
+      <div class="range-group" role="group" aria-label="Date range">
+        @for (option of ranges; track option.key) {
+        <button type="button" class="range-pill" [class.range-pill--active]="range === option.key"
+          (click)="setRange(option.key)" [attr.aria-pressed]="range === option.key">
+          {{ option.label }}
+        </button>
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (loading) {
+  <div class="stats-grid" aria-label="Loading trends">
+    @for (i of [1, 2, 3, 4]; track i) {
+    <div class="stat-card stat-card--skeleton" aria-hidden="true">
+      <span class="skeleton skeleton-icon"></span>
+      <span class="skeleton-body">
+        <span class="skeleton skeleton-title"></span>
+        <span class="skeleton skeleton-line"></span>
+      </span>
+    </div>
+    }
+  </div>
+  <div class="table-skeleton" aria-hidden="true">
+    <div class="skeleton skeleton-table-head"></div>
+    @for (i of [1, 2, 3]; track i) {
+    <div class="skeleton skeleton-table-row"></div>
+    }
+  </div>
+  } @else if (error && !trends && !overview) {
+  <section class="state-card error-state">
+    <div class="state-icon">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+    </div>
+    <h2>Unable to load trends.</h2>
+    <p>{{ error }}</p>
+    <button type="button" class="retry-button" (click)="retry()">
+      Retry
+    </button>
+  </section>
+  } @else {
+  <!-- KPI CARDS -->
+  <div class="stats-grid stats-grid--4" role="list">
+    <div class="stat-card" role="listitem" title="Approved policies in the research corpus.">
+      <span class="stat-icon stat-icon--blue" aria-hidden="true">
+        <span class="material-icons">description</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value" [appCountUp]="'' + totalApprovedPolicies">{{ totalApprovedPolicies }}</span>
+        <span class="stat-title">Approved Policies</span>
+      </span>
+    </div>
+    <div class="stat-card" role="listitem" title="Approved schemes in the research corpus.">
+      <span class="stat-icon stat-icon--green" aria-hidden="true">
+        <span class="material-icons">account_balance</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value" [appCountUp]="'' + totalApprovedSchemes">{{ totalApprovedSchemes }}</span>
+        <span class="stat-title">Approved Schemes</span>
+      </span>
+    </div>
+    <div class="stat-card" role="listitem" title="Policy and scheme searches you ran in this period.">
+      <span class="stat-icon stat-icon--orange" aria-hidden="true">
+        <span class="material-icons">history</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value" [appCountUp]="'' + ownSearches">{{ ownSearches }}</span>
+        <span class="stat-title">My Searches ({{ range }})</span>
+      </span>
+    </div>
+    <div class="stat-card" role="listitem" title="Policies and schemes you bookmarked in this period.">
+      <span class="stat-icon stat-icon--purple" aria-hidden="true">
+        <span class="material-icons">bookmark</span>
+      </span>
+      <span class="stat-text">
+        <span class="stat-value" [appCountUp]="'' + ownSaved">{{ ownSaved }}</span>
+        <span class="stat-title">My Saved Items ({{ range }})</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- PUBLICATION TREND + CORPUS MIX -->
+  <div class="grid-2 grid-trend">
+    <section class="data-card" aria-label="Publication trend">
+      <div class="card-head">
+        <div>
+          <h2>Publication Trend</h2>
+          <p class="card-sub">Approved policies and schemes over time ({{ range }})</p>
+        </div>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/analytics']" title="Open Research Overview">Overview</a>
+      </div>
+      @if (!hasTrendData) {
+      <p class="empty-text">No publication data in this window yet.</p>
+      } @else {
+      <app-analytics-line-chart [series]="trendSeries" [labels]="trendLabels"></app-analytics-line-chart>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Corpus mix">
+      <div class="card-head">
+        <div>
+          <h2>Corpus Mix</h2>
+          <p class="card-sub">Share of approved policies vs schemes</p>
+        </div>
+      </div>
+      <app-analytics-donut-chart [slices]="corpusDonut"></app-analytics-donut-chart>
+    </section>
+  </div>
+
+  <!-- CATEGORY DISTRIBUTIONS -->
+  <div class="grid-2">
+    <section class="data-card" aria-label="Policy category distribution">
+      <div class="card-head">
+        <div>
+          <h2>Policies by Category</h2>
+          <p class="card-sub">Approved policies only</p>
+        </div>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/policies/search']" title="Search policies">Search</a>
+      </div>
+      @if (policyCategoryBars.length === 0) {
+      <p class="empty-text">No policy category data yet.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="policyCategoryBars" color="#1461a0"></app-analytics-hbar-chart>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Scheme category distribution">
+      <div class="card-head">
+        <div>
+          <h2>Schemes by Category</h2>
+          <p class="card-sub">Approved schemes only</p>
+        </div>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/schemes']" title="Search schemes">Search</a>
+      </div>
+      @if (schemeCategoryBars.length === 0) {
+      <p class="empty-text">No scheme category data yet.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="schemeCategoryBars" color="#17833d"></app-analytics-hbar-chart>
+      }
+    </section>
+  </div>
+
+  <!-- SEARCH ACTIVITY -->
+  <div class="grid-2">
+    <section class="data-card" aria-label="Search activity">
+      <div class="card-head">
+        <div>
+          <h2>My Search Activity</h2>
+          <p class="card-sub">Your searches in this period ({{ range }})</p>
+        </div>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/history']" title="View search history">History</a>
+      </div>
+      @if (searchLabels.length === 0) {
+      <p class="empty-text">No searches in this period yet.</p>
+      } @else {
+      <app-analytics-line-chart [series]="searchSeries" [labels]="searchLabels"></app-analytics-line-chart>
+      }
+    </section>
+
+    <section class="data-card" aria-label="Top searched keywords">
+      <div class="card-head">
+        <div>
+          <h2>Top Searched Keywords</h2>
+          <p class="card-sub">Your most frequent queries ({{ range }})</p>
+        </div>
+      </div>
+      @if (topSearchBars.length === 0) {
+      <p class="empty-text">No searches in this period yet.</p>
+      } @else {
+      <app-analytics-hbar-chart [items]="topSearchBars" color="#7e22ce"></app-analytics-hbar-chart>
+      }
+    </section>
+  </div>
+  }
+</div>

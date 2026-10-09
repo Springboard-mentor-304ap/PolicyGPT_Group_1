@@ -57,6 +57,14 @@ export interface FilterOptions {
   selectedState: string;
 }
 
+/**
+ * Maximum records selectable for side-by-side comparison.
+ * The selection UI offers 3 slots, which is within this limit; the
+ * results view also refuses oversized payloads (e.g. crafted router
+ * state) so the cap holds even outside the selection UI.
+ */
+export const MAX_COMPARE_ITEMS = 4;
+
 @Component({
   selector: "app-compare-selection",
   standalone: true,
@@ -608,6 +616,12 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
     if (this.selectedItem3) {
       items.push(this.selectedItem3);
+    }
+
+    // Enforce the comparison cap even though the UI offers at most
+    // 3 slots (within the MAX_COMPARE_ITEMS = 4 limit).
+    if (items.length > MAX_COMPARE_ITEMS) {
+      return;
     }
 
     this.router.navigate(["results"], {

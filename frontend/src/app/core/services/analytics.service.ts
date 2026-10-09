@@ -317,6 +317,26 @@ export interface PersonalAnalyticsOverview {
   limitations: string[];
 }
 
+export interface ResearcherTrendsResponse {
+  generated_at: string;
+  scope: string;
+  policies: {
+    total_approved: number;
+    by_category: CategoryCount[];
+    by_state: { state: string; count: number }[];
+    by_ministry: { ministry: string; count: number }[];
+    trend: PolicyTrendItem[];
+  };
+  schemes: {
+    total_approved: number;
+    by_category: CategoryCount[];
+    by_state: { state: string; count: number }[];
+    by_ministry: { ministry: string; count: number }[];
+    trend: PolicyTrendItem[];
+  };
+  limitations: string[];
+}
+
 // --------------------------------------------------
 // GOVERNMENT ANALYTICS (platform-wide, role-guarded)
 // --------------------------------------------------
@@ -775,6 +795,16 @@ export class AnalyticsService {
     forceRefresh = false,
   ): Observable<PersonalAnalyticsOverview> {
     return this.personalOverview("researcher", params, forceRefresh);
+  }
+
+  getResearcherTrends(
+    forceRefresh = false,
+  ): Observable<ResearcherTrendsResponse> {
+    return this.cachedGet<ResearcherTrendsResponse>(
+      "researcher-trends",
+      `${this.baseUrl}/researcher/trends`,
+      forceRefresh,
+    );
   }
 
   getOrganizationOverview(

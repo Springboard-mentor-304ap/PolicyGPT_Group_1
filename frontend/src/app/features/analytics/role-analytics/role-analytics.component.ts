@@ -150,7 +150,7 @@ export class RoleAnalyticsComponent implements OnInit, OnDestroy {
     this.config = ROLE_CONFIGS[this.role];
     this.crumbs = [
       { label: "Home", route: this.config.homeRoute },
-      { label: "Analytics" },
+      { label: this.role === "researcher" ? "Research Analytics" : "Analytics" },
     ];
     this.load();
   }

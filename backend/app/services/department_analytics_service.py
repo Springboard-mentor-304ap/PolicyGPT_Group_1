@@ -41,7 +41,38 @@ def get_departments(db: Session):
 def get_department_analytics(
     db: Session,
     department: str,
+    approved_only: bool = False,
 ):
+    if approved_only:
+        approved_policies = (
+            db.query(func.count(Policy.policy_id))
+            .filter(
+                Policy.department == department,
+                Policy.status == "APPROVED",
+            )
+            .scalar()
+            or 0
+        )
+
+        approved_schemes = (
+            db.query(func.count(Scheme.scheme_id))
+            .filter(
+                Scheme.department == department,
+                Scheme.status == "APPROVED",
+            )
+            .scalar()
+            or 0
+        )
+
+        # Public-safe: never reveal unpublished totals.
+        return {
+            "department": department,
+            "total_policies": approved_policies,
+            "total_schemes": approved_schemes,
+            "approved_policies": approved_policies,
+            "approved_schemes": approved_schemes,
+        }
+
     total_policies = (
         db.query(func.count(Policy.policy_id))
         .filter(Policy.department == department)
@@ -88,22 +119,20 @@ def get_department_analytics(
 def get_department_policies(
     db: Session,
     department: str,
+    approved_only: bool = False,
 ):
-    return (
-        db.query(Policy)
-        .filter(Policy.department == department)
-        .order_by(Policy.created_at.desc())
-        .all()
-    )
+    query = db.query(Policy).filter(Policy.department == department)
+    if approved_only:
+        query = query.filter(Policy.status == "APPROVED")
+    return query.order_by(Policy.created_at.desc()).all()
 
 
 def get_department_schemes(
     db: Session,
     department: str,
+    approved_only: bool = False,
 ):
-    return (
-        db.query(Scheme)
-        .filter(Scheme.department == department)
-        .order_by(Scheme.created_at.desc())
-        .all()
-    )
+    query = db.query(Scheme).filter(Scheme.department == department)
+    if approved_only:
+        query = query.filter(Scheme.status == "APPROVED")
+    return query.order_by(Scheme.created_at.desc()).all()

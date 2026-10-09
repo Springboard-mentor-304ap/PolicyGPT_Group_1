@@ -328,7 +328,27 @@ export class ProfileComponent implements OnInit {
     }
 
     // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
+    // RESEARCHER
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/researcher")) {
+      this.router.navigate(["/dashboard/researcher"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // ORGANIZATION
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/organization")) {
+      this.router.navigate(["/dashboard/organization"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // FALLBACK
     // -------------------------------------------------------
 
     this.router.navigate(["/dashboard/user-dashboard"]);
@@ -372,7 +392,27 @@ export class ProfileComponent implements OnInit {
     }
 
     // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
+    // RESEARCHER
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/researcher")) {
+      this.router.navigate(["/dashboard/researcher/profile/edit"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // ORGANIZATION
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/organization")) {
+      this.router.navigate(["/dashboard/organization/profile/edit"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // FALLBACK
     // -------------------------------------------------------
 
     this.router.navigate(["/dashboard/user-dashboard/profile/edit"]);

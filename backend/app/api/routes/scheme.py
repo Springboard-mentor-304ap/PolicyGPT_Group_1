@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.api.routes.auth import (
     get_current_user,
+    normalize_role,
     require_roles,
 )
 
@@ -166,7 +167,7 @@ def list_schemes(
     current_user: User = Depends(get_current_user),
 ):
 
-    role = current_user.role.upper()
+    role = normalize_role(current_user.role) or ""
 
     public_roles = {
         "CITIZEN",
@@ -204,7 +205,7 @@ def list_schemes(
 
             status_filter = "APPROVED"
             created_by = None
-        else:
+        elif role in ("ADMIN", "GOVERNMENT_OFFICIAL"):
             if (
                 status_filter == "APPROVED"
                 or status_filter == "ALL"
@@ -215,6 +216,10 @@ def list_schemes(
                 created_by = current_user.user_id
             else:
                 created_by = None
+        else:
+            # Fail closed for unknown roles: public-safe view only.
+            status_filter = "APPROVED"
+            created_by = None
 
         include_archived = False
 
@@ -297,7 +302,7 @@ def get_scheme_api(
             detail="Scheme not found",
         )
 
-    role = current_user.role.upper()
+    role = normalize_role(current_user.role) or ""
 
     if role in {
         "CITIZEN",
@@ -314,6 +319,13 @@ def get_scheme_api(
         if scheme.status != "APPROVED" and (
             scheme.created_by != current_user.user_id
         ):
+            raise HTTPException(
+                status_code=404,
+                detail="Scheme not found",
+            )
+    elif role != "ADMIN":
+        # Fail closed: unknown roles get the public-safe view only.
+        if scheme.status != "APPROVED":
             raise HTTPException(
                 status_code=404,
                 detail="Scheme not found",

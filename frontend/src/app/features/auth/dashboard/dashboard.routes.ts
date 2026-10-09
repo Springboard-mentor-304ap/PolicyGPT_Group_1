@@ -1642,7 +1642,17 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // SCHEME DETAILS
+            // SCHEMES SEARCH (ALIAS, mirrors policies/search)
+      {
+        path: "schemes/search",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+// SCHEME DETAILS
       {
         path: "schemes/:id",
 
@@ -1810,17 +1820,13 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // RESEARCHER ANALYTICS ALIAS (sidebar: Policy & Scheme Trends)
+      // RESEARCHER POLICY & SCHEME TRENDS (distinct from Research Overview)
       {
         path: "analytics/trends",
 
-        data: {
-          analyticsRole: "researcher",
-        },
-
         loadComponent: () =>
-          import("../../analytics/role-analytics/role-analytics.component").then(
-            (m) => m.RoleAnalyticsComponent,
+          import("../../analytics/researcher-trends/researcher-trends.component").then(
+            (m) => m.ResearcherTrendsComponent,
           ),
       },
 

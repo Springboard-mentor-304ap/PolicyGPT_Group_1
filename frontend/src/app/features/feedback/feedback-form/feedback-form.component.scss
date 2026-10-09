@@ -162,9 +162,10 @@ $warning-soft: #fef3c7;
 // NAVIGATION TABS
 // ============================================================
 .feedback-tabs-nav {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   background: #e9eff6;
   padding: 4px;
   border-radius: 12px;
@@ -172,6 +173,8 @@ $warning-soft: #fef3c7;
   .nav-tab-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
     gap: 8px;
     height: 38px;
     padding: 0 16px;

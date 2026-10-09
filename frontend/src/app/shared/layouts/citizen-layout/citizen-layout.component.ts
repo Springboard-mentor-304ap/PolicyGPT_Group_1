@@ -1,4 +1,11 @@
-import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+  signal,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -164,9 +171,15 @@ export class CitizenLayoutComponent implements OnInit {
     },
 
     {
-      label: "Support",
+      label: "Help & Support",
       icon: "support_agent",
-      route: "/dashboard/citizen/faqs",
+      route: "/dashboard/citizen/support",
+    },
+
+    {
+      label: "Feedback",
+      icon: "rate_review",
+      route: "/dashboard/citizen/feedback",
     },
   ];
 
@@ -221,7 +234,9 @@ export class CitizenLayoutComponent implements OnInit {
     // reopened or a relevant route change occurs.
     this.router.events
       .pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        filter(
+          (event): event is NavigationEnd => event instanceof NavigationEnd,
+        ),
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe(() => {

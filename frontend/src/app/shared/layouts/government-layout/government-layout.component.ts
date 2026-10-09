@@ -88,6 +88,15 @@ export class GovernmentLayoutComponent implements OnInit {
   schemesMenuOpen = false;
   analyticsMenuOpen = false;
 
+  /**
+   * First child destination for the Analytics group, which navigates on
+   * parent-label click (mirrors the admin layout's GROUP_FIRST_CHILD
+   * convention: expand once + navigate once, collapse when expanded).
+   */
+  private static readonly GROUP_FIRST_CHILD: Record<'analytics', string> = {
+    analytics: '/dashboard/government/analytics',
+  };
+
   // =======================================================
   // SEARCH
   // =======================================================
@@ -121,12 +130,6 @@ export class GovernmentLayoutComponent implements OnInit {
       icon: "account_balance",
       label: "Scheme Management",
       route: "/government/schemes",
-    },
-
-    {
-      icon: "assignment",
-      label: "Applications",
-      route: "/government/applications",
     },
 
     {
@@ -469,7 +472,10 @@ export class GovernmentLayoutComponent implements OnInit {
       return;
     }
 
-    this.toggleAnalyticsMenu();
+    // Parent label follows the shared expandable-group convention:
+    // expand once + navigate once to the first child; collapse when
+    // already expanded.
+    this.openGroup('analytics');
   }
 
   toggleAnalyticsMenuOnly(event: Event): void {
@@ -484,6 +490,35 @@ export class GovernmentLayoutComponent implements OnInit {
 
   closeAnalyticsMenu(): void {
     this.analyticsMenuOpen = false;
+  }
+
+  /**
+   * Shared expandable-group behavior for Analytics (mirrors the admin
+   * layout convention).
+   *
+   * First click on a closed parent: expand it, close every other group,
+   * and navigate exactly once to the group's first child. Clicking an
+   * already-expanded parent collapses it without navigating (when a
+   * child route is active the route itself keeps the group expanded).
+   * Chevron clicks keep the existing toggle-only handlers, and child
+   * links navigate normally without touching these flags.
+   */
+  private openGroup(group: 'analytics'): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    const expanded =
+      this.analyticsMenuOpen || this.isAnalyticsRouteActive();
+    this.closeAllSubmenus();
+    if (expanded) {
+      this.closeMobileMenu();
+      return;
+    }
+
+    this.analyticsMenuOpen = true;
+    this.closeMobileMenu();
+    void this.router.navigate([GovernmentLayoutComponent.GROUP_FIRST_CHILD[group]]);
   }
 
   closeAllSubmenus(): void {

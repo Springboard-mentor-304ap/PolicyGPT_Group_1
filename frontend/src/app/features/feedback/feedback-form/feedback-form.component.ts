@@ -322,11 +322,10 @@ export class FeedbackFormComponent implements OnInit {
     return '/dashboard/citizen';
   }
 
-  /** Breadcrumb trail: Home > Support > Feedback (role-aware). */
+  /** Breadcrumb trail: Home > Feedback (role-aware). */
   get breadcrumbItems(): BreadcrumbItem[] {
     return [
       { label: 'Home', route: [this.getHomeRoute()] },
-      { label: 'Support', route: [`${this.getHomeRoute()}/support`] },
       { label: 'Feedback' },
     ];
   }

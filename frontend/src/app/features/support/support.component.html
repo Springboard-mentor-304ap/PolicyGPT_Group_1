@@ -39,7 +39,7 @@
       </span>
       <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
     </button>
-    <a *ngIf="!isGuest" class="quick-card" [routerLink]="feedbackLink()">
+    <a *ngIf="!isGuest && !isFeedbackInSidebar()" class="quick-card" [routerLink]="feedbackLink()">
       <span class="material-icons quick-icon" aria-hidden="true">rate_review</span>
       <span class="quick-body">
         <strong>Feedback</strong>

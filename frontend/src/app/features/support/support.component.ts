@@ -622,6 +622,20 @@ export class SupportComponent implements OnInit, OnDestroy {
     return ['/dashboard', this.getRolePrefix(), 'feedback'];
   }
 
+  /**
+   * Feedback has its own sidebar entry (not a Support-page card) for
+   * Citizen and Government Official. Every other role keeps the card.
+   */
+  isFeedbackInSidebar(): boolean {
+    const role = (this.userRole || '').toUpperCase().trim();
+    return (
+      role === 'CITIZEN' ||
+      role === 'GOVERNMENT_OFFICIAL' ||
+      role === 'GOVERNMENT' ||
+      role === 'GOVT'
+    );
+  }
+
   /** Help-topic shortcut: searches FAQs by topic keyword. */
   searchTopic(keyword: string): void {
     this.setActiveTab('faqs');

@@ -238,42 +238,6 @@
             </div>
             }
 
-            <!-- APPLICATIONS -->
-            <a class="dash-nav__item" routerLink="/government/applications" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Applications' : null">
-                <span class="material-icons dash-nav__icon">
-                    assignment
-                </span>
-                <span class="dash-nav__label">
-                    Applications
-                </span>
-            </a>
-
-            <!-- NOTIFICATIONS -->
-            <a class="dash-nav__item" routerLink="/dashboard/government/notifications" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Notifications' : null">
-                <span class="material-icons dash-nav__icon">
-                    notifications_none
-                </span>
-                <span class="dash-nav__label">
-                    Notifications
-                </span>
-            </a>
-
-            <!-- REPORTS -->
-            <a class="dash-nav__item" routerLink="/dashboard/government/reports" routerLinkActive="dash-nav__item--active"
-                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
-                [attr.title]="sidebarCollapsed ? 'Reports' : null">
-                <span class="material-icons dash-nav__icon">
-                    insert_chart_outlined
-                </span>
-                <span class="dash-nav__label">
-                    Reports
-                </span>
-            </a>
-
             <!-- ANALYTICS -->
             <button type="button" class="dash-nav__item dash-nav__toggle" [class.dash-nav__item--active]="
                 analyticsMenuOpen || isAnalyticsRouteActive()
@@ -336,6 +300,54 @@
                 </a>
             </div>
             }
+
+            <!-- REPORTS -->
+            <a class="dash-nav__item" routerLink="/dashboard/government/reports" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Reports' : null">
+                <span class="material-icons dash-nav__icon">
+                    insert_chart_outlined
+                </span>
+                <span class="dash-nav__label">
+                    Reports
+                </span>
+            </a>
+
+            <!-- NOTIFICATIONS -->
+            <a class="dash-nav__item" routerLink="/dashboard/government/notifications" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Notifications' : null">
+                <span class="material-icons dash-nav__icon">
+                    notifications_none
+                </span>
+                <span class="dash-nav__label">
+                    Notifications
+                </span>
+            </a>
+
+            <!-- SUPPORT -->
+            <a class="dash-nav__item" routerLink="/dashboard/government/support" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: false }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Support' : null">
+                <span class="material-icons dash-nav__icon">
+                    support_agent
+                </span>
+                <span class="dash-nav__label">
+                    Support
+                </span>
+            </a>
+
+            <!-- FEEDBACK -->
+            <a class="dash-nav__item" routerLink="/dashboard/government/feedback" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{ exact: true }" (click)="closeAllSubmenus(); closeMobileMenu()"
+                [attr.title]="sidebarCollapsed ? 'Feedback' : null">
+                <span class="material-icons dash-nav__icon">
+                    rate_review
+                </span>
+                <span class="dash-nav__label">
+                    Feedback
+                </span>
+            </a>
 
         </nav>
 

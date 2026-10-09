@@ -111,51 +111,57 @@ export class OrganizationLayoutComponent implements OnInit {
 
   navItems: OrganizationNavItem[] = [
     {
-      icon: "manage_search",
-      label: "Policy Search",
+      label: "Search Policies",
+      icon: "policy",
       route: "/dashboard/organization/policies/search",
     },
 
     {
+      label: "Search Schemes",
       icon: "account_balance",
-      label: "Scheme Search",
       route: "/dashboard/organization/schemes",
     },
 
     {
+      label: "Compare",
       icon: "compare_arrows",
-      label: "Policy Comparison",
       route: "/dashboard/organization/compare",
     },
 
     {
-      icon: "analytics",
       label: "Analytics",
+      icon: "analytics",
       route: "/dashboard/organization/analytics",
     },
 
     {
-      icon: "bookmark_border",
-      label: "Saved Policies",
+      label: "Saved Items",
+      icon: "bookmark",
       route: "/dashboard/organization/saved",
     },
 
     {
+      label: "Search History",
       icon: "history",
-      label: "Research History",
       route: "/dashboard/organization/history",
     },
 
     {
-      icon: "notifications_none",
       label: "Notifications",
+      icon: "notifications_none",
       route: "/dashboard/organization/notifications",
     },
 
     {
+      label: "Help & Support",
       icon: "support_agent",
-      label: "Support",
-      route: "/dashboard/organization/faqs",
+      route: "/dashboard/organization/support",
+    },
+
+    {
+      label: "Feedback",
+      icon: "rate_review",
+      route: "/dashboard/organization/feedback",
     },
   ];
 

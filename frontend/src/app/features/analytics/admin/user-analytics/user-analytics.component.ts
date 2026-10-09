@@ -1,7 +1,8 @@
-import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
+import { ChangeDetectorRef, Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
+import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import {
   DateRangePickerComponent,
@@ -43,6 +44,7 @@ import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.ser
 })
 export class UserAnalyticsComponent implements OnInit {
   private readonly dataService = inject(AdminAnalyticsDataService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly rangeService = inject(AnalyticsDateRangeService);
 
   readonly isSampleData = this.dataService.isSampleData;
@@ -275,6 +277,7 @@ export class UserAnalyticsComponent implements OnInit {
         ),
         heatmap_period: this.heatmapPeriod(),
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (res) => {
           if (seq !== this.loadSeq) return;
@@ -355,6 +358,7 @@ export class UserAnalyticsComponent implements OnInit {
       .downloadReport("USER_REPORT", "PDF", "User Analytics Report", {
         ...this.rangeService.toReportParams(),
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (blob) => {
           const url = window.URL.createObjectURL(blob);

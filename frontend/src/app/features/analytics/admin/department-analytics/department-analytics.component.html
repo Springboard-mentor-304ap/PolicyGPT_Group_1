@@ -400,14 +400,7 @@
       </div>
 
       <div class="modal-body modal-body--scroll">
-        @if (isLoading() && modalRows().length === 0) {
-        <div class="ad-skeleton" aria-hidden="true">
-          <div class="ad-skeleton-card"></div>
-          <div class="ad-skeleton-card"></div>
-          <div class="ad-skeleton-card"></div>
-          <div class="ad-skeleton-card"></div>
-        </div>
-        } @else if (loadError() && modalRows().length === 0) {
+        @if (loadError() && modalRows().length === 0) {
         <div class="ad-error" role="alert">
           <p>Unable to load department details.</p>
           <button type="button" class="btn-modal-close" (click)="loadData()">Retry</button>

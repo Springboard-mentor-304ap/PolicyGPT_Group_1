@@ -1,6 +1,7 @@
-import { Component, HostListener, OnInit, inject, signal } from "@angular/core";
+import { ChangeDetectorRef, Component, HostListener, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
+import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import { NotificationService } from "../../../../core/services/notification.service";
 import { DateRangePickerComponent, type DateRangeSelection } from "../../shared/date-range-picker/date-range-picker.component";
@@ -35,6 +36,7 @@ import { CountUpDirective } from "../../../../shared/directives/count-up.directi
 })
 export class AdminDashboardComponent implements OnInit {
   private readonly dataService = inject(AdminAnalyticsDataService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly notificationService = inject(NotificationService);
   private readonly rangeService = inject(AnalyticsDateRangeService);
   private readonly router = inject(Router);
@@ -172,11 +174,17 @@ export class AdminDashboardComponent implements OnInit {
   notifications: NotificationActivityItem[] = [];
 
   /**
-   * Reload generation: rapidly changing the date range fires overlapping
-   * requests; only the latest generation may touch state so a slow older
-   * response can never overwrite newer data (latest filter always wins).
+   * Reload generations are tracked PER LOADER (overview, extra sections,
+   * notifications load in parallel): only a newer call to the SAME loader
+   * invalidates its in-flight response. A single shared counter is wrong
+   * here — the three loaders fire synchronously in sequence, so sharing
+   * would mark the first two responses stale on arrival and leave their
+   * sections loading forever. Rapid filter changes still resolve
+   * latest-wins within each loader.
    */
-  private loadSeq = 0;
+  private overviewSeq = 0;
+  private extraSeq = 0;
+  private notifSeq = 0;
 
   ngOnInit(): void {
     // Shared range (restored after refresh/navigation when previously set).
@@ -194,12 +202,12 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadOverviewData(timeframe: string): void {
-    const seq = ++this.loadSeq;
+    const seq = ++this.overviewSeq;
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.dataService.getAdminOverview(timeframe).subscribe({
+    this.dataService.getAdminOverview(timeframe).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (res) => {
-        if (seq !== this.loadSeq) return;
+        if (seq !== this.overviewSeq) return;
         if (res.metrics && res.metrics.length > 0) {
           this.metrics.set(res.metrics);
         }
@@ -235,7 +243,7 @@ export class AdminDashboardComponent implements OnInit {
         this.isLoading.set(false);
       },
       error: (err) => {
-        if (seq !== this.loadSeq) return;
+        if (seq !== this.overviewSeq) return;
         console.error("Failed to load admin overview analytics:", err);
         // No sample fallback: keep empty placeholders and surface error.
         this.loadError.set("Could not load analytics overview. Please retry.");
@@ -327,9 +335,9 @@ export class AdminDashboardComponent implements OnInit {
    * sizing via rAF).
    */
   loadExtraSections(): void {
-    const seq = ++this.loadSeq;
-    const isStale = (): boolean => seq !== this.loadSeq;
-    this.dataService.getAdminPolicyAnalytics({}).subscribe({
+    const seq = ++this.extraSeq;
+    const isStale = (): boolean => seq !== this.extraSeq;
+    this.dataService.getAdminPolicyAnalytics({}).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (res) => {
         if (isStale()) return;
         const cats = res.by_category || [];
@@ -340,7 +348,7 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: (err) => console.error("Failed to load overview policy categories:", err),
     });
-    this.dataService.getAdminSchemeAnalytics({}).subscribe({
+    this.dataService.getAdminSchemeAnalytics({}).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (res) => {
         if (isStale()) return;
         this.schemeTrendLabels = res.trend?.labels || [];
@@ -353,7 +361,7 @@ export class AdminDashboardComponent implements OnInit {
       },
       error: (err) => console.error("Failed to load overview scheme trend:", err),
     });
-    this.dataService.getAdminDepartmentAnalytics(undefined, "all").subscribe({
+    this.dataService.getAdminDepartmentAnalytics(undefined, "all").pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (res) => {
         if (isStale()) return;
         const byPolicies = new Map<string, number>();
@@ -382,13 +390,14 @@ export class AdminDashboardComponent implements OnInit {
    * other users' notifications can appear here. Works for every role.
    */
   loadAdminNotifications(): void {
-    const seq = ++this.loadSeq;
+    const seq = ++this.notifSeq;
     this.notificationsLoading.set(true);
     this.notificationService
       .getNotifications({ page: 1, page_size: 5, sort_by: "latest" })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (res) => {
-          if (seq !== this.loadSeq) return;
+          if (seq !== this.notifSeq) return;
           const items = (res.items || [])
             .slice()
             .sort(
@@ -410,7 +419,7 @@ export class AdminDashboardComponent implements OnInit {
           this.notificationsLoading.set(false);
         },
         error: (err) => {
-          if (seq !== this.loadSeq) return;
+          if (seq !== this.notifSeq) return;
           console.error("Failed to load admin notifications:", err);
           this.notifications = [];
           this.notificationsLoading.set(false);
@@ -491,6 +500,7 @@ export class AdminDashboardComponent implements OnInit {
       .downloadReport("ANALYTICS_REPORT", "PDF", "Admin Analytics Report", {
         ...this.rangeService.toReportParams(),
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (blob) => {
           const url = URL.createObjectURL(blob);

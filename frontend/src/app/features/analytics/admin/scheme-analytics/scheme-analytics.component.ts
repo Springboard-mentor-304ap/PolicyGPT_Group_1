@@ -1,6 +1,7 @@
-import { Component, HostListener, OnInit, computed, inject, signal } from "@angular/core";
+import { ChangeDetectorRef, Component, HostListener, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule, DecimalPipe } from "@angular/common";
 import { RouterLink } from "@angular/router";
+import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import {
   AnalyticsStat,
@@ -37,6 +38,7 @@ import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.ser
 })
 export class SchemeAnalyticsComponent implements OnInit {
   private readonly dataService = inject(AdminAnalyticsDataService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly rangeService = inject(AnalyticsDateRangeService);
 
   readonly isSampleData = this.dataService.isSampleData;
@@ -153,7 +155,7 @@ export class SchemeAnalyticsComponent implements OnInit {
     this.loadError.set(null);
 
     // Single aggregate request; slices share one HTTP via cache.
-    this.dataService.getAdminSchemeAnalytics(filters).subscribe({
+    this.dataService.getAdminSchemeAnalytics(filters).pipe(finalize(() => this.cdr.markForCheck())).subscribe({
       next: (res) => {
         if (seq !== this.loadSeq) return;
         this.stats.set(res.stats || []);
@@ -275,6 +277,7 @@ export class SchemeAnalyticsComponent implements OnInit {
         ...filters,
         ...this.rangeService.toReportParams(),
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (blob) => {
           const url = URL.createObjectURL(blob);

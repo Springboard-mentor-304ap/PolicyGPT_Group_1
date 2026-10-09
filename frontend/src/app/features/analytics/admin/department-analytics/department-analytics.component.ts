@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
@@ -8,6 +9,7 @@ import {
   signal,
   viewChildren,
 } from "@angular/core";
+import { finalize } from "rxjs";
 import { CommonModule, DecimalPipe } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
@@ -69,6 +71,7 @@ const DEFAULT_DEPT_ITEM: DepartmentItem = {
 })
 export class DepartmentAnalyticsComponent implements OnInit {
   private readonly dataService = inject(AdminAnalyticsDataService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly rangeService = inject(AnalyticsDateRangeService);
 
   readonly isSampleData = this.dataService.isSampleData;
@@ -347,6 +350,7 @@ export class DepartmentAnalyticsComponent implements OnInit {
         searchTerm,
         selectedDeptId || this.selectedDept().id,
       )
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (res) => {
           if (seq !== this.loadSeq) return;
@@ -790,6 +794,7 @@ export class DepartmentAnalyticsComponent implements OnInit {
         department: this.selectedDept().name,
         ...this.rangeService.toReportParams(),
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (blob) => {
           const url = URL.createObjectURL(blob);

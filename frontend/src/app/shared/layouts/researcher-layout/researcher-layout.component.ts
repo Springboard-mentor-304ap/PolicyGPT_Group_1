@@ -4,11 +4,13 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
@@ -204,6 +206,22 @@ export class ResearcherLayoutComponent implements OnInit {
     if (this.isAnalyticsRouteActive()) {
       this.analyticsMenuOpen = true;
     }
+
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): a matching route re-expands its group.
+    // Arrow clicks always work because submenu visibility depends only
+    // on the flag — a collapsed group stays collapsed until explicitly
+    // reopened or a relevant route change occurs.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        if (this.isAnalyticsRouteActive()) {
+          this.analyticsMenuOpen = true;
+        }
+      });
   }
 
   onAnalyticsNavClick(event?: MouseEvent): void {

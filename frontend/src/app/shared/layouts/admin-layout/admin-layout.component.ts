@@ -4,11 +4,13 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
@@ -30,6 +32,14 @@ export interface AdminNavItem {
   icon: string;
   hasSubmenu?: boolean;
 }
+
+/** Expandable sidebar groups sharing one accordion toggle. */
+export type AdminMenuGroup =
+  | 'users'
+  | 'policies'
+  | 'schemes'
+  | 'analytics'
+  | 'support';
 
 // =========================================================
 // COMPONENT
@@ -201,15 +211,55 @@ export class AdminLayoutComponent implements OnInit {
 
     this.loadCurrentUser();
 
+    this.syncMenusWithRoute();
+
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): the group matching the new URL opens,
+    // others close. Arrow clicks always work because visibility depends
+    // only on these flags — collapsing a group whose child is active
+    // persists until a relevant route change re-expands it.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.syncMenusWithRoute());
+  }
+
+  /**
+   * Expand the submenu group matching the current URL and close the
+   * rest (accordion). URLs matching no group leave all flags untouched.
+   */
+  private syncMenusWithRoute(): void {
     if (this.isUsersRouteActive()) {
       this.usersMenuOpen = true;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     } else if (this.isPoliciesRouteActive()) {
+      this.usersMenuOpen = false;
       this.policiesMenuOpen = true;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     } else if (this.isSchemesRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
       this.schemesMenuOpen = true;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     } else if (this.isAnalyticsRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
       this.analyticsMenuOpen = true;
+      this.supportMenuOpen = false;
     } else if (this.isSupportRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
       this.supportMenuOpen = true;
     }
   }
@@ -393,6 +443,34 @@ export class AdminLayoutComponent implements OnInit {
   // SUBMENU CONTROLS
   // =======================================================
 
+  /**
+   * Single accordion toggle for every expandable parent: flips the
+   * named group and closes the rest. Arrow clicks always take effect —
+   * collapsing works even while a child route is active, because
+   * submenu visibility depends only on these flags.
+   */
+  toggleGroup(group: AdminMenuGroup): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    const next =
+      group === 'users'
+        ? !this.usersMenuOpen
+        : group === 'policies'
+          ? !this.policiesMenuOpen
+          : group === 'schemes'
+            ? !this.schemesMenuOpen
+            : group === 'analytics'
+              ? !this.analyticsMenuOpen
+              : !this.supportMenuOpen;
+    this.usersMenuOpen = group === 'users' ? next : false;
+    this.policiesMenuOpen = group === 'policies' ? next : false;
+    this.schemesMenuOpen = group === 'schemes' ? next : false;
+    this.analyticsMenuOpen = group === 'analytics' ? next : false;
+    this.supportMenuOpen = group === 'support' ? next : false;
+  }
+
   onUsersNavClick(event?: MouseEvent): void {
     const target = event?.target as HTMLElement | undefined;
     if (target?.closest(".dash-nav__chevron")) {
@@ -421,17 +499,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   toggleUsersMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.usersMenuOpen = !this.usersMenuOpen;
-    if (this.usersMenuOpen) {
-      this.policiesMenuOpen = false;
-      this.schemesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-      this.supportMenuOpen = false;
-    }
+    this.toggleGroup('users');
   }
 
   closeUsersMenu(): void {
@@ -466,17 +534,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   togglePoliciesMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.policiesMenuOpen = !this.policiesMenuOpen;
-    if (this.policiesMenuOpen) {
-      this.usersMenuOpen = false;
-      this.schemesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-      this.supportMenuOpen = false;
-    }
+    this.toggleGroup('policies');
   }
 
   closePoliciesMenu(): void {
@@ -511,17 +569,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   toggleSchemesMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.schemesMenuOpen = !this.schemesMenuOpen;
-    if (this.schemesMenuOpen) {
-      this.usersMenuOpen = false;
-      this.policiesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-      this.supportMenuOpen = false;
-    }
+    this.toggleGroup('schemes');
   }
 
   closeSchemesMenu(): void {
@@ -547,17 +595,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   toggleAnalyticsMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.analyticsMenuOpen = !this.analyticsMenuOpen;
-    if (this.analyticsMenuOpen) {
-      this.usersMenuOpen = false;
-      this.policiesMenuOpen = false;
-      this.schemesMenuOpen = false;
-      this.supportMenuOpen = false;
-    }
+    this.toggleGroup('analytics');
   }
 
   closeAnalyticsMenu(): void {
@@ -618,17 +656,7 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   toggleSupportMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.supportMenuOpen = !this.supportMenuOpen;
-    if (this.supportMenuOpen) {
-      this.usersMenuOpen = false;
-      this.policiesMenuOpen = false;
-      this.schemesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-    }
+    this.toggleGroup('support');
   }
 
   closeSupportMenu(): void {

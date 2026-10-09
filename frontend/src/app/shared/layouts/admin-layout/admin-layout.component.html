@@ -263,7 +263,7 @@
             </button>
 
             <!-- ANALYTICS SUBMENU -->
-            @if ((analyticsMenuOpen || isAnalyticsRouteActive()) && !sidebarCollapsed) {
+            @if (analyticsMenuOpen && !sidebarCollapsed) {
 
             <div id="admin-analytics-submenu" class="dash-nav__submenu" aria-label="Analytics">
 
@@ -406,7 +406,7 @@
             </button>
 
             <!-- SUPPORT & FEEDBACK SUBMENU -->
-            @if ((supportMenuOpen || isSupportRouteActive()) && !sidebarCollapsed) {
+            @if (supportMenuOpen && !sidebarCollapsed) {
 
             <div id="admin-support-submenu" class="dash-nav__submenu" aria-label="Support and feedback">
 

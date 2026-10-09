@@ -4,11 +4,13 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
@@ -182,11 +184,36 @@ export class GovernmentLayoutComponent implements OnInit {
 
     this.loadCurrentUser();
 
+    this.syncMenusWithRoute();
+
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): the group matching the new URL opens,
+    // others close. Arrow clicks always work because submenu visibility
+    // depends only on these flags.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.syncMenusWithRoute());
+  }
+
+  /**
+   * Expand the submenu group matching the current URL and close the
+   * rest (accordion). URLs matching no group leave all flags untouched.
+   */
+  private syncMenusWithRoute(): void {
     if (this.isPoliciesRouteActive()) {
       this.policiesMenuOpen = true;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
     } else if (this.isSchemesRouteActive()) {
+      this.policiesMenuOpen = false;
       this.schemesMenuOpen = true;
+      this.analyticsMenuOpen = false;
     } else if (this.isAnalyticsRouteActive()) {
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
       this.analyticsMenuOpen = true;
     }
   }
@@ -371,15 +398,29 @@ export class GovernmentLayoutComponent implements OnInit {
   }
 
   togglePoliciesMenu(): void {
+    this.toggleGroup('policies');
+  }
+
+  /**
+   * Single accordion toggle for every expandable parent: flips the
+   * named group and closes the rest. Arrow clicks always take effect —
+   * collapsing works even while a child route is active, because
+   * submenu visibility depends only on these flags.
+   */
+  toggleGroup(group: 'policies' | 'schemes' | 'analytics'): void {
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
 
-    this.policiesMenuOpen = !this.policiesMenuOpen;
-    if (this.policiesMenuOpen) {
-      this.schemesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-    }
+    const next =
+      group === 'policies'
+        ? !this.policiesMenuOpen
+        : group === 'schemes'
+          ? !this.schemesMenuOpen
+          : !this.analyticsMenuOpen;
+    this.policiesMenuOpen = group === 'policies' ? next : false;
+    this.schemesMenuOpen = group === 'schemes' ? next : false;
+    this.analyticsMenuOpen = group === 'analytics' ? next : false;
   }
 
   closePoliciesMenu(): void {
@@ -412,15 +453,7 @@ export class GovernmentLayoutComponent implements OnInit {
   }
 
   toggleSchemesMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.schemesMenuOpen = !this.schemesMenuOpen;
-    if (this.schemesMenuOpen) {
-      this.policiesMenuOpen = false;
-      this.analyticsMenuOpen = false;
-    }
+    this.toggleGroup('schemes');
   }
 
   closeSchemesMenu(): void {
@@ -446,15 +479,7 @@ export class GovernmentLayoutComponent implements OnInit {
   }
 
   toggleAnalyticsMenu(): void {
-    if (this.sidebarCollapsed) {
-      this.sidebarCollapsed = false;
-    }
-
-    this.analyticsMenuOpen = !this.analyticsMenuOpen;
-    if (this.analyticsMenuOpen) {
-      this.policiesMenuOpen = false;
-      this.schemesMenuOpen = false;
-    }
+    this.toggleGroup('analytics');
   }
 
   closeAnalyticsMenu(): void {

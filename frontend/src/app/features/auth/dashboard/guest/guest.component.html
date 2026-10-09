@@ -8,25 +8,19 @@
 
         <div class="guest-welcome__content dash-welcome__text">
 
-            <div class="guest-badge">
-                <span class="material-icons">
-                    public
-                </span>
-
-                Guest Access
-            </div>
-
             <h1 class="dash-welcome__title">
                 Welcome to <span>PolicyGPT</span>
             </h1>
 
             <p class="dash-welcome__sub">
-                Discover government policies and public schemes in a simple, reliable and accessible way. Search freely or explore services below.
+                Discover government policies and public schemes in a simple, reliable and accessible way. Search freely
+                or explore services below.
             </p>
 
             <div class="guest-welcome__actions dash-welcome__actions">
 
-                <button type="button" class="guest-primary-btn dash-welcome-btn dash-welcome-btn--primary" (click)="goToPolicies()">
+                <button type="button" class="guest-primary-btn dash-welcome-btn dash-welcome-btn--primary"
+                    (click)="goToPolicies()">
                     <span class="material-icons">
                         policy
                     </span>
@@ -34,7 +28,8 @@
                     Explore Policies
                 </button>
 
-                <button type="button" class="guest-secondary-btn dash-welcome-btn dash-welcome-btn--secondary" (click)="goToSchemes()">
+                <button type="button" class="guest-secondary-btn dash-welcome-btn dash-welcome-btn--secondary"
+                    (click)="goToSchemes()">
                     <span class="material-icons">
                         account_balance
                     </span>
@@ -47,49 +42,9 @@
         </div>
 
 
-        <!-- GOVERNMENT BUILDING ILLUSTRATION -->
-        <div class="dash-welcome__illustration" aria-hidden="true">
-
-            <div class="welcome-building welcome-building--large">
-
-                <div class="welcome-building__dome"></div>
-
-                <div class="welcome-building__roof"></div>
-
-                <div class="welcome-building__columns">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-
-            </div>
-
-
-            <div class="welcome-building welcome-building--small">
-
-                <div class="welcome-building__tower"></div>
-
-                <div class="welcome-building__body"></div>
-
-            </div>
-
-
-            <span class="welcome-bird welcome-bird--one">
-                ︿
-            </span>
-
-            <span class="welcome-bird welcome-bird--two">
-                ︿
-            </span>
-
-        </div>
+        <!-- Dashboard hero photo is applied via .dash-welcome background
+             (/images/image.png). The retired CSS building illustration
+             was removed so it never covers the photo. -->
 
     </section>
     }
@@ -128,7 +83,8 @@
                 search
             </span>
 
-            <input #searchInput type="search" [value]="searchQuery" placeholder="Search policies, schemes, benefits, education, healthcare..."
+            <input #searchInput type="search" [value]="searchQuery"
+                placeholder="Search policies, schemes, benefits, education, healthcare..."
                 aria-label="Search policies, schemes, benefits, education, healthcare..." />
 
             <button type="submit" class="guest-search__button">
@@ -151,7 +107,8 @@
                 <span class="material-icons">manage_search</span>
                 <div>
                     <h3>Results for "{{ activeSearchTerm }}"</h3>
-                    <p>Found {{ totalPolicies }} {{ totalPolicies === 1 ? 'policy' : 'policies' }} and {{ totalSchemes }} {{ totalSchemes === 1 ? 'scheme' : 'schemes' }}</p>
+                    <p>Found {{ totalPolicies }} {{ totalPolicies === 1 ? 'policy' : 'policies' }} and {{ totalSchemes
+                        }} {{ totalSchemes === 1 ? 'scheme' : 'schemes' }}</p>
                 </div>
             </div>
 
@@ -222,131 +179,132 @@
         <!-- RESULTS CONTENT -->
         @if (!loading && !errorMessage && (totalPolicies > 0 || totalSchemes > 0)) {
 
-            <!-- POLICIES SECTION -->
-            @if (activeTab === 'all' || activeTab === 'policies') {
-            <div class="guest-results-group">
-                <div class="guest-results-group__header">
-                    <div class="guest-results-group__title">
-                        <span class="material-icons policy-icon">policy</span>
-                        <h4>Government Policies ({{ totalPolicies }})</h4>
-                    </div>
-
-                    @if (totalPolicies > 0) {
-                    <button type="button" class="guest-view-all-link" (click)="goToPolicies()">
-                        View All Policies
-                        <span class="material-icons">arrow_forward</span>
-                    </button>
-                    }
+        <!-- POLICIES SECTION -->
+        @if (activeTab === 'all' || activeTab === 'policies') {
+        <div class="guest-results-group">
+            <div class="guest-results-group__header">
+                <div class="guest-results-group__title">
+                    <span class="material-icons policy-icon">policy</span>
+                    <h4>Government Policies ({{ totalPolicies }})</h4>
                 </div>
 
-                @if (policies.length === 0) {
-                <p class="guest-group-empty">No policies found matching "{{ activeSearchTerm }}".</p>
-                } @else {
-                <div class="guest-results-cards">
-                    @for (policy of policies; track policy.policy_id) {
-                    <div class="guest-result-card">
-                        <div class="guest-result-card__header">
-                            <div class="guest-result-card__badges">
-                                <span class="guest-badge-category">{{ policy.category }}</span>
-                                @if (policy.state) {
-                                <span class="guest-badge-state">{{ policy.state }}</span>
-                                }
-                            </div>
-                        </div>
+                @if (totalPolicies > 0) {
+                <button type="button" class="guest-view-all-link" (click)="goToPolicies()">
+                    View All Policies
+                    <span class="material-icons">arrow_forward</span>
+                </button>
+                }
+            </div>
 
-                        <h5 class="guest-result-card__title">{{ policy.title }}</h5>
-                        <p class="guest-result-card__desc">{{ policy.description }}</p>
-
-                        <div class="guest-result-card__meta">
-                            @if (policy.ministry) {
-                            <span class="meta-item">
-                                <span class="material-icons">account_balance</span>
-                                {{ policy.ministry }}
-                            </span>
+            @if (policies.length === 0) {
+            <p class="guest-group-empty">No policies found matching "{{ activeSearchTerm }}".</p>
+            } @else {
+            <div class="guest-results-cards">
+                @for (policy of policies; track policy.policy_id) {
+                <div class="guest-result-card">
+                    <div class="guest-result-card__header">
+                        <div class="guest-result-card__badges">
+                            <span class="guest-badge-category">{{ policy.category }}</span>
+                            @if (policy.state) {
+                            <span class="guest-badge-state">{{ policy.state }}</span>
                             }
-                            @if (policy.department) {
-                            <span class="meta-item">
-                                <span class="material-icons">domain</span>
-                                {{ policy.department }}
-                            </span>
-                            }
-                        </div>
-
-                        <div class="guest-result-card__footer">
-                            <button type="button" class="guest-card-action-btn" (click)="viewPolicy(policy.policy_id)">
-                                View Policy
-                                <span class="material-icons">arrow_forward</span>
-                            </button>
                         </div>
                     </div>
-                    }
+
+                    <h5 class="guest-result-card__title">{{ policy.title }}</h5>
+                    <p class="guest-result-card__desc">{{ policy.description }}</p>
+
+                    <div class="guest-result-card__meta">
+                        @if (policy.ministry) {
+                        <span class="meta-item">
+                            <span class="material-icons">account_balance</span>
+                            {{ policy.ministry }}
+                        </span>
+                        }
+                        @if (policy.department) {
+                        <span class="meta-item">
+                            <span class="material-icons">domain</span>
+                            {{ policy.department }}
+                        </span>
+                        }
+                    </div>
+
+                    <div class="guest-result-card__footer">
+                        <button type="button" class="guest-card-action-btn" (click)="viewPolicy(policy.policy_id)">
+                            View Policy
+                            <span class="material-icons">arrow_forward</span>
+                        </button>
+                    </div>
                 </div>
                 }
             </div>
             }
+        </div>
+        }
 
-            <!-- SCHEMES SECTION -->
-            @if (activeTab === 'all' || activeTab === 'schemes') {
-            <div class="guest-results-group">
-                <div class="guest-results-group__header">
-                    <div class="guest-results-group__title">
-                        <span class="material-icons scheme-icon">account_balance</span>
-                        <h4>Government Schemes ({{ totalSchemes }})</h4>
-                    </div>
-
-                    @if (totalSchemes > 0) {
-                    <button type="button" class="guest-view-all-link" (click)="goToSchemes()">
-                        View All Schemes
-                        <span class="material-icons">arrow_forward</span>
-                    </button>
-                    }
+        <!-- SCHEMES SECTION -->
+        @if (activeTab === 'all' || activeTab === 'schemes') {
+        <div class="guest-results-group">
+            <div class="guest-results-group__header">
+                <div class="guest-results-group__title">
+                    <span class="material-icons scheme-icon">account_balance</span>
+                    <h4>Government Schemes ({{ totalSchemes }})</h4>
                 </div>
 
-                @if (schemes.length === 0) {
-                <p class="guest-group-empty">No schemes found matching "{{ activeSearchTerm }}".</p>
-                } @else {
-                <div class="guest-results-cards">
-                    @for (scheme of schemes; track scheme.scheme_id) {
-                    <div class="guest-result-card">
-                        <div class="guest-result-card__header">
-                            <div class="guest-result-card__badges">
-                                <span class="guest-badge-category scheme-badge">{{ scheme.category }}</span>
-                                @if (scheme.state) {
-                                <span class="guest-badge-state">{{ scheme.state }}</span>
-                                }
-                            </div>
-                        </div>
+                @if (totalSchemes > 0) {
+                <button type="button" class="guest-view-all-link" (click)="goToSchemes()">
+                    View All Schemes
+                    <span class="material-icons">arrow_forward</span>
+                </button>
+                }
+            </div>
 
-                        <h5 class="guest-result-card__title">{{ scheme.name || scheme.title }}</h5>
-                        <p class="guest-result-card__desc">{{ scheme.description }}</p>
-
-                        <div class="guest-result-card__meta">
-                            @if (scheme.ministry) {
-                            <span class="meta-item">
-                                <span class="material-icons">account_balance</span>
-                                {{ scheme.ministry }}
-                            </span>
+            @if (schemes.length === 0) {
+            <p class="guest-group-empty">No schemes found matching "{{ activeSearchTerm }}".</p>
+            } @else {
+            <div class="guest-results-cards">
+                @for (scheme of schemes; track scheme.scheme_id) {
+                <div class="guest-result-card">
+                    <div class="guest-result-card__header">
+                        <div class="guest-result-card__badges">
+                            <span class="guest-badge-category scheme-badge">{{ scheme.category }}</span>
+                            @if (scheme.state) {
+                            <span class="guest-badge-state">{{ scheme.state }}</span>
                             }
-                            @if (scheme.department) {
-                            <span class="meta-item">
-                                <span class="material-icons">domain</span>
-                                {{ scheme.department }}
-                            </span>
-                            }
-                        </div>
-
-                        <div class="guest-result-card__footer">
-                            <button type="button" class="guest-card-action-btn scheme-action" (click)="viewScheme(scheme.scheme_id)">
-                                View Scheme
-                                <span class="material-icons">arrow_forward</span>
-                            </button>
                         </div>
                     </div>
-                    }
+
+                    <h5 class="guest-result-card__title">{{ scheme.name || scheme.title }}</h5>
+                    <p class="guest-result-card__desc">{{ scheme.description }}</p>
+
+                    <div class="guest-result-card__meta">
+                        @if (scheme.ministry) {
+                        <span class="meta-item">
+                            <span class="material-icons">account_balance</span>
+                            {{ scheme.ministry }}
+                        </span>
+                        }
+                        @if (scheme.department) {
+                        <span class="meta-item">
+                            <span class="material-icons">domain</span>
+                            {{ scheme.department }}
+                        </span>
+                        }
+                    </div>
+
+                    <div class="guest-result-card__footer">
+                        <button type="button" class="guest-card-action-btn scheme-action"
+                            (click)="viewScheme(scheme.scheme_id)">
+                            View Scheme
+                            <span class="material-icons">arrow_forward</span>
+                        </button>
+                    </div>
                 </div>
                 }
             </div>
             }
+        </div>
+        }
 
         }
 

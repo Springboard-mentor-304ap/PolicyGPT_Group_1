@@ -72,7 +72,7 @@ $admin-purple: #8b00e8;
 .dash-welcome {
   position: relative;
 
-  min-height: 233px;
+  min-height: 300px;
 
   margin: 0 0 36px;
 
@@ -87,7 +87,20 @@ $admin-purple: #8b00e8;
 
   border-radius: 20px;
 
-  background: linear-gradient(110deg, #f1f5ff 0%, #e9efff 55%, #e0e9ff 100%);
+  background-color: #e9efff;
+
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(241, 245, 255, 0.93) 0%,
+      rgba(233, 239, 255, 0.72) 32%,
+      rgba(233, 239, 255, 0.42) 55%,
+      rgba(233, 239, 255, 0.18) 78%
+    ),
+    url("/images/image.png");
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
 
   box-shadow: 0 2px 10px rgba(24, 51, 100, 0.04);
 }
@@ -778,7 +791,7 @@ $admin-purple: #8b00e8;
   }
 
   .dash-welcome {
-    min-height: 233px;
+    min-height: 300px;
 
     margin-bottom: 30px;
   }
@@ -1209,7 +1222,7 @@ $admin-purple: #8b00e8;
   }
 
   .dash-panel {
-    min-height: 260px;
+    min-height: 300px;
 
     padding: 16px 13px 13px;
 
@@ -1305,7 +1318,7 @@ $admin-purple: #8b00e8;
   }
 
   .dash-panel {
-    min-height: 250px;
+    min-height: 300px;
 
     padding: 14px 12px;
   }

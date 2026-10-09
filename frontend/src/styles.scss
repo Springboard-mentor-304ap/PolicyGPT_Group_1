@@ -702,3 +702,54 @@ select option:hover {
     align-items: stretch;
   }
 }
+
+/* =========================================================
+   POLICYGPT SHARED DASHBOARD HERO PHOTO
+   Single source of truth for the dashboard welcome-banner
+   artwork. The photo (wide composition: light empty area on
+   the left, government building + flag on the right) is
+   served from the site root (public/ -> /images/image.png).
+   Role dashboards layer it over their existing light-blue
+   tone so text on the left stays legible while the building
+   on the right stays visible. No extra overlays or second
+   building illustrations should be added on top.
+   Component-scoped `.dash-welcome` rules in each dashboard
+   repeat the same `url('/images/image.png')` so the image
+   wins over encapsulated gradient backgrounds.
+   ========================================================= */
+.dash-welcome {
+  background-color: #e9efff;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(241, 245, 255, 0.93) 0%,
+      rgba(233, 239, 255, 0.72) 32%,
+      rgba(233, 239, 255, 0.42) 55%,
+      rgba(233, 239, 255, 0.18) 78%
+    ),
+    url('/images/image.png');
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+}
+
+/* Legacy pure-CSS government-building art is retired. If any
+   dashboard template still renders it, keep it hidden so it
+   never covers the new photo. */
+.dash-welcome__illustration,
+.welcome-building,
+.welcome-bird {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .dash-welcome {
+    background-position: 68% center;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash-welcome {
+    background-position: 72% center;
+  }
+}

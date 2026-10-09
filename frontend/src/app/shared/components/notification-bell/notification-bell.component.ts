@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Subscription, finalize, take } from 'rxjs';
@@ -15,11 +15,17 @@ import { NotificationItem } from '../../../core/models/notification.model';
   styleUrls: ['./notification-bell.component.scss'],
 })
 export class NotificationBellComponent implements OnInit, OnDestroy {
-  unreadCount = 0;
-  isOpen = false;
-  loading = false;
-  hasError = false;
-  recentNotifications: NotificationItem[] = [];
+  // Reactive state (signals): the app runs zoneless, so plain property
+  // writes inside async subscriptions do NOT trigger change detection
+  // (skeletons stayed until the next click). Signal writes schedule
+  // rendering automatically — data appears as soon as the API returns.
+  unreadCount = signal(0);
+  isOpen = signal(false);
+  loading = signal(false);
+  hasError = signal(false);
+  recentNotifications = signal<NotificationItem[]>([]);
+  /** True once the first lightweight fetch completed; reopens reuse it. */
+  private loaded = false;
 
   /**
    * Tracks the ids already rendered in the dropdown. A live frame for a row the
@@ -40,26 +46,41 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Badge count for this user, fetched once per login session no
+    // matter which page mounts the header first (login, refresh, or
+    // deep navigation). Repeat mounts are no-ops via the service guard.
+    this.notificationService.ensureInitialized();
+
     if (!this.authService.isLoggedIn() || this.authService.isGuest()) {
       return;
     }
 
     // Badge count, kept correct by the realtime bridge in NotificationService.
     this.countSub = this.notificationService.unreadCount$.subscribe((count) => {
-      this.unreadCount = count;
+      this.unreadCount.set(count);
     });
 
     // Prepend anything that arrives while the dropdown is already open.
     this.liveSub = this.notificationService.liveNotification$.subscribe((item) => {
-      if (!this.isOpen || this.seenIds.has(item.notification_id)) {
+      if (!this.isOpen() || this.seenIds.has(item.notification_id)) {
         return;
       }
       this.seenIds.add(item.notification_id);
-      this.recentNotifications = [item, ...this.recentNotifications].slice(0, 5);
+      this.recentNotifications.update((list) => [item, ...list].slice(0, 5));
     });
 
     // One socket for the whole app; the service is a no-op if already open.
     this.notificationService.startRealtime();
+
+    // Drop cached dropdown rows on logout so the next user never sees
+    // the previous user's notifications.
+    this.authService.onLoggedOut?.(() => {
+      this.loaded = false;
+      this.recentNotifications.set([]);
+      this.seenIds.clear();
+      this.unreadCount.set(0);
+      this.isOpen.set(false);
+    });
   }
 
   ngOnDestroy(): void {
@@ -70,37 +91,53 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     if (!this.elementRef.nativeElement.contains(event.target)) {
-      this.isOpen = false;
+      this.isOpen.set(false);
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.isOpen.set(false);
   }
 
   toggleDropdown(event: Event): void {
     event.stopPropagation();
-    this.isOpen = !this.isOpen;
+    this.isOpen.update((v) => !v);
 
-    if (this.isOpen) {
+    if (this.isOpen()) {
       this.loadRecent();
     }
   }
 
-  loadRecent(): void {
-    this.loading = true;
-    this.hasError = false;
+  /**
+   * Lightweight fetch: newest 5 only (never the full list). Skipped when
+   * data is already loaded so reopening is instant; pass force=true to
+   * refresh after an error retry. The dropdown opens before this
+   * resolves — it never blocks opening.
+   */
+  loadRecent(force = false): void {
+    if ((this.loaded || this.loading()) && !force) {
+      return;
+    }
+    this.loading.set(true);
+    this.hasError.set(false);
     this.notificationService
-      .getNotifications({ page: 1, page_size: 5, sort_by: 'unread_first' })
+      .getNotifications({ page: 1, page_size: 5, sort_by: 'latest' })
       .pipe(
         finalize(() => {
-          this.loading = false;
+          this.loading.set(false);
         }),
       )
       .subscribe({
         next: (res) => {
-          this.recentNotifications = res.items || [];
-          this.seenIds = new Set(this.recentNotifications.map((n) => n.notification_id));
-          this.hasError = false;
+          const items = res.items || [];
+          this.recentNotifications.set([...items]);
+          this.seenIds = new Set(items.map((n) => n.notification_id));
+          this.hasError.set(false);
+          this.loaded = true;
         },
         error: () => {
-          this.hasError = true;
+          this.hasError.set(true);
         },
       });
   }
@@ -140,7 +177,7 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
 
   openNotification(item: NotificationItem, event: Event): void {
     event.stopPropagation();
-    this.isOpen = false;
+    this.isOpen.set(false);
 
     if (!item.is_read) {
       // Single-shot read; failures leave the badge untouched so the UI
@@ -159,27 +196,31 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.notificationService.markAllAsRead().pipe(take(1)).subscribe({
       next: () => {
-        this.recentNotifications.forEach((n) => (n.is_read = true));
-        this.unreadCount = 0;
-        this.hasError = false;
+        // New array reference (no in-place mutation) so the reactive
+        // template picks up the read state on the same tick.
+        this.recentNotifications.update((list) =>
+          list.map((n) => ({ ...n, is_read: true })),
+        );
+        this.unreadCount.set(0);
+        this.hasError.set(false);
       },
       error: () => {
         // Keep the current badge/list state and surface retry affordance
         // instead of silently zeroing the count on failure.
-        this.hasError = true;
+        this.hasError.set(true);
       },
     });
   }
 
   viewAll(event: Event): void {
     event.stopPropagation();
-    this.isOpen = false;
+    this.isOpen.set(false);
     this.router.navigate([this.getNotificationsRoute()]);
   }
 
   openPreferences(event: Event): void {
     event.stopPropagation();
-    this.isOpen = false;
+    this.isOpen.set(false);
     const base = this.getNotificationsRoute();
     this.router.navigate([`${base}/preferences`]);
   }

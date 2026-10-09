@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
@@ -521,5 +521,21 @@ export class AdminDashboardComponent implements OnInit {
     this.trendTimeframe.set(option);
     this.showTimeframeMenu.set(false);
     this.loadOverviewData(option);
+  }
+
+  private closeCardMenus(): void {
+    this.showTimeframeMenu.set(false);
+    this.showSchemeMenu.set(false);
+    this.showDeptMenu.set(false);
+  }
+
+  @HostListener("document:click")
+  onDocumentClick(): void {
+    this.closeCardMenus();
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeCardMenus();
   }
 }

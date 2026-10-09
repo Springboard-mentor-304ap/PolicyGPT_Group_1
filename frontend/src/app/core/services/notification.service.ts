@@ -62,6 +62,36 @@ export class NotificationService {
   private realtimeWired = false;
 
   /**
+   * User id the badge count was last fetched for. Reset on logout so the
+   * next login always refetches and never sees the previous count.
+   */
+  private initializedUid: number | string | null = null;
+
+  /**
+   * Fetch the unread badge count once per authenticated user. Safe to
+   * call from login success, header mount, and page refresh: repeat
+   * calls for the same user are no-ops, concurrent calls share one HTTP
+   * via the read cache's in-flight dedup, and guests/logged-out users
+   * are skipped. Never throws; never blocks rendering.
+   */
+  ensureInitialized(): void {
+    let uid: number | string | null = null;
+    try {
+      if (!this.auth.isLoggedIn() || this.auth.isGuest()) {
+        return;
+      }
+      uid = this.auth.getStoredUser()?.user_id ?? null;
+    } catch {
+      return;
+    }
+    if (uid === null || this.initializedUid === uid) {
+      return;
+    }
+    this.initializedUid = uid;
+    this.getUnreadCount().subscribe({ error: () => undefined });
+  }
+
+  /**
    * Short-TTL read cache + in-flight dedup for badge/list/summary GETs.
    * Concurrent identical calls (bell + list + poll tick) share one HTTP;
    * sequential calls within 20s reuse it. Mutations clear it; logout too.
@@ -80,6 +110,7 @@ export class NotificationService {
     this.auth.onLoggedOut?.(() => {
       this.readCache.clear();
       this.readInflight.clear();
+      this.initializedUid = null;
       this.unreadCountSubject.next(0);
     });
   }

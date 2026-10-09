@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -375,6 +375,14 @@ export class UserAnalyticsComponent implements OnInit {
   }
 
   // Growth Trend Period Selector
+  toggleGrowthMenu(event: Event): void {
+    event.stopPropagation();
+    this.showStateMenu.set(false);
+    this.showRegMenu.set(false);
+    this.showHeatmapMenu.set(false);
+    this.showGrowthMenu.update((v) => !v);
+  }
+
   setGrowthPeriod(period: string): void {
     this.growthPeriod.set(period);
     this.showGrowthMenu.set(false);
@@ -398,6 +406,14 @@ export class UserAnalyticsComponent implements OnInit {
   }
 
   // Registration Trend Period Selector
+  toggleRegMenu(event: Event): void {
+    event.stopPropagation();
+    this.showGrowthMenu.set(false);
+    this.showStateMenu.set(false);
+    this.showHeatmapMenu.set(false);
+    this.showRegMenu.update((v) => !v);
+  }
+
   setRegPeriod(period: string): void {
     this.regPeriod.set(period);
     this.showRegMenu.set(false);
@@ -414,6 +430,14 @@ export class UserAnalyticsComponent implements OnInit {
   }
 
   // State Count Selector
+  toggleStateMenu(event: Event): void {
+    event.stopPropagation();
+    this.showGrowthMenu.set(false);
+    this.showRegMenu.set(false);
+    this.showHeatmapMenu.set(false);
+    this.showStateMenu.update((v) => !v);
+  }
+
   selectStateOption(option: { label: string; count: number }): void {
     this.selectedStateOption.set(option.label);
     this.showStateMenu.set(false);
@@ -432,6 +456,23 @@ export class UserAnalyticsComponent implements OnInit {
     this.heatmapPeriod.set(period);
     this.showHeatmapMenu.set(false);
     this.loadAllData();
+  }
+
+  private closeCardMenus(): void {
+    this.showGrowthMenu.set(false);
+    this.showStateMenu.set(false);
+    this.showRegMenu.set(false);
+    this.showHeatmapMenu.set(false);
+  }
+
+  @HostListener("document:click")
+  onDocumentClick(): void {
+    this.closeCardMenus();
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeCardMenus();
   }
 
   private updateHeatmap(): void {

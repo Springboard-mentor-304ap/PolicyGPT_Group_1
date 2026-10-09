@@ -11,6 +11,7 @@ import {
 
 import { Auth } from "../../../core/services/auth";
 import { AvatarService } from "../../../core/services/avatar.service";
+import { NotificationService } from "../../../core/services/notification.service";
 
 @Component({
   selector: "app-login",
@@ -42,6 +43,7 @@ export class LoginComponent {
     private fb: FormBuilder,
     private authService: Auth,
     private avatarService: AvatarService,
+    private notificationService: NotificationService,
     private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
@@ -373,6 +375,20 @@ export class LoginComponent {
           this.avatarService.prefetchForUser(user);
         } catch {
           /* prefetch is best-effort only */
+        }
+
+        // ---------------------------------------------------
+        // PRIME NOTIFICATION BADGE (fire-and-forget, guarded)
+        // ---------------------------------------------------
+        // Token and user are stored by now, so the unread count can
+        // load in the background while the dashboard renders — the
+        // header badge appears on its own without ever opening the
+        // Notifications page. Repeat logins for the same user reuse
+        // the guarded single fetch, never a duplicate request.
+        try {
+          this.notificationService.ensureInitialized();
+        } catch {
+          /* badge priming is best-effort only */
         }
 
         // ---------------------------------------------------

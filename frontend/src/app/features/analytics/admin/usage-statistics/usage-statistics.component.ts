@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from "@angular/core";
+import { Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
@@ -305,6 +305,12 @@ export class UsageStatisticsComponent implements OnInit {
     this.loadAllData();
   }
 
+  toggleActivityMenu(event: Event): void {
+    event.stopPropagation();
+    this.showDailyMenu.set(false);
+    this.showActivityMenu.update((v) => !v);
+  }
+
   private updateActivityTrend(): void {
     this.dataService
       .getUserActivityTrend(this.activityTrendPeriod())
@@ -325,6 +331,27 @@ export class UsageStatisticsComponent implements OnInit {
     this.dailyUsagePeriod.set(period);
     this.showDailyMenu.set(false);
     this.loadAllData();
+  }
+
+  toggleDailyMenu(event: Event): void {
+    event.stopPropagation();
+    this.showActivityMenu.set(false);
+    this.showDailyMenu.update((v) => !v);
+  }
+
+  private closeCardMenus(): void {
+    this.showActivityMenu.set(false);
+    this.showDailyMenu.set(false);
+  }
+
+  @HostListener("document:click")
+  onDocumentClick(): void {
+    this.closeCardMenus();
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    this.closeCardMenus();
   }
 
   private updateDailyUsage(): void {

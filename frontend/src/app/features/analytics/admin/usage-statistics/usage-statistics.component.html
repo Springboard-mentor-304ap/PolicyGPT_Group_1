@@ -66,7 +66,7 @@
       <div class="card-header-row">
         <h2 class="card-title">User Activity Trend</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showActivityMenu.set(!showActivityMenu())"
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleActivityMenu($event)"
             [attr.aria-expanded]="showActivityMenu()" aria-label="Select activity trend period">
             <span>{{ activityTrendPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
@@ -109,7 +109,7 @@
       <div class="card-header-row">
         <h2 class="card-title">Daily Usage</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showDailyMenu.set(!showDailyMenu())"
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleDailyMenu($event)"
             [attr.aria-expanded]="showDailyMenu()" aria-label="Select daily usage period">
             <span>{{ dailyUsagePeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>

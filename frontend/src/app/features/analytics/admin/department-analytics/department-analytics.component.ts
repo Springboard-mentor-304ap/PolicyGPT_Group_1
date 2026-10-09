@@ -267,6 +267,9 @@ export class DepartmentAnalyticsComponent implements OnInit {
 
   togglePerfMenu(event: Event): void {
     event.stopPropagation();
+    this.showModalDistMenu.set(false);
+    this.showModalSortMenu.set(false);
+    this.showTrendMenu.set(false);
     this.showPerfMenu.update((v) => !v);
   }
 
@@ -278,6 +281,8 @@ export class DepartmentAnalyticsComponent implements OnInit {
   toggleModalDistMenu(event: Event): void {
     event.stopPropagation();
     this.showModalSortMenu.set(false);
+    this.showPerfMenu.set(false);
+    this.showTrendMenu.set(false);
     this.showModalDistMenu.update((v) => !v);
   }
 
@@ -289,6 +294,8 @@ export class DepartmentAnalyticsComponent implements OnInit {
   toggleModalSortMenu(event: Event): void {
     event.stopPropagation();
     this.showModalDistMenu.set(false);
+    this.showPerfMenu.set(false);
+    this.showTrendMenu.set(false);
     this.showModalSortMenu.update((v) => !v);
   }
 
@@ -453,6 +460,9 @@ export class DepartmentAnalyticsComponent implements OnInit {
 
   toggleTrendMenu(event: Event): void {
     event.stopPropagation();
+    this.showPerfMenu.set(false);
+    this.showModalDistMenu.set(false);
+    this.showModalSortMenu.set(false);
     this.showTrendMenu.update((v) => !v);
   }
 

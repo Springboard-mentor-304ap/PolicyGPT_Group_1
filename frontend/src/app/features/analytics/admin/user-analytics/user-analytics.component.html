@@ -67,7 +67,7 @@
       <div class="card-header-row">
         <h2 class="card-title">User Growth Trend</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showGrowthMenu.set(!showGrowthMenu())"
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleGrowthMenu($event)"
             [attr.aria-expanded]="showGrowthMenu()" aria-label="Select growth trend period">
             <span>{{ growthPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>
@@ -138,7 +138,7 @@
       <div class="card-header-row">
         <h2 class="card-title">Users by State</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showStateMenu.set(!showStateMenu())"
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleStateMenu($event)"
             [attr.aria-expanded]="showStateMenu()" aria-label="Select state display count">
             <span>{{ selectedStateOption() }}</span>
             <span class="material-icons">arrow_drop_down</span>
@@ -166,7 +166,7 @@
       <div class="card-header-row">
         <h2 class="card-title">User Registration Trend</h2>
         <div class="dropdown-wrapper">
-          <button type="button" class="dropdown-toggle-btn" (click)="showRegMenu.set(!showRegMenu())"
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleRegMenu($event)"
             [attr.aria-expanded]="showRegMenu()" aria-label="Select registration trend period">
             <span>{{ regPeriod() }}</span>
             <span class="material-icons">arrow_drop_down</span>

@@ -927,6 +927,7 @@ def reject_archive_policy_route(
 def restore_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -935,6 +936,7 @@ def restore_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(

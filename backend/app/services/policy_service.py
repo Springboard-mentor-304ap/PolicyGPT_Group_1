@@ -1194,7 +1194,16 @@ def restore_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
+    """Restore an ARCHIVED policy to APPROVED (see section header).
+
+    Notification fan-out is noncritical side-effect work: when a FastAPI
+    ``background_tasks`` instance is supplied (HTTP route), it runs after
+    the response is sent so the request only pays for the business
+    transaction + essential audit. Without it (tests, direct callers) the
+    notifications stay fully synchronous, exactly as before.
+    """
 
     policy = _policy_or_404(
         db=db,
@@ -1216,7 +1225,42 @@ def restore_policy(
     db.commit()
     db.refresh(policy)
 
-    if policy.created_by:
+    if not policy.created_by:
+        return policy
+
+    # Scalars for the deferred fan-out (the request session closes before
+    # background tasks run, so nothing lazy may cross that boundary).
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "created_by": policy.created_by,
+        "actor_id": current_user.user_id,
+        "actor_name": current_user.full_name,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_restore_notifications, notify_args)
+        return policy
+
+    _run_restore_notifications(notify_args, db=db)
+
+    return policy
+
+
+def _run_restore_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out restore notifications (IN_APP rows + external legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
         try:
             from app.services.notification_service import (
                 notify_request_decision,
@@ -1224,20 +1268,21 @@ def restore_policy(
 
             notify_request_decision(
                 db=db,
-                user_id=policy.created_by,
+                user_id=args["created_by"],
                 request_type="Policy Restoration",
                 decision="APPROVED",
                 entity_type="POLICY",
-                entity_id=policy.policy_id,
-                entity_title=policy.title,
+                entity_id=args["policy_id"],
+                entity_title=args["policy_title"],
                 reason="Policy has been restored to active status.",
-                decision_by=current_user.full_name or "Administrator",
-                actor_id=current_user.user_id,
+                decision_by=args["actor_name"] or "Administrator",
+                actor_id=args["actor_id"],
             )
         except Exception as e:
             print(f"Notification error on policy restore: {e}")
-
-    return policy
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================

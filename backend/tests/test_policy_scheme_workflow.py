@@ -489,3 +489,58 @@ def test_policy_approve_without_background_tasks_stays_synchronous():
         out = policy_service.approve_policy(db, 10, admin(1))
     assert out.status == "APPROVED"
     assert approved_mock.called
+
+
+# ----------------------------------- restore notification deferral
+
+
+def test_policy_restore_defers_fan_out_to_background():
+    pol = fake_policy(status="ARCHIVED", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch(
+        "app.services.notification_service.notify_request_decision"
+    ) as decision_mock:
+        out = policy_service.restore_policy(
+            db, 10, admin(1), background_tasks=bt
+        )
+    assert out.status == "APPROVED"
+    assert out.approved_by == 1
+    assert len(bt.tasks) == 1
+    assert not decision_mock.called
+
+
+def test_policy_restore_deferred_task_notifies_with_own_session():
+    pol = fake_policy(status="ARCHIVED", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch("app.services.notification_service.notify_request_decision"):
+        policy_service.restore_policy(db, 10, admin(1), background_tasks=bt)
+    fn, args, kwargs = bt.tasks[0]
+    worker_db = MagicMock()
+    with patch(
+        "app.services.notification_service.notify_request_decision"
+    ) as decision_mock:
+        fn(args[0], db=worker_db)
+    assert decision_mock.called
+    assert decision_mock.call_args.kwargs["entity_id"] == 10
+
+
+def test_policy_restore_without_background_tasks_stays_synchronous():
+    pol = fake_policy(status="ARCHIVED", created_by=2)
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_request_decision"
+    ) as decision_mock:
+        out = policy_service.restore_policy(db, 10, admin(1))
+    assert out.status == "APPROVED"
+    assert decision_mock.called
+
+
+def test_policy_restore_rejects_non_archived():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    with pytest.raises(HTTPException) as exc:
+        policy_service.restore_policy(db, 10, admin(1))
+    assert exc.value.status_code == 400
+    assert pol.status == "APPROVED"  # unchanged

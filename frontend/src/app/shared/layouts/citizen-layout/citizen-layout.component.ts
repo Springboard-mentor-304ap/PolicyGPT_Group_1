@@ -26,7 +26,6 @@ import { AvatarService } from "../../../core/services/avatar.service";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
-import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 /* =========================================================
    CITIZEN NAVIGATION ITEM (optional expandable children)
@@ -59,7 +58,6 @@ export interface CitizenNavItem {
     FooterComponent,
     LogoutConfirmComponent,
     NotificationBellComponent,
-    ToastContainerComponent,
   ],
 
   templateUrl: "./citizen-layout.component.html",

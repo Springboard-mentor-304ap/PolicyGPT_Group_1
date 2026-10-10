@@ -16,13 +16,39 @@ export interface Toast {
 export class ToastService {
   private toastsSignal = signal<Toast[]>([]);
   private idCounter = 0;
+  private recentToasts = new Map<string, number>();
+  private readonly DEDUP_WINDOW_MS = 1500;
 
   toasts = computed(() => this.toastsSignal());
 
   show(type: ToastType, title: string, message?: string, duration = 5000): void {
+    const normTitle = (title || '').trim();
+    const normMessage = (message || '').trim();
+    const dedupKey = `${type}:${normTitle.toLowerCase()}:${normMessage.toLowerCase()}`;
+    const now = Date.now();
+    const lastShown = this.recentToasts.get(dedupKey);
+
+    // Prevent duplicate notifications triggered in rapid succession
+    if (lastShown && now - lastShown < this.DEDUP_WINDOW_MS) {
+      return;
+    }
+
+    // Also avoid adding if an identical notification is currently active in the visible list
+    const isAlreadyActive = this.toastsSignal().some(
+      t =>
+        t.type === type &&
+        t.title.trim().toLowerCase() === normTitle.toLowerCase() &&
+        (t.message || '').trim().toLowerCase() === normMessage.toLowerCase()
+    );
+    if (isAlreadyActive && (!lastShown || now - lastShown < 3000)) {
+      return;
+    }
+
+    this.recentToasts.set(dedupKey, now);
+
     const id = ++this.idCounter;
-    const toast: Toast = { id, type, title, message, duration };
-    
+    const toast: Toast = { id, type, title: normTitle, message: normMessage || undefined, duration };
+
     this.toastsSignal.update(toasts => [...toasts, toast]);
 
     if (duration > 0) {
@@ -51,6 +77,7 @@ export class ToastService {
   }
 
   clear(): void {
+    this.recentToasts.clear();
     this.toastsSignal.set([]);
   }
 }

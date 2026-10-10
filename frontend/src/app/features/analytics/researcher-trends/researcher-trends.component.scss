@@ -59,7 +59,7 @@ $white: #ffffff;
 
     p {
       margin: 4px 0 0;
-      font-size: 14px;
+      font-size: 13px;
       color: $text-secondary;
       line-height: 1.45;
     }
@@ -190,10 +190,22 @@ $white: #ffffff;
     font-size: 22px;
   }
 
-  &--blue { background: #eaf3ff; color: #0879ed; }
-  &--green { background: #e8f8ef; color: #078944; }
-  &--orange { background: #fff1e5; color: #ff861c; }
-  &--purple { background: #f3e8ff; color: #8b00e8; }
+  &--blue {
+    background: #eaf3ff;
+    color: #0879ed;
+  }
+  &--green {
+    background: #e8f8ef;
+    color: #078944;
+  }
+  &--orange {
+    background: #fff1e5;
+    color: #ff861c;
+  }
+  &--purple {
+    background: #f3e8ff;
+    color: #8b00e8;
+  }
 }
 
 .stat-text {
@@ -214,7 +226,7 @@ $white: #ffffff;
 .stat-title {
   margin: 2px 0 0;
   color: #64748b;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1.35;
   white-space: nowrap;

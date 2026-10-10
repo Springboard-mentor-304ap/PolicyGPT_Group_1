@@ -30,7 +30,7 @@
   p {
     margin: 8px 0 0;
     color: #475569;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 400;
   }
 }
@@ -48,7 +48,7 @@
   border-radius: 9px;
   background: #ffffff;
   color: #273248;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.2s ease;
@@ -102,7 +102,7 @@
   p {
     margin: 0;
     color: #64748b;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.5;
   }
 }
@@ -135,7 +135,7 @@
   border-radius: 8px;
   background: #2563eb;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -159,8 +159,10 @@
   gap: 18px;
 
   &.three-items {
-    grid-template-columns:
-      minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(
+        0,
+        1fr
+      );
   }
 }
 
@@ -462,7 +464,7 @@ table:has(tbody td:nth-child(4):hover) tbody td:nth-child(4) {
 
 .header-title {
   color: #0f172a;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }

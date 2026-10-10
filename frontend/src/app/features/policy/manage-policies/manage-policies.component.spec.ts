@@ -57,8 +57,8 @@ describe("ManagePoliciesComponent", () => {
       category: "Healthcare",
       status: "DRAFT",
       created_by: 2,
-      created_at: "2026-01-01T00:00:00Z",
-      updated_at: "2026-01-01T00:00:00Z",
+      created_at: "2026-01-04T00:00:00Z",
+      updated_at: "2026-01-04T00:00:00Z",
     },
     {
       policy_id: 2,
@@ -67,8 +67,8 @@ describe("ManagePoliciesComponent", () => {
       category: "Healthcare",
       status: "PENDING_APPROVAL",
       created_by: 2,
-      created_at: "2026-01-02T00:00:00Z",
-      updated_at: "2026-01-02T00:00:00Z",
+      created_at: "2026-01-03T00:00:00Z",
+      updated_at: "2026-01-03T00:00:00Z",
     },
     {
       policy_id: 3,
@@ -77,8 +77,8 @@ describe("ManagePoliciesComponent", () => {
       category: "Education",
       status: "APPROVED",
       created_by: 3,
-      created_at: "2026-01-03T00:00:00Z",
-      updated_at: "2026-01-03T00:00:00Z",
+      created_at: "2026-01-02T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
     },
     {
       policy_id: 4,
@@ -87,8 +87,8 @@ describe("ManagePoliciesComponent", () => {
       category: "Technology",
       status: "ARCHIVED",
       created_by: 1,
-      created_at: "2026-01-04T00:00:00Z",
-      updated_at: "2026-01-04T00:00:00Z",
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
     },
   ];
 

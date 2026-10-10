@@ -41,7 +41,7 @@ button {
   align-items: center;
   gap: 7px;
   color: #64748b;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -68,72 +68,6 @@ button {
 
 .breadcrumb-current.active {
   color: #182238;
-}
-
-/* =========================================================
-   TOAST
-   ========================================================= */
-
-.toast {
-  position: fixed;
-  z-index: 2000;
-  top: 22px;
-  right: 28px;
-  width: min(440px, calc(100vw - 32px));
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 15px 17px;
-  border: 1px solid #dce4ef;
-  border-radius: 13px;
-  background: #fff;
-  box-shadow: 0 18px 45px rgba(15, 29, 55, 0.16);
-}
-
-.toast > .material-icons {
-  margin-top: 1px;
-  font-size: 22px;
-}
-
-.toast-copy {
-  display: grid;
-  gap: 4px;
-}
-
-.toast-copy strong {
-  color: #182238;
-  font-size: 13px;
-}
-
-.toast-copy span {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.toast-success {
-  border-left: 4px solid #168255;
-}
-
-.toast-success > .material-icons {
-  color: #168255;
-}
-
-.toast-error {
-  border-left: 4px solid #c62828;
-}
-
-.toast-error > .material-icons {
-  color: #c62828;
-}
-
-.toast-close {
-  margin-left: auto;
-  padding: 2px;
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
 }
 
 /* =========================================================
@@ -1078,7 +1012,7 @@ td {
 .loading-state strong,
 .empty-state strong {
   color: #34445d;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .loading-state span,
@@ -1242,7 +1176,7 @@ td {
 }
 
 .page-security-note .material-icons {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* =========================================================

@@ -369,9 +369,9 @@ import { FormsModule } from '@angular/forms';
   `]
 })
 export class ReasonModalComponent {
-  isOpen = input.required<boolean>();
-  title = input.required<string>();
-  message = input.required<string>();
+  isOpen = input<boolean>(false);
+  title = input<string>('');
+  message = input<string>('');
   reasonLabel = input<string>('Reason');
   placeholder = input<string>('Enter reason...');
   required = input<boolean>(true);

@@ -4,6 +4,7 @@ import {
   Component,
   EventEmitter,
   HostListener,
+  Inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -116,11 +117,11 @@ export class DeletedPoliciesModalComponent
   ];
 
   constructor(
-    private readonly auditLogService: AuditLogService,
-    private readonly policyService: PolicyService,
-    private readonly auth: Auth,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly toastService: ToastService,
+    @Inject(AuditLogService) private readonly auditLogService: AuditLogService,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(Auth) private readonly auth: Auth,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(ToastService) private readonly toastService: ToastService,
   ) {}
 
   searchText = "";

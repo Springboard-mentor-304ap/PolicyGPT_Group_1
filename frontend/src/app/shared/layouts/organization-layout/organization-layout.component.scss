@@ -447,8 +447,13 @@ img {
   animation: dash-avatar-pulse 1.1s ease-in-out infinite;
 }
 @keyframes dash-avatar-pulse {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.9; }
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
 }
 
 /* =========================================================
@@ -467,7 +472,7 @@ img {
 
   color: $citizen-white;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
 
   line-height: 1.2;
@@ -626,7 +631,7 @@ img {
 
   text-decoration: none;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 
   white-space: nowrap;
@@ -769,7 +774,7 @@ img {
 
   text-decoration: none;
 
-  font-size: 14px;
+  font-size: 13px;
 
   font-weight: 600;
 
@@ -1227,7 +1232,7 @@ img {
 
     padding: 10px 13px;
 
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .dash-nav__icon {

@@ -107,7 +107,7 @@ $white: #ffffff;
 
     h3 {
       margin: 0;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: $heading;
     }
@@ -308,8 +308,12 @@ $white: #ffffff;
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .dropdown-footer {

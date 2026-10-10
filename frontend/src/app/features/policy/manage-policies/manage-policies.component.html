@@ -19,30 +19,6 @@
         <span class="breadcrumb-current active">Manage Policies</span>
     </nav>
 
-    @if (successToastMessage) {
-    <div class="toast toast-success" role="status">
-        <span class="material-icons">check_circle</span>
-        <div class="toast-copy">
-            <strong>Action completed</strong>
-            <span>{{ successToastMessage }}</span>
-        </div>
-    </div>
-    }
-
-    @if (errorMessage) {
-    <div class="toast toast-error" role="alert">
-        <span class="material-icons">error_outline</span>
-        <div class="toast-copy">
-            <strong>Unable to complete action</strong>
-            <span>{{ errorMessage }}</span>
-        </div>
-        <button type="button" class="toast-close" aria-label="Dismiss"
-            (click)="errorMessage = ''; $event.stopPropagation()">
-            <span class="material-icons">close</span>
-        </button>
-    </div>
-    }
-
     <header class="page-header">
         <div class="page-title-area">
 

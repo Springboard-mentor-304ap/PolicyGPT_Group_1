@@ -128,7 +128,9 @@ import { environment } from "../../../../environments/environment";
                   }}</span>
                 </button>
               </div>
-              <p class="cp-hint">Password must contain at least 8 characters.</p>
+              <p class="cp-hint">
+                Password must contain at least 8 characters.
+              </p>
             </div>
 
             <div class="cp-field">
@@ -278,7 +280,7 @@ import { environment } from "../../../../environments/environment";
 
       .cp-subtitle {
         margin: 8px 0 18px;
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1.55;
         color: #475569;
       }
@@ -339,7 +341,7 @@ import { environment } from "../../../../environments/environment";
         border: 1px solid #cbd5e1;
         border-radius: 10px;
         font-family: inherit;
-        font-size: 14px;
+        font-size: 13px;
         color: #0f172a;
         box-sizing: border-box;
       }
@@ -392,7 +394,7 @@ import { environment } from "../../../../environments/environment";
         padding: 0 18px;
         border-radius: 10px;
         font-family: inherit;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         display: inline-flex;
@@ -611,8 +613,7 @@ export class ChangePasswordModalComponent implements OnDestroy {
       .pipe(timeout(30_000))
       .subscribe({
         next: (response) => {
-          const message =
-            response?.message || "Password changed successfully.";
+          const message = response?.message || "Password changed successfully.";
           this.changing.set(false);
           this.toast.success("Password changed", message);
           this.resetForm();

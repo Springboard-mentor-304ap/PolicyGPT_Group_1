@@ -25,7 +25,9 @@
   background: #ffffff;
   border: 1px solid #e4e9f1;
   border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.1),
+    0 8px 10px -6px rgba(15, 23, 42, 0.05);
   min-width: 150px;
   max-width: min(220px, calc(100vw - 48px));
   z-index: 30;
@@ -102,7 +104,7 @@
 
   .chevron {
     color: #94a3b8;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1;
     user-select: none;
   }
@@ -146,7 +148,7 @@
     .page-subtitle {
       margin: 4px 0 0;
       color: #64748b;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 400;
       line-height: 1.45;
     }
@@ -305,7 +307,7 @@
     border: 0;
     outline: 0;
     background: transparent;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: #1e293b;
     height: 100%;
@@ -730,7 +732,7 @@
       background: #ffffff;
       border: 1px solid #dbe2eb;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       color: #1e293b;
       cursor: pointer;
@@ -764,7 +766,9 @@
       background: #ffffff;
       border: 1px solid #e4e9f1;
       border-radius: 10px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+      box-shadow:
+        0 10px 25px -5px rgba(15, 23, 42, 0.12),
+        0 8px 10px -6px rgba(15, 23, 42, 0.06);
       z-index: 30;
       padding: 6px;
     }
@@ -774,7 +778,7 @@
       width: 100%;
       text-align: left;
       padding: 15px 16px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       color: #334155;
       background: transparent;
@@ -881,7 +885,9 @@
       background: #f8fafc;
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      transition:
+        border-color 0.15s ease,
+        color 0.15s ease;
 
       &:hover {
         border-color: #0879ed;
@@ -889,7 +895,7 @@
       }
 
       .material-icons {
-        font-size: 14px;
+        font-size: 13px;
         color: #64748b;
       }
     }
@@ -1156,7 +1162,7 @@
           }
 
           .material-icons {
-            font-size: 14px;
+            font-size: 13px;
             color: #64748b;
           }
         }
@@ -1219,10 +1225,18 @@
         }
       }
 
-      .green-text { color: #078944; }
-      .orange-text { color: #ff861c; }
-      .red-text { color: #dc2626; }
-      .blue-text { color: #0879ed; }
+      .green-text {
+        color: #078944;
+      }
+      .orange-text {
+        color: #ff861c;
+      }
+      .red-text {
+        color: #dc2626;
+      }
+      .blue-text {
+        color: #0879ed;
+      }
 
       .ad-breakdown {
         margin: 0;
@@ -1250,7 +1264,7 @@
 
         dd {
           margin: 0;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           color: #111827;
         }
@@ -1264,9 +1278,15 @@
         background: #eef2f7;
         margin-top: 12px;
 
-        .seg-active { background: #3cb371; }
-        .seg-pending { background: #f5a524; }
-        .seg-rejected { background: #e95e67; }
+        .seg-active {
+          background: #3cb371;
+        }
+        .seg-pending {
+          background: #f5a524;
+        }
+        .seg-rejected {
+          background: #e95e67;
+        }
       }
 
       .ad-vs-row {
@@ -1298,7 +1318,7 @@
         }
 
         .ad-vs-value {
-          font-size: 14px;
+          font-size: 13px;
           color: #111827;
           text-align: right;
         }

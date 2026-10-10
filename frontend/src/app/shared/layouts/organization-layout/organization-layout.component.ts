@@ -18,7 +18,6 @@ import { AvatarService } from "../../../core/services/avatar.service";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
-import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 /* =========================================================
    ORGANIZATION NAVIGATION ITEM
@@ -55,7 +54,6 @@ export interface OrganizationNavItem {
     FooterComponent,
     LogoutConfirmComponent,
     NotificationBellComponent,
-    ToastContainerComponent,
   ],
 
   templateUrl: "./organization-layout.component.html",

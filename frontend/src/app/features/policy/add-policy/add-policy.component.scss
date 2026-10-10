@@ -109,7 +109,7 @@ $success-border: #bbf7d0;
   }
 
   &__subtitle {
-    font-size: 14px;
+    font-size: 13px;
     color: $text-muted;
     margin: 0;
   }
@@ -119,12 +119,6 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 16px;
   }
-
-  height: 48px;
-  justify-content: center;
-  border-radius: 11px;
-  font-size: 13px;
-  font-weight: 800;
 
   &__btn-draft {
     display: inline-flex;
@@ -183,7 +177,7 @@ $success-border: #bbf7d0;
     color: #065f46;
     border-radius: 8px;
     margin-bottom: 20px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     animation: fadeIn 0.3s ease;
 
@@ -244,7 +238,7 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     background: #ffffff;
     border: 2px solid #cbd5e1;
@@ -507,7 +501,7 @@ $success-border: #bbf7d0;
   border: 1.5px solid #cbd5e1;
   border-radius: 8px;
   padding: 0 14px;
-  font-size: 14px;
+  font-size: 13px;
   color: $text-dark;
   outline: none;
   transition: all 0.2s ease;
@@ -648,7 +642,7 @@ $success-border: #bbf7d0;
   border-radius: 8px;
   background: #f8fafc;
   color: $primary-blue;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -835,7 +829,7 @@ $success-border: #bbf7d0;
     gap: 8px;
     color: #1e40af;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
 
     .material-icons {
       font-size: 20px;
@@ -890,7 +884,7 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #1e293b;
     padding-top: 8px;
@@ -950,7 +944,7 @@ $success-border: #bbf7d0;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: #334155;
     cursor: pointer;
@@ -988,7 +982,7 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 2px 0;
@@ -1103,7 +1097,7 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 2px 0;
@@ -1332,7 +1326,7 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 3px 0;
@@ -1409,7 +1403,7 @@ $success-border: #bbf7d0;
   height: 42px;
   padding: 0 22px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -1519,7 +1513,7 @@ $success-border: #bbf7d0;
 }
 
 .modal-message {
-  font-size: 14px;
+  font-size: 13px;
   color: #475569;
   line-height: 1.5;
   margin: 0 0 24px 0;
@@ -1535,7 +1529,7 @@ $success-border: #bbf7d0;
   .modal-btn-confirm {
     width: 100%;
     height: 44px;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
@@ -2098,7 +2092,7 @@ $success-border: #bbf7d0;
 
   max-width: 390px;
 
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.65;
 
   color: #64748b;
@@ -2129,7 +2123,7 @@ $success-border: #bbf7d0;
 
   gap: 8px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -2256,7 +2250,7 @@ $success-border: #bbf7d0;
 
   gap: 8px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 
   transition:
@@ -2309,7 +2303,7 @@ $success-border: #bbf7d0;
   padding: 14px 18px;
   border-radius: 10px;
   margin-bottom: 20px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   animation: fadeIn 0.2s ease;
 

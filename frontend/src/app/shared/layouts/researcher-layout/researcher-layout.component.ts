@@ -19,7 +19,6 @@ import { SearchHistoryService } from "../../../core/services/search-history.serv
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
 import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
-import { ToastContainerComponent } from "../../components/toast-container/toast-container.component";
 
 /* =========================================================
    RESEARCHER NAVIGATION ITEM
@@ -56,7 +55,6 @@ export interface ResearcherNavItem {
     FooterComponent,
     LogoutConfirmComponent,
     NotificationBellComponent,
-    ToastContainerComponent,
   ],
 
   templateUrl: "./researcher-layout.component.html",

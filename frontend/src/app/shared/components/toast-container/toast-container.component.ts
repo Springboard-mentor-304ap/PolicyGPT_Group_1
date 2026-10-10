@@ -29,36 +29,41 @@ const LIVE_TOAST_MS = 6000;
   imports: [CommonModule, ToastComponent],
   template: `
     <div class="toast-stack" role="region" aria-label="Notifications" aria-live="polite" aria-relevant="additions">
-      <app-toast
-        *ngFor="let toast of toastService.toasts()"
-        [toast]="toast"
-        (dismiss)="toastService.remove($event)"
-      ></app-toast>
+      @for (toast of toastService.toasts(); track toast.id) {
+        <app-toast
+          [toast]="toast"
+          (dismiss)="toastService.remove($event)"
+        ></app-toast>
+      }
     </div>
   `,
   styles: [
     `
       .toast-stack {
         position: fixed;
-        top: 1rem;
-        right: 1rem;
-        z-index: 1400;
+        top: 92px;
+        right: 24px;
+        z-index: 999999;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        width: min(22rem, calc(100vw - 2rem));
+        gap: 10px;
+        width: 380px;
+        max-width: calc(100vw - 32px);
         pointer-events: none;
       }
 
       .toast-stack app-toast {
         pointer-events: auto;
+        display: block;
       }
 
-      @media (max-width: 480px) {
+      @media (max-width: 640px) {
         .toast-stack {
-          left: 1rem;
-          right: 1rem;
+          top: 76px;
+          left: 16px;
+          right: 16px;
           width: auto;
+          max-width: none;
         }
       }
     `,

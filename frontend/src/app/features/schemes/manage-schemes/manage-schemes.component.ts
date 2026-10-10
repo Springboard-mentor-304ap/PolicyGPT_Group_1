@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   HostListener,
+  Inject,
   OnDestroy,
   OnInit,
 } from '@angular/core';
@@ -69,11 +70,11 @@ export interface SchemeTableItem {
 })
 export class ManageSchemesComponent implements OnInit, OnDestroy {
   constructor(
-    private readonly schemeService: SchemeService,
-    private readonly router: Router,
-    private readonly auth: Auth,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly toastService: ToastService,
+    @Inject(SchemeService) private readonly schemeService: SchemeService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(Auth) private readonly auth: Auth,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(ToastService) private readonly toastService: ToastService,
   ) {}
 
   searchText = '';
@@ -699,9 +700,8 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.showSuccessToast('Scheme submitted for approval.');
           if (updated) {
             this.applySchemeUpdate(updated);
-          } else {
-            this.loadSchemes();
           }
+          this.loadSchemes();
         },
         error: (err) => {
           this.confirmLoading = false;

@@ -4,6 +4,7 @@ import {
   Component,
   EventEmitter,
   HostListener,
+  Inject,
   Input,
   OnChanges,
   OnDestroy,
@@ -68,11 +69,11 @@ export class DraftPoliciesModalComponent
   @Output() dataChanged = new EventEmitter<void>();
 
   constructor(
-    private readonly policyService: PolicyService,
-    private readonly router: Router,
-    private readonly auth: Auth,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly toastService: ToastService,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(Auth) private readonly auth: Auth,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(ToastService) private readonly toastService: ToastService,
   ) {}
 
   searchText = "";

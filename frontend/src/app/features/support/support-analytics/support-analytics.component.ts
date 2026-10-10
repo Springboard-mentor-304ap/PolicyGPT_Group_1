@@ -15,7 +15,10 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
-import { DateRangePickerComponent, type DateRangeSelection } from "../../analytics/shared/date-range-picker/date-range-picker.component";
+import {
+  DateRangePickerComponent,
+  type DateRangeSelection,
+} from "../../analytics/shared/date-range-picker/date-range-picker.component";
 import {
   LineChartComponent,
   LineDataset,
@@ -141,7 +144,9 @@ export interface SupportUpdateItem {
             aria-label="Download Support Analytics Report"
           >
             <span class="material-icons" aria-hidden="true">download</span>
-            <span>{{ isDownloading() ? "Downloading..." : "Download Report" }}</span>
+            <span>{{
+              isDownloading() ? "Downloading..." : "Download Report"
+            }}</span>
           </button>
           <button
             type="button"
@@ -166,325 +171,325 @@ export interface SupportUpdateItem {
 
       <!-- KPI CARDS (2 rows x 4) — always rendered; live values populate on load -->
       <div class="top-cards-grid" role="list">
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle blue" aria-hidden="true">
-              <span class="material-icons">confirmation_number</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Total Support Tickets</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ data()?.total_tickets ?? 0 }}</span>
-              </div>
-            </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle blue" aria-hidden="true">
+            <span class="material-icons">confirmation_number</span>
           </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle orange" aria-hidden="true">
-              <span class="material-icons">markunread_mailbox</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Open Tickets</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ statusTotal("OPEN") }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle green" aria-hidden="true">
-              <span class="material-icons">task_alt</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Resolved Tickets</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ data()?.resolved_count ?? 0 }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle purple" aria-hidden="true">
-              <span class="material-icons">schedule</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Average Resolution Time</span>
-              <div class="card-value-row">
-                <span class="card-value">{{
-                  formatHours(data()?.avg_resolution_hours)
-                }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle amber" aria-hidden="true">
-              <span class="material-icons">pending_actions</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Pending / In Progress</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ inProgressCount() }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle red" aria-hidden="true">
-              <span class="material-icons">priority_high</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">High Priority Tickets</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ highPriorityCount() }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle teal" aria-hidden="true">
-              <span class="material-icons">rate_review</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Feedback Submissions</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ data()?.feedback_count ?? 0 }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="metric-card" role="listitem">
-            <div class="card-icon-circle navy" aria-hidden="true">
-              <span class="material-icons">percent</span>
-            </div>
-            <div class="card-content">
-              <span class="card-label">Resolution Rate</span>
-              <div class="card-value-row">
-                <span class="card-value">{{ resolutionRate() }}</span>
-              </div>
+          <div class="card-content">
+            <span class="card-label">Total Support Tickets</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ data()?.total_tickets ?? 0 }}</span>
             </div>
           </div>
         </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle orange" aria-hidden="true">
+            <span class="material-icons">markunread_mailbox</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Open Tickets</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ statusTotal("OPEN") }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle green" aria-hidden="true">
+            <span class="material-icons">task_alt</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Resolved Tickets</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ data()?.resolved_count ?? 0 }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle purple" aria-hidden="true">
+            <span class="material-icons">schedule</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Average Resolution Time</span>
+            <div class="card-value-row">
+              <span class="card-value">{{
+                formatHours(data()?.avg_resolution_hours)
+              }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle amber" aria-hidden="true">
+            <span class="material-icons">pending_actions</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Pending / In Progress</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ inProgressCount() }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle red" aria-hidden="true">
+            <span class="material-icons">priority_high</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">High Priority Tickets</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ highPriorityCount() }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle teal" aria-hidden="true">
+            <span class="material-icons">rate_review</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Feedback Submissions</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ data()?.feedback_count ?? 0 }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-card" role="listitem">
+          <div class="card-icon-circle navy" aria-hidden="true">
+            <span class="material-icons">percent</span>
+          </div>
+          <div class="card-content">
+            <span class="card-label">Resolution Rate</span>
+            <div class="card-value-row">
+              <span class="card-value">{{ resolutionRate() }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        <!-- TREND + STATUS -->
-        <div class="grid-2">
-          <section class="chart-card" aria-label="Tickets trend">
-            <div class="card-header-row">
-              <h3 class="card-title">Tickets Trend</h3>
-              <div class="timeframe-wrapper">
-                <button
-                  type="button"
-                  class="time-filter-btn"
-                  (click)="toggleTimeframeMenu($event)"
-                  [attr.aria-expanded]="showTimeframeMenu()"
+      <!-- TREND + STATUS -->
+      <div class="grid-2">
+        <section class="chart-card" aria-label="Tickets trend">
+          <div class="card-header-row">
+            <h3 class="card-title">Tickets Trend</h3>
+            <div class="timeframe-wrapper">
+              <button
+                type="button"
+                class="time-filter-btn"
+                (click)="toggleTimeframeMenu($event)"
+                [attr.aria-expanded]="showTimeframeMenu()"
+              >
+                <span>{{ trendTimeframe() }}</span>
+                <span class="material-icons" aria-hidden="true"
+                  >expand_more</span
                 >
-                  <span>{{ trendTimeframe() }}</span>
-                  <span class="material-icons" aria-hidden="true"
-                    >expand_more</span
-                  >
-                </button>
-                @if (showTimeframeMenu()) {
-                  <div class="timeframe-dropdown" role="menu">
-                    @for (opt of timeframeOptions; track opt) {
-                      <button
-                        type="button"
-                        class="timeframe-item"
-                        [class.active]="opt === trendTimeframe()"
-                        (click)="selectTimeframe(opt)"
-                        role="menuitem"
-                      >
-                        {{ opt }}
-                      </button>
-                    }
-                  </div>
+              </button>
+              @if (showTimeframeMenu()) {
+                <div class="timeframe-dropdown" role="menu">
+                  @for (opt of timeframeOptions; track opt) {
+                    <button
+                      type="button"
+                      class="timeframe-item"
+                      [class.active]="opt === trendTimeframe()"
+                      (click)="selectTimeframe(opt)"
+                      role="menuitem"
+                    >
+                      {{ opt }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+          <app-line-chart
+            [labels]="trendLabels()"
+            [datasets]="trendDatasets()"
+            [yMin]="0"
+            [yMax]="chartYMax()"
+          />
+        </section>
+
+        <section class="chart-card" aria-label="Tickets by status">
+          <h3 class="card-title">Tickets by Status</h3>
+          <app-doughnut-chart
+            [labels]="statusDonutLabels()"
+            [data]="statusDonutData()"
+            [colors]="statusDonutColors()"
+            [centerMainText]="totalText()"
+            centerSubText="Total Tickets"
+          />
+        </section>
+      </div>
+
+      <!-- CATEGORY + PRIORITY -->
+      <div class="grid-2">
+        <section class="chart-card" aria-label="Tickets by category">
+          <h3 class="card-title">Tickets by Category</h3>
+          <app-hbar-chart
+            [labels]="categoryLabels()"
+            [data]="categoryData()"
+            primaryColor="#3b82f6"
+          />
+        </section>
+
+        <section class="chart-card" aria-label="Tickets by priority">
+          <h3 class="card-title">Tickets by Priority</h3>
+          <app-doughnut-chart
+            [labels]="priorityDonutLabels()"
+            [data]="priorityDonutData()"
+            [colors]="priorityDonutColors()"
+            [centerMainText]="totalText()"
+            centerSubText="Total Tickets"
+          />
+        </section>
+      </div>
+
+      <!-- ROLE + RESOLUTION PERFORMANCE -->
+      <div class="grid-2">
+        <section class="chart-card" aria-label="Support requests by user">
+          <h3 class="card-title">Support Requests by User</h3>
+          <app-hbar-chart
+            [labels]="roleLabels()"
+            [data]="roleData()"
+            primaryColor="#0e7490"
+          />
+        </section>
+
+        <section class="chart-card" aria-label="Resolution performance">
+          <h3 class="card-title">Resolution Performance</h3>
+          <ul class="perf-list">
+            <li>
+              <span class="perf-icon perf-icon--blue" aria-hidden="true">
+                <span class="material-icons">schedule</span>
+              </span>
+              <span class="perf-text"
+                ><span class="perf-label">Average Resolution</span>
+                <span class="perf-sub">Mean time to resolve</span></span
+              >
+              <span class="perf-value">{{
+                formatHours(data()?.avg_resolution_hours)
+              }}</span>
+            </li>
+            <li>
+              <span class="perf-icon perf-icon--green" aria-hidden="true">
+                <span class="material-icons">bolt</span>
+              </span>
+              <span class="perf-text"
+                ><span class="perf-label">Fastest Resolution</span>
+                <span class="perf-sub">Quickest resolved ticket</span></span
+              >
+              <span class="perf-value">{{ fastestResolution() }}</span>
+            </li>
+            <li>
+              <span class="perf-icon perf-icon--amber" aria-hidden="true">
+                <span class="material-icons">hourglass_top</span>
+              </span>
+              <span class="perf-text"
+                ><span class="perf-label">Longest Resolution</span>
+                <span class="perf-sub">Slowest resolved ticket</span></span
+              >
+              <span class="perf-value">{{ longestResolution() }}</span>
+            </li>
+            <li>
+              <span class="perf-icon perf-icon--navy" aria-hidden="true">
+                <span class="material-icons">percent</span>
+              </span>
+              <span class="perf-text"
+                ><span class="perf-label">Resolution Rate</span>
+                <span class="perf-sub">Resolved of all tickets</span></span
+              >
+              <span class="perf-value">{{ resolutionRate() }}</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- ACTIVITY TABLES -->
+      <div class="grid-2">
+        <section class="table-card" aria-label="Recent support activity">
+          <div class="table-header-row">
+            <h3 class="card-title">Recent Support Activity</h3>
+            <span class="table-tag">Latest events</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Ticket</th>
+                  <th scope="col">Activity</th>
+                  <th scope="col">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of recentActivity(); track item.id) {
+                  <tr>
+                    <td>
+                      <span class="text-user">{{ item.ticket }}</span>
+                      <span class="text-sub">{{ item.subject }}</span>
+                    </td>
+                    <td>
+                      <span class="activity-pill">
+                        <span class="material-icons" aria-hidden="true">{{
+                          item.icon
+                        }}</span>
+                        {{ item.action }}
+                      </span>
+                    </td>
+                    <td class="text-muted">
+                      {{ item.time | date: "medium" }}
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="text-muted">No activity yet.</td>
+                  </tr>
                 }
-              </div>
-            </div>
-            <app-line-chart
-              [labels]="trendLabels()"
-              [datasets]="trendDatasets()"
-              [yMin]="0"
-              [yMax]="chartYMax()"
-            />
-          </section>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-          <section class="chart-card" aria-label="Tickets by status">
-            <h3 class="card-title">Tickets by Status</h3>
-            <app-doughnut-chart
-              [labels]="statusDonutLabels()"
-              [data]="statusDonutData()"
-              [colors]="statusDonutColors()"
-              [centerMainText]="totalText()"
-              centerSubText="Total Tickets"
-            />
-          </section>
-        </div>
-
-        <!-- CATEGORY + PRIORITY -->
-        <div class="grid-2">
-          <section class="chart-card" aria-label="Tickets by category">
-            <h3 class="card-title">Tickets by Category</h3>
-            <app-hbar-chart
-              [labels]="categoryLabels()"
-              [data]="categoryData()"
-              primaryColor="#3b82f6"
-            />
-          </section>
-
-          <section class="chart-card" aria-label="Tickets by priority">
-            <h3 class="card-title">Tickets by Priority</h3>
-            <app-doughnut-chart
-              [labels]="priorityDonutLabels()"
-              [data]="priorityDonutData()"
-              [colors]="priorityDonutColors()"
-              [centerMainText]="totalText()"
-              centerSubText="Total Tickets"
-            />
-          </section>
-        </div>
-
-        <!-- ROLE + RESOLUTION PERFORMANCE -->
-        <div class="grid-2">
-          <section class="chart-card" aria-label="Support requests by user">
-            <h3 class="card-title">Support Requests by User</h3>
-            <app-hbar-chart
-              [labels]="roleLabels()"
-              [data]="roleData()"
-              primaryColor="#0e7490"
-            />
-          </section>
-
-          <section class="chart-card" aria-label="Resolution performance">
-            <h3 class="card-title">Resolution Performance</h3>
-            <ul class="perf-list">
-              <li>
-                <span class="perf-icon perf-icon--blue" aria-hidden="true">
-                  <span class="material-icons">schedule</span>
-                </span>
-                <span class="perf-text"
-                  ><span class="perf-label">Average Resolution</span>
-                  <span class="perf-sub">Mean time to resolve</span></span
-                >
-                <span class="perf-value">{{
-                  formatHours(data()?.avg_resolution_hours)
-                }}</span>
-              </li>
-              <li>
-                <span class="perf-icon perf-icon--green" aria-hidden="true">
-                  <span class="material-icons">bolt</span>
-                </span>
-                <span class="perf-text"
-                  ><span class="perf-label">Fastest Resolution</span>
-                  <span class="perf-sub">Quickest resolved ticket</span></span
-                >
-                <span class="perf-value">{{ fastestResolution() }}</span>
-              </li>
-              <li>
-                <span class="perf-icon perf-icon--amber" aria-hidden="true">
-                  <span class="material-icons">hourglass_top</span>
-                </span>
-                <span class="perf-text"
-                  ><span class="perf-label">Longest Resolution</span>
-                  <span class="perf-sub">Slowest resolved ticket</span></span
-                >
-                <span class="perf-value">{{ longestResolution() }}</span>
-              </li>
-              <li>
-                <span class="perf-icon perf-icon--navy" aria-hidden="true">
-                  <span class="material-icons">percent</span>
-                </span>
-                <span class="perf-text"
-                  ><span class="perf-label">Resolution Rate</span>
-                  <span class="perf-sub">Resolved of all tickets</span></span
-                >
-                <span class="perf-value">{{ resolutionRate() }}</span>
-              </li>
-            </ul>
-          </section>
-        </div>
-
-        <!-- ACTIVITY TABLES -->
-        <div class="grid-2">
-          <section class="table-card" aria-label="Recent support activity">
-            <div class="table-header-row">
-              <h3 class="card-title">Recent Support Activity</h3>
-              <span class="table-tag">Latest events</span>
-            </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
+        <section class="table-card" aria-label="Latest support updates">
+          <div class="table-header-row">
+            <h3 class="card-title">Latest Support Updates</h3>
+            <span class="table-tag">Newest tickets</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Subject</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Submitted</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of latestUpdates(); track item.id) {
                   <tr>
-                    <th scope="col">Ticket</th>
-                    <th scope="col">Activity</th>
-                    <th scope="col">Updated</th>
+                    <td>
+                      <span class="text-user">{{ item.subject }}</span>
+                      <span class="text-sub">{{ item.ticket }}</span>
+                    </td>
+                    <td class="text-action">{{ item.category }}</td>
+                    <td class="text-muted">
+                      {{ item.time | date: "mediumDate" }}
+                    </td>
+                    <td>
+                      <span
+                        class="status-pill"
+                        [style.color]="statusColor(item.status)"
+                        [style.background]="statusBg(item.status)"
+                        >{{ prettyStatus(item.status) }}</span
+                      >
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (item of recentActivity(); track item.id) {
-                    <tr>
-                      <td>
-                        <span class="text-user">{{ item.ticket }}</span>
-                        <span class="text-sub">{{ item.subject }}</span>
-                      </td>
-                      <td>
-                        <span class="activity-pill">
-                          <span class="material-icons" aria-hidden="true">{{
-                            item.icon
-                          }}</span>
-                          {{ item.action }}
-                        </span>
-                      </td>
-                      <td class="text-muted">
-                        {{ item.time | date: "medium" }}
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="3" class="text-muted">No activity yet.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="table-card" aria-label="Latest support updates">
-            <div class="table-header-row">
-              <h3 class="card-title">Latest Support Updates</h3>
-              <span class="table-tag">Newest tickets</span>
-            </div>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
+                } @empty {
                   <tr>
-                    <th scope="col">Subject</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Submitted</th>
-                    <th scope="col">Status</th>
+                    <td colspan="4" class="text-muted">No tickets yet.</td>
                   </tr>
-                </thead>
-                <tbody>
-                  @for (item of latestUpdates(); track item.id) {
-                    <tr>
-                      <td>
-                        <span class="text-user">{{ item.subject }}</span>
-                        <span class="text-sub">{{ item.ticket }}</span>
-                      </td>
-                      <td class="text-action">{{ item.category }}</td>
-                      <td class="text-muted">
-                        {{ item.time | date: "mediumDate" }}
-                      </td>
-                      <td>
-                        <span
-                          class="status-pill"
-                          [style.color]="statusColor(item.status)"
-                          [style.background]="statusBg(item.status)"
-                          >{{ prettyStatus(item.status) }}</span
-                        >
-                      </td>
-                    </tr>
-                  } @empty {
-                    <tr>
-                      <td colspan="4" class="text-muted">No tickets yet.</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   `,
   styles: [
@@ -531,7 +536,7 @@ export interface SupportUpdateItem {
       }
       .chevron {
         color: #94a3b8;
-        font-size: 14px;
+        font-size: 13px;
         line-height: 1;
         user-select: none;
       }
@@ -563,7 +568,7 @@ export interface SupportUpdateItem {
       .page-subtitle {
         margin: 4px 0 0;
         color: #64748b;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 400;
         line-height: 1.45;
       }
@@ -1297,11 +1302,14 @@ export class SupportAnalyticsComponent {
     const get = (...keys: string[]): number =>
       keys.reduce((sum, k) => sum + (by[k] ?? 0), 0);
     return [
-      { label: 'Citizen', value: get('CITIZEN') },
-      { label: 'Government Official', value: get('GOVERNMENT_OFFICIAL', 'GOVERNMENT') },
-      { label: 'Organization', value: get('ORGANIZATION', 'ORGANISATION') },
-      { label: 'Researcher', value: get('RESEARCHER') },
-      { label: 'Admin', value: get('ADMIN', 'ADMINISTRATOR') },
+      { label: "Citizen", value: get("CITIZEN") },
+      {
+        label: "Government Official",
+        value: get("GOVERNMENT_OFFICIAL", "GOVERNMENT"),
+      },
+      { label: "Organization", value: get("ORGANIZATION", "ORGANISATION") },
+      { label: "Researcher", value: get("RESEARCHER") },
+      { label: "Admin", value: get("ADMIN", "ADMINISTRATOR") },
     ];
   }
 

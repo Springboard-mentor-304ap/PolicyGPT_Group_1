@@ -1,6 +1,6 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Component, Input } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { RouterLink } from "@angular/router";
 
 export interface BreadcrumbItem {
   label: string;
@@ -22,7 +22,7 @@ export interface BreadcrumbItem {
  * [{ label: 'Home', route: ['/dashboard', rolePrefix] }, { label: 'Saved Items' }]
  */
 @Component({
-  selector: 'app-breadcrumb',
+  selector: "app-breadcrumb",
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
@@ -81,7 +81,7 @@ export interface BreadcrumbItem {
       }
 
       .pg-breadcrumb__separator {
-        font-size: 14px;
+        font-size: 13px;
         color: #94a3b8;
         user-select: none;
       }

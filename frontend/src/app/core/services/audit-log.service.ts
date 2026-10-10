@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuditLog, AuditLogFilters } from '../models/audit-log.model';
@@ -11,8 +11,9 @@ export type { AuditLog, AuditLogFilters };
 })
 export class AuditLogService {
   private readonly baseUrl = `${environment.apiUrl}/audit-logs`;
+  private readonly http = inject(HttpClient);
 
-  constructor(private readonly http: HttpClient) {}
+  constructor() {}
 
   /**
    * Retrieve audit logs (Admin sees all roles; others see only their own).

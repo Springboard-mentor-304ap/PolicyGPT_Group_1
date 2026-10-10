@@ -3,6 +3,7 @@ import {
   ChangeDetectorRef,
   Component,
   HostListener,
+  Inject,
   OnDestroy,
   OnInit,
 } from "@angular/core";
@@ -66,11 +67,11 @@ export interface PolicyTableItem {
 })
 export class ManagePoliciesComponent implements OnInit, OnDestroy {
   constructor(
-    private readonly policyService: PolicyService,
-    private readonly router: Router,
-    private readonly auth: Auth,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly toastService: ToastService,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(Auth) private readonly auth: Auth,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(ToastService) private readonly toastService: ToastService,
   ) {}
 
   searchText = "";
@@ -759,9 +760,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
           );
           if (updated) {
             this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
           }
+          this.loadPolicies();
         },
         error: (err) => {
           this.confirmLoading = false;

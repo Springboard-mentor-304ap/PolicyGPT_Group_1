@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError, timeout } from 'rxjs';
 import { catchError, finalize, shareReplay, tap } from 'rxjs/operators';
@@ -28,13 +28,13 @@ export class PolicyService {
   private readonly CACHE_TTL = 30_000;
   private static readonly MAX_ENTRIES = 100;
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly auth: Auth,
-  ) {
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+
+  constructor() {
     // Never serve one user's list data to another user in the same tab.
     // Optional-chained: specs may provide a partial Auth double.
-    this.auth.onLoggedOut?.(() => this.clearCache());
+    this.auth?.onLoggedOut?.(() => this.clearCache());
   }
 
   // ============================================================

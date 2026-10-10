@@ -1,4 +1,4 @@
-@use '../../shared/analytics-tokens' as tokens;
+@use "../../shared/analytics-tokens" as tokens;
 /* =========================================================
    POLICYGPT ADMIN ANALYTICS — SCHEME ANALYTICS
    Harmonized with PolicyGPT Admin Portal Design System
@@ -49,7 +49,7 @@
 
   .chevron {
     color: #94a3b8;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1;
     user-select: none;
   }
@@ -93,7 +93,7 @@
     .page-subtitle {
       margin: 4px 0 0;
       color: #64748b;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 400;
       line-height: 1.45;
     }
@@ -337,7 +337,9 @@
       background: #f8fafc;
       cursor: pointer;
       white-space: nowrap;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      transition:
+        border-color 0.15s ease,
+        color 0.15s ease;
 
       &:hover {
         border-color: #0879ed;
@@ -345,7 +347,7 @@
       }
 
       .material-icons {
-        font-size: 14px;
+        font-size: 13px;
         color: #64748b;
       }
     }
@@ -357,7 +359,9 @@
       background: #ffffff;
       border: 1px solid #e4e9f1;
       border-radius: 8px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+      box-shadow:
+        0 10px 25px -5px rgba(15, 23, 42, 0.1),
+        0 8px 10px -6px rgba(15, 23, 42, 0.05);
       min-width: 150px;
       max-width: min(220px, calc(100vw - 48px));
       z-index: 30;

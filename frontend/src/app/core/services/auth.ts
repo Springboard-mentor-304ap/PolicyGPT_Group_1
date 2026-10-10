@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import {
   BehaviorSubject,
@@ -95,7 +95,9 @@ export class Auth {
   /** Shared authenticated-user stream (topbar, profile, settings). */
   public readonly currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {
+  private http = inject(HttpClient);
+
+  constructor() {
     this.currentUserSubject.next(this.getStoredUser());
   }
 

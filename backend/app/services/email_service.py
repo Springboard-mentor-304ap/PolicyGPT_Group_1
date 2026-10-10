@@ -28,8 +28,9 @@ def _generate_policygpt_html(
         else (action_url or f"{base_portal_url}/notifications")
     )
     preferences_url = f"{base_portal_url}/notifications/preferences"
-    type_badge = (notification_type or "Official Update").replace(
-        "_", " ").title()
+    type_badge = (
+        (notification_type or "Official Update").replace("_", " ").title()
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -109,7 +110,7 @@ def _generate_policygpt_html(
       text-decoration: none;
       padding: 12px 24px;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       margin-bottom: 24px;
     }}
@@ -199,7 +200,8 @@ def send_email(
         sandbox_id = f"sandbox-{uuid.uuid4()}"
         logger.info(
             f"[BREVO SANDBOX] Email to {recipient_email} - Subject: "
-            f"{subject} [ID: {sandbox_id}]")
+            f"{subject} [ID: {sandbox_id}]"
+        )
         return {
             "success": True,
             "provider": "brevo",
@@ -217,8 +219,7 @@ def send_email(
             url = "https://api.brevo.com/v3/smtp/email"
             sender_name = settings.BREVO_SENDER_NAME or "PolicyGPT"
             sender_email = (
-                settings.BREVO_SENDER_EMAIL
-                or "noreply@policygpt.gov.in"
+                settings.BREVO_SENDER_EMAIL or "noreply@policygpt.gov.in"
             )
 
             payload = {
@@ -255,10 +256,12 @@ def send_email(
             err_msg = http_err.read().decode("utf-8", errors="ignore")
             logger.warning(
                 f"Brevo API error: {http_err.code} - {err_msg}. "
-                "Falling back to SMTP.")
+                "Falling back to SMTP."
+            )
         except Exception as e:
             logger.warning(
-                f"Brevo API call failed: {e}. Falling back to SMTP.")
+                f"Brevo API call failed: {e}. Falling back to SMTP."
+            )
 
     # 3. SMTP Delivery (Brevo SMTP or standard configured SMTP)
     smtp_host = (
@@ -288,9 +291,7 @@ def send_email(
         or "noreply@policygpt.gov.in"
     )
     from_name = (
-        settings.BREVO_SENDER_NAME
-        or settings.SMTP_FROM_NAME
-        or "PolicyGPT"
+        settings.BREVO_SENDER_NAME or settings.SMTP_FROM_NAME or "PolicyGPT"
     )
 
     if not smtp_user or not smtp_pass:
@@ -298,7 +299,8 @@ def send_email(
         # credentials in dev, log and return safe response
         logger.info(
             f"Email credentials not configured for recipient "
-            f"{recipient_email}. Skipping real transmission.")
+            f"{recipient_email}. Skipping real transmission."
+        )
         return {
             "success": False,
             "provider": "brevo",
@@ -447,6 +449,7 @@ def send_system_email(
 # =========================================================
 # BACKWARDS COMPATIBILITY FOR AUTH OTP
 # =========================================================
+
 
 def send_password_reset_email(
     recipient_email: str,

@@ -9,9 +9,13 @@ import {
   ViewChild,
   forwardRef,
   inject,
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import {
+  ControlValueAccessor,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+} from "@angular/forms";
 
 export interface PgDropdownOption {
   value: string;
@@ -32,7 +36,7 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
  * or `{ value, label }[]` (value/label separation for filters).
  */
 @Component({
-  selector: 'app-searchable-select',
+  selector: "app-searchable-select",
   standalone: true,
   imports: [CommonModule, FormsModule],
   providers: [
@@ -69,7 +73,9 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
         aria-haspopup="listbox"
       >
         @if (icon) {
-          <span class="material-icons select-icon" aria-hidden="true">{{ icon }}</span>
+          <span class="material-icons select-icon" aria-hidden="true">{{
+            icon
+          }}</span>
         }
 
         <span class="selected-text" [class.placeholder]="!hasValue()">
@@ -89,7 +95,7 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
             </button>
           }
           <span class="material-icons arrow-icon" aria-hidden="true">
-            {{ isOpen ? 'expand_less' : 'expand_more' }}
+            {{ isOpen ? "expand_less" : "expand_more" }}
           </span>
         </div>
       </div>
@@ -100,7 +106,9 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
           <!-- Search Input Box (only for searchable lists) -->
           @if (searchable) {
             <div class="search-box">
-              <span class="material-icons search-icon" aria-hidden="true">search</span>
+              <span class="material-icons search-icon" aria-hidden="true"
+                >search</span
+              >
               <input
                 #searchInput
                 type="text"
@@ -142,7 +150,9 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
               </div>
             } @else if (errorText) {
               <div class="dropdown-state is-error" role="alert">
-                <span class="material-icons state-icon" aria-hidden="true">error_outline</span>
+                <span class="material-icons state-icon" aria-hidden="true"
+                  >error_outline</span
+                >
                 <span>{{ errorText }}</span>
               </div>
             } @else {
@@ -157,12 +167,18 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
                 >
                   <span class="option-label">{{ allOptionLabel }}</span>
                   @if (!hasValue()) {
-                    <span class="material-icons check-icon" aria-hidden="true">check</span>
+                    <span class="material-icons check-icon" aria-hidden="true"
+                      >check</span
+                    >
                   }
                 </div>
               }
               @if (displayedOptions.length > 0) {
-                @for (option of displayedOptions; track option.value; let i = $index) {
+                @for (
+                  option of displayedOptions;
+                  track option.value;
+                  let i = $index
+                ) {
                   <div
                     class="option-item"
                     [class.is-selected]="option.value === value"
@@ -174,13 +190,19 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
                   >
                     <span class="option-label">{{ option.label }}</span>
                     @if (option.value === value) {
-                      <span class="material-icons check-icon" aria-hidden="true">check</span>
+                      <span class="material-icons check-icon" aria-hidden="true"
+                        >check</span
+                      >
                     }
                   </div>
                 }
               } @else if (!showAllOption) {
                 <div class="no-options">
-                  <span class="material-icons no-options-icon" aria-hidden="true">search_off</span>
+                  <span
+                    class="material-icons no-options-icon"
+                    aria-hidden="true"
+                    >search_off</span
+                  >
                   <span>{{ emptyText }}</span>
                 </div>
               }
@@ -221,7 +243,10 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
         padding: 0 14px;
         cursor: pointer;
         outline: none;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease,
+          background 0.15s ease;
         box-sizing: border-box;
         user-select: none;
         gap: 8px;
@@ -284,7 +309,7 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
       .selected-text {
         flex: 1;
         min-width: 0;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 500;
         color: #0f172a;
         white-space: nowrap;
@@ -347,7 +372,9 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
         background: #ffffff;
         border: 1px solid #cbd5e1;
         border-radius: 8px;
-        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+        box-shadow:
+          0 10px 25px rgba(15, 23, 42, 0.12),
+          0 4px 6px -2px rgba(15, 23, 42, 0.05);
         z-index: 1050;
         overflow: hidden;
         animation: selectDropdownFade 0.15s ease-out;
@@ -441,10 +468,12 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
         align-items: center;
         justify-content: space-between;
         padding: 9px 14px;
-        font-size: 14px;
+        font-size: 13px;
         color: #1e293b;
         cursor: pointer;
-        transition: background 0.1s ease, color 0.1s ease;
+        transition:
+          background 0.1s ease,
+          color 0.1s ease;
         line-height: 1.4;
 
         .option-label {
@@ -539,43 +568,43 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
 })
 export class SearchableSelectComponent implements ControlValueAccessor {
   @Input() options: PgDropdownOptionsInput = [];
-  @Input() placeholder: string = 'Select an option';
-  @Input() searchPlaceholder: string = 'Search or select...';
+  @Input() placeholder: string = "Select an option";
+  @Input() searchPlaceholder: string = "Search or select...";
   @Input() icon?: string;
   @Input() isInvalid: boolean = false;
   @Input() disabled: boolean = false;
   @Input() clearable: boolean = true;
-  @Input() id: string = '';
+  @Input() id: string = "";
   @Input() allOptionLabel?: string;
   /** Set false for small fixed lists (status, priority) to keep a compact menu. */
   @Input() searchable: boolean = true;
   /** 'default' (46px form control) or 'filter'/'compact' (38px filter control). */
-  @Input() size: 'default' | 'filter' | 'compact' = 'default';
+  @Input() size: "default" | "filter" | "compact" = "default";
   @Input() loading: boolean = false;
-  @Input() loadingText: string = 'Loading options...';
-  @Input() errorText: string = '';
-  @Input() emptyText: string = 'No matching options';
-  @Input() ariaLabel: string = '';
+  @Input() loadingText: string = "Loading options...";
+  @Input() errorText: string = "";
+  @Input() emptyText: string = "No matching options";
+  @Input() ariaLabel: string = "";
 
   @Output() selectionChange = new EventEmitter<string>();
 
-  @HostBinding('style.zIndex')
+  @HostBinding("style.zIndex")
   get hostZIndex(): string | null {
-    return this.isOpen ? '1050' : null;
+    return this.isOpen ? "1050" : null;
   }
 
-  @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
-  @ViewChild('optionsList') optionsList?: ElementRef<HTMLElement>;
+  @ViewChild("searchInput") searchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild("optionsList") optionsList?: ElementRef<HTMLElement>;
 
-  value: string = '';
+  value: string = "";
   isOpen: boolean = false;
-  searchTerm: string = '';
+  searchTerm: string = "";
   highlightedIndex: number = -1;
 
   /** Normalized value/label pairs (backwards compatible with string[]). */
   get normalizedOptions(): PgDropdownOption[] {
     return (this.options ?? []).map((opt) =>
-      typeof opt === 'string' ? { value: opt, label: opt } : opt,
+      typeof opt === "string" ? { value: opt, label: opt } : opt,
     );
   }
 
@@ -583,7 +612,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     if (!this.allOptionLabel) {
       return false;
     }
-    const term = (this.searchTerm || '').trim().toLowerCase();
+    const term = (this.searchTerm || "").trim().toLowerCase();
     if (!term) {
       return true;
     }
@@ -596,7 +625,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   private readonly elementRef = inject(ElementRef);
 
   hasValue(): boolean {
-    return this.value !== '' && this.value !== null && this.value !== undefined;
+    return this.value !== "" && this.value !== null && this.value !== undefined;
   }
 
   displayLabel(): string {
@@ -608,7 +637,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   }
 
   writeValue(val: string | null): void {
-    this.value = val ?? '';
+    this.value = val ?? "";
   }
 
   registerOnChange(fn: any): void {
@@ -634,14 +663,15 @@ export class SearchableSelectComponent implements ControlValueAccessor {
       list.unshift({ value: this.value, label: this.value });
     }
 
-    const term = (this.searchTerm || '').trim().toLowerCase();
+    const term = (this.searchTerm || "").trim().toLowerCase();
     if (!term || !this.searchable) {
       return list;
     }
 
     return list.filter(
       (opt) =>
-        opt.label.toLowerCase().includes(term) || opt.value.toLowerCase().includes(term),
+        opt.label.toLowerCase().includes(term) ||
+        opt.value.toLowerCase().includes(term),
     );
   }
 
@@ -663,7 +693,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     }
 
     this.isOpen = true;
-    this.searchTerm = '';
+    this.searchTerm = "";
     this.highlightedIndex = this.searchable ? -1 : this.currentIndex();
 
     setTimeout(() => {
@@ -682,11 +712,13 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     }
 
     this.isOpen = false;
-    this.searchTerm = '';
+    this.searchTerm = "";
     this.highlightedIndex = -1;
     this.onTouched();
     if (focusTrigger) {
-      const trigger = this.elementRef.nativeElement.querySelector('.select-trigger') as HTMLElement | null;
+      const trigger = this.elementRef.nativeElement.querySelector(
+        ".select-trigger",
+      ) as HTMLElement | null;
       trigger?.focus();
     }
   }
@@ -711,9 +743,9 @@ export class SearchableSelectComponent implements ControlValueAccessor {
       return;
     }
 
-    this.value = '';
-    this.onChange('');
-    this.selectionChange.emit('');
+    this.value = "";
+    this.onChange("");
+    this.selectionChange.emit("");
     this.onTouched();
   }
 
@@ -727,7 +759,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     if (event) {
       event.stopPropagation();
     }
-    this.searchTerm = '';
+    this.searchTerm = "";
     this.highlightedIndex = -1;
     this.searchInput?.nativeElement?.focus();
   }
@@ -739,8 +771,10 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   private scrollHighlightedIntoView(): void {
     setTimeout(() => {
       const list = this.optionsList?.nativeElement;
-      const el = list?.querySelector('.option-item.is-highlighted') as HTMLElement | null;
-      el?.scrollIntoView({ block: 'nearest' });
+      const el = list?.querySelector(
+        ".option-item.is-highlighted",
+      ) as HTMLElement | null;
+      el?.scrollIntoView({ block: "nearest" });
     }, 0);
   }
 
@@ -756,7 +790,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     const opts = this.displayedOptions;
 
     switch (event.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         event.preventDefault();
         if (opts.length > 0) {
           this.highlightedIndex = (this.highlightedIndex + 1) % opts.length;
@@ -764,16 +798,18 @@ export class SearchableSelectComponent implements ControlValueAccessor {
         }
         break;
 
-      case 'ArrowUp':
+      case "ArrowUp":
         event.preventDefault();
         if (opts.length > 0) {
           this.highlightedIndex =
-            this.highlightedIndex <= 0 ? opts.length - 1 : this.highlightedIndex - 1;
+            this.highlightedIndex <= 0
+              ? opts.length - 1
+              : this.highlightedIndex - 1;
           this.scrollHighlightedIntoView();
         }
         break;
 
-      case 'Enter':
+      case "Enter":
         event.preventDefault();
         if (this.highlightedIndex >= 0 && this.highlightedIndex < opts.length) {
           this.selectOption(opts[this.highlightedIndex].value);
@@ -782,18 +818,18 @@ export class SearchableSelectComponent implements ControlValueAccessor {
         }
         break;
 
-      case 'Escape':
+      case "Escape":
         event.preventDefault();
         this.closeDropdown(true);
         break;
 
-      case 'Tab':
+      case "Tab":
         this.closeDropdown();
         break;
     }
   }
 
-  @HostListener('document:click', ['$event'])
+  @HostListener("document:click", ["$event"])
   onDocumentClick(event: MouseEvent): void {
     if (!this.isOpen) {
       return;
@@ -805,7 +841,7 @@ export class SearchableSelectComponent implements ControlValueAccessor {
     }
   }
 
-  @HostListener('document:keydown.escape')
+  @HostListener("document:keydown.escape")
   onDocumentEscape(): void {
     if (this.isOpen) {
       this.closeDropdown();

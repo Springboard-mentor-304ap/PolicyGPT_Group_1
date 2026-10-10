@@ -217,7 +217,7 @@
                 <div class="chatbot-result-card__head">
                   <span class="chatbot-result-card__num" aria-hidden="true">{{ cardNumber(msg, $index) }}</span>
                   <span class="chatbot-result-card__title">{{ item.title }}</span>
-                  @if (item.status) {
+                  @if (item.status && !isPublicRole) {
                   <span class="chatbot-badge" [ngClass]="statusClass(item.status)">
                     {{ item.status }}
                   </span>

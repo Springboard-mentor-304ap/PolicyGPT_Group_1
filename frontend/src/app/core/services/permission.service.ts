@@ -144,7 +144,7 @@ export class PermissionService {
     const upper = role.toUpperCase().trim();
     
     if (upper === 'ADMINISTRATOR' || upper === 'ADMIN') return 'ADMIN';
-    if (upper === 'GOVERNMENT_OFFICIAL' || upper === 'GOVERNMENT_OFFICER' || upper === 'GOVERNMENT' || upper === 'GOVT') return 'GOVERNMENT_OFFICIAL';
+    if (upper === 'GOVERNMENT_OFFICIAL' || upper === 'GOVERNMENT OFFICIAL' || upper === 'GOVERNMENT_OFFICER' || upper === 'GOVERNMENT' || upper === 'GOVT') return 'GOVERNMENT_OFFICIAL';
     if (upper === 'ORGANISATION') return 'ORGANIZATION';
     if (upper === 'CITIZEN') return 'CITIZEN';
     if (upper === 'RESEARCHER') return 'RESEARCHER';

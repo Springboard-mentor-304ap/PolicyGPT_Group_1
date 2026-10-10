@@ -49,7 +49,7 @@
          WORKFLOW STATUS ALERTS (No raw IDs)
          =================================================== -->
     <!-- REJECTED BANNER -->
-    <div class="workflow-alert alert-rejected" *ngIf="scheme.status === 'REJECTED'">
+    <div class="workflow-alert alert-rejected" *ngIf="scheme.status === 'REJECTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">warning</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- ARCHIVE REQUESTED BANNER -->
-    <div class="workflow-alert alert-archive-requested" *ngIf="scheme.status === 'ARCHIVE_REQUESTED'">
+    <div class="workflow-alert alert-archive-requested" *ngIf="scheme.status === 'ARCHIVE_REQUESTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">archive</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -89,7 +89,7 @@
     </div>
 
     <!-- DELETE REQUESTED BANNER -->
-    <div class="workflow-alert alert-delete-requested" *ngIf="scheme.status === 'DELETE_REQUESTED'">
+    <div class="workflow-alert alert-delete-requested" *ngIf="scheme.status === 'DELETE_REQUESTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">delete_forever</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -110,7 +110,7 @@
     </div>
 
     <!-- PENDING APPROVAL BANNER -->
-    <div class="workflow-alert alert-pending" *ngIf="scheme.status === 'PENDING_APPROVAL'">
+    <div class="workflow-alert alert-pending" *ngIf="scheme.status === 'PENDING_APPROVAL' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">schedule</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -126,8 +126,8 @@
     <div class="hero-card">
       <div class="hero-header-row">
         <!-- LEFT: Entity Icon -->
-        <div class="hero-avatar">
-          <span class="material-icons">account_balance</span>
+        <div class="hero-avatar" *ngIf="scheme" [ngStyle]="categoryIconStyle(scheme.category)">
+          <span class="material-icons">{{ categoryIcon(scheme.category) }}</span>
         </div>
 
         <!-- CENTER: Entity Name, Ministry, Category, Status, Description -->
@@ -145,7 +145,7 @@
               {{ scheme.category }}
             </span>
 
-            <span class="status-badge" [ngClass]="'status-' + scheme.status.toLowerCase()">
+            <span class="status-badge" *ngIf="!isPublicRole" [ngClass]="'status-' + scheme.status.toLowerCase()">
               {{ getStatusLabel(scheme.status) }}
             </span>
           </div>
@@ -160,7 +160,7 @@
           <!-- Bookmark Button -->
           <button type="button" class="btn-action-icon" (click)="toggleBookmark()" [title]="
               isBookmarked() ? 'Remove Bookmark' : 'Bookmark Scheme'
-            " [class.active]="isBookmarked()">
+            " [class.active]="isBookmarked()" [disabled]="bookmarkLoading">
             <span class="material-icons">
               {{ isBookmarked() ? 'bookmark' : 'bookmark_border' }}
             </span>

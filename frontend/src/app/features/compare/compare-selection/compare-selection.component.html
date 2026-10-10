@@ -141,12 +141,8 @@
         <button type="button" class="suggestion-item" *ngFor="let item of filteredItem1"
           (mousedown)="selectItem1(item); $event.preventDefault()">
 
-          <div class="suggestion-icon" [ngClass]="
-              item.type === 'Policy'
-                ? 'policy-type-icon'
-                : 'scheme-type-icon'
-            ">
-            {{ item.type === "Policy" ? "P" : "S" }}
+          <div class="suggestion-icon" [ngStyle]="categoryIconStyle(item.category)">
+            <span class="material-icons" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
           </div>
 
           <div class="suggestion-content">
@@ -178,12 +174,8 @@
       <!-- Selected Item -->
       <div class="selected-item" *ngIf="selectedItem1">
 
-        <div class="selected-icon" [ngClass]="
-            selectedItem1.type === 'Policy'
-              ? 'policy-type-icon'
-              : 'scheme-type-icon'
-          ">
-          {{ selectedItem1.type === "Policy" ? "P" : "S" }}
+        <div class="selected-icon" [ngStyle]="categoryIconStyle(selectedItem1.category)">
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(selectedItem1.category) }}</span>
         </div>
 
         <div class="selected-content">
@@ -245,12 +237,8 @@
         <button type="button" class="suggestion-item" *ngFor="let item of filteredItem2"
           (mousedown)="selectItem2(item); $event.preventDefault()">
 
-          <div class="suggestion-icon" [ngClass]="
-              item.type === 'Policy'
-                ? 'policy-type-icon'
-                : 'scheme-type-icon'
-            ">
-            {{ item.type === "Policy" ? "P" : "S" }}
+          <div class="suggestion-icon" [ngStyle]="categoryIconStyle(item.category)">
+            <span class="material-icons" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
           </div>
 
           <div class="suggestion-content">
@@ -282,12 +270,8 @@
       <!-- Selected Item -->
       <div class="selected-item" *ngIf="selectedItem2">
 
-        <div class="selected-icon" [ngClass]="
-            selectedItem2.type === 'Policy'
-              ? 'policy-type-icon'
-              : 'scheme-type-icon'
-          ">
-          {{ selectedItem2.type === "Policy" ? "P" : "S" }}
+        <div class="selected-icon" [ngStyle]="categoryIconStyle(selectedItem2.category)">
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(selectedItem2.category) }}</span>
         </div>
 
         <div class="selected-content">
@@ -359,12 +343,8 @@
         <button type="button" class="suggestion-item" *ngFor="let item of filteredItem3"
           (mousedown)="selectItem3(item); $event.preventDefault()">
 
-          <div class="suggestion-icon" [ngClass]="
-              item.type === 'Policy'
-                ? 'policy-type-icon'
-                : 'scheme-type-icon'
-            ">
-            {{ item.type === "Policy" ? "P" : "S" }}
+          <div class="suggestion-icon" [ngStyle]="categoryIconStyle(item.category)">
+            <span class="material-icons" aria-hidden="true">{{ categoryIcon(item.category) }}</span>
           </div>
 
           <div class="suggestion-content">
@@ -396,12 +376,8 @@
       <!-- Selected Item -->
       <div class="selected-item" *ngIf="selectedItem3">
 
-        <div class="selected-icon" [ngClass]="
-            selectedItem3.type === 'Policy'
-              ? 'policy-type-icon'
-              : 'scheme-type-icon'
-          ">
-          {{ selectedItem3.type === "Policy" ? "P" : "S" }}
+        <div class="selected-icon" [ngStyle]="categoryIconStyle(selectedItem3.category)">
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(selectedItem3.category) }}</span>
         </div>
 
         <div class="selected-content">

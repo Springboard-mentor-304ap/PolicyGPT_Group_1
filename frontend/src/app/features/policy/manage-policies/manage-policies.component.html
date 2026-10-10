@@ -276,14 +276,22 @@
                             </td>
 
                             <td class="policy-cell">
-                                <button type="button" class="policy-name"
-                                    (click)="viewPolicy(policy); $event.stopPropagation()">
-                                    {{ policy.title }}
-                                </button>
+                                <div class="policy-cell__row">
+                                    <span class="category-mini" [ngStyle]="categoryIconStyle(policy.category)">
+                                        <span class="material-icons"
+                                            aria-hidden="true">{{ categoryIcon(policy.category) }}</span>
+                                    </span>
+                                    <div class="policy-cell__text">
+                                        <button type="button" class="policy-name"
+                                            (click)="viewPolicy(policy); $event.stopPropagation()">
+                                            {{ policy.title }}
+                                        </button>
 
-                                @if (policy.description) {
-                                <p>{{ policy.description }}</p>
-                                }
+                                        @if (policy.description) {
+                                        <p>{{ policy.description }}</p>
+                                        }
+                                    </div>
+                                </div>
                             </td>
 
                             <td>

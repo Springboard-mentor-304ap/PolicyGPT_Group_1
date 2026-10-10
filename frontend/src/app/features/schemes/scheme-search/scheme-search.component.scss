@@ -684,6 +684,14 @@ $danger-soft: #fdf0ee;
   display: block;
 }
 
+// Category glyph (centralized mapping; container colors are bound
+// from the category via [ngStyle] in the template).
+.scheme-icon .material-icons {
+  font-size: 25px;
+  line-height: 1;
+  display: block;
+}
+
 // ============================================================
 // SCHEME CONTENT
 // ============================================================
@@ -891,15 +899,34 @@ $danger-soft: #fdf0ee;
   }
 
   &.bookmarked {
-    color: #c58b00;
-    background: #fff8e4;
-    border-color: #ecd58e;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+
+    &:hover {
+      color: #1e40af;
+      border-color: #93c5fd;
+      background: #dbeafe;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #1d4ed8;
+    outline-offset: 2px;
   }
 }
 
 .bookmark-button svg {
   width: 20px;
   height: 20px;
+}
+
+.bookmark-button svg path {
+  transition: fill 0.2s ease;
+}
+
+.bookmark-button.bookmarked svg path {
+  fill: currentColor;
 }
 
 // ============================================================
@@ -1309,6 +1336,10 @@ $danger-soft: #fdf0ee;
   .scheme-icon svg {
     width: 22px;
     height: 22px;
+  }
+
+  .scheme-icon .material-icons {
+    font-size: 22px;
   }
 
   .scheme-content {

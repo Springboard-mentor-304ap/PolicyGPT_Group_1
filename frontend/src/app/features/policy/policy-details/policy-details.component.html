@@ -49,7 +49,7 @@
          WORKFLOW STATUS ALERTS (No raw IDs)
          =================================================== -->
     <!-- REJECTED BANNER -->
-    <div class="workflow-alert alert-rejected" *ngIf="policy.status === 'REJECTED'">
+    <div class="workflow-alert alert-rejected" *ngIf="policy.status === 'REJECTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">warning</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- ARCHIVE REQUESTED BANNER -->
-    <div class="workflow-alert alert-archive-requested" *ngIf="policy.status === 'ARCHIVE_REQUESTED'">
+    <div class="workflow-alert alert-archive-requested" *ngIf="policy.status === 'ARCHIVE_REQUESTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">archive</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -89,7 +89,7 @@
     </div>
 
     <!-- DELETE REQUESTED BANNER -->
-    <div class="workflow-alert alert-delete-requested" *ngIf="policy.status === 'DELETE_REQUESTED'">
+    <div class="workflow-alert alert-delete-requested" *ngIf="policy.status === 'DELETE_REQUESTED' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">delete_forever</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -110,7 +110,7 @@
     </div>
 
     <!-- PENDING APPROVAL BANNER -->
-    <div class="workflow-alert alert-pending" *ngIf="policy.status === 'PENDING_APPROVAL'">
+    <div class="workflow-alert alert-pending" *ngIf="policy.status === 'PENDING_APPROVAL' && !isPublicRole">
       <div class="alert-icon"><span class="material-icons">schedule</span></div>
       <div class="alert-content">
         <div class="alert-heading">
@@ -126,8 +126,8 @@
     <div class="hero-card">
       <div class="hero-header-row">
         <!-- LEFT: Entity Icon -->
-        <div class="hero-avatar">
-          <span class="material-icons">article</span>
+        <div class="hero-avatar" *ngIf="policy" [ngStyle]="categoryIconStyle(policy.category)">
+          <span class="material-icons">{{ categoryIcon(policy.category) }}</span>
         </div>
 
         <!-- CENTER: Entity Name, Ministry, Category, Status, Description -->
@@ -145,7 +145,7 @@
               {{ policy.category }}
             </span>
 
-            <span class="status-badge" [ngClass]="'status-' + policy.status.toLowerCase()">
+            <span class="status-badge" *ngIf="!isPublicRole" [ngClass]="'status-' + policy.status.toLowerCase()">
               {{ getStatusLabel(policy.status) }}
             </span>
           </div>
@@ -160,7 +160,7 @@
           <!-- Bookmark Button -->
           <button type="button" class="btn-action-icon" (click)="toggleBookmark()" [title]="
               isBookmarked() ? 'Remove Bookmark' : 'Bookmark Policy'
-            " [class.active]="isBookmarked()">
+            " [class.active]="isBookmarked()" [disabled]="bookmarkLoading">
             <span class="material-icons">
               {{ isBookmarked() ? 'bookmark' : 'bookmark_border' }}
             </span>
@@ -402,7 +402,7 @@
         <div class="detail-card highlights-card">
           <h3>Policy Highlights</h3>
 
-          <div class="highlight-item">
+          <div class="highlight-item" *ngIf="!isPublicRole">
             <div class="highlight-icon"><span class="material-icons">verified</span></div>
             <div>
               <label>Current Status</label>

@@ -769,3 +769,44 @@ html,
 body {
   color-scheme: light only !important;
 }
+
+/* =========================================================
+   CATEGORY ICONS (centralized mapping)
+   Shared hooks for policy/scheme category icons. Colors mirror
+   `core/utils/category-icon.util.ts`. Components may either use
+   <app-category-icon> or bind `[ngStyle]="getCategoryIconStyle(..)"`
+   on their existing icon containers; these classes keep the
+   container geometry consistent where the component is inlined
+   in tables/lists.
+   ========================================================= */
+.category-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  line-height: 1;
+}
+
+.category-icon .material-icons {
+  font-size: inherit;
+  line-height: 1;
+}
+
+.category-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.category-mini .material-icons {
+  font-size: 17px;
+  line-height: 1;
+}

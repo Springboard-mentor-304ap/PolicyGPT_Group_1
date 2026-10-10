@@ -506,17 +506,36 @@ $danger-light: #fee2e2;
 
 .table-header,
 .table-row {
-  min-width: 1000px;
+  min-width: 1040px;
   display: grid;
   grid-template-columns:
-    minmax(270px, 2fr)
-    minmax(110px, 0.8fr)
-    minmax(150px, 1fr)
-    minmax(110px, 0.8fr)
+    minmax(300px, 2.4fr)
+    minmax(140px, 1fr)
+    minmax(180px, 1.2fr)
+    minmax(120px, 0.9fr)
     minmax(120px, 0.8fr)
-    minmax(100px, 0.7fr)
-    80px;
+    76px;
+  column-gap: 20px;
   align-items: center;
+}
+
+// Grid children must be allowed to shrink below content size so long
+// names truncate with ellipses instead of forcing tracks wider.
+.table-header > div,
+.table-row > div {
+  min-width: 0;
+}
+
+// Public roles hide the Status column (see hide-status binding):
+// drop its track so header and rows stay aligned.
+.items-table.hide-status .table-header,
+.items-table.hide-status .table-row {
+  grid-template-columns:
+    minmax(300px, 2.4fr)
+    minmax(140px, 1fr)
+    minmax(180px, 1.2fr)
+    minmax(120px, 0.9fr)
+    76px;
 }
 
 .table-header {
@@ -584,7 +603,7 @@ $danger-light: #fee2e2;
 
 .item-title {
   display: block;
-  max-width: 320px;
+  width: 100%;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -612,7 +631,6 @@ $danger-light: #fee2e2;
 
 .metadata {
   display: block;
-  max-width: 150px;
   overflow: hidden;
   color: #334155;
   font-size: 13px;
@@ -699,27 +717,41 @@ $danger-light: #fee2e2;
 }
 
 .view-button {
-  color: #5c6e88;
+  color: $blue;
 
   &:hover {
-    background: $blue-light;
-    border-color: #c3d9ff;
-    color: $blue;
+    background: rgba(8, 121, 237, 0.08);
+    border-color: transparent;
+    color: $blue-dark;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue;
+    outline-offset: 2px;
   }
 }
 
 .remove-button {
-  color: #9a5c5c;
+  color: $blue;
+  background: transparent;
+  border-color: transparent;
 
   &:hover {
-    background: #fef2f2;
-    border-color: #fca5a5;
-    color: $danger;
+    background: rgba(8, 121, 237, 0.08);
+    border-color: transparent;
+    color: $blue-dark;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue;
+    outline-offset: 2px;
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: transparent;
+    border-color: transparent;
   }
 }
 

@@ -13,6 +13,10 @@ import { SearchHistoryService, SearchHistoryItem } from "../../../../core/servic
 import { SavedItemsService, SavedPolicyItem, SavedSchemeItem } from "../../../../core/services/saved-items.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+} from "../../../../core/utils/category-icon.util";
 
 // =====================================================
 // STAT CARD
@@ -30,21 +34,23 @@ export interface StatCard {
 // SCHEME ITEM
 // =====================================================
 
-export interface SchemeItem {
+export interface SchemeItem extends CategoryIconFields {
   id?: number;
   name: string;
   ministry: string;
+  category?: string | null;
 }
 
 // =====================================================
 // POLICY ITEM
 // =====================================================
 
-export interface PolicyItem {
+export interface PolicyItem extends CategoryIconFields {
   id?: number;
   name: string;
   ministry: string;
   savedOn: string;
+  category?: string | null;
 }
 
 // =====================================================
@@ -60,11 +66,12 @@ export interface HistoryItem {
 // SAVED ITEMS PREVIEW
 // =====================================================
 
-export interface SavedItemPreview {
+export interface SavedItemPreview extends CategoryIconFields {
   kind: "policy" | "scheme";
   id?: number;
   name: string;
   ministry: string;
+  category?: string | null;
 }
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
@@ -179,6 +186,8 @@ export class CitizenComponent implements OnInit {
       id: p.policy_id,
       name: p.title || "Untitled Policy",
       ministry: p.ministry || p.department || "Government of India",
+      category: p.category ?? null,
+      ...categoryIconFields(p.category),
     }));
     const schemePreviews: SavedItemPreview[] = (
       Array.isArray(savedSchemes) ? savedSchemes : []
@@ -187,6 +196,8 @@ export class CitizenComponent implements OnInit {
       id: s.scheme_id,
       name: s.name || "Untitled Scheme",
       ministry: s.ministry || s.department || "Government of India",
+      category: s.category ?? null,
+      ...categoryIconFields(s.category),
     }));
     return [...policyPreviews, ...schemePreviews].slice(0, Math.max(0, limit));
   }
@@ -337,6 +348,8 @@ export class CitizenComponent implements OnInit {
           id: s.scheme_id,
           name: s.name || (s as any).title || "Untitled Scheme",
           ministry: s.ministry || s.department || "Government of India",
+          category: s.category ?? null,
+          ...categoryIconFields(s.category),
         }));
         this.loadingSchemes = false;
 
@@ -346,6 +359,8 @@ export class CitizenComponent implements OnInit {
           name: p.title || "Untitled Policy",
           ministry: p.ministry || p.department || "Government of India",
           savedOn: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
+          category: p.category ?? null,
+          ...categoryIconFields(p.category),
         }));
         this.loadingPolicies = false;
 

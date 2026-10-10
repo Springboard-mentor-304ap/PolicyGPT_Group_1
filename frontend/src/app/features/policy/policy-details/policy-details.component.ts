@@ -12,6 +12,7 @@ import { catchError, finalize, of } from "rxjs";
 import { PolicyService } from "../../../core/services/policy.service";
 import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { Auth } from "../../../core/services/auth";
+import { PermissionService } from "../../../core/services/permission.service";
 import {
   PolicyResponse,
   PolicyStatus,
@@ -22,6 +23,11 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 interface EligibilityRule {
   rule_id: number;
@@ -60,10 +66,14 @@ export class PolicyDetailsComponent implements OnInit {
   private readonly policyService = inject(PolicyService);
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly auth = inject(Auth);
+  private readonly permissions = inject(PermissionService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   bookmarked = false;
-  bookmarkLoading = false;
+  bookmarkLoading = true;
+
+  /** Local mirror key shared with Policy Search for staff roles. */
+  private readonly bookmarkStorageKey = "policy_bookmarks";
 
   activeTab: "overview" | "eligibility" | "benefits" | "documents" = "overview";
   policy: PolicyResponse | null = null;
@@ -114,6 +124,29 @@ export class PolicyDetailsComponent implements OnInit {
 
   get canViewAudit(): boolean {
     return this.isAdmin || this.isGov;
+  }
+
+  /**
+   * Roles with API-backed saved items (mirrors Policy Search).
+   * Admin/Government use the shared local mirror; guests keep the
+   * existing API behavior.
+   */
+  private get canUseSavedItems(): boolean {
+    return (
+      this.userRole === "CITIZEN" ||
+      this.userRole === "RESEARCHER" ||
+      this.userRole === "ORGANIZATION" ||
+      this.userRole === "ORGANISATION"
+    );
+  }
+
+  /**
+   * Public roles (Citizen, Researcher, Organization, Guest) never see
+   * internal workflow statuses (badges/banners). Admin and Government
+   * Official retain full visibility.
+   */
+  get isPublicRole(): boolean {
+    return this.permissions.isPublicRole(this.userRole);
   }
 
   get rolePrefix(): string {
@@ -372,7 +405,14 @@ export class PolicyDetailsComponent implements OnInit {
 
   toggleBookmark(): void {
     if (!this.policy || this.bookmarkLoading) return;
-    const id = this.policy.policy_id;
+    const id = Number(this.policy.policy_id);
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+    if (!this.canUseSavedItems && (this.isAdmin || this.isGov)) {
+      this.toggleLocalBookmark(id);
+      return;
+    }
     this.bookmarkLoading = true;
     if (!this.bookmarked) {
       this.savedItemsService.savePolicy(id).subscribe({
@@ -406,16 +446,65 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   private loadBookmarkState(policyId: number): void {
-    this.savedItemsService.isPolicySaved(policyId).subscribe({
+    const id = Number(policyId);
+    if (!Number.isFinite(id) || id <= 0) {
+      this.bookmarked = false;
+      this.bookmarkLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    if (!this.canUseSavedItems && (this.isAdmin || this.isGov)) {
+      this.bookmarked = this.getLocalBookmarks().includes(id);
+      this.bookmarkLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    this.savedItemsService.isPolicySaved(id).subscribe({
       next: (res) => {
         this.bookmarked = !!res?.saved;
+        this.bookmarkLoading = false;
         this.cdr.detectChanges();
       },
       error: () => {
         this.bookmarked = false;
+        this.bookmarkLoading = false;
         this.cdr.detectChanges();
       },
     });
+  }
+
+  /** Staff-role local toggle mirroring Policy Search (same storage key). */
+  private toggleLocalBookmark(id: number): void {
+    const bookmarks = this.getLocalBookmarks();
+    const index = bookmarks.indexOf(id);
+    if (index === -1) {
+      bookmarks.push(id);
+    } else {
+      bookmarks.splice(index, 1);
+    }
+    try {
+      localStorage.setItem(this.bookmarkStorageKey, JSON.stringify(bookmarks));
+    } catch {
+      // Ignore localStorage errors
+    }
+    this.bookmarked = index === -1;
+    this.cdr.detectChanges();
+  }
+
+  private getLocalBookmarks(): number[] {
+    try {
+      const stored = localStorage.getItem(this.bookmarkStorageKey);
+      if (!stored) {
+        return [];
+      }
+      const parsed: unknown = JSON.parse(stored);
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+      return parsed.map(Number).filter((v) => Number.isFinite(v));
+    } catch {
+      return [];
+    }
   }
 
   sharePolicy(): void {
@@ -461,6 +550,22 @@ export class PolicyDetailsComponent implements OnInit {
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  /*
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page; bookmark state stays separate).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 
   formatDate(date: string | null | undefined): string {

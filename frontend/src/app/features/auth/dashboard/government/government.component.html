@@ -159,11 +159,10 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--health">
+          <div class="dash-list__icon-wrap" [ngStyle]="scheme.catStyle">
 
             <span class="material-icons">
-              account_balance
+              {{ scheme.catIcon }}
             </span>
 
           </div>
@@ -269,11 +268,10 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--neutral">
+          <div class="dash-list__icon-wrap" [ngStyle]="policy.catStyle">
 
             <span class="material-icons">
-              policy
+              {{ policy.catIcon }}
             </span>
 
           </div>

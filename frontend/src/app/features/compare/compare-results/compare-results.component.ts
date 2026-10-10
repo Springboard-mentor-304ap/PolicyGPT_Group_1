@@ -20,6 +20,10 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 export type CompareEntity = PolicyResponse | SchemeResponse;
 
@@ -278,54 +282,30 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     return data?.ministry || item?.ministry || "-";
   }
 
-  getIconType(
+  /**
+   * Category for icon resolution. Uses only the actual category field
+   * (never infers from titles/descriptions).
+   */
+  getItemCategory(
     item: CompareItem | null,
     data: CompareEntity | null,
-  ): "education" | "health" | "agriculture" | "scheme" | "policy" {
-    const textToMatch =
-      `${item?.title || ""} ` +
-      `${item?.category || ""} ` +
-      `${data?.category || ""}`.toLowerCase();
-
-    if (textToMatch.includes("education")) {
-      return "education";
-    }
-
-    if (textToMatch.includes("health")) {
-      return "health";
-    }
-
-    if (textToMatch.includes("agriculture")) {
-      return "agriculture";
-    }
-
-    if (item?.type === "Scheme" || this.isScheme(data)) {
-      return "scheme";
-    }
-
-    return "policy";
+  ): string {
+    return item?.category || (data as any)?.category || "";
   }
 
   getIconSymbol(item: CompareItem | null, data: CompareEntity | null): string {
-    const type = this.getIconType(item, data);
+    return getCategoryIconName(this.getItemCategory(item, data));
+  }
 
-    switch (type) {
-      case "education":
-        return "school";
-
-      case "health":
-        return "medical_services";
-
-      case "agriculture":
-        return "eco";
-
-      case "scheme":
-        return "assignment";
-
-      case "policy":
-      default:
-        return "account_balance";
-    }
+  getItemIconStyle(
+    item: CompareItem | null,
+    data: CompareEntity | null,
+  ): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(this.getItemCategory(item, data));
   }
 
   getValue(data: CompareEntity | null, field: string): string {

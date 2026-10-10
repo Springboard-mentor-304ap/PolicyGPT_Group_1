@@ -128,12 +128,10 @@
 
         <li class="dash-list__item" (click)="openResearchItem(item)" style="cursor: pointer;">
 
-          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--edu]="item.type === 'policy'"
-            [class.dash-list__icon-wrap--health]="item.type === 'scheme'"
-            [class.dash-list__icon-wrap--work]="item.type === 'compare' || item.type === 'analytics'">
+          <div class="dash-list__icon-wrap" [ngStyle]="item.catStyle">
 
             <span class="material-icons">
-              {{ item.icon }}
+              {{ item.catIcon }}
             </span>
 
           </div>

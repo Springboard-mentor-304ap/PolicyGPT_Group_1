@@ -279,22 +279,30 @@
                             </td>
 
                             <td class="policy-cell">
-                                <button type="button" class="policy-name"
-                                    (click)="viewScheme(scheme); $event.stopPropagation()">
-                                    {{ scheme.name || scheme.title }}
-                                </button>
+                                <div class="policy-cell__row">
+                                    <span class="category-mini" [ngStyle]="categoryIconStyle(scheme.category)">
+                                        <span class="material-icons"
+                                            aria-hidden="true">{{ categoryIcon(scheme.category) }}</span>
+                                    </span>
+                                    <div class="policy-cell__text">
+                                        <button type="button" class="policy-name"
+                                            (click)="viewScheme(scheme); $event.stopPropagation()">
+                                            {{ scheme.name || scheme.title }}
+                                        </button>
 
-                                @if (scheme.description) {
-                                <p>{{ scheme.description }}</p>
-                                }
+                                        @if (scheme.description) {
+                                        <p>{{ scheme.description }}</p>
+                                        }
 
-                                @if (scheme.category || scheme.ministry) {
-                                <div class="scheme-meta-tags">
-                                    <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
-                                    <span class="meta-dot" *ngIf="scheme.category && scheme.ministry">•</span>
-                                    <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry }}</span>
+                                        @if (scheme.category || scheme.ministry) {
+                                        <div class="scheme-meta-tags">
+                                            <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
+                                            <span class="meta-dot" *ngIf="scheme.category && scheme.ministry">•</span>
+                                            <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry }}</span>
+                                        </div>
+                                        }
+                                    </div>
                                 </div>
-                                }
                             </td>
 
                             <td>

@@ -338,28 +338,9 @@
 
         <!-- Scheme Icon -->
 
-        <div class="scheme-icon">
+        <div class="scheme-icon" [ngStyle]="categoryIconStyle(scheme.category)">
 
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-
-            <!-- Document -->
-
-            <path d="M7 3.5H14L19 8.5V20.5H7C5.89543 20.5 5 19.6046 5 18.5V5.5C5 4.39543 5.89543 3.5 7 3.5Z"
-              stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-
-            <!-- Folded Corner -->
-
-            <path d="M14 3.5V8.5H19" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-
-            <!-- Document Lines -->
-
-            <path d="M8.5 12H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-            <path d="M8.5 15.5H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-            <path d="M8.5 8.5H11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-          </svg>
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(scheme.category) }}</span>
 
         </div>
 

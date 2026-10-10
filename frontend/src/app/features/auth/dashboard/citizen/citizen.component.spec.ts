@@ -4,6 +4,7 @@ import { of, throwError } from "rxjs";
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
 import { CitizenComponent } from "./citizen.component";
+import { categoryIconFields } from "../../../../core/utils/category-icon.util";
 import { Auth } from "../../../../core/services/auth";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
@@ -246,7 +247,13 @@ describe("CitizenComponent", () => {
     component.searchHistory = [{ name: "Scholarship", filters: "schemes" }];
     component.loadingSavedItems = false;
     component.savedItemsPreview = [
-      { kind: "policy", id: 50, name: "National Education Policy", ministry: "Ministry of Education" },
+      {
+        kind: "policy",
+        id: 50,
+        name: "National Education Policy",
+        ministry: "Ministry of Education",
+        ...categoryIconFields("Education"),
+      },
     ];
     expect(component.showHistoryPanel).toBe(true);
     expect(component.showSavedItemsPanel).toBe(true);

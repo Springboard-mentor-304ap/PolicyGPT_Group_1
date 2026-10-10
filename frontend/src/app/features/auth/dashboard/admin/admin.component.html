@@ -122,15 +122,10 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--health]="
-                scheme.iconClass === 'health' ||
-                scheme.iconClass === 'sun' ||
-                scheme.iconClass === 'work' ||
-                scheme.iconClass === 'edu'
-              ">
+          <div class="dash-list__icon-wrap" [ngStyle]="scheme.catStyle">
 
             <span class="material-icons">
-              {{ scheme.icon || 'article' }}
+              {{ scheme.catIcon }}
             </span>
 
           </div>
@@ -213,8 +208,16 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__details
-                     dash-list__details--no-icon">
+          <div class="dash-list__icon-wrap" [ngStyle]="policy.catStyle">
+
+            <span class="material-icons">
+              {{ policy.catIcon }}
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
 
             <p class="dash-list__title">
               {{ policy.title }}

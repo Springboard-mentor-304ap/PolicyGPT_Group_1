@@ -249,7 +249,7 @@
 
   .material-icons {
     font-size: 30px;
-    color: #1d4ed8;
+    color: inherit;
   }
 }
 
@@ -404,6 +404,11 @@
       background: #eff6ff;
       border-color: #bfdbfe;
       color: #1d4ed8;
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
     }
   }
 }

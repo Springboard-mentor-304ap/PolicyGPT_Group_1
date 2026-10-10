@@ -101,10 +101,7 @@
     <!-- ITEM 1 -->
     <div class="item-card">
 
-      <div class="item-icon" [ngClass]="
-          getIconType(item1, data1) +
-          '-icon'
-        ">
+      <div class="item-icon" [ngStyle]="getItemIconStyle(item1, data1)">
         <span class="material-icons icon-symbol">
           {{ getIconSymbol(item1, data1) }}
         </span>
@@ -138,10 +135,7 @@
     <!-- ITEM 2 -->
     <div class="item-card">
 
-      <div class="item-icon" [ngClass]="
-          getIconType(item2, data2) +
-          '-icon'
-        ">
+      <div class="item-icon" [ngStyle]="getItemIconStyle(item2, data2)">
         <span class="material-icons icon-symbol">
           {{ getIconSymbol(item2, data2) }}
         </span>
@@ -175,10 +169,7 @@
     <!-- ITEM 3 -->
     <div class="item-card" *ngIf="item3 && data3">
 
-      <div class="item-icon" [ngClass]="
-          getIconType(item3, data3) +
-          '-icon'
-        ">
+      <div class="item-icon" [ngStyle]="getItemIconStyle(item3, data3)">
         <span class="material-icons icon-symbol">
           {{ getIconSymbol(item3, data3) }}
         </span>

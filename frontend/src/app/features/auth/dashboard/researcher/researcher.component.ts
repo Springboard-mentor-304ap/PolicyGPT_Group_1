@@ -24,6 +24,10 @@ import { SavedItemsService } from "../../../../core/services/saved-items.service
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+} from "../../../../core/utils/category-icon.util";
 
 /* =========================================================
    TYPES
@@ -37,13 +41,14 @@ export interface ResearchStat {
   type: "blue" | "orange" | "green" | "purple";
 }
 
-export interface ResearchItem {
+export interface ResearchItem extends CategoryIconFields {
   id?: number;
   icon: string;
   title: string;
   description: string;
   date: string;
   type: "policy" | "scheme" | "compare" | "analytics";
+  category?: string | null;
 }
 
 export interface QuickAction {
@@ -305,6 +310,8 @@ export class ResearcherComponent implements OnInit {
               ? new Date(p.created_at).toLocaleDateString()
               : "Recent",
             type: "policy",
+            category: p.category ?? null,
+            ...categoryIconFields(p.category),
           });
         });
 
@@ -321,6 +328,8 @@ export class ResearcherComponent implements OnInit {
               ? new Date(s.created_at).toLocaleDateString()
               : "Recent",
             type: "scheme",
+            category: s.category ?? null,
+            ...categoryIconFields(s.category),
           });
         });
 

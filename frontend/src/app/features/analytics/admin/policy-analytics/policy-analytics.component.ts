@@ -18,6 +18,11 @@ import {
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../../core/utils/category-icon.util";
 
 @Component({
   selector: "app-policy-analytics",
@@ -344,5 +349,21 @@ export class PolicyAnalyticsComponent implements OnInit {
       default:
         return "chip-gray";
     }
+  }
+
+  /**
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page, including analytics lists).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 }

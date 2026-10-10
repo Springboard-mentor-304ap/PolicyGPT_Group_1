@@ -17,6 +17,11 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 interface SelectableEntity {
   id: number;
@@ -589,5 +594,21 @@ export class EligibilitySpecific implements OnInit, OnDestroy {
       this.toastMessage = null;
       this.cdr.detectChanges();
     }, 3500);
+  }
+
+  /**
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 }

@@ -5,6 +5,7 @@ import { Router, RouterLink } from "@angular/router";
 
 import { Auth } from "../../core/services/auth";
 import { ChatbotService } from "../../core/services/chatbot.service";
+import { PermissionService } from "../../core/services/permission.service";
 import { ToastService } from "../../core/services/toast.service";
 import {
   ChatAction,
@@ -123,6 +124,7 @@ export interface ConversationGroup {
 export class ChatbotComponent {
   private readonly chatbot = inject(ChatbotService);
   private readonly auth = inject(Auth);
+  private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
@@ -220,6 +222,15 @@ export class ChatbotComponent {
 
   get userRole(): string {
     return (this.auth.getUserRole() || "GUEST").toUpperCase().trim();
+  }
+
+  /**
+   * Public roles (Citizen, Researcher, Organization, Guest) never see
+   * internal workflow statuses on result cards. Admin and Government
+   * Official retain full visibility.
+   */
+  get isPublicRole(): boolean {
+    return this.permissions.isPublicRole(this.userRole);
   }
 
   get displayName(): string {

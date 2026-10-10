@@ -13,6 +13,12 @@ import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+  getCategoryIconClass,
+  getCategoryIconName,
+} from "../../../../core/utils/category-icon.util";
 
 // =========================================================
 // STAT CARD
@@ -31,12 +37,13 @@ export interface StatCard {
 // LIST ITEM
 // =========================================================
 
-export interface ListItem {
+export interface ListItem extends CategoryIconFields {
   id: number;
   title: string;
   ministry: string;
   icon?: string;
   iconClass?: string;
+  category?: string | null;
 }
 
 // =========================================================
@@ -221,6 +228,8 @@ export class AdminComponent implements OnInit {
           ministry: s.ministry || s.department || "Government of India",
           icon: this.getSchemeIcon(s.category),
           iconClass: this.getSchemeIconClass(s.category),
+          category: s.category ?? null,
+          ...categoryIconFields(s.category),
         }));
         this.loadingSchemes = false;
         this.cdr.detectChanges();
@@ -248,6 +257,8 @@ export class AdminComponent implements OnInit {
           id: p.policy_id,
           title: p.title || "Untitled Policy",
           ministry: p.ministry || p.department || "Government of India",
+          category: p.category ?? null,
+          ...categoryIconFields(p.category),
         }));
         this.loadingPolicies = false;
         this.cdr.detectChanges();
@@ -262,20 +273,10 @@ export class AdminComponent implements OnInit {
   }
 
   private getSchemeIcon(category?: string | null): string {
-    const cat = (category || "").toLowerCase();
-    if (cat.includes("health")) return "health_and_safety";
-    if (cat.includes("energy") || cat.includes("solar")) return "wb_sunny";
-    if (cat.includes("education") || cat.includes("scholarship")) return "school";
-    if (cat.includes("work") || cat.includes("enterprise") || cat.includes("msme")) return "engineering";
-    return "article";
+    return getCategoryIconName(category);
   }
 
   private getSchemeIconClass(category?: string | null): string {
-    const cat = (category || "").toLowerCase();
-    if (cat.includes("health")) return "health";
-    if (cat.includes("energy") || cat.includes("solar")) return "sun";
-    if (cat.includes("education") || cat.includes("scholarship")) return "edu";
-    if (cat.includes("work") || cat.includes("enterprise") || cat.includes("msme")) return "work";
-    return "default";
+    return getCategoryIconClass(category);
   }
 }

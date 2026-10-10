@@ -106,8 +106,8 @@
         <!-- Selected Entity Summary Preview (when an entity is chosen) -->
         <div class="selected-preview" *ngIf="selectedEntity">
           <div class="preview-header">
-            <div class="preview-icon-badge">
-              <span class="material-icons">{{ entityType === 'scheme' ? 'assignment' : 'account_balance' }}</span>
+            <div class="preview-icon-badge" [ngStyle]="categoryIconStyle(selectedEntity.category)">
+              <span class="material-icons">{{ categoryIcon(selectedEntity.category) }}</span>
             </div>
             <div class="preview-title-block">
               <span class="preview-eyebrow">

@@ -19,6 +19,11 @@ import { OverlayModule, ConnectedPosition } from "@angular/cdk/overlay";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 export interface PolicyTableItem {
   id: number;
@@ -772,6 +777,18 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   getCategoryClass(category: string): string {
     return (category || "").toLowerCase().replace(/\s+/g, "-");
+  }
+
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 
   trackByPolicy(_index: number, policy: PolicyTableItem): number {

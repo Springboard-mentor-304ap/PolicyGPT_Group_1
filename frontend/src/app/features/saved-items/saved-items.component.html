@@ -14,20 +14,6 @@
         you have saved for later.
       </p>
     </div>
-
-    <div class="header-right">
-      <button type="button" class="btn btn-outline refresh-btn" (click)="loadSavedItems()"
-        aria-label="Refresh saved items">
-        <span class="material-icons" aria-hidden="true">
-          refresh
-        </span>
-
-        <span>
-          Refresh
-        </span>
-      </button>
-    </div>
-
   </header>
 
 
@@ -222,7 +208,7 @@
       </div>
 
 
-      <div class="items-table">
+      <div class="items-table" [class.hide-status]="isPublicRole">
 
         <div class="table-header">
 
@@ -230,7 +216,7 @@
           <div>Category</div>
           <div>Department</div>
           <div>State</div>
-          <div>Status</div>
+          <div *ngIf="!isPublicRole">Status</div>
           <div></div>
 
         </div>
@@ -243,9 +229,9 @@
 
           <div class="item-name">
 
-            <div class="item-type-icon policy">
+            <div class="item-type-icon policy" [ngStyle]="categoryIconStyle(policy.category)">
               <span class="material-icons" aria-hidden="true">
-                description
+                {{ categoryIcon(policy.category) }}
               </span>
             </div>
 
@@ -283,7 +269,7 @@
           </div>
 
 
-          <div>
+          <div *ngIf="!isPublicRole">
             <span class="status-badge" [class]="getStatusClass(policy.status)">
               {{ formatStatus(policy.status) }}
             </span>
@@ -361,7 +347,7 @@
       </div>
 
 
-      <div class="items-table">
+      <div class="items-table" [class.hide-status]="isPublicRole">
 
         <div class="table-header">
 
@@ -369,7 +355,7 @@
           <div>Category</div>
           <div>Department</div>
           <div>State</div>
-          <div>Status</div>
+          <div *ngIf="!isPublicRole">Status</div>
           <div></div>
 
         </div>
@@ -382,9 +368,9 @@
 
           <div class="item-name">
 
-            <div class="item-type-icon scheme">
+            <div class="item-type-icon scheme" [ngStyle]="categoryIconStyle(scheme.category)">
               <span class="material-icons" aria-hidden="true">
-                account_balance
+                {{ categoryIcon(scheme.category) }}
               </span>
             </div>
 
@@ -424,7 +410,7 @@
           </div>
 
 
-          <div>
+          <div *ngIf="!isPublicRole">
             <span class="status-badge" [class]="getStatusClass(scheme.status)">
               {{ formatStatus(scheme.status) }}
             </span>

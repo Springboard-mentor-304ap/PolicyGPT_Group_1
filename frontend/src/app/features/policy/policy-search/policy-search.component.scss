@@ -822,6 +822,17 @@ $danger-soft: #fdf0ee;
   display: block;
 }
 
+// Category glyph (centralized mapping; container colors are bound
+// from the category via [ngStyle] in the template).
+
+.policy-icon .material-icons {
+  font-size: 25px;
+
+  line-height: 1;
+
+  display: block;
+}
+
 // ============================================================
 // POLICY CONTENT
 // ============================================================
@@ -1044,6 +1055,10 @@ $danger-soft: #fdf0ee;
   height: 20px;
 }
 
+.bookmark-button svg path {
+  transition: fill 0.2s ease;
+}
+
 .bookmark-button:hover {
   color: $primary;
 
@@ -1053,11 +1068,29 @@ $danger-soft: #fdf0ee;
 }
 
 .bookmark-button.bookmarked {
-  color: #c58b00;
+  color: #1d4ed8;
 
-  background: #fff8e4;
+  background: #eff6ff;
 
-  border-color: #ecd58e;
+  border-color: #bfdbfe;
+}
+
+.bookmark-button.bookmarked svg path {
+  fill: currentColor;
+}
+
+.bookmark-button.bookmarked:hover {
+  color: #1e40af;
+
+  border-color: #93c5fd;
+
+  background: #dbeafe;
+}
+
+.bookmark-button:focus-visible {
+  outline: 2px solid #1d4ed8;
+
+  outline-offset: 2px;
 }
 
 // ============================================================
@@ -1581,6 +1614,10 @@ $danger-soft: #fdf0ee;
     width: 22px;
 
     height: 22px;
+  }
+
+  .policy-icon .material-icons {
+    font-size: 22px;
   }
 
   .policy-content {

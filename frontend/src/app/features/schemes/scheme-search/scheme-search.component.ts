@@ -23,6 +23,11 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from '../../../core/utils/category-icon.util';
 
 @Component({
   selector: 'app-scheme-search',
@@ -205,6 +210,22 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
 
   trackBySchemeId(index: number, scheme: SchemeResponse): number {
     return Number(scheme.scheme_id);
+  }
+
+  // ============================================================
+  // CATEGORY ICON (centralized mapping)
+  // ============================================================
+
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    'background-color': string;
+    color: string;
+    'border-color': string;
+  } {
+    return getCategoryIconStyle(category);
   }
 
   ngOnInit(): void {

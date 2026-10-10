@@ -16,6 +16,11 @@ import { SchemeService } from "../../../../core/services/scheme.service";
 import { SavedItemsService } from "../../../../core/services/saved-items.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+  getCategoryIconName,
+} from "../../../../core/utils/category-icon.util";
 
 /* =========================================================
    STAT CARD
@@ -33,13 +38,14 @@ export interface OrganizationStat {
    RECENT ACTIVITY
    ========================================================= */
 
-export interface OrganizationActivity {
+export interface OrganizationActivity extends CategoryIconFields {
   id?: number;
   icon: string;
   type: "policy" | "scheme" | "comparison" | "insight";
   title: string;
   description: string;
   date: string;
+  category?: string | null;
 }
 
 /* =========================================================
@@ -57,22 +63,24 @@ export interface OrganizationQuickAction {
    SECTOR INSIGHT
    ========================================================= */
 
-export interface SectorInsight {
+export interface SectorInsight extends CategoryIconFields {
   name: string;
   percentage: number;
   icon: string;
+  category?: string | null;
 }
 
 /* =========================================================
    SAVED ITEM
    ========================================================= */
 
-export interface SavedOrganizationItem {
+export interface SavedOrganizationItem extends CategoryIconFields {
   id?: number;
   type: "policy" | "scheme";
   name: string;
   ministry: string;
   savedOn: string;
+  category?: string | null;
 }
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
@@ -321,11 +329,13 @@ export class OrganizationComponent implements OnInit {
         policyList.forEach((p) => {
           activityList.push({
             id: p.policy_id,
-            icon: "policy",
+            icon: getCategoryIconName(p.category),
             type: "policy",
             title: p.title,
             description: p.ministry || p.department || "Government Policy",
             date: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
+            category: p.category ?? null,
+            ...categoryIconFields(p.category),
           });
         });
 
@@ -333,11 +343,13 @@ export class OrganizationComponent implements OnInit {
         schemeList.forEach((s) => {
           activityList.push({
             id: s.scheme_id,
-            icon: "account_balance",
+            icon: getCategoryIconName(s.category),
             type: "scheme",
             title: s.name || (s as any).title || "Government Scheme",
             description: s.ministry || s.department || "Public Scheme",
             date: s.created_at ? new Date(s.created_at).toLocaleDateString() : "Recent",
+            category: s.category ?? null,
+            ...categoryIconFields(s.category),
           });
         });
 
@@ -354,6 +366,8 @@ export class OrganizationComponent implements OnInit {
               name: item.title || "Saved Policy",
               ministry: item.ministry || "Policy Repository",
               savedOn: "Bookmarked",
+              category: item.category ?? null,
+              ...categoryIconFields(item.category),
             })),
           ...(Array.isArray(savedSchemes) ? savedSchemes : [])
             .slice(0, 2)
@@ -363,6 +377,8 @@ export class OrganizationComponent implements OnInit {
               name: item.name || "Saved Scheme",
               ministry: item.ministry || "Scheme Repository",
               savedOn: "Bookmarked",
+              category: item.category ?? null,
+              ...categoryIconFields(item.category),
             })),
         ];
 
@@ -392,19 +408,11 @@ export class OrganizationComponent implements OnInit {
       return {
         name: item.category || "General",
         percentage: Math.max(percentage, 5),
-        icon: this.getCategoryIcon(item.category),
+        icon: getCategoryIconName(item.category),
+        category: item.category ?? null,
+        ...categoryIconFields(item.category),
       };
     });
-  }
-
-  private getCategoryIcon(category?: string | null): string {
-    const cat = (category || "").toLowerCase();
-    if (cat.includes("education") || cat.includes("school")) return "school";
-    if (cat.includes("health") || cat.includes("medical")) return "local_hospital";
-    if (cat.includes("agri") || cat.includes("farmer")) return "agriculture";
-    if (cat.includes("tech") || cat.includes("digital")) return "computer";
-    if (cat.includes("finance") || cat.includes("bank")) return "account_balance";
-    return "business";
   }
 
   private setUserDetails(user: AuthUser): void {
@@ -488,10 +496,6 @@ export class OrganizationComponent implements OnInit {
 
   getSectorWidth(percentage: number): string {
     return `${percentage}%`;
-  }
-
-  getSavedItemIcon(type: "policy" | "scheme"): string {
-    return type === "policy" ? "policy" : "account_balance";
   }
 
   getSavedItemRoute(type: "policy" | "scheme"): string {

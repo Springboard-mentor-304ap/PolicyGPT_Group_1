@@ -14,6 +14,11 @@ import {
   selectionForCustom,
   type DateRangeSelection,
 } from "../shared/analytics-date-range.service";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 export interface GovtKpiCard {
   key: string;
@@ -346,5 +351,21 @@ export abstract class GovAnalyticsBase implements OnInit, OnDestroy {
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  /**
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page, including analytics lists).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 }

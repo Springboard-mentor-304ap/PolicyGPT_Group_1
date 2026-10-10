@@ -12,6 +12,7 @@ import { Subject, catchError, finalize, forkJoin, of, takeUntil } from "rxjs";
 
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { CategoryIconComponent } from "../../../../shared/components/category-icon/category-icon.component";
 import {
   PolicyListResponse,
   PolicyResponse,
@@ -24,7 +25,7 @@ import {
 @Component({
   selector: "app-guest",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CategoryIconComponent],
   templateUrl: "./guest.component.html",
   styleUrl: "./guest.component.scss",
 })

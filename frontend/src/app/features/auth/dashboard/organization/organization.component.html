@@ -108,12 +108,10 @@
 
         <li class="dash-list__item" (click)="viewActivity(activity)" style="cursor: pointer;">
 
-          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--health]="activity.type === 'scheme'"
-            [class.dash-list__icon-wrap--edu]="activity.type === 'policy'"
-            [class.dash-list__icon-wrap--work]="activity.type === 'comparison'">
+          <div class="dash-list__icon-wrap" [ngStyle]="activity.catStyle">
 
             <span class="material-icons">
-              {{ activity.icon }}
+              {{ activity.catIcon }}
             </span>
 
           </div>
@@ -245,7 +243,7 @@
             <div class="dash-sector-item__top">
 
               <div class="dash-sector-item__name">
-                <span class="material-icons">{{ sector.icon }}</span>
+                <span class="material-icons" [ngStyle]="{ color: sector.catStyle.color }">{{ sector.catIcon }}</span>
                 <span>{{ sector.name }}</span>
               </div>
 
@@ -309,11 +307,10 @@
 
         <li class="dash-list__item" (click)="item.type === 'policy' ? viewPolicy(item.name) : viewScheme(item.name)" style="cursor: pointer;">
 
-          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--edu]="item.type === 'policy'"
-            [class.dash-list__icon-wrap--health]="item.type === 'scheme'">
+          <div class="dash-list__icon-wrap" [ngStyle]="item.catStyle">
 
             <span class="material-icons">
-              {{ getSavedItemIcon(item.type) }}
+              {{ item.catIcon }}
             </span>
 
           </div>

@@ -30,23 +30,25 @@ export interface StatCard {
 // SCHEME ITEM
 // =========================================================
 
-export interface SchemeItem {
+export interface SchemeItem extends CategoryIconFields {
   id?: number;
   name: string;
   ministry: string;
   status?: string;
+  category?: string | null;
 }
 
 // =========================================================
 // POLICY ITEM
 // =========================================================
 
-export interface PolicyItem {
+export interface PolicyItem extends CategoryIconFields {
   id?: number;
   name: string;
   ministry: string;
   savedOn: string;
   status?: string;
+  category?: string | null;
 }
 
 // =========================================================
@@ -68,6 +70,10 @@ export interface ApplicationItem {
 }
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+} from "../../../../core/utils/category-icon.util";
 
 // =========================================================
 // GOVERNMENT COMPONENT
@@ -274,6 +280,8 @@ export class GovernmentComponent implements OnInit {
           name: s.name || (s as any).title || "Untitled Scheme",
           ministry: s.ministry || s.department || "Government of India",
           status: s.status,
+          category: s.category ?? null,
+          ...categoryIconFields(s.category),
         }));
         this.loadingUpcoming = false;
 
@@ -284,6 +292,8 @@ export class GovernmentComponent implements OnInit {
           ministry: p.ministry || p.department || "Government of India",
           savedOn: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
           status: p.status,
+          category: p.category ?? null,
+          ...categoryIconFields(p.category),
         }));
         this.loadingUploaded = false;
 

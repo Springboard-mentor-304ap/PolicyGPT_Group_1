@@ -184,7 +184,9 @@
             @for (policy of latestPolicies(); track policy.title; let idx = $index) {
             <tr>
               <td class="text-muted">{{ idx + 1 }}</td>
-              <td class="font-semibold title-col" [title]="policy.title">{{ policy.title }}</td>
+              <td class="font-semibold title-col" [title]="policy.title"><span class="category-mini"
+                  [ngStyle]="categoryIconStyle(policy.category)" aria-hidden="true"><span
+                    class="material-icons">{{ categoryIcon(policy.category) }}</span></span> {{ policy.title }}</td>
               <td>{{ policy.ministry }}</td>
               <td class="text-muted">{{ policy.state }}</td>
               <td>{{ policy.category }}</td>

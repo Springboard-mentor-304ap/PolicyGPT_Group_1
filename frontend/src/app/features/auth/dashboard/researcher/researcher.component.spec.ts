@@ -4,6 +4,7 @@ import { of, throwError } from "rxjs";
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 
 import { ResearcherComponent } from "./researcher.component";
+import { categoryIconFields } from "../../../../core/utils/category-icon.util";
 import { AnalyticsService } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
@@ -159,6 +160,7 @@ describe("ResearcherComponent", () => {
       date: "Recent",
       type: "policy",
       icon: "policy",
+      ...categoryIconFields("Energy"),
     });
     expect(mockRouter.navigateByUrl).toHaveBeenCalledWith("/dashboard/researcher/policies/1");
 
@@ -169,6 +171,7 @@ describe("ResearcherComponent", () => {
       date: "Recent",
       type: "scheme",
       icon: "account_balance",
+      ...categoryIconFields("Energy"),
     });
     expect(mockRouter.navigateByUrl).toHaveBeenCalledWith("/dashboard/researcher/schemes/2");
   });

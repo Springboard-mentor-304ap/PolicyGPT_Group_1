@@ -203,6 +203,7 @@
                 @for (policy of policies; track policy.policy_id) {
                 <div class="guest-result-card">
                     <div class="guest-result-card__header">
+                        <app-category-icon [category]="policy.category" [size]="40"></app-category-icon>
                         <div class="guest-result-card__badges">
                             <span class="guest-badge-category">{{ policy.category }}</span>
                             @if (policy.state) {
@@ -266,6 +267,7 @@
                 @for (scheme of schemes; track scheme.scheme_id) {
                 <div class="guest-result-card">
                     <div class="guest-result-card__header">
+                        <app-category-icon [category]="scheme.category" [size]="40"></app-category-icon>
                         <div class="guest-result-card__badges">
                             <span class="guest-badge-category scheme-badge">{{ scheme.category }}</span>
                             @if (scheme.state) {

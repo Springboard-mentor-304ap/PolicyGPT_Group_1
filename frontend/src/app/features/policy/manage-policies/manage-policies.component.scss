@@ -844,6 +844,20 @@ td {
   min-width: 0;
 }
 
+// Category icon + text layout for the policy/scheme cell.
+// Glyph and colors come from the centralized category mapping.
+.policy-cell__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.policy-cell__text {
+  min-width: 0;
+  flex: 1;
+}
+
 .policy-name {
   max-width: 100%;
   display: block;

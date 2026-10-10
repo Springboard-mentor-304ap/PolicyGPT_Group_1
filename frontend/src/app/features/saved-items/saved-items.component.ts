@@ -14,10 +14,16 @@ import {
   SavedSchemeItem,
 } from "../../core/services/saved-items.service";
 import { Auth } from "../../core/services/auth";
+import { PermissionService } from "../../core/services/permission.service";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../core/utils/category-icon.util";
 
 type SavedTab = "all" | "policies" | "schemes";
 
@@ -48,6 +54,7 @@ export class SavedItemsComponent implements OnInit {
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
     private readonly auth: Auth,
+    private readonly permissions: PermissionService,
   ) {}
 
   ngOnInit(): void {
@@ -229,6 +236,15 @@ export class SavedItemsComponent implements OnInit {
   }
 
   /**
+   * Public roles (Citizen, Researcher, Organization, Guest) never see
+   * internal workflow statuses. Admin and Government Official retain
+   * full visibility.
+   */
+  get isPublicRole(): boolean {
+    return this.permissions.isPublicRole(this.auth.getUserRole() || "");
+  }
+
+  /**
    * Primary metadata line: Category • Ministry/Department • State.
    * Empty parts are omitted (state falls back to "All India").
    */
@@ -393,5 +409,22 @@ export class SavedItemsComponent implements OnInit {
 
   trackScheme(_: number, item: SavedSchemeItem): number {
     return item.saved_id;
+  }
+
+  // ============================================================
+  // CATEGORY ICON (centralized mapping — same icon/color for a
+  // category on every page; bookmark state stays separate)
+  // ============================================================
+
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 }

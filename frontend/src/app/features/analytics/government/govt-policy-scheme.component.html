@@ -197,7 +197,9 @@
           <tbody>
             @for (row of data.recent_policies; track row.policy_id) {
             <tr>
-              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td [attr.title]="row.title"><span class="category-mini" [ngStyle]="categoryIconStyle(row.category)"
+                  aria-hidden="true"><span
+                    class="material-icons">{{ categoryIcon(row.category) }}</span></span> {{ row.title }}</td>
               <td>{{ row.category ?? "—" }}</td>
               <td>{{ pretty(row.status) }}</td>
               <td>
@@ -233,7 +235,9 @@
           <tbody>
             @for (row of data.recent_schemes; track row.scheme_id) {
             <tr>
-              <td [attr.title]="row.title">{{ row.title }}</td>
+              <td [attr.title]="row.title"><span class="category-mini" [ngStyle]="categoryIconStyle(row.category)"
+                  aria-hidden="true"><span
+                    class="material-icons">{{ categoryIcon(row.category) }}</span></span> {{ row.title }}</td>
               <td>{{ row.category ?? "—" }}</td>
               <td>{{ pretty(row.status) }}</td>
               <td>

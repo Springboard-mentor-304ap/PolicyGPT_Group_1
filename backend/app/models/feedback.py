@@ -16,10 +16,10 @@ class Feedback(Base):
         autoincrement=True
     )
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.user_id"),
-        nullable=False
+        nullable=True
     )
 
     policy_id: Mapped[int | None] = mapped_column(
@@ -71,7 +71,9 @@ class Feedback(Base):
 
     @property
     def user_name(self) -> str | None:
-        return self.user.full_name if self.user else None
+        if self.user:
+            return self.user.full_name
+        return "Deactivated User" if self.user_id is None else None
 
     @property
     def user_email(self) -> str | None:
@@ -79,4 +81,4 @@ class Feedback(Base):
 
     @property
     def user_role(self) -> str | None:
-        return self.user.role if self.user else None
+        return self.user.role if self.user else "CITIZEN"

@@ -75,6 +75,112 @@ def _warm_up_pool() -> None:
             try:
                 conn.execute(
                     text(
+                        "ALTER TABLE extensions.support_queries ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.support_queries DROP CONSTRAINT IF EXISTS support_queries_user_id_fkey;
+                        ALTER TABLE extensions.support_queries ADD CONSTRAINT support_queries_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.support_ticket_messages ALTER COLUMN sender_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.support_ticket_messages DROP CONSTRAINT IF EXISTS support_ticket_messages_sender_id_fkey;
+                        ALTER TABLE extensions.support_ticket_messages ADD CONSTRAINT support_ticket_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.reports ALTER COLUMN generated_by DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.reports DROP CONSTRAINT IF EXISTS reports_generated_by_fkey;
+                        ALTER TABLE extensions.reports ADD CONSTRAINT reports_generated_by_fkey FOREIGN KEY (generated_by) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.feedback ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.feedback DROP CONSTRAINT IF EXISTS feedback_user_id_fkey;
+                        ALTER TABLE extensions.feedback ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.scheme_applications ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.scheme_applications DROP CONSTRAINT IF EXISTS scheme_applications_user_id_fkey;
+                        ALTER TABLE extensions.scheme_applications ADD CONSTRAINT scheme_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.search_history DROP CONSTRAINT IF EXISTS search_history_user_id_fkey;
+                        ALTER TABLE extensions.search_history ADD CONSTRAINT search_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE CASCADE;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
                         """
                         UPDATE extensions.audit_logs
                         SET entity_id = substring(description from 'user_id ([0-9]+)')::bigint

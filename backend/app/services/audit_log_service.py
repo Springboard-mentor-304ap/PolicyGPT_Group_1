@@ -85,6 +85,7 @@ def log_request_action(
     entity_type: str | None = None,
     entity_id: int | None = None,
     description: str | None = None,
+    commit: bool = True,
 ) -> AuditLog | None:
     """Router-level audit helper.
 
@@ -104,6 +105,7 @@ def log_request_action(
         entity_id=entity_id,
         description=description,
         ip_address=get_client_ip(request),
+        commit=commit,
     )
 
 

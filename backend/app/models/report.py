@@ -22,7 +22,7 @@ class Report(Base):
         autoincrement=True
     )
 
-    generated_by: Mapped[int] = mapped_column(
+    generated_by: Mapped[int | None] = mapped_column(
         BigInteger,
         # Unqualified on purpose. `User.__tablename__` is "users" with no
         # explicit schema, so SQLAlchemy's metadata holds it under "users";
@@ -32,7 +32,7 @@ class Report(Base):
         # and the live constraint both resolve correctly.
         # Live DB: extensions.reports.generated_by -> users(user_id).
         ForeignKey("users.user_id"),
-        nullable=False
+        nullable=True
     )
 
     report_type: Mapped[str] = mapped_column(

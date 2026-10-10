@@ -3,9 +3,14 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
+import { finalize, timeout } from "rxjs";
 import {
   AdminUsersService,
   AdminUserApi,
+  UserRemovalBlocker,
+  EligibleOfficial,
+  UserRemovalCheckResponse,
+  ReassignOwnershipPayload,
 } from "../../../../../core/services/admin-user.service";
 import { Auth, AuthUser } from "../../../../../core/services/auth";
 import { ToastService } from "../../../../../core/services/toast.service";
@@ -78,7 +83,18 @@ export class RemoveUserComponent implements OnInit {
   isModalOpen = false;
   selectedUser: AdminUser | null = null;
   isDeleting = false;
+  isRemoving = false;
   deleteError = "";
+
+  // Ownership resolution and blockers state
+  isCheckingDependencies = false;
+  blockers: UserRemovalBlocker[] = [];
+  eligibleOfficials: EligibleOfficial[] = [];
+  selectedTargetOfficialId: number | null = null;
+  reassignConfirmed = false;
+  isReassigning = false;
+  reassignSuccessMessage = "";
+  canRemoveDirectly = true;
 
   // Statistics
   pastUsersCount = 0;
@@ -292,8 +308,16 @@ export class RemoveUserComponent implements OnInit {
   }
 
   // =======================================================
-  // MODAL ACTIONS
+  // MODAL ACTIONS & OWNERSHIP RESOLUTION
   // =======================================================
+
+  get reassignableBlockersCount(): number {
+    return this.blockers.filter((b) => b.can_reassign).length;
+  }
+
+  get unreassignableBlockersCount(): number {
+    return this.blockers.filter((b) => !b.can_reassign).length;
+  }
 
   openRemoveModal(user: AdminUser): void {
     if (!user || !user.email) {
@@ -314,70 +338,242 @@ export class RemoveUserComponent implements OnInit {
 
     this.selectedUser = user;
     this.deleteError = "";
+    this.reassignSuccessMessage = "";
+    this.blockers = [];
+    this.eligibleOfficials = [];
+    this.selectedTargetOfficialId = null;
+    this.reassignConfirmed = false;
     this.isDeleting = false;
+    this.isRemoving = false;
+    this.isReassigning = false;
+    this.canRemoveDirectly = true;
     this.isModalOpen = true;
+
+    this.fetchRemovalCheck(user.email);
+  }
+
+  fetchRemovalCheck(email: string): void {
+    if (this.isCheckingDependencies) {
+      return;
+    }
+    this.isCheckingDependencies = true;
+    this.adminUsersService
+      .checkUserRemoval(email)
+      .pipe(
+        timeout(15000),
+        finalize(() => {
+          this.isCheckingDependencies = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (res: UserRemovalCheckResponse) => {
+          this.blockers = Array.isArray(res.blockers) ? res.blockers : [];
+          this.eligibleOfficials = Array.isArray(res.eligible_officials)
+            ? res.eligible_officials
+            : [];
+          this.canRemoveDirectly = Boolean(res.can_remove);
+
+          if (this.eligibleOfficials.length > 0 && !this.selectedTargetOfficialId) {
+            this.selectedTargetOfficialId = this.eligibleOfficials[0].user_id;
+          }
+
+          if (res.self_removal) {
+            this.deleteError =
+              res.message || "You cannot remove your own administrator account.";
+            this.canRemoveDirectly = false;
+          }
+          this.cdr.detectChanges();
+        },
+        error: (error: HttpErrorResponse | any) => {
+          console.warn("Unable to check user removal dependencies:", error);
+          if (error?.name === "TimeoutError") {
+            this.deleteError = "Dependency check timed out. Please retry.";
+          }
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  reassignOwnershipAction(): void {
+    if (
+      !this.selectedUser ||
+      !this.selectedTargetOfficialId ||
+      !this.reassignConfirmed ||
+      this.isReassigning ||
+      this.isDeleting ||
+      this.isRemoving
+    ) {
+      return;
+    }
+
+    this.isReassigning = true;
+    this.deleteError = "";
+    this.reassignSuccessMessage = "";
+
+    const payload: ReassignOwnershipPayload = {
+      source_user_email: this.selectedUser.email,
+      target_user_id: Number(this.selectedTargetOfficialId),
+      confirm: true,
+    };
+
+    this.adminUsersService
+      .reassignOwnership(payload)
+      .pipe(
+        timeout(15000),
+        finalize(() => {
+          this.isReassigning = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (res) => {
+          this.reassignSuccessMessage =
+            res?.message ||
+            "Ownership successfully reassigned to the selected Government Official.";
+          this.deleteError = "";
+          this.reassignConfirmed = false;
+          this.cdr.detectChanges();
+          // Step 5: System rechecks the database before allowing removal
+          if (this.selectedUser?.email) {
+            this.fetchRemovalCheck(this.selectedUser.email);
+          }
+        },
+        error: (error: HttpErrorResponse | any) => {
+          console.error("Reassignment error:", error);
+          if (error?.name === "TimeoutError") {
+            this.deleteError =
+              "Operation timed out. Reconciling ownership status from database...";
+            if (this.selectedUser?.email) {
+              this.fetchRemovalCheck(this.selectedUser.email);
+            }
+          } else {
+            this.deleteError =
+              error?.error?.detail ||
+              error?.message ||
+              "Failed to reassign ownership. Please check permissions and try again.";
+          }
+          this.cdr.detectChanges();
+        },
+      });
   }
 
   closeModal(): void {
-    if (this.isDeleting) {
+    if (this.isDeleting || this.isRemoving || this.isReassigning) {
       return;
     }
     this.isModalOpen = false;
     this.selectedUser = null;
     this.deleteError = "";
+    this.reassignSuccessMessage = "";
+    this.blockers = [];
+    this.eligibleOfficials = [];
+    this.selectedTargetOfficialId = null;
+    this.reassignConfirmed = false;
+    this.isCheckingDependencies = false;
+    this.isDeleting = false;
+    this.isRemoving = false;
   }
 
   confirmRemoval(): void {
-    if (!this.selectedUser || !this.selectedUser.email || this.isDeleting) {
+    if (
+      !this.selectedUser ||
+      !this.selectedUser.email ||
+      this.isDeleting ||
+      this.isRemoving ||
+      this.isReassigning ||
+      this.isCheckingDependencies
+    ) {
       return;
     }
 
     const userToRemove = this.selectedUser;
     this.isDeleting = true;
+    this.isRemoving = true;
     this.deleteError = "";
 
-    this.adminUsersService.deleteUser(userToRemove.email).subscribe({
-      next: (response) => {
-        this.isDeleting = false;
-        this.isModalOpen = false;
-        this.selectedUser = null;
-        this.deleteError = "";
+    this.adminUsersService
+      .deleteUser(userToRemove.email)
+      .pipe(
+        timeout(15000),
+        finalize(() => {
+          this.isDeleting = false;
+          this.isRemoving = false;
+          this.cdr.detectChanges();
+        })
+      )
+      .subscribe({
+        next: (_response) => {
+          // Immediately close the Remove User dialog and clear loading state
+          this.isModalOpen = false;
+          this.selectedUser = null;
+          this.isDeleting = false;
+          this.isRemoving = false;
+          this.deleteError = "";
+          this.reassignSuccessMessage = "";
+          this.cdr.detectChanges();
 
-        this.toastService.success(
-          "User Removed",
-          response?.message || `User ${userToRemove.fullName} has been permanently removed.`
-        );
+          // Show exactly one success toast: "User removed successfully."
+          this.toastService.success("User removed successfully.");
 
-        this.loadUsers();
-        this.loadPastUsersCount();
+          // Optimistically update list and past users count so stats cards update immediately
+          this.users = this.users.filter(
+            (u) =>
+              (u.email || "").toLowerCase() !==
+              (userToRemove.email || "").toLowerCase()
+          );
+          this.pastUsersCount = (this.pastUsersCount || 0) + 1;
+          this.cdr.detectChanges();
+
+          // Background sync to ensure data consistency without full-page reload or blocking
+          this.syncUsersInBackground();
+          this.loadPastUsersCount();
+        },
+        error: (error: HttpErrorResponse | any) => {
+          console.error("User removal error:", error);
+          this.isDeleting = false;
+          this.isRemoving = false;
+
+          let errorMsg =
+            "Failed to remove user. The account may have associated records in the system.";
+
+          if (error?.name === "TimeoutError") {
+            errorMsg = "User removal timed out. Reconciling user list...";
+            this.syncUsersInBackground();
+            this.loadPastUsersCount();
+          } else if (error?.status === 0) {
+            errorMsg =
+              "Unable to connect to the server. Please check your backend connection.";
+          } else if (error?.status === 401) {
+            errorMsg = "Your session has expired. Please login again.";
+          } else if (error?.status === 403) {
+            errorMsg = "Only an administrator can perform user removal.";
+          } else if (error?.status === 404) {
+            errorMsg =
+              error?.error?.detail ||
+              "User not found. The account may have already been removed.";
+          } else if (error?.error?.detail && typeof error.error.detail === "string") {
+            errorMsg = error.error.detail;
+          } else if (typeof error?.error === "string" && error.error.trim()) {
+            errorMsg = error.error;
+          }
+
+          this.deleteError = errorMsg;
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
+  syncUsersInBackground(): void {
+    this.adminUsersService.getUsers().subscribe({
+      next: (backendUsers: AdminUserApi[]) => {
+        this.users = Array.isArray(backendUsers)
+          ? backendUsers.map((user: AdminUserApi) => this.mapBackendUser(user))
+          : [];
+        this.cdr.detectChanges();
       },
       error: (error: HttpErrorResponse) => {
-        console.error("User removal error:", error);
-        this.isDeleting = false;
-
-        let errorMsg =
-          "Failed to remove user. The account may have associated records in the system.";
-
-        if (error?.status === 0) {
-          errorMsg =
-            "Unable to connect to the server. Please check your backend connection.";
-        } else if (error?.status === 401) {
-          errorMsg = "Your session has expired. Please login again.";
-        } else if (error?.status === 403) {
-          errorMsg = "Only an administrator can perform user removal.";
-        } else if (error?.status === 404) {
-          errorMsg =
-            error?.error?.detail ||
-            "User not found. The account may have already been removed.";
-        } else if (error?.error?.detail && typeof error.error.detail === "string") {
-          errorMsg = error.error.detail;
-        } else if (typeof error?.error === "string" && error.error.trim()) {
-          errorMsg = error.error;
-        }
-
-        this.deleteError = errorMsg;
-        this.toastService.error("Removal Failed", errorMsg);
-        this.cdr.detectChanges();
+        console.warn("Background users sync failed:", error);
       },
     });
   }

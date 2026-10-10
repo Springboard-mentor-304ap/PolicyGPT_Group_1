@@ -19,7 +19,7 @@ class FeedbackUpdate(BaseModel):
 
 class FeedbackResponse(BaseModel):
     feedback_id: int
-    user_id: int
+    user_id: int | None = None
     policy_id: int | None = None
     scheme_id: int | None = None
     feedback_type: str

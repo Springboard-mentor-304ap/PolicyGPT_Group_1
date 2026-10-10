@@ -252,9 +252,9 @@ def _support_request_to_dict(query: SupportQuery) -> dict:
         "query_id": query.query_id,
         "request_id": query.request_id,
         "user_id": query.user_id,
-        "user_name": getattr(user, "full_name", None),
+        "user_name": getattr(user, "full_name", None) or ("Deactivated User" if query.user_id is None else None),
         "user_email": getattr(user, "email", None),
-        "user_role": getattr(user, "role", None),
+        "user_role": getattr(user, "role", None) or "CITIZEN",
         "category": query.category,
         "subject": query.subject,
         "description": query.description,
@@ -287,7 +287,7 @@ def get_all_support_requests(
 
     if search and search.strip():
         term = f"%{search.strip()}%"
-        query = query.join(User, User.user_id == SupportQuery.user_id).filter(
+        query = query.outerjoin(User, User.user_id == SupportQuery.user_id).filter(
             or_(
                 SupportQuery.subject.ilike(term),
                 SupportQuery.description.ilike(term),
@@ -411,14 +411,15 @@ def respond_to_support_request(
             notify_feedback_updated,
         )
 
-        notify_feedback_updated(
-            db=db,
-            feedback_id=query.query_id,
-            subject=query.subject,
-            user_id=query.user_id,
-            response_summary=(query.response[:80] if query.response else None),
-            background_tasks=background_tasks,
-        )
+        if query.user_id:
+            notify_feedback_updated(
+                db=db,
+                feedback_id=query.query_id,
+                subject=query.subject,
+                user_id=query.user_id,
+                response_summary=(query.response[:80] if query.response else None),
+                background_tasks=background_tasks,
+            )
     except Exception as exc:
         logger.warning("Support response notification dispatch skipped: %s", exc)
 
@@ -457,12 +458,15 @@ def _add_ticket_message(
 
 
 def _message_to_dict(entry, sender_name: str | None = None) -> dict:
+    resolved_name = sender_name
+    if not resolved_name and entry.sender_id is None:
+        resolved_name = "Deactivated User" if entry.sender_role == "CITIZEN" else "Support Staff"
     return {
         "id": entry.id,
         "ticket_id": entry.ticket_id,
         "sender_id": entry.sender_id,
         "sender_role": entry.sender_role,
-        "sender_name": sender_name,
+        "sender_name": resolved_name,
         "message": entry.message,
         "created_at": entry.created_at,
     }
@@ -540,14 +544,15 @@ def post_ticket_message(
         from app.services.notification_service import notify_feedback_updated
 
         if normalized_role == "ADMIN":
-            notify_feedback_updated(
-                db=db,
-                feedback_id=ticket.query_id,
-                subject=ticket.subject,
-                user_id=ticket.user_id,
-                response_summary=text[:80],
-                background_tasks=background_tasks,
-            )
+            if ticket.user_id:
+                notify_feedback_updated(
+                    db=db,
+                    feedback_id=ticket.query_id,
+                    subject=ticket.subject,
+                    user_id=ticket.user_id,
+                    response_summary=text[:80],
+                    background_tasks=background_tasks,
+                )
         else:
             notify_feedback_received(
                 db=db,

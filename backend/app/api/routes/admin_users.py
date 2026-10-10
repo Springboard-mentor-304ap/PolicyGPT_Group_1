@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -6,6 +7,16 @@ from app.db.database import get_db
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.api.routes.auth import require_roles
+from app.services.user_removal_service import (
+    check_user_removal_dependencies,
+    reassign_user_ownership,
+)
+
+
+class ReassignOwnershipRequest(BaseModel):
+    source_user_email: str
+    target_user_id: int
+    confirm: bool
 
 
 router = APIRouter(
@@ -56,12 +67,12 @@ def get_user_stats(
     Protected: Only ADMINISTRATOR users can access it.
     Does not expose sensitive personal information of deleted users.
     """
-    users = db.query(User).all()
+    users = db.query(User.user_id, User.is_active, User.role).all()
     total_users = len(users)
-    active_users = sum(1 for u in users if u.is_active)
+    active_users = sum(1 for u in users if getattr(u, "is_active", False))
     inactive_users = total_users - active_users
     administrators = sum(
-        1 for u in users if (u.role or "").upper() in ("ADMIN", "ADMINISTRATOR")
+        1 for u in users if (getattr(u, "role", "") or "").upper() in ("ADMIN", "ADMINISTRATOR")
     )
     past_users = count_past_users(db)
 
@@ -142,3 +153,78 @@ def get_all_users(
         }
         for user in users
     ]
+
+
+@router.get("/users/removal-check/{email}")
+def check_user_removal(
+    email: str,
+    current_user: User = Depends(require_roles("ADMINISTRATOR", "ADMIN")),
+    db: Session = Depends(get_db),
+):
+    """Inspect all dependent records for a user before removal, returning any
+    blockers (e.g. authored policies or schemes) and eligible officials for
+    ownership reassignment.
+    """
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == email.strip().lower())
+        .first()
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return check_user_removal_dependencies(
+        user=user,
+        admin_user=current_user,
+        db=db,
+    )
+
+
+@router.post("/users/reassign-ownership")
+def reassign_user_ownership_endpoint(
+    payload: ReassignOwnershipRequest,
+    request: Request,
+    current_user: User = Depends(require_roles("ADMINISTRATOR", "ADMIN")),
+    db: Session = Depends(get_db),
+):
+    """Reassign ownership of policies and schemes from one user to an eligible
+    Government Official. Requires explicit confirmation.
+    """
+    if not payload.confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Explicit confirmation is required before reassigning ownership.",
+        )
+
+    source_user = (
+        db.query(User)
+        .filter(func.lower(User.email) == payload.source_user_email.strip().lower())
+        .first()
+    )
+    if not source_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source user not found",
+        )
+
+    target_user = (
+        db.query(User)
+        .filter(User.user_id == payload.target_user_id)
+        .first()
+    )
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target official not found",
+        )
+
+    return reassign_user_ownership(
+        source_user=source_user,
+        target_user=target_user,
+        admin_user=current_user,
+        request=request,
+        db=db,
+    )

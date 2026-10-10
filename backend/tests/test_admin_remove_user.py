@@ -126,55 +126,101 @@ def test_remove_user_blocked_by_active_schemes():
     assert "Cannot delete user with active scheme assignments." in exc_info.value.detail
 
 
-def test_remove_user_blocked_by_reports():
-    """Users who generated reports cannot be removed."""
-    target = fake_user(uid=10)
+@patch("app.api.routes.auth.log_request_action")
+def test_remove_user_with_reports_disassociates_and_succeeds(mock_log):
+    """Users who generated reports can be removed; reports are disassociated (generated_by set to NULL), not deleted."""
+    target = fake_user(uid=10, email="reporter@example.com")
     admin_user = fake_admin(uid=1)
     request = MagicMock()
     db = MagicMock()
 
-    # has_policies=None, has_schemes=None, has_reports=(301,)
-    db.query.return_value.filter.return_value.first.side_effect = [None, None, (301,)]
+    # Blocking checks (policies, schemes) pass
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
 
-    with pytest.raises(HTTPException) as exc_info:
-        _admin_remove_user_safely(target, admin_user, request, db)
+    res = _admin_remove_user_safely(target, admin_user, request, db)
 
-    assert exc_info.value.status_code == 400
-    assert "Cannot delete user with associated report records." in exc_info.value.detail
+    assert res["message"] == "User deleted successfully"
+    assert res["email"] == "reporter@example.com"
+    db.delete.assert_called_once_with(target)
+    db.commit.assert_called_once()
+
+    executed_statements = [str(call[0][0]) for call in db.execute.call_args_list]
+    assert any("UPDATE reports SET generated_by = NULL WHERE generated_by = :uid" in s for s in executed_statements)
 
 
-def test_remove_user_blocked_by_feedback():
-    """Users who submitted feedback cannot be removed."""
-    target = fake_user(uid=10)
+@patch("app.api.routes.auth.log_request_action")
+def test_remove_user_with_feedback_disassociates_and_succeeds(mock_log):
+    """Users who submitted feedback can be removed; feedback is disassociated (user_id set to NULL), not deleted."""
+    target = fake_user(uid=10, email="feedback_user@example.com")
     admin_user = fake_admin(uid=1)
     request = MagicMock()
     db = MagicMock()
 
-    # has_policies=None, has_schemes=None, has_reports=None, has_feedback=(401,)
-    db.query.return_value.filter.return_value.first.side_effect = [None, None, None, (401,)]
+    # Blocking checks (policies, schemes) pass
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
 
-    with pytest.raises(HTTPException) as exc_info:
-        _admin_remove_user_safely(target, admin_user, request, db)
+    res = _admin_remove_user_safely(target, admin_user, request, db)
 
-    assert exc_info.value.status_code == 400
-    assert "Cannot delete user with associated feedback records." in exc_info.value.detail
+    assert res["message"] == "User deleted successfully"
+    assert res["email"] == "feedback_user@example.com"
+    db.delete.assert_called_once_with(target)
+    db.commit.assert_called_once()
+
+    executed_statements = [str(call[0][0]) for call in db.execute.call_args_list]
+    assert any("UPDATE feedback SET user_id = NULL WHERE user_id = :uid" in s for s in executed_statements)
 
 
-def test_remove_user_blocked_by_support_queries():
-    """Users who have support queries cannot be removed."""
-    target = fake_user(uid=10)
+@patch("app.api.routes.auth.log_request_action")
+def test_remove_user_with_support_queries_disassociates_and_succeeds(mock_log):
+    """Users who have support queries can be removed; tickets and messages are disassociated, not deleted."""
+    target = fake_user(uid=10, email="citizen_with_ticket@example.com")
     admin_user = fake_admin(uid=1)
     request = MagicMock()
     db = MagicMock()
 
-    # has_policies=None, has_schemes=None, has_reports=None, has_feedback=None, has_queries=(501,)
-    db.query.return_value.filter.return_value.first.side_effect = [None, None, None, None, (501,)]
+    # Blocking checks: policies=None, schemes=None
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
 
-    with pytest.raises(HTTPException) as exc_info:
-        _admin_remove_user_safely(target, admin_user, request, db)
+    res = _admin_remove_user_safely(target, admin_user, request, db)
 
-    assert exc_info.value.status_code == 400
-    assert "Cannot delete user with associated support tickets." in exc_info.value.detail
+    assert res["message"] == "User deleted successfully"
+    assert res["email"] == "citizen_with_ticket@example.com"
+    db.delete.assert_called_once_with(target)
+    db.commit.assert_called_once()
+
+    # Verify executed SQL disassociated support queries and support messages
+    executed_statements = [str(call[0][0]) for call in db.execute.call_args_list]
+    assert any("UPDATE support_queries SET user_id = NULL WHERE user_id = :uid" in s for s in executed_statements)
+    assert any("UPDATE support_ticket_messages SET sender_id = NULL WHERE sender_id = :uid" in s for s in executed_statements)
+
+
+@patch("app.api.routes.auth.log_request_action")
+def test_remove_user_with_multiple_associated_records_succeeds(mock_log):
+    """A user with reports, feedback, tickets, applications, and search history is safely removed."""
+    target = fake_user(uid=88, email="multi_record@example.com")
+    admin_user = fake_admin(uid=1)
+    request = MagicMock()
+    db = MagicMock()
+
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
+
+    res = _admin_remove_user_safely(target, admin_user, request, db)
+
+    assert res["message"] == "User deleted successfully"
+    assert res["email"] == "multi_record@example.com"
+    db.delete.assert_called_once_with(target)
+    db.commit.assert_called_once()
+
+    executed_statements = [str(call[0][0]) for call in db.execute.call_args_list]
+    # Check disassociated accountability records
+    assert any("UPDATE reports SET generated_by = NULL WHERE generated_by = :uid" in s for s in executed_statements)
+    assert any("UPDATE feedback SET user_id = NULL WHERE user_id = :uid" in s for s in executed_statements)
+    assert any("UPDATE support_queries SET user_id = NULL WHERE user_id = :uid" in s for s in executed_statements)
+    assert any("UPDATE support_ticket_messages SET sender_id = NULL WHERE sender_id = :uid" in s for s in executed_statements)
+    assert any("UPDATE scheme_applications SET user_id = NULL WHERE user_id = :uid" in s for s in executed_statements)
+    # Check disposable personal records cleaned up
+    assert any("DELETE FROM search_history WHERE user_id = :uid" in s for s in executed_statements)
+    assert any("DELETE FROM saved_policies WHERE user_id = :uid" in s for s in executed_statements)
 
 
 @patch("app.api.routes.auth.log_request_action")
@@ -185,8 +231,8 @@ def test_valid_user_removal_success(mock_log):
     request = MagicMock()
     db = MagicMock()
 
-    # All blocking dependency checks return None
-    db.query.return_value.filter.return_value.first.side_effect = [None, None, None, None, None]
+    # Blocking checks (policies, schemes)
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
 
     res = _admin_remove_user_safely(target, admin_user, request, db)
 
@@ -210,7 +256,7 @@ def test_removal_rolls_back_on_db_exception():
     db = MagicMock()
 
     # All blocking checks pass
-    db.query.return_value.filter.return_value.first.side_effect = [None, None, None, None, None]
+    db.query.return_value.filter.return_value.first.side_effect = [None, None]
     # db.delete triggers database error
     db.delete.side_effect = Exception("DB connection dropped")
 
@@ -233,9 +279,6 @@ def test_delete_user_by_id_endpoint():
         target,  # find user
         None,    # policies
         None,    # schemes
-        None,    # reports
-        None,    # feedback
-        None,    # queries
     ]
 
     with patch("app.api.routes.auth.log_request_action"):
@@ -256,9 +299,6 @@ def test_delete_user_by_phone_endpoint():
         target,  # find user
         None,    # policies
         None,    # schemes
-        None,    # reports
-        None,    # feedback
-        None,    # queries
     ]
 
     with patch("app.api.routes.auth.log_request_action"):
@@ -317,3 +357,174 @@ def test_get_past_users_count_endpoint():
 
     assert res["count"] == 15
     assert res["past_users"] == 15
+
+
+def test_non_admin_cannot_access_delete_user():
+    """Citizens and non-admins are forbidden from invoking user removal."""
+    from app.api.routes.auth import require_roles
+
+    role_checker = require_roles("ADMIN")
+    citizen = fake_user(uid=99, role="CITIZEN")
+
+    with pytest.raises(HTTPException) as exc_info:
+        role_checker(current_user=citizen)
+
+    assert exc_info.value.status_code == 403
+    assert "Access denied" in exc_info.value.detail
+
+
+def test_check_user_removal_dependencies_with_authored_records():
+    """check_user_removal_dependencies identifies authored policies and schemes as reassignable blockers."""
+    from app.services.user_removal_service import check_user_removal_dependencies
+    from app.models.policy import Policy
+    from app.models.scheme import Scheme
+
+    target = fake_user(uid=138, email="official@test.gov.in")
+    admin = fake_admin(uid=1)
+    db = MagicMock()
+
+    mock_policy = MagicMock(spec=Policy)
+    mock_policy.policy_id = 127
+    mock_policy.title = "Green Hydrogen Initiative"
+    mock_policy.status = "APPROVED"
+    mock_policy.created_by = 138
+    mock_policy.approved_by = None
+    mock_policy.archive_requested_by = None
+    mock_policy.delete_requested_by = None
+
+    mock_scheme = MagicMock(spec=Scheme)
+    mock_scheme.scheme_id = 55
+    mock_scheme.name = "Solar Subsidy Scheme"
+    mock_scheme.status = "PENDING"
+    mock_scheme.created_by = 138
+    mock_scheme.approved_by = None
+    mock_scheme.archive_requested_by = None
+    mock_scheme.delete_requested_by = None
+
+    eligible_gov = fake_user(uid=4, email="govt@gmail.com", role="GOVERNMENT_OFFICIAL")
+
+    # First query for policies, second for schemes, third for candidates
+    db.query.return_value.filter.return_value.all.side_effect = [
+        [mock_policy],
+        [mock_scheme],
+    ]
+    db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [eligible_gov]
+
+    res = check_user_removal_dependencies(target, admin, db)
+
+    assert res["can_remove"] is False
+    assert len(res["blockers"]) == 2
+    assert res["reassignable_count"] == 2
+    assert res["unreassignable_count"] == 0
+    assert res["blockers"][0]["entity_type"] == "POLICY"
+    assert res["blockers"][0]["entity_id"] == 127
+    assert res["blockers"][0]["title"] == "Green Hydrogen Initiative"
+    assert res["blockers"][0]["relationship"] == "Author"
+    assert res["blockers"][0]["can_reassign"] is True
+    assert res["blockers"][1]["entity_type"] == "SCHEME"
+    assert res["blockers"][1]["entity_id"] == 55
+    assert len(res["eligible_officials"]) == 1
+    assert res["eligible_officials"][0]["user_id"] == 4
+
+
+def test_reassign_user_ownership_updates_records_and_logs():
+    """reassign_user_ownership reassigns policy and scheme ownership to target official."""
+    from app.services.user_removal_service import reassign_user_ownership
+    from app.models.policy import Policy
+    from app.models.scheme import Scheme
+
+    source = fake_user(uid=138, email="source@test.gov.in")
+    target = fake_user(uid=4, email="target@test.gov.in", role="GOVERNMENT_OFFICIAL")
+    admin = fake_admin(uid=1)
+    db = MagicMock()
+    request = MagicMock()
+
+    mock_policy = MagicMock(spec=Policy)
+    mock_policy.policy_id = 127
+    mock_policy.title = "Green Hydrogen Initiative"
+    mock_policy.created_by = 138
+
+    mock_scheme = MagicMock(spec=Scheme)
+    mock_scheme.scheme_id = 55
+    mock_scheme.name = "Solar Subsidy Scheme"
+    mock_scheme.created_by = 138
+
+    # authored policies, policy requests, authored schemes, scheme requests
+    db.query.return_value.filter.return_value.all.side_effect = [
+        [mock_policy],
+        [],
+        [mock_scheme],
+        [],
+    ]
+
+    with patch("app.api.routes.auth.log_request_action") as mock_log:
+        res = reassign_user_ownership(source, target, admin, request, db)
+
+    assert mock_policy.created_by == 4
+    assert mock_scheme.created_by == 4
+    assert db.commit.called
+    assert res["reassigned_policies"] == 1
+    assert res["reassigned_schemes"] == 1
+    assert mock_log.call_count == 2
+
+
+def test_reassign_ownership_endpoint_requires_confirmation():
+    """reassign_user_ownership_endpoint raises 400 when confirm is False."""
+    from app.api.routes.admin_users import (
+        reassign_user_ownership_endpoint,
+        ReassignOwnershipRequest,
+    )
+
+    admin = fake_admin(uid=1)
+    db = MagicMock()
+    request = MagicMock()
+
+    payload = ReassignOwnershipRequest(
+        source_user_email="official@test.gov.in",
+        target_user_id=4,
+        confirm=False,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        reassign_user_ownership_endpoint(payload, request, admin, db)
+
+    assert exc_info.value.status_code == 400
+    assert "Explicit confirmation is required" in exc_info.value.detail
+
+
+def test_delete_user_with_reassign_to_user_id():
+    """delete_user endpoint atomically reassigns ownership and deletes user when reassign_to_user_id is provided."""
+    source = fake_user(uid=138, email="official@test.gov.in")
+    target_gov = fake_user(uid=4, email="new_official@test.gov.in", role="GOVERNMENT_OFFICIAL")
+    admin = fake_admin(uid=1)
+    db = MagicMock()
+    request = MagicMock()
+
+    # Query for user by email, query for target_official by user_id, has_approver (policy, scheme)
+    db.query.return_value.filter.return_value.first.side_effect = [
+        source,
+        target_gov,
+        None,
+        None,
+    ]
+    # Reassign queries (policies, policy requests, schemes, scheme requests)
+    db.query.return_value.filter.return_value.all.side_effect = [
+        [],
+        [],
+        [],
+        [],
+    ]
+
+    with patch("app.api.routes.auth.log_request_action"):
+        res = delete_user(
+            email="official@test.gov.in",
+            request=request,
+            reassign_to_user_id=4,
+            current_user=admin,
+            db=db,
+        )
+
+    assert res["message"] == "User deleted successfully"
+    db.delete.assert_called_once_with(source)
+    db.commit.assert_called_once()
+

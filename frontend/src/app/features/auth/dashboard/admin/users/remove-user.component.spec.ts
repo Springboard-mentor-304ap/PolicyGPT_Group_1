@@ -70,6 +70,22 @@ describe("RemoveUserComponent", () => {
       deleteUser: vi.fn().mockReturnValue(of({ message: "User deleted successfully", email: "rahul@test.gov.in" })),
       getPastUsersCount: vi.fn().mockReturnValue(of({ past_users: 5 })),
       getUserStats: vi.fn().mockReturnValue(of({ past_users: 5, total_users: 3, active_users: 2, inactive_users: 1, administrators: 1 })),
+      checkUserRemoval: vi.fn().mockReturnValue(of({
+        can_remove: true,
+        self_removal: false,
+        blockers: [],
+        reassignable_count: 0,
+        unreassignable_count: 0,
+        eligible_officials: [
+          { user_id: 4, full_name: "Test Official", email: "govt@gmail.com", role: "GOVERNMENT_OFFICIAL" },
+        ],
+      })),
+      reassignOwnership: vi.fn().mockReturnValue(of({
+        message: "Ownership reassigned successfully.",
+        reassigned_policies: 1,
+        reassigned_schemes: 0,
+        target_user: { user_id: 4, full_name: "Test Official", email: "govt@gmail.com" },
+      })),
     };
 
     mockAuth = {
@@ -167,11 +183,11 @@ describe("RemoveUserComponent", () => {
     component.confirmRemoval();
 
     expect(mockAdminUsersService.deleteUser).toHaveBeenCalledWith("rahul@test.gov.in");
-    expect(mockToastService.success).toHaveBeenCalledWith(
-      "User Removed",
-      expect.any(String)
-    );
+    expect(mockToastService.success).toHaveBeenCalledWith("User removed successfully.");
     expect(component.isModalOpen).toBe(false);
+    expect(component.selectedUser).toBeNull();
+    expect(component.isDeleting).toBe(false);
+    expect(component.isRemoving).toBe(false);
     // getUsers re-called on success
     expect(mockAdminUsersService.getUsers).toHaveBeenCalledTimes(2);
     // getPastUsersCount re-called on success
@@ -194,11 +210,10 @@ describe("RemoveUserComponent", () => {
     component.confirmRemoval();
 
     expect(component.isDeleting).toBe(false);
+    expect(component.isRemoving).toBe(false);
     expect(component.deleteError).toBe("Cannot delete user with active policy assignments.");
-    expect(mockToastService.error).toHaveBeenCalledWith(
-      "Removal Failed",
-      "Cannot delete user with active policy assignments."
-    );
+    // Verify toast is not duplicated; error is retained inside dialog
+    expect(mockToastService.error).not.toHaveBeenCalled();
     // Past users count unchanged
     expect(component.pastUsersCount).toBe(initialPastCount);
     // Modal remains open on error
@@ -218,5 +233,95 @@ describe("RemoveUserComponent", () => {
     component.applyFilters();
     expect(component.filteredUsers.length).toBe(1);
     expect(component.filteredUsers[0].role).toBe("GOVERNMENT_OFFICIAL");
+  });
+
+  it("should detect policy/scheme blockers when opening remove modal and display affected records", () => {
+    mockAdminUsersService.checkUserRemoval.mockReturnValue(
+      of({
+        can_remove: false,
+        self_removal: false,
+        message: "Account has 1 blocking record assignment(s).",
+        blockers: [
+          {
+            entity_type: "POLICY",
+            entity_id: 127,
+            title: "Green Hydrogen Initiative",
+            status: "APPROVED",
+            relationship: "Author",
+            can_reassign: true,
+          },
+        ],
+        reassignable_count: 1,
+        unreassignable_count: 0,
+        eligible_officials: [
+          { user_id: 4, full_name: "Test Government Official", email: "govt@gmail.com", role: "GOVERNMENT_OFFICIAL" },
+        ],
+      })
+    );
+
+    const targetUser = component.users.find((u) => u.id === 2)!;
+    component.openRemoveModal(targetUser);
+
+    expect(mockAdminUsersService.checkUserRemoval).toHaveBeenCalledWith("rahul@test.gov.in");
+    expect(component.blockers.length).toBe(1);
+    expect(component.blockers[0].entity_id).toBe(127);
+    expect(component.blockers[0].title).toBe("Green Hydrogen Initiative");
+    expect(component.canRemoveDirectly).toBe(false);
+    expect(component.eligibleOfficials.length).toBe(1);
+    expect(component.selectedTargetOfficialId).toBe(4);
+  });
+
+  it("should reassign ownership when confirmed and recheck database dependencies", () => {
+    mockAdminUsersService.checkUserRemoval.mockReturnValue(
+      of({
+        can_remove: false,
+        self_removal: false,
+        blockers: [
+          {
+            entity_type: "POLICY",
+            entity_id: 127,
+            title: "Green Hydrogen Initiative",
+            status: "APPROVED",
+            relationship: "Author",
+            can_reassign: true,
+          },
+        ],
+        reassignable_count: 1,
+        unreassignable_count: 0,
+        eligible_officials: [
+          { user_id: 4, full_name: "Test Government Official", email: "govt@gmail.com", role: "GOVERNMENT_OFFICIAL" },
+        ],
+      })
+    );
+
+    const targetUser = component.users.find((u) => u.id === 2)!;
+    component.openRemoveModal(targetUser);
+
+    // Now mock the second checkUserRemoval call after reassignment to return 0 blockers
+    mockAdminUsersService.checkUserRemoval.mockReturnValue(
+      of({
+        can_remove: true,
+        self_removal: false,
+        blockers: [],
+        reassignable_count: 0,
+        unreassignable_count: 0,
+        eligible_officials: [],
+      })
+    );
+
+    component.selectedTargetOfficialId = 4;
+    component.reassignConfirmed = true;
+    component.reassignOwnershipAction();
+
+    expect(mockAdminUsersService.reassignOwnership).toHaveBeenCalledWith({
+      source_user_email: "rahul@test.gov.in",
+      target_user_id: 4,
+      confirm: true,
+    });
+    // Verifies the system re-checks dependencies against the database (Step 5 of workflow)
+    expect(mockAdminUsersService.checkUserRemoval).toHaveBeenCalledTimes(2);
+    expect(component.canRemoveDirectly).toBe(true);
+    expect(component.blockers.length).toBe(0);
+    expect(component.reassignSuccessMessage.toLowerCase()).toContain("reassigned");
   });
 });

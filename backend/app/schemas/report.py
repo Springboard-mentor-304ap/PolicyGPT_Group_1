@@ -22,7 +22,7 @@ ReportStatus = Literal["PENDING", "COMPLETED", "FAILED"]
 
 
 class ReportCreate(BaseModel):
-    generated_by: int
+    generated_by: int | None = None
     report_type: str
     report_format: str
     title: str | None = None
@@ -44,7 +44,7 @@ class ReportGenerateRequest(BaseModel):
 
 class ReportResponse(BaseModel):
     report_id: int
-    generated_by: int
+    generated_by: int | None = None
     report_type: str
     report_format: str
     title: str | None = None

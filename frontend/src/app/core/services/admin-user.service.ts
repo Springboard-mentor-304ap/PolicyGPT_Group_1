@@ -40,6 +40,56 @@ export interface UserStatsApi {
   administrators?: number;
 }
 
+export interface UserRemovalBlocker {
+  entity_type: "POLICY" | "SCHEME";
+  entity_id: number;
+  title: string;
+  status: string;
+  relationship: string;
+  can_reassign: boolean;
+  action_needed?: string;
+}
+
+export interface EligibleOfficial {
+  user_id: number;
+  full_name: string;
+  email: string;
+  role: string;
+}
+
+export interface UserRemovalCheckResponse {
+  can_remove: boolean;
+  self_removal: boolean;
+  message?: string | null;
+  target_user: {
+    user_id: number;
+    full_name: string;
+    email: string;
+    role: string;
+  };
+  blockers: UserRemovalBlocker[];
+  reassignable_count: number;
+  unreassignable_count: number;
+  eligible_officials: EligibleOfficial[];
+}
+
+export interface ReassignOwnershipPayload {
+  source_user_email: string;
+  target_user_id: number;
+  confirm: boolean;
+}
+
+export interface ReassignOwnershipResponse {
+  message: string;
+  reassigned_policies: number;
+  reassigned_schemes: number;
+  target_user: {
+    user_id: number;
+    full_name: string;
+    email: string;
+  };
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -77,11 +127,30 @@ export class AdminUsersService {
     );
   }
 
-  deleteUser(email: string): Observable<{ message: string; email?: string }> {
+  checkUserRemoval(email: string): Observable<UserRemovalCheckResponse> {
     const trimmedEmail = (email || "").trim();
-    return this.http.delete<{ message: string; email?: string }>(
-      `${this.authUsersUrl}/email/${encodeURIComponent(trimmedEmail)}`
+    return this.http.get<UserRemovalCheckResponse>(
+      `${this.apiUrl}/removal-check/${encodeURIComponent(trimmedEmail)}`
     );
+  }
+
+  reassignOwnership(payload: ReassignOwnershipPayload): Observable<ReassignOwnershipResponse> {
+    return this.http.post<ReassignOwnershipResponse>(
+      `${this.apiUrl}/reassign-ownership`,
+      payload
+    );
+  }
+
+  deleteUser(
+    email: string,
+    reassignToUserId?: number
+  ): Observable<{ message: string; email?: string }> {
+    const trimmedEmail = (email || "").trim();
+    let url = `${this.authUsersUrl}/email/${encodeURIComponent(trimmedEmail)}`;
+    if (reassignToUserId !== undefined && reassignToUserId !== null) {
+      url += `?reassign_to_user_id=${reassignToUserId}`;
+    }
+    return this.http.delete<{ message: string; email?: string }>(url);
   }
 
   getAuditLogsForUser(userId: number): Observable<UserAuditLogApi[]> {

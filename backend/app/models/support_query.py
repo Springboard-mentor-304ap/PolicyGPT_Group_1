@@ -20,10 +20,10 @@ class SupportQuery(Base):
         autoincrement=True,
     )
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.user_id"),
-        nullable=False,
+        nullable=True,
     )
 
     category: Mapped[str] = mapped_column(

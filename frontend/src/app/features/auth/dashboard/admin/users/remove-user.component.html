@@ -129,43 +129,24 @@
                 <!-- SEARCH -->
                 <div class="users-filter users-filter--search">
                     <span class="material-icons">search</span>
-                    <input
-                        type="text"
-                        [(ngModel)]="searchText"
-                        (ngModelChange)="applyFilters()"
-                        placeholder="Search by name, email, phone, location..."
-                        aria-label="Search users"
-                    />
+                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                        placeholder="Search by name, email, phone, location..." aria-label="Search users" />
                 </div>
 
                 <!-- ROLE -->
                 <div class="users-filter">
                     <label for="removeRoleFilter">Role</label>
-                    <app-searchable-select
-                        id="removeRoleFilter"
-                        size="filter"
-                        ariaLabel="Filter by role"
-                        placeholder="All Roles"
-                        [searchable]="false"
-                        [options]="roleFilterOptions"
-                        [(ngModel)]="selectedRole"
-                        (selectionChange)="applyFilters()"
-                    />
+                    <app-searchable-select id="removeRoleFilter" size="filter" ariaLabel="Filter by role"
+                        placeholder="All Roles" [searchable]="false" [options]="roleFilterOptions"
+                        [(ngModel)]="selectedRole" (selectionChange)="applyFilters()" />
                 </div>
 
                 <!-- STATUS -->
                 <div class="users-filter">
                     <label for="removeStatusFilter">Status</label>
-                    <app-searchable-select
-                        id="removeStatusFilter"
-                        size="filter"
-                        ariaLabel="Filter by status"
-                        placeholder="All Status"
-                        [searchable]="false"
-                        [options]="statusFilterOptions"
-                        [(ngModel)]="selectedStatus"
-                        (selectionChange)="applyFilters()"
-                    />
+                    <app-searchable-select id="removeStatusFilter" size="filter" ariaLabel="Filter by status"
+                        placeholder="All Status" [searchable]="false" [options]="statusFilterOptions"
+                        [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
                 </div>
             </div>
 
@@ -237,17 +218,15 @@
                             <!-- LOCATION -->
                             <td>
                                 <span class="users-location">
-                                    {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' + user.district : '' }}
+                                    {{ user.state }}{{ user.district && user.district !== 'Not available' ? ', ' +
+                                    user.district : '' }}
                                 </span>
                             </td>
 
                             <!-- STATUS -->
                             <td>
-                                <span
-                                    class="users-status"
-                                    [class.users-status--active]="user.status === 'Active'"
-                                    [class.users-status--inactive]="user.status === 'Inactive'"
-                                >
+                                <span class="users-status" [class.users-status--active]="user.status === 'Active'"
+                                    [class.users-status--inactive]="user.status === 'Inactive'">
                                     <span></span>
                                     {{ user.status }}
                                 </span>
@@ -263,22 +242,14 @@
                             <!-- ACTION -->
                             <td class="td-actions">
                                 @if (isSelf(user)) {
-                                <button
-                                    type="button"
-                                    class="users-remove-button users-remove-button--disabled"
-                                    disabled
-                                    title="Current user account cannot be removed"
-                                >
+                                <button type="button" class="users-remove-button users-remove-button--disabled" disabled
+                                    title="Current user account cannot be removed">
                                     <span class="material-icons">shield</span>
                                     Self (Protected)
                                 </button>
                                 } @else {
-                                <button
-                                    type="button"
-                                    class="users-remove-button"
-                                    (click)="openRemoveModal(user)"
-                                    [attr.aria-label]="'Remove ' + user.fullName"
-                                >
+                                <button type="button" class="users-remove-button" (click)="openRemoveModal(user)"
+                                    [attr.aria-label]="'Remove ' + user.fullName">
                                     <span class="material-icons">person_remove</span>
                                     Remove
                                 </button>
@@ -309,17 +280,13 @@
             @if (!isLoading && !loadError && filteredUsers.length > 0) {
             <div class="users-pagination">
                 <span class="users-pagination__info">
-                    Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ currentPage * pageSize > filteredUsers.length ? filteredUsers.length : currentPage * pageSize }} of {{ filteredUsers.length }} users
+                    Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ currentPage * pageSize > filteredUsers.length ?
+                    filteredUsers.length : currentPage * pageSize }} of {{ filteredUsers.length }} users
                 </span>
 
                 <div class="users-pagination__actions">
-                    <button
-                        type="button"
-                        class="users-pagination__button"
-                        [disabled]="currentPage === 1"
-                        (click)="previousPage()"
-                        aria-label="Previous page"
-                    >
+                    <button type="button" class="users-pagination__button" [disabled]="currentPage === 1"
+                        (click)="previousPage()" aria-label="Previous page">
                         <span class="material-icons">chevron_left</span>
                     </button>
 
@@ -327,13 +294,8 @@
                         Page {{ currentPage }} of {{ totalPages }}
                     </span>
 
-                    <button
-                        type="button"
-                        class="users-pagination__button"
-                        [disabled]="currentPage === totalPages"
-                        (click)="nextPage()"
-                        aria-label="Next page"
-                    >
+                    <button type="button" class="users-pagination__button" [disabled]="currentPage === totalPages"
+                        (click)="nextPage()" aria-label="Next page">
                         <span class="material-icons">chevron_right</span>
                     </button>
                 </div>
@@ -344,28 +306,29 @@
     </main>
 
     <!-- =====================================================
-         REMOVE CONFIRMATION MODAL
+         REMOVE CONFIRMATION MODAL & RESOLUTION WORKFLOW
          ===================================================== -->
     @if (isModalOpen && selectedUser) {
     <div class="modal-overlay" (click)="closeModal()" role="presentation">
-        <div
-            class="modal-card"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="removeModalTitle"
-            (click)="$event.stopPropagation()"
-        >
-            <!-- DANGER ICON -->
-            <div class="modal-icon modal-icon--danger">
-                <span class="material-icons">warning</span>
+        <div class="modal-card" [class.modal-card--has-blockers]="blockers.length > 0" role="dialog" aria-modal="true"
+            aria-labelledby="removeModalTitle" (click)="$event.stopPropagation()">
+            <!-- DANGER / WARNING ICON -->
+            <div class="modal-icon" [ngClass]="blockers.length > 0 ? 'modal-icon--warning' : 'modal-icon--danger'">
+                <span class="material-icons">
+                    {{ blockers.length > 0 ? 'account_balance' : 'warning' }}
+                </span>
             </div>
 
             <h3 id="removeModalTitle" class="modal-title">
-                Remove User?
+                {{ blockers.length > 0 ? 'Ownership Resolution Required' : 'Remove User?' }}
             </h3>
 
             <p class="modal-intro">
+                @if (blockers.length > 0) {
+                This account is currently assigned to policies or schemes. Resolve ownership before deletion.
+                } @else {
                 You are about to remove this user from PolicyGPT.
+                }
             </p>
 
             <!-- USER DETAILS CARD -->
@@ -384,9 +347,148 @@
                 </div>
             </div>
 
+            <!-- CHECKING DEPENDENCIES INDICATOR -->
+            @if (isCheckingDependencies) {
+            <div class="modal-checking-box">
+                <span class="modal-spinner modal-spinner--blue"></span>
+                <span>Checking dependent records and active assignments...</span>
+            </div>
+            }
+
+            <!-- BLOCKERS LIST & RESOLUTION SECTION -->
+            @if (!isCheckingDependencies && blockers.length > 0) {
+            <div class="modal-blockers-section">
+
+                <!-- AFFECTED RECORDS BREAKDOWN -->
+                <div class="modal-records-box">
+                    <div class="modal-records-header">
+                        <span class="material-icons">rule</span>
+                        <h4>Affected Records ({{ blockers.length }})</h4>
+                    </div>
+
+                    <div class="modal-records-list">
+                        @for (blocker of blockers; track blocker.entity_type + blocker.entity_id) {
+                        <div class="modal-record-item">
+                            <div class="modal-record-item__top">
+                                <div class="modal-record-badges">
+                                    <span class="badge-entity"
+                                        [ngClass]="'badge-entity--' + blocker.entity_type.toLowerCase()">
+                                        {{ blocker.entity_type === 'POLICY' ? 'Policy' : 'Scheme' }} #{{
+                                        blocker.entity_id }}
+                                    </span>
+                                    <span class="badge-status"
+                                        [ngClass]="'badge-status--' + blocker.status.toLowerCase()">
+                                        {{ blocker.status }}
+                                    </span>
+                                    <span class="badge-relationship">
+                                        {{ blocker.relationship }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="modal-record-item__title">
+                                {{ blocker.title }}
+                            </div>
+                            <div class="modal-record-item__resolution">
+                                @if (blocker.can_reassign) {
+                                <span class="resolution-tag resolution-tag--can-reassign">
+                                    <span class="material-icons">swap_horiz</span>
+                                    Eligible for ownership reassignment
+                                </span>
+                                } @else {
+                                <span class="resolution-tag resolution-tag--blocked">
+                                    <span class="material-icons">lock</span>
+                                    {{ blocker.action_needed || 'Historical record cannot be reassigned.' }}
+                                </span>
+                                }
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- REASSIGNMENT CONTROLS -->
+                @if (reassignableBlockersCount > 0) {
+                <div class="modal-reassign-card">
+                    <div class="modal-reassign-header">
+                        <span class="material-icons">published_with_changes</span>
+                        <div>
+                            <h5>Reassign Ownership</h5>
+                            <p>Transfer authored policies and schemes to an active Government Official:</p>
+                        </div>
+                    </div>
+
+                    @if (eligibleOfficials.length > 0) {
+                    <div class="modal-reassign-form">
+                        <label for="reassignTargetSelect" class="reassign-label">
+                            Assign to Official:
+                        </label>
+                        <select id="reassignTargetSelect" class="reassign-select" [(ngModel)]="selectedTargetOfficialId"
+                            [disabled]="isReassigning">
+                            @for (official of eligibleOfficials; track official.user_id) {
+                            <option [value]="official.user_id">
+                                {{ official.full_name }} ({{ official.email }})
+                            </option>
+                            }
+                        </select>
+
+                        <!-- EXPLICIT CONFIRMATION CHECKBOX -->
+                        <div class="reassign-confirm-row">
+                            <label class="reassign-checkbox-label">
+                                <input type="checkbox" [(ngModel)]="reassignConfirmed" [disabled]="isReassigning"
+                                    id="reassignConfirmCheckbox" />
+                                <span>I confirm transferring ownership of all authored policies and schemes to the
+                                    selected official.</span>
+                            </label>
+                        </div>
+
+                        <!-- REASSIGN ACTION BUTTON -->
+                        <button type="button" class="modal-btn modal-btn--reassign" (click)="reassignOwnershipAction()"
+                            [disabled]="!selectedTargetOfficialId || !reassignConfirmed || isReassigning">
+                            @if (isReassigning) {
+                            <span class="modal-spinner"></span>
+                            <span>Reassigning Ownership...</span>
+                            } @else {
+                            <span class="material-icons">swap_horiz</span>
+                            <span>Reassign Ownership</span>
+                            }
+                        </button>
+                    </div>
+                    } @else {
+                    <div class="reassign-no-officials">
+                        <span class="material-icons">warning</span>
+                        <span>No eligible Government Officials available in the system to receive ownership.</span>
+                    </div>
+                    }
+                </div>
+                }
+
+                <!-- UNREASSIGNABLE BLOCKERS WARNING -->
+                @if (unreassignableBlockersCount > 0) {
+                <div class="modal-unreassignable-box">
+                    <span class="material-icons">info</span>
+                    <span>
+                        {{ unreassignableBlockersCount }} record(s) contain historical approvals that must remain in the
+                        audit trail. These cannot be reassigned.
+                    </span>
+                </div>
+                }
+
+            </div>
+            }
+
+            @if (blockers.length === 0 && !isCheckingDependencies) {
             <p class="modal-warning">
                 This action cannot be undone.
             </p>
+            }
+
+            <!-- REASSIGN SUCCESS ALERT IF ANY -->
+            @if (reassignSuccessMessage) {
+            <div class="modal-success-box">
+                <span class="material-icons">check_circle</span>
+                <span>{{ reassignSuccessMessage }}</span>
+            </div>
+            }
 
             <!-- ERROR ALERT IN MODAL IF ANY -->
             @if (deleteError) {
@@ -398,21 +500,13 @@
 
             <!-- MODAL ACTIONS -->
             <div class="modal-actions">
-                <button
-                    type="button"
-                    class="modal-btn modal-btn--cancel"
-                    (click)="closeModal()"
-                    [disabled]="isDeleting"
-                >
+                <button type="button" class="modal-btn modal-btn--cancel" (click)="closeModal()"
+                    [disabled]="isDeleting || isRemoving || isReassigning">
                     Cancel
                 </button>
-                <button
-                    type="button"
-                    class="modal-btn modal-btn--danger"
-                    (click)="confirmRemoval()"
-                    [disabled]="isDeleting"
-                >
-                    @if (isDeleting) {
+                <button type="button" class="modal-btn modal-btn--danger" (click)="confirmRemoval()"
+                    [disabled]="isDeleting || isRemoving || isReassigning || isCheckingDependencies || (!canRemoveDirectly && blockers.length > 0)">
+                    @if (isDeleting || isRemoving) {
                     <span class="modal-spinner"></span>
                     <span>Removing...</span>
                     } @else {

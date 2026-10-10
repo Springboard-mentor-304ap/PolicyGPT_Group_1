@@ -20,7 +20,7 @@ class SupportRequestCreate(BaseModel):
 class SupportRequestResponse(BaseModel):
     query_id: int
     request_id: str
-    user_id: int
+    user_id: int | None = None
     category: str
     subject: str
     description: str
@@ -49,7 +49,7 @@ class SupportTicketMessageCreate(BaseModel):
 class SupportTicketMessageResponse(BaseModel):
     id: int
     ticket_id: int
-    sender_id: int
+    sender_id: int | None = None
     sender_role: str
     sender_name: str | None = None
     message: str

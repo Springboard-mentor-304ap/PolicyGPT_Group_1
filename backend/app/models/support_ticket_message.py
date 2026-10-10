@@ -38,10 +38,10 @@ class SupportTicketMessage(Base):
         index=True,
     )
 
-    sender_id: Mapped[int] = mapped_column(
+    sender_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("users.user_id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     sender_role: Mapped[str] = mapped_column(

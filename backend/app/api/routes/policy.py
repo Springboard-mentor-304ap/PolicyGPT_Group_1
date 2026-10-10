@@ -726,6 +726,7 @@ def reject_policy_route(
     policy_id: int,
     data: PolicyRejectRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -735,6 +736,7 @@ def reject_policy_route(
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -809,6 +811,7 @@ def request_archive_policy_route(
     policy_id: int,
     data: PolicyArchiveRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -818,6 +821,7 @@ def request_archive_policy_route(
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -849,6 +853,7 @@ def request_archive_policy_route(
 def approve_archive_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -857,6 +862,7 @@ def approve_archive_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -888,6 +894,7 @@ def approve_archive_policy_route(
 def reject_archive_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -896,6 +903,7 @@ def reject_archive_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -969,6 +977,7 @@ def request_delete_policy_route(
     policy_id: int,
     data: PolicyDeleteRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -978,6 +987,7 @@ def request_delete_policy_route(
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -1008,6 +1018,7 @@ def request_delete_policy_route(
 def approve_delete_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -1016,6 +1027,7 @@ def approve_delete_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -1047,6 +1059,7 @@ def approve_delete_policy_route(
 def reject_delete_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -1055,6 +1068,7 @@ def reject_delete_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(

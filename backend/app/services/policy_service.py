@@ -1,15 +1,20 @@
+import logging
+import re
 from datetime import datetime, timezone
 from math import ceil
 from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import cast, func, or_, String
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.policy import Policy
 from app.models.user import User
 from app.schemas.policy import PolicyCreate, PolicyUpdate
 from app.api.routes.auth import normalize_role
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # HELPERS
@@ -199,6 +204,54 @@ def _validate_policy_duplicate(
             status_code=status.HTTP_409_CONFLICT,
             detail="A policy with this title already exists.",
         )
+
+
+def _handle_delete_exception(exc: Exception, policy_id: int) -> None:
+    """Log detailed backend exception and raise clean, informative HTTP exception.
+    
+    Distinguishes foreign-key conflicts from other integrity errors without
+    leaking raw SQL or internal stack traces to the frontend.
+    """
+    logger.exception("Failed to permanently delete policy %s: %s", policy_id, exc)
+
+    if isinstance(exc, HTTPException):
+        raise exc
+
+    if isinstance(exc, IntegrityError):
+        orig = getattr(exc, "orig", None)
+        diag = getattr(orig, "diag", None)
+        detail = getattr(diag, "message_detail", None) if diag else None
+        constraint_name = getattr(diag, "constraint_name", None) if diag else None
+
+        if detail and "still referenced from table" in detail:
+            match = re.search(r'referenced from table "([^"]+)"', detail)
+            ref_table = match.group(1) if match else "another"
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Policy could not be deleted because it is referenced by existing "
+                    f"{ref_table} records. Consider archiving it instead."
+                ),
+            ) from exc
+
+        if constraint_name:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    f"Policy could not be deleted due to reference constraint "
+                    f"'{constraint_name}'. Consider archiving it instead."
+                ),
+            ) from exc
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Policy could not be deleted due to a database integrity constraint. Consider archiving it instead.",
+        ) from exc
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="An internal server error occurred while attempting to delete the policy.",
+    ) from exc
 
 
 # ============================================================
@@ -552,20 +605,25 @@ def delete_policy(
     )
 
     try:
+        from app.models.feedback import Feedback
+        from app.models.notification import Notification
+
+        # Nullify feedback reference to preserve citizen feedback records and audit trail
+        db.query(Feedback).filter(
+            Feedback.policy_id == policy_id
+        ).update({Feedback.policy_id: None}, synchronize_session=False)
+
+        # Remove transient in-app policy notifications
+        db.query(Notification).filter(
+            Notification.related_policy_id == policy_id
+        ).delete(synchronize_session=False)
+
         db.delete(policy)
         db.commit()
 
     except Exception as exc:
         db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Policy could not be deleted. "
-                "It may be referenced by another record. "
-                "Consider archiving it instead."
-            ),
-        ) from exc
+        _handle_delete_exception(exc, policy_id)
 
 
 # ============================================================
@@ -843,6 +901,7 @@ def reject_policy(
     policy_id: int,
     reason: str,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -873,22 +932,54 @@ def reject_policy(
     db.commit()
     db.refresh(policy)
 
-    try:
-        from app.services.notification_service import notify_policy_rejected
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "creator_id": policy.created_by,
+        "reason": policy.rejection_reason,
+        "actor_id": current_user.user_id,
+        "actor_name": current_user.full_name,
+    }
 
-        notify_policy_rejected(
-            db=db,
-            policy_id=policy.policy_id,
-            policy_title=policy.title,
-            creator_id=policy.created_by,
-            reason=policy.rejection_reason,
-            actor_id=current_user.user_id,
-            actor_name=current_user.full_name,
-        )
-    except Exception as e:
-        print(f"Notification error on policy reject: {e}")
+    if background_tasks is not None:
+        background_tasks.add_task(_run_reject_notifications, notify_args)
+        return policy
+
+    _run_reject_notifications(notify_args, db=db)
 
     return policy
+
+
+def _run_reject_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out reject notifications.
+
+    Runs inline when called with the request session, or as a background task
+    with a short-lived session. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import notify_policy_rejected
+
+            notify_policy_rejected(
+                db=db,
+                policy_id=args["policy_id"],
+                policy_title=args["policy_title"],
+                creator_id=args["creator_id"],
+                reason=args["reason"],
+                actor_id=args["actor_id"],
+                actor_name=args["actor_name"],
+            )
+        except Exception as e:
+            logger.warning("Notification error on policy reject: %s", e)
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================
@@ -949,6 +1040,7 @@ def request_archive_policy(
     policy_id: int,
     reason: str,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -993,22 +1085,48 @@ def request_archive_policy(
     db.commit()
     db.refresh(policy)
 
-    try:
-        from app.services.notification_service import (
-            notify_policy_archive_requested,
-        )
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "requested_by_id": current_user.user_id,
+        "reason": policy.archive_reason,
+    }
 
-        notify_policy_archive_requested(
-            db=db,
-            policy_id=policy.policy_id,
-            policy_title=policy.title,
-            requested_by_id=current_user.user_id,
-            reason=policy.archive_reason,
-        )
-    except Exception as e:
-        print(f"Notification error on policy archive request: {e}")
+    if background_tasks is not None:
+        background_tasks.add_task(_run_request_archive_notifications, notify_args)
+        return policy
+
+    _run_request_archive_notifications(notify_args, db=db)
 
     return policy
+
+
+def _run_request_archive_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out archive request notifications to admins."""
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_policy_archive_requested,
+            )
+
+            notify_policy_archive_requested(
+                db=db,
+                policy_id=args["policy_id"],
+                policy_title=args["policy_title"],
+                requested_by_id=args["requested_by_id"],
+                reason=args.get("reason"),
+            )
+        except Exception as e:
+            logger.warning("Notification error on policy archive request: %s", e)
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================
@@ -1061,6 +1179,7 @@ def approve_archive_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -1091,24 +1210,22 @@ def approve_archive_policy(
     db.refresh(policy)
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Policy Archive Request",
+            "decision": "APPROVED",
+            "entity_type": "POLICY",
+            "entity_id": policy.policy_id,
+            "entity_title": title,
+            "decision_by": current_user.full_name or "Administrator",
+            "actor_id": current_user.user_id,
+        }
 
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Policy Archive Request",
-                decision="APPROVED",
-                entity_type="POLICY",
-                entity_id=policy.policy_id,
-                entity_title=title,
-                decision_by=current_user.full_name or "Administrator",
-                actor_id=current_user.user_id,
-            )
-        except Exception as e:
-            print(f"Notification error on policy archive approve: {e}")
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+            return policy
+
+        _run_decision_notifications(notify_args, db=db)
 
     return policy
 
@@ -1126,6 +1243,7 @@ def reject_archive_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -1159,6 +1277,40 @@ def reject_archive_policy(
     db.refresh(policy)
 
     if req_user:
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Policy Archive Request",
+            "decision": "REJECTED",
+            "entity_type": "POLICY",
+            "entity_id": policy.policy_id,
+            "entity_title": title,
+            "decision_by": current_user.full_name or "Administrator",
+            "actor_id": current_user.user_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+            return policy
+
+        _run_decision_notifications(notify_args, db=db)
+
+    return policy
+
+
+def _run_decision_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out decision notifications (IN_APP rows + external legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
         try:
             from app.services.notification_service import (
                 notify_request_decision,
@@ -1166,19 +1318,22 @@ def reject_archive_policy(
 
             notify_request_decision(
                 db=db,
-                user_id=req_user,
-                request_type="Policy Archive Request",
-                decision="REJECTED",
-                entity_type="POLICY",
-                entity_id=policy.policy_id,
-                entity_title=title,
-                decision_by=current_user.full_name or "Administrator",
-                actor_id=current_user.user_id,
+                user_id=args["user_id"],
+                request_type=args["request_type"],
+                decision=args["decision"],
+                entity_type=args["entity_type"],
+                entity_id=args["entity_id"],
+                entity_title=args["entity_title"],
+                reason=args.get("reason"),
+                decision_by=args["decision_by"],
+                actor_id=args["actor_id"],
+                link_entity=args.get("link_entity", True),
             )
         except Exception as e:
-            print(f"Notification error on policy archive reject: {e}")
-
-    return policy
+            logger.warning("Notification error on request decision: %s", e)
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================
@@ -1299,6 +1454,7 @@ def request_delete_policy(
     policy_id: int,
     reason: str,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -1350,22 +1506,48 @@ def request_delete_policy(
     db.commit()
     db.refresh(policy)
 
-    try:
-        from app.services.notification_service import (
-            notify_policy_delete_requested,
-        )
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "requested_by_id": current_user.user_id,
+        "reason": policy.delete_reason,
+    }
 
-        notify_policy_delete_requested(
-            db=db,
-            policy_id=policy.policy_id,
-            policy_title=policy.title,
-            requested_by_id=current_user.user_id,
-            reason=policy.delete_reason,
-        )
-    except Exception as e:
-        print(f"Notification error on policy delete request: {e}")
+    if background_tasks is not None:
+        background_tasks.add_task(_run_request_delete_notifications, notify_args)
+        return policy
+
+    _run_request_delete_notifications(notify_args, db=db)
 
     return policy
+
+
+def _run_request_delete_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out delete request notifications to admins."""
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_policy_delete_requested,
+            )
+
+            notify_policy_delete_requested(
+                db=db,
+                policy_id=args["policy_id"],
+                policy_title=args["policy_title"],
+                requested_by_id=args["requested_by_id"],
+                reason=args.get("reason"),
+            )
+        except Exception as e:
+            logger.warning("Notification error on policy delete request: %s", e)
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================
@@ -1418,6 +1600,7 @@ def approve_delete_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> None:
 
     policy = _policy_or_404(
@@ -1438,15 +1621,15 @@ def approve_delete_policy(
     title = policy.title
 
     try:
-        # Notifications for this policy hold a related_policy_id FK, so
-        # they must go first or the delete below is always refused. They are
-        # transient UI messages about a row that is about to disappear, so
-        # removing them loses nothing. Any *other* referencing table (feedback,
-        # saved_policies, eligibility_rules, policy_documents) still blocks the
-        # delete and still surfaces the 400 below, which is the intended
-        # behaviour.
+        from app.models.feedback import Feedback
         from app.models.notification import Notification
 
+        # Nullify feedback reference to preserve citizen feedback records and audit trail
+        db.query(Feedback).filter(
+            Feedback.policy_id == policy_id
+        ).update({Feedback.policy_id: None}, synchronize_session=False)
+
+        # Remove transient in-app notifications
         db.query(Notification).filter(
             Notification.related_policy_id == policy_id
         ).delete(synchronize_session=False)
@@ -1456,36 +1639,26 @@ def approve_delete_policy(
         db.commit()
 
         if req_user:
-            try:
-                from app.services.notification_service import (
-                    notify_request_decision,
-                )
+            notify_args = {
+                "user_id": req_user,
+                "request_type": "Policy Deletion Request",
+                "decision": "APPROVED",
+                "entity_type": "POLICY",
+                "entity_id": policy_id,
+                "entity_title": title,
+                "decision_by": current_user.full_name or "Administrator",
+                "actor_id": current_user.user_id,
+                "link_entity": False,
+            }
 
-                notify_request_decision(
-                    db=db,
-                    user_id=req_user,
-                    request_type="Policy Deletion Request",
-                    decision="APPROVED",
-                    entity_type="POLICY",
-                    entity_id=policy_id,
-                    entity_title=title,
-                    decision_by=current_user.full_name or "Administrator",
-                    actor_id=current_user.user_id,
-                    link_entity=False,
-                )
-            except Exception as e:
-                print(f"Notification error on policy delete approve: {e}")
+            if background_tasks is not None:
+                background_tasks.add_task(_run_decision_notifications, notify_args)
+            else:
+                _run_decision_notifications(notify_args, db=db)
 
     except Exception as exc:
         db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Policy could not be permanently deleted. "
-                "It may be referenced by another record."
-            ),
-        ) from exc
+        _handle_delete_exception(exc, policy_id)
 
 
 # ============================================================
@@ -1505,6 +1678,7 @@ def reject_delete_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -1551,24 +1725,22 @@ def reject_delete_policy(
     db.refresh(policy)
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Policy Deletion Request",
+            "decision": "REJECTED",
+            "entity_type": "POLICY",
+            "entity_id": policy.policy_id,
+            "entity_title": title,
+            "decision_by": current_user.full_name or "Administrator",
+            "actor_id": current_user.user_id,
+        }
 
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Policy Deletion Request",
-                decision="REJECTED",
-                entity_type="POLICY",
-                entity_id=policy.policy_id,
-                entity_title=title,
-                decision_by=current_user.full_name or "Administrator",
-                actor_id=current_user.user_id,
-            )
-        except Exception as e:
-            print(f"Notification error on policy delete reject: {e}")
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+            return policy
+
+        _run_decision_notifications(notify_args, db=db)
 
     return policy
 

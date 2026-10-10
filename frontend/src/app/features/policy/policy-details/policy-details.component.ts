@@ -7,7 +7,7 @@ import {
   inject,
 } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { catchError, finalize, of } from "rxjs";
+import { catchError, finalize, of, take } from "rxjs";
 
 import { PolicyService } from "../../../core/services/policy.service";
 import { SavedItemsService } from "../../../core/services/saved-items.service";
@@ -978,20 +978,33 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Delete Policy";
     this.confirmMessage = `Permanently delete "${this.policy.title}"? This cannot be undone.`;
     this.confirmVariant = "danger";
+    this.confirmLoading = false;
     this.confirmAction = () => {
-      this.policyService.deletePolicy(policyId).subscribe({
-        next: () => {
-          this.confirmModalOpen = false;
-          this.showToast("Policy deleted permanently.", "success");
-          this.cdr.detectChanges();
-          setTimeout(() => this.goBack(), 1200);
-        },
-        error: (err) => {
-          this.confirmModalOpen = false;
-          this.showToast(this.getErrorMessage(err), "error");
-          this.cdr.detectChanges();
-        },
-      });
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
+      this.policyService
+        .deletePolicy(policyId)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.showToast("Policy deleted permanently.", "success");
+            this.cdr.detectChanges();
+            setTimeout(() => this.goBack(), 1200);
+          },
+          error: (err) => {
+            this.confirmModalOpen = false;
+            this.showToast(this.getErrorMessage(err), "error");
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();

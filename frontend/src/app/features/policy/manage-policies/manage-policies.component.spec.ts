@@ -407,7 +407,9 @@ describe("ManagePoliciesComponent", () => {
     expect(component.successToastMessage).toBe(
       "Policy submitted for approval.",
     );
-    expect(loadSpy).toHaveBeenCalled();
+    expect(
+      component.policies.find((p) => p.id === draftPolicy.id)?.status,
+    ).toBe("PENDING_APPROVAL");
   });
 
   // Test 12: Duplicate clicks do not create duplicate API requests

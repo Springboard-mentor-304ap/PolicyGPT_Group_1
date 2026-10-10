@@ -743,34 +743,43 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
 
-      this.policyService.submitPolicy(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          // Use the backend-returned status: an Admin submit lands
-          // APPROVED directly, a Government Official submit PENDING_APPROVAL.
-          const approved =
-            String(updated?.status || "").toUpperCase() === "APPROVED";
-          this.showSuccessToast(
-            approved
-              ? "Policy submitted and approved."
-              : "Policy submitted for approval.",
-          );
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          }
-          this.loadPolicies();
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .submitPolicy(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            // Use the backend-returned status: an Admin submit lands
+            // APPROVED directly, a Government Official submit PENDING_APPROVAL.
+            const approved =
+              String(updated?.status || "").toUpperCase() === "APPROVED";
+            this.showSuccessToast(
+              approved
+                ? "Policy submitted and approved."
+                : "Policy submitted for approval.",
+            );
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -811,27 +820,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
 
-      this.policyService.approvePolicy(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy approved successfully.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .approvePolicy(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy approved successfully.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -857,27 +874,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.reasonLoading = true;
       this.reasonErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.rejectPolicy(policy.id, reason).subscribe({
-        next: (updated) => {
-          this.reasonLoading = false;
-          this.reasonModalOpen = false;
-          this.reasonAction = null;
-          this.reasonErrorMessage = null;
-          this.showSuccessToast("Policy rejected.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.reasonLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.reasonErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .rejectPolicy(policy.id, reason)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.reasonLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.reasonModalOpen = false;
+            this.reasonAction = null;
+            this.reasonErrorMessage = null;
+            this.showSuccessToast("Policy rejected.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.reasonErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.reasonModalOpen = true;
     this.cdr.detectChanges();
@@ -898,27 +923,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.reasonLoading = true;
       this.reasonErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.requestArchive(policy.id, reason).subscribe({
-        next: (updated) => {
-          this.reasonLoading = false;
-          this.reasonModalOpen = false;
-          this.reasonAction = null;
-          this.reasonErrorMessage = null;
-          this.showSuccessToast("Archive request submitted to Admin.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.reasonLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.reasonErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .requestArchive(policy.id, reason)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.reasonLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.reasonModalOpen = false;
+            this.reasonAction = null;
+            this.reasonErrorMessage = null;
+            this.showSuccessToast("Archive request submitted to Admin.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.reasonErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.reasonModalOpen = true;
     this.cdr.detectChanges();
@@ -945,27 +978,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.approveArchive(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy archived successfully.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .approveArchive(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy archived successfully.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -992,29 +1033,37 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.rejectArchive(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast(
-            "Archive request rejected. Policy reverted to APPROVED.",
-          );
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .rejectArchive(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast(
+              "Archive request rejected. Policy reverted to APPROVED.",
+            );
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -1035,27 +1084,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.reasonLoading = true;
       this.reasonErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.requestDelete(policy.id, reason).subscribe({
-        next: (updated) => {
-          this.reasonLoading = false;
-          this.reasonModalOpen = false;
-          this.reasonAction = null;
-          this.reasonErrorMessage = null;
-          this.showSuccessToast("Delete request submitted to Admin.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.reasonLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.reasonErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .requestDelete(policy.id, reason)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.reasonLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.reasonModalOpen = false;
+            this.reasonAction = null;
+            this.reasonErrorMessage = null;
+            this.showSuccessToast("Delete request submitted to Admin.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.reasonErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.reasonModalOpen = true;
     this.cdr.detectChanges();
@@ -1085,8 +1142,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       // Single request; finalize guarantees the loading state clears on both
       // success and failure. Dialog closes only after backend confirms success.
-      // We remain on /dashboard/admin/policies/manage and refresh the list
-      // from the backend so the deleted record disappears.
+      // We remain on /dashboard/admin/policies/manage and update the table in-place.
       this.policyService
         .approveDelete(policy.id)
         .pipe(
@@ -1102,7 +1158,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmAction = null;
             this.confirmErrorMessage = null;
             this.showSuccessToast("Policy deleted successfully.");
-            this.loadPolicies();
+            this.removePolicyRow(policy.id);
           },
           error: (err) => {
             const errorMsg = this.getErrorMessage(err);
@@ -1142,7 +1198,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       // Single request; finalize guarantees the loading state clears on both
       // success and failure. Rejecting never deletes the record — the backend
       // restores its previous status. We remain on
-      // /dashboard/admin/policies/manage and refresh the list from backend.
+      // /dashboard/admin/policies/manage and update the row in-place.
       this.policyService
         .rejectDelete(policy.id)
         .pipe(
@@ -1153,12 +1209,16 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
           }),
         )
         .subscribe({
-          next: () => {
+          next: (updated) => {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
             this.showSuccessToast("Deletion request rejected successfully.");
-            this.loadPolicies();
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
           },
           error: (err) => {
             const errorMsg = this.getErrorMessage(err);
@@ -1204,27 +1264,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.archiveDirect(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy archived successfully.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .archiveDirect(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy archived successfully.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -1251,27 +1319,35 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.restore(policy.id).subscribe({
-        next: (updated) => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy restored to APPROVED.");
-          if (updated) {
-            this.applyPolicyUpdate(updated);
-          } else {
-            this.loadPolicies();
-          }
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .restore(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: (updated) => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy restored to APPROVED.");
+            if (updated) {
+              this.applyPolicyUpdate(updated);
+            } else {
+              this.loadPolicies();
+            }
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -1298,23 +1374,31 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.policyService.deletePolicy(policy.id).subscribe({
-        next: () => {
-          this.confirmLoading = false;
-          this.confirmModalOpen = false;
-          this.confirmAction = null;
-          this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy permanently deleted.");
-          this.removePolicyRow(policy.id);
-        },
-        error: (err) => {
-          this.confirmLoading = false;
-          const errorMsg = this.getErrorMessage(err);
-          this.confirmErrorMessage = errorMsg;
-          this.errorMessage = errorMsg;
-          this.cdr.detectChanges();
-        },
-      });
+      this.policyService
+        .deletePolicy(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy permanently deleted.");
+            this.removePolicyRow(policy.id);
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();

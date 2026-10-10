@@ -2,14 +2,15 @@
     <!-- =========================================================
        BREADCRUMB & HEADER
        ========================================================= -->
+    <nav class="policy-create__breadcrumb" aria-label="Breadcrumb">
+        <a
+            [routerLink]="isAdmin ? ['/dashboard/admin/policies'] : ['/dashboard/government/policies/manage']">Policies</a>
+        <span class="separator">&gt;</span>
+        <span class="current">{{ isEditMode ? 'Edit Policy' : 'Add Policy' }}</span>
+    </nav>
+
     <div class="policy-create__header">
         <div class="policy-create__header-left">
-            <nav class="policy-create__breadcrumb" aria-label="Breadcrumb">
-                <a
-                    [routerLink]="isAdmin ? ['/dashboard/admin/policies'] : ['/dashboard/government/policies/manage']">Policies</a>
-                <span class="separator">&gt;</span>
-                <span class="current">{{ isEditMode ? 'Edit Policy' : 'Add Policy' }}</span>
-            </nav>
 
             <div class="policy-create__title-row">
                 <button type="button" class="policy-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
@@ -236,14 +237,9 @@
                         <label class="form-label" for="policy-category">
                             Category <span class="required">*</span>
                         </label>
-                        <app-searchable-select
-                            id="policy-category"
-                            formControlName="category"
-                            [options]="categories"
-                            placeholder="Select category"
-                            searchPlaceholder="Search or select category..."
-                            icon="grid_view"
-                            [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
+                        <app-searchable-select id="policy-category" formControlName="category" [options]="categories"
+                            placeholder="Select category" searchPlaceholder="Search or select category..."
+                            icon="grid_view" [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Choose the primary category that best fits this policy.</p>
                         @if (stepSubmitted[1] && policyForm.get('category')?.invalid) {
@@ -395,14 +391,9 @@
                     <!-- MINISTRY -->
                     <div class="form-group">
                         <label class="form-label" for="policy-ministry">Ministry</label>
-                        <app-searchable-select
-                            id="policy-ministry"
-                            formControlName="ministry"
-                            [options]="ministries"
-                            placeholder="Select ministry"
-                            searchPlaceholder="Search or select ministry..."
-                            icon="account_balance"
-                            (selectionChange)="onMinistryChange($event)">
+                        <app-searchable-select id="policy-ministry" formControlName="ministry" [options]="ministries"
+                            placeholder="Select ministry" searchPlaceholder="Search or select ministry..."
+                            icon="account_balance" (selectionChange)="onMinistryChange($event)">
                         </app-searchable-select>
                         <p class="form-helper">Select the concerned government ministry.</p>
                     </div>
@@ -410,13 +401,10 @@
                     <!-- DEPARTMENT -->
                     <div class="form-group">
                         <label class="form-label" for="policy-department">Department</label>
-                        <app-searchable-select
-                            id="policy-department"
-                            formControlName="department"
+                        <app-searchable-select id="policy-department" formControlName="department"
                             [options]="departmentOptions"
                             [placeholder]="policyForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
-                            searchPlaceholder="Search or select department..."
-                            icon="apartment"
+                            searchPlaceholder="Search or select department..." icon="apartment"
                             [disabled]="!policyForm.get('ministry')?.value">
                         </app-searchable-select>
                         <p class="form-helper">Select the nodal department managing this policy.</p>
@@ -425,12 +413,8 @@
                     <!-- STATE / REGION -->
                     <div class="form-group">
                         <label class="form-label" for="policy-state">State / Geographic Scope</label>
-                        <app-searchable-select
-                            id="policy-state"
-                            formControlName="state"
-                            [options]="states"
-                            placeholder="Select state / region"
-                            searchPlaceholder="Search or select state..."
+                        <app-searchable-select id="policy-state" formControlName="state" [options]="states"
+                            placeholder="Select state / region" searchPlaceholder="Search or select state..."
                             icon="location_on">
                         </app-searchable-select>
                         <p class="form-helper">Applicable state or region (or All India).</p>
@@ -439,12 +423,8 @@
                     <!-- SECTOR -->
                     <div class="form-group">
                         <label class="form-label" for="policy-sector">Sector</label>
-                        <app-searchable-select
-                            id="policy-sector"
-                            formControlName="sector"
-                            [options]="sectors"
-                            placeholder="Select sector"
-                            searchPlaceholder="Search or select sector..."
+                        <app-searchable-select id="policy-sector" formControlName="sector" [options]="sectors"
+                            placeholder="Select sector" searchPlaceholder="Search or select sector..."
                             icon="business_center">
                         </app-searchable-select>
                         <p class="form-helper">Economic or administrative sector category.</p>
@@ -709,13 +689,9 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <app-searchable-select
-                                    formControlName="education"
-                                    icon="school"
-                                    placeholder="Select minimum qualification or institution level"
-                                    [searchable]="false"
-                                    [options]="educationOptions"
-                                />
+                                <app-searchable-select formControlName="education" icon="school"
+                                    placeholder="Select minimum qualification or institution level" [searchable]="false"
+                                    [options]="educationOptions" />
                             </div>
                             <span class="form-helper">Applicable academic or institutional level.</span>
                         </div>
@@ -729,14 +705,9 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <app-searchable-select
-                                    formControlName="eligibilityState"
-                                    icon="location_on"
-                                    placeholder="Select applicable state(s) or region(s)"
-                                    [searchable]="true"
-                                    searchPlaceholder="Search states..."
-                                    [options]="states"
-                                />
+                                <app-searchable-select formControlName="eligibilityState" icon="location_on"
+                                    placeholder="Select applicable state(s) or region(s)" [searchable]="true"
+                                    searchPlaceholder="Search states..." [options]="states" />
                             </div>
                             <span class="form-helper">Geographical applicability of policy benefits.</span>
                         </div>
@@ -1227,7 +1198,8 @@
                         <div class="policy-alert__content">
                             <p>{{ errorMessage }}</p>
                         </div>
-                        <button type="button" class="policy-alert__close" (click)="errorMessage = null" aria-label="Dismiss error">
+                        <button type="button" class="policy-alert__close" (click)="errorMessage = null"
+                            aria-label="Dismiss error">
                             <span class="material-icons">close</span>
                         </button>
                     </div>
@@ -1270,16 +1242,14 @@
                     <!-- STEP 5 FINAL ACTION -->
                     @if (isAdmin) {
                     <!-- ADMIN Submit -->
-                    <button type="submit" class="btn btn-primary btn-submit-action"
-                        (click)="onSubmit($event)"
+                    <button type="submit" class="btn btn-primary btn-submit-action" (click)="onSubmit($event)"
                         [disabled]="isReadOnly || isSubmitting || isApproving || isSaving || modalType !== null">
                         <span class="material-icons">check_circle</span>
                         <span>Submit</span>
                     </button>
                     } @else {
                     <!-- GOVERNMENT SUBMIT FOR APPROVAL -->
-                    <button type="submit" class="btn btn-primary btn-submit-action"
-                        (click)="onSubmit($event)"
+                    <button type="submit" class="btn btn-primary btn-submit-action" (click)="onSubmit($event)"
                         [disabled]="isReadOnly || isSubmitting || isApproving || isSaving || modalType !== null">
                         <span class="material-icons">send</span>
                         <span>Submit for Approval</span>

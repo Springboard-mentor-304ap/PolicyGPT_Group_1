@@ -37,7 +37,7 @@ $danger-soft: #fdf0ee;
 
 .header-content {
   margin: 0 auto;
-  padding-bottom: 20px;
+  padding-bottom: 8px;
 
   display: flex;
 
@@ -67,12 +67,9 @@ $danger-soft: #fdf0ee;
 }
 
 .page-header p {
-  margin: 9px 0 0;
-
+  margin-top: 3px;
   color: #64748b;
-
   font-size: 14px;
-
   line-height: 1.5;
 }
 

@@ -144,26 +144,6 @@
 
     <section class="filter-card">
 
-        <div class="card-heading">
-            <div class="heading-icon">
-                <span class="material-icons">manage_search</span>
-            </div>
-
-            <div>
-                <h2>Find a Policy</h2>
-                <p>Search the official policy register or filter records by status.</p>
-            </div>
-
-            @if (searchText || selectedStatus || selectedSort !== 'latest') {
-            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
-                <span class="material-icons">restart_alt</span>
-                Clear filters
-            </button>
-            }
-        </div>
-
-        <div class="filter-divider"></div>
-
         <div class="filter-grid">
 
             <div class="form-field search-control">
@@ -185,7 +165,7 @@
             </div>
 
             <div class="form-field">
-                <label for="policy-status">Workflow status</label>
+                <label for="policy-status">Status</label>
 
                 <app-searchable-select id="policy-status" icon="flag" placeholder="All statuses" [searchable]="false"
                     [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
@@ -199,9 +179,8 @@
             </div>
 
             <div class="export-wrap">
-                <button type="button" class="export-button" (click)="toggleExportMenu($event)"
-                    [disabled]="exporting" aria-haspopup="menu" [attr.aria-expanded]="exportMenuOpen"
-                    title="Export policies">
+                <button type="button" class="export-button" (click)="toggleExportMenu($event)" [disabled]="exporting"
+                    aria-haspopup="menu" [attr.aria-expanded]="exportMenuOpen" title="Export policies">
                     @if (exporting) {
                     <span class="export-spinner" aria-hidden="true"></span>
                     <span>Exporting...</span>
@@ -212,8 +191,7 @@
                     }
                 </button>
                 @if (exportMenuOpen && !exporting) {
-                <div class="export-menu" role="menu" aria-label="Export policies"
-                    (click)="$event.stopPropagation()">
+                <div class="export-menu" role="menu" aria-label="Export policies" (click)="$event.stopPropagation()">
                     <p class="export-menu-title">Export Policies</p>
                     <button type="button" role="menuitem" class="export-item" (click)="exportPdf()">
                         <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
@@ -227,6 +205,14 @@
                 }
             </div>
 
+        </div>
+        <div class="card-heading">
+            @if (searchText || selectedStatus || selectedSort !== 'latest') {
+            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
+                <span class="material-icons">restart_alt</span>
+                Clear filters
+            </button>
+            }
         </div>
 
     </section>
@@ -311,12 +297,6 @@
 
                             <td class="policy-cell">
                                 <div class="policy-cell__row" [class.policy-cell__row--no-icon]="isAdmin">
-                                    @if (!isAdmin) {
-                                    <span class="category-mini" [ngStyle]="categoryIconStyle(policy.category)">
-                                        <span class="material-icons" aria-hidden="true">{{ categoryIcon(policy.category)
-                                            }}</span>
-                                    </span>
-                                    }
                                     <div class="policy-cell__text">
                                         <button type="button" class="policy-name"
                                             (click)="viewPolicy(policy); $event.stopPropagation()">
@@ -628,10 +608,10 @@
 
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight"
-        [messageAfter]="confirmMessageAfter" [variant]="confirmVariant" [isLoading]="confirmLoading"
-        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="showCancelConfirm"
-        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
+        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+        [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
+        (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"

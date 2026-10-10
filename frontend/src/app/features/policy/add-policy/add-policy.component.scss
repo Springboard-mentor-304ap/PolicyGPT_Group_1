@@ -14,11 +14,10 @@ $success-bg: #f0fdf4;
 $success-border: #bbf7d0;
 
 .policy-create {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 8px 4px 48px;
-  color: $text-dark;
-  font-family: inherit;
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #172033;
+  padding: 24px 28px 48px;
 
   // Header
   &__header {
@@ -33,16 +32,16 @@ $success-border: #bbf7d0;
   &__header-left {
     display: flex;
     flex-direction: column;
-    gap: 8px;
   }
 
   &__breadcrumb {
     display: flex;
     align-items: center;
     gap: 6px;
+    margin: 0 0 16px;
     font-size: 13px;
     font-weight: 500;
-    color: $text-muted;
+    color: #64748b;
 
     a {
       color: $text-muted;
@@ -121,6 +120,12 @@ $success-border: #bbf7d0;
     gap: 16px;
   }
 
+  height: 48px;
+  justify-content: center;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 800;
+
   &__btn-draft {
     display: inline-flex;
     align-items: center;
@@ -131,8 +136,11 @@ $success-border: #bbf7d0;
     border: 1.5px solid $primary-blue;
     background: #ffffff;
     color: $primary-blue;
-    font-size: 14px;
-    font-weight: 600;
+    height: 48px;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 800;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -184,6 +192,15 @@ $success-border: #bbf7d0;
       font-size: 20px;
     }
   }
+}
+
+.policy-create__title-box h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 // =========================================================

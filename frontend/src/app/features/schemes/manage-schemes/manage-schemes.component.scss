@@ -737,13 +737,26 @@ td {
   min-width: 0;
 }
 
-// Category icon + text layout for the scheme cell.
+// Title + optional category icon layout for the scheme cell.
+// The category icon is hidden for the Admin management table
+// (see template `isAdmin` guard); Government view keeps the icon.
 // Glyph and colors come from the centralized category mapping.
 .policy-cell__row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   min-width: 0;
+}
+
+// Text-only layout used when the Admin management table hides the
+// category icon: vertically center the title block and keep a small
+// consistent left padding so titles start neatly in both tables.
+.policy-cell__row--no-icon {
+  align-items: center;
+}
+
+.policy-cell__row--no-icon .policy-cell__text {
+  padding-left: 2px;
 }
 
 .policy-cell__text {

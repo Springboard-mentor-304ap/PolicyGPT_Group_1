@@ -8,6 +8,7 @@ import { catchError } from "rxjs/operators";
 import { Auth, AuthUser } from "../../../../core/services/auth";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
+import { AnalyticsService } from "../../../../core/services/analytics.service";
 import { NotificationService } from "../../../../core/services/notification.service";
 import { SearchHistoryService, SearchHistoryItem } from "../../../../core/services/search-history.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
@@ -92,6 +93,7 @@ export class GovernmentComponent implements OnInit {
   private readonly authService = inject(Auth);
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
+  private readonly analyticsService = inject(AnalyticsService);
   private readonly notificationService = inject(NotificationService);
   private readonly searchHistoryService = inject(SearchHistoryService);
   private readonly destroyRef = inject(DestroyRef);
@@ -214,33 +216,55 @@ export class GovernmentComponent implements OnInit {
   private fetchDashboardData(): void {
     const userId = this.currentUser?.user_id;
 
-    // Load statistics from user's managed policies, managed schemes, and notifications
+    // Accurate own-record counts come from the official-scoped analytics
+    // endpoints (server-side aggregates, no 100-row client truncation).
+    // Recent lists use small manage=true fetches for display only.
     forkJoin({
       policies: this.policyService
-        .getPolicies({ manage: true, limit: 100 })
-        .pipe(catchError(() => of({ policies: [], total: 0, page: 1, pages: 1, limit: 100 }))),
+        .getPolicies({ manage: true, limit: 4 })
+        .pipe(catchError(() => of({ policies: [], total: 0, page: 1, pages: 1, limit: 4 }))),
       schemes: this.schemeService
-        .getSchemes({ manage: true, limit: 100 })
-        .pipe(catchError(() => of({ schemes: [], total: 0, page: 1, pages: 1, limit: 100 }))),
+        .getSchemes({ manage: true, limit: 4 })
+        .pipe(catchError(() => of({ schemes: [], total: 0, page: 1, pages: 1, limit: 4 }))),
+      policyStats: this.analyticsService
+        .getGovernmentPolicies()
+        .pipe(catchError(() => of(null))),
+      schemeStats: this.analyticsService
+        .getGovernmentSchemes()
+        .pipe(catchError(() => of(null))),
       notificationStats: userId
         ? this.notificationService
             .getNotificationStats(userId)
             .pipe(catchError(() => of({ total: 0, read: 0, unread: 0 })))
         : of({ total: 0, read: 0, unread: 0 }),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ policies, schemes, notificationStats }) => {
+      next: ({ policies, schemes, policyStats, schemeStats, notificationStats }) => {
         const policyList: PolicyResponse[] = Array.isArray(policies?.policies) ? policies.policies : [];
         const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes) ? schemes.schemes : [];
 
-        const totalPolicies = typeof policies?.total === "number" ? policies.total : policyList.length;
-        const totalSchemes = typeof schemes?.total === "number" ? schemes.total : schemeList.length;
-
-        const pendingPolicies = policyList.filter((p) => p.status === "PENDING_APPROVAL").length;
-        const pendingSchemes = schemeList.filter((s) => s.status === "PENDING_APPROVAL").length;
+        // Prefer server-side own-record aggregates; fall back to the
+        // displayed page only when analytics are unavailable (offline).
+        const pKpis = (policyStats as any)?.kpis ?? {};
+        const sKpis = (schemeStats as any)?.kpis ?? {};
+        const totalPolicies = typeof pKpis?.own_policies?.value === "number"
+          ? pKpis.own_policies.value
+          : (typeof policies?.total === "number" ? policies.total : policyList.length);
+        const totalSchemes = typeof sKpis?.own_schemes?.value === "number"
+          ? sKpis.own_schemes.value
+          : (typeof schemes?.total === "number" ? schemes.total : schemeList.length);
+        const draftPolicies = typeof pKpis?.draft_policies?.value === "number"
+          ? pKpis.draft_policies.value
+          : policyList.filter((p) => p.status === "DRAFT").length;
+        const pendingPolicies = typeof pKpis?.pending_policies?.value === "number"
+          ? pKpis.pending_policies.value
+          : policyList.filter((p) => p.status === "PENDING_APPROVAL").length;
+        const draftSchemes = typeof sKpis?.draft_schemes?.value === "number"
+          ? sKpis.draft_schemes.value
+          : schemeList.filter((s) => s.status === "DRAFT").length;
+        const pendingSchemes = typeof sKpis?.pending_schemes?.value === "number"
+          ? sKpis.pending_schemes.value
+          : schemeList.filter((s) => s.status === "PENDING_APPROVAL").length;
         const totalPending = pendingPolicies + pendingSchemes;
-
-        const draftPolicies = policyList.filter((p) => p.status === "DRAFT").length;
-        const draftSchemes = schemeList.filter((s) => s.status === "DRAFT").length;
 
         this.statCards = [
           {

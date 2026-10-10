@@ -234,11 +234,14 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   get canApprove(): boolean {
-    return this.isAdmin && this.policy?.status === "PENDING_APPROVAL";
+    if (!this.isAdmin || this.policy?.status !== 'PENDING_APPROVAL') return false;
+    // Self-approval is forbidden (backend 403). Hide for own records.
+    return !this.isOwner;
   }
 
   get canReject(): boolean {
-    return this.isAdmin && this.policy?.status === "PENDING_APPROVAL";
+    if (!this.isAdmin || this.policy?.status !== 'PENDING_APPROVAL') return false;
+    return !this.isOwner;
   }
 
   get canArchive(): boolean {
@@ -703,6 +706,15 @@ export class PolicyDetailsComponent implements OnInit {
 
   openApproveModal(): void {
     if (!this.policy) return;
+    if (!this.canApprove) {
+      this.showToast(
+        this.isOwner
+          ? 'You cannot approve your own policy. A different administrator must review it.'
+          : 'Only an administrator can approve a policy pending approval.',
+        'error',
+      );
+      return;
+    }
     const policyId = this.policy.policy_id;
     this.confirmTitle = "Approve Policy";
     this.confirmMessage = `Are you sure you want to approve "${this.policy.title}"?`;
@@ -754,27 +766,32 @@ export class PolicyDetailsComponent implements OnInit {
 
   openDirectArchiveModal(): void {
     if (!this.policy) return;
+    if (!this.canArchive) {
+      this.showToast('Only an administrator can archive an APPROVED policy.', 'error');
+      return;
+    }
     const policyId = this.policy.policy_id;
-    this.reasonTitle = "Archive Policy";
-    this.reasonMessage = `Enter an archive reason for "${this.policy.title}".`;
-    this.reasonLabel = "Archive Reason";
-    this.reasonVariant = "warning";
-    this.reasonAction = (reason: string) => {
-      this.policyService.archivePolicy(policyId, reason).subscribe({
+    this.confirmTitle = "Archive Policy";
+    this.confirmMessage = `Are you sure you want to archive "${this.policy.title}"?`;
+    this.confirmVariant = "warning";
+    this.confirmAction = () => {
+      // Direct admin archive (POST /policies/{id}/archive,
+      // APPROVED -> ARCHIVED). Mirrors Scheme direct archive.
+      this.policyService.archiveDirect(policyId).subscribe({
         next: () => {
-          this.reasonModalOpen = false;
+          this.confirmModalOpen = false;
           this.showToast("Policy successfully archived.", "success");
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
-          this.reasonModalOpen = false;
+          this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
         },
       });
     };
-    this.reasonModalOpen = true;
+    this.confirmModalOpen = true;
     this.cdr.detectChanges();
   }
 
@@ -858,13 +875,13 @@ export class PolicyDetailsComponent implements OnInit {
     if (!this.policy) return;
     const policyId = this.policy.policy_id;
     this.confirmTitle = "Restore Policy";
-    this.confirmMessage = `Restore "${this.policy.title}" back to DRAFT state?`;
+    this.confirmMessage = `Restore "${this.policy.title}" back to APPROVED state?`;
     this.confirmVariant = "success";
     this.confirmAction = () => {
       this.policyService.restore(policyId).subscribe({
         next: () => {
           this.confirmModalOpen = false;
-          this.showToast("Policy restored to DRAFT.", "success");
+          this.showToast("Policy restored to APPROVED.", "success");
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },

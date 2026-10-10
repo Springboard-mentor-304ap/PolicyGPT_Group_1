@@ -204,6 +204,12 @@ export class SchemeDetailsComponent implements OnInit {
     return "Government Official";
   }
 
+  get isOwner(): boolean {
+    if (!this.scheme) return false;
+    const user = this.auth.getStoredUser();
+    return user?.user_id != null && this.scheme.created_by === user.user_id;
+  }
+
   /*
    * Workflow permissions
    */
@@ -231,11 +237,13 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   get canApprove(): boolean {
-    return this.isAdmin && this.scheme?.status === "PENDING_APPROVAL";
+    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL") return false;
+    return !this.isOwner;
   }
 
   get canReject(): boolean {
-    return this.isAdmin && this.scheme?.status === "PENDING_APPROVAL";
+    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL") return false;
+    return !this.isOwner;
   }
 
   get canArchive(): boolean {
@@ -478,6 +486,14 @@ export class SchemeDetailsComponent implements OnInit {
 
   openApproveModal(): void {
     if (!this.scheme) return;
+    if (!this.canApprove) {
+      this.toastService.error(
+        this.isOwner
+          ? "You cannot approve your own scheme. A different administrator must review it."
+          : "Only an administrator can approve a scheme pending approval.",
+      );
+      return;
+    }
     const schemeId = this.scheme.scheme_id;
     this.confirmTitle = "Approve Scheme";
     this.confirmMessage = `Are you sure you want to approve "${this.scheme.name}"?`;

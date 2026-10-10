@@ -88,11 +88,11 @@ export class PermissionService {
       actions.push(this.createAction('SUBMIT'));
     }
 
-    if (this.canApprove(normalizedRole, normalizedStatus)) {
+    if (this.canApprove(normalizedRole, normalizedStatus, isOwner)) {
       actions.push(this.createAction('APPROVE'));
     }
 
-    if (this.canReject(normalizedRole, normalizedStatus)) {
+    if (this.canReject(normalizedRole, normalizedStatus, isOwner)) {
       actions.push(this.createAction('REJECT'));
     }
 
@@ -181,11 +181,18 @@ export class PermissionService {
     return false;
   }
 
-  private canApprove(role: UserRole, status: string): boolean {
+  private canApprove(role: UserRole, status: string, isOwner = false): boolean {
+    // Self-approval is forbidden: even an Admin cannot approve their own
+    // record. The backend enforces this; the UI hides the action as well.
+    if (isOwner) return false;
     return role === 'ADMIN' && status === 'PENDING_APPROVAL';
   }
 
-  private canReject(role: UserRole, status: string): boolean {
+  private canReject(role: UserRole, status: string, isOwner = false): boolean {
+    // Same-owner rejection is hidden for consistency with approval.
+    // Backend still permits rejection decisions by policy; the UI routes
+    // own-record corrections through edit/resubmit instead.
+    if (isOwner) return false;
     return role === 'ADMIN' && status === 'PENDING_APPROVAL';
   }
 

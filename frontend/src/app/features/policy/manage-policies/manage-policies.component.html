@@ -55,10 +55,19 @@
         </div>
 
         <div class="header-actions">
-            <div class="role-chip">
-                <span class="material-icons">verified_user</span>
-                {{ isAdmin ? 'Administrator' : 'Government Official' }}
-            </div>
+            @if (isAdmin) {
+            <button type="button" class="secondary-header-action deleted-action"
+                (click)="$event.stopPropagation(); openDeletedModal()">
+                <span class="material-icons">delete_sweep</span>
+                View Deleted Policies
+            </button>
+            }
+
+            <button type="button" class="secondary-header-action draft-action"
+                (click)="$event.stopPropagation(); openDraftsModal()">
+                <span class="material-icons">edit_note</span>
+                View Draft Policies
+            </button>
 
             <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewPolicy()">
                 <span class="material-icons">add</span>
@@ -178,15 +187,8 @@
             <div class="form-field">
                 <label for="policy-status">Workflow status</label>
 
-                <app-searchable-select
-                    id="policy-status"
-                    icon="flag"
-                    placeholder="All statuses"
-                    [searchable]="false"
-                    [options]="statusFilterOptions"
-                    [(ngModel)]="selectedStatus"
-                    (selectionChange)="applyFilters()"
-                />
+                <app-searchable-select id="policy-status" icon="flag" placeholder="All statuses" [searchable]="false"
+                    [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
             </div>
 
             <button type="button" class="export-button" (click)="exportPolicies(); $event.stopPropagation()">
@@ -261,6 +263,7 @@
                             <th class="col-number">NO.</th>
                             <th class="col-policy">POLICY</th>
                             <th class="col-status">STATUS</th>
+                            <th class="col-datetime">DATE &amp; TIME</th>
                             <th class="col-actions">ACTIONS</th>
                         </tr>
                     </thead>
@@ -276,11 +279,13 @@
                             </td>
 
                             <td class="policy-cell">
-                                <div class="policy-cell__row">
+                                <div class="policy-cell__row" [class.policy-cell__row--no-icon]="isAdmin">
+                                    @if (!isAdmin) {
                                     <span class="category-mini" [ngStyle]="categoryIconStyle(policy.category)">
-                                        <span class="material-icons"
-                                            aria-hidden="true">{{ categoryIcon(policy.category) }}</span>
+                                        <span class="material-icons" aria-hidden="true">{{ categoryIcon(policy.category)
+                                            }}</span>
                                     </span>
+                                    }
                                     <div class="policy-cell__text">
                                         <button type="button" class="policy-name"
                                             (click)="viewPolicy(policy); $event.stopPropagation()">
@@ -302,6 +307,21 @@
                                 </span>
                             </td>
 
+                            <td class="col-datetime">
+                                <div class="datetime-cell">
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Created:</span>
+                                        {{ formatDateTime(policy.createdAt) }}
+                                    </span>
+                                    @if (hasDistinctUpdate(policy)) {
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Updated:</span>
+                                        {{ formatDateTime(policy.updatedAt) }}
+                                    </span>
+                                    }
+                                </div>
+                            </td>
+
                             <td class="actions-cell">
 
                                 <div class="actions" (click)="$event.stopPropagation()">
@@ -311,187 +331,201 @@
                                         View
                                     </button>
 
-                                    <button type="button" class="more-action"
-                                        cdkOverlayOrigin #trigger="cdkOverlayOrigin"
-                                        [class.open]="menuOpenId === policy.id"
-                                        [attr.aria-expanded]="menuOpenId === policy.id"
-                                        aria-haspopup="menu"
-                                        aria-label="More policy actions"
-                                        (click)="toggleMenu(policy.id)">
+                                    <button type="button" class="more-action" cdkOverlayOrigin
+                                        #trigger="cdkOverlayOrigin" [class.open]="menuOpenId === policy.id"
+                                        [attr.aria-expanded]="menuOpenId === policy.id" aria-haspopup="menu"
+                                        aria-label="More policy actions" (click)="toggleMenu(policy.id)">
                                         <span class="material-icons">more_horiz</span>
                                     </button>
 
-                                    <ng-template
-                                        cdkConnectedOverlay
-                                        [cdkConnectedOverlayOrigin]="trigger"
+                                    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
                                         [cdkConnectedOverlayOpen]="menuOpenId === policy.id"
                                         [cdkConnectedOverlayHasBackdrop]="true"
                                         [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
                                         [cdkConnectedOverlayPositions]="actionMenuPositions"
                                         [cdkConnectedOverlayPanelClass]="'policy-action-overlay-pane'"
-                                        (backdropClick)="closeMenu()"
+                                        [cdkConnectedOverlayPush]="true" [cdkConnectedOverlayViewportMargin]="8"
+                                        [cdkConnectedOverlayFlexibleDimensions]="true"
+                                        [cdkConnectedOverlayGrowAfterOpen]="true" (backdropClick)="closeMenu()"
                                         (overlayKeydown)="onOverlayKeydown($event)">
                                         <div class="action-menu" role="menu">
 
-                                        <!-- DRAFT / REJECTED -->
-                                        @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
+                                            <!-- DRAFT / REJECTED -->
+                                            @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
 
-                                        @if (canSubmitPolicy(policy)) {
-                                        <button type="button" (click)="openSubmitModal(policy)">
-                                            <span class="material-icons">send</span>
-                                            {{ getSubmitActionLabel(policy) }}
-                                        </button>
-                                        }
+                                            @if (canSubmitPolicy(policy)) {
+                                            <button type="button" (click)="openSubmitModal(policy)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(policy) }}
+                                            </button>
+                                            }
 
-                                        @if (isAdmin) {
-                                        <div class="menu-separator"></div>
+                                            @if (isAdmin) {
+                                            <div class="menu-separator"></div>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete policy
-                                        </button>
-                                        }
-                                        }
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            }
+                                            }
 
-                                        <!-- PENDING -->
-                                        @if (policy.status === 'PENDING_APPROVAL') {
+                                            <!-- PENDING -->
+                                            @if (policy.status === 'PENDING_APPROVAL') {
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewSubmissionDetails(policy)">
+                                                <span class="material-icons">info</span>
+                                                View submission details
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openApproveModal(policy)">
-                                            <span class="material-icons">check_circle_outline</span>
-                                            Approve
-                                        </button>
+                                            <button type="button" class="success" (click)="openApproveModal(policy)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve request
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openRejectModal(policy)">
-                                            <span class="material-icons">cancel</span>
-                                            Reject
-                                        </button>
+                                            <button type="button" class="danger" (click)="openRejectModal(policy)">
+                                                <span class="material-icons">cancel</span>
+                                                Reject request
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
+                                            }
+                                            }
 
-                                        <div class="menu-separator"></div>
+                                            <!-- APPROVED -->
+                                            @if (policy.status === 'APPROVED') {
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete policy
-                                        </button>
-                                        }
-                                        }
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
 
-                                        <!-- APPROVED -->
-                                        @if (policy.status === 'APPROVED') {
+                                            @if (!isAdmin) {
+                                            <button type="button" (click)="openRequestArchiveModal(policy)">
+                                                <span class="material-icons">archive</span>
+                                                Request archive
+                                            </button>
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(policy)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="openArchiveModal(policy)">
+                                                <span class="material-icons">archive</span>
+                                                Archive policy
+                                            </button>
 
-                                        @if (!isAdmin) {
-                                        <button type="button" (click)="openRequestArchiveModal(policy)">
-                                            <span class="material-icons">archive</span>
-                                            Request archive
-                                        </button>
+                                            <div class="menu-separator"></div>
 
-                                        <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
-                                            <span class="material-icons">delete_sweep</span>
-                                            Request deletion
-                                        </button>
-                                        } @else {
-                                        <div class="menu-separator"></div>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            }
+                                            }
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete policy
-                                        </button>
-                                        }
-                                        }
+                                            <!-- ARCHIVED -->
+                                            @if (policy.status === 'ARCHIVED') {
 
-                                        <!-- ARCHIVED -->
-                                        @if (policy.status === 'ARCHIVED') {
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            @if (isAdmin) {
+                                            <button type="button" class="success" (click)="openRestoreModal(policy)">
+                                                <span class="material-icons">restore</span>
+                                                Restore policy
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openRestoreModal(policy)">
-                                            <span class="material-icons">restore</span>
-                                            Restore policy
-                                        </button>
+                                            <div class="menu-separator"></div>
 
-                                        <div class="menu-separator"></div>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            } @else {
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(policy)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
+                                            </button>
+                                            }
+                                            }
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete policy
-                                        </button>
-                                        } @else {
-                                        <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
-                                            <span class="material-icons">delete_sweep</span>
-                                            Request deletion
-                                        </button>
-                                        }
-                                        }
+                                            <!-- ARCHIVE REQUESTED -->
+                                            @if (policy.status === 'ARCHIVE_REQUESTED') {
 
-                                        <!-- ARCHIVE REQUESTED -->
-                                        @if (policy.status === 'ARCHIVE_REQUESTED') {
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            @if (isAdmin) {
+                                            <button type="button" class="success"
+                                                (click)="openApproveArchiveModal(policy)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve archive
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openApproveArchiveModal(policy)">
-                                            <span class="material-icons">check_circle_outline</span>
-                                            Approve archive
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openRejectArchiveModal(policy)">
+                                                <span class="material-icons">cancel</span>
+                                                Reject archive
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openRejectArchiveModal(policy)">
-                                            <span class="material-icons">cancel</span>
-                                            Reject archive
-                                        </button>
+                                            <div class="menu-separator"></div>
 
-                                        <div class="menu-separator"></div>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            }
+                                            }
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete policy
-                                        </button>
-                                        }
-                                        }
+                                            <!-- DELETE REQUESTED -->
+                                            @if (policy.status === 'DELETE_REQUESTED') {
 
-                                        <!-- DELETE REQUESTED -->
-                                        @if (policy.status === 'DELETE_REQUESTED') {
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewDeleteReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View deletion reason
+                                            </button>
 
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span class="material-icons">edit</span>
-                                            Edit policy
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openApproveDeleteModal(policy)">
+                                                <span class="material-icons">delete_forever</span>
+                                                Approve deletion
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="danger" (click)="openApproveDeleteModal(policy)">
-                                            <span class="material-icons">delete_forever</span>
-                                            Approve deletion
-                                        </button>
+                                            <button type="button" (click)="openRejectDeleteModal(policy)">
+                                                <span class="material-icons">undo</span>
+                                                Reject deletion
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="editPolicy(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
+                                            }
+                                            }
 
-                                        <button type="button" (click)="openRejectDeleteModal(policy)">
-                                            <span class="material-icons">undo</span>
-                                            Reject deletion
-                                        </button>
-                                        }
-                                        }
-
-                                    </div>
+                                        </div>
                                     </ng-template>
                                 </div>
 
@@ -561,20 +595,26 @@
 
     </section>
 
-    <div class="page-security-note">
-        <span class="material-icons">security</span>
-        Access and workflow actions are controlled by your authenticated role.
-    </div>
-
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
         [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+        [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
+        (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
-        [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="onReasonModalConfirmed($event)"
+        [reasonLabel]="reasonLabel" [variant]="reasonVariant" [isLoading]="reasonLoading"
+        [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
         (cancelled)="onReasonModalCancelled()">
     </app-reason-modal>
+
+    <!-- Deleted / Draft policy modals (centered over this page) -->
+    <app-deleted-policies-modal [open]="deletedModalOpen" (closed)="onDeletedModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-deleted-policies-modal>
+
+    <app-draft-policies-modal [open]="draftsModalOpen" (closed)="onDraftsModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-draft-policies-modal>
 
 </div>

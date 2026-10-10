@@ -19,7 +19,13 @@ def get_dashboard_analytics(
     # There is currently no owner/user_id column in these tables.
     # User scope: ADMIN sees all, others only themselves.
 
-    user_is_admin = user_role == "ADMIN"
+    try:
+        from app.api.routes.auth import normalize_role as _normalize
+
+        _norm_role = _normalize(str(user_role or ""))
+    except Exception:
+        _norm_role = str(user_role or "").strip().upper()
+    user_is_admin = _norm_role == "ADMIN"
     user_self_only = not user_is_admin and user_id is not None
 
     pol_rows = (
@@ -420,8 +426,15 @@ def get_user_analytics(
 
     query = db.query(User)
 
+    try:
+        from app.api.routes.auth import normalize_role as _normalize_ua
+
+        _ua_is_admin = _normalize_ua(str(user_role or "")) == "ADMIN"
+    except Exception:
+        _ua_is_admin = False
+
     # ADMIN → CITIZEN + ADMIN
-    if user_role == "ADMIN":
+    if _ua_is_admin:
         pass
 
     # NORMAL USER → only themselves
@@ -509,8 +522,15 @@ def get_user_activity(
 
     query = db.query(User)
 
+    try:
+        from app.api.routes.auth import normalize_role as _normalize_ac
+
+        _ac_is_admin = _normalize_ac(str(user_role or "")) == "ADMIN"
+    except Exception:
+        _ac_is_admin = False
+
     # ADMIN → CITIZEN + ADMIN
-    if user_role == "ADMIN":
+    if _ac_is_admin:
         pass
 
     # NORMAL USER → only themselves
@@ -602,8 +622,15 @@ def get_usage_statistics(
 
     user_query = db.query(User)
 
+    try:
+        from app.api.routes.auth import normalize_role as _normalize_us
+
+        _us_is_admin = _normalize_us(str(user_role or "")) == "ADMIN"
+    except Exception:
+        _us_is_admin = False
+
     # ADMIN → CITIZEN + ADMIN
-    if user_role == "ADMIN":
+    if _us_is_admin:
         pass
 
     # NORMAL USER → only themselves

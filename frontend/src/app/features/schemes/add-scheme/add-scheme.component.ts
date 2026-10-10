@@ -118,7 +118,7 @@ export class AddSchemeComponent implements OnInit {
 
       // Step 2: Scheme Details
       targetBeneficiaries: ['', [Validators.maxLength(500)]],
-      sourceUrl: ['', [Validators.maxLength(500)]],
+      sourceUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]] ,
       keyHighlights: this.fb.array([this.fb.control(''), this.fb.control('')]),
       additionalInfo: ['', [Validators.maxLength(1000)]],
       importantNotes: ['', [Validators.maxLength(1000)]],
@@ -138,8 +138,8 @@ export class AddSchemeComponent implements OnInit {
       // Step 4: Documents & Application
       documentsRequired: ['', [Validators.maxLength(2000)]],
       applicationProcess: ['', [Validators.maxLength(2000)]],
-      applicationUrl: ['', [Validators.maxLength(500)]],
-      applicationSourceUrl: ['', [Validators.maxLength(500)]],
+      applicationUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]],
+      applicationSourceUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]],
 
       // Step 5: Declaration
       declarationAgreed: [false, Validators.requiredTrue],
@@ -469,37 +469,22 @@ export class AddSchemeComponent implements OnInit {
     const payload = this.buildSchemePayload();
 
     const proceedWorkflow = (schemeId: number) => {
-      if (this.isAdmin) {
-        // Admin auto-approve / publish flow
-        this.schemeService.approveScheme(schemeId).subscribe({
-          next: () => {
-            this.isSubmitting = false;
-            this.showSuccessModal = true;
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            this.isSubmitting = false;
-            console.error('Approval failed:', err);
-            this.toastService.error(this.getErrorMessage(err));
-            this.cdr.detectChanges();
-          },
-        });
-      } else {
-        // Government Official submit for approval
-        this.schemeService.submitScheme(schemeId).subscribe({
-          next: () => {
-            this.isSubmitting = false;
-            this.showSuccessModal = true;
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            this.isSubmitting = false;
-            console.error('Submission failed:', err);
-            this.toastService.error(this.getErrorMessage(err));
-            this.cdr.detectChanges();
-          },
-        });
-      }
+      // Self-approval is forbidden by the backend (403 when creator ==
+      // approver). Admin creations stay PENDING_APPROVAL for a different
+      // administrator to review — no auto-approve attempt is made here.
+      this.schemeService.submitScheme(schemeId).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.showSuccessModal = true;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Submission failed:', err);
+          this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
+        },
+      });
     };
 
     if (this.editingSchemeId) {

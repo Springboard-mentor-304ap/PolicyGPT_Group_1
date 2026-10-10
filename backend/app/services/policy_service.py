@@ -58,6 +58,22 @@ def _clean_eligibility_rules(
             detail="eligibility_rules must be a list.",
         )
 
+    # Known rule types emitted by the Angular forms. Unknown types are
+    # rejected so malformed data cannot be persisted merely because the
+    # client sent it. Existing well-formed rows (these same types) pass
+    # unchanged.
+    _KNOWN_RULE_TYPES = {
+        "TARGET_BENEFICIARIES",
+        "AGE_CRITERIA",
+        "GENDER",
+        "ANNUAL_INCOME_LIMIT",
+        "EDUCATION",
+        "OCCUPATION",
+        "SOCIAL_CATEGORY",
+        "DISABILITY_STATUS",
+        "CUSTOM_CONDITION",
+    }
+
     cleaned = []
 
     for rule in rules:
@@ -67,9 +83,75 @@ def _clean_eligibility_rules(
                 detail="Each eligibility rule must be an object.",
             )
 
+        rule_type = rule.get("rule_type")
+
+        if rule_type is not None:
+            rt = str(rule_type).strip().upper()
+            if not rt:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Eligibility rule 'rule_type' cannot be empty.",
+                )
+            if rt not in _KNOWN_RULE_TYPES:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Unknown eligibility rule type '{rule_type}'. "
+                        f"Allowed: {', '.join(sorted(_KNOWN_RULE_TYPES))}."
+                    ),
+                )
+            # Light value validation for the structured types.
+            if rt == "AGE_CRITERIA":
+                min_age = rule.get("min_age")
+                max_age = rule.get("max_age")
+                for label, val in (("min_age", min_age), ("max_age", max_age)):
+                    if val is not None and (
+                        not isinstance(val, (int, float)) or val < 0 or val > 120
+                    ):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"AGE_CRITERIA '{label}' must be 0-120.",
+                        )
+                if (
+                    min_age is not None
+                    and max_age is not None
+                    and min_age > max_age
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="AGE_CRITERIA min_age cannot exceed max_age.",
+                    )
+
         cleaned.append(rule)
 
     return cleaned or None
+
+
+def _validate_url_field(field_name: str, value: str | None) -> str | None:
+    """Validate optional URL reference fields (no fake URLs persisted).
+
+    Still plain string references (no binary upload provider is configured
+    in this deployment) but rejects empty-after-strip values passed as
+    whitespace, over-long values, and non-http(s) schemes so a failed
+    upload cannot be disguised as a valid reference.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if len(text) > 2000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} is too long (max 2000 characters).",
+        )
+    lowered = text.lower()
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} must be a valid http(s) URL.",
+        )
+    return text
 
 
 def _policy_or_404(
@@ -148,8 +230,8 @@ def create_policy(
         publication_date=data.publication_date,
         effective_date=data.effective_date,
         status="DRAFT",
-        document_url=(data.document_url.strip() if data.document_url else None),
-        source_url=(data.source_url.strip() if data.source_url else None),
+        document_url=_validate_url_field("document_url", data.document_url),
+        source_url=_validate_url_field("source_url", data.source_url),
         benefits=_clean_benefits(data.benefits),
         eligibility_rules=_clean_eligibility_rules(data.eligibility_rules),
         created_by=current_user.user_id,
@@ -244,7 +326,10 @@ def update_policy(
 
     allowed_statuses = (
         {"DRAFT", "REJECTED", "ARCHIVED", "APPROVED"}
-        if (current_user and current_user.role == "ADMIN")
+        if (
+            current_user
+            and normalize_role(getattr(current_user, "role", "")) == "ADMIN"
+        )
         else {"DRAFT", "REJECTED", "ARCHIVED"}
     )
     if policy.status not in allowed_statuses:
@@ -370,10 +455,8 @@ def update_policy(
     # --------------------------------------------------------
 
     if "document_url" in update_data:
-        policy.document_url = (
-            str(update_data["document_url"]).strip()
-            if update_data["document_url"]
-            else None
+        policy.document_url = _validate_url_field(
+            "document_url", update_data["document_url"]
         )
 
     # --------------------------------------------------------
@@ -381,10 +464,8 @@ def update_policy(
     # --------------------------------------------------------
 
     if "source_url" in update_data:
-        policy.source_url = (
-            str(update_data["source_url"]).strip()
-            if update_data["source_url"]
-            else None
+        policy.source_url = _validate_url_field(
+            "source_url", update_data["source_url"]
         )
 
     # --------------------------------------------------------
@@ -579,6 +660,22 @@ def approve_policy(
             detail=("Only policies pending approval can be approved."),
         )
 
+    # Self-approval is forbidden: the creator can never approve their own
+    # record, even when the creator also holds an Admin role. A different
+    # authorized approver is required.
+    if (
+        current_user is not None
+        and getattr(policy, "created_by", None) is not None
+        and policy.created_by == current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You cannot approve your own policy. "
+                "A different administrator must review it."
+            ),
+        )
+
     policy.status = "APPROVED"
 
     policy.approved_by = current_user.user_id
@@ -669,6 +766,50 @@ def reject_policy(
 
 
 # ============================================================
+# DIRECT ARCHIVE
+#
+# ADMIN ONLY
+#
+# APPROVED -> ARCHIVED (no request needed)
+#
+# Mirrors scheme_service.archive_scheme so both modules share the same
+# direct-archive workflow. Distinct from the request flow below.
+# ============================================================
+
+
+def archive_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> Policy:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    if policy.status != "APPROVED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=("Only APPROVED policies can be archived directly."),
+        )
+
+    policy.status = "ARCHIVED"
+
+    # Direct archival supersedes any pending request metadata.
+    policy.archive_reason = None
+    policy.archive_requested_by = None
+    policy.archive_requested_at = None
+
+    policy.updated_at = _now()
+
+    db.commit()
+    db.refresh(policy)
+
+    return policy
+
+
+# ============================================================
 # REQUEST ARCHIVE
 #
 # GOVERNMENT OFFICIAL ONLY
@@ -689,9 +830,11 @@ def request_archive_policy(
         policy_id=policy_id,
     )
 
+    # Creator-only: any caller (Government Official or Admin via superuser
+    # bypass) may only request archive for records they created. Admins
+    # archive other records via the direct archive endpoint instead.
     if (
-        normalize_role(getattr(current_user, "role", "")) == ("GOVERNMENT_OFFICIAL")
-        and getattr(policy, "created_by", None) is not None
+        getattr(policy, "created_by", None) is not None
         and policy.created_by != current_user.user_id
     ):
         raise HTTPException(
@@ -810,6 +953,12 @@ def approve_archive_policy(
 
     policy.status = "ARCHIVED"
 
+    # Decision clears the pending-request metadata (parity with schemes)
+    # while the decision itself is preserved in the audit trail.
+    policy.archive_reason = None
+    policy.archive_requested_by = None
+    policy.archive_requested_at = None
+
     policy.updated_at = _now()
 
     db.commit()
@@ -872,6 +1021,11 @@ def reject_archive_policy(
     title = policy.title
 
     policy.status = "APPROVED"
+
+    # Rejection clears the pending-request metadata (parity with schemes).
+    policy.archive_reason = None
+    policy.archive_requested_by = None
+    policy.archive_requested_at = None
 
     policy.updated_at = _now()
 
@@ -981,9 +1135,10 @@ def request_delete_policy(
         policy_id=policy_id,
     )
 
+    # Creator-only (parity with schemes): Admins delete other records via
+    # the direct delete endpoint instead of the request flow.
     if (
-        normalize_role(getattr(current_user, "role", "")) == ("GOVERNMENT_OFFICIAL")
-        and getattr(policy, "created_by", None) is not None
+        getattr(policy, "created_by", None) is not None
         and policy.created_by != current_user.user_id
     ):
         raise HTTPException(

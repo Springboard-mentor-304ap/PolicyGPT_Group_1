@@ -160,7 +160,7 @@ export class EditSchemeComponent implements OnInit {
 
       // Step 2: Scheme Details
       targetBeneficiaries: ['', [Validators.maxLength(500)]],
-      sourceUrl: ['', [Validators.maxLength(500)]],
+      sourceUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]],
       keyHighlights: this.fb.array([this.fb.control(''), this.fb.control('')]),
       additionalInfo: ['', [Validators.maxLength(1000)]],
       importantNotes: ['', [Validators.maxLength(1000)]],
@@ -180,8 +180,8 @@ export class EditSchemeComponent implements OnInit {
       // Step 4: Documents & Application
       documentsRequired: ['', [Validators.maxLength(2000)]],
       applicationProcess: ['', [Validators.maxLength(2000)]],
-      applicationUrl: ['', [Validators.maxLength(500)]],
-      applicationSourceUrl: ['', [Validators.maxLength(500)]],
+      applicationUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]],
+      applicationSourceUrl: ['', [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]],
 
       // Step 5: Declaration
       declarationAgreed: [true, Validators.requiredTrue],

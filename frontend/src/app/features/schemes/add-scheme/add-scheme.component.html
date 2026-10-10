@@ -20,8 +20,7 @@
           <h1 class="scheme-create__title">Add New Scheme</h1>
           <p class="scheme-create__subtitle">
             @if (currentStep === 1) {
-            Enter the basic details of the government scheme to be {{ isAdmin ? 'published.' : 'reviewed and approved.'
-            }}
+            Enter the basic details of the government scheme to be reviewed and approved.
             } @else if (currentStep === 2) {
             Enter additional details about the scheme to help citizens understand its purpose and reach.
             } @else if (currentStep === 3) {
@@ -29,7 +28,7 @@
             } @else if (currentStep === 4) {
             Provide the required documents and application details for this scheme.
             } @else if (currentStep === 5) {
-            Review all the details before {{ isAdmin ? 'Submit.' : 'submitting for approval.' }}
+            Review all the details before submitting for approval.
             }
           </p>
         </div>
@@ -1313,17 +1312,11 @@
         </div>
 
         <h3 class="modal-title">
-          {{ isAdmin ? 'Scheme Published Successfully!' : 'Scheme Submitted for Approval!' }}
+          Scheme Submitted for Review!
         </h3>
 
         <p class="modal-message">
-          @if (isAdmin) {
-          The scheme <strong>“{{ schemeForm.get('name')?.value }}”</strong> has been directly published and is now
-          active and visible to citizens and officials.
-          } @else {
-          The scheme <strong>“{{ schemeForm.get('name')?.value }}”</strong> has been submitted to the administrative
-          board. You will receive notifications once the review is completed.
-          }
+          The scheme <strong>“{{ schemeForm.get('name')?.value }}”</strong> has been submitted. A different administrator must approve it before publication. You will receive notifications once the review is completed.
         </p>
 
         <div class="modal-actions">

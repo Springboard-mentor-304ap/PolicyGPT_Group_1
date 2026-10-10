@@ -9,6 +9,99 @@ from app.models.scheme import Scheme
 from app.models.user import User
 
 
+def _normalize_role(value: object) -> str:
+    try:
+        from app.api.routes.auth import normalize_role as _nr
+
+        return _nr(str(value or ""))
+    except Exception:
+        return str(value or "").strip().upper()
+
+
+def _validate_scheme_url(field_name: str, value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if len(text) > 2000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} is too long (max 2000 characters).",
+        )
+    lowered = text.lower()
+    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{field_name} must be a valid http(s) URL.",
+        )
+    return text
+
+
+def _validate_scheme_eligibility(rules: object) -> object:
+    if rules is None:
+        return None
+    if not isinstance(rules, list):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="eligibility_rules must be a list.",
+        )
+    _KNOWN = {
+        "TARGET_BENEFICIARIES",
+        "AGE_CRITERIA",
+        "GENDER",
+        "ANNUAL_INCOME_LIMIT",
+        "EDUCATION",
+        "OCCUPATION",
+        "SOCIAL_CATEGORY",
+        "DISABILITY_STATUS",
+        "CUSTOM_CONDITION",
+    }
+    for rule in rules:
+        if not isinstance(rule, dict):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Each eligibility rule must be an object.",
+            )
+        rt_raw = rule.get("rule_type")
+        if rt_raw is not None:
+            rt = str(rt_raw).strip().upper()
+            if not rt:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Eligibility rule 'rule_type' cannot be empty.",
+                )
+            if rt not in _KNOWN:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"Unknown eligibility rule type '{rt_raw}'. "
+                        f"Allowed: {', '.join(sorted(_KNOWN))}."
+                    ),
+                )
+            if rt == "AGE_CRITERIA":
+                min_age = rule.get("min_age")
+                max_age = rule.get("max_age")
+                for label, val in (("min_age", min_age), ("max_age", max_age)):
+                    if val is not None and (
+                        not isinstance(val, (int, float)) or val < 0 or val > 120
+                    ):
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"AGE_CRITERIA '{label}' must be 0-120.",
+                        )
+                if (
+                    min_age is not None
+                    and max_age is not None
+                    and min_age > max_age
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="AGE_CRITERIA min_age cannot exceed max_age.",
+                    )
+    return rules or None
+
+
 def current_time() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -83,17 +176,11 @@ def create_scheme(
             if data.application_process and data.application_process.strip()
             else None
         ),
-        application_url=(
-            data.application_url.strip()
-            if data.application_url and data.application_url.strip()
-            else None
+        application_url=_validate_scheme_url(
+            "application_url", data.application_url
         ),
-        source_url=(
-            data.source_url.strip()
-            if data.source_url and data.source_url.strip()
-            else None
-        ),
-        eligibility_rules=data.eligibility_rules,
+        source_url=_validate_scheme_url("source_url", data.source_url),
+        eligibility_rules=_validate_scheme_eligibility(data.eligibility_rules),
         status="DRAFT",
         created_by=user_id,
         approved_by=None,
@@ -152,7 +239,10 @@ def update_scheme(
     current_user: User | None = None,
 ) -> Scheme:
 
-    if current_user and current_user.role == "GOVERNMENT_OFFICIAL":
+    if (
+        current_user
+        and _normalize_role(getattr(current_user, "role", "")) == "GOVERNMENT_OFFICIAL"
+    ):
         if scheme.created_by != current_user.user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -161,7 +251,10 @@ def update_scheme(
 
     allowed_statuses = (
         {"DRAFT", "REJECTED", "ARCHIVED", "APPROVED"}
-        if (current_user and current_user.role == "ADMIN")
+        if (
+            current_user
+            and _normalize_role(getattr(current_user, "role", "")) == "ADMIN"
+        )
         else {"DRAFT", "REJECTED", "ARCHIVED"}
     )
     if scheme.status not in allowed_statuses:
@@ -255,8 +348,6 @@ def update_scheme(
         "category",
         "documents_required",
         "application_process",
-        "application_url",
-        "source_url",
     ]
 
     for field in text_fields:
@@ -265,6 +356,21 @@ def update_scheme(
 
             if isinstance(value, str):
                 update_data[field] = value.strip() if value.strip() else None
+
+    if "application_url" in update_data:
+        update_data["application_url"] = _validate_scheme_url(
+            "application_url", update_data["application_url"]
+        )
+
+    if "source_url" in update_data:
+        update_data["source_url"] = _validate_scheme_url(
+            "source_url", update_data["source_url"]
+        )
+
+    if "eligibility_rules" in update_data:
+        update_data["eligibility_rules"] = _validate_scheme_eligibility(
+            update_data["eligibility_rules"]
+        )
 
     for field, value in update_data.items():
         setattr(scheme, field, value)
@@ -364,7 +470,11 @@ def submit_scheme(
             scheme_id=scheme.scheme_id,
             scheme_title=getattr(scheme, "name", getattr(
                 scheme, "scheme_name", "Public Scheme")),
-            submitted_by_id=scheme.created_by or 0,
+            submitted_by_id=(
+                current_user.user_id
+                if current_user is not None
+                else (scheme.created_by or 0)
+            ),
             ministry=scheme.ministry,
         )
     except Exception as e:
@@ -382,6 +492,20 @@ def approve_scheme(
 
     if scheme.status != "PENDING_APPROVAL":
         raise ValueError("Only PENDING_APPROVAL schemes " "can be approved.")
+
+    # Self-approval is forbidden: the creator can never approve their own
+    # record, even when the creator also holds an Admin role.
+    if (
+        getattr(scheme, "created_by", None) is not None
+        and scheme.created_by == admin_user_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You cannot approve your own scheme. "
+                "A different administrator must review it."
+            ),
+        )
 
     scheme.status = "APPROVED"
     scheme.approved_by = admin_user_id

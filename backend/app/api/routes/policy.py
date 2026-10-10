@@ -35,6 +35,7 @@ from app.services.policy_service import (
     approve_archive_policy,
     approve_delete_policy,
     approve_policy,
+    archive_policy,
     create_policy,
     delete_policy,
     get_archive_requests,
@@ -468,6 +469,24 @@ def get_policy_route(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Policy not found.",
             )
+    elif role == "GOVERNMENT_OFFICIAL":
+        # Officials may read APPROVED records plus their own unpublished
+        # workflow records. Other officials' DRAFT/PENDING_APPROVAL rows
+        # are 404-masked (no existence leak), mirroring schemes.
+        if policy.status != "APPROVED" and (
+            policy.created_by != current_user.user_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role != "ADMIN":
+        # Fail closed: unknown roles get the public-safe view only.
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
 
     # View tracking (observability only): one POLICY_VIEW per user/policy
     # per 30 minutes, so workflow refetches and double renders never
@@ -648,15 +667,28 @@ def submit_policy_route(
 )
 def approve_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return approve_policy(
+    result = approve_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' approved by admin {current_user.user_id}.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -675,16 +707,71 @@ def approve_policy_route(
 def reject_policy_route(
     policy_id: int,
     data: PolicyRejectRequest,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_policy(
+    result = reject_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' rejected by admin {current_user.user_id}.",
+    )
+
+    return result
+
+
+# ============================================================
+# DIRECT ARCHIVE
+#
+# ADMIN ONLY
+#
+# APPROVED -> ARCHIVED (no request needed)
+#
+# Mirrors POST /schemes/{id}/archive so both modules share the same
+# direct-archive workflow.
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/archive",
+    response_model=PolicyResponse,
+)
+def archive_policy_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    result = archive_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' archived by administrator.",
+    )
+
+    return result
 
 
 # ============================================================

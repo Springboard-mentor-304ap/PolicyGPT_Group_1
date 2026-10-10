@@ -164,7 +164,9 @@ export class AdminComponent implements OnInit {
         const pendingPolicies = data?.pending_policies ?? data?.policies?.pending ?? 0;
         const totalSchemes = data?.total_schemes ?? data?.schemes?.total ?? 0;
         const activeSchemes = data?.active_schemes ?? data?.approved_schemes ?? data?.schemes?.approved ?? 0;
+        const pendingSchemes = data?.pending_schemes ?? data?.schemes?.pending ?? 0;
         const totalUsers = data?.total_users ?? data?.users?.total ?? 0;
+        const pendingAll = pendingPolicies + pendingSchemes;
 
         this.statCards = [
           {
@@ -193,8 +195,8 @@ export class AdminComponent implements OnInit {
           },
           {
             label: "Pending Approvals",
-            value: pendingPolicies,
-            sublabel: "Policies awaiting review",
+            value: pendingAll,
+            sublabel: `${pendingPolicies} policies, ${pendingSchemes} schemes awaiting review`,
             icon: "pending_actions",
             color: "purple",
             route: "/dashboard/admin/schemes/manage",

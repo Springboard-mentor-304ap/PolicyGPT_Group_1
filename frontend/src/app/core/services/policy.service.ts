@@ -275,6 +275,20 @@ export class PolicyService {
     return this.approveArchive(id);
   }
 
+  // ============================================================
+  // DIRECT ARCHIVE (ADMIN)
+  // POST /policies/{id}/archive — APPROVED -> ARCHIVED
+  // Mirrors SchemeService.archiveScheme.
+  // ============================================================
+
+  archiveDirect(id: number): Observable<PolicyResponse> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.post<PolicyResponse>(`${this.apiUrl}/${id}/archive`, {});
+  }
+
   rejectArchive(id: number): Observable<PolicyResponse> {
     if (!id || id <= 0) {
       throw new Error('A valid policy ID is required.');

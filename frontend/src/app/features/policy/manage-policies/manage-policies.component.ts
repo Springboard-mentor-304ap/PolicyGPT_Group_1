@@ -8,8 +8,10 @@ import {
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
+import { finalize, take } from "rxjs";
 import { PolicyService } from "../../../core/services/policy.service";
 import { Auth } from "../../../core/services/auth";
+import { ToastService } from "../../../core/services/toast.service";
 import {
   PolicyResponse,
   PolicyListResponse,
@@ -18,6 +20,8 @@ import {
 import { OverlayModule, ConnectedPosition } from "@angular/cdk/overlay";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
+import { DeletedPoliciesModalComponent } from "../deleted-policies-modal/deleted-policies-modal.component";
+import { DraftPoliciesModalComponent } from "../draft-policies-modal/draft-policies-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
   CategoryInput,
@@ -35,9 +39,12 @@ export interface PolicyTableItem {
   sector: string;
   status: string;
   createdBy?: number | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
   rejectionReason?: string;
   archiveReason?: string;
   deleteReason?: string;
+  deleteRequestedFromStatus?: string;
 }
 
 @Component({
@@ -51,6 +58,8 @@ export interface PolicyTableItem {
     ConfirmModalComponent,
     ReasonModalComponent,
     SearchableSelectComponent,
+    DeletedPoliciesModalComponent,
+    DraftPoliciesModalComponent,
   ],
   templateUrl: "./manage-policies.component.html",
   styleUrls: ["./manage-policies.component.scss"],
@@ -61,6 +70,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly auth: Auth,
     private readonly cdr: ChangeDetectorRef,
+    private readonly toastService: ToastService,
   ) {}
 
   searchText = "";
@@ -122,6 +132,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   confirmAction: (() => void) | null = null;
   confirmLoading = false;
   confirmErrorMessage: string | null = null;
+  confirmText = "Confirm";
+  showCancelConfirm = true;
 
   reasonModalOpen = false;
   reasonTitle = "";
@@ -129,6 +141,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   reasonLabel = "Reason";
   reasonVariant: "primary" | "danger" | "warning" = "danger";
   reasonAction: ((reason: string) => void) | null = null;
+  reasonLoading = false;
+  reasonErrorMessage: string | null = null;
+
+  // Deleted / Draft modal state. The modals open centered over this page;
+  // childDirty tracks whether a mutation happened inside a modal so the
+  // register and statistics refresh when the modal closes.
+  deletedModalOpen = false;
+  draftsModalOpen = false;
+  private childDirty = false;
 
   statuses = [
     "APPROVED",
@@ -142,7 +163,10 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   /** PolicyGPT dropdown options with human-readable status labels. */
   get statusFilterOptions(): { value: string; label: string }[] {
-    return this.statuses.map((s) => ({ value: s, label: this.getStatusLabel(s) }));
+    return this.statuses.map((s) => ({
+      value: s,
+      label: this.getStatusLabel(s),
+    }));
   }
 
   policies: PolicyTableItem[] = [];
@@ -174,10 +198,25 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   showSuccessToast(message: string): void {
     this.successToastMessage = message;
     this.cdr.detectChanges();
+    // Use the shared PolicyGPT toast system (auto-dismiss, success styling)
+    // in addition to the inline confirmation so notifications stay consistent.
+    try {
+      this.toastService.success(message);
+    } catch {
+      // Toast container is optional in isolated specs; inline toast still shows.
+    }
     window.setTimeout(() => {
       this.successToastMessage = null;
       this.cdr.detectChanges();
     }, 3500);
+  }
+
+  private showErrorToast(message: string): void {
+    try {
+      this.toastService.error(message);
+    } catch {
+      // Ignore when toast container is unavailable (e.g. isolated specs).
+    }
   }
 
   loadPolicies(): void {
@@ -217,12 +256,34 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             sector: policy.sector || "",
             status: String(policy.status || "DRAFT").toUpperCase(),
             createdBy: policy.created_by,
+            createdAt: policy.created_at || null,
+            updatedAt: policy.updated_at || null,
             rejectionReason: policy.rejection_reason || undefined,
             archiveReason: policy.archive_reason || undefined,
             deleteReason: policy.delete_reason || undefined,
+            deleteRequestedFromStatus:
+              policy.delete_requested_from_status || undefined,
           }));
           this.currentPage = Math.min(this.currentPage, this.totalPages);
           this.loading = false;
+          // Keep own-record stats in sync for non-admins (see loadStats).
+          if (!this.isAdmin) {
+            const counts = {
+              total: 0,
+              approved: 0,
+              pending: 0,
+              rejected: 0,
+              archived: 0,
+            };
+            for (const p of this.policies) {
+              counts.total += 1;
+              if (p.status === "APPROVED") counts.approved += 1;
+              else if (p.status === "PENDING_APPROVAL") counts.pending += 1;
+              else if (p.status === "REJECTED") counts.rejected += 1;
+              else if (p.status === "ARCHIVED") counts.archived += 1;
+            }
+            this.stats = counts;
+          }
           this.cdr.detectChanges();
         },
         error: (error) => {
@@ -238,6 +299,28 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   }
 
   loadStats(): void {
+    // Government Officials see own-record counts derived from their loaded
+    // list (platform analytics are global and would mislead). Admins keep
+    // the platform-wide analytics totals.
+    if (!this.isAdmin) {
+      const counts = {
+        total: 0,
+        approved: 0,
+        pending: 0,
+        rejected: 0,
+        archived: 0,
+      };
+      for (const p of this.policies) {
+        counts.total += 1;
+        if (p.status === "APPROVED") counts.approved += 1;
+        else if (p.status === "PENDING_APPROVAL") counts.pending += 1;
+        else if (p.status === "REJECTED") counts.rejected += 1;
+        else if (p.status === "ARCHIVED") counts.archived += 1;
+      }
+      this.stats = counts;
+      this.cdr.detectChanges();
+      return;
+    }
     this.policyService.getPolicyStatistics().subscribe({
       next: (res) => {
         this.stats = {
@@ -385,6 +468,50 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.router.navigate(["/dashboard", this.rolePrefix, "policies", "add"]);
   }
 
+  viewDeletedPolicies(): void {
+    this.openDeletedModal();
+  }
+
+  viewDraftPolicies(): void {
+    this.openDraftsModal();
+  }
+
+  openDeletedModal(): void {
+    this.closeMenu();
+    this.deletedModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onDeletedModalClosed(): void {
+    this.deletedModalOpen = false;
+    this.refreshAfterChildModal();
+  }
+
+  openDraftsModal(): void {
+    this.closeMenu();
+    this.draftsModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onDraftsModalClosed(): void {
+    this.draftsModalOpen = false;
+    this.refreshAfterChildModal();
+  }
+
+  /** A modal child reports every successful mutation; keep statistics live. */
+  onChildDataChanged(): void {
+    this.childDirty = true;
+    this.loadStats();
+  }
+
+  private refreshAfterChildModal(): void {
+    this.cdr.detectChanges();
+    if (this.childDirty) {
+      this.childDirty = false;
+      this.loadPolicies();
+    }
+  }
+
   canSubmitPolicy(policy: PolicyTableItem): boolean {
     if (!["DRAFT", "REJECTED"].includes(policy.status)) return false;
     if (this.isAdmin) return true;
@@ -401,6 +528,108 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       : "Submit for approval";
   }
 
+  // ----------------------------------------------------------
+  // Admin review helpers: status-driven details from real backend
+  // values (never inferred from badge text).
+  // ----------------------------------------------------------
+
+  private getReasonOrFallback(reason?: string): string {
+    const text = (reason || "").trim();
+    return text ? text : "No reason was provided.";
+  }
+
+  private toPolicyTableItem(policy: PolicyResponse): PolicyTableItem {
+    return {
+      id: Number(policy.policy_id),
+      title: policy.title || "Untitled policy",
+      description: policy.description || "",
+      category: policy.category || "",
+      ministry: policy.ministry || "",
+      department: policy.department || "",
+      sector: policy.sector || "",
+      status: String(policy.status || "DRAFT").toUpperCase(),
+      createdBy: policy.created_by,
+      createdAt: policy.created_at || null,
+      updatedAt: policy.updated_at || null,
+      rejectionReason: policy.rejection_reason || undefined,
+      archiveReason: policy.archive_reason || undefined,
+      deleteReason: policy.delete_reason || undefined,
+      deleteRequestedFromStatus:
+        policy.delete_requested_from_status || undefined,
+    };
+  }
+
+  /** Patch the affected row from the backend response (no full reload). */
+  private applyPolicyUpdate(updated: PolicyResponse): void {
+    const item = this.toPolicyTableItem(updated);
+    const index = this.policies.findIndex((p) => p.id === item.id);
+    if (index >= 0) {
+      this.policies[index] = item;
+    } else {
+      this.policies = [...this.policies, item];
+    }
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    this.cdr.detectChanges();
+    this.loadStats();
+  }
+
+  /** Remove a permanently deleted row without refetching the table. */
+  private removePolicyRow(id: number): void {
+    this.policies = this.policies.filter((p) => p.id !== id);
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    this.cdr.detectChanges();
+    this.loadStats();
+  }
+
+  private openInfoDialog(title: string, message: string): void {
+    this.closeMenu();
+    this.confirmTitle = title;
+    this.confirmMessage = message;
+    this.confirmVariant = "primary";
+    this.confirmText = "Close";
+    this.showCancelConfirm = false;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => {
+      this.confirmModalOpen = false;
+      this.confirmAction = null;
+      this.confirmText = "Confirm";
+      this.showCancelConfirm = true;
+      this.cdr.detectChanges();
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openViewDeleteReason(policy: PolicyTableItem): void {
+    const reason = this.getReasonOrFallback(policy.deleteReason);
+    this.openInfoDialog(
+      `${policy.title || "Untitled policy"}\n`,
+      `Deletion reason: ${reason}`,
+    );
+  }
+
+  openViewSubmissionDetails(policy: PolicyTableItem): void {
+    const lines = [
+      `"${policy.title || "Untitled policy"}"`,
+      `Status: ${this.getStatusLabel(policy.status)}.`,
+    ];
+    const context = [
+      policy.category,
+      policy.ministry || policy.department,
+    ].filter((part) => (part || "").trim());
+    if (context.length) {
+      lines.push(context.join(" • "));
+    }
+    if ((policy.description || "").trim()) {
+      lines.push(`Description: ${policy.description.trim()}`);
+    }
+    lines.push(
+      `Submission note: ${this.getReasonOrFallback(policy.rejectionReason)}`,
+    );
+    this.openInfoDialog("Submission review details", lines.join("\n"));
+  }
+
   openSubmitModal(policy: PolicyTableItem): void {
     this.closeMenu();
     if (!this.canSubmitPolicy(policy)) {
@@ -413,6 +642,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.confirmTitle = "Submit Policy";
     this.confirmMessage = `Submit "${policyTitle}" for approval?`;
     this.confirmVariant = "primary";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
     this.confirmAction = () => {
@@ -424,13 +655,17 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       this.policyService.submitPolicy(policy.id).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.showSuccessToast("Policy submitted for approval.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
           this.confirmLoading = false;
@@ -447,10 +682,24 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openApproveModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can approve policies.";
+      this.cdr.detectChanges();
+      return;
+    }
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    if (currentUserId != null && policy.createdBy === currentUserId) {
+      this.errorMessage =
+        "You cannot approve your own policy. A different administrator must review it.";
+      this.cdr.detectChanges();
+      return;
+    }
     const policyTitle = policy.title || "Untitled Policy";
     this.confirmTitle = "Approve Policy";
     this.confirmMessage = `Are you sure you want to approve "${policyTitle}"?`;
     this.confirmVariant = "success";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
     this.confirmAction = () => {
@@ -462,13 +711,17 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       this.policyService.approvePolicy(policy.id).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.showSuccessToast("Policy approved successfully.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
           this.confirmLoading = false;
@@ -485,20 +738,42 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openRejectModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can reject policies.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.reasonTitle = "Reject Policy";
     this.reasonMessage = `Please enter a rejection reason for "${policy.title}".`;
     this.reasonLabel = "Rejection Reason";
     this.reasonVariant = "danger";
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.rejectPolicy(policy.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast("Policy rejected.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -513,16 +788,33 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.reasonMessage = `Enter the reason for requesting archival of "${policy.title}".`;
     this.reasonLabel = "Archive Reason";
     this.reasonVariant = "warning";
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.requestArchive(policy.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast("Archive request submitted to Admin.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -533,19 +825,43 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openApproveArchiveModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can approve archive requests.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Approve Archive Request";
     this.confirmMessage = `Approve archival of "${policy.title}"? Status will become ARCHIVED.`;
     this.confirmVariant = "warning";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.approveArchive(policy.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast("Policy archived successfully.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -556,21 +872,45 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openRejectArchiveModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can reject archive requests.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Reject Archive Request";
     this.confirmMessage = `Reject archive request for "${policy.title}"? The policy will remain APPROVED.`;
     this.confirmVariant = "primary";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.rejectArchive(policy.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast(
             "Archive request rejected. Policy reverted to APPROVED.",
           );
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -585,16 +925,33 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.reasonMessage = `Enter the reason for requesting deletion of "${policy.title}".`;
     this.reasonLabel = "Deletion Reason";
     this.reasonVariant = "danger";
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.requestDelete(policy.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast("Delete request submitted to Admin.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -605,22 +962,55 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openApproveDeleteModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can approve deletion.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Approve Permanent Deletion";
-    this.confirmMessage = `Permanently delete "${policy.title}"? This cannot be undone.`;
+    this.confirmMessage = `Permanently delete "${policy.title}"? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
     this.confirmVariant = "danger";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
-      this.policyService.approveDelete(policy.id).subscribe({
-        next: () => {
-          this.confirmModalOpen = false;
-          this.showSuccessToast("Policy permanently deleted.");
-          this.loadPolicies();
-        },
-        error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
-          this.cdr.detectChanges();
-        },
-      });
+      // Prevent duplicate submissions from repeated clicks.
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+      // Single request; finalize guarantees the loading state clears on both
+      // success and failure. Dialog closes only after backend confirms success.
+      // We remain on /dashboard/admin/policies/manage and refresh the list
+      // from the backend so the deleted record disappears.
+      this.policyService
+        .approveDelete(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Policy deleted successfully.");
+            this.loadPolicies();
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -628,19 +1018,109 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openRejectDeleteModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can reject deletion.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Reject Delete Request";
-    this.confirmMessage = `Reject delete request for "${policy.title}"? The policy will revert to its previous status.`;
+    this.confirmMessage = `Reject delete request for "${policy.title}"? The policy will revert to its previous status.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
     this.confirmVariant = "primary";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
-      this.policyService.rejectDelete(policy.id).subscribe({
-        next: () => {
+      // Prevent duplicate submissions from repeated clicks.
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+      // Single request; finalize guarantees the loading state clears on both
+      // success and failure. Rejecting never deletes the record — the backend
+      // restores its previous status. We remain on
+      // /dashboard/admin/policies/manage and refresh the list from backend.
+      this.policyService
+        .rejectDelete(policy.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast("Deletion request rejected successfully.");
+            this.loadPolicies();
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Direct admin archive (POST /policies/{id}/archive, APPROVED -> ARCHIVED).
+   * Reuses the same existing endpoint as the policy details page; the
+   * government-official request/approval flow is untouched.
+   */
+  openArchiveModal(policy: PolicyTableItem): void {
+    this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can archive policies.";
+      this.cdr.detectChanges();
+      return;
+    }
+    if (policy.status !== "APPROVED") {
+      this.errorMessage = "Only APPROVED policies can be archived.";
+      this.cdr.detectChanges();
+      return;
+    }
+    this.confirmTitle = "Archive Policy";
+    this.confirmMessage = `Are you sure you want to archive "${policy.title}"? It will move to ARCHIVED and can be restored later.`;
+    this.confirmVariant = "warning";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+      this.policyService.archiveDirect(policy.id).subscribe({
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showSuccessToast("Delete request rejected.");
-          this.loadPolicies();
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
+          this.showSuccessToast("Policy archived successfully.");
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -651,19 +1131,43 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openRestoreModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can restore policies.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Restore Policy";
     this.confirmMessage = `Restore "${policy.title}" back to APPROVED state?`;
     this.confirmVariant = "success";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.restore(policy.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast("Policy restored to APPROVED.");
-          this.loadPolicies();
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -674,19 +1178,39 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   openDirectDeleteModal(policy: PolicyTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can delete policies.";
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = "Delete Policy";
     this.confirmMessage = `Are you sure you want to permanently delete "${policy.title}"?`;
     this.confirmVariant = "danger";
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.deletePolicy(policy.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast("Policy permanently deleted.");
-          this.loadPolicies();
+          this.removePolicyRow(policy.id);
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -712,18 +1236,28 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.confirmAction = null;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
+    this.confirmText = "Confirm";
+    this.showCancelConfirm = true;
     this.cdr.detectChanges();
   }
 
   onReasonModalConfirmed(reason: string): void {
+    if (this.reasonLoading) {
+      return;
+    }
     if (this.reasonAction) {
       this.reasonAction(reason);
     }
   }
 
   onReasonModalCancelled(): void {
+    if (this.reasonLoading) {
+      return;
+    }
     this.reasonModalOpen = false;
     this.reasonAction = null;
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.cdr.detectChanges();
   }
 
@@ -731,7 +1265,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     const escapeCsv = (value: unknown): string =>
       `"${String(value ?? "").replace(/"/g, '""')}"`;
     const rows = [
-      ["ID", "Title", "Category", "Ministry", "Department", "Sector", "Status"],
+      ["ID", "Title", "Category", "Ministry", "Department", "Sector", "Status", "Created At", "Updated At"],
       ...this.filteredPolicies.map((p) => [
         p.id,
         p.title,
@@ -740,6 +1274,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
         p.department,
         p.sector,
         p.status,
+        p.createdAt || "",
+        p.updatedAt || "",
       ]),
     ];
     const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
@@ -754,8 +1290,52 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
-  getStatusLabel(status: string): string {
-    switch (status) {
+  /**
+   * Format a backend timestamp for the Date & Time column in Asia/Kolkata
+   * (IST), e.g. "10 Oct 2026, 06:51 PM". Uses the actual backend value;
+   * missing or invalid timestamps render as "—".
+   */
+  formatDateTime(value?: string | null): string {
+    if (value === null || value === undefined) return "—";
+    const text = String(value).trim();
+    if (!text) return "—";
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return "—";
+    try {
+      const parts = new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }).formatToParts(date);
+      const get = (type: string): string =>
+        parts.find((part) => part.type === type)?.value ?? "";
+      const dayPeriod = get("dayPeriod").toUpperCase();
+      const formatted =
+        `${get("day")} ${get("month")} ${get("year")}, ` +
+        `${get("hour")}:${get("minute")}${dayPeriod ? ` ${dayPeriod}` : ""}`;
+      return formatted.trim() || "—";
+    } catch {
+      return "—";
+    }
+  }
+
+  /**
+   * Whether the Updated line should be shown underneath Created: only when
+   * updated_at is present, valid, and different from the creation timestamp.
+   */
+  hasDistinctUpdate(policy: PolicyTableItem): boolean {
+    const created = policy.createdAt ? new Date(policy.createdAt) : null;
+    const updated = policy.updatedAt ? new Date(policy.updatedAt) : null;
+    if (!created || Number.isNaN(created.getTime())) return false;
+    if (!updated || Number.isNaN(updated.getTime())) return false;
+    return updated.getTime() !== created.getTime();
+  }
+
+  getStatusLabel(status: string): string {    switch (status) {
       case "PENDING_APPROVAL":
         return "Pending Approval";
       case "APPROVED":

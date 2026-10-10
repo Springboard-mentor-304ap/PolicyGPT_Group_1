@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, effect, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -39,6 +39,7 @@ import { FormsModule } from '@angular/forms';
               (ngModelChange)="reasonValue.set($event)"
               [placeholder]="placeholder()"
               [maxlength]="maxLength()"
+              [disabled]="isLoading()"
               rows="4"
               (keydown.enter)="onEnter($any($event))"
             ></textarea>
@@ -52,12 +53,19 @@ import { FormsModule } from '@angular/forms';
                 {{ reasonValue().length }}/{{ maxLength() }}
               </span>
             </div>
+            @if (errorMessage()) {
+              <div class="modal-error">
+                <span class="material-icons">error_outline</span>
+                <span>{{ errorMessage() }}</span>
+              </div>
+            }
           </div>
 
           <div class="modal-actions">
             <button
               type="button"
               class="modal-btn modal-btn--cancel"
+              [disabled]="isLoading()"
               (click)="onCancel()"
             >
               {{ cancelText() }}
@@ -66,10 +74,13 @@ import { FormsModule } from '@angular/forms';
               type="button"
               class="modal-btn"
               [ngClass]="'modal-btn--' + variant()"
-              [disabled]="required() && !reasonValue().trim()"
+              [disabled]="(required() && !reasonValue().trim()) || isLoading()"
               (click)="onConfirm()"
             >
-              {{ confirmText() }}
+              @if (isLoading()) {
+                <span class="modal-spinner"></span>
+              }
+              <span>{{ confirmText() }}</span>
             </button>
           </div>
         </div>
@@ -247,6 +258,41 @@ import { FormsModule } from '@angular/forms';
       pointer-events: none;
     }
 
+    .modal-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: modalSpin 0.7s linear infinite;
+      margin-right: 8px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    .modal-error {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      color: #b91c1c;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      text-align: left;
+      margin: 10px 0 0;
+      word-break: break-word;
+    }
+
+    .modal-error .material-icons {
+      font-size: 18px;
+      color: #dc2626;
+      flex-shrink: 0;
+    }
+
     .modal-btn--cancel {
       background: #ffffff;
       border: 1px solid #cbd5e1;
@@ -303,6 +349,12 @@ import { FormsModule } from '@angular/forms';
       }
     }
 
+    @keyframes modalSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
     @media (max-width: 480px) {
       .modal-card {
         padding: 20px 16px;
@@ -328,6 +380,8 @@ export class ReasonModalComponent {
   cancelText = input<string>('Cancel');
   requiredMessage = input<string>('Reason is required');
   variant = input<'primary' | 'danger' | 'warning'>('danger');
+  isLoading = input<boolean>(false);
+  errorMessage = input<string | null>(null);
 
   confirmed = output<string>();
   cancelled = output<void>();
@@ -335,17 +389,35 @@ export class ReasonModalComponent {
   reasonValue = signal('');
   touched = signal(false);
 
+  constructor() {
+    // Clear the draft reason whenever the dialog closes so the next
+    // opening starts empty, while preserving typed text across a
+    // failed submission that keeps the dialog open.
+    effect(() => {
+      if (!this.isOpen()) {
+        this.reasonValue.set('');
+        this.touched.set(false);
+      }
+    });
+  }
+
   get showValidationError(): boolean {
     return this.required() && this.touched() && !this.reasonValue().trim();
   }
 
   onBackdropClick(event: MouseEvent): void {
+    if (this.isLoading()) {
+      return;
+    }
     if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
       this.onCancel();
     }
   }
 
   onEnter(event: KeyboardEvent): void {
+    if (this.isLoading()) {
+      return;
+    }
     if (!event.shiftKey && this.reasonValue().trim()) {
       event.preventDefault();
       this.onConfirm();
@@ -353,15 +425,19 @@ export class ReasonModalComponent {
   }
 
   onConfirm(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.touched.set(true);
     const reason = this.reasonValue().trim();
     if (this.required() && !reason) return;
     this.confirmed.emit(reason);
-    this.reasonValue.set('');
-    this.touched.set(false);
   }
 
   onCancel(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.reasonValue.set('');
     this.touched.set(false);
     this.cancelled.emit();

@@ -171,30 +171,16 @@
             <div class="form-field">
                 <label for="scheme-category">Category</label>
 
-                <app-searchable-select
-                    id="scheme-category"
-                    icon="category"
-                    placeholder="All categories"
-                    [searchable]="true"
-                    searchPlaceholder="Search categories..."
-                    [options]="categories"
-                    [(ngModel)]="selectedCategory"
-                    (selectionChange)="applyFilters()"
-                />
+                <app-searchable-select id="scheme-category" icon="category" placeholder="All categories"
+                    [searchable]="true" searchPlaceholder="Search categories..." [options]="categories"
+                    [(ngModel)]="selectedCategory" (selectionChange)="applyFilters()" />
             </div>
 
             <div class="form-field">
                 <label for="scheme-status">Workflow status</label>
 
-                <app-searchable-select
-                    id="scheme-status"
-                    icon="flag"
-                    placeholder="All statuses"
-                    [searchable]="false"
-                    [options]="statusFilterOptions"
-                    [(ngModel)]="selectedStatus"
-                    (selectionChange)="applyFilters()"
-                />
+                <app-searchable-select id="scheme-status" icon="flag" placeholder="All statuses" [searchable]="false"
+                    [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
             </div>
 
             <button type="button" class="export-button" (click)="exportSchemes(); $event.stopPropagation()">
@@ -279,11 +265,13 @@
                             </td>
 
                             <td class="policy-cell">
-                                <div class="policy-cell__row">
+                                <div class="policy-cell__row" [class.policy-cell__row--no-icon]="isAdmin">
+                                    @if (!isAdmin) {
                                     <span class="category-mini" [ngStyle]="categoryIconStyle(scheme.category)">
-                                        <span class="material-icons"
-                                            aria-hidden="true">{{ categoryIcon(scheme.category) }}</span>
+                                        <span class="material-icons" aria-hidden="true">{{ categoryIcon(scheme.category)
+                                            }}</span>
                                     </span>
+                                    }
                                     <div class="policy-cell__text">
                                         <button type="button" class="policy-name"
                                             (click)="viewScheme(scheme); $event.stopPropagation()">
@@ -298,7 +286,8 @@
                                         <div class="scheme-meta-tags">
                                             <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
                                             <span class="meta-dot" *ngIf="scheme.category && scheme.ministry">•</span>
-                                            <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry }}</span>
+                                            <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry
+                                                }}</span>
                                         </div>
                                         }
                                     </div>
@@ -319,179 +308,188 @@
                                         View
                                     </button>
 
-                                    <button type="button" class="more-action"
-                                        cdkOverlayOrigin #trigger="cdkOverlayOrigin"
-                                        [class.open]="menuOpenId === scheme.id"
-                                        [attr.aria-expanded]="menuOpenId === scheme.id"
-                                        aria-haspopup="menu"
-                                        aria-label="More scheme actions"
-                                        (click)="toggleMenu(scheme.id)">
+                                    <button type="button" class="more-action" cdkOverlayOrigin
+                                        #trigger="cdkOverlayOrigin" [class.open]="menuOpenId === scheme.id"
+                                        [attr.aria-expanded]="menuOpenId === scheme.id" aria-haspopup="menu"
+                                        aria-label="More scheme actions" (click)="toggleMenu(scheme.id)">
                                         <span class="material-icons">more_horiz</span>
                                     </button>
 
-                                    <ng-template
-                                        cdkConnectedOverlay
-                                        [cdkConnectedOverlayOrigin]="trigger"
+                                    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
                                         [cdkConnectedOverlayOpen]="menuOpenId === scheme.id"
                                         [cdkConnectedOverlayHasBackdrop]="true"
                                         [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
                                         [cdkConnectedOverlayPositions]="actionMenuPositions"
                                         [cdkConnectedOverlayPanelClass]="'scheme-action-overlay-pane'"
-                                        (backdropClick)="closeMenu()"
+                                        [cdkConnectedOverlayPush]="true" [cdkConnectedOverlayViewportMargin]="8"
+                                        [cdkConnectedOverlayFlexibleDimensions]="true"
+                                        [cdkConnectedOverlayGrowAfterOpen]="true" (backdropClick)="closeMenu()"
                                         (overlayKeydown)="onOverlayKeydown($event)">
                                         <div class="action-menu" role="menu">
-                                        <!-- DRAFT / REJECTED -->
-                                        @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
+                                            <!-- DRAFT / REJECTED -->
+                                            @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
 
-                                        @if (canSubmitScheme(scheme)) {
-                                        <button type="button" (click)="openSubmitModal(scheme)">
-                                            <span class="material-icons">send</span>
-                                            {{ getSubmitActionLabel(scheme) }}
-                                        </button>
-                                        }
+                                            @if (canSubmitScheme(scheme)) {
+                                            <button type="button" (click)="openSubmitModal(scheme)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(scheme) }}
+                                            </button>
+                                            }
 
-                                        @if (isAdmin) {
-                                        <div class="menu-separator"></div>
+                                            @if (isAdmin) {
+                                            <div class="menu-separator"></div>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete scheme
-                                        </button>
-                                        }
-                                        }
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(scheme)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete scheme
+                                            </button>
+                                            }
+                                            }
 
-                                        <!-- PENDING_APPROVAL -->
-                                        @if (scheme.status === 'PENDING_APPROVAL') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
+                                            <!-- PENDING_APPROVAL -->
+                                            @if (scheme.status === 'PENDING_APPROVAL') {
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewSubmissionDetails(scheme)">
+                                                <span class="material-icons">info</span>
+                                                View submission details
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openApproveModal(scheme)">
-                                            <span class="material-icons">check_circle_outline</span>
-                                            Approve
-                                        </button>
+                                            <button type="button" class="success" (click)="openApproveModal(scheme)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve request
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openRejectModal(scheme)">
-                                            <span class="material-icons">cancel</span>
-                                            Reject
-                                        </button>
+                                            <button type="button" class="danger" (click)="openRejectModal(scheme)">
+                                                <span class="material-icons">cancel</span>
+                                                Reject request
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
+                                            }
+                                            }
 
-                                        <div class="menu-separator"></div>
+                                            <!-- APPROVED -->
+                                            @if (scheme.status === 'APPROVED') {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete scheme
-                                        </button>
-                                        }
-                                        }
+                                            @if (!isAdmin) {
+                                            <button type="button" (click)="openRequestArchiveModal(scheme)">
+                                                <span class="material-icons">archive</span>
+                                                Request archive
+                                            </button>
 
-                                        <!-- APPROVED -->
-                                        @if (scheme.status === 'APPROVED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(scheme)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
+                                            </button>
+                                            } @else {
+                                            <div class="menu-separator"></div>
 
-                                        @if (!isAdmin) {
-                                        <button type="button" (click)="openRequestArchiveModal(scheme)">
-                                            <span class="material-icons">archive</span>
-                                            Request archive
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(scheme)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete scheme
+                                            </button>
+                                            }
+                                            }
 
-                                        <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
-                                            <span class="material-icons">delete_sweep</span>
-                                            Request deletion
-                                        </button>
-                                        } @else {
-                                        <div class="menu-separator"></div>
+                                            <!-- ARCHIVED -->
+                                            @if (scheme.status === 'ARCHIVED') {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete scheme
-                                        </button>
-                                        }
-                                        }
+                                            @if (isAdmin) {
+                                            <button type="button" class="success" (click)="openRestoreModal(scheme)">
+                                                <span class="material-icons">restore</span>
+                                                Restore scheme
+                                            </button>
 
-                                        <!-- ARCHIVED -->
-                                        @if (scheme.status === 'ARCHIVED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
+                                            <div class="menu-separator"></div>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openRestoreModal(scheme)">
-                                            <span class="material-icons">restore</span>
-                                            Restore scheme
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(scheme)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete scheme
+                                            </button>
+                                            } @else {
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(scheme)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
+                                            </button>
+                                            }
+                                            }
 
-                                        <div class="menu-separator"></div>
+                                            <!-- ARCHIVE_REQUESTED -->
+                                            @if (scheme.status === 'ARCHIVE_REQUESTED') {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete scheme
-                                        </button>
-                                        } @else {
-                                        <button type="button" class="danger" (click)="openRequestDeleteModal(scheme)">
-                                            <span class="material-icons">delete_sweep</span>
-                                            Request deletion
-                                        </button>
-                                        }
-                                        }
+                                            @if (isAdmin) {
+                                            <button type="button" class="success"
+                                                (click)="openApproveArchiveModal(scheme)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve archive
+                                            </button>
 
-                                        <!-- ARCHIVE_REQUESTED -->
-                                        @if (scheme.status === 'ARCHIVE_REQUESTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openRejectArchiveModal(scheme)">
+                                                <span class="material-icons">cancel</span>
+                                                Reject archive
+                                            </button>
 
-                                        @if (isAdmin) {
-                                        <button type="button" class="success" (click)="openApproveArchiveModal(scheme)">
-                                            <span class="material-icons">check_circle_outline</span>
-                                            Approve archive
-                                        </button>
+                                            <div class="menu-separator"></div>
 
-                                        <button type="button" class="danger" (click)="openRejectArchiveModal(scheme)">
-                                            <span class="material-icons">cancel</span>
-                                            Reject archive
-                                        </button>
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(scheme)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete scheme
+                                            </button>
+                                            }
+                                            }
 
-                                        <div class="menu-separator"></div>
+                                            <!-- DELETE_REQUESTED -->
+                                            @if (scheme.status === 'DELETE_REQUESTED') {
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewDeleteReason(scheme)">
+                                                <span class="material-icons">info</span>
+                                                View deletion reason
+                                            </button>
 
-                                        <button type="button" class="danger" (click)="openDirectDeleteModal(scheme)">
-                                            <span class="material-icons">delete_outline</span>
-                                            Delete scheme
-                                        </button>
-                                        }
-                                        }
+                                            <button type="button" class="danger"
+                                                (click)="openApproveDeleteModal(scheme)">
+                                                <span class="material-icons">delete_forever</span>
+                                                Approve deletion
+                                            </button>
 
-                                        <!-- DELETE_REQUESTED -->
-                                        @if (scheme.status === 'DELETE_REQUESTED') {
-                                        <button type="button" (click)="editScheme(scheme)">
-                                            <span class="material-icons">edit</span>
-                                            Edit scheme
-                                        </button>
-
-                                        @if (isAdmin) {
-                                        <button type="button" class="danger" (click)="openApproveDeleteModal(scheme)">
-                                            <span class="material-icons">delete_forever</span>
-                                            Approve deletion
-                                        </button>
-
-                                        <button type="button" (click)="openRejectDeleteModal(scheme)">
-                                            <span class="material-icons">undo</span>
-                                            Reject deletion
-                                        </button>
-                                        }
-                                        }
-                                    </div>
+                                            <button type="button" (click)="openRejectDeleteModal(scheme)">
+                                                <span class="material-icons">undo</span>
+                                                Reject deletion
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="editScheme(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
+                                            }
+                                            }
+                                        </div>
                                     </ng-template>
                                 </div>
                             </td>
@@ -553,19 +551,16 @@
         </footer>
     </section>
 
-    <div class="page-security-note">
-        <span class="material-icons">security</span>
-        Access and workflow actions are controlled by your authenticated role.
-    </div>
-
     <!-- Workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
         [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+        [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
+        (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
-        [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="onReasonModalConfirmed($event)"
+        [reasonLabel]="reasonLabel" [variant]="reasonVariant" [isLoading]="reasonLoading"
+        [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
         (cancelled)="onReasonModalCancelled()">
     </app-reason-modal>
 

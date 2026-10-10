@@ -357,9 +357,9 @@ export class AddPolicyComponent implements OnInit {
          STEP 4
          -------------------------------------------------------- */
 
-      documentUrl: ["", Validators.maxLength(500)],
+      documentUrl: ["", [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]] ,
 
-      sourceUrl: ["", Validators.maxLength(500)],
+      sourceUrl: ["", [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]] ,
 
       documentsRequired: ["", Validators.maxLength(2000)],
 
@@ -1363,9 +1363,10 @@ export class AddPolicyComponent implements OnInit {
         /*
          * ADMIN FLOW
          *
-         * The submit request is completed first. We then show the
-         * frontend success popup. The actual /approve request is NOT
-         * made until the Admin clicks OK on this popup.
+         * The submit request is completed first. Self-approval is
+         * forbidden, so the policy stays PENDING_APPROVAL for a
+         * different administrator to review. The popup confirms
+         * submission (not publication).
          *
          * GOVERNMENT OFFICIAL FLOW
          *
@@ -1375,8 +1376,8 @@ export class AddPolicyComponent implements OnInit {
         if (this.isAdmin) {
           console.log("[ADD POLICY] setting Admin modal");
           this.modalType = "submitted";
-          this.modalTitle = "Policy Added Successfully";
-          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been added successfully.`;
+          this.modalTitle = "Policy Submitted for Review";
+          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted. A different administrator must approve it before publication.`;
         } else {
           console.log("[ADD POLICY] setting Government modal");
           this.modalType = "pending";
@@ -1419,52 +1420,17 @@ export class AddPolicyComponent implements OnInit {
     /*
      * ADMIN:
      *
-     * First popup:
-     * "Policy ... has been added successfully."
-     *
-     * Only after clicking OK do we call the existing backend
-     * approve endpoint. This is the frontend equivalent of the
-     * requested "work as /approve" behaviour.
+     * Self-approval is forbidden by the backend (403 when creator ==
+     * approver), so the create form no longer auto-approves. The policy
+     * stays PENDING_APPROVAL and a different administrator must review
+     * it. OK only advances to the frontend-only "add another" popup.
      */
     if (this.modalType === "submitted" && this.isAdmin) {
-      if (this.editingPolicyId === null) {
-        this.errorMessage =
-          "The policy was submitted, but its policy ID is unavailable for approval.";
-        this.modalType = null;
-        this.cdr.detectChanges();
-        return;
-      }
-
-      this.isApproving = true;
-      this.errorMessage = null;
-
-      this.policyService.approvePolicy(this.editingPolicyId).subscribe({
-        next: (response) => {
-          this.isApproving = false;
-          this.setPolicyStatus(response?.status, "APPROVED");
-
-          /*
-           * The approve API is now finished. The next popup is
-           * frontend-only and asks whether another policy should be added.
-           */
-          this.modalType = "add-more";
-          this.modalTitle = "Policy Approved Successfully";
-          this.modalMessage = "Do you want to add another policy?";
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          console.error("Failed to approve policy:", error);
-
-          this.isApproving = false;
-          this.errorMessage = this.getErrorMessage(
-            error,
-            "Policy was submitted, but approval failed. Please try again.",
-          );
-          this.modalType = null;
-          this.cdr.detectChanges();
-        },
-      });
-
+      this.modalType = "add-more";
+      this.modalTitle = "Policy Submitted for Review";
+      this.modalMessage =
+        "Your policy has been submitted. A different administrator must approve it before publication.";
+      this.cdr.detectChanges();
       return;
     }
 

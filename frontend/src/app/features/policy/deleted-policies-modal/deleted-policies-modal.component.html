@@ -1,0 +1,155 @@
+@if (open) {
+<div class="dp-overlay" (click)="onBackdropClick($event)">
+    <div class="dp-card" role="dialog" aria-modal="true" aria-label="Deleted Policies"
+        (click)="$event.stopPropagation()">
+
+        <div class="dp-header">
+            <div class="dp-title-wrap">
+                <div class="dp-icon dp-icon--danger">
+                    <span class="material-icons">delete_sweep</span>
+                </div>
+                <div class="dp-title-text">
+                    <h2>Deleted Policies</h2>
+                    <p>Permanent record of policies deleted by you, with deletion date and time.</p>
+                </div>
+            </div>
+            <button type="button" class="dp-close" aria-label="Close deleted policies"
+                (click)="requestClose()">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        @if (errorMessage) {
+        <div class="dp-banner dp-banner--error" role="alert">
+            <span class="material-icons">error_outline</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="dp-banner-dismiss" aria-label="Dismiss error"
+                (click)="errorMessage = ''">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        }
+
+        <div class="dp-search-row">
+            <div class="dp-search-box">
+                <span class="material-icons dp-search-icon">search</span>
+                <input type="search" [(ngModel)]="searchText"
+                    placeholder="Search by title, ID, administrator or description" autocomplete="off"
+                    aria-label="Search deleted policies" />
+                @if (searchText) {
+                <button type="button" class="dp-search-clear" aria-label="Clear search" (click)="clearSearch()">
+                    <span class="material-icons">close</span>
+                </button>
+                }
+            </div>
+            <div class="dp-count">
+                <strong>{{ filteredRecords.length }}</strong>
+                <span>records</span>
+            </div>
+        </div>
+
+        <div class="dp-list">
+            @if (loading) {
+            <div class="dp-state">
+                <div class="dp-spinner"></div>
+                <strong>Loading deleted policies</strong>
+                <span>Retrieving the deletion record.</span>
+            </div>
+            }
+
+            @if (!loading && filteredRecords.length === 0) {
+            <div class="dp-state">
+                <div class="dp-empty-icon">
+                    <span class="material-icons">delete_outline</span>
+                </div>
+                <strong>No deleted policies found</strong>
+                <span>
+                    @if (searchText) {
+                    No records match your search.
+                    } @else {
+                    You have not permanently deleted any policies. Policies awaiting
+                    deletion approval stay in their approval workflow on Manage Policies.
+                    }
+                </span>
+                @if (searchText) {
+                <button type="button" class="dp-btn dp-btn--secondary" (click)="clearSearch()">
+                    Clear search
+                </button>
+                }
+            </div>
+            }
+
+            @for (record of filteredRecords; track record.auditId) {
+            <article class="dp-row">
+                <div class="dp-row-main">
+                    <span class="dp-name">{{ displayTitle(record) }}</span>
+                    <div class="dp-meta">
+                        @if (record.policyId !== null) {
+                        <span>Policy ID: {{ record.policyId }}</span>
+                        <span class="dp-meta-sep">•</span>
+                        }
+                        <span>Deleted: {{ formatDateTime(record.deletedAt) }}</span>
+                        <span class="dp-meta-sep">•</span>
+                        <span>By {{ record.adminName }}</span>
+                    </div>
+                    <div class="dp-type-row">
+                        <span class="type-badge" [ngClass]="record.kind === 'REQUEST_APPROVED' ? 'amber' : 'red'">
+                            <span class="status-dot"></span>
+                            {{ record.typeLabel }}
+                        </span>
+                        <span class="dp-type-text">{{ record.sourceText }}</span>
+                    </div>
+                    @if (record.note) {
+                    <p class="dp-desc">{{ record.note }}</p>
+                    }
+                </div>
+                <div class="dp-row-actions">
+                    <button type="button" class="dp-more-btn" [class.open]="menuOpenId === record.auditId"
+                        [attr.aria-expanded]="menuOpenId === record.auditId" aria-haspopup="menu"
+                        aria-label="More deleted-policy actions" (click)="toggleMenu(record, $event)">
+                        <span class="material-icons">more_horiz</span>
+                    </button>
+                </div>
+            </article>
+            }
+        </div>
+
+        <div class="dp-footer">
+            <button type="button" class="dp-btn dp-btn--secondary" (click)="requestClose()">
+                Close
+            </button>
+        </div>
+
+    </div>
+
+    @if (menuOpenRecord; as menuRecord) {
+    <div class="dp-float-menu" [ngStyle]="menuStyle" (click)="$event.stopPropagation()">
+        <div class="dp-menu" role="menu">
+            <button type="button" (click)="viewRecord(menuRecord)">
+                <span class="material-icons">visibility</span>
+                View Policy
+            </button>
+            <button type="button" (click)="openRestoreModal(menuRecord)">
+                <span class="material-icons">restore</span>
+                Restore Policy
+            </button>
+            <div class="menu-separator"></div>
+            <button type="button" class="danger" (click)="openPermanentDeleteModal(menuRecord)">
+                <span class="material-icons">delete_forever</span>
+                Permanent Delete
+            </button>
+        </div>
+    </div>
+    }
+</div>
+
+<app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+    [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+    [confirmText]="confirmText" [showCancel]="true" (confirmed)="onConfirmModalConfirmed()"
+    (cancelled)="onConfirmModalCancelled()">
+</app-confirm-modal>
+
+<app-confirm-modal [isOpen]="infoOpen" [title]="infoTitle" [message]="infoMessage" variant="primary"
+    confirmText="Close" [showCancel]="false" (confirmed)="closeInfo()" (cancelled)="closeInfo()">
+</app-confirm-modal>
+}

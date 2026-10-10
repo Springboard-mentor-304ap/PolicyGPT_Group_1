@@ -8,8 +8,10 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { finalize, take } from 'rxjs';
 import { SchemeService } from '../../../core/services/scheme.service';
 import { Auth } from '../../../core/services/auth';
+import { ToastService } from '../../../core/services/toast.service';
 import {
   SchemeResponse,
   SchemeListResponse,
@@ -47,6 +49,7 @@ export interface SchemeTableItem {
   rejectionReason?: string;
   archiveReason?: string;
   deleteReason?: string;
+  deleteRequestedFromStatus?: string;
 }
 
 @Component({
@@ -70,6 +73,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly auth: Auth,
     private readonly cdr: ChangeDetectorRef,
+    private readonly toastService: ToastService,
   ) {}
 
   searchText = '';
@@ -137,6 +141,8 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   confirmAction: (() => void) | null = null;
   confirmLoading = false;
   confirmErrorMessage: string | null = null;
+  confirmText = 'Confirm';
+  showCancelConfirm = true;
 
   reasonModalOpen = false;
   reasonTitle = '';
@@ -144,6 +150,8 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   reasonLabel = 'Reason';
   reasonVariant: 'primary' | 'danger' | 'warning' = 'danger';
   reasonAction: ((reason: string) => void) | null = null;
+  reasonLoading = false;
+  reasonErrorMessage: string | null = null;
 
   categories = SCHEME_CATEGORIES;
   ministries = MINISTRIES;
@@ -212,10 +220,25 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   showSuccessToast(message: string): void {
     this.successToastMessage = message;
     this.cdr.detectChanges();
+    // Use the shared PolicyGPT toast system (auto-dismiss, success styling)
+    // in addition to the inline confirmation so notifications stay consistent.
+    try {
+      this.toastService.success(message);
+    } catch {
+      // Toast container is optional in isolated specs; inline toast still shows.
+    }
     window.setTimeout(() => {
       this.successToastMessage = null;
       this.cdr.detectChanges();
     }, 3500);
+  }
+
+  private showErrorToast(message: string): void {
+    try {
+      this.toastService.error(message);
+    } catch {
+      // Ignore when toast container is unavailable (e.g. isolated specs).
+    }
   }
 
   loadSchemes(): void {
@@ -256,9 +279,22 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           rejectionReason: scheme.rejection_reason || undefined,
           archiveReason: scheme.archive_reason || undefined,
           deleteReason: scheme.delete_reason || undefined,
+          deleteRequestedFromStatus:
+            scheme.delete_requested_from_status || undefined,
         }));
         this.currentPage = Math.min(this.currentPage, this.totalPages);
         this.loading = false;
+        if (!this.isAdmin) {
+          const counts = { total: 0, approved: 0, pending: 0, rejected: 0, archived: 0 };
+          for (const s of this.schemes) {
+            counts.total += 1;
+            if (s.status === "APPROVED") counts.approved += 1;
+            else if (s.status === "PENDING_APPROVAL") counts.pending += 1;
+            else if (s.status === "REJECTED") counts.rejected += 1;
+            else if (s.status === "ARCHIVED") counts.archived += 1;
+          }
+          this.stats = counts;
+        }
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -274,6 +310,21 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   }
 
   loadStats(): void {
+    // Government Officials see own-record counts (platform analytics are
+    // global). Admins keep platform-wide totals.
+    if (!this.isAdmin) {
+      const counts = { total: 0, approved: 0, pending: 0, rejected: 0, archived: 0 };
+      for (const s of this.schemes) {
+        counts.total += 1;
+        if (s.status === "APPROVED") counts.approved += 1;
+        else if (s.status === "PENDING_APPROVAL") counts.pending += 1;
+        else if (s.status === "REJECTED") counts.rejected += 1;
+        else if (s.status === "ARCHIVED") counts.archived += 1;
+      }
+      this.stats = counts;
+      this.cdr.detectChanges();
+      return;
+    }
     this.schemeService.getSchemeStatistics().subscribe({
       next: (res) => {
         this.stats = {
@@ -509,6 +560,112 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       : 'Submit for approval';
   }
 
+  // ----------------------------------------------------------
+  // Admin review helpers: status-driven details from real backend
+  // values (never inferred from badge text).
+  // ----------------------------------------------------------
+
+  private getReasonOrFallback(reason?: string): string {
+    const text = (reason || '').trim();
+    return text ? text : 'No reason was provided.';
+  }
+
+  private toSchemeTableItem(scheme: SchemeResponse): SchemeTableItem {
+    return {
+      id: Number(scheme.scheme_id),
+      name: scheme.name || 'Untitled scheme',
+      title: scheme.name || 'Untitled scheme',
+      description: scheme.description || '',
+      category: scheme.category || '',
+      ministry: scheme.ministry || '',
+      department: scheme.department || '',
+      state: scheme.state || '',
+      status: String(scheme.status || 'DRAFT').toUpperCase(),
+      publicationDate: scheme.created_at
+        ? this.formatDate(scheme.created_at)
+        : '-',
+      createdBy: scheme.created_by,
+      rejectionReason: scheme.rejection_reason || undefined,
+      archiveReason: scheme.archive_reason || undefined,
+      deleteReason: scheme.delete_reason || undefined,
+      deleteRequestedFromStatus:
+        scheme.delete_requested_from_status || undefined,
+    };
+  }
+
+  /** Patch the affected row from the backend response (no full reload). */
+  private applySchemeUpdate(updated: SchemeResponse): void {
+    const item = this.toSchemeTableItem(updated);
+    const index = this.schemes.findIndex((s) => s.id === item.id);
+    if (index >= 0) {
+      this.schemes[index] = item;
+    } else {
+      this.schemes = [...this.schemes, item];
+    }
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    this.cdr.detectChanges();
+    this.loadStats();
+  }
+
+  /** Remove a permanently deleted row without refetching the table. */
+  private removeSchemeRow(id: number): void {
+    this.schemes = this.schemes.filter((s) => s.id !== id);
+    this.currentPage = Math.min(this.currentPage, this.totalPages);
+    this.cdr.detectChanges();
+    this.loadStats();
+  }
+
+  private openInfoDialog(title: string, message: string): void {
+    this.closeMenu();
+    this.confirmTitle = title;
+    this.confirmMessage = message;
+    this.confirmVariant = 'primary';
+    this.confirmText = 'Close';
+    this.showCancelConfirm = false;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => {
+      this.confirmModalOpen = false;
+      this.confirmAction = null;
+      this.confirmText = 'Confirm';
+      this.showCancelConfirm = true;
+      this.cdr.detectChanges();
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  openViewDeleteReason(scheme: SchemeTableItem): void {
+    const reason = this.getReasonOrFallback(scheme.deleteReason);
+    const previous = scheme.deleteRequestedFromStatus
+      ? `Requested from status: ${this.getStatusLabel(scheme.deleteRequestedFromStatus)}.\n`
+      : '';
+    this.openInfoDialog(
+      'Deletion request reason',
+      `"${scheme.title || 'Untitled scheme'}"\n${previous}Deletion reason: ${reason}`,
+    );
+  }
+
+  openViewSubmissionDetails(scheme: SchemeTableItem): void {
+    const lines = [
+      `"${scheme.title || 'Untitled scheme'}"`,
+      `Status: ${this.getStatusLabel(scheme.status)}.`,
+    ];
+    const context = [scheme.category, scheme.ministry || scheme.department].filter(
+      (part) => (part || '').trim(),
+    );
+    if (context.length) {
+      lines.push(context.join(' • '));
+    }
+    if ((scheme.description || '').trim()) {
+      lines.push(`Description: ${scheme.description.trim()}`);
+    }
+    lines.push(
+      `Submission note: ${this.getReasonOrFallback(scheme.rejectionReason)}`,
+    );
+    this.openInfoDialog('Submission review details', lines.join('\n'));
+  }
+
   openSubmitModal(scheme: SchemeTableItem): void {
     this.closeMenu();
     if (!this.canSubmitScheme(scheme)) {
@@ -521,6 +678,8 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.confirmTitle = 'Submit Scheme';
     this.confirmMessage = `Submit "${schemeName}" for approval?`;
     this.confirmVariant = 'primary';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
     this.confirmAction = () => {
@@ -532,13 +691,17 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       this.schemeService.submitScheme(scheme.id).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme submitted for approval.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
           this.confirmLoading = false;
@@ -555,10 +718,24 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openApproveModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = "Only an administrator can approve schemes.";
+      this.cdr.detectChanges();
+      return;
+    }
+    const currentUserId = this.auth.getStoredUser()?.user_id;
+    if (currentUserId != null && scheme.createdBy === currentUserId) {
+      this.errorMessage =
+        "You cannot approve your own scheme. A different administrator must review it.";
+      this.cdr.detectChanges();
+      return;
+    }
     const schemeName = scheme.name || scheme.title || 'Untitled Scheme';
     this.confirmTitle = 'Approve Scheme';
     this.confirmMessage = `Are you sure you want to approve "${schemeName}"?`;
     this.confirmVariant = 'success';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
     this.confirmAction = () => {
@@ -570,13 +747,17 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       this.schemeService.approveScheme(scheme.id).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme approved successfully.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
           this.confirmLoading = false;
@@ -593,20 +774,42 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openRejectModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can reject schemes.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.reasonTitle = 'Reject Scheme';
     this.reasonMessage = `Please enter a rejection reason for "${scheme.title}".`;
     this.reasonLabel = 'Rejection Reason';
     this.reasonVariant = 'danger';
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.rejectScheme(scheme.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast('Scheme rejected.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -621,16 +824,33 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.reasonMessage = `Enter the reason for requesting archival of "${scheme.title}".`;
     this.reasonLabel = 'Archive Reason';
     this.reasonVariant = 'warning';
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.requestArchiveScheme(scheme.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast('Archive request submitted to Admin.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -641,19 +861,43 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openApproveArchiveModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can approve archive requests.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Approve Archive Request';
     this.confirmMessage = `Approve archival of "${scheme.title}"? Status will become ARCHIVED.`;
     this.confirmVariant = 'warning';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.approveArchiveScheme(scheme.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme archived successfully.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -664,19 +908,43 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openRejectArchiveModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can reject archive requests.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Reject Archive Request';
     this.confirmMessage = `Reject archive request for "${scheme.title}"? The scheme will remain APPROVED.`;
     this.confirmVariant = 'primary';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.rejectArchiveScheme(scheme.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Archive request rejected. Scheme reverted to APPROVED.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -691,16 +959,33 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.reasonMessage = `Enter the reason for requesting deletion of "${scheme.title}".`;
     this.reasonLabel = 'Deletion Reason';
     this.reasonVariant = 'danger';
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) {
+        return;
+      }
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.requestDeleteScheme(scheme.id, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.reasonLoading = false;
           this.reasonModalOpen = false;
+          this.reasonAction = null;
+          this.reasonErrorMessage = null;
           this.showSuccessToast('Delete request submitted to Admin.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.reasonModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.reasonLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.reasonErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -711,22 +996,55 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openApproveDeleteModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can approve deletion.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Approve Permanent Deletion';
-    this.confirmMessage = `Permanently delete "${scheme.title}"? This cannot be undone.`;
+    this.confirmMessage = `Permanently delete "${scheme.title}"? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
     this.confirmVariant = 'danger';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
-      this.schemeService.approveDeleteScheme(scheme.id).subscribe({
-        next: () => {
-          this.confirmModalOpen = false;
-          this.showSuccessToast('Scheme permanently deleted.');
-          this.loadSchemes();
-        },
-        error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
-          this.cdr.detectChanges();
-        },
-      });
+      // Prevent duplicate submissions from repeated clicks.
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+      // Single request; finalize guarantees the loading state clears on both
+      // success and failure. Dialog closes only after backend confirms success.
+      // We remain on /dashboard/admin/schemes/manage and refresh the list
+      // from the backend so the deleted record disappears.
+      this.schemeService
+        .approveDeleteScheme(scheme.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast('Scheme deleted successfully.');
+            this.loadSchemes();
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -734,22 +1052,55 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openRejectDeleteModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can reject deletion.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Reject Delete Request';
-    this.confirmMessage = `Reject delete request for "${scheme.title}"? The scheme will revert to its previous status.`;
+    this.confirmMessage = `Reject delete request for "${scheme.title}"? The scheme will revert to its previous status.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
     this.confirmVariant = 'primary';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
-      this.schemeService.rejectDeleteScheme(scheme.id).subscribe({
-        next: () => {
-          this.confirmModalOpen = false;
-          this.showSuccessToast('Delete request rejected.');
-          this.loadSchemes();
-        },
-        error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
-          this.cdr.detectChanges();
-        },
-      });
+      // Prevent duplicate submissions from repeated clicks.
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
+      // Single request; finalize guarantees the loading state clears on both
+      // success and failure. Rejecting never deletes the record — the backend
+      // restores its previous status. We remain on
+      // /dashboard/admin/schemes/manage and refresh the list from backend.
+      this.schemeService
+        .rejectDeleteScheme(scheme.id)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.confirmModalOpen = false;
+            this.confirmAction = null;
+            this.confirmErrorMessage = null;
+            this.showSuccessToast('Deletion request rejected successfully.');
+            this.loadSchemes();
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.confirmErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showErrorToast(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
     };
     this.confirmModalOpen = true;
     this.cdr.detectChanges();
@@ -757,19 +1108,43 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openRestoreModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can restore schemes.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Restore Scheme';
     this.confirmMessage = `Restore "${scheme.title}" back to APPROVED state?`;
     this.confirmVariant = 'success';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.restoreScheme(scheme.id).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme restored to APPROVED.');
-          this.loadSchemes();
+          if (updated) {
+            this.applySchemeUpdate(updated);
+          } else {
+            this.loadSchemes();
+          }
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -780,19 +1155,39 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
 
   openDirectDeleteModal(scheme: SchemeTableItem): void {
     this.closeMenu();
+    if (!this.isAdmin) {
+      this.errorMessage = 'Only an administrator can delete schemes.';
+      this.cdr.detectChanges();
+      return;
+    }
     this.confirmTitle = 'Delete Scheme';
     this.confirmMessage = `Are you sure you want to permanently delete "${scheme.title}"?`;
     this.confirmVariant = 'danger';
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.deleteScheme(scheme.id).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
           this.showSuccessToast('Scheme permanently deleted.');
-          this.loadSchemes();
+          this.removeSchemeRow(scheme.id);
         },
         error: (err) => {
-          this.confirmModalOpen = false;
-          this.errorMessage = this.getErrorMessage(err);
+          this.confirmLoading = false;
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
           this.cdr.detectChanges();
         },
       });
@@ -818,18 +1213,28 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.confirmAction = null;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
+    this.confirmText = 'Confirm';
+    this.showCancelConfirm = true;
     this.cdr.detectChanges();
   }
 
   onReasonModalConfirmed(reason: string): void {
+    if (this.reasonLoading) {
+      return;
+    }
     if (this.reasonAction) {
       this.reasonAction(reason);
     }
   }
 
   onReasonModalCancelled(): void {
+    if (this.reasonLoading) {
+      return;
+    }
     this.reasonModalOpen = false;
     this.reasonAction = null;
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.cdr.detectChanges();
   }
 

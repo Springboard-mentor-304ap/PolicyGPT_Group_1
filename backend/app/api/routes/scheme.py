@@ -390,11 +390,16 @@ def update_scheme_api(
             detail="Scheme not found",
         )
 
+    # DRAFT/REJECTED/ARCHIVED editable by staff; APPROVED additionally
+    # editable by Admin (mirrors update_scheme service + Policy behavior).
+    # Other statuses (PENDING_APPROVAL/ARCHIVE_REQUESTED/DELETE_REQUESTED)
+    # remain locked for everyone.
+    _role = normalize_role(getattr(current_user, "role", ""))
     if scheme.status not in {
         "DRAFT",
         "REJECTED",
         "ARCHIVED",
-    }:
+    } and not (_role == "ADMIN" and scheme.status == "APPROVED"):
         raise HTTPException(
             status_code=400,
             detail=(

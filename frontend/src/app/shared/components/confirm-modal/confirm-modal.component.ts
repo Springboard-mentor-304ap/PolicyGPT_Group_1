@@ -22,7 +22,11 @@ import { CommonModule } from '@angular/common';
           </div>
 
           <h3 class="modal-title">{{ title() }}</h3>
-          <p class="modal-message">{{ message() }}</p>
+          @if (highlightText()) {
+            <p class="modal-message">{{ messageBefore() }}<strong class="modal-highlight">{{ highlightText() }}</strong>{{ messageAfter() }}</p>
+          } @else {
+            <p class="modal-message">{{ message() }}</p>
+          }
 
           @if (errorMessage()) {
             <div class="modal-error">
@@ -140,6 +144,11 @@ import { CommonModule } from '@angular/common';
       line-height: 1.55;
       color: #475569;
       white-space: pre-line;
+    }
+
+    .modal-message .modal-highlight {
+      font-weight: 700;
+      color: #0f172a;
     }
 
     .modal-error {
@@ -304,7 +313,16 @@ import { CommonModule } from '@angular/common';
 export class ConfirmModalComponent implements OnDestroy {
   isOpen = input.required<boolean>();
   title = input.required<string>();
-  message = input.required<string>();
+  message = input<string>('');
+  /**
+   * Optional structured message: renders messageBefore + bold
+   * highlightText + messageAfter as separate elements instead of one
+   * plain-text string. Ignored when highlightText is empty, so every
+   * existing caller behaves exactly as before.
+   */
+  messageBefore = input<string>('');
+  highlightText = input<string>('');
+  messageAfter = input<string>('');
   confirmText = input<string>('Confirm');
   cancelText = input<string>('Cancel');
   variant = input<'primary' | 'danger' | 'warning' | 'success'>('danger');

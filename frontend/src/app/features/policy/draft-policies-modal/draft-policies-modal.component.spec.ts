@@ -8,6 +8,7 @@ function makeMocks() {
     getPolicies: vi.fn(),
     submitPolicy: vi.fn(),
     deletePolicy: vi.fn(),
+    requestDelete: vi.fn(),
   };
   const router = { navigate: vi.fn() };
   const auth = {
@@ -110,7 +111,41 @@ describe("DraftPoliciesModalComponent", () => {
     expect(mocks.policyService.submitPolicy).not.toHaveBeenCalled();
   });
 
-  it("4. admin submit calls the API once, reloads, then shows the OK popup", () => {
+  it("4. admin publish calls the API once then navigates to Manage", () => {
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow()] }),
+    );
+    // Backend direct-approves admin submissions: returned status APPROVED.
+    mocks.policyService.submitPolicy.mockReturnValue(
+      of(draftRow({ status: "APPROVED" })),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    const closed: string[] = [];
+    const changed: string[] = [];
+    c.closed.subscribe(() => closed.push("closed"));
+    c.dataChanged.subscribe(() => changed.push("changed"));
+    c.openSubmitModal(c.policies[0]);
+    expect(c.confirmTitle).toBe("Submit Policy");
+    c.onConfirmModalConfirmed();
+    // Exactly one submission API call; backend is now APPROVED.
+    expect(mocks.policyService.submitPolicy).toHaveBeenCalledTimes(1);
+    expect(mocks.policyService.submitPolicy).toHaveBeenCalledWith(30);
+    expect(c.confirmModalOpen).toBe(false);
+    // No follow-up popup, no modal-list reload: parent refreshes instead.
+    expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(1);
+    expect(mocks.toastService.success).toHaveBeenCalled();
+    expect(changed).toEqual(["changed"]);
+    expect(closed).toEqual(["closed"]);
+    expect(mocks.router.navigate).toHaveBeenCalledWith([
+      "/dashboard",
+      "admin",
+      "policies",
+      "manage",
+    ]);
+  });
+
+  it("4a. admin submit returning PENDING still navigates without a popup", () => {
     mocks.policyService.getPolicies.mockReturnValue(
       of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow()] }),
     );
@@ -119,28 +154,21 @@ describe("DraftPoliciesModalComponent", () => {
     );
     const c = makeComponent(mocks);
     c.ngOnInit();
-    const changed: string[] = [];
-    c.dataChanged.subscribe(() => changed.push("changed"));
+    const closed: string[] = [];
+    c.closed.subscribe(() => closed.push("closed"));
     c.openSubmitModal(c.policies[0]);
-    expect(c.confirmTitle).toBe("Submit Policy");
     c.onConfirmModalConfirmed();
-    // Exactly one submission API call; backend is now PENDING_APPROVAL.
     expect(mocks.policyService.submitPolicy).toHaveBeenCalledTimes(1);
-    expect(mocks.policyService.submitPolicy).toHaveBeenCalledWith(30);
-    expect(c.confirmModalOpen).toBe(false);
-    // List already reloaded without the policy; statistics refreshed.
-    expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(2);
-    expect(changed).toEqual(["changed"]);
-    // Admin confirmation popup (no second API call involved).
-    expect(c.submitSuccessOpen).toBe(true);
-    expect(mocks.toastService.success).not.toHaveBeenCalled();
-    // OK only dismisses the popup.
-    c.closeSubmitSuccess();
-    expect(c.submitSuccessOpen).toBe(false);
-    expect(mocks.policyService.submitPolicy).toHaveBeenCalledTimes(1);
+    expect(closed).toEqual(["closed"]);
+    expect(mocks.router.navigate).toHaveBeenCalledWith([
+      "/dashboard",
+      "admin",
+      "policies",
+      "manage",
+    ]);
   });
 
-  it("4b. government official submit shows a notification, no OK popup", () => {
+  it("4b. gov success navigates to Manage immediately without modal reload", () => {
     mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
     mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
     mocks.policyService.getPolicies.mockReturnValue(
@@ -151,16 +179,73 @@ describe("DraftPoliciesModalComponent", () => {
     );
     const c = makeComponent(mocks);
     c.ngOnInit();
+    const closed: string[] = [];
+    const changed: string[] = [];
+    c.closed.subscribe(() => closed.push("closed"));
+    c.dataChanged.subscribe(() => changed.push("changed"));
     c.openSubmitModal(c.policies[0]);
     c.onConfirmModalConfirmed();
     expect(mocks.policyService.submitPolicy).toHaveBeenCalledTimes(1);
-    expect(c.submitSuccessOpen).toBe(false);
-    expect(c.successMessage).toContain("submitted for approval");
+    expect(mocks.policyService.submitPolicy).toHaveBeenCalledWith(30);
+    // No second popup, no modal-list reload: parent refreshes instead.
+    expect(c.confirmModalOpen).toBe(false);
+    expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(1);
     expect(mocks.toastService.success).toHaveBeenCalled();
-    expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(2);
+    expect(changed).toEqual(["changed"]);
+    expect(closed).toEqual(["closed"]);
+    expect(mocks.router.navigate).toHaveBeenCalledWith([
+      "/dashboard",
+      "government",
+      "policies",
+      "manage",
+    ]);
   });
 
-  it("4c. Escape dismisses the success popup without closing the modal", () => {
+  it("4e. cancel closes only the confirm popup and stays in the modal", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow({ created_by: 2 })] }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    const closed: string[] = [];
+    c.closed.subscribe(() => closed.push("closed"));
+    c.openSubmitModal(c.policies[0]);
+    expect(c.confirmModalOpen).toBe(true);
+    c.onConfirmModalCancelled();
+    expect(c.confirmModalOpen).toBe(false);
+    expect(closed).toEqual([]);
+    expect(mocks.router.navigate).not.toHaveBeenCalled();
+    expect(mocks.policyService.submitPolicy).not.toHaveBeenCalled();
+    expect(c.open).toBe(true);
+    expect(c.policies[0].status).toBe("DRAFT");
+  });
+
+  it("4f. gov submit failure stays in the modal with the backend error", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow({ created_by: 2 })] }),
+    );
+    mocks.policyService.submitPolicy.mockReturnValue(
+      throwError(() => ({ status: 0, message: "timeout" })),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    const closed: string[] = [];
+    c.closed.subscribe(() => closed.push("closed"));
+    c.openSubmitModal(c.policies[0]);
+    c.onConfirmModalConfirmed();
+    expect(c.confirmLoading).toBe(false);
+    expect(c.confirmErrorMessage).toBeTruthy();
+    expect(c.errorMessage).toBeTruthy();
+    expect(closed).toEqual([]);
+    expect(mocks.router.navigate).not.toHaveBeenCalled();
+    expect(c.policies[0].status).toBe("DRAFT");
+  });
+
+  it("4c. success closes the confirm dialog with no follow-up popup", () => {
     mocks.policyService.getPolicies.mockReturnValue(
       of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow()] }),
     );
@@ -171,10 +256,14 @@ describe("DraftPoliciesModalComponent", () => {
     c.closed.subscribe(() => emitted.push("closed"));
     c.openSubmitModal(c.policies[0]);
     c.onConfirmModalConfirmed();
-    expect(c.submitSuccessOpen).toBe(true);
-    c.onEscapeKey();
-    expect(c.submitSuccessOpen).toBe(false);
-    expect(emitted).toEqual([]);
+    expect(c.confirmModalOpen).toBe(false);
+    expect(emitted).toEqual(["closed"]);
+    expect(mocks.router.navigate).toHaveBeenCalledWith([
+      "/dashboard",
+      "admin",
+      "policies",
+      "manage",
+    ]);
     expect(mocks.policyService.submitPolicy).toHaveBeenCalledTimes(1);
   });
 
@@ -189,7 +278,7 @@ describe("DraftPoliciesModalComponent", () => {
     c.ngOnInit();
     c.openSubmitModal(c.policies[0]);
     c.onConfirmModalConfirmed();
-    expect(c.submitSuccessOpen).toBe(false);
+    expect(c.confirmModalOpen).toBe(true);
     expect(c.successMessage).toBeNull();
     expect(c.confirmErrorMessage).toContain("Only DRAFT or REJECTED");
     expect(c.policies[0].status).toBe("DRAFT");
@@ -251,7 +340,7 @@ describe("DraftPoliciesModalComponent", () => {
     expect(emitted).toEqual(["closed", "closed"]);
   });
 
-  it("9. non-owners cannot submit; non-admins cannot delete drafts", () => {
+  it("9. gov Delete opens the reason dialog, never the direct delete", () => {
     mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
     mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
     mocks.policyService.getPolicies.mockReturnValue(
@@ -259,10 +348,72 @@ describe("DraftPoliciesModalComponent", () => {
     );
     const c = makeComponent(mocks);
     c.ngOnInit();
-    expect(c.canSubmitPolicy(c.policies[0])).toBe(true);
     c.openDeleteModal(c.policies[0]);
+    expect(c.reasonModalOpen).toBe(true);
+    expect(c.reasonTitle).toBe("Request Policy Deletion");
+    expect(c.reasonMessage).toContain("Draft water policy");
+    expect(c.confirmModalOpen).toBe(false);
     expect(mocks.policyService.deletePolicy).not.toHaveBeenCalled();
-    expect(c.errorMessage).toMatch(/administrator/i);
+    expect(mocks.policyService.requestDelete).not.toHaveBeenCalled();
+  });
+
+  it("9b. cancelling the gov reason dialog changes nothing", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow({ created_by: 2 })] }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    c.openDeleteModal(c.policies[0]);
+    c.onReasonModalCancelled();
+    expect(c.reasonModalOpen).toBe(false);
+    expect(mocks.policyService.requestDelete).not.toHaveBeenCalled();
+    expect(c.policies[0].status).toBe("DRAFT");
+  });
+
+  it("9c. gov delete request uses the real workflow and refreshes on success", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow({ created_by: 2 })] }),
+    );
+    mocks.policyService.requestDelete.mockReturnValue(
+      of(draftRow({ status: "DELETE_REQUESTED" })),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    const changed: string[] = [];
+    c.dataChanged.subscribe(() => changed.push("changed"));
+    c.openDeleteModal(c.policies[0]);
+    c.onReasonModalConfirmed("duplicate draft");
+    expect(mocks.policyService.requestDelete).toHaveBeenCalledTimes(1);
+    expect(mocks.policyService.requestDelete).toHaveBeenCalledWith(30, "duplicate draft");
+    expect(mocks.policyService.deletePolicy).not.toHaveBeenCalled();
+    expect(c.reasonModalOpen).toBe(false);
+    expect(c.successMessage).toContain("submitted to Admin");
+    expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(2);
+    expect(changed).toEqual(["changed"]);
+  });
+
+  it("9d. gov delete-request refusal surfaces the backend error, draft kept", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow({ created_by: 2 })] }),
+    );
+    mocks.policyService.requestDelete.mockReturnValue(
+      throwError(() => ({ status: 400, error: { detail: "Deletion can only be requested for APPROVED or ARCHIVED policies." } })),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    c.openDeleteModal(c.policies[0]);
+    c.onReasonModalConfirmed("cleanup");
+    expect(c.reasonLoading).toBe(false);
+    expect(c.reasonErrorMessage).toContain("APPROVED or ARCHIVED");
+    expect(c.errorMessage).toContain("APPROVED or ARCHIVED");
+    expect(c.policies[0].status).toBe("DRAFT");
+    expect(c.successMessage).toBeNull();
   });
 
   it("10. search filters drafts; load failure shows error", () => {
@@ -476,5 +627,80 @@ describe("DraftPoliciesModalComponent", () => {
     expect(c.loading).toBe(false);
     c.closeMenu();
     expect(c.loading).toBe(false);
+  });
+
+  it("21. admin submit dialog shows the bold quoteless title + approval copy", () => {
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({
+        total: 1,
+        page: 1,
+        limit: 100,
+        pages: 1,
+        policies: [draftRow({ title: "Pradhan Mantri Fasal Bima Yojana" })],
+      }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    c.openSubmitModal(c.policies[0]);
+    expect(c.confirmTitle).toBe("Submit Policy");
+    expect(c.confirmMessageBefore).toBe("You are about to publish ");
+    expect(c.confirmHighlight).toBe("Pradhan Mantri Fasal Bima Yojana");
+    expect(c.confirmHighlight).not.toContain('"');
+    expect(c.confirmMessageAfter).toBe(
+      ". Upon confirmation, it will be published on the PolicyGPT platform.",
+    );
+    expect(c.confirmText).toBe("Publish Policy");
+    expect(
+      c.confirmMessageBefore + c.confirmHighlight + c.confirmMessageAfter,
+    ).toBe(
+      "You are about to publish Pradhan Mantri Fasal Bima Yojana. " +
+        "Upon confirmation, it will be published on the PolicyGPT platform.",
+    );
+  });
+
+  it("22. gov submit dialog shows the review copy, incl. long titles", () => {
+    const longTitle =
+      "National Rural Waste Management and Plastic Pollution Reduction Policy";
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({
+        total: 1,
+        page: 1,
+        limit: 100,
+        pages: 1,
+        policies: [draftRow({ title: longTitle, created_by: 2 })],
+      }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    c.openSubmitModal(c.policies[0]);
+    expect(c.confirmTitle).toBe("Submit Policy");
+    expect(c.confirmMessageBefore).toBe("You are about to submit ");
+    // Long titles pass through untruncated with no quotation marks.
+    expect(c.confirmHighlight).toBe(longTitle);
+    expect(c.confirmHighlight).not.toContain('"');
+    expect(c.confirmMessageAfter).toBe(
+      " to the Admin for review and approval. The policy will be " +
+        "published only after approval.",
+    );
+    expect(c.confirmText).toBe("Submit Policy");
+  });
+
+  it("23. highlight parts are cleared outside the submit dialog", () => {
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({ total: 1, page: 1, limit: 100, pages: 1, policies: [draftRow()] }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    c.openSubmitModal(c.policies[0]);
+    expect(c.confirmHighlight).toBeTruthy();
+    c.onConfirmModalCancelled();
+    expect(c.confirmHighlight).toBe("");
+    expect(c.confirmMessageBefore).toBe("");
+    expect(c.confirmMessageAfter).toBe("");
+    c.openSubmitModal(c.policies[0]);
+    c.openDeleteModal(c.policies[0]);
+    expect(c.confirmHighlight).toBe("");
   });
 });

@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -624,6 +625,7 @@ def delete_policy_route(
 def submit_policy_route(
     policy_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -637,6 +639,7 @@ def submit_policy_route(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -648,6 +651,19 @@ def submit_policy_route(
         policy_id,
         f"Policy '{result.title}' submitted for approval.",
     )
+
+    # Admin direct approval (DRAFT -> APPROVED) is also recorded as an
+    # approval, mirroring POST /policies/{id}/approve.
+    if result.status == "APPROVED":
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "POLICY_APPROVED",
+            "POLICY",
+            policy_id,
+            f"Policy '{result.title}' approved by admin {current_user.user_id}.",
+        )
 
     return result
 

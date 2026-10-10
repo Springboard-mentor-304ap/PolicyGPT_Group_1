@@ -153,26 +153,26 @@
                 Submit
             </button>
             }
-            @if (isAdmin) {
             <div class="menu-separator"></div>
             <button type="button" class="danger" (click)="openDeleteModal(menuPolicy)">
                 <span class="material-icons">delete_outline</span>
                 Delete Policy
             </button>
-            }
         </div>
     </div>
     }
 </div>
 
 <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-    [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-    [confirmText]="confirmText" [showCancel]="true" (confirmed)="onConfirmModalConfirmed()"
-    (cancelled)="onConfirmModalCancelled()">
+    [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight"
+    [messageAfter]="confirmMessageAfter" [variant]="confirmVariant" [isLoading]="confirmLoading"
+    [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="true"
+    (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
 </app-confirm-modal>
 
-<app-confirm-modal [isOpen]="submitSuccessOpen" title="Policy Submitted"
-    message="Policy has been submitted successfully." variant="success" confirmText="OK" [showCancel]="false"
-    (confirmed)="closeSubmitSuccess()" (cancelled)="closeSubmitSuccess()">
-</app-confirm-modal>
+<app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+    [reasonLabel]="reasonLabel" variant="danger" [isLoading]="reasonLoading"
+    [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
+    (cancelled)="onReasonModalCancelled()">
+</app-reason-modal>
 }

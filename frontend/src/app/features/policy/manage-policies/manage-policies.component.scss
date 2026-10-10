@@ -722,6 +722,96 @@ button {
   font-size: 18px;
 }
 
+.export-button .dropdown-icon {
+  font-size: 18px;
+  margin-left: -2px;
+}
+
+.export-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.export-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dce5f1;
+  border-top-color: #2457d6;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+.export-wrap {
+  position: relative;
+  justify-self: end;
+}
+
+.export-wrap .export-button {
+  width: 100%;
+}
+
+.export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 60;
+  width: 220px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border: 1px solid #d7e0eb;
+  border-radius: 11px;
+  background: #ffffff;
+  box-shadow:
+    0 12px 30px rgba(25, 44, 72, 0.12),
+    0 4px 10px rgba(25, 44, 72, 0.06);
+  box-sizing: border-box;
+  text-align: left;
+  animation: actionMenuFadeIn 0.12s ease-out;
+}
+
+.export-menu-title {
+  margin: 2px 4px 6px;
+  color: #71809a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.export-item {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #3d4d65;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  box-sizing: border-box;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.export-item:hover {
+  background: #f3f6fa;
+  color: #2457d6;
+}
+
+.export-item .material-icons {
+  font-size: 18px;
+  color: #60718a;
+}
+
+.export-item:hover .material-icons {
+  color: #2457d6;
+}
+
 .filter-footer {
   min-height: 30px;
   margin-top: 13px;
@@ -1466,9 +1556,8 @@ td {
     grid-template-columns: minmax(0, 1fr) 240px;
   }
 
-  .export-button {
+  .export-wrap {
     grid-column: 2;
-    width: 100%;
   }
 }
 
@@ -1497,9 +1586,8 @@ td {
     grid-template-columns: 1fr;
   }
 
-  .export-button {
+  .export-wrap {
     grid-column: auto;
-    width: auto;
     justify-self: start;
   }
 
@@ -1611,6 +1699,10 @@ td {
     width: 100%;
     justify-content: flex-start;
     margin-left: 54px;
+  }
+
+  .export-wrap {
+    width: 100%;
   }
 
   .export-button {

@@ -191,10 +191,34 @@
                     [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
             </div>
 
-            <button type="button" class="export-button" (click)="exportPolicies(); $event.stopPropagation()">
-                <span class="material-icons">file_download</span>
-                Export CSV
-            </button>
+            <div class="export-wrap">
+                <button type="button" class="export-button" (click)="toggleExportMenu($event)"
+                    [disabled]="exporting" aria-haspopup="menu" [attr.aria-expanded]="exportMenuOpen"
+                    title="Export policies">
+                    @if (exporting) {
+                    <span class="export-spinner" aria-hidden="true"></span>
+                    <span>Exporting...</span>
+                    } @else {
+                    <span class="material-icons" aria-hidden="true">download</span>
+                    <span>Export</span>
+                    <span class="material-icons dropdown-icon" aria-hidden="true">expand_more</span>
+                    }
+                </button>
+                @if (exportMenuOpen && !exporting) {
+                <div class="export-menu" role="menu" aria-label="Export policies"
+                    (click)="$event.stopPropagation()">
+                    <p class="export-menu-title">Export Policies</p>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportPdf()">
+                        <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportExcel()">
+                        <span class="material-icons" aria-hidden="true">table_view</span>
+                        <span>Export as Excel</span>
+                    </button>
+                </div>
+                }
+            </div>
 
         </div>
 

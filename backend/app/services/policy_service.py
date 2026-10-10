@@ -571,9 +571,11 @@ def delete_policy(
 # ============================================================
 # SUBMIT POLICY
 #
-# DRAFT / REJECTED
-#        ↓
-# PENDING_APPROVAL
+# Role-based status transition (role from authenticated user):
+#
+# ADMIN:                DRAFT -> APPROVED (direct approval)
+#                       REJECTED -> PENDING_APPROVAL (unchanged)
+# GOVERNMENT_OFFICIAL:  DRAFT / REJECTED -> PENDING_APPROVAL (unchanged)
 # ============================================================
 
 
@@ -581,7 +583,16 @@ def submit_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
+    """Submit a policy (see status table above).
+
+    Notification fan-out is noncritical side-effect work: when a FastAPI
+    ``background_tasks`` instance is supplied (HTTP route), it runs after
+    the response is sent so the request only pays for the business
+    transaction + essential audit. Without it (tests, direct callers) the
+    notifications stay fully synchronous, exactly as before.
+    """
 
     policy = _policy_or_404(
         db=db,
@@ -611,29 +622,100 @@ def submit_policy(
             detail=("Only DRAFT or REJECTED policies can be submitted for approval."),
         )
 
-    policy.status = "PENDING_APPROVAL"
+    # Admin submitting a draft approves it directly: no PENDING_APPROVAL
+    # stopover, approved_by recorded. Every other submission keeps the
+    # existing approval workflow (approved_by untouched until real approval).
+    direct_approve = bool(is_admin) and policy.status == "DRAFT"
+
+    if direct_approve:
+        policy.status = "APPROVED"
+
+        policy.approved_by = current_user.user_id
+    else:
+        policy.status = "PENDING_APPROVAL"
 
     policy.rejection_reason = None
 
     policy.updated_at = _now()
 
-    db.commit()
-    db.refresh(policy)
-
     try:
-        from app.services.notification_service import notify_policy_submitted
+        db.commit()
+        db.refresh(policy)
+    except Exception:
+        db.rollback()
+        raise
 
-        notify_policy_submitted(
-            db=db,
-            policy_id=policy.policy_id,
-            policy_title=policy.title,
-            submitted_by_id=current_user.user_id,
-            department=policy.department,
-        )
-    except Exception as e:
-        print(f"Notification error on policy submit: {e}")
+    # Scalars for the deferred fan-out (the request session closes before
+    # background tasks run, so nothing lazy may cross that boundary).
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "ministry": policy.ministry,
+        "department": policy.department,
+        "created_by": policy.created_by,
+        "actor_id": current_user.user_id,
+        "actor_name": getattr(current_user, "full_name", None),
+        "direct_approve": direct_approve,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_submit_notifications, notify_args)
+        return policy
+
+    _run_submit_notifications(notify_args, db=db)
 
     return policy
+
+
+def _run_submit_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out submit notifications (IN_APP rows + external delivery legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        if args["direct_approve"]:
+            try:
+                from app.services.notification_service import (
+                    notify_policy_approved,
+                )
+
+                notify_policy_approved(
+                    db=db,
+                    policy_id=args["policy_id"],
+                    policy_title=args["policy_title"],
+                    creator_id=args["created_by"],
+                    ministry=args["ministry"],
+                    actor_id=args["actor_id"],
+                    actor_name=args["actor_name"],
+                )
+            except Exception as e:
+                print(f"Notification error on policy direct approve: {e}")
+        else:
+            try:
+                from app.services.notification_service import (
+                    notify_policy_submitted,
+                )
+
+                notify_policy_submitted(
+                    db=db,
+                    policy_id=args["policy_id"],
+                    policy_title=args["policy_title"],
+                    submitted_by_id=args["actor_id"],
+                    department=args["department"],
+                )
+            except Exception as e:
+                print(f"Notification error on policy submit: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================

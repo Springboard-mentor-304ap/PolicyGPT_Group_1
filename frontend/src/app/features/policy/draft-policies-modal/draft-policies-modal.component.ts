@@ -22,6 +22,7 @@ import {
   PolicyResponse,
 } from "../../../core/models/policy.model";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 
 export interface DraftPolicyItem {
   id: number;
@@ -55,7 +56,7 @@ export interface DraftPolicyItem {
 @Component({
   selector: "app-draft-policies-modal",
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, ReasonModalComponent],
   templateUrl: "./draft-policies-modal.component.html",
   styleUrls: ["./draft-policies-modal.component.scss"],
 })
@@ -106,11 +107,21 @@ export class DraftPoliciesModalComponent
   confirmLoading = false;
   confirmErrorMessage: string | null = null;
   confirmText = "Confirm";
+  // Structured submit-confirmation message parts (bold policy title).
+  confirmMessageBefore = "";
+  confirmHighlight = "";
+  confirmMessageAfter = "";
 
-  // Admin post-submit confirmation popup. Opened only after the single
-  // submitPolicy call succeeds (backend already PENDING_APPROVAL); OK
-  // merely dismisses it — never a second API call.
-  submitSuccessOpen = false;
+  // Government Official deletion-request dialog (existing request-delete
+  // workflow: reason + POST /policies/{id}/request-delete).
+  reasonModalOpen = false;
+  reasonTitle = "";
+  reasonMessage = "";
+  reasonLabel = "Reason";
+  reasonVariant: "primary" | "danger" | "warning" = "danger";
+  reasonAction: ((reason: string) => void) | null = null;
+  reasonLoading = false;
+  reasonErrorMessage: string | null = null;
 
   policies: DraftPolicyItem[] = [];
 
@@ -174,7 +185,9 @@ export class DraftPoliciesModalComponent
     this.successMessage = null;
     this.confirmModalOpen = false;
     this.confirmAction = null;
-    this.submitSuccessOpen = false;
+    this.clearHighlight();
+    this.reasonModalOpen = false;
+    this.reasonAction = null;
     this.closeMenu();
     // Drop the previous session's rows so stale cards never render as
     // though the new request already completed.
@@ -217,8 +230,8 @@ export class DraftPoliciesModalComponent
       return;
     }
     if (this.confirmModalOpen) return;
-    if (this.submitSuccessOpen) {
-      this.closeSubmitSuccess();
+    if (this.reasonModalOpen) {
+      this.onReasonModalCancelled();
       return;
     }
     this.requestClose();
@@ -271,14 +284,14 @@ export class DraftPoliciesModalComponent
   }
 
   onBackdropClick(event: MouseEvent): void {
-    if (this.confirmModalOpen || this.submitSuccessOpen) return;
+    if (this.confirmModalOpen || this.reasonModalOpen) return;
     if ((event.target as HTMLElement).classList.contains("dp-overlay")) {
       this.requestClose();
     }
   }
 
   requestClose(): void {
-    if (this.confirmModalOpen || this.submitSuccessOpen) return;
+    if (this.confirmModalOpen || this.reasonModalOpen) return;
     this.closed.emit();
   }
 
@@ -429,11 +442,27 @@ export class DraftPoliciesModalComponent
       return;
     }
     this.confirmTitle = "Submit Policy";
+    // Role-specific confirmation copy. The title renders as a separate
+    // bold element with no quotation marks; the confirm button names the
+    // action each role actually performs. API behavior is unchanged.
+    const policyName = policy.title || "Untitled Policy";
+    if (this.isAdmin) {
+      this.confirmMessageBefore = "You are about to publish ";
+      this.confirmHighlight = policyName;
+      this.confirmMessageAfter =
+        ". Upon confirmation, it will be published on the PolicyGPT platform.";
+      this.confirmText = "Publish Policy";
+    } else {
+      this.confirmMessageBefore = "You are about to submit ";
+      this.confirmHighlight = policyName;
+      this.confirmMessageAfter =
+        " to the Admin for review and approval. The policy will be " +
+        "published only after approval.";
+      this.confirmText = "Submit Policy";
+    }
     this.confirmMessage =
-      `Submit "${policy.title}" for approval? It will leave the draft ` +
-      `list and enter the approval workflow.`;
+      `${this.confirmMessageBefore}${policyName}${this.confirmMessageAfter}`;
     this.confirmVariant = "primary";
-    this.confirmText = "Submit";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
     this.confirmAction = () => {
@@ -451,24 +480,44 @@ export class DraftPoliciesModalComponent
           }),
         )
         .subscribe({
-          next: () => {
+          next: (updated) => {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.relockBodyScroll();
-            this.loadPolicies();
-            this.dataChanged.emit();
-            if (this.isAdmin) {
-              // Admin: success is already persisted (single API call
-              // above transitioned DRAFT -> PENDING_APPROVAL, and the
-              // list just reloaded without the policy). Show the
-              // confirmation popup; OK only dismisses it.
-              this.submitSuccessOpen = true;
+            this.clearHighlight();
+            // Backend-returned status drives messaging: an Admin submit
+            // lands APPROVED directly, a Government Official submit
+            // PENDING_APPROVAL. The single submitPolicy call above already
+            // persisted it — no modal reload, no follow-up popup. Toast
+            // globally, let the parent refresh, close, and navigate now.
+            const approved =
+              String(updated?.status || "").toUpperCase() === "APPROVED";
+            if (approved) {
+              this.showSuccess(
+                this.isAdmin
+                  ? "Policy published successfully."
+                  : "Policy submitted and approved.",
+              );
             } else {
-              this.showSuccess("Policy submitted for approval.");
+              this.showSuccess(
+                this.isAdmin
+                  ? "Policy submitted successfully."
+                  : "Policy submitted for approval.",
+              );
             }
+            this.dataChanged.emit();
+            this.closed.emit();
+            this.router.navigate([
+              "/dashboard",
+              this.rolePrefix,
+              "policies",
+              "manage",
+            ]);
           },
           error: (err) => {
+            // Stay in the modal with the real backend error; the user can
+            // retry (the backend re-validates eligibility, so no blind
+            // duplicate is possible) or cancel with context intact.
             const errorMsg = this.getErrorMessage(err);
             this.confirmErrorMessage = errorMsg;
             this.errorMessage = errorMsg;
@@ -486,12 +535,20 @@ export class DraftPoliciesModalComponent
    * (DELETE /policies/{id}, admin only). No new status is introduced
    * and approval rules are not bypassed: the row is permanently removed.
    */
+  /**
+   * Delete Policy from the dropdown (both roles).
+   * - Admin: existing direct-deletion workflow (DELETE /policies/{id}).
+   * - Government Official: existing deletion-request workflow (reason +
+   *   POST /policies/{id}/request-delete). The backend only permits
+   *   requests for APPROVED/ARCHIVED policies, so a draft request
+   *   surfaces the real backend error — never a simulated success, and
+   *   no admin-only permanent delete is granted.
+   */
   openDeleteModal(policy: DraftPolicyItem): void {
     this.closeMenu();
+    this.clearHighlight();
     if (!this.isAdmin) {
-      this.errorMessage = "Only an administrator can delete policies.";
-      this.showError(this.errorMessage);
-      this.cdr.detectChanges();
+      this.openDeleteRequestModal(policy);
       return;
     }
     this.confirmTitle = "Delete Draft Policy";
@@ -521,6 +578,7 @@ export class DraftPoliciesModalComponent
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
+            this.clearHighlight();
             this.relockBodyScroll();
             this.showSuccess("Draft policy deleted.");
             this.loadPolicies();
@@ -552,17 +610,84 @@ export class DraftPoliciesModalComponent
     this.confirmAction = null;
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
+    this.clearHighlight();
     this.relockBodyScroll();
     this.cdr.detectChanges();
   }
 
+  /** Structured message parts belong to the submit dialog only. */
+  private clearHighlight(): void {
+    this.confirmMessageBefore = "";
+    this.confirmHighlight = "";
+    this.confirmMessageAfter = "";
+  }
+
   /**
-   * Dismiss the admin post-submit confirmation. The submission already
-   * succeeded (single backend call before the popup opened), so this
-   * never touches the API — safe after refresh, navigation, or close.
+   * Government Official deletion-request workflow for a draft: reason
+   * dialog + POST /policies/{id}/request-delete. On backend confirmation
+   * the policy becomes DELETE_REQUESTED (admin approval pending), leaves
+   * this draft list on reload, and statistics refresh. Backend refusals
+   * (e.g. drafts are ineligible for deletion requests) surface verbatim.
    */
-  closeSubmitSuccess(): void {
-    this.submitSuccessOpen = false;
+  private openDeleteRequestModal(policy: DraftPolicyItem): void {
+    this.reasonTitle = "Request Policy Deletion";
+    this.reasonMessage =
+      `Enter the reason for requesting deletion of draft "${policy.title}". ` +
+      `An administrator must approve the request before anything is deleted.`;
+    this.reasonLabel = "Deletion Reason";
+    this.reasonVariant = "danger";
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
+    this.reasonAction = (reason: string) => {
+      if (this.reasonLoading) return;
+      this.reasonLoading = true;
+      this.reasonErrorMessage = null;
+      this.cdr.detectChanges();
+      this.policyService
+        .requestDelete(policy.id, reason)
+        .pipe(
+          take(1),
+          finalize(() => {
+            this.reasonLoading = false;
+            this.cdr.detectChanges();
+          }),
+        )
+        .subscribe({
+          next: () => {
+            this.reasonModalOpen = false;
+            this.reasonAction = null;
+            this.reasonErrorMessage = null;
+            this.relockBodyScroll();
+            this.showSuccess("Delete request submitted to Admin.");
+            this.loadPolicies();
+            this.dataChanged.emit();
+          },
+          error: (err) => {
+            const errorMsg = this.getErrorMessage(err);
+            this.reasonErrorMessage = errorMsg;
+            this.errorMessage = errorMsg;
+            this.showError(errorMsg);
+            this.cdr.detectChanges();
+          },
+        });
+    };
+    this.reasonModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onReasonModalConfirmed(reason: string): void {
+    if (this.reasonLoading) return;
+    if (this.reasonAction) {
+      this.reasonAction(reason);
+    }
+  }
+
+  onReasonModalCancelled(): void {
+    if (this.reasonLoading) return;
+    this.reasonModalOpen = false;
+    this.reasonAction = null;
+    this.reasonLoading = false;
+    this.reasonErrorMessage = null;
     this.relockBodyScroll();
     this.cdr.detectChanges();
   }

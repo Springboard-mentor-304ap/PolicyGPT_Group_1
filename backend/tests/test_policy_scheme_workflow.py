@@ -45,6 +45,8 @@ def fake_policy(**kw):
         status="DRAFT",
         created_by=2,
         approved_by=None,
+        ministry="Ministry X",
+        department="Department Y",
         rejection_reason=None,
         archive_reason=None,
         archive_requested_by=None,
@@ -288,3 +290,156 @@ def test_policy_request_delete_blocks_non_creator_admin():
     with pytest.raises(HTTPException) as exc:
         policy_service.request_delete_policy(db, 10, "stale", admin(99))
     assert exc.value.status_code == 403
+
+
+# ------------------------------------------- role-based submit transitions
+
+
+def test_policy_submit_admin_draft_becomes_approved():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        with patch(
+            "app.services.notification_service.notify_policy_submitted"
+        ) as submitted_mock:
+            out = policy_service.submit_policy(db, 10, admin(1))
+    assert out.status == "APPROVED"
+    assert out.approved_by == 1
+    assert out.rejection_reason is None
+    assert approved_mock.called
+    assert not submitted_mock.called
+
+
+def test_policy_submit_admin_spelling_draft_becomes_approved():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    with patch("app.services.notification_service.notify_policy_approved"):
+        out = policy_service.submit_policy(db, 10, admin(1, role="ADMINISTRATOR"))
+    assert out.status == "APPROVED"
+    assert out.approved_by == 1
+
+
+def test_policy_submit_govt_draft_becomes_pending():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_policy_submitted"
+    ) as submitted_mock:
+        with patch(
+            "app.services.notification_service.notify_policy_approved"
+        ) as approved_mock:
+            out = policy_service.submit_policy(db, 10, govt(2))
+    assert out.status == "PENDING_APPROVAL"
+    assert out.approved_by is None
+    assert submitted_mock.called
+    assert not approved_mock.called
+
+
+def test_policy_submit_blocks_unauthorized_role():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    citizen = SimpleNamespace(user_id=7, role="CITIZEN", full_name="Citizen")
+    with pytest.raises(HTTPException) as exc:
+        policy_service.submit_policy(db, 10, citizen)
+    assert exc.value.status_code == 403
+    assert pol.status == "DRAFT"  # unchanged
+
+
+def test_policy_submit_rejects_non_draft_for_both_roles():
+    for user in (admin(1), govt(2)):
+        pol = fake_policy(status="APPROVED", created_by=2)
+        db = make_db(pol)
+        with pytest.raises(HTTPException) as exc:
+            policy_service.submit_policy(db, 10, user)
+        assert exc.value.status_code == 400
+        assert pol.status == "APPROVED"  # unchanged
+
+    pol = fake_policy(status="PENDING_APPROVAL", created_by=2)
+    db = make_db(pol)
+    with pytest.raises(HTTPException) as exc:
+        policy_service.submit_policy(db, 10, admin(1))
+    assert exc.value.status_code == 400
+
+
+def test_policy_submit_db_failure_rolls_back():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    db.commit.side_effect = RuntimeError("db down")
+    with patch("app.services.notification_service.notify_policy_approved") as approved_mock:
+        with pytest.raises(RuntimeError):
+            policy_service.submit_policy(db, 10, admin(1))
+    assert db.rollback.called
+    assert not approved_mock.called
+
+
+def test_policy_submit_admin_rejected_stays_pending_without_approver():
+    pol = fake_policy(status="REJECTED", created_by=2, rejection_reason="old")
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_policy_submitted"
+    ):
+        with patch(
+            "app.services.notification_service.notify_policy_approved"
+        ) as approved_mock:
+            out = policy_service.submit_policy(db, 10, admin(1))
+    assert out.status == "PENDING_APPROVAL"
+    assert out.approved_by is None
+    assert out.rejection_reason is None
+    assert not approved_mock.called
+
+
+# ----------------------------------- background notification deferral
+
+
+class _FakeBackgroundTasks:
+    def __init__(self):
+        self.tasks = []
+
+    def add_task(self, fn, *args, **kwargs):
+        self.tasks.append((fn, args, kwargs))
+
+
+def test_policy_submit_defers_fan_out_to_background():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        out = policy_service.submit_policy(db, 10, admin(1), background_tasks=bt)
+    # Business transaction still completes synchronously in-request.
+    assert out.status == "APPROVED"
+    assert out.approved_by == 1
+    # ...but the fan-out leaves the request: exactly one deferred task,
+    # zero synchronous notification work.
+    assert len(bt.tasks) == 1
+    assert not approved_mock.called
+
+
+def test_policy_submit_deferred_task_notifies_with_own_session():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch("app.services.notification_service.notify_policy_approved"):
+        policy_service.submit_policy(db, 10, admin(1), background_tasks=bt)
+    fn, args, kwargs = bt.tasks[0]
+    worker_db = MagicMock()
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        fn(args[0], db=worker_db)
+    assert approved_mock.called
+    assert approved_mock.call_args.kwargs["policy_id"] == 10
+
+
+def test_policy_submit_without_background_tasks_stays_synchronous():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        out = policy_service.submit_policy(db, 10, admin(1))
+    assert out.status == "APPROVED"
+    assert approved_mock.called

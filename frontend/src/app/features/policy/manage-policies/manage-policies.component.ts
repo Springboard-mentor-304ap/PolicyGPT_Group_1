@@ -264,6 +264,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             deleteRequestedFromStatus:
               policy.delete_requested_from_status || undefined,
           }));
+          // Latest activity first (register-wide, so pagination follows).
+          this.sortPoliciesByActivity();
           this.currentPage = Math.min(this.currentPage, this.totalPages);
           this.loading = false;
           // Keep own-record stats in sync for non-admins (see loadStats).
@@ -338,10 +340,28 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Latest activity timestamp for register ordering: updated_at first,
+   * falling back to created_at. Missing/invalid timestamps sort last.
+   * Uses raw backend values (epoch ms), never display strings.
+   */
+  private activityTime(policy: PolicyTableItem): number {
+    const parse = (value?: string | null): number => {
+      if (value === null || value === undefined) return 0;
+      const time = new Date(String(value).trim()).getTime();
+      return Number.isNaN(time) ? 0 : time;
+    };
+    return parse(policy.updatedAt) || parse(policy.createdAt);
+  }
+
+  /** Newest activity first, across the whole register (all pages). */
+  private sortPoliciesByActivity(): void {
+    this.policies.sort((a, b) => this.activityTime(b) - this.activityTime(a));
+  }
+
   get filteredPolicies(): PolicyTableItem[] {
     const search = this.searchText.toLowerCase().trim();
-    return this.policies.filter((policy) => {
-      const haystack = [
+    return this.policies.filter((policy) => {      const haystack = [
         policy.title,
         policy.description,
         policy.category,
@@ -425,12 +445,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.menuOpenId = null;
       this.cdr.detectChanges();
     }
+    this.closeExportMenu();
   }
 
   @HostListener("document:keydown.escape")
   onEscapeKey(): void {
     if (this.menuOpenId !== null) {
       this.closeMenu();
+    } else {
+      this.closeExportMenu();
     }
   }
 
@@ -498,10 +521,13 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.refreshAfterChildModal();
   }
 
-  /** A modal child reports every successful mutation; keep statistics live. */
+  /**
+   * A modal child reports every successful mutation. Only flag it: the
+   * close handler reloads the list (which already includes statistics),
+   * so no second stats request fires while the modal is still open.
+   */
   onChildDataChanged(): void {
     this.childDirty = true;
-    this.loadStats();
   }
 
   private refreshAfterChildModal(): void {
@@ -568,6 +594,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     } else {
       this.policies = [...this.policies, item];
     }
+    // The update carries a fresh updated_at: re-sort newest-first.
+    this.sortPoliciesByActivity();
     this.currentPage = Math.min(this.currentPage, this.totalPages);
     this.cdr.detectChanges();
     this.loadStats();
@@ -660,7 +688,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast("Policy submitted for approval.");
+          // Use the backend-returned status: an Admin submit lands
+          // APPROVED directly, a Government Official submit PENDING_APPROVAL.
+          const approved =
+            String(updated?.status || "").toUpperCase() === "APPROVED";
+          this.showSuccessToast(
+            approved
+              ? "Policy submitted and approved."
+              : "Policy submitted for approval.",
+          );
           if (updated) {
             this.applyPolicyUpdate(updated);
           } else {
@@ -1261,33 +1297,195 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  exportPolicies(): void {
-    const escapeCsv = (value: unknown): string =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
-    const rows = [
-      ["ID", "Title", "Category", "Ministry", "Department", "Sector", "Status", "Created At", "Updated At"],
-      ...this.filteredPolicies.map((p) => [
-        p.id,
-        p.title,
-        p.category,
-        p.ministry,
-        p.department,
-        p.sector,
-        p.status,
-        p.createdAt || "",
-        p.updatedAt || "",
-      ]),
-    ];
-    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "policies.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+  exportMenuOpen = false;
+  exporting = false;
+
+  toggleExportMenu(event?: MouseEvent): void {
+    event?.stopPropagation();
+    if (this.exporting) return;
+    this.exportMenuOpen = !this.exportMenuOpen;
+    this.cdr.detectChanges();
+  }
+
+  closeExportMenu(): void {
+    if (this.exportMenuOpen) {
+      this.exportMenuOpen = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  /** Active filter summary for report headers. */
+  private activeFilterSummary(): string {
+    const parts: string[] = [];
+    if (this.searchText.trim()) parts.push(`Search: "${this.searchText.trim()}"`);
+    if (this.selectedStatus)
+      parts.push(`Status: ${this.getStatusLabel(this.selectedStatus)}`);
+    return parts.length ? parts.join(" · ") : "None (all records)";
+  }
+
+  private exportFileStem(kind: "pdf" | "xlsx"): string {
+    const d = new Date();
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return (
+      `policygpt-policies-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-` +
+      `${pad(d.getHours())}${pad(d.getMinutes())}.${kind}`
+    );
+  }
+
+  /** All records matching the current filters (every page, not just visible). */
+  private exportRows(): string[][] {
+    return this.filteredPolicies.map((p) => [
+      String(p.id),
+      p.title,
+      p.description || "—",
+      p.ministry || "—",
+      p.department || "—",
+      this.getStatusLabel(p.status),
+      this.formatDateTime(p.createdAt),
+      this.formatDateTime(p.updatedAt),
+    ]);
+  }
+
+  async exportPdf(): Promise<void> {
+    if (this.exporting) return;
+    this.exportMenuOpen = false;
+    this.exporting = true;
+    this.cdr.detectChanges();
+    try {
+      const { jsPDF } = await import("jspdf");
+      const rows = this.exportRows();
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 40;
+      const usable = pageW - margin * 2;
+      const headers = ["ID", "Title", "Description", "Ministry", "Department", "Status", "Created (IST)", "Updated (IST)"];
+      const widths = [0.06, 0.2, 0.24, 0.11, 0.11, 0.09, 0.095, 0.095].map((f) =>
+        Math.floor(f * usable),
+      );
+      let y = 48;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(17, 24, 39);
+      doc.text("PolicyGPT", margin, y);
+      y += 20;
+      doc.setFontSize(12);
+      doc.setTextColor(100, 116, 139);
+      doc.text("Government Policy Register", margin, y);
+      y += 16;
+      doc.setFontSize(9);
+      doc.text(`Generated On: ${this.formatDateTime(new Date().toISOString())}`, margin, y);
+      y += 13;
+      const filterLines = doc.splitTextToSize(
+        `Applied Filters: ${this.activeFilterSummary()} · Records: ${rows.length}`,
+        usable,
+      );
+      doc.text(filterLines, margin, y);
+      y += filterLines.length * 12 + 10;
+
+      const rowH = 20;
+      const drawHeader = (): void => {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.rect(margin, y, usable, rowH, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(71, 85, 105);
+        let x = margin;
+        headers.forEach((h, i) => {
+          doc.text(h, x + 6, y + 13, { maxWidth: widths[i] - 12 });
+          x += widths[i];
+        });
+        y += rowH;
+      };
+      drawHeader();
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(23, 32, 51);
+      for (const row of rows) {
+        const wrapped = row.map((cell, i) =>
+          doc.splitTextToSize(cell || "—", widths[i] - 12),
+        );
+        const h = Math.max(rowH, ...wrapped.map((w) => w.length * 12 + 8));
+        if (y + h > pageH - 40) {
+          doc.addPage();
+          y = 40;
+          drawHeader();
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(23, 32, 51);
+        }
+        doc.setDrawColor(237, 241, 245);
+        doc.line(margin, y + h, margin + usable, y + h);
+        let x = margin;
+        wrapped.forEach((lines, i) => {
+          doc.text(lines, x + 6, y + 13);
+          x += widths[i];
+        });
+        y += h;
+      }
+      if (rows.length === 0) {
+        doc.text("No records match the current filters.", margin, y + 16);
+      }
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          `Page ${i} of ${totalPages}`,
+          pageW - margin,
+          pageH - 20,
+          { align: "right" },
+        );
+      }
+      doc.save(this.exportFileStem("pdf"));
+      this.showSuccessToast("Policies exported as PDF.");
+    } catch (err) {
+      console.error("Failed to export policies as PDF:", err);
+      this.errorMessage = "Could not generate the PDF. Please try again.";
+      this.showErrorToast(this.errorMessage);
+      this.cdr.detectChanges();
+    } finally {
+      this.exporting = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async exportExcel(): Promise<void> {
+    if (this.exporting) return;
+    this.exportMenuOpen = false;
+    this.exporting = true;
+    this.cdr.detectChanges();
+    try {
+      const XLSX = await import("xlsx");
+      const header = ["ID", "Title", "Description", "Ministry", "Department", "Status", "Created (IST)", "Updated (IST)"];
+      const ws = XLSX.utils.aoa_to_sheet([header, ...this.exportRows()]);
+      ws["!cols"] = [
+        { wch: 8 },
+        { wch: 36 },
+        { wch: 48 },
+        { wch: 24 },
+        { wch: 24 },
+        { wch: 18 },
+        { wch: 22 },
+        { wch: 22 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Policies");
+      XLSX.writeFile(wb, this.exportFileStem("xlsx"));
+      this.showSuccessToast("Policies exported as Excel.");
+    } catch (err) {
+      console.error("Failed to export policies as Excel:", err);
+      this.errorMessage = "Could not generate the spreadsheet. Please try again.";
+      this.showErrorToast(this.errorMessage);
+      this.cdr.detectChanges();
+    } finally {
+      this.exporting = false;
+      this.cdr.detectChanges();
+    }
   }
 
   /**

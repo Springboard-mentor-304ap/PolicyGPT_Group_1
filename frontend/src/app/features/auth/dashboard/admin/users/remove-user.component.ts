@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
@@ -40,6 +40,12 @@ export interface AdminUser {
   styleUrls: ["./remove-user.component.scss"],
 })
 export class RemoveUserComponent implements OnInit {
+  private readonly router = inject(Router);
+  private readonly adminUsersService = inject(AdminUsersService);
+  private readonly authService = inject(Auth);
+  private readonly toastService = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   searchText = "";
   selectedRole = "ALL";
   selectedStatus = "ALL";
@@ -74,13 +80,7 @@ export class RemoveUserComponent implements OnInit {
   isDeleting = false;
   deleteError = "";
 
-  constructor(
-    private router: Router,
-    private adminUsersService: AdminUsersService,
-    private authService: Auth,
-    private toastService: ToastService,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  constructor() {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getStoredUser();
@@ -277,6 +277,14 @@ export class RemoveUserComponent implements OnInit {
   // =======================================================
 
   openRemoveModal(user: AdminUser): void {
+    if (!user || !user.email) {
+      this.toastService.error(
+        "Invalid User",
+        "Selected user does not have valid account details."
+      );
+      return;
+    }
+
     if (this.isSelf(user)) {
       this.toastService.warning(
         "Action Restricted",
@@ -301,7 +309,7 @@ export class RemoveUserComponent implements OnInit {
   }
 
   confirmRemoval(): void {
-    if (!this.selectedUser || this.isDeleting) {
+    if (!this.selectedUser || !this.selectedUser.email || this.isDeleting) {
       return;
     }
 
@@ -327,10 +335,25 @@ export class RemoveUserComponent implements OnInit {
         console.error("User removal error:", error);
         this.isDeleting = false;
 
-        const errorMsg =
-          error?.error?.detail ||
-          error?.message ||
+        let errorMsg =
           "Failed to remove user. The account may have associated records in the system.";
+
+        if (error?.status === 0) {
+          errorMsg =
+            "Unable to connect to the server. Please check your backend connection.";
+        } else if (error?.status === 401) {
+          errorMsg = "Your session has expired. Please login again.";
+        } else if (error?.status === 403) {
+          errorMsg = "Only an administrator can perform user removal.";
+        } else if (error?.status === 404) {
+          errorMsg =
+            error?.error?.detail ||
+            "User not found. The account may have already been removed.";
+        } else if (error?.error?.detail && typeof error.error.detail === "string") {
+          errorMsg = error.error.detail;
+        } else if (typeof error?.error === "string" && error.error.trim()) {
+          errorMsg = error.error;
+        }
 
         this.deleteError = errorMsg;
         this.toastService.error("Removal Failed", errorMsg);

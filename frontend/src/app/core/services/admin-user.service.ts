@@ -57,8 +57,9 @@ export class AdminUsersService {
   }
 
   deleteUser(email: string): Observable<{ message: string; email?: string }> {
+    const trimmedEmail = (email || "").trim();
     return this.http.delete<{ message: string; email?: string }>(
-      `${this.authUsersUrl}/email/${encodeURIComponent(email)}`
+      `${this.authUsersUrl}/email/${encodeURIComponent(trimmedEmail)}`
     );
   }
 

@@ -1867,6 +1867,229 @@ def delete_account(
 
 
 # =========================================================
+# SAFE ADMIN USER REMOVAL HELPER
+# =========================================================
+
+
+def _admin_remove_user_safely(
+    user: User,
+    current_user: User,
+    request: Request,
+    db: Session,
+) -> dict[str, Any]:
+    """
+    Safely delete a user account requested by an authenticated Admin.
+    Enforces security validations, checks for blocking associated records,
+    disassociates retained records without silent deletion, and performs
+    the deletion within a single database transaction with audit logging.
+    """
+    if user.user_id == current_user.user_id or (
+        user.email
+        and current_user.email
+        and user.email.strip().lower() == current_user.email.strip().lower()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot remove your own administrator account.",
+        )
+
+    # -----------------------------------------------------
+    # INSPECT RELATED BLOCKING RECORDS
+    # -----------------------------------------------------
+    from app.models.feedback import Feedback
+    from app.models.policy import Policy
+    from app.models.report import Report
+    from app.models.scheme import Scheme
+    from app.models.support_query import SupportQuery
+
+    # Check for active policies created by this user
+    has_policies = (
+        db.query(Policy.policy_id)
+        .filter(Policy.created_by == user.user_id)
+        .first()
+    )
+    if has_policies:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with active policy assignments.",
+        )
+
+    # Check for active schemes created by this user
+    has_schemes = (
+        db.query(Scheme.scheme_id)
+        .filter(Scheme.created_by == user.user_id)
+        .first()
+    )
+    if has_schemes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with active scheme assignments.",
+        )
+
+    # Check for generated reports (reports.generated_by is NOT NULL)
+    has_reports = (
+        db.query(Report.report_id)
+        .filter(Report.generated_by == user.user_id)
+        .first()
+    )
+    if has_reports:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with associated report records.",
+        )
+
+    # Check for feedback (feedback.user_id is NOT NULL)
+    has_feedback = (
+        db.query(Feedback.feedback_id)
+        .filter(Feedback.user_id == user.user_id)
+        .first()
+    )
+    if has_feedback:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with associated feedback records.",
+        )
+
+    # Check for support queries (support_queries.user_id is NOT NULL)
+    has_queries = (
+        db.query(SupportQuery.query_id)
+        .filter(SupportQuery.user_id == user.user_id)
+        .first()
+    )
+    if has_queries:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete user with associated support tickets.",
+        )
+
+    removed_id = user.user_id
+    removed_email = user.email
+    removed_phone = user.phone
+    removed_role = user.role
+
+    try:
+        # Disassociate retained non-blocking records without deleting them
+        db.execute(
+            text("UPDATE audit_logs SET user_id = NULL WHERE user_id = :uid"),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE notifications SET user_id = NULL WHERE user_id = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE policies SET approved_by = NULL WHERE approved_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE policies SET archive_requested_by = NULL WHERE archive_requested_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE policies SET delete_requested_by = NULL WHERE delete_requested_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE schemes SET approved_by = NULL WHERE approved_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE schemes SET archive_requested_by = NULL WHERE archive_requested_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE schemes SET delete_requested_by = NULL WHERE delete_requested_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE support_queries SET assigned_to = NULL WHERE assigned_to = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE chatbot_conversations SET user_id = NULL WHERE user_id = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE chatbot_usage SET user_id = NULL WHERE user_id = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE policy_documents SET uploaded_by = NULL WHERE uploaded_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text(
+                "UPDATE scheme_documents SET uploaded_by = NULL WHERE uploaded_by = :uid"
+            ),
+            {"uid": removed_id},
+        )
+
+        # Clean up user-specific non-cascade records per established cleanup rules
+        db.execute(
+            text("DELETE FROM search_history WHERE user_id = :uid"),
+            {"uid": removed_id},
+        )
+        db.execute(
+            text("DELETE FROM scheme_applications WHERE user_id = :uid"),
+            {"uid": removed_id},
+        )
+
+        # Delete user
+        db.delete(user)
+        db.commit()
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Admin delete user failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to remove user due to a database constraint or error.",
+        )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "AUTH_ADMIN_USER_DELETED",
+        "USER",
+        None,
+        f"Admin deleted user {removed_email or removed_phone} ({removed_role}, user_id {removed_id}).",
+    )
+
+    response_payload: dict[str, Any] = {"message": "User deleted successfully"}
+    if removed_email:
+        response_payload["email"] = removed_email
+    if removed_phone:
+        response_payload["phone"] = removed_phone
+    return response_payload
+
+
+# =========================================================
 # DELETE USER BY EMAIL
 # =========================================================
 
@@ -1878,37 +2101,16 @@ def delete_user(
     current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
 ):
-
-    # -----------------------------------------------------
-    # FIND USER
-    # -----------------------------------------------------
-
-    user = db.query(User).filter(User.email == email).first()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # -----------------------------------------------------
-    # DELETE
-    # -----------------------------------------------------
-
-    removed_id = user.user_id
-    removed_role = user.role
-
-    db.delete(user)
-    db.commit()
-
-    log_request_action(
-        request,
-        db,
-        current_user,
-        "AUTH_ADMIN_USER_DELETED",
-        "USER",
-        None,
-        f"Admin deleted user {email} ({removed_role}, user_id {removed_id}).",
+    user = (
+        db.query(User)
+        .filter(func.lower(User.email) == email.strip().lower())
+        .first()
     )
 
-    return {"message": "User deleted successfully", "email": email}
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return _admin_remove_user_safely(user, current_user, request, db)
 
 
 # =========================================================
@@ -1923,38 +2125,32 @@ def delete_user_by_phone(
     current_user: User = Depends(require_roles("ADMIN")),
     db: Session = Depends(get_db),
 ):
-
-    # -----------------------------------------------------
-    # FIND USER
-    # -----------------------------------------------------
-
-    user = db.query(User).filter(User.phone == phone).first()
+    user = db.query(User).filter(User.phone == phone.strip()).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    # -----------------------------------------------------
-    # DELETE
-    # -----------------------------------------------------
+    return _admin_remove_user_safely(user, current_user, request, db)
 
-    removed_id = user.user_id
-    removed_role = user.role
 
-    db.delete(user)
-    db.commit()
+# =========================================================
+# DELETE USER BY ID
+# =========================================================
 
-    log_request_action(
-        request,
-        db,
-        current_user,
-        "AUTH_ADMIN_USER_DELETED",
-        "USER",
-        None,
-        f"Admin deleted user with phone {phone} ({removed_role}, "
-        f"user_id {removed_id}).",
-    )
 
-    return {"message": "User deleted successfully", "phone": phone}
+@router.delete("/users/{user_id}")
+def delete_user_by_id(
+    user_id: int,
+    request: Request,
+    current_user: User = Depends(require_roles("ADMIN")),
+    db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.user_id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return _admin_remove_user_safely(user, current_user, request, db)
 
 
 # =========================================================

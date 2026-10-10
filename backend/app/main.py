@@ -62,8 +62,16 @@ def _warm_up_pool() -> None:
     not pay the cost of creating a cold connection.
     """
     try:
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             conn.execute(text("SELECT 1"))
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.notifications ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
     except Exception:
         logger.exception("Database warm-up connection failed")
 

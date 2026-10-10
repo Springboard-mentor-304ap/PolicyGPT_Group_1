@@ -753,3 +753,19 @@ select option:hover {
     background-position: 72% center;
   }
 }
+
+/* =========================================================
+   POLICYGPT LIGHT MODE (permanent, only theme)
+   The application ships no dark theme: no theme service, no
+   theme state, no toggles, no persistence. This pins the page
+   (including native form controls, scrollbars and option lists)
+   to the existing light appearance even when the OS/browser is
+   set to dark. Intentional light-theme brand surfaces (navy
+   sidebar/topbar accents, dark-navy government footer, dark
+   chart tooltips) are untouched.
+   ========================================================= */
+:root,
+html,
+body {
+  color-scheme: light only !important;
+}

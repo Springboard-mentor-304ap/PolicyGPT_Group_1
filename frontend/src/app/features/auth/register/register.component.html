@@ -398,15 +398,9 @@
 
             <div class="login-select-wrap">
 
-              <app-searchable-select
-                id="state"
-                formControlName="state"
-                placeholder="Select your state"
-                [searchable]="true"
-                searchPlaceholder="Search states..."
-                [options]="states"
-                [isInvalid]="!!(form.get('state')?.invalid && form.get('state')?.touched)"
-              />
+              <app-searchable-select id="state" formControlName="state" placeholder="Select your state"
+                [searchable]="true" searchPlaceholder="Search states..." [options]="states"
+                [isInvalid]="!!(form.get('state')?.invalid && form.get('state')?.touched)" />
 
             </div>
 
@@ -433,15 +427,9 @@
 
             <div class="login-select-wrap">
 
-              <app-searchable-select
-                id="district"
-                formControlName="district"
-                placeholder="Select your district"
-                [searchable]="true"
-                searchPlaceholder="Search districts..."
-                [options]="districts"
-                [isInvalid]="!!(form.get('district')?.invalid && form.get('district')?.touched)"
-              />
+              <app-searchable-select id="district" formControlName="district" placeholder="Select your district"
+                [searchable]="true" searchPlaceholder="Search districts..." [options]="districts"
+                [isInvalid]="!!(form.get('district')?.invalid && form.get('district')?.touched)" />
 
             </div>
 
@@ -476,14 +464,8 @@
 
             <div class="login-select-wrap">
 
-              <app-searchable-select
-                id="occupation"
-                formControlName="occupation"
-                placeholder="Select your occupation"
-                [searchable]="true"
-                searchPlaceholder="Search occupations..."
-                [options]="occupations"
-              />
+              <app-searchable-select id="occupation" formControlName="occupation" placeholder="Select your occupation"
+                [searchable]="true" searchPlaceholder="Search occupations..." [options]="occupations" />
 
             </div>
 
@@ -499,14 +481,9 @@
 
             <div class="login-select-wrap">
 
-              <app-searchable-select
-                id="organization"
-                formControlName="organization"
-                placeholder="Select your organization"
-                [searchable]="true"
-                searchPlaceholder="Search organizations..."
-                [options]="organizations"
-              />
+              <app-searchable-select id="organization" formControlName="organization"
+                placeholder="Select your organization" [searchable]="true" searchPlaceholder="Search organizations..."
+                [options]="organizations" />
 
             </div>
 
@@ -669,14 +646,8 @@
 
         <div class="login-select-wrap">
 
-          <app-searchable-select
-            id="role"
-            formControlName="role"
-            placeholder="Select your role"
-            [searchable]="false"
-            [options]="roles"
-            [isInvalid]="!!(form.get('role')?.invalid && form.get('role')?.touched)"
-          />
+          <app-searchable-select id="role" formControlName="role" placeholder="Select your role" [searchable]="false"
+            [options]="roles" [isInvalid]="!!(form.get('role')?.invalid && form.get('role')?.touched)" />
 
         </div>
 

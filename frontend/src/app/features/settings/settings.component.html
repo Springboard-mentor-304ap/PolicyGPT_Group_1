@@ -24,20 +24,16 @@
     <nav class="settings-menu" aria-label="Settings categories">
 
       @for (section of sections; track section.id) {
-        <button
-          type="button"
-          class="settings-menu-item"
-          [class.active]="activeSection === section.id"
-          (click)="selectSection(section.id)"
-        >
-          <span class="material-icons" aria-hidden="true">
-            {{ section.icon }}
-          </span>
+      <button type="button" class="settings-menu-item" [class.active]="activeSection === section.id"
+        (click)="selectSection(section.id)">
+        <span class="material-icons" aria-hidden="true">
+          {{ section.icon }}
+        </span>
 
-          <span>
-            {{ section.label }}
-          </span>
-        </button>
+        <span>
+          {{ section.label }}
+        </span>
+      </button>
       }
 
     </nav>
@@ -48,573 +44,550 @@
 
       <!-- ACCOUNT -->
       @if (activeSection === 'account') {
-        <section class="settings-card" aria-label="Account preferences">
+      <section class="settings-card" aria-label="Account preferences">
 
-          <div class="settings-card-header">
-            <h2>Account Preferences</h2>
-            <p>Your PolicyGPT account information ({{ roleLabel }}).</p>
+        <div class="settings-card-header">
+          <h2>Account Preferences</h2>
+          <p>Your PolicyGPT account information ({{ roleLabel }}).</p>
+        </div>
+
+        <div class="profile-summary">
+          <div class="profile-avatar" aria-hidden="true">
+            @if (avatarSrc) {
+            <img [src]="avatarSrc" alt="" class="profile-avatar-photo" />
+            } @else {
+            <span class="material-icons">person</span>
+            }
           </div>
 
-          <div class="profile-summary">
-            <div class="profile-avatar" aria-hidden="true">
-              @if (avatarSrc) {
-              <img [src]="avatarSrc" alt="" class="profile-avatar-photo" />
-              } @else {
-              <span class="material-icons">person</span>
-              }
-            </div>
-
-            <div class="profile-identity">
-              <strong>{{ displayValue(user?.full_name) }}</strong>
-              <span>{{ displayValue(user?.email) }}</span>
-            </div>
-
-            <span class="role-chip">{{ formatRole(user?.role) }}</span>
+          <div class="profile-identity">
+            <strong>{{ displayValue(user?.full_name) }}</strong>
+            <span>{{ displayValue(user?.email) }}</span>
           </div>
 
-          <dl class="detail-list">
-            <div class="detail-row">
-              <dt>Phone</dt>
-              <dd>{{ displayValue(user?.phone) }}</dd>
-            </div>
+          <span class="role-chip">{{ formatRole(user?.role) }}</span>
+        </div>
 
-            <div class="detail-row">
-              <dt>Organization</dt>
-              <dd>{{ displayValue(user?.organization) }}</dd>
-            </div>
-
-            <div class="detail-row">
-              <dt>State</dt>
-              <dd>{{ displayValue(user?.state) }}</dd>
-            </div>
-
-            <div class="detail-row">
-              <dt>District</dt>
-              <dd>{{ displayValue(user?.district) }}</dd>
-            </div>
-
-            <div class="detail-row">
-              <dt>Account Status</dt>
-              <dd>
-                <span class="status-pill" [class.status-pill--active]="user?.is_active">
-                  {{ user?.is_active ? "Active" : "Inactive" }}
-                </span>
-              </dd>
-            </div>
-          </dl>
-
-          <p class="hint-text">
-            Account status is managed by PolicyGPT.
-          </p>
-
-          <div class="settings-card-actions">
-            <button type="button" class="btn btn-primary" (click)="goEditProfile()">
-              <span class="material-icons" aria-hidden="true">edit</span>
-              <span>Edit Profile</span>
-            </button>
+        <dl class="detail-list">
+          <div class="detail-row">
+            <dt>Phone</dt>
+            <dd>{{ displayValue(user?.phone) }}</dd>
           </div>
 
-        </section>
+          <div class="detail-row">
+            <dt>Organization</dt>
+            <dd>{{ displayValue(user?.organization) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>State</dt>
+            <dd>{{ displayValue(user?.state) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>District</dt>
+            <dd>{{ displayValue(user?.district) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>Account Status</dt>
+            <dd>
+              <span class="status-pill" [class.status-pill--active]="user?.is_active">
+                {{ user?.is_active ? "Active" : "Inactive" }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+
+        <p class="hint-text">
+          Account status is managed by PolicyGPT.
+        </p>
+
+        <div class="settings-card-actions">
+          <button type="button" class="btn btn-primary" (click)="goEditProfile()">
+            <span class="material-icons" aria-hidden="true">edit</span>
+            <span>Edit Profile</span>
+          </button>
+        </div>
+
+      </section>
       }
 
 
       <!-- APPEARANCE -->
       @if (activeSection === 'appearance') {
-        <section class="settings-card" aria-label="Appearance">
+      <section class="settings-card" aria-label="Appearance">
 
-          <div class="settings-card-header">
-            <h2>Appearance</h2>
-            <p>Choose how PolicyGPT looks.</p>
+        <div class="settings-card-header">
+          <h2>Appearance</h2>
+          <p>Choose how PolicyGPT looks.</p>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Theme</strong>
+            <span>Current theme: Light</span>
           </div>
+        </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Theme</strong>
-              <span>Current theme: Light</span>
-            </div>
-          </div>
+        <div class="option-list" role="group" aria-label="Theme">
+          <button type="button" class="option-card option-card--selected">
+            <span class="material-icons" aria-hidden="true">light_mode</span>
+            <span class="option-text">
+              <strong>Light</strong>
+              <span>Default PolicyGPT appearance</span>
+            </span>
+            <span class="material-icons option-check" aria-hidden="true">
+              check_circle
+            </span>
+          </button>
 
-          <div class="option-list" role="group" aria-label="Theme">
-            <button type="button" class="option-card option-card--selected">
-              <span class="material-icons" aria-hidden="true">light_mode</span>
-              <span class="option-text">
-                <strong>Light</strong>
-                <span>Default PolicyGPT appearance</span>
-              </span>
-              <span class="material-icons option-check" aria-hidden="true">
-                check_circle
-              </span>
-            </button>
+          <button type="button" class="option-card option-card--disabled" (click)="showDarkModeSoon()"
+            aria-label="Dark Mode, coming soon" aria-disabled="true">
+            <span class="material-icons" aria-hidden="true">dark_mode</span>
+            <span class="option-text">
+              <strong>Dark Mode</strong>
+              <span>Dark Mode is under development and will be available in a future update.</span>
+            </span>
+            <span class="coming-chip coming-chip--blue">
+              <span class="material-icons" aria-hidden="true">schedule</span>
+              Coming Soon
+            </span>
+          </button>
+        </div>
 
-            <button
-              type="button"
-              class="option-card option-card--disabled"
-              (click)="showDarkModeSoon()"
-              aria-label="Dark mode, coming soon"
-            >
-              <span class="material-icons" aria-hidden="true">dark_mode</span>
-              <span class="option-text">
-                <strong>Dark</strong>
-                <span>Lower light for night use</span>
-              </span>
-              <span class="coming-chip">
-                <span class="material-icons" aria-hidden="true">schedule</span>
-                Coming Soon
-              </span>
-            </button>
-          </div>
-
-        </section>
+      </section>
       }
 
 
       <!-- LANGUAGE -->
       @if (activeSection === 'language') {
-        <section class="settings-card" aria-label="Language and region">
+      <section class="settings-card" aria-label="Language and region">
 
-          <div class="settings-card-header">
-            <h2>Language &amp; Region</h2>
-            <p>Select your preferred language.</p>
+        <div class="settings-card-header">
+          <h2>Language &amp; Region</h2>
+          <p>Select your preferred language.</p>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Current Language</strong>
+            <span>English</span>
           </div>
+        </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Current Language</strong>
-              <span>English</span>
-            </div>
-          </div>
+        <div class="option-list" role="group" aria-label="Language">
+          <button type="button" class="option-card option-card--selected">
+            <span class="material-icons" aria-hidden="true">language</span>
+            <span class="option-text">
+              <strong>English</strong>
+              <span>Full application support</span>
+            </span>
+            <span class="material-icons option-check" aria-hidden="true">
+              check_circle
+            </span>
+          </button>
 
-          <div class="option-list" role="group" aria-label="Language">
-            <button type="button" class="option-card option-card--selected">
-              <span class="material-icons" aria-hidden="true">language</span>
-              <span class="option-text">
-                <strong>English</strong>
-                <span>Full application support</span>
-              </span>
-              <span class="material-icons option-check" aria-hidden="true">
-                check_circle
-              </span>
-            </button>
+          <button type="button" class="option-card option-card--disabled" (click)="showHindiSoon()"
+            aria-label="Hindi language, coming soon">
+            <span class="material-icons" aria-hidden="true">translate</span>
+            <span class="option-text">
+              <strong>Hindi</strong>
+              <span>हिन्दी भाषा समर्थन</span>
+            </span>
+            <span class="coming-chip">
+              <span class="material-icons" aria-hidden="true">schedule</span>
+              Coming Soon
+            </span>
+          </button>
+        </div>
 
-            <button
-              type="button"
-              class="option-card option-card--disabled"
-              (click)="showHindiSoon()"
-              aria-label="Hindi language, coming soon"
-            >
-              <span class="material-icons" aria-hidden="true">translate</span>
-              <span class="option-text">
-                <strong>Hindi</strong>
-                <span>हिन्दी भाषा समर्थन</span>
-              </span>
-              <span class="coming-chip">
-                <span class="material-icons" aria-hidden="true">schedule</span>
-                Coming Soon
-              </span>
-            </button>
-          </div>
-
-        </section>
+      </section>
       }
 
 
       <!-- NOTIFICATIONS -->
       @if (activeSection === 'notifications') {
-        <section class="settings-card" aria-label="Notification preferences">
+      <section class="settings-card" aria-label="Notification preferences">
 
-          <div class="settings-card-header">
-            <h2>Notification Preferences</h2>
-            <p>Manage how PolicyGPT sends alerts and updates.</p>
-          </div>
+        <div class="settings-card-header">
+          <h2>Notification Preferences</h2>
+          <p>Manage how PolicyGPT sends alerts and updates.</p>
+        </div>
 
-          @if (prefsLoading) {
-            <div class="skeleton-block" aria-label="Loading notification preferences">
-              @for (i of [1, 2, 3, 4]; track i) {
-                <div class="skeleton skeleton-line" aria-hidden="true"></div>
-              }
-            </div>
-          } @else if (!prefs) {
-            <p class="hint-text">
-              Preference summary is unavailable right now. You can still
-              manage every preference on the notification preferences page.
-            </p>
-          } @else {
-            <dl class="detail-list">
-              <div class="detail-row">
-                <dt>Email Notifications</dt>
-                <dd>{{ prefState(prefs.email_enabled) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>SMS Notifications</dt>
-                <dd>{{ prefState(prefs.sms_enabled) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>In-App Notifications</dt>
-                <dd>{{ prefState(prefs.in_app_enabled) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>Policy Alerts</dt>
-                <dd>{{ prefState(prefs.policy_alerts) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>Scheme Alerts</dt>
-                <dd>{{ prefState(prefs.scheme_updates) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>Deadline Reminders</dt>
-                <dd>{{ prefState(prefs.deadline_reminders) }}</dd>
-              </div>
-
-              <div class="detail-row">
-                <dt>Delivery Frequency</dt>
-                <dd>{{ displayValue(prefs.frequency) }}</dd>
-              </div>
-            </dl>
+        @if (prefsLoading) {
+        <div class="skeleton-block" aria-label="Loading notification preferences">
+          @for (i of [1, 2, 3, 4]; track i) {
+          <div class="skeleton skeleton-line" aria-hidden="true"></div>
           }
-
-          <div class="settings-card-actions">
-            <button type="button" class="btn btn-primary" (click)="goManageNotifications()">
-              <span class="material-icons" aria-hidden="true">tune</span>
-              <span>Manage Notification Preferences</span>
-            </button>
+        </div>
+        } @else if (!prefs) {
+        <p class="hint-text">
+          Preference summary is unavailable right now. You can still
+          manage every preference on the notification preferences page.
+        </p>
+        } @else {
+        <dl class="detail-list">
+          <div class="detail-row">
+            <dt>Email Notifications</dt>
+            <dd>{{ prefState(prefs.email_enabled) }}</dd>
           </div>
 
-        </section>
+          <div class="detail-row">
+            <dt>SMS Notifications</dt>
+            <dd>{{ prefState(prefs.sms_enabled) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>In-App Notifications</dt>
+            <dd>{{ prefState(prefs.in_app_enabled) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>Policy Alerts</dt>
+            <dd>{{ prefState(prefs.policy_alerts) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>Scheme Alerts</dt>
+            <dd>{{ prefState(prefs.scheme_updates) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>Deadline Reminders</dt>
+            <dd>{{ prefState(prefs.deadline_reminders) }}</dd>
+          </div>
+
+          <div class="detail-row">
+            <dt>Delivery Frequency</dt>
+            <dd>{{ displayValue(prefs.frequency) }}</dd>
+          </div>
+        </dl>
+        }
+
+        <div class="settings-card-actions">
+          <button type="button" class="btn btn-primary" (click)="goManageNotifications()">
+            <span class="material-icons" aria-hidden="true">tune</span>
+            <span>Manage Notification Preferences</span>
+          </button>
+        </div>
+
+      </section>
       }
 
 
       <!-- SECURITY -->
       @if (activeSection === 'security') {
-        <section class="settings-card" aria-label="Security">
+      <section class="settings-card" aria-label="Security">
 
-          <div class="settings-card-header">
-            <h2>Security</h2>
-            <p>Protect access to your PolicyGPT account.</p>
+        <div class="settings-card-header">
+          <h2>Security</h2>
+          <p>Protect access to your PolicyGPT account.</p>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Password</strong>
+            <span>Change your account password.</span>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Password</strong>
-              <span>Change your account password.</span>
-            </div>
+          <button type="button" class="btn btn-outline" (click)="goChangePassword()">
+            Change Password
+          </button>
+        </div>
 
-            <button type="button" class="btn btn-outline" (click)="goChangePassword()">
-              Change Password
-            </button>
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>OTP Verification</strong>
+            <span>One-time passcodes for password recovery.</span>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>OTP Verification</strong>
-              <span>One-time passcodes for password recovery.</span>
-            </div>
+          <span class="status-pill status-pill--active">Available</span>
+        </div>
 
-            <span class="status-pill status-pill--active">Available</span>
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Two-Factor Authentication</strong>
+            <span>Extra verification at sign-in.</span>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Two-Factor Authentication</strong>
-              <span>Extra verification at sign-in.</span>
-            </div>
+          <button type="button" class="btn btn-outline" (click)="showTwoFactorSoon()">
+            Manage
+          </button>
+        </div>
 
-            <button
-              type="button"
-              class="btn btn-outline"
-              (click)="showTwoFactorSoon()"
-            >
-              Manage
-            </button>
-          </div>
+        <p class="hint-text">
+          <span class="coming-chip">
+            <span class="material-icons" aria-hidden="true">schedule</span>
+            Two-factor authentication is coming soon.
+          </span>
+        </p>
 
-          <p class="hint-text">
-            <span class="coming-chip">
-              <span class="material-icons" aria-hidden="true">schedule</span>
-              Two-factor authentication is coming soon.
-            </span>
-          </p>
-
-        </section>
+      </section>
       }
 
 
       <!-- PRIVACY -->
       @if (activeSection === 'privacy') {
-        <section class="settings-card" aria-label="Privacy">
+      <section class="settings-card" aria-label="Privacy">
 
-          <div class="settings-card-header">
-            <h2>Privacy</h2>
-            <p>How PolicyGPT handles your data.</p>
+        <div class="settings-card-header">
+          <h2>Privacy</h2>
+          <p>How PolicyGPT handles your data.</p>
+        </div>
+
+        <dl class="detail-list">
+          <div class="detail-row">
+            <dt>Profile Visibility</dt>
+            <dd>Role-based</dd>
           </div>
 
-          <dl class="detail-list">
-            <div class="detail-row">
-              <dt>Profile Visibility</dt>
-              <dd>Role-based</dd>
-            </div>
+          @if (hasSavedItems) {
+          <div class="detail-row">
+            <dt>Search History</dt>
+            <dd>Stored according to PolicyGPT privacy settings.</dd>
+          </div>
 
-            @if (hasSavedItems) {
-              <div class="detail-row">
-                <dt>Search History</dt>
-                <dd>Stored according to PolicyGPT privacy settings.</dd>
-              </div>
+          <div class="detail-row">
+            <dt>Saved Items</dt>
+            <dd>Private to your account.</dd>
+          </div>
+          }
 
-              <div class="detail-row">
-                <dt>Saved Items</dt>
-                <dd>Private to your account.</dd>
-              </div>
-            }
+          <div class="detail-row">
+            <dt>Notification Data</dt>
+            <dd>Used only for delivering your selected notifications.</dd>
+          </div>
+        </dl>
 
-            <div class="detail-row">
-              <dt>Notification Data</dt>
-              <dd>Used only for delivering your selected notifications.</dd>
-            </div>
-          </dl>
-
-        </section>
+      </section>
       }
 
 
       <!-- ACCESSIBILITY -->
       @if (activeSection === 'accessibility') {
-        <section class="settings-card" aria-label="Accessibility">
+      <section class="settings-card" aria-label="Accessibility">
 
-          <div class="settings-card-header">
-            <h2>Accessibility</h2>
-            <p>Reading and navigation preferences.</p>
+        <div class="settings-card-header">
+          <h2>Accessibility</h2>
+          <p>Reading and navigation preferences.</p>
+        </div>
+
+        <dl class="detail-list">
+          <div class="detail-row">
+            <dt>Text Size</dt>
+            <dd>Normal</dd>
           </div>
 
-          <dl class="detail-list">
-            <div class="detail-row">
-              <dt>Text Size</dt>
-              <dd>Normal</dd>
-            </div>
+          <div class="detail-row">
+            <dt>Reduced Motion</dt>
+            <dd>Default</dd>
+          </div>
 
-            <div class="detail-row">
-              <dt>Reduced Motion</dt>
-              <dd>Default</dd>
-            </div>
+          <div class="detail-row">
+            <dt>High Contrast</dt>
+            <dd>
+              <span class="coming-chip">
+                <span class="material-icons" aria-hidden="true">schedule</span>
+                Coming Soon
+              </span>
+            </dd>
+          </div>
 
-            <div class="detail-row">
-              <dt>High Contrast</dt>
-              <dd>
-                <span class="coming-chip">
-                  <span class="material-icons" aria-hidden="true">schedule</span>
-                  Coming Soon
-                </span>
-              </dd>
-            </div>
+          <div class="detail-row">
+            <dt>Keyboard Navigation</dt>
+            <dd>Supported</dd>
+          </div>
+        </dl>
 
-            <div class="detail-row">
-              <dt>Keyboard Navigation</dt>
-              <dd>Supported</dd>
-            </div>
-          </dl>
-
-        </section>
+      </section>
       }
 
 
       <!-- SESSION -->
       @if (activeSection === 'session') {
-        <section class="settings-card" aria-label="Session and devices">
+      <section class="settings-card" aria-label="Session and devices">
 
-          <div class="settings-card-header">
-            <h2>Session &amp; Devices</h2>
-            <p>Sessions signed in with your account.</p>
+        <div class="settings-card-header">
+          <h2>Session &amp; Devices</h2>
+          <p>Sessions signed in with your account.</p>
+        </div>
+
+        <div class="session-card">
+          <div class="session-icon" aria-hidden="true">
+            <span class="material-icons">computer</span>
           </div>
 
-          <div class="session-card">
-            <div class="session-icon" aria-hidden="true">
-              <span class="material-icons">computer</span>
-            </div>
-
-            <div class="setting-info">
-              <strong>Current Session</strong>
-              <span>{{ deviceLabel }}</span>
-              <span class="session-active">Active now</span>
-            </div>
-
-            <button type="button" class="btn btn-outline" (click)="signOut()">
-              Sign Out
-            </button>
+          <div class="setting-info">
+            <strong>Current Session</strong>
+            <span>{{ deviceLabel }}</span>
+            <span class="session-active">Active now</span>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Other Sessions</strong>
-              <span>Sign out every other device at once.</span>
-            </div>
+          <button type="button" class="btn btn-outline" (click)="signOut()">
+            Sign Out
+          </button>
+        </div>
 
-            <button
-              type="button"
-              class="btn btn-outline"
-              (click)="showOtherSessionsSoon()"
-            >
-              Coming Soon
-            </button>
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Other Sessions</strong>
+            <span>Sign out every other device at once.</span>
           </div>
 
-        </section>
+          <button type="button" class="btn btn-outline" (click)="showOtherSessionsSoon()">
+            Coming Soon
+          </button>
+        </div>
+
+      </section>
       }
 
 
       <!-- ROLE PREFERENCES -->
       @if (activeSection === 'role') {
-        <section class="settings-card" aria-label="Role preferences">
+      <section class="settings-card" aria-label="Role preferences">
 
-          <div class="settings-card-header">
-            <h2>Role Preferences</h2>
-            <p>Shortcuts for {{ roleLabel }} workflows.</p>
+        <div class="settings-card-header">
+          <h2>Role Preferences</h2>
+          <p>Shortcuts for {{ roleLabel }} workflows.</p>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Notification Preferences</strong>
+            <span>Alerts tuned for your role.</span>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <strong>Notification Preferences</strong>
-              <span>Alerts tuned for your role.</span>
-            </div>
+          <button type="button" class="btn btn-outline" (click)="goManageNotifications()">
+            Manage
+          </button>
+        </div>
 
-            <button type="button" class="btn btn-outline" (click)="goManageNotifications()">
-              Manage
+        @if (role === 'admin') {
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>User Management</strong>
+            <span>View and manage platform accounts.</span>
+          </div>
+
+          <button type="button" class="btn btn-outline" (click)="goManageUsers()">
+            Manage
+          </button>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Audit Logs</strong>
+            <span>Review platform activity.</span>
+          </div>
+
+          <button type="button" class="btn btn-outline" (click)="goAuditLogs()">
+            View
+          </button>
+        </div>
+        }
+
+        @if (role === 'government') {
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Policy Management</strong>
+            <span>Review and manage policies.</span>
+          </div>
+
+          <button type="button" class="btn btn-outline" (click)="goManagePolicies()">
+            View
+          </button>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Scheme Management</strong>
+            <span>Review and manage schemes.</span>
+          </div>
+
+          <button type="button" class="btn btn-outline" (click)="goManageSchemes()">
+            View
+          </button>
+        </div>
+        }
+
+        @if (hasSavedItems) {
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Saved Items</strong>
+            <span>
+              @if (savedLoading) {
+              Loading saved counts…
+              } @else if (totalSaved === null) {
+              Manage policies and schemes saved for later.
+              } @else {
+              {{ totalSaved }} saved
+              ({{ savedPolicyCount }} policies,
+              {{ savedSchemeCount }} schemes).
+              }
+            </span>
+          </div>
+
+          <button type="button" class="btn btn-outline" (click)="goSavedItems()">
+            View Saved Items
+          </button>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <strong>Search History</strong>
+            <span>Your recent policy and scheme searches.</span>
+          </div>
+
+          <div class="row-actions">
+            <button type="button" class="btn btn-outline" (click)="goSearchHistory()">
+              View
+            </button>
+
+            <button type="button" class="btn btn-outline btn-danger-outline" (click)="askClearHistory()"
+              [disabled]="clearingHistory">
+              {{ clearingHistory ? "Clearing…" : "Clear" }}
             </button>
           </div>
+        </div>
+        }
 
-          @if (role === 'admin') {
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>User Management</strong>
-                <span>View and manage platform accounts.</span>
-              </div>
-
-              <button type="button" class="btn btn-outline" (click)="goManageUsers()">
-                Manage
-              </button>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>Audit Logs</strong>
-                <span>Review platform activity.</span>
-              </div>
-
-              <button type="button" class="btn btn-outline" (click)="goAuditLogs()">
-                View
-              </button>
-            </div>
-          }
-
-          @if (role === 'government') {
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>Policy Management</strong>
-                <span>Review and manage policies.</span>
-              </div>
-
-              <button type="button" class="btn btn-outline" (click)="goManagePolicies()">
-                View
-              </button>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>Scheme Management</strong>
-                <span>Review and manage schemes.</span>
-              </div>
-
-              <button type="button" class="btn btn-outline" (click)="goManageSchemes()">
-                View
-              </button>
-            </div>
-          }
-
-          @if (hasSavedItems) {
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>Saved Items</strong>
-                <span>
-                  @if (savedLoading) {
-                    Loading saved counts…
-                  } @else if (totalSaved === null) {
-                    Manage policies and schemes saved for later.
-                  } @else {
-                    {{ totalSaved }} saved
-                    ({{ savedPolicyCount }} policies,
-                    {{ savedSchemeCount }} schemes).
-                  }
-                </span>
-              </div>
-
-              <button type="button" class="btn btn-outline" (click)="goSavedItems()">
-                View Saved Items
-              </button>
-            </div>
-
-            <div class="setting-row">
-              <div class="setting-info">
-                <strong>Search History</strong>
-                <span>Your recent policy and scheme searches.</span>
-              </div>
-
-              <div class="row-actions">
-                <button type="button" class="btn btn-outline" (click)="goSearchHistory()">
-                  View
-                </button>
-
-                <button
-                  type="button"
-                  class="btn btn-outline btn-danger-outline"
-                  (click)="askClearHistory()"
-                  [disabled]="clearingHistory"
-                >
-                  {{ clearingHistory ? "Clearing…" : "Clear" }}
-                </button>
-              </div>
-            </div>
-          }
-
-        </section>
+      </section>
       }
 
 
       <!-- ABOUT -->
       @if (activeSection === 'about') {
-        <section class="settings-card" aria-label="About PolicyGPT">
+      <section class="settings-card" aria-label="About PolicyGPT">
 
-          <div class="settings-card-header">
-            <h2>About PolicyGPT</h2>
-            <p>Government Information. Simplified.</p>
+        <div class="settings-card-header">
+          <h2>About PolicyGPT</h2>
+          <p>Government Information. Simplified.</p>
+        </div>
+
+        <dl class="detail-list">
+          <div class="detail-row">
+            <dt>Application</dt>
+            <dd>PolicyGPT</dd>
           </div>
 
-          <dl class="detail-list">
-            <div class="detail-row">
-              <dt>Application</dt>
-              <dd>PolicyGPT</dd>
-            </div>
+          <div class="detail-row">
+            <dt>Environment</dt>
+            <dd>{{ isDevelopment ? "Development" : "Production" }}</dd>
+          </div>
 
-            <div class="detail-row">
-              <dt>Environment</dt>
-              <dd>{{ isDevelopment ? "Development" : "Production" }}</dd>
-            </div>
+          <div class="detail-row">
+            <dt>Backend Status</dt>
+            <dd>
+              <span class="status-pill" [class.status-pill--active]="backendConnected">
+                {{ backendConnected ? "Connected" : "Unknown" }}
+              </span>
+            </dd>
+          </div>
+        </dl>
 
-            <div class="detail-row">
-              <dt>Backend Status</dt>
-              <dd>
-                <span
-                  class="status-pill"
-                  [class.status-pill--active]="backendConnected"
-                >
-                  {{ backendConnected ? "Connected" : "Unknown" }}
-                </span>
-              </dd>
-            </div>
-          </dl>
-
-        </section>
+      </section>
       }
 
     </div>
@@ -623,13 +596,7 @@
 
 </div>
 
-<app-confirm-modal
-  [isOpen]="clearHistoryOpen"
-  [title]="'Clear search history?'"
+<app-confirm-modal [isOpen]="clearHistoryOpen" [title]="'Clear search history?'"
   [message]="'This permanently deletes your saved searches. This cannot be undone.'"
-  [confirmText]="clearingHistory ? 'Clearing…' : 'Clear History'"
-  [cancelText]="'Cancel'"
-  [variant]="'danger'"
-  (confirmed)="confirmClearHistory()"
-  (cancelled)="cancelClearHistory()"
-></app-confirm-modal>
+  [confirmText]="clearingHistory ? 'Clearing…' : 'Clear History'" [cancelText]="'Cancel'" [variant]="'danger'"
+  (confirmed)="confirmClearHistory()" (cancelled)="cancelClearHistory()"></app-confirm-modal>

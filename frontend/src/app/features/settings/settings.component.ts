@@ -40,8 +40,11 @@ export interface SettingsSection {
  * - Notification summary reads the existing notification-preferences API.
  * - Saved-item counts read the existing saved-items API (citizen, researcher
  *   and organization only — the only roles with saved-items routes).
- * - Dark Mode and Hindi are UI-only "Coming Soon" controls: no theme code,
- *   no i18n, no persistence of any kind.
+ * - Dark Mode is a UI-only "Coming Soon" entry: no theme code, no
+ *   switching, and no persistence of any kind. Light remains the only
+ *   active theme.
+ * - Hindi is a UI-only "Coming Soon" control: no i18n and no persistence
+ *   of any kind.
  * - Everything else navigates to existing pages (profile, preferences,
  *   saved items, history, audit logs, user management).
  */
@@ -319,7 +322,10 @@ export class SettingsComponent implements OnInit {
   // =========================================================
 
   showDarkModeSoon(): void {
-    this.toast.info("Coming Soon", "Dark mode is coming soon.");
+    this.toast.info(
+      "Coming Soon",
+      "Dark Mode is under development and will be available in a future update.",
+    );
   }
 
   showHindiSoon(): void {

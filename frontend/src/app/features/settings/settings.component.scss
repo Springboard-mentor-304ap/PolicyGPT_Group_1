@@ -415,6 +415,13 @@ $danger: #dc2626;
   }
 }
 
+/* Blue variant for the Dark Mode entry: matches the PolicyGPT blue
+   theme while remaining clearly unavailable (not a switch). */
+.coming-chip--blue {
+  background: $blue-light;
+  color: $blue;
+}
+
 /* =========================================================
    SESSION
    ========================================================= */

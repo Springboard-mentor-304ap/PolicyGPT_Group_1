@@ -169,8 +169,8 @@
                 ) {
 
                 <a class="dash-nav__submenu-item" [routerLink]="child.route"
-                    routerLinkActive="dash-nav__submenu-item--active"
-                    [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
+                    routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
+                    (click)="closeMobileMenu()">
 
                     <span class="material-icons" aria-hidden="true">
                         {{ child.icon }}
@@ -247,7 +247,8 @@
 
             <!-- SETTINGS -->
 
-            <a routerLink="/dashboard/citizen/settings" routerLinkActive="dash-nav__item--active" [routerLinkActiveOptions]="{
+            <a routerLink="/dashboard/citizen/settings" routerLinkActive="dash-nav__item--active"
+                [routerLinkActiveOptions]="{
           exact: true
         }" class="dash-nav__item" (click)="closeMobileMenu()" [attr.title]="
           sidebarCollapsed

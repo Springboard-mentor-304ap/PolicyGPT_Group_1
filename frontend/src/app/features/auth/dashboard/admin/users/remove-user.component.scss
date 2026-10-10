@@ -178,16 +178,17 @@ $danger-border: #fecaca;
 
 .users-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
   margin-bottom: 24px;
 }
 
 .users-summary__card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 16px 18px;
+  min-width: 0;
   background: $white;
   border-radius: 14px;
   border: 1px solid $border;
@@ -234,17 +235,24 @@ $danger-border: #fecaca;
   color: $purple;
 }
 
+.users-summary__icon--red {
+  background: $danger-light;
+  color: $danger;
+}
+
 .users-summary__card strong {
   display: block;
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1.1;
   font-weight: 700;
   color: $heading;
+  white-space: nowrap;
 }
 
 .users-summary__card span {
   font-size: 13px;
   color: $muted;
+  white-space: nowrap;
 }
 
 /* =========================================================
@@ -994,9 +1002,21 @@ $danger-border: #fecaca;
    RESPONSIVE
 ========================================================= */
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
+  .users-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
   .users-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .users-summary {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1008,10 +1028,6 @@ $danger-border: #fecaca;
   .users-page-header {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .users-summary {
-    grid-template-columns: 1fr;
   }
 
   .users-filters {

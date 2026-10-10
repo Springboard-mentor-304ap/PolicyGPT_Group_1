@@ -266,3 +266,54 @@ def test_delete_user_by_phone_endpoint():
 
     assert res["message"] == "User deleted successfully"
     assert res["phone"] == "+919876543210"
+
+
+def test_count_past_users_queries_distinct_audit_events():
+    """count_past_users queries distinct deleted user IDs from audit logs."""
+    from app.api.routes.admin_users import count_past_users
+
+    db = MagicMock()
+    db.query.return_value.filter.return_value.scalar.side_effect = [8, 0]
+
+    count = count_past_users(db)
+    assert count == 8
+
+
+def test_get_user_stats_returns_past_and_active_statistics():
+    """get_user_stats returns total, active, inactive, admins, and past users."""
+    from app.api.routes.admin_users import get_user_stats
+
+    admin_user = fake_admin(uid=1)
+    db = MagicMock()
+
+    u1 = fake_user(uid=1, role="ADMIN")
+    u1.is_active = True
+    u2 = fake_user(uid=2, role="CITIZEN")
+    u2.is_active = True
+    u3 = fake_user(uid=3, role="GOVERNMENT_OFFICIAL")
+    u3.is_active = False
+
+    db.query.return_value.all.return_value = [u1, u2, u3]
+    with patch("app.api.routes.admin_users.count_past_users", return_value=12):
+        stats = get_user_stats(current_user=admin_user, db=db)
+
+    assert stats["total_users"] == 3
+    assert stats["active_users"] == 2
+    assert stats["inactive_users"] == 1
+    assert stats["administrators"] == 1
+    assert stats["past_users"] == 12
+    assert stats["past_users_count"] == 12
+
+
+def test_get_past_users_count_endpoint():
+    """get_past_users_count_endpoint returns count dict."""
+    from app.api.routes.admin_users import get_past_users_count_endpoint
+
+    admin_user = fake_admin(uid=1)
+    db = MagicMock()
+
+    with patch("app.api.routes.admin_users.count_past_users", return_value=15):
+        res = get_past_users_count_endpoint(current_user=admin_user, db=db)
+
+    assert res["count"] == 15
+    assert res["past_users"] == 15

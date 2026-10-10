@@ -31,6 +31,15 @@ export interface UserAuditLogApi {
   created_at: string;
 }
 
+export interface UserStatsApi {
+  past_users: number;
+  past_users_count?: number;
+  total_users?: number;
+  active_users?: number;
+  inactive_users?: number;
+  administrators?: number;
+}
+
 @Injectable({
   providedIn: "root",
 })
@@ -43,6 +52,18 @@ export class AdminUsersService {
 
   getUsers(): Observable<AdminUserApi[]> {
     return this.http.get<AdminUserApi[]>(this.apiUrl);
+  }
+
+  getUserStats(): Observable<UserStatsApi> {
+    return this.http.get<UserStatsApi>(`${this.apiUrl}/stats`);
+  }
+
+  getPastUsersCount(): Observable<{ past_users: number }> {
+    return this.getUserStats().pipe(
+      map((res) => ({
+        past_users: res.past_users ?? res.past_users_count ?? 0,
+      }))
+    );
   }
 
   getUserById(id: number): Observable<AdminUserApi | null> {

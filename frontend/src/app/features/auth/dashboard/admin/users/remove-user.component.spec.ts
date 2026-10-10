@@ -68,6 +68,8 @@ describe("RemoveUserComponent", () => {
     mockAdminUsersService = {
       getUsers: vi.fn().mockReturnValue(of(mockUsers)),
       deleteUser: vi.fn().mockReturnValue(of({ message: "User deleted successfully", email: "rahul@test.gov.in" })),
+      getPastUsersCount: vi.fn().mockReturnValue(of({ past_users: 5 })),
+      getUserStats: vi.fn().mockReturnValue(of({ past_users: 5, total_users: 3, active_users: 2, inactive_users: 1, administrators: 1 })),
     };
 
     mockAuth = {
@@ -104,11 +106,20 @@ describe("RemoveUserComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should create the RemoveUserComponent and load users", () => {
+  it("should create the RemoveUserComponent and load users and past users count", () => {
     expect(component).toBeTruthy();
     expect(mockAdminUsersService.getUsers).toHaveBeenCalled();
+    expect(mockAdminUsersService.getPastUsersCount).toHaveBeenCalled();
     expect(component.users.length).toBe(3);
+    expect(component.pastUsersCount).toBe(5);
     expect(component.isLoading).toBe(false);
+  });
+
+  it("should correctly separate active, inactive, administrators, and past users", () => {
+    expect(component.activeUsers).toBe(2);
+    expect(component.inactiveUsers).toBe(1);
+    expect(component.administratorUsers).toBe(1);
+    expect(component.pastUsersCount).toBe(5);
   });
 
   it("should prevent currently logged-in Admin from removing their own account", () => {
@@ -134,7 +145,7 @@ describe("RemoveUserComponent", () => {
     expect(component.deleteError).toBe("");
   });
 
-  it("should close modal when cancel is clicked", () => {
+  it("should close modal when cancel is clicked without making API deletion call", () => {
     const targetUser = component.users.find((u) => u.id === 2)!;
     component.openRemoveModal(targetUser);
     expect(component.isModalOpen).toBe(true);
@@ -143,11 +154,15 @@ describe("RemoveUserComponent", () => {
 
     expect(component.isModalOpen).toBe(false);
     expect(component.selectedUser).toBeNull();
+    expect(mockAdminUsersService.deleteUser).not.toHaveBeenCalled();
   });
 
-  it("should call deleteUser and refresh the list on confirmation", () => {
+  it("should call deleteUser and refresh the user list and past users count on confirmation", () => {
     const targetUser = component.users.find((u) => u.id === 2)!;
     component.openRemoveModal(targetUser);
+
+    // Mock count increment upon reload
+    mockAdminUsersService.getPastUsersCount.mockReturnValue(of({ past_users: 6 }));
 
     component.confirmRemoval();
 
@@ -159,9 +174,12 @@ describe("RemoveUserComponent", () => {
     expect(component.isModalOpen).toBe(false);
     // getUsers re-called on success
     expect(mockAdminUsersService.getUsers).toHaveBeenCalledTimes(2);
+    // getPastUsersCount re-called on success
+    expect(mockAdminUsersService.getPastUsersCount).toHaveBeenCalledTimes(2);
+    expect(component.pastUsersCount).toBe(6);
   });
 
-  it("should display error message and error toast if deletion fails", () => {
+  it("should display error message and leave past users count unchanged if deletion fails", () => {
     mockAdminUsersService.deleteUser.mockReturnValue(
       throwError(() => ({
         status: 400,
@@ -169,6 +187,7 @@ describe("RemoveUserComponent", () => {
       }))
     );
 
+    const initialPastCount = component.pastUsersCount;
     const targetUser = component.users.find((u) => u.id === 2)!;
     component.openRemoveModal(targetUser);
 
@@ -180,6 +199,10 @@ describe("RemoveUserComponent", () => {
       "Removal Failed",
       "Cannot delete user with active policy assignments."
     );
+    // Past users count unchanged
+    expect(component.pastUsersCount).toBe(initialPastCount);
+    // Modal remains open on error
+    expect(component.isModalOpen).toBe(true);
   });
 
   it("should filter users by search text and role", () => {

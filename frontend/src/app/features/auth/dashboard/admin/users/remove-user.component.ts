@@ -80,16 +80,35 @@ export class RemoveUserComponent implements OnInit {
   isDeleting = false;
   deleteError = "";
 
+  // Statistics
+  pastUsersCount = 0;
+
   constructor() {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getStoredUser();
     this.loadUsers();
+    this.loadPastUsersCount();
   }
 
   // =======================================================
-  // LOAD USERS
+  // LOAD USERS & PAST USERS STATS
   // =======================================================
+
+  loadPastUsersCount(): void {
+    if (typeof this.adminUsersService?.getPastUsersCount !== "function") {
+      return;
+    }
+    this.adminUsersService.getPastUsersCount().subscribe({
+      next: (stats) => {
+        this.pastUsersCount = stats?.past_users ?? 0;
+        this.cdr.detectChanges();
+      },
+      error: (error: HttpErrorResponse) => {
+        console.warn("Unable to load past users count:", error);
+      },
+    });
+  }
 
   loadUsers(): void {
     this.isLoading = true;
@@ -330,6 +349,7 @@ export class RemoveUserComponent implements OnInit {
         );
 
         this.loadUsers();
+        this.loadPastUsersCount();
       },
       error: (error: HttpErrorResponse) => {
         console.error("User removal error:", error);

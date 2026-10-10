@@ -72,6 +72,20 @@ def _warm_up_pool() -> None:
                 )
             except Exception:
                 pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        UPDATE extensions.audit_logs
+                        SET entity_id = substring(description from 'user_id ([0-9]+)')::bigint
+                        WHERE action = 'AUTH_ADMIN_USER_DELETED'
+                          AND entity_id IS NULL
+                          AND description ~ 'user_id [0-9]+'
+                        """
+                    )
+                )
+            except Exception:
+                pass
     except Exception:
         logger.exception("Database warm-up connection failed")
 

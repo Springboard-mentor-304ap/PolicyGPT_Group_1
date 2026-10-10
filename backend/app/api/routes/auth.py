@@ -2077,7 +2077,7 @@ def _admin_remove_user_safely(
         current_user,
         "AUTH_ADMIN_USER_DELETED",
         "USER",
-        None,
+        removed_id,
         f"Admin deleted user {removed_email or removed_phone} ({removed_role}, user_id {removed_id}).",
     )
 

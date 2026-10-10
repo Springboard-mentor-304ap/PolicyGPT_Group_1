@@ -443,3 +443,49 @@ def test_policy_submit_without_background_tasks_stays_synchronous():
         out = policy_service.submit_policy(db, 10, admin(1))
     assert out.status == "APPROVED"
     assert approved_mock.called
+
+
+# ----------------------------------- approve notification deferral
+
+
+def test_policy_approve_defers_fan_out_to_background():
+    pol = fake_policy(status="PENDING_APPROVAL", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        out = policy_service.approve_policy(
+            db, 10, admin(1), background_tasks=bt
+        )
+    assert out.status == "APPROVED"
+    assert out.approved_by == 1
+    assert len(bt.tasks) == 1
+    assert not approved_mock.called
+
+
+def test_policy_approve_deferred_task_notifies_with_own_session():
+    pol = fake_policy(status="PENDING_APPROVAL", created_by=2)
+    db = make_db(pol)
+    bt = _FakeBackgroundTasks()
+    with patch("app.services.notification_service.notify_policy_approved"):
+        policy_service.approve_policy(db, 10, admin(1), background_tasks=bt)
+    fn, args, kwargs = bt.tasks[0]
+    worker_db = MagicMock()
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        fn(args[0], db=worker_db)
+    assert approved_mock.called
+    assert approved_mock.call_args.kwargs["policy_id"] == 10
+
+
+def test_policy_approve_without_background_tasks_stays_synchronous():
+    pol = fake_policy(status="PENDING_APPROVAL", created_by=2)
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_policy_approved"
+    ) as approved_mock:
+        out = policy_service.approve_policy(db, 10, admin(1))
+    assert out.status == "APPROVED"
+    assert approved_mock.called

@@ -135,6 +135,13 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   confirmText = "Confirm";
   showCancelConfirm = true;
 
+  // Structured approval message parts (bold policy title, no quotes).
+  // Set only by openApproveModal; cleared centrally in closeMenu() so no
+  // other dialog can inherit them.
+  confirmMessageBefore = "";
+  confirmHighlight = "";
+  confirmMessageAfter = "";
+
   reasonModalOpen = false;
   reasonTitle = "";
   reasonMessage = "";
@@ -167,6 +174,19 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       value: s,
       label: this.getStatusLabel(s),
     }));
+  }
+
+  /** Sort options for the register. Default preserves the established
+   * newest-activity-first ordering. */
+  selectedSort = "latest";
+
+  get sortOptions(): { value: string; label: string }[] {
+    return [
+      { value: "ascending", label: "Ascending" },
+      { value: "descending", label: "Descending" },
+      { value: "latest", label: "Latest" },
+      { value: "oldest", label: "Oldest" },
+    ];
   }
 
   policies: PolicyTableItem[] = [];
@@ -356,7 +376,41 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   /** Newest activity first, across the whole register (all pages). */
   private sortPoliciesByActivity(): void {
-    this.policies.sort((a, b) => this.activityTime(b) - this.activityTime(a));
+    this.sortPolicies();
+  }
+
+  /**
+   * Register ordering for the selected Sort By option (applied to the
+   * full local dataset before pagination slicing, so ordering holds
+   * across pages). Title sorts are locale-aware; timestamp sorts reuse
+   * the updated_at → created_at activity basis; id breaks ties so the
+   * order is deterministic. Missing timestamps sort last for Latest and
+   * first for Oldest via the zero fallback in activityTime().
+   */
+  private sortPolicies(): void {
+    this.policies.sort((a, b) => {
+      switch (this.selectedSort) {
+        case "ascending":
+          return (
+            a.title.localeCompare(b.title, "en", {
+              sensitivity: "base",
+              numeric: true,
+            }) || a.id - b.id
+          );
+        case "descending":
+          return (
+            b.title.localeCompare(a.title, "en", {
+              sensitivity: "base",
+              numeric: true,
+            }) || a.id - b.id
+          );
+        case "oldest":
+          return this.activityTime(a) - this.activityTime(b) || a.id - b.id;
+        case "latest":
+        default:
+          return this.activityTime(b) - this.activityTime(a) || a.id - b.id;
+      }
+    });
   }
 
   get filteredPolicies(): PolicyTableItem[] {
@@ -418,6 +472,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
+    this.sortPolicies();
     this.currentPage = 1;
     this.closeMenu();
     this.cdr.detectChanges();
@@ -426,6 +481,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   resetFilters(): void {
     this.searchText = "";
     this.selectedStatus = "";
+    this.selectedSort = "latest";
+    this.sortPolicies();
     this.currentPage = 1;
     this.closeMenu();
     this.cdr.detectChanges();
@@ -445,6 +502,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.menuOpenId = null;
       this.cdr.detectChanges();
     }
+    this.confirmMessageBefore = "";
+    this.confirmHighlight = "";
+    this.confirmMessageAfter = "";
     this.closeExportMenu();
   }
 
@@ -732,7 +792,12 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     }
     const policyTitle = policy.title || "Untitled Policy";
     this.confirmTitle = "Approve Policy";
-    this.confirmMessage = `Are you sure you want to approve "${policyTitle}"?`;
+    // Bold, quoteless title via the shared dialog's highlight inputs;
+    // plain quoteless fallback kept in confirmMessage.
+    this.confirmMessageBefore = "Are you sure you want to approve ";
+    this.confirmHighlight = policyTitle;
+    this.confirmMessageAfter = "?";
+    this.confirmMessage = `Are you sure you want to approve ${policyTitle}?`;
     this.confirmVariant = "success";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;

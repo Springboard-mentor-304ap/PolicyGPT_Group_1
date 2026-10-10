@@ -585,7 +585,7 @@ button {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px auto;
+  grid-template-columns: minmax(0, 1fr) 250px 230px auto;
   gap: 15px;
   align-items: end;
 }
@@ -1553,11 +1553,16 @@ td {
   }
 
   .filter-grid {
-    grid-template-columns: minmax(0, 1fr) 240px;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .filter-grid .search-control {
+    grid-column: 1 / -1;
   }
 
   .export-wrap {
-    grid-column: 2;
+    grid-column: 1 / -1;
+    justify-self: end;
   }
 }
 

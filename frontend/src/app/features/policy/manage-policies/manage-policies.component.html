@@ -154,7 +154,7 @@
                 <p>Search the official policy register or filter records by status.</p>
             </div>
 
-            @if (searchText || selectedStatus) {
+            @if (searchText || selectedStatus || selectedSort !== 'latest') {
             <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
                 <span class="material-icons">restart_alt</span>
                 Clear filters
@@ -189,6 +189,13 @@
 
                 <app-searchable-select id="policy-status" icon="flag" placeholder="All statuses" [searchable]="false"
                     [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
+            </div>
+
+            <div class="form-field">
+                <label for="policy-sort">Sort by</label>
+
+                <app-searchable-select id="policy-sort" icon="sort" placeholder="Latest" [searchable]="false"
+                    [options]="sortOptions" [(ngModel)]="selectedSort" (selectionChange)="applyFilters()" />
             </div>
 
             <div class="export-wrap">
@@ -270,7 +277,7 @@
                     Try another keyword or clear the workflow status filter.
                 </span>
 
-                @if (searchText || selectedStatus) {
+                @if (searchText || selectedStatus || selectedSort !== 'latest') {
                 <button type="button" class="secondary-action" (click)="resetFilters(); $event.stopPropagation()">
                     Clear filters
                 </button>
@@ -621,9 +628,10 @@
 
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-        [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
-        (cancelled)="onConfirmModalCancelled()">
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight"
+        [messageAfter]="confirmMessageAfter" [variant]="confirmVariant" [isLoading]="confirmLoading"
+        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="showCancelConfirm"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"

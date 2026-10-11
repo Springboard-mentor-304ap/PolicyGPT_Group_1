@@ -29,6 +29,11 @@ import {
   getCategoryIconName,
   getCategoryIconStyle,
 } from "../../../core/utils/category-icon.util";
+import {
+  SavedEligibilityGroup,
+  mapSavedEligibilityRules,
+  normalizeStringList,
+} from "./policy-eligibility.util";
 
 interface EligibilityRule {
   rule_id: number;
@@ -651,7 +656,33 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   get benefits(): string[] {
-    return this.policy?.benefits || [];
+    // Backend stores TEXT[]; older or serialized payloads may arrive
+    // as a JSON string. Normalize so *ngFor never iterates characters.
+    return normalizeStringList(this.policy?.benefits);
+  }
+
+  /** Key objectives entered in the Add Policy form (bullet list). */
+  get keyObjectives(): string[] {
+    return normalizeStringList(this.policy?.key_objectives);
+  }
+
+  /**
+   * Eligibility criteria submitted with the policy, read from the
+   * saved policy record itself (policy.eligibility_rules). The
+   * separate eligibility-rules API only holds relationally managed
+   * rules, so the saved record is the source of truth here.
+   */
+  get savedEligibilityGroups(): SavedEligibilityGroup[] {
+    return mapSavedEligibilityRules(this.policy?.eligibility_rules);
+  }
+
+  get hasSavedEligibility(): boolean {
+    return this.savedEligibilityGroups.length > 0;
+  }
+
+  /** True when either the saved record or the rules API has criteria. */
+  get hasAnyEligibility(): boolean {
+    return this.hasSavedEligibility || this.eligibilityRules.length > 0;
   }
 
   get hasDocument(): boolean {

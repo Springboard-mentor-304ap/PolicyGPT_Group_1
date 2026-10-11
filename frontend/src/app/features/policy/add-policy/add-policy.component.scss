@@ -192,9 +192,40 @@ $success-border: #bbf7d0;
 
   &__track {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
+    position: relative;
+
+    /*
+     * Full-width light-gray base line running circle-center to
+     * circle-center. Five equal columns put the centers at
+     * 10/30/50/70/90% of the track at every viewport width.
+     */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #e2e8f0;
+    }
+  }
+
+  /*
+   * Animated blue progress layer above the base line. Width is bound
+   * to the active step (0/20/40/60/80%) and eases between values, so
+   * the line grows and retracts progressively instead of jumping.
+   * Circles (z-index 1, opaque) paint above both layers.
+   */
+  &__progress {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 0;
+    height: 2px;
+    background: $primary-blue;
+    transition: width 400ms ease-in-out;
   }
 
   &__step {
@@ -203,7 +234,11 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    min-width: 110px;
+    /* Equal columns keep the 10/30/50/70/90% track circle centers
+       (see __track::before / __progress below) aligned at any width. */
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
     user-select: none;
     transition: transform 0.15s ease;
 
@@ -224,6 +259,8 @@ $success-border: #bbf7d0;
     background: #ffffff;
     border: 2px solid #cbd5e1;
     color: #64748b;
+    position: relative;
+    z-index: 1;
     transition: all 0.25s ease;
 
     .material-icons {
@@ -239,18 +276,6 @@ $success-border: #bbf7d0;
     text-align: center;
     white-space: nowrap;
     transition: color 0.25s ease;
-  }
-
-  &__line {
-    flex: 1;
-    height: 2px;
-    background: #e2e8f0;
-    margin: 0 12px 22px 12px;
-    transition: background 0.25s ease;
-
-    &--active {
-      background: $primary-blue;
-    }
   }
 
   &__step--active {
@@ -278,6 +303,64 @@ $success-border: #bbf7d0;
       color: #334155;
       font-weight: 600;
     }
+  }
+}
+
+/* =========================================================
+   STEP-TRANSITION ANIMATION (CSS-only, no animation library)
+   ========================================================= */
+
+/*
+ * Each step's content is created fresh on navigation (@if blocks), so
+ * attaching the entrance animation to the recreated .policy-layout
+ * replays it on every successful step change with no reflow hacks.
+ * Validation failures never reach a navigation, so no transition runs.
+ * The direction class lives on the form and only affects step content,
+ * never the stepper itself (which has its own 0.25s transitions).
+ */
+@keyframes policyStepInForward {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes policyStepInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.step-anim-forward .policy-layout {
+  animation: policyStepInForward 0.25s ease-out;
+}
+
+.step-anim-back .policy-layout {
+  animation: policyStepInBack 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-anim-forward .policy-layout,
+  .step-anim-back .policy-layout {
+    animation: none;
+  }
+
+  .policy-stepper__step,
+  .policy-stepper__circle,
+  .policy-stepper__label,
+  .policy-stepper__progress {
+    transition: none;
   }
 }
 
@@ -1014,6 +1097,84 @@ $success-border: #bbf7d0;
   padding-left: 20px;
 }
 
+// Additional Conditions Editor: keyword blocks with nested values,
+// reusing .dynamic-row value rows.
+.condition-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.condition-block__row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.condition-block__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-block__row .btn-icon-danger {
+  flex-shrink: 0;
+  margin-bottom: 1px;
+}
+
+.condition-block__values-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dynamic-row.kv-row {
+  align-items: center;
+
+  .kv-value {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-icon-danger {
+    flex-shrink: 0;
+  }
+}
+
+.btn-dashed-add--small {
+  width: auto;
+  flex-shrink: 0;
+  height: 44px;
+  margin-top: 0;
+  padding: 0 16px;
+  align-self: auto;
+
+  .material-icons {
+    font-size: 18px;
+  }
+}
+
+// Beneficiary rows reuse the Benefits .dynamic-list pattern above,
+// so no extra row styles are needed here.
+
+@media (max-width: 640px) {
+  .condition-block__row {
+    flex-wrap: wrap;
+  }
+
+  .condition-block__field {
+    flex: 1 1 100%;
+  }
+}
+
 // =========================================================
 // STEP 4: DOCUMENTS & LINKS
 // =========================================================
@@ -1596,12 +1757,6 @@ $success-border: #bbf7d0;
   min-width: 100px;
 }
 
-.policy-stepper__line {
-  min-width: 20px;
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
 /* Main layout */
 .policy-layout {
   width: 100%;
@@ -1737,6 +1892,10 @@ $success-border: #bbf7d0;
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.review-kv-line {
+  display: block;
 }
 
 .link-external {

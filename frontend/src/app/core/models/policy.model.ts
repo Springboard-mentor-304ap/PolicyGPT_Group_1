@@ -21,6 +21,11 @@ export interface PolicyBase {
   source_url?: string | null;
   benefits?: string[] | null;
   eligibility_rules?: Record<string, any>[] | null;
+  key_objectives?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
+  documents_required?: string | null;
+  implementation_process?: string | null;
 }
 
 export interface PolicyCreate extends PolicyBase {}
@@ -39,6 +44,11 @@ export interface PolicyUpdate {
   source_url?: string | null;
   benefits?: string[] | null;
   eligibility_rules?: Record<string, any>[] | null;
+  key_objectives?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
+  documents_required?: string | null;
+  implementation_process?: string | null;
 }
 
 export interface PolicyResponse extends PolicyBase {

@@ -13,10 +13,6 @@
         <div class="policy-create__header-left">
 
             <div class="policy-create__title-row">
-                <button type="button" class="policy-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
-                    aria-label="Previous step">
-                    <span class="material-icons">arrow_back</span>
-                </button>
 
                 <div class="policy-create__title-box">
                     <h1 class="policy-create__title">{{ isEditMode ? 'Edit Policy' : 'Add New Policy' }}</h1>
@@ -41,19 +37,10 @@
         <div class="policy-create__header-right">
             <button type="button" class="policy-create__btn-draft"
                 [disabled]="isReadOnly || isSaving || isSubmitting || isApproving || modalType !== null"
-                (click)="saveDraft()">
+                (click)="openSaveDraftConfirm()">
                 <span class="material-icons">save</span>
                 <span>Save as Draft</span>
             </button>
-
-            @if (currentStep === 5) {
-            <div class="policy-create__emblem-tag">
-                <div class="policy-create__emblem-text">
-                    <span>Transparent Governance</span>
-                    <strong>Stronger Citizens</strong>
-                </div>
-            </div>
-            }
         </div>
     </div>
 
@@ -101,6 +88,8 @@
        ========================================================= -->
     <div class="policy-stepper" aria-label="Progress">
         <div class="policy-stepper__track">
+            <!-- Animated progress fill (width follows the active step) -->
+            <div class="policy-stepper__progress" [style.width.%]="stepperProgress" aria-hidden="true"></div>
             <!-- STEP 1 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 1"
                 [class.policy-stepper__step--completed]="completedSteps.has(1)" (click)="goToStep(1)">
@@ -113,9 +102,6 @@
                 </div>
                 <span class="policy-stepper__label">Basic Information</span>
             </div>
-
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 1 || completedSteps.has(1)"></div>
 
             <!-- STEP 2 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 2"
@@ -130,9 +116,6 @@
                 <span class="policy-stepper__label">Classification &amp; Timeline</span>
             </div>
 
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 2 || completedSteps.has(2)"></div>
-
             <!-- STEP 3 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 3"
                 [class.policy-stepper__step--completed]="completedSteps.has(3)" (click)="goToStep(3)">
@@ -146,9 +129,6 @@
                 <span class="policy-stepper__label">Eligibility &amp; Scope</span>
             </div>
 
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 3 || completedSteps.has(3)"></div>
-
             <!-- STEP 4 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 4"
                 [class.policy-stepper__step--completed]="completedSteps.has(4)" (click)="goToStep(4)">
@@ -161,9 +141,6 @@
                 </div>
                 <span class="policy-stepper__label">Documents &amp; Links</span>
             </div>
-
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 4 || completedSteps.has(4)"></div>
 
             <!-- STEP 5 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 5"
@@ -181,7 +158,8 @@
     </div>
 
     <!-- FORM CONTAINER -->
-    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" novalidate>
+    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" novalidate
+        [class.step-anim-forward]="stepTransition === 'forward'" [class.step-anim-back]="stepTransition === 'back'">
         <!-- =========================================================
          STEP 1: BASIC INFORMATION
          ========================================================= -->
@@ -233,7 +211,8 @@
                         </label>
                         <app-searchable-select id="policy-category" formControlName="category" [options]="categories"
                             placeholder="Select category" searchPlaceholder="Search or select category..."
-                            icon="grid_view" [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
+                            icon="grid_view" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Choose the primary category that best fits this policy.</p>
                         @if (stepSubmitted[1] && policyForm.get('category')?.invalid) {
@@ -271,7 +250,7 @@
                     <!-- BENEFITS -->
                     <div class="form-group form-group--full">
                         <label class="form-label">
-                            Policy Benefits
+                            Policy Benefits <span class="required">*</span>
                             <span class="material-icons info-icon-inline"
                                 title="Key benefits and societal outcomes">info_outline</span>
                         </label>
@@ -293,6 +272,9 @@
                                 <span>Add Benefit</span>
                             </button>
                         </div>
+                        @if (stepSubmitted[1] && !hasAtLeastOneBenefit()) {
+                        <span class="form-error">At least one policy benefit is required.</span>
+                        }
                         <p class="form-helper">List the key tangible benefits provided under this policy.</p>
                     </div>
                 </div>
@@ -384,44 +366,62 @@
                 <div class="policy-form-grid">
                     <!-- MINISTRY -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-ministry">Ministry</label>
+                        <label class="form-label" for="policy-ministry">Ministry <span class="required">*</span></label>
                         <app-searchable-select id="policy-ministry" formControlName="ministry" [options]="ministries"
                             placeholder="Select ministry" searchPlaceholder="Search or select ministry..."
-                            icon="account_balance" (selectionChange)="onMinistryChange($event)">
+                            icon="account_balance" [allowCustom]="true" (selectionChange)="onMinistryChange($event)"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('ministry')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Select the concerned government ministry.</p>
+                        @if (stepSubmitted[2] && policyForm.get('ministry')?.invalid) {
+                        <span class="form-error">Ministry is required.</span>
+                        }
                     </div>
 
                     <!-- DEPARTMENT -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-department">Department</label>
+                        <label class="form-label" for="policy-department">Department <span
+                                class="required">*</span></label>
                         <app-searchable-select id="policy-department" formControlName="department"
                             [options]="departmentOptions"
                             [placeholder]="policyForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
-                            searchPlaceholder="Search or select department..." icon="apartment"
-                            [disabled]="!policyForm.get('ministry')?.value">
+                            searchPlaceholder="Search or select department..." icon="apartment" [allowCustom]="true"
+                            [disabled]="!policyForm.get('ministry')?.value"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('department')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Select the nodal department managing this policy.</p>
+                        @if (stepSubmitted[2] && policyForm.get('department')?.invalid) {
+                        <span class="form-error">Department is required.</span>
+                        }
                     </div>
 
                     <!-- STATE / REGION -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-state">State / Geographic Scope</label>
+                        <label class="form-label" for="policy-state">State / Geographic Scope <span
+                                class="required">*</span></label>
                         <app-searchable-select id="policy-state" formControlName="state" [options]="states"
                             placeholder="Select state / region" searchPlaceholder="Search or select state..."
-                            icon="location_on">
+                            icon="location_on" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('state')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Applicable state or region (or All India).</p>
+                        @if (stepSubmitted[2] && policyForm.get('state')?.invalid) {
+                        <span class="form-error">State / Geographic Scope is required.</span>
+                        }
                     </div>
 
                     <!-- SECTOR -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-sector">Sector</label>
+                        <label class="form-label" for="policy-sector">Sector <span class="required">*</span></label>
                         <app-searchable-select id="policy-sector" formControlName="sector" [options]="sectors"
                             placeholder="Select sector" searchPlaceholder="Search or select sector..."
-                            icon="business_center">
+                            icon="business_center" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('sector')?.invalid)">
                         </app-searchable-select>
                         <p class="form-helper">Economic or administrative sector category.</p>
+                        @if (stepSubmitted[2] && policyForm.get('sector')?.invalid) {
+                        <span class="form-error">Sector is required.</span>
+                        }
                     </div>
 
                     <!-- PUBLICATION DATE -->
@@ -578,25 +578,31 @@
                             <span>Target Beneficiaries <span class="required">*</span></span>
                         </div>
                         <div class="criteria-row__inputs">
-                            <div class="input-with-icon">
-                                <span class="material-icons input-icon">groups</span>
-                                <input type="text" class="form-control" formControlName="targetBeneficiaries"
-                                    placeholder="e.g. Students, Higher Educational Institutions, Research Organizations, Faculty"
-                                    maxlength="500" [class.is-invalid]="
-                      stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid
-                    " />
+                            <div formArrayName="targetBeneficiaries" class="dynamic-list">
+                                @for (beneficiaryCtrl of beneficiaryControls.controls; track $index; let i = $index) {
+                                <div class="dynamic-row">
+                                    <input type="text" class="form-control" [formControlName]="i"
+                                        [placeholder]="i === 0 ? 'Enter a beneficiary' : 'Enter another beneficiary'"
+                                        maxlength="500" [attr.aria-label]="'Beneficiary ' + (i + 1)" />
+                                    <button type="button" class="btn-icon-danger" (click)="removeBeneficiary(i)"
+                                        [attr.aria-label]="'Remove beneficiary ' + (i + 1)">
+                                        <span class="material-icons">delete_outline</span>
+                                    </button>
+                                </div>
+                                }
+                                <button type="button" class="btn-dashed-add" (click)="addBeneficiaryRow()">
+                                    <span class="material-icons">add</span>
+                                    <span>Add Beneficiary</span>
+                                </button>
                             </div>
                             <div class="form-helper-row">
                                 <span class="form-helper">
                                     Mention the primary demographic, institutional, or societal groups impacted by this
                                     policy.
                                 </span>
-                                <span class="char-counter">
-                                    {{ policyForm.get('targetBeneficiaries')?.value?.length || 0 }}/500 characters
-                                </span>
                             </div>
                             @if (stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid) {
-                            <span class="form-error">Target beneficiaries is required.</span>
+                            <span class="form-error">At least one target beneficiary is required.</span>
                             }
                         </div>
                     </div>
@@ -628,6 +634,13 @@
                                 <span class="form-helper">Leave blank if no upper limit.</span>
                             </div>
                         </div>
+                        @if (stepSubmitted[3] && (policyForm.get('minAge')?.invalid ||
+                        policyForm.get('maxAge')?.invalid)) {
+                        <span class="form-error">Enter valid whole-number ages (0 or above).</span>
+                        }
+                        @if (stepSubmitted[3] && policyForm.hasError('ageRange')) {
+                        <span class="form-error">Minimum age must not exceed maximum age.</span>
+                        }
                     </div>
 
                     <!-- GENDER -->
@@ -672,6 +685,9 @@
                                     formControlName="annualIncome" placeholder="e.g. 800000" />
                             </div>
                             <span class="form-helper">Income ceiling for policy eligibility (if applicable).</span>
+                            @if (stepSubmitted[3] && policyForm.get('annualIncome')?.invalid) {
+                            <span class="form-error">Enter a valid non-negative income amount.</span>
+                            }
                         </div>
                     </div>
 
@@ -714,11 +730,11 @@
                         <span class="material-icons additional-criteria-box__icon">rule</span>
                         <div>
                             <h4 class="additional-criteria-box__title">
-                                Additional Eligibility Rules (JSONB) <span class="optional">(Optional)</span>
+                                Additional Conditions <span class="optional">(Optional)</span>
                             </h4>
                             <p class="additional-criteria-box__sub">
-                                Add specific regulatory, operational or institutional conditions stored in the policy
-                                schema.
+                                Add specific regulatory, operational or institutional conditions as
+                                condition–value pairs.
                             </p>
                         </div>
                     </div>
@@ -728,23 +744,53 @@
                     </button>
                 </div>
 
-                <!-- Dynamic Conditions List -->
-                @if (additionalEligibilityConditions.length > 0) {
+                <!-- Conditions Editor -->
                 <div class="additional-criteria-list">
-                    @for (cond of additionalEligibilityConditions; track $index; let i = $index) {
-                    <div class="dynamic-row">
-                        <span class="material-icons row-icon">check_circle_outline</span>
-                        <input type="text" class="form-control" [(ngModel)]="additionalEligibilityConditions[i]"
-                            [ngModelOptions]="{ standalone: true }"
-                            placeholder="e.g. Must hold a recognized NAAC accreditation grade" />
-                        <button type="button" class="btn-icon-danger" (click)="removeEligibilityCondition(i)"
-                            aria-label="Remove condition">
-                            <span class="material-icons">delete_outline</span>
+                    @for (block of conditionBlocks; track $index; let bi = $index) {
+                    <div class="condition-block">
+                        <div class="condition-block__row">
+                            <div class="condition-block__field">
+                                <label class="sub-label" [for]="'policy-cond-key-' + bi">Keyword /
+                                    Condition</label>
+                                <input type="text" class="form-control" [id]="'policy-cond-key-' + bi"
+                                    [(ngModel)]="block.keyword" [ngModelOptions]="{ standalone: true }" maxlength="120"
+                                    placeholder="Enter a keyword" [attr.aria-label]="'Condition keyword ' + (bi + 1)" />
+                            </div>
+                            <button type="button" class="btn-icon-danger" (click)="removeEligibilityCondition(bi)"
+                                [attr.aria-label]="'Remove condition ' + (bi + 1)">
+                                <span class="material-icons">delete_outline</span>
+                            </button>
+                        </div>
+                        @if (block.keyword && isConditionKeyDuplicate(block)) {
+                        <span class="form-error">This keyword is already used. Keywords must be unique.</span>
+                        }
+                        <div class="condition-block__values-label">Values</div>
+                        @for (v of block.values; track $index; let vi = $index) {
+                        <div class="dynamic-row kv-row">
+                            <input type="text" class="form-control kv-value" [(ngModel)]="block.values[vi]"
+                                [ngModelOptions]="{ standalone: true }" maxlength="500" placeholder="Enter a value"
+                                [attr.aria-label]="'Value ' + (vi + 1) + ' for condition ' + (bi + 1)" />
+                            <button type="button" class="btn-icon-danger" (click)="removeConditionValue(bi, vi)"
+                                [attr.aria-label]="'Remove value ' + (vi + 1) + ' from condition ' + (bi + 1)">
+                                <span class="material-icons">delete_outline</span>
+                            </button>
+                        </div>
+                        }
+                        <button type="button" class="btn-dashed-add btn-dashed-add--small"
+                            (click)="addConditionValue(bi)">
+                            <span class="material-icons">add</span>
+                            <span>Add Value</span>
                         </button>
                     </div>
                     }
+                    @if (conditionBlocks.length === 0) {
+                    <p class="form-helper">No additional conditions added. Use Add Condition to add extra criteria.</p>
+                    }
+                    @if (stepSubmitted[3] && hasDuplicateConditionKeys()) {
+                    <span class="form-error">Each condition keyword must be unique. Remove or rename duplicates to
+                        continue.</span>
+                    }
                 </div>
-                }
             </div>
         </div>
         }
@@ -1055,8 +1101,15 @@
                             <div class="review-item review-item--full">
                                 <span class="review-item__label">Target Beneficiaries</span>
                                 <span class="review-item__colon">:</span>
-                                <span class="review-item__value">{{ policyForm.get('targetBeneficiaries')?.value || 'Not
-                                    provided' }}</span>
+                                <span class="review-item__value">
+                                    @if (filteredBeneficiaries.length > 0) {
+                                    @for (b of filteredBeneficiaries; track $index) {
+                                    <span class="review-kv-line">{{ b }}</span>
+                                    }
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                </span>
                             </div>
 
                             <div class="review-item">
@@ -1084,11 +1137,24 @@
                                     }}</span>
                             </div>
 
-                            @if (additionalEligibilityConditions.length > 0) {
+                            @if (conditionBlocks.length > 0) {
                             <div class="review-item review-item--full">
-                                <span class="review-item__label">Eligibility Rules (JSONB)</span>
+                                <span class="review-item__label">Additional Conditions</span>
                                 <span class="review-item__colon">:</span>
-                                <span class="review-item__value">{{ additionalEligibilityConditions.join(', ') }}</span>
+                                <span class="review-item__value">
+                                    @for (block of conditionBlocks; track $index) {
+                                    @if (blockHasContent(block)) {
+                                    <span class="review-kv-line">
+                                        @if (block.keyword.trim()) {
+                                        <strong>{{ block.keyword.trim() }}</strong>{{ conditionBlockValues(block).length
+                                        ? ': ' + conditionBlockValues(block).join(', ') : '' }}
+                                        } @else {
+                                        {{ conditionBlockValues(block).join(', ') }}
+                                        }
+                                    </span>
+                                    }
+                                    }
+                                </span>
                             </div>
                             }
                         </div>
@@ -1320,5 +1386,13 @@
         </div>
     </div>
     }
+
+    <!-- Pre-action confirmation (Save as Draft / Submit) -->
+    <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading"
+        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="true"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+    </app-confirm-modal>
 
 </div>

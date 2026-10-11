@@ -206,6 +206,22 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
                   <span>{{ emptyText }}</span>
                 </div>
               }
+              @if (customCandidate) {
+                <div
+                  class="option-item is-custom-option"
+                  (click)="selectOption(customCandidate)"
+                  (mouseenter)="highlightedIndex = displayedOptions.length"
+                  role="option"
+                  [attr.aria-selected]="false"
+                >
+                  <span class="option-label"
+                    >{{ customText }}: “{{ customCandidate }}”</span
+                  >
+                  <span class="material-icons check-icon" aria-hidden="true"
+                    >add</span
+                  >
+                </div>
+              }
             }
           </div>
         </div>
@@ -500,6 +516,11 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
           font-weight: 600;
         }
 
+        &.is-custom-option .option-label {
+          color: #1d4ed8;
+          font-style: italic;
+        }
+
         &:focus-visible {
           outline: 2px solid #1d4ed8;
           outline-offset: -2px;
@@ -578,6 +599,15 @@ export class SearchableSelectComponent implements ControlValueAccessor {
   @Input() allOptionLabel?: string;
   /** Set false for small fixed lists (status, priority) to keep a compact menu. */
   @Input() searchable: boolean = true;
+  /**
+   * Allow entering a custom value not present in `options` ("Use ..."
+   * row). Off by default so existing callers keep strict selection.
+   * The raw string is emitted through the normal ControlValueAccessor
+   * flow; backends accepting plain strings receive it directly.
+   */
+  @Input() allowCustom: boolean = false;
+  /** Label prefix for the custom-value row. */
+  @Input() customText: string = "Use custom value";
   /** 'default' (46px form control) or 'filter'/'compact' (38px filter control). */
   @Input() size: "default" | "filter" | "compact" = "default";
   @Input() loading: boolean = false;
@@ -673,6 +703,22 @@ export class SearchableSelectComponent implements ControlValueAccessor {
         opt.label.toLowerCase().includes(term) ||
         opt.value.toLowerCase().includes(term),
     );
+  }
+
+  /**
+   * Trimmed search text eligible as a custom value: non-empty with no
+   * case-insensitive exact match among the options (avoids near-duplicate
+   * variants of an existing option). Null when custom entry is off.
+   */
+  get customCandidate(): string | null {
+    if (!this.allowCustom || this.disabled) return null;
+    const term = (this.searchTerm || "").trim();
+    if (!term) return null;
+    const lower = term.toLowerCase();
+    const exact = this.normalizedOptions.some(
+      (o) => o.value.toLowerCase() === lower || o.label.toLowerCase() === lower,
+    );
+    return exact ? null : term;
   }
 
   toggleDropdown(): void {
@@ -815,6 +861,9 @@ export class SearchableSelectComponent implements ControlValueAccessor {
           this.selectOption(opts[this.highlightedIndex].value);
         } else if (opts.length === 1) {
           this.selectOption(opts[0].value);
+        } else if (this.customCandidate) {
+          // Keyboard path for the custom-value row.
+          this.selectOption(this.customCandidate);
         }
         break;
 

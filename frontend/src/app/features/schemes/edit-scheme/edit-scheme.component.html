@@ -13,15 +13,6 @@
       </nav>
 
       <div class="scheme-create__title-row">
-        <button type="button" class="scheme-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
-          aria-label="Previous step">
-          <span class="material-icons">arrow_back</span>
-        </button>
-
-        <button type="button" class="scheme-create__back-btn" (click)="cancel()" *ngIf="currentStep === 1"
-          aria-label="Back to manage schemes">
-          <span class="material-icons">arrow_back</span>
-        </button>
 
         <div class="scheme-create__title-box">
           <h1 class="scheme-create__title">
@@ -39,15 +30,6 @@
         <span class="material-icons">save</span>
         <span>Save as Draft</span>
       </button>
-
-      @if (currentStep === 5) {
-      <div class="scheme-create__emblem-tag">
-        <div class="scheme-create__emblem-text">
-          <span>Transparent Governance</span>
-          <strong>Stronger Citizens</strong>
-        </div>
-      </div>
-      }
     </div>
   </div>
 
@@ -182,13 +164,8 @@
             <label class="form-label" for="edit-scheme-category">
               Category <span class="required">*</span>
             </label>
-            <app-searchable-select
-              id="edit-scheme-category"
-              formControlName="category"
-              [options]="categories"
-              placeholder="Select category"
-              searchPlaceholder="Search or select category..."
-              icon="grid_view"
+            <app-searchable-select id="edit-scheme-category" formControlName="category" [options]="categories"
+              placeholder="Select category" searchPlaceholder="Search or select category..." icon="grid_view"
               [isInvalid]="!!(stepSubmitted[1] && schemeForm.get('category')?.invalid)">
             </app-searchable-select>
             <p class="form-helper">Category classification.</p>
@@ -200,13 +177,8 @@
           <!-- MINISTRY -->
           <div class="form-group">
             <label class="form-label" for="edit-scheme-ministry">Ministry</label>
-            <app-searchable-select
-              id="edit-scheme-ministry"
-              formControlName="ministry"
-              [options]="ministries"
-              placeholder="Select ministry"
-              searchPlaceholder="Search or select ministry..."
-              icon="account_balance"
+            <app-searchable-select id="edit-scheme-ministry" formControlName="ministry" [options]="ministries"
+              placeholder="Select ministry" searchPlaceholder="Search or select ministry..." icon="account_balance"
               (selectionChange)="onMinistryChange($event)">
             </app-searchable-select>
             <p class="form-helper">Nodal ministry responsible.</p>
@@ -215,13 +187,9 @@
           <!-- DEPARTMENT -->
           <div class="form-group">
             <label class="form-label" for="edit-scheme-dept">Department</label>
-            <app-searchable-select
-              id="edit-scheme-dept"
-              formControlName="department"
-              [options]="departmentOptions"
+            <app-searchable-select id="edit-scheme-dept" formControlName="department" [options]="departmentOptions"
               [placeholder]="schemeForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
-              searchPlaceholder="Search or select department..."
-              icon="apartment"
+              searchPlaceholder="Search or select department..." icon="apartment"
               [disabled]="!schemeForm.get('ministry')?.value">
             </app-searchable-select>
             <p class="form-helper">Nodal department.</p>
@@ -230,13 +198,8 @@
           <!-- STATE / REGION -->
           <div class="form-group form-group--half">
             <label class="form-label" for="edit-scheme-state">State / Region</label>
-            <app-searchable-select
-              id="edit-scheme-state"
-              formControlName="state"
-              [options]="states"
-              placeholder="Select state / region"
-              searchPlaceholder="Search or select state..."
-              icon="location_on">
+            <app-searchable-select id="edit-scheme-state" formControlName="state" [options]="states"
+              placeholder="Select state / region" searchPlaceholder="Search or select state..." icon="location_on">
             </app-searchable-select>
             <p class="form-helper">Applicable region.</p>
           </div>
@@ -534,13 +497,9 @@
             </div>
             <div class="criteria-row__inputs">
               <div class="input-with-icon select-wrapper">
-                <app-searchable-select
-                  formControlName="education"
-                  icon="school"
-                  placeholder="Select minimum educational qualification"
-                  [searchable]="false"
-                  [options]="educationOptions"
-                />
+                <app-searchable-select formControlName="education" icon="school"
+                  placeholder="Select minimum educational qualification" [searchable]="false"
+                  [options]="educationOptions" />
               </div>
             </div>
           </div>
@@ -553,14 +512,9 @@
             </div>
             <div class="criteria-row__inputs">
               <div class="input-with-icon select-wrapper">
-                <app-searchable-select
-                  formControlName="occupation"
-                  icon="work_outline"
-                  placeholder="Select eligible occupation(s)"
-                  [searchable]="true"
-                  searchPlaceholder="Search occupations..."
-                  [options]="occupationOptions"
-                />
+                <app-searchable-select formControlName="occupation" icon="work_outline"
+                  placeholder="Select eligible occupation(s)" [searchable]="true"
+                  searchPlaceholder="Search occupations..." [options]="occupationOptions" />
               </div>
             </div>
           </div>
@@ -573,13 +527,9 @@
             </div>
             <div class="criteria-row__inputs">
               <div class="input-with-icon select-wrapper">
-                <app-searchable-select
-                  formControlName="socialCategory"
-                  icon="group"
-                  placeholder="Select applicable category(ies)"
-                  [searchable]="false"
-                  [options]="socialCategoryOptions"
-                />
+                <app-searchable-select formControlName="socialCategory" icon="group"
+                  placeholder="Select applicable category(ies)" [searchable]="false"
+                  [options]="socialCategoryOptions" />
               </div>
             </div>
           </div>
@@ -592,14 +542,9 @@
             </div>
             <div class="criteria-row__inputs">
               <div class="input-with-icon select-wrapper">
-                <app-searchable-select
-                  formControlName="eligibilityState"
-                  icon="location_on"
-                  placeholder="Select applicable state(s) or region(s)"
-                  [searchable]="true"
-                  searchPlaceholder="Search states..."
-                  [options]="states"
-                />
+                <app-searchable-select formControlName="eligibilityState" icon="location_on"
+                  placeholder="Select applicable state(s) or region(s)" [searchable]="true"
+                  searchPlaceholder="Search states..." [options]="states" />
               </div>
             </div>
           </div>

@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 # ============================================================
 # STATUS
@@ -16,6 +16,19 @@ PolicyStatus = Literal[
     "ARCHIVE_REQUESTED",
     "DELETE_REQUESTED",
 ]
+
+
+def _strip_text(value: Any) -> Any:
+    """Trim surrounding whitespace before length validation so
+    whitespace-only strings fail `min_length` instead of slipping
+    through as blank-but-present values."""
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
+#: Required short-text field: present, non-blank after trimming.
+NonEmptyStr = Annotated[str, BeforeValidator(_strip_text)]
 
 
 # ============================================================
@@ -41,23 +54,27 @@ class PolicyCreate(BaseModel):
         max_length=100,
     )
 
-    ministry: str | None = Field(
-        default=None,
+    ministry: NonEmptyStr = Field(
+        ...,
+        min_length=1,
         max_length=200,
     )
 
-    department: str | None = Field(
-        default=None,
+    department: NonEmptyStr = Field(
+        ...,
+        min_length=1,
         max_length=200,
     )
 
-    state: str | None = Field(
-        default=None,
+    state: NonEmptyStr = Field(
+        ...,
+        min_length=1,
         max_length=100,
     )
 
-    sector: str | None = Field(
-        default=None,
+    sector: NonEmptyStr = Field(
+        ...,
+        min_length=1,
         max_length=100,
     )
 
@@ -73,6 +90,17 @@ class PolicyCreate(BaseModel):
 
     # Eligibility module can manage these separately later.
     eligibility_rules: list[dict[str, Any]] | None = None
+
+    # Supplementary details (Add Policy form steps 2 & 4).
+    key_objectives: list[str] | None = None
+
+    additional_info: str | None = None
+
+    important_notes: str | None = None
+
+    documents_required: str | None = None
+
+    implementation_process: str | None = None
 
 
 # ============================================================
@@ -129,6 +157,17 @@ class PolicyUpdate(BaseModel):
     benefits: list[str] | None = None
 
     eligibility_rules: list[dict[str, Any]] | None = None
+
+    # Supplementary details (Add Policy form steps 2 & 4).
+    key_objectives: list[str] | None = None
+
+    additional_info: str | None = None
+
+    important_notes: str | None = None
+
+    documents_required: str | None = None
+
+    implementation_process: str | None = None
 
 
 # ============================================================
@@ -210,6 +249,18 @@ class PolicyResponse(BaseModel):
     benefits: list[str] | None
 
     eligibility_rules: list[dict[str, Any]] | None
+
+    # Supplementary details (Add Policy form steps 2 & 4). Older rows
+    # read as None/empty; the details page hides absent sections.
+    key_objectives: list[str] | None
+
+    additional_info: str | None
+
+    important_notes: str | None
+
+    documents_required: str | None
+
+    implementation_process: str | None
 
     created_by: int | None
 

@@ -629,6 +629,7 @@ def update_policy_route(
     policy_id: int,
     data: PolicyUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -643,6 +644,7 @@ def update_policy_route(
         policy_id=policy_id,
         data=data,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(

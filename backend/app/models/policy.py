@@ -108,6 +108,39 @@ class Policy(Base):
     )
 
     # ========================================================
+    # SUPPLEMENTARY DETAILS (ADD POLICY FORM, STEPS 2 & 4)
+    # ========================================================
+    # Collected by the Add Policy form (key objectives, additional
+    # info/notes, compliance documents, implementation workflow) and
+    # shown on the Policy Details page. All optional; older rows read
+    # as None.
+
+    key_objectives: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+    )
+
+    additional_info: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    important_notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    documents_required: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    implementation_process: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    # ========================================================
     # ELIGIBILITY RULES
     # ========================================================
 

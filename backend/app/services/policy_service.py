@@ -190,6 +190,41 @@ def _calculate_pages(
     return ceil(total / limit)
 
 
+def _clean_text_block(value: str | None) -> str | None:
+    """Trimmed free-text block, or None when empty.
+
+    Used for the supplementary Add Policy details (objectives notes,
+    compliance documents, implementation workflow) so blank inputs
+    never persist as whitespace.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+#: Mandatory classification fields: required on create (Pydantic) and
+#: rejected when blank on update (service-level, preserving PATCH
+#: semantics where omitted fields are left untouched).
+REQUIRED_CLASSIFICATION_FIELDS = (
+    ("ministry", "Ministry"),
+    ("department", "Department"),
+    ("state", "State / Geographic Scope"),
+    ("sector", "Sector"),
+)
+
+
+def _require_nonblank(label: str, value: object) -> str:
+    """Trimmed value or HTTP 422 when missing/whitespace-only."""
+    text = str(value or "").strip() if value is not None else ""
+    if not text:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{label} is required.",
+        )
+    return text
+
+
 def _validate_policy_duplicate(
     db: Session,
     title: str,
@@ -283,10 +318,10 @@ def create_policy(
         title=data.title.strip(),
         description=data.description.strip(),
         category=data.category.strip(),
-        ministry=(data.ministry.strip() if data.ministry else None),
-        department=(data.department.strip() if data.department else None),
-        state=(data.state.strip() if data.state else None),
-        sector=(data.sector.strip() if data.sector else None),
+        ministry=_require_nonblank("Ministry", data.ministry),
+        department=_require_nonblank("Department", data.department),
+        state=_require_nonblank("State / Geographic Scope", data.state),
+        sector=_require_nonblank("Sector", data.sector),
         publication_date=data.publication_date,
         effective_date=data.effective_date,
         status="DRAFT",
@@ -294,6 +329,11 @@ def create_policy(
         source_url=_validate_url_field("source_url", data.source_url),
         benefits=_clean_benefits(data.benefits),
         eligibility_rules=_clean_eligibility_rules(data.eligibility_rules),
+        key_objectives=_clean_benefits(data.key_objectives),
+        additional_info=_clean_text_block(data.additional_info),
+        important_notes=_clean_text_block(data.important_notes),
+        documents_required=_clean_text_block(data.documents_required),
+        implementation_process=_clean_text_block(data.implementation_process),
         created_by=current_user.user_id,
         approved_by=None,
         rejection_reason=None,
@@ -364,7 +404,16 @@ def update_policy(
     policy_id: int,
     data: PolicyUpdate,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
+    """Update a policy (see section header for editable statuses).
+
+    Notification fan-out is noncritical side-effect work: when a FastAPI
+    ``background_tasks`` instance is supplied (HTTP route), it runs after
+    the response is sent so the request only pays for the business
+    transaction + essential audit. Without it (tests, direct callers) the
+    notifications stay fully synchronous, exactly as before.
+    """
 
     policy = _policy_or_404(
         db=db,
@@ -465,21 +514,19 @@ def update_policy(
     # --------------------------------------------------------
     # MINISTRY
     # --------------------------------------------------------
+    # Mandatory: a provided blank value is rejected (422) instead of
+    # clearing the field; omitted fields are left untouched.
 
     if "ministry" in update_data:
-        policy.ministry = (
-            str(update_data["ministry"]).strip() if update_data["ministry"] else None
-        )
+        policy.ministry = _require_nonblank("Ministry", update_data["ministry"])
 
     # --------------------------------------------------------
     # DEPARTMENT
     # --------------------------------------------------------
 
     if "department" in update_data:
-        policy.department = (
-            str(update_data["department"]).strip()
-            if update_data["department"]
-            else None
+        policy.department = _require_nonblank(
+            "Department", update_data["department"]
         )
 
     # --------------------------------------------------------
@@ -487,8 +534,8 @@ def update_policy(
     # --------------------------------------------------------
 
     if "state" in update_data:
-        policy.state = (
-            str(update_data["state"]).strip() if update_data["state"] else None
+        policy.state = _require_nonblank(
+            "State / Geographic Scope", update_data["state"]
         )
 
     # --------------------------------------------------------
@@ -496,9 +543,7 @@ def update_policy(
     # --------------------------------------------------------
 
     if "sector" in update_data:
-        policy.sector = (
-            str(update_data["sector"]).strip() if update_data["sector"] else None
-        )
+        policy.sector = _require_nonblank("Sector", update_data["sector"])
 
     # --------------------------------------------------------
     # DATES
@@ -534,6 +579,22 @@ def update_policy(
 
     if "benefits" in update_data:
         policy.benefits = _clean_benefits(update_data["benefits"])
+
+    # --------------------------------------------------------
+    # SUPPLEMENTARY DETAILS (ADD POLICY FORM STEPS 2 & 4)
+    # --------------------------------------------------------
+
+    if "key_objectives" in update_data:
+        policy.key_objectives = _clean_benefits(update_data["key_objectives"])
+
+    for field in (
+        "additional_info",
+        "important_notes",
+        "documents_required",
+        "implementation_process",
+    ):
+        if field in update_data:
+            setattr(policy, field, _clean_text_block(update_data[field]))
 
     # --------------------------------------------------------
     # ELIGIBILITY RULES
@@ -581,16 +642,49 @@ def update_policy(
     db.refresh(policy)
 
     if policy.status == "APPROVED":
+        # Scalars for the deferred fan-out (the request session closes
+        # before background tasks run, so nothing lazy crosses over).
+        notify_args = {
+            "policy_id": policy.policy_id,
+            "policy_title": policy.title,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_update_notifications, notify_args)
+            return policy
+
+        _run_update_notifications(notify_args, db=db)
+
+    return policy
+
+
+def _run_update_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out update notifications (IN_APP rows + external legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
         try:
             from app.services.notification_service import notify_policy_updated
 
             notify_policy_updated(
-                db=db, policy_id=policy.policy_id, policy_title=policy.title
+                db=db,
+                policy_id=args["policy_id"],
+                policy_title=args["policy_title"],
             )
         except Exception as e:
             print(f"Notification error on policy update: {e}")
-
-    return policy
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================

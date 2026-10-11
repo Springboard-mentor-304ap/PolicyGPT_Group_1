@@ -36,6 +36,7 @@ import {
         formControlName="department"
         [options]="departmentOptions"
         placeholder="Select department"
+        [allowCustom]="true"
         [disabled]="!testForm.get('ministry')?.value"
       ></app-searchable-select>
     </form>
@@ -196,5 +197,86 @@ describe('SearchableSelectComponent & Dependent Behavior', () => {
       'Department of Agriculture and Farmers Welfare',
       'Department of Agricultural Research and Education',
     ]);
+  });
+
+  it('shows a compact empty state with a clickable custom option on no match', () => {
+    hostComponent.testForm.get('ministry')?.setValue('Ministry of Education');
+    hostComponent.onMinistryChange('Ministry of Education');
+    hostFixture.detectChanges();
+
+    const triggerEl = hostFixture.nativeElement.querySelector('#test-department .select-trigger') as HTMLElement;
+    triggerEl.click();
+    hostFixture.detectChanges();
+
+    const searchInput = hostFixture.nativeElement.querySelector('#test-department .search-input') as HTMLInputElement;
+    searchInput.value = 'Department of School Education & Literacy';
+    searchInput.dispatchEvent(new Event('input'));
+    hostFixture.detectChanges();
+
+    // Single compact message plus exactly one custom option below it.
+    const messages = hostFixture.nativeElement.querySelectorAll('#test-department .no-options');
+    expect(messages.length).toBe(1);
+    const customRow = hostFixture.nativeElement.querySelector('#test-department .is-custom-option') as HTMLElement;
+    expect(customRow).toBeTruthy();
+    expect(customRow.textContent).toContain('Department of School Education & Literacy');
+
+    customRow.click();
+    hostFixture.detectChanges();
+    expect(hostComponent.testForm.get('department')?.value).toBe(
+      'Department of School Education & Literacy',
+    );
+    expect(
+      (hostFixture.nativeElement.querySelector('#test-department .selected-text') as HTMLElement).textContent,
+    ).toContain('Department of School Education & Literacy');
+  });
+});
+
+describe('SearchableSelectComponent custom values', () => {
+  async function makeComponent() {
+    await TestBed.configureTestingModule({
+      imports: [SearchableSelectComponent],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(SearchableSelectComponent);
+    const c = fixture.componentInstance;
+    fixture.detectChanges();
+    return c;
+  }
+
+  it('offers no custom candidate by default', async () => {
+    const c = await makeComponent();
+    c.options = ['Alpha', 'Beta'];
+    c.searchTerm = 'Gamma';
+    expect(c.allowCustom).toBe(false);
+    expect(c.customCandidate).toBeNull();
+  });
+
+  it('offers the trimmed search text when it matches nothing', async () => {
+    const c = await makeComponent();
+    c.allowCustom = true;
+    c.options = ['Alpha', 'Beta'];
+    c.searchTerm = '  Gamma Unit  ';
+    expect(c.customCandidate).toBe('Gamma Unit');
+  });
+
+  it('suppresses the custom row on exact (case-insensitive) matches', async () => {
+    const c = await makeComponent();
+    c.allowCustom = true;
+    c.options = ['Alpha', 'Beta'];
+    c.searchTerm = 'alpha';
+    expect(c.customCandidate).toBeNull();
+    c.searchTerm = '';
+    expect(c.customCandidate).toBeNull();
+  });
+
+  it('selects the custom value through the normal change flow', async () => {
+    const c = await makeComponent();
+    c.allowCustom = true;
+    c.options = ['Alpha'];
+    let emitted = '';
+    c.registerOnChange((v: string) => (emitted = v));
+    c.selectOption('Gamma Unit');
+    expect(c.value).toBe('Gamma Unit');
+    expect(emitted).toBe('Gamma Unit');
+    expect(c.displayLabel()).toBe('Gamma Unit');
   });
 });

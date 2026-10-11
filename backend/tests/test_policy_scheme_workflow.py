@@ -504,6 +504,57 @@ def test_policy_approve_without_background_tasks_stays_synchronous():
 # ----------------------------------- restore notification deferral
 
 
+def test_policy_update_defers_fan_out_to_background():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    data = SimpleNamespace(
+        model_dump=lambda exclude_unset=True: {"description": "new desc"}
+    )
+    bt = _FakeBackgroundTasks()
+    with patch(
+        "app.services.notification_service.notify_policy_updated"
+    ) as updated_mock:
+        out = policy_service.update_policy(
+            db, 10, data, admin(1), background_tasks=bt
+        )
+    assert out.description == "new desc"
+    assert len(bt.tasks) == 1
+    assert not updated_mock.called
+
+
+def test_policy_update_deferred_task_notifies_with_own_session():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    data = SimpleNamespace(
+        model_dump=lambda exclude_unset=True: {"description": "new desc"}
+    )
+    bt = _FakeBackgroundTasks()
+    with patch("app.services.notification_service.notify_policy_updated"):
+        policy_service.update_policy(db, 10, data, admin(1), background_tasks=bt)
+    fn, args, kwargs = bt.tasks[0]
+    worker_db = MagicMock()
+    with patch(
+        "app.services.notification_service.notify_policy_updated"
+    ) as updated_mock:
+        fn(args[0], db=worker_db)
+    assert updated_mock.called
+    assert updated_mock.call_args.kwargs["policy_id"] == 10
+
+
+def test_policy_update_without_background_tasks_stays_synchronous():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    data = SimpleNamespace(
+        model_dump=lambda exclude_unset=True: {"description": "new desc"}
+    )
+    with patch(
+        "app.services.notification_service.notify_policy_updated"
+    ) as updated_mock:
+        out = policy_service.update_policy(db, 10, data, admin(1))
+    assert out.description == "new desc"
+    assert updated_mock.called
+
+
 def test_policy_restore_defers_fan_out_to_background():
     pol = fake_policy(status="ARCHIVED", created_by=2)
     db = make_db(pol)
@@ -823,3 +874,104 @@ def test_resolve_creator_name_never_raises():
     db = MagicMock()
     db.query.side_effect = Exception("db down")
     assert resolve_user_display_name(db, 7) is None
+
+
+# ------------------------------------------- supplementary details persistence
+
+
+def test_policy_clean_text_block():
+    assert policy_service._clean_text_block(None) is None
+    assert policy_service._clean_text_block("   ") is None
+    assert policy_service._clean_text_block("  hello  ") == "hello"
+
+
+def test_policy_create_schema_rejects_missing_classification():
+    from pydantic import ValidationError
+
+    from app.schemas.policy import PolicyCreate
+
+    base = {
+        "title": "T",
+        "description": "D",
+        "category": "C",
+        "ministry": "M",
+        "department": "D",
+        "state": "S",
+        "sector": "S",
+    }
+    # Missing ministry entirely.
+    missing = dict(base)
+    del missing["ministry"]
+    with pytest.raises(ValidationError):
+        PolicyCreate(**missing)
+    # Whitespace-only ministry.
+    with pytest.raises(ValidationError):
+        PolicyCreate(**{**base, "ministry": "   "})
+    # Fully valid contract passes.
+    assert PolicyCreate(**base).ministry == "M"
+
+
+def test_policy_create_rejects_blank_classification():
+    for field in ("ministry", "department", "state", "sector"):
+        with pytest.raises(HTTPException) as exc:
+            policy_service._require_nonblank(field, "   ")
+        assert exc.value.status_code == 422
+
+
+def test_policy_update_rejects_blank_ministry():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    data = SimpleNamespace(
+        model_dump=lambda exclude_unset=True: {"ministry": "   "}
+    )
+    with pytest.raises(HTTPException) as exc:
+        policy_service.update_policy(db, 10, data, admin(1))
+    assert exc.value.status_code == 422
+
+
+def test_policy_create_persists_supplementary_details():
+    data = SimpleNamespace(
+        title="Full Policy",
+        description="desc",
+        category="Health",
+        ministry="MOH",
+        department="Dept",
+        state="Karnataka",
+        sector="Public",
+        publication_date=None,
+        effective_date=None,
+        document_url=None,
+        source_url=None,
+        benefits=["b1"],
+        eligibility_rules=None,
+        key_objectives=["  obj1 ", ""],
+        additional_info="  extra  ",
+        important_notes=None,
+        documents_required="Aadhaar",
+        implementation_process="  step1  ",
+    )
+    db = make_db(None)
+    out = policy_service.create_policy(db, data, admin(1))
+    saved = db.add.call_args.args[0]
+    assert saved.key_objectives == ["obj1"]
+    assert saved.additional_info == "extra"
+    assert saved.important_notes is None
+    assert saved.documents_required == "Aadhaar"
+    assert saved.implementation_process == "step1"
+    assert out.title == "Full Policy"
+
+
+def test_policy_update_supplementary_details():
+    pol = fake_policy(status="DRAFT", created_by=2)
+    db = make_db(pol)
+    data = SimpleNamespace(
+        model_dump=lambda exclude_unset=True: {
+            "important_notes": "  hi  ",
+            "key_objectives": [" a ", ""],
+            "documents_required": "   ",
+        }
+    )
+    out = policy_service.update_policy(db, 10, data, admin(1))
+    assert out.important_notes == "hi"
+    assert out.key_objectives == ["a"]
+    assert out.documents_required is None

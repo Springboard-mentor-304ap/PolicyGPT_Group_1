@@ -298,6 +298,12 @@
     line-height: 1.6;
     color: #334155;
     margin: 0;
+    /* Header stays a brief 2-3 line overview; the full text lives
+       in the Overview tab's About section. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
@@ -332,6 +338,12 @@
 
   // Canonical per-status colors (single definition in shared styles).
   @include status.status-badge-colors;
+}
+
+/* Preserve user line breaks for multi-line saved text blocks. */
+.pre-wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* HERO ACTIONS (TOP RIGHT) */
@@ -569,8 +581,42 @@
       line-height: 1.65;
       color: #334155;
       margin: 0;
+
+      &.pre-wrap {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* Bulleted detail lists (key objectives). */
+    .detail-bullets {
+      margin: 0;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+    }
+
+    .pre-wrap {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
   }
+
+/* Bulleted detail lists, usable outside .left-panel (eligibility tab). */
+.detail-bullets {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
 
   .divider {
     border: none;
@@ -777,6 +823,42 @@
             color: #16a34a;
             flex-shrink: 0;
           }
+        }
+      }
+
+      /* Structured (parsed-JSON) condition details. */
+      .rule-details {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .rule-detail {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #334155;
+        }
+
+        .rule-detail-label {
+          font-weight: 700;
+          color: #0f172a;
+          margin-right: 4px;
+        }
+
+        .rule-detail-value {
+          overflow-wrap: anywhere;
+        }
+
+        .rule-detail-children {
+          margin: 6px 0 2px 14px;
+          padding-left: 12px;
+          border-left: 2px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .detail-bullets {
+          margin: 6px 0 2px;
         }
       }
 

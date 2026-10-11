@@ -373,12 +373,18 @@
         <button type="button" class="pagination-control" (click)="goToPage(st, st.page - 1)" [disabled]="st.page <= 1">
           &lt;
         </button>
+        <div class="pagination-pages">
         @for (p of pageNumbers(st); track p) {
-        <button type="button" class="pagination-control" [style.fontWeight]="p === st.page ? '800' : '600'"
+        <button type="button" class="pagination-control pagination-control--page" [style.fontWeight]="p === st.page ? '800' : '600'"
           (click)="goToPage(st, p)">
           {{ p }}
         </button>
         }
+        </div>
+        <button type="button" class="pagination-control" (click)="goToPage(st, st.page + 1)"
+          [disabled]="st.page >= totalPages(st)">
+          &gt;
+        </button>
         <button type="button" class="pagination-control" (click)="goToPage(st, st.page + 1)"
           [disabled]="st.page >= totalPages(st)">
           &gt;

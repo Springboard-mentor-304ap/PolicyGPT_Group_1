@@ -8,6 +8,7 @@ import {
   AdminUsersService,
   AdminUserApi,
 } from "../../../../../core/services/admin-user.service";
+import { visiblePageWindow } from "../../../../../core/utils/pagination.util";
 import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
 
 /* =======================================================
@@ -391,12 +392,7 @@ export class ViewUsersComponent implements OnInit {
      ======================================================= */
 
   get pageNumbers(): number[] {
-    return Array.from(
-      {
-        length: this.totalPages,
-      },
-      (_, index) => index + 1,
-    );
+    return visiblePageWindow(this.currentPage, this.totalPages);
   }
 
   /* =======================================================

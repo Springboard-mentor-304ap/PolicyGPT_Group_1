@@ -965,6 +965,17 @@ $danger: #dc2626;
   gap: 4px;
 }
 
+/* Fixed-width track for the page-number buttons: sized for three
+   buttons so the Previous/Next arrows never shift when the window
+   holds fewer numbers at the range boundaries. */
+.users-pagination__pages {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+  min-width: 104px;
+}
+
 .users-pagination__arrow,
 .users-pagination__page {
   width: 32px;
@@ -998,6 +1009,12 @@ $danger: #dc2626;
   font-size: 16px;
 }
 
+/* Page-number buttons switch highlight instantly (no background fade)
+// so the active state never appears to slide between buttons. */
+.users-pagination__page {
+  transition: border-color 0.2s ease;
+}
+
 .users-pagination__arrow:hover:not(:disabled),
 .users-pagination__page:hover {
   border-color: #c7d7e8;
@@ -1014,6 +1031,7 @@ $danger: #dc2626;
   border-color: $blue;
   background: $blue;
   color: $white;
+  font-weight: 700;
 }
 
 .users-pagination__page--active:hover {

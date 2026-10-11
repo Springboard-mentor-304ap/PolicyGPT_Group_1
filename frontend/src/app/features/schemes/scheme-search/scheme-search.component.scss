@@ -1142,6 +1142,9 @@ $danger-soft: #fdf0ee;
 .page-numbers {
   display: flex;
   gap: 5px;
+  /* Fixed-width track sized for three buttons so the Previous/Next
+     arrows never shift when the window holds fewer numbers. */
+  min-width: 127px;
 }
 
 .page-number {
@@ -1154,10 +1157,7 @@ $danger-soft: #fdf0ee;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+  transition: border-color 0.2s ease;
 
   &:hover:not(:disabled) {
     background: $white;
@@ -1168,6 +1168,7 @@ $danger-soft: #fdf0ee;
     background: $primary;
     border-color: $primary;
     color: $white;
+    font-weight: 700;
   }
 
   &:disabled {

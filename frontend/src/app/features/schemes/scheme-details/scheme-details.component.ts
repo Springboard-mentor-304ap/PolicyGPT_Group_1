@@ -108,7 +108,9 @@ export class SchemeDetailsComponent implements OnInit {
   reasonAction: ((reason: string) => void) | null = null;
 
   get userRole(): string {
-    return String(this.auth.getUserRole() || "").trim().toUpperCase();
+    return String(this.auth.getUserRole() || "")
+      .trim()
+      .toUpperCase();
   }
 
   get isAdmin(): boolean {
@@ -237,12 +239,14 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   get canApprove(): boolean {
-    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL") return false;
+    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL")
+      return false;
     return !this.isOwner;
   }
 
   get canReject(): boolean {
-    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL") return false;
+    if (!this.isAdmin || this.scheme?.status !== "PENDING_APPROVAL")
+      return false;
     return !this.isOwner;
   }
 
@@ -448,7 +452,9 @@ export class SchemeDetailsComponent implements OnInit {
    * API response, falling back to the loaded scheme. A generic message
    * is used only when no usable name exists.
    */
-  private schemeToastName(updated?: { name?: string | null } | null): string | null {
+  private schemeToastName(
+    updated?: { name?: string | null } | null,
+  ): string | null {
     const raw =
       typeof updated?.name === "string" && updated.name.trim()
         ? updated.name
@@ -898,7 +904,7 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.scheme) return;
     const schemeId = this.scheme.scheme_id;
     this.confirmTitle = "Delete Scheme";
-    this.confirmMessage = `Are you sure you want to permanently delete "${this.scheme.name}"?`;
+    this.confirmMessage = `Are you sure you want to delete "${this.scheme.name}"?`;
     this.confirmVariant = "danger";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;

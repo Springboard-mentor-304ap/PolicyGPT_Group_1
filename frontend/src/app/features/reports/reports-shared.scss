@@ -1207,6 +1207,32 @@ a.metadata-item {
   }
 }
 
+// Fixed-width track for the page-number buttons: sized for three
+// buttons so the Previous/Next arrows never shift when the window
+// holds fewer numbers at the range boundaries.
+.pagination-pages {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  min-width: 137px;
+}
+
+// Fixed-size page-number buttons: identical dimensions keep the layout
+// stable when the active highlight (heavier font weight) applies.
+// The highlight itself switches instantly (no background fade).
+.pagination-control--page {
+  width: 39px;
+
+  padding: 0;
+
+  justify-content: center;
+
+  transition: border-color 0.2s ease;
+}
+
 // Page-size selector: native <select> styled to match the pagination
 // controls (white, 1px border, 8px radius, 39px height). The browser
 // arrow is replaced with an inline chevron so it never overlaps text.

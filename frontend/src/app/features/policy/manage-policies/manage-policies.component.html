@@ -181,14 +181,13 @@
                 }
             </div>
 
-        </div>
-        <div class="card-heading">
             @if (searchText || selectedStatus || selectedSort !== 'latest') {
             <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
                 <span class="material-icons">restart_alt</span>
                 Clear filters
             </button>
             }
+
         </div>
 
     </section>
@@ -340,7 +339,7 @@
                                             <!-- DRAFT / REJECTED -->
                                             @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
 
-                                            <button type="button" (click)="editPolicy(policy)">
+                                            <button type="button" (click)="openEditStatusModal(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -363,15 +362,11 @@
                                             }
                                             }
 
+
                                             <!-- PENDING -->
                                             @if (policy.status === 'PENDING_APPROVAL') {
 
                                             @if (isAdmin) {
-                                            <button type="button" (click)="openViewSubmissionDetails(policy)">
-                                                <span class="material-icons">info</span>
-                                                View submission details
-                                            </button>
-
                                             <button type="button" class="success" (click)="openApproveModal(policy)">
                                                 <span class="material-icons">check_circle_outline</span>
                                                 Approve request
@@ -382,7 +377,7 @@
                                                 Reject request
                                             </button>
                                             } @else {
-                                            <button type="button" (click)="editPolicy(policy)">
+                                            <button type="button" (click)="openEditStatusModal(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -392,7 +387,7 @@
                                             <!-- APPROVED -->
                                             @if (policy.status === 'APPROVED') {
 
-                                            <button type="button" (click)="editPolicy(policy)">
+                                            <button type="button" (click)="openEditStatusModal(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -427,17 +422,17 @@
                                             <!-- ARCHIVED -->
                                             @if (policy.status === 'ARCHIVED') {
 
-                                            <button type="button" (click)="editPolicy(policy)">
+                                            <button type="button" (click)="openEditStatusModal(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
 
+                                            @if (isAdmin) {
                                             <button type="button" (click)="openViewArchiveReason(policy)">
                                                 <span class="material-icons">info</span>
                                                 View archive reason
                                             </button>
 
-                                            @if (isAdmin) {
                                             <button type="button" class="success" (click)="openRestoreModal(policy)">
                                                 <span class="material-icons">restore</span>
                                                 Restore policy
@@ -451,6 +446,11 @@
                                                 Delete policy
                                             </button>
                                             } @else {
+                                            <button type="button" (click)="openSubmitModal(policy)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(policy) }}
+                                            </button>
+
                                             <button type="button" class="danger"
                                                 (click)="openRequestDeleteModal(policy)">
                                                 <span class="material-icons">delete_sweep</span>
@@ -461,11 +461,6 @@
 
                                             <!-- ARCHIVE REQUESTED -->
                                             @if (policy.status === 'ARCHIVE_REQUESTED') {
-
-                                            <button type="button" (click)="editPolicy(policy)">
-                                                <span class="material-icons">edit</span>
-                                                Edit policy
-                                            </button>
 
                                             <button type="button" (click)="openViewArchiveReason(policy)">
                                                 <span class="material-icons">info</span>
@@ -483,14 +478,6 @@
                                                 (click)="openRejectArchiveModal(policy)">
                                                 <span class="material-icons">cancel</span>
                                                 Reject archive
-                                            </button>
-
-                                            <div class="menu-separator"></div>
-
-                                            <button type="button" class="danger"
-                                                (click)="openDirectDeleteModal(policy)">
-                                                <span class="material-icons">delete_outline</span>
-                                                Delete policy
                                             </button>
                                             }
                                             }
@@ -513,11 +500,6 @@
                                             <button type="button" (click)="openRejectDeleteModal(policy)">
                                                 <span class="material-icons">undo</span>
                                                 Reject deletion
-                                            </button>
-                                            } @else {
-                                            <button type="button" (click)="editPolicy(policy)">
-                                                <span class="material-icons">edit</span>
-                                                Edit policy
                                             </button>
                                             }
                                             }
@@ -557,12 +539,9 @@
                 <div class="page-size">
                     <label for="page-size">Rows</label>
 
-                    <select id="page-size" [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
-                        <option [ngValue]="5">5</option>
-                        <option [ngValue]="10">10</option>
-                        <option [ngValue]="20">20</option>
-                        <option [ngValue]="50">50</option>
-                    </select>
+                    <app-searchable-select id="page-size" class="page-size-select"
+                        placeholder="Rows" [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
+                        [(ngModel)]="pageSizeOption" (selectionChange)="changePageSize()" />
 
                     <span>per page</span>
                 </div>
@@ -574,11 +553,13 @@
                         <span class="material-icons">chevron_left</span>
                     </button>
 
-                    <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index"
-                        class="page-button page-number" [class.current]="currentPage === i + 1"
-                        (click)="goToPage(i + 1)">
-                        {{ i + 1 }}
-                    </button>
+                    <div class="page-numbers">
+                        <button type="button" *ngFor="let page of visiblePages"
+                            class="page-button page-number" [class.current]="currentPage === page"
+                            (click)="goToPage(page)">
+                            {{ page }}
+                        </button>
+                    </div>
 
                     <button type="button" class="page-button" [disabled]="currentPage === totalPages"
                         (click)="nextPage()" aria-label="Next page">
@@ -595,7 +576,7 @@
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
         [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
-        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
         [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
         (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
@@ -614,5 +595,43 @@
     <app-draft-policies-modal [open]="draftsModalOpen" (closed)="onDraftsModalClosed()"
         (dataChanged)="onChildDataChanged()">
     </app-draft-policies-modal>
+
+    <!-- Edit-status popup: choose which permitted status to edit under -->
+    @if (editStatusModalOpen && editStatusPolicy) {
+    <div class="edit-status-overlay" (click)="onEditStatusBackdrop($event)">
+        <div class="edit-status-card" role="dialog" aria-modal="true" aria-label="Choose edit status"
+            (click)="$event.stopPropagation()">
+            <div class="edit-status-header">
+                <h2>Edit / Archive Policy</h2>
+                <p class="edit-status-name">{{ editStatusPolicy.title }}</p>
+                <p class="edit-status-desc">Choose whether to edit this policy or archive it.</p>
+            </div>
+
+            <div class="edit-status-options" role="radiogroup" aria-label="Permitted edit statuses">
+                @for (status of editStatusOptions; track status) {
+                <label class="edit-status-option" [class.selected]="editStatusChoice === status">
+                    <input type="radio" name="edit-status" [value]="status" [(ngModel)]="editStatusChoice" />
+                    <span class="edit-status-option-text">
+                        <strong>{{ status === 'DRAFT' ? 'Draft' : 'Archived' }}</strong>
+                        <small>{{ status === 'DRAFT' ? 'Edit as a draft policy.' : 'Archive this policy.'
+                            }}</small>
+                    </span>
+                </label>
+                }
+            </div>
+
+            <p class="edit-status-note">The editing form enforces role permissions and backend workflow rules.</p>
+
+            <div class="edit-status-actions">
+                <button type="button" class="edit-status-btn edit-status-btn--cancel" (click)="cancelEditStatus()">
+                    Cancel
+                </button>
+                <button type="button" class="edit-status-btn edit-status-btn--continue" (click)="confirmEditStatus()">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+    }
 
 </div>

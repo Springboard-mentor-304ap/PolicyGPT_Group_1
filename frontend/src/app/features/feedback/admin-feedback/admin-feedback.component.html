@@ -102,32 +102,17 @@
       <!-- ROLE FILTER DROPDOWN -->
       <div class="filter-dropdown">
         <label for="roleSelect" class="filter-label">User Role:</label>
-        <app-searchable-select
-          id="roleSelect"
-          size="filter"
-          ariaLabel="Filter by user role"
-          placeholder="All Roles"
-          [searchable]="false"
-          [options]="roleFilterOptions"
-          [ngModel]="roleFilter()"
-          (ngModelChange)="roleFilter.set($event)"
-        />
+        <app-searchable-select id="roleSelect" size="filter" ariaLabel="Filter by user role" placeholder="All Roles"
+          [searchable]="false" [options]="roleFilterOptions" [ngModel]="roleFilter()"
+          (ngModelChange)="roleFilter.set($event)" />
       </div>
 
       <!-- TYPE FILTER DROPDOWN -->
       <div class="filter-dropdown">
         <label for="typeSelect" class="filter-label">Category:</label>
-        <app-searchable-select
-          id="typeSelect"
-          size="filter"
-          ariaLabel="Filter by category"
-          placeholder="All Categories"
-          [searchable]="true"
-          searchPlaceholder="Search categories..."
-          [options]="typeFilterOptions"
-          [ngModel]="typeFilter()"
-          (ngModelChange)="typeFilter.set($event)"
-        />
+        <app-searchable-select id="typeSelect" size="filter" ariaLabel="Filter by category" placeholder="All Categories"
+          [searchable]="true" searchPlaceholder="Search categories..." [options]="typeFilterOptions"
+          [ngModel]="typeFilter()" (ngModelChange)="typeFilter.set($event)" />
       </div>
     </div>
 
@@ -422,14 +407,9 @@
         <!-- RESOLUTION STATUS SELECT -->
         <div class="form-group status-select-group">
           <label for="modalStatus">Update Resolution Status <span class="required">*</span></label>
-          <app-searchable-select
-            id="modalStatus"
-            placeholder="Select status"
-            [searchable]="false"
-            [options]="responseStatusOptions"
-            [ngModel]="responseStatus()"
-            (ngModelChange)="responseStatus.set($event)"
-          />
+          <app-searchable-select id="modalStatus" placeholder="Select status" [searchable]="false"
+            [options]="responseStatusOptions" [ngModel]="responseStatus()"
+            (ngModelChange)="responseStatus.set($event)" />
         </div>
 
         <!-- RESPONSE TEXTAREA -->

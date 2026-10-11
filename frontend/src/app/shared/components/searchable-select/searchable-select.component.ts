@@ -240,7 +240,7 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
         background: #ffffff;
         border: 1.5px solid #cbd5e1;
         border-radius: 8px;
-        padding: 0 14px;
+        padding: 0 10px;
         cursor: pointer;
         outline: none;
         transition:
@@ -249,7 +249,7 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
           background 0.15s ease;
         box-sizing: border-box;
         user-select: none;
-        gap: 8px;
+        gap: 4px;
         color: #0f172a;
 
         &:hover {

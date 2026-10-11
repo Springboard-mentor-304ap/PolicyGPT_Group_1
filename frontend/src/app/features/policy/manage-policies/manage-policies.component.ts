@@ -29,6 +29,10 @@ import {
   getCategoryIconName,
   getCategoryIconStyle,
 } from "../../../core/utils/category-icon.util";
+import {
+  fitPageSize,
+  visiblePageWindow,
+} from "../../../core/utils/pagination.util";
 
 export interface PolicyTableItem {
   id: number;
@@ -78,9 +82,45 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   selectedStatus = "";
 
   currentPage = 1;
-  pageSize = 6;
+  private _pageSize = 5;
+  /**
+   * Effective rows-per-page. Assigning a valid size also records it as
+   * the user's selection; internal sync writes `_pageSize` directly so
+   * shrinking to a small result set never loses the selection.
+   */
+  get pageSize(): number {
+    return this._pageSize;
+  }
+  set pageSize(value: number) {
+    this._pageSize = value;
+    if (Number.isInteger(value) && value > 0) {
+      this.selectedPageSize = value;
+    }
+  }
+  /** User's chosen rows-per-page; `pageSize` may shrink below it for small result sets. */
+  selectedPageSize = 5;
   menuOpenId: number | null = null;
   userRole: string | null = null;
+
+  /** Rows-per-page options for the footer dropdown (string values for the shared select). */
+  readonly pageSizeOptions = ["5", "10", "20", "50"];
+
+  /**
+   * String bridge between the numeric `pageSize` and the shared
+   * dropdown, which works with string values. `pageSize` stays the
+   * single source of truth, so filtering/sorting keep the selection.
+   */
+  get pageSizeOption(): string {
+    return String(this.pageSize);
+  }
+
+  set pageSizeOption(value: string) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      this.pageSize = parsed;
+    }
+  }
+
   loading = false;
   errorMessage = "";
   successToastMessage: string | null = null;
@@ -142,6 +182,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   confirmMessageBefore = "";
   confirmHighlight = "";
   confirmMessageAfter = "";
+  // Whether the confirm dialog parses `"Name"` segments in its message.
+  // Disabled for info dialogs carrying free-form user text.
+  confirmParseQuotes = true;
 
   reasonModalOpen = false;
   reasonTitle = "";
@@ -158,6 +201,21 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   deletedModalOpen = false;
   draftsModalOpen = false;
   private childDirty = false;
+
+  /**
+   * Edit-status popup state. Only DRAFT and ARCHIVED may be offered.
+   * The choice is a routing context only: the backend exposes no
+   * endpoint to change a policy's status for editing, so Continue opens
+   * the existing edit form (which loads the policy by ID and enforces
+   * read-only + backend validation from its live status).
+   */
+  editStatusModalOpen = false;
+  editStatusPolicy: PolicyTableItem | null = null;
+  readonly editStatusOptions: Array<"DRAFT" | "ARCHIVED"> = [
+    "DRAFT",
+    "ARCHIVED",
+  ];
+  editStatusChoice: "DRAFT" | "ARCHIVED" = "DRAFT";
 
   statuses = [
     "APPROVED",
@@ -212,6 +270,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             rawRole === "GOVERNMENT"
           ? "GOVERNMENT_OFFICIAL"
           : rawRole || null;
+
+    // The "6" rows-per-page option was removed: normalize any stale
+    // selection to the default of 5 before loading.
+    if (this.selectedPageSize === 6) {
+      this.selectedPageSize = 5;
+    }
+    if (this.pageSize === 6) {
+      this.pageSize = 5;
+    }
 
     this.loadPolicies();
   }
@@ -307,6 +374,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
           }));
           // Latest activity first (register-wide, so pagination follows).
           this.sortPoliciesByActivity();
+          this.syncPageSizeToResults(this.policies.length);
           this.currentPage = Math.min(this.currentPage, this.totalPages);
           this.loading = false;
           // Keep own-record stats in sync for non-admins (see loadStats).
@@ -436,7 +504,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   get filteredPolicies(): PolicyTableItem[] {
     const search = this.searchText.toLowerCase().trim();
-    return this.policies.filter((policy) => {      const haystack = [
+    return this.policies.filter((policy) => {
+      const haystack = [
         policy.title,
         policy.description,
         policy.category,
@@ -456,6 +525,10 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredPolicies.length / this.pageSize));
+  }
+  /** Sliding window of at most three consecutive page numbers. */
+  get visiblePages(): number[] {
+    return visiblePageWindow(this.currentPage, this.totalPages);
   }
   get paginatedPolicies(): PolicyTableItem[] {
     const start = (this.currentPage - 1) * this.pageSize;
@@ -494,6 +567,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
 
   applyFilters(): void {
     this.sortPolicies();
+    this.syncPageSizeToResults(this.filteredPolicies.length);
     this.currentPage = 1;
     this.closeMenu();
     this.cdr.detectChanges();
@@ -504,14 +578,27 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.selectedStatus = "";
     this.selectedSort = "latest";
     this.sortPolicies();
+    this.syncPageSizeToResults(this.filteredPolicies.length);
     this.currentPage = 1;
     this.closeMenu();
     this.cdr.detectChanges();
   }
 
   changePageSize(): void {
+    this.selectedPageSize = this.pageSize;
+    this.syncPageSizeToResults(this.filteredPolicies.length);
     this.currentPage = 1;
     this.cdr.detectChanges();
+  }
+
+  /**
+   * Effective rows-per-page for the current result set: the user's
+   * selected size, shrunk to the record count when smaller (empty sets
+   * keep the selection). Also reclamps the current page.
+   */
+  private syncPageSizeToResults(total: number): void {
+    this._pageSize = fitPageSize(this.selectedPageSize, total);
+    this.currentPage = Math.min(Math.max(1, this.currentPage), this.totalPages);
   }
   toggleMenu(id: number): void {
     this.menuOpenId = this.menuOpenId === id ? null : id;
@@ -526,12 +613,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.confirmMessageBefore = "";
     this.confirmHighlight = "";
     this.confirmMessageAfter = "";
+    this.confirmParseQuotes = true;
     this.closeExportMenu();
   }
 
   @HostListener("document:keydown.escape")
   onEscapeKey(): void {
-    if (this.menuOpenId !== null) {
+    if (this.editStatusModalOpen) {
+      this.cancelEditStatus();
+    } else if (this.menuOpenId !== null) {
       this.closeMenu();
     } else {
       this.closeExportMenu();
@@ -566,6 +656,41 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       "edit",
       policy.id,
     ]);
+  }
+
+  /** Open the edit-status popup for a policy row. */
+  openEditStatusModal(policy: PolicyTableItem): void {
+    this.closeMenu();
+    this.editStatusPolicy = policy;
+    this.editStatusChoice = "DRAFT";
+    this.editStatusModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /** Continue from the edit-status popup into the existing edit form. */
+  confirmEditStatus(): void {
+    const target = this.editStatusPolicy;
+    this.editStatusModalOpen = false;
+    this.editStatusPolicy = null;
+    this.cdr.detectChanges();
+    if (target) {
+      this.editPolicy(target);
+    }
+  }
+
+  /** Cancel the edit-status popup without navigating. */
+  cancelEditStatus(): void {
+    this.editStatusModalOpen = false;
+    this.editStatusPolicy = null;
+    this.cdr.detectChanges();
+  }
+
+  onEditStatusBackdrop(event: MouseEvent): void {
+    if (
+      (event.target as HTMLElement).classList.contains("edit-status-overlay")
+    ) {
+      this.cancelEditStatus();
+    }
   }
 
   addNewPolicy(): void {
@@ -627,12 +752,10 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   }
 
   getSubmitActionLabel(policy: PolicyTableItem): string {
-    if (this.isAdmin) {
-      return "Submit";
+    if (policy.status === "REJECTED") {
+      return "Resubmit";
     }
-    return policy.status === "REJECTED"
-      ? "Re-submit for approval"
-      : "Submit for approval";
+    return "Submit";
   }
 
   // ----------------------------------------------------------
@@ -677,6 +800,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     }
     // The update carries a fresh updated_at: re-sort newest-first.
     this.sortPoliciesByActivity();
+    this.syncPageSizeToResults(this.policies.length);
     this.currentPage = Math.min(this.currentPage, this.totalPages);
     this.cdr.detectChanges();
     this.loadStats();
@@ -685,15 +809,25 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   /** Remove a permanently deleted row without refetching the table. */
   private removePolicyRow(id: number): void {
     this.policies = this.policies.filter((p) => p.id !== id);
+    this.syncPageSizeToResults(this.policies.length);
     this.currentPage = Math.min(this.currentPage, this.totalPages);
     this.cdr.detectChanges();
     this.loadStats();
   }
 
-  private openInfoDialog(title: string, message: string): void {
+  private openInfoDialog(
+    title: string,
+    message: string,
+    highlight?: { before: string; text: string; after: string },
+    parseQuotes = true,
+  ): void {
     this.closeMenu();
     this.confirmTitle = title;
     this.confirmMessage = message;
+    this.confirmMessageBefore = highlight?.before ?? "";
+    this.confirmHighlight = highlight?.text ?? "";
+    this.confirmMessageAfter = highlight?.after ?? "";
+    this.confirmParseQuotes = parseQuotes;
     this.confirmVariant = "primary";
     this.confirmText = "Close";
     this.showCancelConfirm = false;
@@ -715,6 +849,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.openInfoDialog(
       `${policy.title || "Untitled policy"}\n`,
       `Deletion reason: ${reason}`,
+      undefined,
+      false,
     );
   }
 
@@ -724,14 +860,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.openInfoDialog(
       `${policy.title || "Untitled policy"}\n`,
       `Archive reason: ${reason}`,
+      undefined,
+      false,
     );
   }
 
   openViewSubmissionDetails(policy: PolicyTableItem): void {
-    const lines = [
-      `"${policy.title || "Untitled policy"}"`,
-      `Status: ${this.getStatusLabel(policy.status)}.`,
-    ];
+    const title = policy.title || "Untitled policy";
+    const lines = [`Status: ${this.getStatusLabel(policy.status)}.`];
     const context = [
       policy.category,
       policy.ministry || policy.department,
@@ -745,7 +881,11 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     lines.push(
       `Submission note: ${this.getReasonOrFallback(policy.rejectionReason)}`,
     );
-    this.openInfoDialog("Submission review details", lines.join("\n"));
+    this.openInfoDialog("Submission review details", lines.join("\n"), {
+      before: "",
+      text: title,
+      after: `\n${lines.join("\n")}`,
+    });
   }
 
   openSubmitModal(policy: PolicyTableItem): void {
@@ -1116,7 +1256,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
               this.policyToastMessage(
                 updated,
                 policy.title,
-                (n) => `Archive request for policy "${n}" rejected successfully.`,
+                (n) =>
+                  `Archive request for policy "${n}" rejected successfully.`,
                 "Archive request rejected successfully.",
               ),
             );
@@ -1172,7 +1313,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
               this.policyToastMessage(
                 updated,
                 policy.title,
-                (n) => `Deletion request for policy "${n}" submitted successfully.`,
+                (n) =>
+                  `Deletion request for policy "${n}" submitted successfully.`,
                 "Deletion request submitted successfully.",
               ),
             );
@@ -1204,6 +1346,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     }
     this.confirmTitle = "Approve Permanent Deletion";
     this.confirmMessage = `Permanently delete "${policy.title}"? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
+    this.confirmMessageBefore = "Permanently delete ";
+    this.confirmHighlight = policy.title || "Untitled policy";
+    this.confirmMessageAfter = `? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1266,6 +1411,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     }
     this.confirmTitle = "Reject Delete Request";
     this.confirmMessage = `Reject delete request for "${policy.title}"? The policy will revert to its previous status.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
+    this.confirmMessageBefore = "Reject delete request for ";
+    this.confirmHighlight = policy.title || "Untitled policy";
+    this.confirmMessageAfter = `? The policy will revert to its previous status.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
     this.confirmVariant = "primary";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1301,7 +1449,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
               this.policyToastMessage(
                 updated,
                 policy.title,
-                (n) => `Deletion request for policy "${n}" rejected successfully.`,
+                (n) =>
+                  `Deletion request for policy "${n}" rejected successfully.`,
                 "Deletion request rejected successfully.",
               ),
             );
@@ -1466,7 +1615,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       return;
     }
     this.confirmTitle = "Delete Policy";
-    this.confirmMessage = `Are you sure you want to permanently delete "${policy.title}"?`;
+    this.confirmMessage = `Are you sure you want to delete "${policy.title}"?`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1578,7 +1727,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   /** Active filter summary for report headers. */
   private activeFilterSummary(): string {
     const parts: string[] = [];
-    if (this.searchText.trim()) parts.push(`Search: "${this.searchText.trim()}"`);
+    if (this.searchText.trim())
+      parts.push(`Search: "${this.searchText.trim()}"`);
     if (this.selectedStatus)
       parts.push(`Status: ${this.getStatusLabel(this.selectedStatus)}`);
     return parts.length ? parts.join(" · ") : "None (all records)";
@@ -1615,14 +1765,27 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     try {
       const { jsPDF } = await import("jspdf");
       const rows = this.exportRows();
-      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+      });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const margin = 40;
       const usable = pageW - margin * 2;
-      const headers = ["ID", "Title", "Description", "Ministry", "Department", "Status", "Created (IST)", "Updated (IST)"];
-      const widths = [0.06, 0.2, 0.24, 0.11, 0.11, 0.09, 0.095, 0.095].map((f) =>
-        Math.floor(f * usable),
+      const headers = [
+        "ID",
+        "Title",
+        "Description",
+        "Ministry",
+        "Department",
+        "Status",
+        "Created (IST)",
+        "Updated (IST)",
+      ];
+      const widths = [0.06, 0.2, 0.24, 0.11, 0.11, 0.09, 0.095, 0.095].map(
+        (f) => Math.floor(f * usable),
       );
       let y = 48;
 
@@ -1636,7 +1799,11 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       doc.text("Government Policy Register", margin, y);
       y += 16;
       doc.setFontSize(9);
-      doc.text(`Generated On: ${this.formatDateTime(new Date().toISOString())}`, margin, y);
+      doc.text(
+        `Generated On: ${this.formatDateTime(new Date().toISOString())}`,
+        margin,
+        y,
+      );
       y += 13;
       const filterLines = doc.splitTextToSize(
         `Applied Filters: ${this.activeFilterSummary()} · Records: ${rows.length}`,
@@ -1695,12 +1862,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(8);
         doc.setTextColor(148, 163, 184);
-        doc.text(
-          `Page ${i} of ${totalPages}`,
-          pageW - margin,
-          pageH - 20,
-          { align: "right" },
-        );
+        doc.text(`Page ${i} of ${totalPages}`, pageW - margin, pageH - 20, {
+          align: "right",
+        });
       }
       doc.save(this.exportFileStem("pdf"));
       this.showSuccessToast("Policies exported as PDF.");
@@ -1722,7 +1886,16 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
     try {
       const XLSX = await import("xlsx");
-      const header = ["ID", "Title", "Description", "Ministry", "Department", "Status", "Created (IST)", "Updated (IST)"];
+      const header = [
+        "ID",
+        "Title",
+        "Description",
+        "Ministry",
+        "Department",
+        "Status",
+        "Created (IST)",
+        "Updated (IST)",
+      ];
       const ws = XLSX.utils.aoa_to_sheet([header, ...this.exportRows()]);
       ws["!cols"] = [
         { wch: 8 },
@@ -1740,7 +1913,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.showSuccessToast("Policies exported as Excel.");
     } catch (err) {
       console.error("Failed to export policies as Excel:", err);
-      this.errorMessage = "Could not generate the spreadsheet. Please try again.";
+      this.errorMessage =
+        "Could not generate the spreadsheet. Please try again.";
       this.showErrorToast(this.errorMessage);
       this.cdr.detectChanges();
     } finally {
@@ -1794,7 +1968,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     return updated.getTime() !== created.getTime();
   }
 
-  getStatusLabel(status: string): string {    switch (status) {
+  getStatusLabel(status: string): string {
+    switch (status) {
       case "PENDING_APPROVAL":
         return "Pending Approval";
       case "APPROVED":

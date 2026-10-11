@@ -1,3 +1,4 @@
+@use "../../../shared/styles/status-badges" as status;
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 :host {
@@ -770,6 +771,9 @@ td {
   font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
+
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-pill-colors;
 }
 
 .status-dot {
@@ -778,60 +782,6 @@ td {
   flex: 0 0 6px;
   border-radius: 50%;
   background: #8b98aa;
-}
-
-.status-pill.approved {
-  border-color: #cbe8d8;
-  background: #effaf4;
-  color: #16734a;
-}
-
-.status-pill.approved .status-dot {
-  background: #168255;
-}
-
-.status-pill.pending_approval,
-.status-pill.archive_requested,
-.status-pill.delete_requested {
-  border-color: #f0dfbd;
-  background: #fff9ed;
-  color: #9c620e;
-}
-
-.status-pill.pending_approval .status-dot,
-.status-pill.archive_requested .status-dot,
-.status-pill.delete_requested .status-dot {
-  background: #c98517;
-}
-
-.status-pill.rejected {
-  border-color: #f1cfcc;
-  background: #fff4f3;
-  color: #b52d26;
-}
-
-.status-pill.rejected .status-dot {
-  background: #c62828;
-}
-
-.status-pill.draft {
-  border-color: #d9e2ed;
-  background: #f7f9fb;
-  color: #60718a;
-}
-
-.status-pill.draft .status-dot {
-  background: #77889f;
-}
-
-.status-pill.archived {
-  border-color: #d8dee7;
-  background: #f4f6f8;
-  color: #626e80;
-}
-
-.status-pill.archived .status-dot {
-  background: #6f7d91;
 }
 
 /* =========================================================
@@ -1105,23 +1055,25 @@ td {
   color: #5e708a;
 }
 
-.page-size select {
-  height: 33px;
-  min-width: 57px;
-  padding: 0 6px;
-  border: 1px solid #d1dce8;
-  border-radius: 8px;
-  outline: 0;
-  background: #fff;
-  color: #394b65;
-  cursor: pointer;
-  font-size: 11px;
+.page-size-select {
+  width: 80px;
+  flex: 0 0 auto;
 }
 
 .page-controls {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Fixed-width track for the page-number buttons: sized for three
+   buttons so the Previous/Next arrows never shift when the window
+   holds fewer numbers at the range boundaries. */
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 107px;
 }
 
 .page-button {
@@ -1138,6 +1090,12 @@ td {
   font-size: 11px;
   font-weight: 800;
   transition: 0.15s ease;
+}
+
+/* Page-number buttons switch highlight instantly (no background fade)
+// so the active state never appears to slide between buttons. */
+.page-button.page-number {
+  transition: border-color 0.15s ease;
 }
 
 .page-button:hover:not(:disabled) {

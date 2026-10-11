@@ -7,6 +7,7 @@ import { AuditLogService } from '../../core/services/audit-log.service';
 import { Auth } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
 import { formatAuditLabel } from '../../core/utils/audit-label.util';
+import { visiblePageWindow } from '../../core/utils/pagination.util';
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -127,25 +128,11 @@ export class AuditLogComponent implements OnInit {
     return this.filteredLogs().slice(start, start + this.pageSize);
   });
 
-  /** Compact page numbers with ellipsis: 1 … window … last. */
-  pageNumbers = computed<Array<number | '…'>>(() => {
+  /** Centered sliding window of page numbers (shared calculation). */
+  pageNumbers = computed<number[]>(() => {
     const total = this.totalPages();
     const current = Math.min(Math.max(1, this.currentPage()), total);
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
-    }
-    const window = new Set<number>([1, 2, current - 1, current, current + 1, total - 1, total]);
-    const pages = Array.from(window)
-      .filter((p) => p >= 1 && p <= total)
-      .sort((a, b) => a - b);
-    const out: Array<number | '…'> = [];
-    let prev = 0;
-    for (const p of pages) {
-      if (p - prev > 1) out.push('…');
-      out.push(p);
-      prev = p;
-    }
-    return out;
+    return visiblePageWindow(current, total);
   });
 
   pageRangeText(): string {

@@ -1,3 +1,4 @@
+@use "../../../shared/styles/status-badges" as status;
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 :host {
@@ -457,25 +458,33 @@ button {
 }
 
 .clear-filter {
-  margin-left: auto;
+  margin-left: 0;
+  align-self: end;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 9px;
-  border: 0;
-  background: transparent;
-  color: #2457d6;
+  justify-content: center;
+  gap: 7px;
+  height: 47px;
+  padding: 0 17px;
+  border: 1px solid #cbd7e6;
+  border-radius: 10px;
+  background: #fff;
+  color: #35465f;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: 0.15s ease;
 }
 
 .clear-filter:hover {
-  text-decoration: underline;
+  border-color: #9eb1ca;
+  background: #f8fafc;
+  color: #2457d6;
 }
 
 .clear-filter .material-icons {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .filter-divider {
@@ -486,7 +495,7 @@ button {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 250px 230px auto;
+  grid-template-columns: minmax(0, 1fr) 250px 230px auto auto;
   gap: 15px;
   align-items: end;
 }
@@ -984,6 +993,9 @@ td {
   font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
+
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-pill-colors;
 }
 
 .status-dot {
@@ -992,60 +1004,6 @@ td {
   flex: 0 0 6px;
   border-radius: 50%;
   background: #8b98aa;
-}
-
-.status-pill.approved {
-  border-color: #cbe8d8;
-  background: #effaf4;
-  color: #16734a;
-}
-
-.status-pill.approved .status-dot {
-  background: #168255;
-}
-
-.status-pill.pending_approval,
-.status-pill.archive_requested,
-.status-pill.delete_requested {
-  border-color: #f0dfbd;
-  background: #fff9ed;
-  color: #9c620e;
-}
-
-.status-pill.pending_approval .status-dot,
-.status-pill.archive_requested .status-dot,
-.status-pill.delete_requested .status-dot {
-  background: #c98517;
-}
-
-.status-pill.rejected {
-  border-color: #f1cfcc;
-  background: #fff4f3;
-  color: #b52d26;
-}
-
-.status-pill.rejected .status-dot {
-  background: #c62828;
-}
-
-.status-pill.draft {
-  border-color: #d9e2ed;
-  background: #f7f9fb;
-  color: #60718a;
-}
-
-.status-pill.draft .status-dot {
-  background: #77889f;
-}
-
-.status-pill.archived {
-  border-color: #d8dee7;
-  background: #f4f6f8;
-  color: #626e80;
-}
-
-.status-pill.archived .status-dot {
-  background: #6f7d91;
 }
 
 /* =========================================================
@@ -1363,23 +1321,25 @@ td {
   color: #5e708a;
 }
 
-.page-size select {
-  height: 33px;
-  min-width: 57px;
-  padding: 0 6px;
-  border: 1px solid #d1dce8;
-  border-radius: 8px;
-  outline: 0;
-  background: #fff;
-  color: #394b65;
-  cursor: pointer;
-  font-size: 11px;
+.page-size-select {
+  width: 70px;
+  flex: 0 0 auto;
 }
 
 .page-controls {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Fixed-width track for the page-number buttons: sized for three
+   buttons so the Previous/Next arrows never shift when the window
+   holds fewer numbers at the range boundaries. */
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 107px;
 }
 
 .page-button {
@@ -1396,6 +1356,12 @@ td {
   font-size: 11px;
   font-weight: 800;
   transition: 0.15s ease;
+}
+
+/* Page-number buttons switch highlight instantly (no background fade)
+// so the active state never appears to slide between buttons. */
+.page-button.page-number {
+  transition: border-color 0.15s ease;
 }
 
 .page-button:hover:not(:disabled) {
@@ -1610,7 +1576,7 @@ td {
   .clear-filter {
     width: 100%;
     justify-content: flex-start;
-    margin-left: 54px;
+    margin-left: 0;
   }
 
   .export-wrap {
@@ -1654,5 +1620,203 @@ td {
 
   .view-action span:not(.material-icons) {
     display: none;
+  }
+}
+
+/* =========================================================
+   EDIT-STATUS POPUP
+   Status-selection dialog opened from the row Edit action.
+   Only DRAFT and ARCHIVED are offered. Visual language matches
+   the existing workflow modals.
+   ========================================================= */
+
+.edit-status-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 90000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(5, 15, 35, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.edit-status-card {
+  width: min(440px, 100%);
+  max-height: min(86vh, 640px);
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 20px 40px -15px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  padding: 24px;
+  animation: editStatusScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes editStatusScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.edit-status-header h2 {
+  margin: 0;
+  color: #1a2439;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.edit-status-name {
+  margin: 6px 0 0;
+  color: #1a2439;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.edit-status-desc {
+  margin: 6px 0 0;
+  color: #71829c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.edit-status-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.edit-status-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #d5dfeb;
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.edit-status-option:hover {
+  background: #f4f8fd;
+  border-color: #aebfd5;
+}
+
+.edit-status-option.selected {
+  border-color: #2457d6;
+  background: #eef4ff;
+}
+
+.edit-status-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 1px 0 0;
+  accent-color: #2457d6;
+  cursor: pointer;
+}
+
+.edit-status-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.edit-status-option-text strong {
+  color: #1a2439;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.edit-status-option-text small {
+  color: #71829c;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.edit-status-note {
+  margin: 12px 0 0;
+  color: #8491a4;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.edit-status-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.edit-status-btn {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.edit-status-btn--cancel {
+  background: #ffffff;
+  border: 1px solid #d5dfeb;
+  color: #50627c;
+}
+
+.edit-status-btn--cancel:hover {
+  border-color: #aebfd5;
+  background: #f4f8fd;
+  color: #2457d6;
+}
+
+.edit-status-btn--continue {
+  background: #2563eb;
+  border: 1px solid #2563eb;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.edit-status-btn--continue:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+@media (max-width: 480px) {
+  .edit-status-card {
+    padding: 20px 16px;
+  }
+
+  .edit-status-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .edit-status-btn {
+    width: 100%;
   }
 }

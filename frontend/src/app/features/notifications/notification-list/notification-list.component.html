@@ -276,11 +276,11 @@
             <!-- Content Preview -->
             <div class="card-content">
               <div class="card-title-row">
-                <h4 class="card-title">{{ item.title }}</h4>
+                <h4 class="card-title"><app-quoted-names [text]="item.title"></app-quoted-names></h4>
                 <span class="card-time">{{ formatRelativeTime(item.created_at) }}</span>
               </div>
 
-              <p class="card-message">{{ item.message }}</p>
+              <p class="card-message"><app-quoted-names [text]="item.message"></app-quoted-names></p>
 
               <div class="card-footer">
                 <span class="badge" [ngClass]="getBadgeClass(item.notification_type)">
@@ -340,11 +340,9 @@
             <div class="pagination-right">
               <div class="page-size">
                 <label for="page-size">Rows</label>
-                <select id="page-size" [(ngModel)]="pageSize" (ngModelChange)="changePageSize($event)">
-                  <option [ngValue]="10">10</option>
-                  <option [ngValue]="20">20</option>
-                  <option [ngValue]="50">50</option>
-                </select>
+                <app-searchable-select id="page-size" class="page-size-select"
+                  placeholder="Rows" [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
+                  [(ngModel)]="pageSizeOption" (selectionChange)="changePageSize($event)" />
                 <span>per page</span>
               </div>
 
@@ -354,10 +352,12 @@
                   <span class="material-icons">chevron_left</span>
                 </button>
 
-                <button type="button" *ngFor="let page of visiblePages" class="page-button page-number"
-                  [class.current]="currentPage === page" (click)="goToPage(page)">
-                  {{ page }}
-                </button>
+                <div class="page-numbers">
+                  <button type="button" *ngFor="let page of visiblePages" class="page-button page-number"
+                    [class.current]="currentPage === page" (click)="goToPage(page)">
+                    {{ page }}
+                  </button>
+                </div>
 
                 <button type="button" class="page-button" [disabled]="currentPage === totalPages" (click)="nextPage()"
                   aria-label="Next page">

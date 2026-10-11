@@ -400,6 +400,16 @@
     margin-left: auto;
   }
 
+  /* Fixed-width track for the page-number buttons: sized for three
+     buttons so the Previous/Next arrows never shift when the window
+     holds fewer numbers at the range boundaries. */
+  .page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 114px;
+  }
+
   .page-btn {
     display: inline-flex;
     align-items: center;
@@ -437,6 +447,13 @@
       background: #2457d6;
       border-color: #2457d6;
       color: #ffffff;
+      font-weight: 700;
+    }
+
+    // Page-number buttons switch highlight instantly (no background
+    // fade) so the active state never appears to slide between buttons.
+    &.page-num {
+      transition: border-color 0.15s ease;
     }
   }
 

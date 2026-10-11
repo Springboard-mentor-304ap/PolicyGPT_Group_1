@@ -6,11 +6,12 @@ import { Subscription, finalize, take } from 'rxjs';
 import { NotificationService } from '../../../core/services/notification.service';
 import { Auth } from '../../../core/services/auth';
 import { NotificationItem } from '../../../core/models/notification.model';
+import { QuotedNamesComponent } from '../../../shared/components/quoted-names/quoted-names.component';
 
 @Component({
   selector: 'app-notification-bell',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, QuotedNamesComponent],
   templateUrl: './notification-bell.component.html',
   styleUrls: ['./notification-bell.component.scss'],
 })

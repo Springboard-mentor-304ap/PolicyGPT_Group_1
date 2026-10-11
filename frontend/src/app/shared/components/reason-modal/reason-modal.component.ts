@@ -1,11 +1,12 @@
 import { Component, effect, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { QuotedNamesComponent } from '../quoted-names/quoted-names.component';
 
 @Component({
   selector: 'app-reason-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, QuotedNamesComponent],
   template: `
     @if (isOpen()) {
       <div class="modal-overlay" (click)="onBackdropClick($event)">
@@ -22,7 +23,7 @@ import { FormsModule } from '@angular/forms';
             </div>
             <div class="modal-header-text">
               <h3 class="modal-title">{{ title() }}</h3>
-              <p class="modal-message">{{ message() }}</p>
+              <p class="modal-message"><app-quoted-names [text]="message()"></app-quoted-names></p>
             </div>
           </div>
 

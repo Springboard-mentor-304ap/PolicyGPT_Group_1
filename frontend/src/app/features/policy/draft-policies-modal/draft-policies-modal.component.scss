@@ -1,3 +1,4 @@
+@use "../../../shared/styles/status-badges" as status;
 @import url("https://fonts.googleapis.com/icon?family=Material+Icons");
 
 :host {
@@ -438,6 +439,9 @@ input {
   font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
+
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-pill-colors;
 }
 
 .status-pill .status-dot {
@@ -446,16 +450,6 @@ input {
   flex: 0 0 6px;
   border-radius: 50%;
   background: #c98517;
-}
-
-.status-pill.draft {
-  border-color: #d9e2ed;
-  background: #f7f9fb;
-  color: #60718a;
-}
-
-.status-pill.draft .status-dot {
-  background: #77889f;
 }
 
 .dp-row-actions {

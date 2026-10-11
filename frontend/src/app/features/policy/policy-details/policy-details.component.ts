@@ -104,7 +104,9 @@ export class PolicyDetailsComponent implements OnInit {
   workflowMenuOpen = false;
 
   get userRole(): string {
-    return String(this.auth.getUserRole() || "").trim().toUpperCase();
+    return String(this.auth.getUserRole() || "")
+      .trim()
+      .toUpperCase();
   }
 
   get isAdmin(): boolean {
@@ -231,13 +233,15 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   get canApprove(): boolean {
-    if (!this.isAdmin || this.policy?.status !== 'PENDING_APPROVAL') return false;
+    if (!this.isAdmin || this.policy?.status !== "PENDING_APPROVAL")
+      return false;
     // Self-approval is forbidden (backend 403). Hide for own records.
     return !this.isOwner;
   }
 
   get canReject(): boolean {
-    if (!this.isAdmin || this.policy?.status !== 'PENDING_APPROVAL') return false;
+    if (!this.isAdmin || this.policy?.status !== "PENDING_APPROVAL")
+      return false;
     return !this.isOwner;
   }
 
@@ -532,7 +536,10 @@ export class PolicyDetailsComponent implements OnInit {
     this.showToast("Sharing is not supported on this browser.", "info");
   }
 
-  showToast(message: string, type: "success" | "error" | "info" = "success"): void {
+  showToast(
+    message: string,
+    type: "success" | "error" | "info" = "success",
+  ): void {
     if (type === "success") {
       this.toastService.success(message);
     } else if (type === "error") {
@@ -547,7 +554,9 @@ export class PolicyDetailsComponent implements OnInit {
    * the API response, falling back to the loaded record. Returns null
    * when no usable name exists so callers can use a generic message.
    */
-  private policyToastName(updated?: { title?: string | null } | null): string | null {
+  private policyToastName(
+    updated?: { title?: string | null } | null,
+  ): string | null {
     const raw =
       (typeof updated?.title === "string" && updated.title.trim()
         ? updated.title
@@ -731,9 +740,9 @@ export class PolicyDetailsComponent implements OnInit {
     if (!this.canApprove) {
       this.showToast(
         this.isOwner
-          ? 'You cannot approve your own policy. A different administrator must review it.'
-          : 'Only an administrator can approve a policy pending approval.',
-        'error',
+          ? "You cannot approve your own policy. A different administrator must review it."
+          : "Only an administrator can approve a policy pending approval.",
+        "error",
       );
       return;
     }
@@ -810,7 +819,10 @@ export class PolicyDetailsComponent implements OnInit {
   openDirectArchiveModal(): void {
     if (!this.policy) return;
     if (!this.canArchive) {
-      this.showToast('Only an administrator can archive an APPROVED policy.', 'error');
+      this.showToast(
+        "Only an administrator can archive an APPROVED policy.",
+        "error",
+      );
       return;
     }
     const policyId = this.policy.policy_id;
@@ -1130,8 +1142,8 @@ export class PolicyDetailsComponent implements OnInit {
             this.confirmModalOpen = false;
             this.policySuccessToast(
               null,
-              (n) => `Policy "${n}" permanently deleted.`,
-              "Policy permanently deleted.",
+              (n) => `Policy "${n}" deleted.`,
+              "Policy deleted.",
             );
             this.cdr.detectChanges();
             setTimeout(() => this.goBack(), 1200);

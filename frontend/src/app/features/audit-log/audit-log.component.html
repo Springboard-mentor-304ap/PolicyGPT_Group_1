@@ -297,16 +297,14 @@
             aria-label="Previous page">
             <span class="material-icons" aria-hidden="true">chevron_left</span>
           </button>
+          <div class="page-numbers">
           @for (p of pageNumbers(); track $index) {
-          @if (p === '…') {
-          <span class="page-ellipsis" aria-hidden="true">…</span>
-          } @else {
           <button type="button" class="page-btn page-num" [class.active]="p === currentPage()" (click)="goToPage(p)"
             [attr.aria-label]="'Page ' + p" [attr.aria-current]="p === currentPage() ? 'page' : null">
             {{ p }}
           </button>
           }
-          }
+          </div>
           <button type="button" class="page-btn page-nav" (click)="nextPage()"
             [disabled]="currentPage() >= totalPages()" aria-label="Next page">
             <span class="material-icons" aria-hidden="true">chevron_right</span>

@@ -9,6 +9,8 @@ import { NotificationService } from "../../../core/services/notification.service
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { ToastService } from "../../../core/services/toast.service";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { QuotedNamesComponent } from "../../../shared/components/quoted-names/quoted-names.component";
+import { visiblePageWindow } from "../../../core/utils/pagination.util";
 import {
   AdminNotificationStats,
   NotificationDeliveryRecord,
@@ -22,7 +24,7 @@ import {
 @Component({
   selector: "app-notification-list",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent, QuotedNamesComponent],
   templateUrl: "./notification-list.component.html",
   styleUrls: ["./notification-list.component.scss"],
 })
@@ -57,6 +59,25 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   pageSize = 20;
   totalPages = 1;
   totalItems = 0;
+
+  /** Rows-per-page options for the footer dropdown (string values for the shared select). */
+  readonly pageSizeOptions = ["10", "20", "50"];
+
+  /**
+   * String bridge between the numeric `pageSize` and the shared
+   * dropdown, which works with string values. `pageSize` stays the
+   * single source of truth.
+   */
+  get pageSizeOption(): string {
+    return String(this.pageSize);
+  }
+
+  set pageSizeOption(value: string) {
+    const parsed = Number(value);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      this.pageSize = parsed;
+    }
+  }
 
   // Tabs & Filters
   activeTab = "all";
@@ -671,17 +692,7 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   }
 
   get visiblePages(): number[] {
-    const pages: number[] = [];
-    const maxVisible = 5;
-    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(this.totalPages, start + maxVisible - 1);
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-    for (let p = start; p <= end; p++) {
-      pages.push(p);
-    }
-    return pages;
+    return visiblePageWindow(this.currentPage, this.totalPages);
   }
 
   goToPage(page: number): void {
@@ -703,8 +714,11 @@ export class NotificationListComponent implements OnInit, OnDestroy {
     }
   }
 
-  changePageSize(newSize: number): void {
-    this.pageSize = newSize;
+  changePageSize(newSize: string | number): void {
+    const parsed = Number(newSize);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      this.pageSize = parsed;
+    }
     this.currentPage = 1;
     this.loadNotifications();
   }

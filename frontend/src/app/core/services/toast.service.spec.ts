@@ -140,18 +140,35 @@ describe('ToastService', () => {
     const active = service.toasts();
     expect(active.length).toBe(1);
     expect(active[0].titleParts).toEqual({
-      prefix: 'Policy ',
-      name: 'National Education Policy 2020',
-      suffix: ' approved successfully.',
+      segments: [
+        { text: 'Policy ', bold: false },
+        { text: 'National Education Policy 2020', bold: true },
+        { text: ' approved successfully.', bold: false },
+      ],
     });
   });
 
-  it('should keep plain generic notifications as a single prefix with no name', () => {
+  it('should extract every quoted name when several appear', () => {
+    service.success('Policy "Alpha" merged into "Beta".');
+    const active = service.toasts();
+    expect(active.length).toBe(1);
+    expect(active[0].titleParts).toEqual({
+      segments: [
+        { text: 'Policy ', bold: false },
+        { text: 'Alpha', bold: true },
+        { text: ' merged into ', bold: false },
+        { text: 'Beta', bold: true },
+        { text: '.', bold: false },
+      ],
+    });
+  });
+
+  it('should keep plain generic notifications as a single plain segment', () => {
     service.success('Policy approved successfully.');
     const active = service.toasts();
     expect(active.length).toBe(1);
     expect(active[0].titleParts).toEqual({
-      prefix: 'Policy approved successfully.',
+      segments: [{ text: 'Policy approved successfully.', bold: false }],
     });
   });
 
@@ -160,9 +177,11 @@ describe('ToastService', () => {
     const active = service.toasts();
     expect(active.length).toBe(1);
     expect(active[0].messageParts).toEqual({
-      prefix: 'Deletion request for policy ',
-      name: 'My Policy',
-      suffix: ' failed.',
+      segments: [
+        { text: 'Deletion request for policy ', bold: false },
+        { text: 'My Policy', bold: true },
+        { text: ' failed.', bold: false },
+      ],
     });
   });
 
@@ -171,7 +190,7 @@ describe('ToastService', () => {
     const active = service.toasts();
     expect(active.length).toBe(1);
     expect(active[0].titleParts).toEqual({
-      prefix: "Official's request received.",
+      segments: [{ text: "Official's request received.", bold: false }],
     });
   });
 });

@@ -7,11 +7,12 @@ import {
   output,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
 
 @Component({
   selector: "app-confirm-modal",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, QuotedNamesComponent],
   template: `
     @if (isOpen()) {
       <div class="modal-overlay" (click)="onBackdropClick($event)">
@@ -40,6 +41,8 @@ import { CommonModule } from "@angular/common";
               }}<strong class="modal-highlight">{{ highlightText() }}</strong
               >{{ messageAfter() }}
             </p>
+          } @else if (parseQuotes()) {
+            <p class="modal-message"><app-quoted-names [text]="message()"></app-quoted-names></p>
           } @else {
             <p class="modal-message">{{ message() }}</p>
           }
@@ -343,6 +346,13 @@ export class ConfirmModalComponent implements OnDestroy {
   messageBefore = input<string>("");
   highlightText = input<string>("");
   messageAfter = input<string>("");
+  /**
+   * Render `"Record Name"` segments in `message()` bold without quotes.
+   * Enabled by default for operational confirmations; set false when
+   * the message carries free-form user text that must stay verbatim.
+   * Ignored when `highlightText` is provided (structured path wins).
+   */
+  parseQuotes = input<boolean>(true);
   confirmText = input<string>("Confirm");
   cancelText = input<string>("Cancel");
   variant = input<"primary" | "danger" | "warning" | "success">("danger");

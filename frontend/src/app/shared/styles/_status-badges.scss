@@ -1,0 +1,108 @@
+// =========================================================
+// POLICYGPT WORKFLOW-STATUS BADGE PALETTE
+// ---------------------------------------------------------
+// Single source of truth for status badge colors on the four
+// register/detail screens (Manage Policies, Policy Details,
+// Manage Schemes, Scheme Details) plus their record modals.
+//
+// Every status gets a light tinted background, a matching border,
+// and darker text. No grey is used for any status.
+//
+// Usage (component stylesheet, structure rules stay local):
+//
+//   @use "../../../../shared/styles/status-badges" as status;
+//
+//   .status-pill {
+//     // size, padding, radius, typography ...
+//     @include status.status-pill-colors;
+//   }
+//
+//   .status-badge {
+//     // size, padding, radius, typography ...
+//     @include status.status-badge-colors;
+//   }
+// =========================================================
+
+@use "sass:map";
+
+/// Canonical status -> color mapping (lowercase status names).
+$status-badge-colors: (
+  "draft": (
+    bg: #eff6ff,
+    border: #bfdbfe,
+    text: #1d4ed8,
+    dot: #2563eb,
+  ),
+  "pending_approval": (
+    bg: #fffbeb,
+    border: #fcd34d,
+    text: #b45309,
+    dot: #d97706,
+  ),
+  "approved": (
+    bg: #ecfdf5,
+    border: #a7f3d0,
+    text: #047857,
+    dot: #059669,
+  ),
+  "rejected": (
+    bg: #fef2f2,
+    border: #fecaca,
+    text: #b91c1c,
+    dot: #dc2626,
+  ),
+  "archived": (
+    bg: #faf5ff,
+    border: #ddd6fe,
+    text: #6d28d9,
+    dot: #7c3aed,
+  ),
+  "archive_requested": (
+    bg: #fff7ed,
+    border: #fed7aa,
+    text: #c2410c,
+    dot: #ea580c,
+  ),
+  "delete_requested": (
+    bg: #fff1f2,
+    border: #fecdd3,
+    text: #be123c,
+    dot: #e11d48,
+  ),
+);
+
+/// Emits `.status-pill.<status>` color rules (register tables and
+/// record modals). Include inside the local `.status-pill` rule so
+/// size, padding, radius, and typography stay component-owned.
+@mixin status-pill-colors {
+  @each $name, $colors in $status-badge-colors {
+    &.#{$name} {
+      border-color: map.get($colors, "border");
+      background: map.get($colors, "bg");
+      color: map.get($colors, "text");
+    }
+
+    &.#{$name} .status-dot {
+      background: map.get($colors, "dot");
+    }
+  }
+}
+
+/// Emits `.status-badge.status-<status>` color rules (detail pages).
+/// Include inside the local `.status-badge` rule. The legacy
+/// `.status-pending` alias maps to Pending Approval amber.
+@mixin status-badge-colors {
+  @each $name, $colors in $status-badge-colors {
+    &.status-#{$name} {
+      background: map.get($colors, "bg");
+      color: map.get($colors, "text");
+      border: 1px solid map.get($colors, "border");
+    }
+  }
+
+  &.status-pending {
+    background: map.get(map.get($status-badge-colors, "pending_approval"), "bg");
+    color: map.get(map.get($status-badge-colors, "pending_approval"), "text");
+    border: 1px solid map.get(map.get($status-badge-colors, "pending_approval"), "border");
+  }
+}

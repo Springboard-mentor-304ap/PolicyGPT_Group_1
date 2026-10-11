@@ -290,8 +290,8 @@ describe("ManagePoliciesComponent", () => {
     expect(component.errorMessage).toBeTruthy();
   });
 
-  // Test 8: Submit action label for Admin vs Other roles
-  it('8. Menu label should be "Submit" for Admin and "Submit for approval" for Gov Official', () => {
+  // Test 8: Submit action label follows the status matrix
+  it('8. Menu label should be "Submit" for DRAFT and "Resubmit" for REJECTED, both roles', () => {
     vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
     vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
     vi.spyOn(policyService, "getPolicies").mockReturnValue(
@@ -310,14 +310,12 @@ describe("ManagePoliciesComponent", () => {
 
     // For Government Official
     component.userRole = "GOVERNMENT_OFFICIAL";
-    expect(component.getSubmitActionLabel(draftPolicy)).toBe(
-      "Submit for approval",
-    );
+    expect(component.getSubmitActionLabel(draftPolicy)).toBe("Submit");
 
     const rejectedPolicy = { ...draftPolicy, status: "REJECTED" };
-    expect(component.getSubmitActionLabel(rejectedPolicy)).toBe(
-      "Re-submit for approval",
-    );
+    expect(component.getSubmitActionLabel(rejectedPolicy)).toBe("Resubmit");
+    component.userRole = "ADMIN";
+    expect(component.getSubmitActionLabel(rejectedPolicy)).toBe("Resubmit");
   });
 
   // Test 9: Submit opens confirmation modal with dynamic policy name
@@ -668,6 +666,170 @@ describe("ManagePoliciesComponent", () => {
     expect(component.confirmModalOpen).toBe(true);
     expect(component.confirmTitle).toContain("Legacy Transport Policy");
     expect(component.confirmMessage).toContain("No archive reason available.");
+  });
+
+  // Test 21: Edit-status popup offers only DRAFT and ARCHIVED with the policy name
+  it("21. openEditStatusModal should open the popup with DRAFT/ARCHIVED options only", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const target = component.policies[0];
+    component.openEditStatusModal(target);
+
+    expect(component.editStatusModalOpen).toBe(true);
+    expect(component.editStatusPolicy).toBe(target);
+    expect(component.editStatusOptions).toEqual(["DRAFT", "ARCHIVED"]);
+    expect(component.editStatusChoice).toBe("DRAFT");
+  });
+
+  // Test 22: Continue opens the existing edit form; Cancel navigates nowhere
+  it("22. confirmEditStatus should route to the existing edit form, cancel should not", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const target = component.policies[0];
+    const editSpy = vi.spyOn(component, "editPolicy").mockImplementation(() => {});
+
+    component.openEditStatusModal(target);
+    component.editStatusChoice = "ARCHIVED";
+    component.confirmEditStatus();
+
+    expect(editSpy).toHaveBeenCalledWith(target);
+    expect(component.editStatusModalOpen).toBe(false);
+    expect(component.editStatusPolicy).toBeNull();
+
+    component.openEditStatusModal(target);
+    editSpy.mockClear();
+    component.cancelEditStatus();
+
+    expect(editSpy).not.toHaveBeenCalled();
+    expect(component.editStatusModalOpen).toBe(false);
+    expect(component.editStatusPolicy).toBeNull();
+  });
+
+  // Test 23: Page-number window slides at most three pages
+  it("23. visiblePages should show a sliding window of three page numbers", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.policies = Array.from({ length: 25 }, (_, i) => ({
+      id: i + 1,
+      title: `Policy ${i + 1}`,
+      description: "",
+      category: "Healthcare",
+      ministry: "",
+      department: "",
+      sector: "",
+      status: "APPROVED",
+    }));
+    component.pageSize = 6;
+    component.selectedPageSize = 6;
+    component.currentPage = 1;
+    expect(component.totalPages).toBe(5);
+    expect(component.visiblePages).toEqual([1, 2, 3]);
+
+    component.goToPage(2);
+    expect(component.visiblePages).toEqual([1, 2, 3]);
+
+    component.goToPage(3);
+    expect(component.visiblePages).toEqual([1, 2, 3]);
+
+    component.goToPage(4);
+    expect(component.visiblePages).toEqual([2, 3, 4]);
+
+    component.goToPage(5);
+    expect(component.visiblePages).toEqual([3, 4, 5]);
+  });
+
+  // Test 24: Page size auto-fits small result sets and restores afterwards
+  it("24. should shrink the page size to the record count and keep the range accurate", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // 4 policies with default selection 5 -> effective size 4, one page.
+    expect(component.pageSize).toBe(4);
+    expect(component.totalPages).toBe(1);
+    expect(component.visiblePages).toEqual([1]);
+    expect(component.startItem).toBe(1);
+    expect(component.endItem).toBe(4);
+
+    // Filtering down to zero keeps the selection (never zero).
+    component.searchText = "zzz-no-such-policy";
+    component.applyFilters();
+    expect(component.paginatedPolicies.length).toBe(0);
+    expect(component.pageSize).toBe(5);
+    expect(component.startItem).toBe(0);
+
+    // Clearing the filter restores the full set on one page.
+    component.resetFilters();
+    expect(component.pageSize).toBe(4);
+    expect(component.startItem).toBe(1);
+    expect(component.endItem).toBe(4);
+  });
+
+  // Test 25: Rows-per-page dropdown offers 5/10/20/50 with default 5
+  it("25. should not offer a 6 option and should normalize a stale 6 to 5", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.pageSizeOptions).toEqual(["5", "10", "20", "50"]);
+    expect(component.selectedPageSize).toBe(5);
+
+    // A stale selected value of 6 is switched to 5 on init.
+    component.selectedPageSize = 6;
+    component.pageSize = 6;
+    component.ngOnInit();
+    expect(component.selectedPageSize).toBe(5);
   });
 });
 

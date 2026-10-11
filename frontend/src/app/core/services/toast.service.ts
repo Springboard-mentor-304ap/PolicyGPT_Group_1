@@ -1,17 +1,19 @@
 import { Injectable, signal, computed } from '@angular/core';
 
+import {
+  QuotedTextSegment,
+  splitQuotedSegments,
+} from '../utils/quoted-text.util';
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
 /**
- * Structured text for safe bold rendering of a record name.
- * `prefix` + bold `name` + `suffix` reconstruct the full sentence
- * without quotation marks. When no quoted name exists, `prefix` holds
- * the whole text and `name`/`suffix` stay undefined.
+ * Structured text for safe bold rendering of record names.
+ * `segments` renders the full sentence with every `"Name"` shown
+ * bold and quoteless; plain text yields a single non-bold segment.
  */
 export interface ToastTextParts {
-  prefix: string;
-  name?: string;
-  suffix?: string;
+  segments: QuotedTextSegment[];
 }
 
 export interface Toast {
@@ -37,23 +39,15 @@ const MAX_VISIBLE_TOASTS = 3;
 const DEDUP_WINDOW_MS = 1500;
 
 /**
- * Splits the first double-quoted segment out of a toast text so the
- * shared component can render the record name bold without quotation
- * marks. Plain strings without a quoted name pass through untouched
- * (prefix holds the full text), so existing generic notifications
- * keep working. Only double quotes are treated as name delimiters —
- * apostrophes in normal prose are never affected.
+ * Splits the double-quoted record name(s) out of a toast text so the
+ * shared component can render every name bold without quotation
+ * marks. Plain strings without a quoted name pass through as a single
+ * plain segment, so existing generic notifications keep working.
+ * Only double quotes are treated as name delimiters — apostrophes in
+ * normal prose are never affected.
  */
 export function splitToastName(text: string): ToastTextParts {
-  const match = /"([^"]+)"/.exec(text);
-  if (!match || !match[1].trim()) {
-    return { prefix: text };
-  }
-  return {
-    prefix: text.slice(0, match.index),
-    name: match[1],
-    suffix: text.slice(match.index + match[0].length),
-  };
+  return { segments: splitQuotedSegments(text) };
 }
 
 @Injectable({

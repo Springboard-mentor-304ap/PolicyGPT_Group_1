@@ -96,8 +96,8 @@
         <span class="item-dot" [class.active]="!item.is_read" aria-hidden="true"></span>
 
         <span class="item-body">
-          <span class="item-title">{{ item.title }}</span>
-          <span class="item-snippet">{{ item.message }}</span>
+          <span class="item-title"><app-quoted-names [text]="item.title"></app-quoted-names></span>
+          <span class="item-snippet"><app-quoted-names [text]="item.message"></app-quoted-names></span>
           <span class="item-time">{{ formatRelativeTime(item.created_at) }}</span>
         </span>
       </button>

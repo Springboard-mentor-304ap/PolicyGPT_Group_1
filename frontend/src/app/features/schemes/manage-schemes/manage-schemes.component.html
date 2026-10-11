@@ -495,13 +495,9 @@
                 <div class="page-size">
                     <label for="page-size">Rows</label>
 
-                    <select id="page-size" [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
-                        <option [ngValue]="5">5</option>
-                        <option [ngValue]="6">6</option>
-                        <option [ngValue]="10">10</option>
-                        <option [ngValue]="20">20</option>
-                        <option [ngValue]="50">50</option>
-                    </select>
+                    <app-searchable-select id="page-size" class="page-size-select"
+                        placeholder="Rows" [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
+                        [(ngModel)]="pageSizeOption" (selectionChange)="changePageSize()" />
 
                     <span>per page</span>
                 </div>
@@ -512,11 +508,13 @@
                         <span class="material-icons">chevron_left</span>
                     </button>
 
-                    <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index"
-                        class="page-button page-number" [class.current]="currentPage === i + 1"
-                        (click)="goToPage(i + 1)">
-                        {{ i + 1 }}
-                    </button>
+                    <div class="page-numbers">
+                        <button type="button" *ngFor="let page of visiblePages"
+                            class="page-button page-number" [class.current]="currentPage === page"
+                            (click)="goToPage(page)">
+                            {{ page }}
+                        </button>
+                    </div>
 
                     <button type="button" class="page-button" [disabled]="currentPage === totalPages"
                         (click)="nextPage()" aria-label="Next page">
@@ -529,7 +527,8 @@
 
     <!-- Workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
-        [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
         [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
         (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>

@@ -11,6 +11,7 @@ import { ToastService } from '../../../core/services/toast.service';
 import { Auth } from '../../../core/services/auth';
 import { SchemeResponse, SchemeListResponse, SchemeFilters } from '../../../core/models/scheme.model';
 import { getStatusLabel, getStatusBadgeClass } from '../../../core/utils/status.utils';
+import { visiblePageWindow } from '../../../core/utils/pagination.util';
 import {
   SCHEME_CATEGORIES,
   MINISTRIES,
@@ -395,22 +396,7 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   }
 
   get pageNumbers(): number[] {
-    const total = this.totalPages();
-    const current = this.currentPage();
-    const pages: number[] = [];
-    const maxVisible = 5;
-
-    let start = Math.max(1, current - Math.floor(maxVisible / 2));
-    let end = Math.min(total, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    return pages;
+    return visiblePageWindow(this.currentPage(), this.totalPages());
   }
 
   // Bookmarking (server is source of truth)

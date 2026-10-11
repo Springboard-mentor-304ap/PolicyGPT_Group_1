@@ -542,5 +542,97 @@ describe('ManageSchemesComponent', () => {
     expect(fallback.originY).toBe('top');
     expect(fallback.overlayY).toBe('bottom');
   });
+
+  // Test 19: Page-number window slides at most three pages
+  it('19. visiblePages should show a sliding window of three page numbers', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.schemes = Array.from({ length: 25 }, (_, i) => ({
+      id: i + 1,
+      name: `Scheme ${i + 1}`,
+      title: `Scheme ${i + 1}`,
+      description: '',
+      category: 'Healthcare',
+      ministry: '',
+      department: '',
+      state: '',
+      status: 'APPROVED',
+      publicationDate: '-',
+    }));
+    component.pageSize = 6;
+    component.selectedPageSize = 6;
+    component.currentPage = 1;
+    expect(component.totalPages).toBe(5);
+    expect(component.visiblePages).toEqual([1, 2, 3]);
+
+    component.goToPage(2);
+    expect(component.visiblePages).toEqual([1, 2, 3]);
+
+    component.goToPage(4);
+    expect(component.visiblePages).toEqual([2, 3, 4]);
+
+    component.goToPage(5);
+    expect(component.visiblePages).toEqual([3, 4, 5]);
+  });
+
+  // Test 20: Page size auto-fits small result sets and restores afterwards
+  it('20. should shrink the page size to the record count and keep the range accurate', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // 4 schemes with default selection 5 -> effective size 4, one page.
+    expect(component.pageSize).toBe(4);
+    expect(component.totalPages).toBe(1);
+    expect(component.visiblePages).toEqual([1]);
+    expect(component.startItem).toBe(1);
+    expect(component.endItem).toBe(4);
+
+    // Filtering down to zero keeps the selection (never zero).
+    component.searchText = 'zzz-no-such-scheme';
+    component.applyFilters();
+    expect(component.paginatedSchemes.length).toBe(0);
+    expect(component.pageSize).toBe(5);
+    expect(component.startItem).toBe(0);
+
+    // Clearing the filter restores the full set on one page.
+    component.resetFilters();
+    expect(component.pageSize).toBe(4);
+    expect(component.startItem).toBe(1);
+    expect(component.endItem).toBe(4);
+  });
+
+  // Test 21: Rows-per-page dropdown offers 5/10/20/50 with default 5
+  it('21. should not offer a 6 option and should normalize a stale 6 to 5', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.pageSizeOptions).toEqual(['5', '10', '20', '50']);
+    expect(component.selectedPageSize).toBe(5);
+
+    // A stale selected value of 6 is switched to 5 on init.
+    component.selectedPageSize = 6;
+    component.pageSize = 6;
+    component.ngOnInit();
+    expect(component.selectedPageSize).toBe(5);
+  });
 });
 

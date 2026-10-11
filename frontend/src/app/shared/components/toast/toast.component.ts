@@ -9,9 +9,9 @@ import { Toast, ToastTextParts } from "../../../core/services/toast.service";
   template: `
     <div class="toast-card" [ngClass]="'toast--' + toast.type" role="alert">
       <div class="toast-content">
-        <p class="toast-title">{{ titleParts().prefix }}@if (titleParts().name) {<strong class="toast-name">{{ titleParts().name }}</strong>}{{ titleParts().suffix }}</p>
+        <p class="toast-title">@for (seg of titleParts().segments; track $index) {@if (seg.bold) {<strong class="toast-name">{{ seg.text }}</strong>} @else {<span>{{ seg.text }}</span>}}</p>
         @if (messageParts()) {
-          <p class="toast-message">{{ messageParts()!.prefix }}@if (messageParts()!.name) {<strong class="toast-name">{{ messageParts()!.name }}</strong>}{{ messageParts()!.suffix }}</p>
+          <p class="toast-message">@for (seg of messageParts()!.segments; track $index) {@if (seg.bold) {<strong class="toast-name">{{ seg.text }}</strong>} @else {<span>{{ seg.text }}</span>}}</p>
         }
       </div>
       <button
@@ -150,7 +150,11 @@ export class ToastComponent {
    * when parts are absent (e.g. hand-built toast objects in tests).
    */
   titleParts(): ToastTextParts {
-    return this.toast.titleParts ?? { prefix: this.toast.title };
+    return (
+      this.toast.titleParts ?? {
+        segments: [{ text: this.toast.title, bold: false }],
+      }
+    );
   }
 
   /** Structured message parts, or null when there is no message. */
@@ -158,6 +162,10 @@ export class ToastComponent {
     if (!this.toast.message && !this.toast.messageParts) {
       return null;
     }
-    return this.toast.messageParts ?? { prefix: this.toast.message ?? "" };
+    return (
+      this.toast.messageParts ?? {
+        segments: [{ text: this.toast.message ?? "", bold: false }],
+      }
+    );
   }
 }

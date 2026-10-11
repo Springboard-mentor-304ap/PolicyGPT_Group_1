@@ -11,6 +11,7 @@ import {
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { visiblePageWindow } from '../../../core/utils/pagination.util';
 import {
   ReportDataset,
   ReportFormat,
@@ -749,14 +750,7 @@ export class ReportDashboardComponent implements OnInit {
   pageNumbers(st: ReportTabState): number[] {
     const total = this.totalPages(st);
     const current = Math.min(Math.max(1, st.page), total);
-    let start = Math.max(1, Math.min(current - 2, total - 4));
-    const end = Math.min(total, start + 4);
-    start = Math.max(1, end - 4);
-    const pages: number[] = [];
-    for (let p = start; p <= end; p += 1) {
-      pages.push(p);
-    }
-    return pages;
+    return visiblePageWindow(current, total);
   }
 
   goToPage(st: ReportTabState, page: number): void {

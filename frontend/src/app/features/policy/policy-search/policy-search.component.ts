@@ -16,6 +16,7 @@ import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { SearchHistoryService } from "../../../core/services/search-history.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
+import { visiblePageWindow } from "../../../core/utils/pagination.util";
 
 import {
   PolicyFilters,
@@ -624,17 +625,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   }
 
   get pageNumbers(): number[] {
-    const pages: number[] = [];
-
-    const start = Math.max(1, this.currentPage - 2);
-
-    const end = Math.min(this.totalPages, this.currentPage + 2);
-
-    for (let page = start; page <= end; page++) {
-      pages.push(page);
-    }
-
-    return pages;
+    return visiblePageWindow(this.currentPage, this.totalPages);
   }
 
   // ============================================================

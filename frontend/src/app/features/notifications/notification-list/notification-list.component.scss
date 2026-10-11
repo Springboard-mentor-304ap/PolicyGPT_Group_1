@@ -759,6 +759,11 @@ $danger-light: #fee2e2;
     }
   }
 
+  .page-size-select {
+    width: 80px;
+    flex: 0 0 auto;
+  }
+
   span {
     color: $muted;
   }
@@ -768,6 +773,16 @@ $danger-light: #fee2e2;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Fixed-width track for the page-number buttons: sized for three
+   buttons so the Previous/Next arrows never shift when the window
+   holds fewer numbers at the range boundaries. */
+.page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 104px;
 }
 
 .page-button {
@@ -784,6 +799,12 @@ $danger-light: #fee2e2;
   font-size: 12px;
   font-weight: 700;
   transition: all 0.15s ease;
+
+  // Page-number buttons switch highlight instantly (no background
+  // fade) so the active state never appears to slide between buttons.
+  &.page-number {
+    transition: border-color 0.15s ease;
+  }
 
   &:hover:not(:disabled) {
     border-color: $blue;

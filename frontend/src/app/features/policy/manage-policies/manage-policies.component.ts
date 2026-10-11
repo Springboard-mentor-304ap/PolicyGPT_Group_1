@@ -718,6 +718,15 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     );
   }
 
+  openViewArchiveReason(policy: PolicyTableItem): void {
+    const raw = (policy.archiveReason || "").trim();
+    const reason = raw ? raw : "No archive reason available.";
+    this.openInfoDialog(
+      `${policy.title || "Untitled policy"}\n`,
+      `Archive reason: ${reason}`,
+    );
+  }
+
   openViewSubmissionDetails(policy: PolicyTableItem): void {
     const lines = [
       `"${policy.title || "Untitled policy"}"`,

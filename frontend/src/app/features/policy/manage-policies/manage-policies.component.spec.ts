@@ -601,6 +601,74 @@ describe("ManagePoliciesComponent", () => {
     expect(fallback.originY).toBe("top");
     expect(fallback.overlayY).toBe("bottom");
   });
+
+  // Test 19: View archive reason shows the recorded reason with a bold quoteless title
+  it("19. openViewArchiveReason should display the policy name and archive reason", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.openViewArchiveReason({
+      id: 10,
+      title: "River Conservation Policy",
+      description: "",
+      category: "Environment",
+      ministry: "",
+      department: "",
+      sector: "",
+      status: "ARCHIVE_REQUESTED",
+      archiveReason: "Superseded by the 2026 water framework.",
+    });
+
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toContain("River Conservation Policy");
+    expect(component.confirmTitle).not.toContain('"');
+    expect(component.confirmMessage).toContain(
+      "Superseded by the 2026 water framework.",
+    );
+    expect(component.confirmText).toBe("Close");
+    expect(component.showCancelConfirm).toBe(false);
+  });
+
+  // Test 20: View archive reason handles a missing reason gracefully
+  it("20. openViewArchiveReason should fall back when no archive reason was recorded", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.openViewArchiveReason({
+      id: 11,
+      title: "Legacy Transport Policy",
+      description: "",
+      category: "Transport",
+      ministry: "",
+      department: "",
+      sector: "",
+      status: "ARCHIVED",
+    });
+
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toContain("Legacy Transport Policy");
+    expect(component.confirmMessage).toContain("No archive reason available.");
+  });
 });
 
 

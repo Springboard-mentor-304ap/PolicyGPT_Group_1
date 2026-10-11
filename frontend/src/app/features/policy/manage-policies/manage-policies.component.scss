@@ -860,27 +860,28 @@ td {
 }
 
 .col-number {
-  width: 7%;
+  width: 56px;
   text-align: center;
 }
 
 .col-policy {
-  width: 41%;
+  /* Flexible: takes all remaining width in the fixed table layout,
+     so long titles/descriptions (ellipsis-truncated) can never push
+     the other columns apart. */
 }
 
 .col-status {
-  width: 12%;
+  width: 150px;
   text-align: center;
 }
 
 .col-datetime {
-  width: 20%;
+  width: 215px;
 }
 
 .col-actions {
-  width: 20%;
-  padding-left: 10%;
-  text-align: center;
+  width: 150px;
+  text-align: right;
 }
 
 .datetime-cell {
@@ -961,7 +962,7 @@ td {
 }
 
 .policy-cell p {
-  max-width: 560px;
+  max-width: 720px;
   margin: 5px 0 0;
   overflow: hidden;
   color: #7d8ca2;
@@ -1170,7 +1171,7 @@ td {
 
   gap: 9px;
 
-  padding: 7px 9px;
+  padding: 7px 10px;
 
   border: 0;
   border-radius: 7px;
@@ -1182,6 +1183,7 @@ td {
 
   text-align: left;
   white-space: nowrap;
+  overflow: visible;
 
   font-family: inherit;
   font-size: 11px;
@@ -1221,18 +1223,22 @@ td {
   color: #98251f;
 }
 
-/* Icons */
+/* Icons — fixed-size box that never shrinks, so glyphs (e.g. the
+   Reject deletion icon) always render fully and stay aligned. */
 
 .action-menu .material-icons {
-  width: 18px;
-  min-width: 18px;
-  flex-shrink: 0;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  font-size: 17px;
+  font-size: 18px;
+  line-height: 1;
+  overflow: visible;
 }
 
 /* Separator */

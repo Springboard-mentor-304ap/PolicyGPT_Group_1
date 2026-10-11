@@ -432,6 +432,11 @@
                                                 Edit policy
                                             </button>
 
+                                            <button type="button" (click)="openViewArchiveReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
+                                            </button>
+
                                             @if (isAdmin) {
                                             <button type="button" class="success" (click)="openRestoreModal(policy)">
                                                 <span class="material-icons">restore</span>
@@ -460,6 +465,11 @@
                                             <button type="button" (click)="editPolicy(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
+                                            </button>
+
+                                            <button type="button" (click)="openViewArchiveReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
                                             </button>
 
                                             @if (isAdmin) {

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ApplicationRef } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
@@ -254,5 +255,152 @@ describe('PolicySearchComponent', () => {
     expect(component.policies.length).toBe(1);
     expect(component.policies[0].policy_id).toBe(101);
     expect(component.policies[0].status).toBe('APPROVED');
+  });
+});
+
+describe('PolicySearchComponent status filter and badges (staff roles)', () => {
+  let component: PolicySearchComponent;
+  let fixture: ComponentFixture<PolicySearchComponent>;
+  let policyService: { getPolicies: ReturnType<typeof vi.fn> };
+
+  const staffPolicies = (statuses: string[]) =>
+    statuses.map((status, i) => ({
+      policy_id: 200 + i,
+      title: `Staff Policy ${status}`,
+      description: 'd',
+      category: 'Health',
+      ministry: 'Ministry of Health',
+      department: 'Dept of Testing',
+      state: 'Karnataka',
+      sector: 'Public',
+      status,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }));
+
+  const setup = async (role: string) => {
+    window.scrollTo = vi.fn() as any;
+    policyService = {
+      getPolicies: vi.fn().mockReturnValue(
+        of({ policies: [], total: 0, page: 1, pages: 0, limit: 10 }),
+      ),
+    };
+    await TestBed.configureTestingModule({
+      imports: [PolicySearchComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: PolicyService, useValue: policyService },
+        {
+          provide: Auth,
+          useValue: {
+            getUserRole: vi.fn().mockReturnValue(role),
+            isLoggedIn: vi.fn().mockReturnValue(true),
+            getStoredUser: vi.fn().mockReturnValue({ id: 9, role }),
+          },
+        },
+      ],
+    }).compileComponents();
+    fixture = TestBed.createComponent(PolicySearchComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  };
+
+  it('offers all seven workflow statuses plus All Statuses', async () => {
+    await setup('ADMIN');
+    expect(component.statusDisplayOptions).toEqual([
+      'Approved',
+      'Pending Approval',
+      'Draft',
+      'Rejected',
+      'Archived',
+      'Archive Requested',
+      'Delete Requested',
+    ]);
+    component.onStatusDisplayChange('Delete Requested');
+    expect(component.selectedStatus).toBe('DELETE_REQUESTED');
+    component.onStatusDisplayChange('Archive Requested');
+    expect(component.selectedStatus).toBe('ARCHIVE_REQUESTED');
+  });
+
+  it('filters by exact status, resets pagination, and combines with other filters', async () => {
+    await setup('GOVERNMENT_OFFICIAL');
+    expect(
+      fixture.nativeElement.querySelector('.filters-grid.has-status'),
+    ).toBeTruthy();
+    component.selectedMinistry = 'Ministry of Health';
+    component.currentPage = 4;
+    component.onStatusDisplayChange('Draft');
+    expect(policyService.getPolicies).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'DRAFT', ministry: 'Ministry of Health', page: 1 }),
+    );
+    component.onStatusDisplayChange('');
+    expect(policyService.getPolicies).toHaveBeenCalledWith(
+      expect.objectContaining({ status: undefined, page: 1 }),
+    );
+  });
+
+  it('renders live status badges with ministry and department on every card', async () => {
+    await setup('ADMIN');
+    const statuses = [
+      'DRAFT',
+      'PENDING_APPROVAL',
+      'APPROVED',
+      'REJECTED',
+      'ARCHIVED',
+      'ARCHIVE_REQUESTED',
+      'DELETE_REQUESTED',
+    ];
+    component.policies = staffPolicies(statuses) as any;
+    component.totalResults = statuses.length;
+    TestBed.inject(ApplicationRef).tick();
+
+    const badges = Array.from(
+      fixture.nativeElement.querySelectorAll('.status-badge'),
+    ) as HTMLElement[];
+    expect(badges.length).toBe(7);
+    const expected: Array<[string, string]> = [
+      ['status-draft', 'Draft'],
+      ['status-pending_approval', 'Pending Approval'],
+      ['status-approved', 'Approved'],
+      ['status-rejected', 'Rejected'],
+      ['status-archived', 'Archived'],
+      ['status-archive_requested', 'Archive Requested'],
+      ['status-delete_requested', 'Delete Requested'],
+    ];
+    expected.forEach(([cls, label], i) => {
+      expect(badges[i].classList.contains(cls)).toBe(true);
+      expect(badges[i].textContent).toContain(label);
+    });
+    const cards = fixture.nativeElement.querySelectorAll('.policy-card');
+    expect(cards.length).toBe(7);
+    expect(cards[0].querySelector('h3')?.textContent).toContain('Staff Policy DRAFT');
+    expect(cards[0].textContent).toContain('Ministry of Health');
+    expect(cards[0].textContent).toContain('Dept of Testing');
+    // Badge sits inline beside the title; actions stay card-level.
+    expect(cards[0].querySelector('.title-row .status-badge')).toBeTruthy();
+    expect(cards[0].querySelector('.title-group .metadata-item.status-badge')).toBeTruthy();
+    expect(cards[0].querySelector('.title-row .policy-actions')).toBeNull();
+    expect(cards[0].querySelector('.metadata .status-badge')).toBeNull();
+    expect(fixture.nativeElement.querySelector('#status')).toBeTruthy();
+    // Staff layout: five-column filter grid.
+    expect(
+      fixture.nativeElement.querySelector('.filters-grid.has-status'),
+    ).toBeTruthy();
+  });
+
+  it('hides the status filter and badges from public roles', async () => {
+    await setup('CITIZEN');
+    component.policies = staffPolicies(['APPROVED']) as any;
+    component.totalResults = 1;
+    TestBed.inject(ApplicationRef).tick();
+    expect(fixture.nativeElement.querySelector('#status')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.status-badge')).toBeNull();
+    // Public layout: four-column filter grid (no staff hook).
+    expect(
+      fixture.nativeElement.querySelector('.filters-grid.has-status'),
+    ).toBeNull();
+    expect(fixture.nativeElement.querySelector('.filters-grid')).toBeTruthy();
   });
 });

@@ -1,3 +1,5 @@
+@use "../../../shared/styles/status-badges" as status;
+
 $primary: #1461a0;
 $primary-dark: #0c4678;
 $primary-soft: #edf5fc;
@@ -471,8 +473,9 @@ $danger-soft: #fdf0ee;
   gap: 16px;
   align-items: start;
 
+  // Staff roles show the extra Status filter: five equal columns.
   &.has-status {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 
   @media (max-width: 1100px) {
@@ -843,15 +846,33 @@ $danger-soft: #fdf0ee;
 .title-row {
   display: flex;
 
-  align-items: flex-start;
+  align-items: center;
 
-  justify-content: space-between;
+  flex-wrap: wrap;
 
-  gap: 15px;
+  gap: 14px;
 }
 
-.title-row h3 {
+.title-group {
+  display: flex;
+
+  align-items: center;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  flex: 1 1 auto;
+
+  min-width: 0;
+}
+
+.title-group h3 {
   margin: 0;
+
+  min-width: 0;
+
+  flex: 1 1 auto;
 
   color: $text;
 
@@ -862,6 +883,29 @@ $danger-soft: #fdf0ee;
   font-weight: 750;
 
   overflow-wrap: anywhere;
+}
+
+.title-group .status-badge {
+  flex-shrink: 0;
+
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  white-space: nowrap;
+
+  // Box metrics come from .metadata-item (shared with All India and
+  // the other tags); only text treatment and colors differ here.
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-badge-colors;
+
+  // Neutral grey for Draft and Archived on search cards.
+  &.status-draft,
+  &.status-archived {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+  }
 }
 
 .ministry {
@@ -947,7 +991,7 @@ $danger-soft: #fdf0ee;
 
   align-items: center;
 
-  gap: 8px;
+  gap: 12px;
 
   padding-top: 1px;
 }

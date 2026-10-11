@@ -275,71 +275,7 @@
                         @if (stepSubmitted[1] && !hasAtLeastOneBenefit()) {
                         <span class="form-error">At least one policy benefit is required.</span>
                         }
-                        <p class="form-helper">List the key tangible benefits provided under this policy.</p>
                     </div>
-                </div>
-            </div>
-
-            <!-- Sidebar Tips & Example -->
-            <div class="policy-layout__sidebar">
-                <!-- TIPS CARD -->
-                <div class="info-card">
-                    <div class="info-card__header">
-                        <div class="info-card__icon-badge info-card__icon-badge--blue">
-                            <span class="material-icons">lightbulb_outline</span>
-                        </div>
-                        <h3 class="info-card__title">Tips for a Good Policy Entry</h3>
-                    </div>
-
-                    <ul class="info-checklist">
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Use an official gazette-notified policy title</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Assign the primary category and relevant sector</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Provide clear and meaningful descriptions</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Clearly highlight key benefits for citizens</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Ensure data matches official ministry notifications</span>
-                        </li>
-                    </ul>
-
-                    <div class="quote-box">
-                        <span class="material-icons quote-mark">format_quote</span>
-                        <p class="quote-text">
-                            “A well-defined policy framework fosters administrative transparency and seamless nationwide
-                            adoption.”
-                        </p>
-                    </div>
-                </div>
-
-                <!-- EXAMPLE POLICY CARD -->
-                <div class="example-card">
-                    <div class="example-card__header">
-                        <span class="material-icons example-card__icon">verified</span>
-                        <div class="example-card__title-box">
-                            <h4 class="example-card__subtitle">Example Policy Entry</h4>
-                            <p class="example-card__name">“National Education Policy (NEP)”</p>
-                        </div>
-                    </div>
-
-                    <ul class="example-details">
-                        <li><strong>Category:</strong> Education</li>
-                        <li><strong>Ministry:</strong> Ministry of Education</li>
-                        <li><strong>Department:</strong> Department of Higher Education</li>
-                        <li><strong>Sector:</strong> Education</li>
-                        <li><strong>State:</strong> All India</li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -513,32 +449,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Bottom Tips Strip -->
-                <div class="tips-strip">
-                    <div class="tips-strip__label">
-                        <span class="material-icons">lightbulb_outline</span>
-                        <span>Tips for Policy Details</span>
-                    </div>
-                    <div class="tips-strip__items">
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Verify gazette dates</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Assign appropriate sector</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Select nodal ministry</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Link official guidelines</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         }
@@ -561,12 +471,6 @@
                                 policy schema.
                             </p>
                         </div>
-                    </div>
-
-                    <div class="policy-card__header-tip">
-                        <span class="material-icons">lightbulb_outline</span>
-                        <span>Clear applicability criteria ensure targeted delivery and transparent institutional
-                            compliance.</span>
                     </div>
                 </div>
 
@@ -813,19 +717,6 @@
                             </p>
                         </div>
                     </div>
-
-                    <!-- Tips badge -->
-                    <div class="tips-box-compact">
-                        <div class="tips-box-compact__header">
-                            <span class="material-icons">lightbulb_outline</span>
-                            <strong>Tips</strong>
-                        </div>
-                        <ul class="tips-box-compact__list">
-                            <li>Attach official gazette notification links or PDF URL.</li>
-                            <li>Provide the nodal ministry or department reference portal.</li>
-                            <li>Outline the implementation workflow and institutional compliance.</li>
-                        </ul>
-                    </div>
                 </div>
 
                 <div class="policy-form-grid">
@@ -937,19 +828,6 @@
                                 Please review all the information below. You can go back and edit any section if needed.
                             </p>
                         </div>
-                    </div>
-
-                    <!-- Role-Aware Review Notice -->
-                    <div class="review-notice">
-                        <span class="material-icons">info</span>
-                        <p>
-                            Make sure all information is correct and up-to-date before submitting.
-                            @if (isAdmin) {
-                            The policy will be published directly.
-                            } @else {
-                            The policy will be sent for review by the administrative team.
-                            }
-                        </p>
                     </div>
                 </div>
 
@@ -1273,7 +1151,9 @@
          STICKY FOOTER ACTIONS
          ========================================================= -->
         <div class="policy-create__footer">
-            <div class="policy-create__footer-left">
+            <div class="policy-create__footer-left"></div>
+
+            <div class="policy-create__footer-right">
                 @if (currentStep > 1) {
                 <button type="button" class="btn btn-outline" (click)="prevStep()">
                     <span class="material-icons">arrow_back</span>
@@ -1283,14 +1163,6 @@
                 <button type="button" class="btn btn-outline" (click)="cancel()">
                     <span class="material-icons">arrow_back</span>
                     <span>Cancel</span>
-                </button>
-                }
-            </div>
-
-            <div class="policy-create__footer-right">
-                @if (currentStep > 1) {
-                <button type="button" class="btn btn-outline btn-cancel" (click)="cancel()">
-                    Cancel
                 </button>
                 }
 

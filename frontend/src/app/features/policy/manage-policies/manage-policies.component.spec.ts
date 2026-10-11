@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { ApplicationRef } from "@angular/core";
 import { provideHttpClient } from "@angular/common/http";
 import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { provideRouter } from "@angular/router";
@@ -692,8 +693,9 @@ describe("ManagePoliciesComponent", () => {
     expect(component.editStatusChoice).toBe("DRAFT");
   });
 
-  // Test 22: Continue opens the existing edit form; Cancel navigates nowhere
-  it("22. confirmEditStatus should route to the existing edit form, cancel should not", () => {
+  // Test 22: Continue with Draft opens the edit form; Archived runs the
+  // archive workflow; Cancel navigates nowhere
+  it("22. confirmEditStatus should route Draft to edit, Archived to archive, cancel to nothing", () => {
     vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
     vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
     vi.spyOn(policyService, "getPolicies").mockReturnValue(
@@ -707,16 +709,31 @@ describe("ManagePoliciesComponent", () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const target = component.policies[0];
+    const target = component.policies.find((p) => p.status === "APPROVED")!;
     const editSpy = vi.spyOn(component, "editPolicy").mockImplementation(() => {});
+    const archiveSpy = vi
+      .spyOn(policyService, "archiveDirect")
+      .mockReturnValue(of({ ...target, status: "ARCHIVED" } as any));
 
     component.openEditStatusModal(target);
-    component.editStatusChoice = "ARCHIVED";
+    component.editStatusChoice = "DRAFT";
     component.confirmEditStatus();
 
     expect(editSpy).toHaveBeenCalledWith(target);
+    expect(archiveSpy).not.toHaveBeenCalled();
     expect(component.editStatusModalOpen).toBe(false);
     expect(component.editStatusPolicy).toBeNull();
+
+    component.openEditStatusModal(target);
+    component.editStatusChoice = "ARCHIVED";
+    editSpy.mockClear();
+    component.confirmEditStatus();
+
+    expect(editSpy).not.toHaveBeenCalled();
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe("Archive Policy");
+    component.onConfirmModalConfirmed();
+    expect(archiveSpy).toHaveBeenCalledWith(target.id);
 
     component.openEditStatusModal(target);
     editSpy.mockClear();
@@ -725,6 +742,143 @@ describe("ManagePoliciesComponent", () => {
     expect(editSpy).not.toHaveBeenCalled();
     expect(component.editStatusModalOpen).toBe(false);
     expect(component.editStatusPolicy).toBeNull();
+  });
+
+  // Test 22b: openEditFlow routes by status; govt Archived choice requests archive
+  it("22b. openEditFlow opens DRAFT/ARCHIVED directly and keeps the chooser otherwise", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("GOVERNMENT_OFFICIAL");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockGovUserA);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of({ total: 2, approved: 0, pending: 1, rejected: 0, archived: 0 }),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const navigateSpy = vi.spyOn(component["router"], "navigate").mockResolvedValue(true);
+    const item = (over: Record<string, unknown>) => ({
+      id: 99,
+      title: "T",
+      description: "",
+      category: "C",
+      ministry: "",
+      department: "",
+      sector: "",
+      status: "DRAFT",
+      ...over,
+    });
+
+    component.openEditFlow(item({ status: "DRAFT" }) as any);
+    expect(navigateSpy).toHaveBeenCalledWith(
+      ["/dashboard", "government", "policies", "edit", 99],
+    );
+    expect(component.editStatusModalOpen).toBe(false);
+
+    navigateSpy.mockClear();
+    component.openEditFlow(item({ status: "ARCHIVED" }) as any);
+    expect(navigateSpy).toHaveBeenCalledWith(
+      ["/dashboard", "government", "policies", "edit", 99],
+    );
+    expect(component.editStatusModalOpen).toBe(false);
+
+    navigateSpy.mockClear();
+    component.openEditFlow(item({ status: "APPROVED" }) as any);
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(component.editStatusModalOpen).toBe(false);
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe("Policy Must Be Archived");
+
+    component.onConfirmModalConfirmed();
+    expect(component.confirmModalOpen).toBe(false);
+    expect(component.reasonModalOpen).toBe(true);
+    expect(component.reasonTitle).toBe("Request Policy Archive");
+  });
+
+  it("22c. approved alert archives via API then opens the edit form (admin)", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const target = component.policies.find((p) => p.status === "APPROVED")!;
+    const archiveSpy = vi
+      .spyOn(policyService, "archiveDirect")
+      .mockReturnValue(of({
+        policy_id: target.id,
+        title: target.title,
+        description: target.description,
+        category: target.category,
+        status: "ARCHIVED",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-02T00:00:00Z",
+      } as any));
+    const navigateSpy = vi.spyOn(component["router"], "navigate").mockResolvedValue(true);
+
+    component.openEditFlow(target);
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe("Policy Must Be Archived");
+    expect(component.confirmText).toBe("Archive Policy");
+
+    component.onConfirmModalConfirmed();
+    expect(archiveSpy).toHaveBeenCalledTimes(1);
+    expect(archiveSpy).toHaveBeenCalledWith(target.id);
+    expect(component.confirmModalOpen).toBe(false);
+    expect(navigateSpy).toHaveBeenCalledWith([
+      "/dashboard",
+      "admin",
+      "policies",
+      "edit",
+      target.id,
+    ]);
+    expect(
+      component.policies.find((p) => p.id === target.id)?.status,
+    ).toBe("ARCHIVED");
+
+    // Second confirm is a no-op (action cleared after success).
+    archiveSpy.mockClear();
+    navigateSpy.mockClear();
+    component.onConfirmModalConfirmed();
+    expect(archiveSpy).not.toHaveBeenCalled();
+    expect(navigateSpy).not.toHaveBeenCalled();
+  });
+
+  it("22d. approved alert shows API errors without navigating (admin)", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const target = component.policies.find((p) => p.status === "APPROVED")!;
+    vi.spyOn(policyService, "archiveDirect").mockReturnValue(
+      throwError(() => ({ error: { detail: "Archive blocked." } })),
+    );
+    const navigateSpy = vi.spyOn(component["router"], "navigate").mockResolvedValue(true);
+
+    component.openEditFlow(target);
+    component.onConfirmModalConfirmed();
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmErrorMessage).toBe("Archive blocked.");
+    expect(navigateSpy).not.toHaveBeenCalled();
   });
 
   // Test 23: Page-number window slides at most three pages
@@ -830,6 +984,117 @@ describe("ManagePoliciesComponent", () => {
     component.pageSize = 6;
     component.ngOnInit();
     expect(component.selectedPageSize).toBe(5);
+  });
+
+  // Test 26: Search results show live status badges + ministry/department (admin)
+  it("26. search results display bold titles with live status badges and org meta", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const rows = [
+      { id: 11, title: "Policy SE-A", description: "d", category: "C", ministry: "Ministry of Health", department: "Dept A", sector: "S", status: "DRAFT", createdBy: 2 },
+      { id: 12, title: "Policy SE-B", description: "d", category: "C", ministry: "Ministry of Health", department: "", sector: "S", status: "PENDING_APPROVAL", createdBy: 2 },
+      { id: 13, title: "Policy SE-C", description: "d", category: "C", ministry: "", department: "", sector: "S", status: "APPROVED", createdBy: 2 },
+      { id: 14, title: "Policy SE-D", description: "d", category: "C", ministry: "M", department: "D", sector: "S", status: "REJECTED", createdBy: 2 },
+      { id: 15, title: "Policy SE-E", description: "d", category: "C", ministry: "M", department: "D", sector: "S", status: "ARCHIVED", createdBy: 2 },
+      { id: 16, title: "Policy SE-F", description: "d", category: "C", ministry: "M", department: "D", sector: "S", status: "ARCHIVE_REQUESTED", createdBy: 2 },
+      { id: 17, title: "Policy SE-G", description: "d", category: "C", ministry: "M", department: "D", sector: "S", status: "DELETE_REQUESTED", createdBy: 2 },
+    ];
+    component.policies = rows as any;
+    component.pageSize = 100;
+    const searchInput = fixture.nativeElement.querySelector(
+      '#policy-search',
+    ) as HTMLInputElement;
+    searchInput.value = 'Policy SE-';
+    searchInput.dispatchEvent(new Event('input'));
+    TestBed.inject(ApplicationRef).tick();
+
+    expect(component.filteredPolicies.length).toBe(7);
+    const pills = Array.from(
+      fixture.nativeElement.querySelectorAll(".status-pill"),
+    ) as HTMLElement[];
+    expect(pills.length).toBe(7);
+    const expected: Array<[string, string]> = [
+      ["draft", "Draft"],
+      ["pending_approval", "Pending Approval"],
+      ["approved", "Approved"],
+      ["rejected", "Rejected"],
+      ["archived", "Archived"],
+      ["archive_requested", "Archive Requested"],
+      ["delete_requested", "Delete Requested"],
+    ];
+    expected.forEach(([cls, label], i) => {
+      expect(pills[i].classList.contains(cls)).toBe(true);
+      expect(pills[i].textContent).toContain(label);
+    });
+    const titles = Array.from(
+      fixture.nativeElement.querySelectorAll(".policy-name"),
+    ) as HTMLElement[];
+    expect(titles.length).toBe(7);
+    expect(titles[0].textContent).toContain("Policy SE-A");
+    const metas = fixture.nativeElement.querySelectorAll(".policy-meta");
+    // Row 3 has neither ministry nor department: no meta line.
+    expect(metas.length).toBe(6);
+    expect(metas[0].textContent).toContain("Ministry of Health");
+    expect(metas[0].textContent).toContain("Dept A");
+  });
+
+  // Test 27: Status pill refreshes when the row data changes (govt role)
+  it("27. status badges track live row updates for Government Officials", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("GOVERNMENT_OFFICIAL");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockGovUserA);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of({ total: 2, approved: 0, pending: 1, rejected: 0, archived: 0 }),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.policies = [
+      { id: 21, title: "Policy GOV-X", description: "d", category: "C", ministry: "M", department: "D", sector: "S", status: "PENDING_APPROVAL", createdBy: 2 },
+    ] as any;
+    const searchInput = fixture.nativeElement.querySelector(
+      '#policy-search',
+    ) as HTMLInputElement;
+    searchInput.value = 'GOV-X';
+    searchInput.dispatchEvent(new Event('input'));
+    TestBed.inject(ApplicationRef).tick();
+
+    let pill = fixture.nativeElement.querySelector(".status-pill") as HTMLElement;
+    expect(pill.classList.contains("pending_approval")).toBe(true);
+
+    // Simulate the post-approval refresh patching the row.
+    (component as any).applyPolicyUpdate({
+      policy_id: 21,
+      title: "Policy GOV-X",
+      description: "d",
+      category: "C",
+      ministry: "M",
+      department: "D",
+      sector: "S",
+      status: "APPROVED",
+      created_by: 2,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-02T00:00:00Z",
+    });
+    TestBed.inject(ApplicationRef).tick();
+    pill = fixture.nativeElement.querySelector(".status-pill") as HTMLElement;
+    expect(pill.classList.contains("approved")).toBe(true);
+    expect(pill.textContent).toContain("Approved");
   });
 });
 

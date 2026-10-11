@@ -288,6 +288,19 @@
                                         @if (policy.description) {
                                         <p>{{ policy.description }}</p>
                                         }
+                                        @if (policy.ministry || policy.department) {
+                                        <p class="policy-meta">
+                                            @if (policy.ministry) {
+                                            <span>{{ policy.ministry }}</span>
+                                            }
+                                            @if (policy.ministry && policy.department) {
+                                            <span class="policy-meta-sep">•</span>
+                                            }
+                                            @if (policy.department) {
+                                            <span>{{ policy.department }}</span>
+                                            }
+                                        </p>
+                                        }
                                     </div>
                                 </div>
                             </td>
@@ -346,7 +359,7 @@
                                             <!-- DRAFT / REJECTED -->
                                             @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
 
-                                            <button type="button" (click)="openEditStatusModal(policy)">
+                                            <button type="button" (click)="openEditFlow(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -384,7 +397,7 @@
                                                 Reject request
                                             </button>
                                             } @else {
-                                            <button type="button" (click)="openEditStatusModal(policy)">
+                                            <button type="button" (click)="openEditFlow(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -394,7 +407,7 @@
                                             <!-- APPROVED -->
                                             @if (policy.status === 'APPROVED') {
 
-                                            <button type="button" (click)="openEditStatusModal(policy)">
+                                            <button type="button" (click)="openEditFlow(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>
@@ -429,7 +442,7 @@
                                             <!-- ARCHIVED -->
                                             @if (policy.status === 'ARCHIVED') {
 
-                                            <button type="button" (click)="openEditStatusModal(policy)">
+                                            <button type="button" (click)="openEditFlow(policy)">
                                                 <span class="material-icons">edit</span>
                                                 Edit policy
                                             </button>

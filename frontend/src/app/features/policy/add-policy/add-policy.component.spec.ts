@@ -2,11 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ApplicationRef } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideRouter, Router } from '@angular/router';
+import { ActivatedRoute, provideRouter, Router } from '@angular/router';
 import { AddPolicyComponent } from './add-policy.component';
 import { PolicyService } from '../../../core/services/policy.services';
 import { Auth } from '../../../core/services/auth';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 
 describe('AddPolicyComponent Submission Flow', () => {
   let component: AddPolicyComponent;
@@ -490,7 +490,7 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
     component.nextStep();
     component.nextStep();
     expect(component.currentStep).toBe(3);
-    const tick = () => TestBed.inject(ApplicationRef).tick();
+    const tick = () => fixture.detectChanges();
     tick();
 
     const rows = () =>
@@ -531,7 +531,7 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
     expect(component.currentStep).toBe(3);
     // Zoneless setup: ApplicationRef.tick() re-renders reliably,
     // fixture.detectChanges() does not propagate (see chatbot spec).
-    const tick = () => TestBed.inject(ApplicationRef).tick();
+    const tick = () => fixture.detectChanges();
     tick();
 
     const query = (sel: string) =>
@@ -630,7 +630,7 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
     component.nextStep();
     component.nextStep();
     expect(component.currentStep).toBe(3);
-    const tick = () => TestBed.inject(ApplicationRef).tick();
+    const tick = () => fixture.detectChanges();
     tick();
     const form = fixture.nativeElement.querySelector('form');
     expect(form.classList.contains('step-anim-forward')).toBe(true);
@@ -656,7 +656,7 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
       sector: 'S',
     });
     component.benefits.at(0).setValue('B1');
-    const tick = () => TestBed.inject(ApplicationRef).tick();
+    const tick = () => fixture.detectChanges();
     tick();
     const width = () =>
       (fixture.nativeElement.querySelector('.policy-stepper__progress') as HTMLElement).style.width;
@@ -665,7 +665,7 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
     tick();
     expect(component.currentStep).toBe(2);
     expect(width()).toBe('20%');
-    (fixture.nativeElement.querySelector('.policy-create__footer-left .btn-outline') as HTMLElement).click();
+    (fixture.nativeElement.querySelector('.policy-create__footer-right .btn-outline') as HTMLElement).click();
     tick();
     expect(component.currentStep).toBe(1);
     expect(width()).toBe('0%');
@@ -741,3 +741,144 @@ describe('AddPolicyComponent Key-Value Conditions and Validation', () => {
   });
 });
 
+
+describe('AddPolicyComponent edit-mode category loading', () => {
+  let component: AddPolicyComponent;
+  let fixture: ComponentFixture<AddPolicyComponent>;
+  let policyService: PolicyService;
+
+  const archivedPolicy = {
+    policy_id: 125,
+    title: 'Archived Water Policy',
+    description: ' desc ',
+    category: 'Water Resources',
+    ministry: 'Ministry of Jal Shakti',
+    department: 'Dept of Water',
+    state: 'Karnataka',
+    sector: 'Water',
+    status: 'ARCHIVED',
+    benefits: ['B1'],
+    eligibility_rules: [],
+    created_by: 4,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-02T00:00:00Z',
+  };
+
+  const setup = async (policy: any, delayMs = 0) => {
+    await TestBed.configureTestingModule({
+      imports: [AddPolicyComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => String(policy.policy_id) } } },
+        },
+        {
+          provide: Auth,
+          useValue: {
+            getStoredUser: () => ({ id: 1, role: 'ADMIN', name: 'Admin' }),
+            getToken: () => 't',
+          },
+        },
+      ],
+    }).compileComponents();
+    policyService = TestBed.inject(PolicyService);
+    vi.spyOn(policyService, 'getPolicy').mockImplementation(
+      () =>
+        new Observable((subscriber) => {
+          const timer = setTimeout(() => {
+            subscriber.next(policy as any);
+            subscriber.complete();
+          }, delayMs);
+          return () => clearTimeout(timer);
+        }),
+    );
+    fixture = TestBed.createComponent(AddPolicyComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    await new Promise((resolve) => setTimeout(resolve, delayMs + 20));
+    TestBed.inject(ApplicationRef).tick();
+  };
+
+  it('loads a custom archived category into the control and trigger', async () => {
+    await setup(archivedPolicy);
+    expect(component.isEditMode).toBe(true);
+    expect(component.policyForm.get('category')?.value).toBe('Water Resources');
+    const trigger = fixture.nativeElement.querySelector(
+      '#policy-category .selected-text',
+    ) as HTMLElement;
+    expect(trigger.textContent).toContain('Water Resources');
+    expect(trigger.classList.contains('placeholder')).toBe(false);
+  });
+
+  it('loads an async custom archived category without clearing it', async () => {
+    await setup(archivedPolicy, true);
+    expect(component.policyForm.get('category')?.value).toBe('Water Resources');
+    const trigger = fixture.nativeElement.querySelector(
+      '#policy-category .selected-text',
+    ) as HTMLElement;
+    expect(trigger.textContent).toContain('Water Resources');
+  });
+
+  it('loads a predefined category on an approved policy entering edit', async () => {
+    await setup({ ...archivedPolicy, status: 'APPROVED', category: 'Healthcare' }, true);
+    expect(component.policyForm.get('category')?.value).toBe('Healthcare');
+    const trigger = fixture.nativeElement.querySelector(
+      '#policy-category .selected-text',
+    ) as HTMLElement;
+    expect(trigger.textContent).toContain('Healthcare');
+  });
+
+  it('rebuilds exactly five benefit rows in order, with no blank residue', async () => {
+    await setup({
+      ...archivedPolicy,
+      benefits: ['B1', 'B2', 'B3', 'B4', 'B5'],
+    });
+    expect(component.benefits.length).toBe(5);
+    expect(component.benefits.controls.map((c) => c.value)).toEqual([
+      'B1',
+      'B2',
+      'B3',
+      'B4',
+      'B5',
+    ]);
+  });
+
+  it('rebuilds a single benefit row and a single blank row when empty', async () => {
+    await setup({ ...archivedPolicy, benefits: ['Only'] });
+    expect(component.benefits.length).toBe(1);
+    expect(component.benefits.at(0).value).toBe('Only');
+
+    const policyServiceLocal = TestBed.inject(PolicyService);
+    (policyServiceLocal.getPolicy as any).mockReturnValue(
+      of({ ...archivedPolicy, benefits: null } as any),
+    );
+    (component as any).loadPolicyForEdit(125);
+    expect(component.benefits.length).toBe(1);
+    expect(component.benefits.at(0).value).toBe('');
+  });
+
+  it('reopening keeps the latest benefits without duplicates and submits them', async () => {
+    await setup({
+      ...archivedPolicy,
+      benefits: ['B1', 'B2', 'B3', 'B4', 'B5'],
+    });
+    expect(component.benefits.length).toBe(5);
+    const policyServiceLocal = TestBed.inject(PolicyService);
+    (policyServiceLocal.getPolicy as any).mockReturnValue(
+      of({ ...archivedPolicy, benefits: ['N1', 'N2', 'N3'] } as any),
+    );
+    (component as any).loadPolicyForEdit(125);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(component.benefits.length).toBe(3);
+    expect(component.benefits.controls.map((c: any) => c.value)).toEqual([
+      'N1',
+      'N2',
+      'N3',
+    ]);
+    const payload = (component as any).buildPolicyPayload();
+    expect(payload.benefits).toEqual(['N1', 'N2', 'N3']);
+  });
+});

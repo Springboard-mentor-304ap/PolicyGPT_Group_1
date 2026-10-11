@@ -369,9 +369,6 @@ $success-border: #bbf7d0;
 // =========================================================
 
 .policy-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
   align-items: flex-start;
 
   &--single {

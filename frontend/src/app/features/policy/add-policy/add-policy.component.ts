@@ -1028,21 +1028,46 @@ export class AddPolicyComponent implements OnInit {
 
           implementationProcess: policy.implementation_process ?? "",
         });
+
+        /*
+         * The dropdown options below are static references. Reassigning
+         * fresh array instances after patching marks every
+         * app-searchable-select dirty: in this zoneless setup a patched
+         * FormControl alone does not re-render an already-displayed
+         * select, so without this the trigger keeps showing its
+         * placeholder even though the control holds the saved value.
+         * departmentOptions is already rebuilt by
+         * updateDepartmentOptions above.
+         */
+        this.categories = [...POLICY_CATEGORIES];
+        this.ministries = [...MINISTRIES];
+        this.sectors = [...POLICY_SECTORS];
+        this.states = [...this.states];
+        this.educationOptions = [...this.educationOptions];
         this.cdr.detectChanges();
 
         /* ------------------------------------------------------
              BENEFITS
-             ------------------------------------------------------ */
+             ------------------------------------------------------
+             Rebuilt atomically via setControl: replacing the FormArray
+             instance guarantees the rows match the saved record exactly
+             (no leftover default control, no duplicates on reopen),
+             even if a previous load left the array in any state. */
 
-        this.benefits.clear();
+        const savedBenefits = Array.isArray(policy.benefits)
+          ? policy.benefits
+          : [];
 
-        if (Array.isArray(policy.benefits) && policy.benefits.length > 0) {
-          policy.benefits.forEach((benefit: string) => {
-            this.benefits.push(this.fb.control(benefit ?? ""));
-          });
-        } else {
-          this.benefits.push(this.fb.control(""));
-        }
+        this.policyForm.setControl(
+          "benefits",
+          this.fb.array(
+            savedBenefits.length > 0
+              ? savedBenefits.map((benefit) =>
+                  this.fb.control(String(benefit ?? "")),
+                )
+              : [this.fb.control("")],
+          ),
+        );
 
         /* ------------------------------------------------------
              KEY HIGHLIGHTS

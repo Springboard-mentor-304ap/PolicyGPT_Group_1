@@ -666,6 +666,122 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     ]);
   }
 
+  /**
+   * Status-based edit entry from the row action menu.
+   *
+   * DRAFT and ARCHIVED open the edit form directly; APPROVED shows the
+   * archive-required alert; every other status keeps the Draft /
+   * Archived chooser (approval, rejection, archive, and delete-request
+   * flows are untouched).
+   */
+  openEditFlow(policy: PolicyTableItem): void {
+    if (policy.status === "DRAFT" || policy.status === "ARCHIVED") {
+      this.editPolicy(policy);
+      return;
+    }
+    if (policy.status === "APPROVED") {
+      this.openArchiveRequiredModal(policy);
+      return;
+    }
+    this.openEditStatusModal(policy);
+  }
+
+  /**
+   * Alert shown when editing an APPROVED policy: it must be archived
+   * first. Archive executes the existing role-appropriate workflow
+   * (direct archive for admins, archive request for officials) with
+   * loading, error, and toast handling; nothing navigates until the
+   * API confirms success.
+   */
+  openArchiveRequiredModal(policy: PolicyTableItem): void {
+    this.closeMenu();
+    this.confirmTitle = "Policy Must Be Archived";
+    this.confirmMessage =
+      "This policy is currently approved and cannot be edited directly. " +
+      "To make changes, you must first archive the policy. Once archived, " +
+      "you can open it in the edit form and update its details.";
+    this.confirmMessageBefore = "";
+    this.confirmHighlight = policy.title || "Untitled policy";
+    this.confirmMessageAfter =
+      " is currently approved and cannot be edited directly. To make " +
+      "changes, you must first archive the policy. Once archived, you " +
+      "can open it in the edit form and update its details.";
+    this.confirmParseQuotes = true;
+    this.confirmVariant = "warning";
+    this.confirmText = "Archive Policy";
+    this.showCancelConfirm = true;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => {
+      if (this.confirmLoading) {
+        return;
+      }
+      if (this.isAdmin) {
+        this.executeArchiveForEdit(policy);
+      } else {
+        this.confirmModalOpen = false;
+        this.confirmAction = null;
+        this.confirmErrorMessage = null;
+        this.cdr.detectChanges();
+        this.openRequestArchiveModal(policy);
+      }
+    };
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Direct archive from the archive-required alert (admin only).
+   * Mirrors openArchiveModal's request handling: single-flight,
+   * success toast only after confirmation, row refresh, then the
+   * edit form for the freshly archived policy.
+   */
+  private executeArchiveForEdit(policy: PolicyTableItem): void {
+    if (this.confirmLoading) {
+      return;
+    }
+    this.confirmLoading = true;
+    this.confirmErrorMessage = null;
+    this.cdr.detectChanges();
+    this.policyService
+      .archiveDirect(policy.id)
+      .pipe(
+        take(1),
+        finalize(() => {
+          this.confirmLoading = false;
+          this.cdr.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: (updated) => {
+          this.confirmModalOpen = false;
+          this.confirmAction = null;
+          this.confirmErrorMessage = null;
+          this.showSuccessToast(
+            this.policyToastMessage(
+              updated,
+              policy.title,
+              (n) => `Policy "${n}" archived successfully.`,
+              "Policy archived successfully.",
+            ),
+          );
+          if (updated) {
+            this.applyPolicyUpdate(updated);
+          } else {
+            this.loadPolicies();
+          }
+          this.editPolicy(policy);
+        },
+        error: (err) => {
+          const errorMsg = this.getErrorMessage(err);
+          this.confirmErrorMessage = errorMsg;
+          this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
+          this.cdr.detectChanges();
+        },
+      });
+  }
+
   /** Open the edit-status popup for a policy row. */
   openEditStatusModal(policy: PolicyTableItem): void {
     this.closeMenu();
@@ -678,12 +794,25 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   /** Continue from the edit-status popup into the existing edit form. */
   confirmEditStatus(): void {
     const target = this.editStatusPolicy;
+    const choice = this.editStatusChoice;
     this.editStatusModalOpen = false;
     this.editStatusPolicy = null;
     this.cdr.detectChanges();
-    if (target) {
-      this.editPolicy(target);
+    if (!target) {
+      return;
     }
+    // Archived choice executes the existing archive workflow (with its
+    // own confirmation): direct archive for admins, archive request
+    // for Government Officials. Draft continues to the edit form.
+    if (choice === "ARCHIVED") {
+      if (this.isAdmin) {
+        this.openArchiveModal(target);
+      } else {
+        this.openRequestArchiveModal(target);
+      }
+      return;
+    }
+    this.editPolicy(target);
   }
 
   /** Cancel the edit-status popup without navigating. */

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, Inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -107,10 +107,10 @@ export class AdminFeedbackComponent implements OnInit {
   deleteSubmitting = signal<boolean>(false);
 
   constructor(
-    private readonly feedbackService: FeedbackService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
+    @Inject(FeedbackService) private readonly feedbackService: FeedbackService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
   ) {}
 
   ngOnInit(): void {

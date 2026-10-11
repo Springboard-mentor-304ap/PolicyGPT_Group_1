@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, Inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -153,11 +153,11 @@ export class FeedbackFormComponent implements OnInit {
   });
 
   constructor(
-    private readonly feedbackService: FeedbackService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
+    @Inject(FeedbackService) private readonly feedbackService: FeedbackService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(ActivatedRoute) private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {

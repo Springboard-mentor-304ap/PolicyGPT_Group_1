@@ -22,6 +22,7 @@ import { OverlayModule, ConnectedPosition } from "@angular/cdk/overlay";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 import { DeletedPoliciesModalComponent } from "../deleted-policies-modal/deleted-policies-modal.component";
+import { GovtDeletedPoliciesModalComponent } from "../govt-deleted-policies/govt-deleted-policies-modal.component";
 import { DraftPoliciesModalComponent } from "../draft-policies-modal/draft-policies-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
@@ -64,6 +65,7 @@ export interface PolicyTableItem {
     ReasonModalComponent,
     SearchableSelectComponent,
     DeletedPoliciesModalComponent,
+    GovtDeletedPoliciesModalComponent,
     DraftPoliciesModalComponent,
   ],
   templateUrl: "./manage-policies.component.html",
@@ -201,6 +203,12 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   deletedModalOpen = false;
   draftsModalOpen = false;
   private childDirty = false;
+  /**
+   * Read-only Deleted Policies view for Government Officials. The admin
+   * trash modal is unchanged; officials get a dedicated dialog without
+   * restore or permanent-delete actions.
+   */
+  govtDeletedModalOpen = false;
 
   /**
    * Edit-status popup state. Only DRAFT and ARCHIVED may be offered.
@@ -716,6 +724,17 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.refreshAfterChildModal();
   }
 
+  openGovtDeletedModal(): void {
+    this.closeMenu();
+    this.govtDeletedModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onGovtDeletedModalClosed(): void {
+    this.govtDeletedModalOpen = false;
+    this.cdr.detectChanges();
+  }
+
   openDraftsModal(): void {
     this.closeMenu();
     this.draftsModalOpen = true;
@@ -806,7 +825,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     this.loadStats();
   }
 
-  /** Remove a permanently deleted row without refetching the table. */
+  /** Remove a deleted row without refetching the table. */
   private removePolicyRow(id: number): void {
     this.policies = this.policies.filter((p) => p.id !== id);
     this.syncPageSizeToResults(this.policies.length);
@@ -1344,11 +1363,11 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
-    this.confirmTitle = "Approve Permanent Deletion";
-    this.confirmMessage = `Permanently delete "${policy.title}"? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
-    this.confirmMessageBefore = "Permanently delete ";
+    this.confirmTitle = "Approve Deletion";
+    this.confirmMessage = `Approve deletion of "${policy.title}"? It will move to Deleted Policies and can be restored within 30 days.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
+    this.confirmMessageBefore = "Approve deletion of ";
     this.confirmHighlight = policy.title || "Untitled policy";
-    this.confirmMessageAfter = `? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
+    this.confirmMessageAfter = `? It will move to Deleted Policies and can be restored within 30 days.\nDeletion reason: ${this.getReasonOrFallback(policy.deleteReason)}`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1383,8 +1402,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
               this.policyToastMessage(
                 null,
                 policy.title,
-                (n) => `Policy "${n}" permanently deleted.`,
-                "Policy permanently deleted.",
+                (n) => `Deletion approved. Policy "${n}" moved to Deleted Policies.`,
+                "Deletion approved. Policy moved to Deleted Policies.",
               ),
             );
             this.removePolicyRow(policy.id);
@@ -1615,7 +1634,7 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       return;
     }
     this.confirmTitle = "Delete Policy";
-    this.confirmMessage = `Are you sure you want to delete "${policy.title}"?`;
+    this.confirmMessage = `Delete "${policy.title}"? It will move to Deleted Policies and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1646,8 +1665,8 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
               this.policyToastMessage(
                 null,
                 policy.title,
-                (n) => `Policy "${n}" permanently deleted.`,
-                "Policy permanently deleted.",
+                (n) => `Policy "${n}" moved to Deleted Policies.`,
+                "Policy moved to Deleted Policies.",
               ),
             );
             this.removePolicyRow(policy.id);

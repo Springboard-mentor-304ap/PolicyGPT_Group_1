@@ -607,6 +607,7 @@ def match_entities(
         entities = db.scalars(
             select(Policy)
             .where(Policy.status == "APPROVED")
+            .where(Policy.is_deleted.is_(False))
             .order_by(Policy.policy_id)
         ).all()
 
@@ -632,6 +633,7 @@ def match_entities(
         entities = db.scalars(
             select(Scheme)
             .where(Scheme.status == "APPROVED")
+            .where(Scheme.is_deleted.is_(False))
             .order_by(Scheme.scheme_id)
         ).all()
 

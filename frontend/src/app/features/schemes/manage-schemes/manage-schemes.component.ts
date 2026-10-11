@@ -28,6 +28,7 @@ import {
 import { OverlayModule, ConnectedPosition } from "@angular/cdk/overlay";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
+import { DeletedSchemesModalComponent } from "../deleted-schemes-modal/deleted-schemes-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
   CategoryInput,
@@ -68,6 +69,7 @@ export interface SchemeTableItem {
     ConfirmModalComponent,
     ReasonModalComponent,
     SearchableSelectComponent,
+    DeletedSchemesModalComponent,
   ],
   templateUrl: "./manage-schemes.component.html",
   styleUrls: ["./manage-schemes.component.scss"],
@@ -662,6 +664,40 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.router.navigate(["/dashboard", this.rolePrefix, "schemes", "add"]);
   }
 
+  // Deleted Schemes modal state. childDirty tracks whether a mutation
+  // happened inside the modal so the register and statistics refresh
+  // when the modal closes.
+  deletedModalOpen = false;
+  private childDirty = false;
+
+  openDeletedModal(): void {
+    this.closeMenu();
+    this.deletedModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  onDeletedModalClosed(): void {
+    this.deletedModalOpen = false;
+    this.refreshAfterChildModal();
+  }
+
+  /**
+   * A modal child reports every successful mutation. Only flag it: the
+   * close handler reloads the list (which already includes statistics),
+   * so no second stats request fires while the modal is still open.
+   */
+  onChildDataChanged(): void {
+    this.childDirty = true;
+  }
+
+  private refreshAfterChildModal(): void {
+    this.cdr.detectChanges();
+    if (this.childDirty) {
+      this.childDirty = false;
+      this.loadSchemes();
+    }
+  }
+
   canSubmitScheme(scheme: SchemeTableItem): boolean {
     if (!["DRAFT", "REJECTED"].includes(scheme.status)) return false;
     if (this.isAdmin) return true;
@@ -726,7 +762,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     this.loadStats();
   }
 
-  /** Remove a permanently deleted row without refetching the table. */
+  /** Remove a deleted row without refetching the table. */
   private removeSchemeRow(id: number): void {
     this.schemes = this.schemes.filter((s) => s.id !== id);
     this.syncPageSizeToResults(this.schemes.length);
@@ -1195,11 +1231,11 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
       return;
     }
-    this.confirmTitle = "Approve Permanent Deletion";
-    this.confirmMessage = `Permanently delete "${scheme.title}"? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
-    this.confirmMessageBefore = "Permanently delete ";
+    this.confirmTitle = "Approve Deletion";
+    this.confirmMessage = `Approve deletion of "${scheme.title}"? It will move to Deleted Schemes and can be restored within 30 days.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
+    this.confirmMessageBefore = "Approve deletion of ";
     this.confirmHighlight = scheme.title || "Untitled scheme";
-    this.confirmMessageAfter = `? This cannot be undone.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
+    this.confirmMessageAfter = `? It will move to Deleted Schemes and can be restored within 30 days.\nDeletion reason: ${this.getReasonOrFallback(scheme.deleteReason)}`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1235,8 +1271,8 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
               this.schemeToastMessage(
                 null,
                 scheme.title,
-                (n) => `Scheme "${n}" permanently deleted.`,
-                "Scheme permanently deleted.",
+                (n) => `Deletion approved. Scheme "${n}" moved to Deleted Schemes.`,
+                "Deletion approved. Scheme moved to Deleted Schemes.",
               ),
             );
             this.loadSchemes();
@@ -1342,9 +1378,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.schemeService.restoreScheme(scheme.id).subscribe({
+      this.schemeService.restoreScheme(scheme.id).pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        ).subscribe({
         next: (updated) => {
-          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
@@ -1363,7 +1404,6 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           }
         },
         error: (err) => {
-          this.confirmLoading = false;
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
@@ -1384,7 +1424,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       return;
     }
     this.confirmTitle = "Delete Scheme";
-    this.confirmMessage = `Are you sure you want to delete "${scheme.title}"?`;
+    this.confirmMessage = `Delete "${scheme.title}"? It will move to Deleted Schemes and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmText = "Confirm";
     this.showCancelConfirm = true;
@@ -1397,9 +1437,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.cdr.detectChanges();
-      this.schemeService.deleteScheme(scheme.id).subscribe({
+      this.schemeService.deleteScheme(scheme.id).pipe(
+          take(1),
+          finalize(() => {
+            this.confirmLoading = false;
+            this.cdr.detectChanges();
+          }),
+        ).subscribe({
         next: () => {
-          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
@@ -1407,14 +1452,13 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
             this.schemeToastMessage(
               null,
               scheme.title,
-              (n) => `Scheme "${n}" permanently deleted.`,
-              "Scheme permanently deleted.",
+              (n) => `Scheme "${n}" moved to Deleted Schemes.`,
+              "Scheme moved to Deleted Schemes.",
             ),
           );
           this.removeSchemeRow(scheme.id);
         },
         error: (err) => {
-          this.confirmLoading = false;
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;

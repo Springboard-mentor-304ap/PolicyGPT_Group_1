@@ -33,6 +33,11 @@ describe("AvatarService", () => {
   let service: AvatarService;
   let httpMock: HttpTestingController;
   const photoUrl = `${environment.apiUrl}/auth/profile/photo`;
+  // `vi.stubGlobal('URL.createObjectURL', ...)` does not reach the nested
+  // property in this jsdom setup, so stub the (writable) method directly
+  // and restore it manually in afterEach.
+  const realCreateObjectURL = URL.createObjectURL.bind(URL);
+  const realRevokeObjectURL = URL.revokeObjectURL.bind(URL);
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -40,12 +45,14 @@ describe("AvatarService", () => {
     });
     service = TestBed.inject(AvatarService);
     httpMock = TestBed.inject(HttpTestingController);
-    vi.stubGlobal("URL.createObjectURL", vi.fn(() => "blob:photo-1"));
-    vi.stubGlobal("URL.revokeObjectURL", vi.fn());
+    URL.createObjectURL = vi.fn(() => 'blob:photo-1') as unknown as typeof URL.createObjectURL;
+    URL.revokeObjectURL = vi.fn() as unknown as typeof URL.revokeObjectURL;
   });
 
   afterEach(() => {
     httpMock.verify();
+    URL.createObjectURL = realCreateObjectURL;
+    URL.revokeObjectURL = realRevokeObjectURL;
     vi.unstubAllGlobals();
     localStorage.clear();
   });

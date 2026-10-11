@@ -63,9 +63,9 @@ export class PermissionService {
     REJECT_ARCHIVE: { label: 'Reject Archive', icon: '❌', requiresReason: false, confirmationMessage: 'Reject archive request?' },
     RESTORE: { label: 'Restore', icon: '🔄', requiresReason: false, confirmationMessage: 'Restore this archived item?' },
     REQUEST_DELETE: { label: 'Request Delete', icon: '🗑️', requiresReason: true, reasonPlaceholder: 'Enter reason for delete request...', confirmationMessage: 'Submit delete request?' },
-    APPROVE_DELETE: { label: 'Approve Delete', icon: '✅', requiresReason: false, confirmationMessage: 'Permanently delete this item? This cannot be undone.' },
+    APPROVE_DELETE: { label: 'Approve Delete', icon: '✅', requiresReason: false, confirmationMessage: 'Approve deletion? The item will move to Deleted Policies and can be restored within 30 days.' },
     REJECT_DELETE: { label: 'Reject Delete', icon: '❌', requiresReason: false, confirmationMessage: 'Reject delete request?' },
-    DELETE: { label: 'Delete', icon: '🗑️', requiresReason: false, confirmationMessage: 'Permanently delete this item? This cannot be undone.' },
+    DELETE: { label: 'Delete', icon: '🗑️', requiresReason: false, confirmationMessage: 'Delete this item? It will move to Deleted Policies and can be restored within 30 days.' },
     MANAGE_USERS: { label: 'Manage Users', icon: '👥', requiresReason: false },
     VIEW_ANALYTICS: { label: 'View Analytics', icon: '📊', requiresReason: false },
     VIEW_REPORTS: { label: 'View Reports', icon: '📈', requiresReason: false }

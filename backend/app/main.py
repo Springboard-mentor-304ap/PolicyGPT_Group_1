@@ -278,6 +278,58 @@ def _seed_reminder_schedule() -> None:
     _reminder_task = asyncio.create_task(_reminder_sweep_loop())
 
 
+# How often the deleted-items (trash) auto-cleanup runs. Same lifespan
+# style as the reminder sweep above: no Celery/APScheduler in this
+# project. The processor is idempotent (30-day eligibility is
+# recomputed from live rows every pass), so a missed or duplicated run
+# is harmless.
+CLEANUP_SWEEP_SECONDS = 86400
+
+
+async def _cleanup_sweep_loop() -> None:
+    """Daily purge of 30-day-old trash. Never crashes the app."""
+    from contextlib import contextmanager
+
+    from app.db.database import SessionLocal
+    from app.services.deletion_cleanup_service import process_deleted_cleanup
+
+    @contextmanager
+    def _sweep_session():
+        """One short-lived session per sweep step (see _sweep_session above)."""
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    # let the app finish starting (and migrations settle) before touching the DB
+    await asyncio.sleep(120)
+    while True:
+        try:
+            with _sweep_session() as db:
+                summary = await asyncio.to_thread(
+                    process_deleted_cleanup, db
+                )
+                logger.info(
+                    "Deleted-items cleanup: %s policies, %s schemes purged",
+                    len(summary.get("policies_purged", [])),
+                    len(summary.get("schemes_purged", [])),
+                )
+        except Exception:
+            logger.exception("Deleted-items cleanup sweep failed")
+        await asyncio.sleep(CLEANUP_SWEEP_SECONDS)
+
+
+_cleanup_task: asyncio.Task | None = None
+
+
+def _seed_cleanup_schedule() -> None:
+    global _cleanup_task
+    if _cleanup_task is not None and not _cleanup_task.done():
+        return
+    _cleanup_task = asyncio.create_task(_cleanup_sweep_loop())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _warm_up_pool()
@@ -294,6 +346,7 @@ async def lifespan(app: FastAPI):
         _notification_manager.bind_loop(asyncio.get_running_loop())
 
     _seed_reminder_schedule()
+    _seed_cleanup_schedule()
 
     try:
         yield
@@ -303,6 +356,12 @@ async def lifespan(app: FastAPI):
             _reminder_task.cancel()
             try:
                 await _reminder_task
+            except asyncio.CancelledError:
+                pass
+        if _cleanup_task is not None:
+            _cleanup_task.cancel()
+            try:
+                await _cleanup_task
             except asyncio.CancelledError:
                 pass
         keep_alive_task.cancel()

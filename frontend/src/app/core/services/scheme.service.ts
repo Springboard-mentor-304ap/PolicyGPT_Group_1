@@ -231,6 +231,38 @@ export class SchemeService {
   }
 
   // ============================================================
+  // TRASH (TEMPORARILY DELETED SCHEMES)
+  // ============================================================
+
+  getDeletedSchemes(
+    page = 1,
+    limit = 100,
+    search?: string,
+  ): Observable<SchemeListResponse> {
+    let params = new HttpParams()
+      .set("page", Math.max(1, page).toString())
+      .set("limit", Math.max(1, Math.min(limit, 100)).toString());
+    if (search && search.trim()) {
+      params = params.set("search", search.trim());
+    }
+    const key = this.getCacheKey("getDeletedSchemes", params);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeListResponse>(`${this.apiUrl}/deleted`, { params }),
+    );
+  }
+
+  permanentDeleteScheme(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error("A valid scheme ID is required.");
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/permanent`,
+    );
+  }
+
+  // ============================================================
   // WORKFLOW METHODS
   // ============================================================
 

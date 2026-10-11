@@ -369,6 +369,38 @@ export class PolicyService {
   }
 
   // ============================================================
+  // TRASH (TEMPORARILY DELETED POLICIES)
+  // ============================================================
+
+  getDeletedPolicies(
+    page = 1,
+    limit = 100,
+    search?: string,
+  ): Observable<PolicyListResponse> {
+    let params = new HttpParams()
+      .set('page', Math.max(1, page).toString())
+      .set('limit', Math.max(1, Math.min(limit, 100)).toString());
+    if (search && search.trim()) {
+      params = params.set('search', search.trim());
+    }
+    const key = this.getCacheKey('getDeletedPolicies', params);
+    return this.getCached(
+      key,
+      () => this.http.get<PolicyListResponse>(`${this.apiUrl}/deleted`, { params }),
+    );
+  }
+
+  permanentDeletePolicy(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/permanent`,
+    );
+  }
+
+  // ============================================================
   // FILTERED LIST QUERIES (ADMIN)
   // ============================================================
 

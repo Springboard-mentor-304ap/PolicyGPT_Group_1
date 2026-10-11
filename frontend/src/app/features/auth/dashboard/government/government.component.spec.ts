@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 import { GovernmentComponent } from "./government.component";
 import { Auth } from "../../../../core/services/auth";
+import { AnalyticsService } from "../../../../core/services/analytics.service";
 import { PolicyService } from "../../../../core/services/policy.service";
 import { SchemeService } from "../../../../core/services/scheme.service";
 import { NotificationService } from "../../../../core/services/notification.service";
@@ -14,6 +15,7 @@ describe("GovernmentComponent", () => {
   let component: GovernmentComponent;
   let fixture: ComponentFixture<GovernmentComponent>;
   let mockAuth: any;
+  let mockAnalyticsService: any;
   let mockPolicyService: any;
   let mockSchemeService: any;
   let mockNotificationService: any;
@@ -91,6 +93,14 @@ describe("GovernmentComponent", () => {
       getPolicies: vi.fn().mockReturnValue(of(mockPolicies)),
     };
 
+    // Analytics aggregates unavailable here: the component falls back to
+    // the manage=true page totals. Mocked (not real HTTP) so dashboard
+    // assertions stay synchronous and deterministic.
+    mockAnalyticsService = {
+      getGovernmentPolicies: vi.fn().mockReturnValue(of(null)),
+      getGovernmentSchemes: vi.fn().mockReturnValue(of(null)),
+    };
+
     mockSchemeService = {
       getSchemes: vi.fn().mockReturnValue(of(mockSchemes)),
     };
@@ -108,6 +118,7 @@ describe("GovernmentComponent", () => {
       providers: [
         provideRouter([]),
         { provide: Auth, useValue: mockAuth },
+        { provide: AnalyticsService, useValue: mockAnalyticsService },
         { provide: PolicyService, useValue: mockPolicyService },
         { provide: SchemeService, useValue: mockSchemeService },
         { provide: NotificationService, useValue: mockNotificationService },
@@ -127,8 +138,10 @@ describe("GovernmentComponent", () => {
 
   it("should fetch user-scoped policies and schemes with manage: true", () => {
     fixture.detectChanges();
-    expect(mockPolicyService.getPolicies).toHaveBeenCalledWith({ manage: true, limit: 100 });
-    expect(mockSchemeService.getSchemes).toHaveBeenCalledWith({ manage: true, limit: 100 });
+    // Dashboard preview fetches: small manage=true pages for display;
+    // totals come from the analytics aggregates (mocked null here).
+    expect(mockPolicyService.getPolicies).toHaveBeenCalledWith({ manage: true, limit: 4 });
+    expect(mockSchemeService.getSchemes).toHaveBeenCalledWith({ manage: true, limit: 4 });
     expect(mockNotificationService.getNotificationStats).toHaveBeenCalledWith(42);
 
     expect(component.statCards[0].value).toBe(2); // Total policies

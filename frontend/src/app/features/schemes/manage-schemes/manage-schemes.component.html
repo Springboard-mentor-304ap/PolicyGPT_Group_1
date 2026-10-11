@@ -34,6 +34,14 @@
                 {{ isAdmin ? 'Administrator' : 'Government Official' }}
             </div>
 
+            @if (isAdmin) {
+            <button type="button" class="secondary-header-action deleted-action"
+                (click)="$event.stopPropagation(); openDeletedModal()">
+                <span class="material-icons">delete_sweep</span>
+                View Deleted Schemes
+            </button>
+            }
+
             <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewScheme()">
                 <span class="material-icons">add</span>
                 Add New Scheme
@@ -538,5 +546,10 @@
         [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
         (cancelled)="onReasonModalCancelled()">
     </app-reason-modal>
+
+    <!-- Deleted schemes modal (centered over this page) -->
+    <app-deleted-schemes-modal [open]="deletedModalOpen" (closed)="onDeletedModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-deleted-schemes-modal>
 
 </div>

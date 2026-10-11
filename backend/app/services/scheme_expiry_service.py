@@ -85,6 +85,7 @@ def process_scheme_expiry(db: Session) -> dict[str, Any]:
         db.query(Scheme)
         .filter(
             Scheme.application_end_date.isnot(None),
+            Scheme.is_deleted.is_(False),
             Scheme.status.in_(list(LIVE_SCHEME_STATUSES) + ["ARCHIVED"]),
         )
         .all()

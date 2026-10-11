@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   AnalyticsDateRangeService,
   parseRowDate,
-  DEFAULT_RANGE_START_ISO,
-  DEFAULT_RANGE_END_ISO,
 } from "./analytics-date-range.service";
 
 describe("AnalyticsDateRangeService", () => {
@@ -19,9 +17,14 @@ describe("AnalyticsDateRangeService", () => {
   });
 
   it("should expose the built-in default range on first load", () => {
-    expect(service.label()).toBe("Jan 1, 2024 - Sep 30, 2024");
-    expect(service.startISO()).toBe(DEFAULT_RANGE_START_ISO);
-    expect(service.endISO()).toBe(DEFAULT_RANGE_END_ISO);
+    // Built-in default is the live trailing "Last 12 Months" window ending
+    // today (see defaultSelection), not a fixed historical span.
+    const today = new Date();
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    const todayISO = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    expect(service.label()).toBe("Last 12 Months");
+    expect(service.endISO()).toBe(todayISO);
+    expect(service.monthsSpan()).toBe(12);
     expect(service.touched()).toBe(false);
   });
 

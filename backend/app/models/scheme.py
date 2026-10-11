@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -138,6 +138,31 @@ class Scheme(Base):
 
     delete_requested_from_status: Mapped[str | None] = mapped_column(
         String(30),
+        nullable=True,
+    )
+
+    # ========================================================
+    # SOFT DELETE (TRASH)
+    # ========================================================
+    # Normal deletions only flag the row; the status and all other
+    # data are preserved. Physical removal happens exclusively via the
+    # Deleted modal permanent-delete action or the 30-day auto-cleanup.
+    # deleted_by is intentionally FK-less (application-managed) so user
+    # administration can never be blocked by trash references.
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    deleted_by: Mapped[int | None] = mapped_column(
+        BigInteger,
         nullable=True,
     )
 

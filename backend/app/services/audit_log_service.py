@@ -113,6 +113,24 @@ def _is_admin_role(user_role: str | None) -> bool:
     return (user_role or "").strip().upper() in ("ADMIN", "ADMINISTRATOR")
 
 
+def resolve_user_display_name(db: Session, user_id: int | None) -> str | None:
+    """Display name (full_name) for a user id, or None when unknown.
+
+    Used to snapshot record-creator names into deletion audit
+    descriptions (see the delete routes): the policy/scheme row — and
+    hence its ``created_by`` link — is gone after a permanent delete,
+    so the name is captured beforehand. Never raises.
+    """
+    try:
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.user_id == user_id).first()
+        name = (getattr(user, "full_name", None) or "").strip() if user else ""
+        return name or None
+    except Exception:
+        return None
+
+
 def _attach_user_info(db: Session, entries) -> None:
     """Attach transient user_name/user_email/user_role for API responses."""
     try:

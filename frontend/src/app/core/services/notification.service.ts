@@ -104,7 +104,9 @@ export class NotificationService {
   private readCache = new Map<string, { at: number; data: unknown }>();
   private readInflight = new Map<string, Observable<unknown>>();
 
-  constructor(private readonly http: HttpClient) {
+  private readonly http = inject(HttpClient);
+
+  constructor() {
     this.wireRealtime();
     // Optional-chained: specs may provide a partial Auth double.
     this.auth.onLoggedOut?.(() => {

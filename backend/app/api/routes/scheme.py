@@ -24,6 +24,7 @@ from app.services.audit_log_service import (
     ACTION_APPROVAL_EVENT,
     ACTION_REJECTION_EVENT,
     log_request_action,
+    resolve_user_display_name,
 )
 
 from app.schemas.scheme import (
@@ -281,6 +282,69 @@ def delete_requests(
 
 
 @router.get(
+    "/deleted",
+    response_model=SchemeListResponse,
+)
+def get_deleted_schemes_api(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+    page: int = 1,
+    limit: int = 100,
+    search: str | None = None,
+):
+    from app.services.scheme_service import get_deleted_schemes
+
+    result = get_deleted_schemes(
+        db=db,
+        page=page,
+        limit=limit,
+        search=search,
+        current_user=current_user,
+    )
+
+    return result
+
+
+@router.post(
+    "/maintenance/purge-deleted",
+)
+def purge_deleted_schemes_api(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+    retention_days: int = 30,
+):
+    from app.services.deletion_cleanup_service import (
+        process_deleted_cleanup,
+    )
+
+    summary = process_deleted_cleanup(
+        db=db,
+        retention_days=retention_days,
+        triggered_by=current_user.user_id,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_PURGE_RUN",
+        "SCHEME",
+        None,
+        f"Deleted-schemes purge run: {summary['schemes_purged']} purged, "
+        f"{summary['schemes_skipped_errors']} errors.",
+    )
+
+    return summary
+
+
+@router.get(
     "/{scheme_id}",
     response_model=SchemeResponse,
 )
@@ -450,9 +514,17 @@ def delete_scheme_api(
 
     scheme_name = scheme.name
 
+    # Creator snapshot for future Deleted-records views (the row and its
+    # created_by link disappear with the permanent delete).
+    creator_name = resolve_user_display_name(
+        db, getattr(scheme, "created_by", None)
+    )
+    creator_suffix = f" Created by {creator_name}." if creator_name else ""
+
     delete_scheme(
         db,
         scheme,
+        deleted_by=current_user.user_id,
     )
 
     log_request_action(
@@ -462,10 +534,58 @@ def delete_scheme_api(
         "SCHEME_DELETED",
         "SCHEME",
         scheme_id,
-        f"Scheme '{scheme_name}' permanently deleted by administrator.",
+        f"Scheme '{scheme_name}' moved to Deleted Schemes.{creator_suffix}",
     )
 
-    return {"message": "Scheme deleted successfully"}
+    return {"message": "Scheme moved to Deleted Schemes"}
+
+
+# ============================================================
+# PERMANENT DELETE (TRASH ONLY)
+#
+# ADMIN ONLY
+#
+# Physically removes a temporarily deleted row. Live rows are
+# rejected: delete them first to move them to Deleted Schemes.
+# ============================================================
+
+
+@router.delete(
+    "/{scheme_id}/permanent",
+)
+def permanent_delete_scheme_api(
+    scheme_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    from app.services.scheme_service import permanent_delete_scheme
+
+    scheme = get_scheme(
+        db,
+        scheme_id,
+        include_deleted=True,
+    )
+
+    if not scheme:
+        raise HTTPException(
+            status_code=404,
+            detail="Scheme not found",
+        )
+
+    permanent_delete_scheme(db, scheme)
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "SCHEME_PERMANENTLY_DELETED",
+        "SCHEME",
+        scheme_id,
+        f"Scheme #{scheme_id} permanently deleted from trash.",
+    )
+
+    return {"message": "Scheme permanently deleted."}
 
 
 @router.post(
@@ -834,6 +954,7 @@ def restore_scheme_api(
     scheme = get_scheme(
         db,
         scheme_id,
+        include_deleted=True,
     )
 
     if not scheme:
@@ -857,7 +978,7 @@ def restore_scheme_api(
             "SCHEME_RESTORED",
             "SCHEME",
             scheme_id,
-            f"Scheme '{scheme.name}' restored from archive.",
+            f"Scheme '{scheme.name}' restored successfully.",
         )
 
         return result
@@ -941,6 +1062,11 @@ def approve_delete_scheme_api(
         )
 
     try:
+        creator_name = resolve_user_display_name(
+            db, getattr(scheme, "created_by", None)
+        )
+        creator_suffix = f" Created by {creator_name}." if creator_name else ""
+
         approve_delete_scheme(
             db,
             scheme,
@@ -955,12 +1081,12 @@ def approve_delete_scheme_api(
             "SCHEME_DELETE_APPROVED",
             "SCHEME",
             scheme_id,
-            f"Delete approved; scheme #{scheme_id} permanently deleted.",
+            f"Delete approved for scheme '{scheme.name}' (#{scheme_id}); moved to Deleted Schemes.{creator_suffix}",
         )
 
         return {
             "message": (
-                "Scheme deletion approved " "and scheme permanently deleted."
+                "Scheme deletion approved " "and scheme moved to Deleted Schemes."
             )
         }
 

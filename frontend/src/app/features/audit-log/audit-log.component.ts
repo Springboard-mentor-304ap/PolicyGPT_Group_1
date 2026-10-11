@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, signal, computed } from '@angular/core';
+import { Component, HostListener, Inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -192,10 +192,10 @@ export class AuditLogComponent implements OnInit {
   selectedLog = signal<AuditLog | null>(null);
 
   constructor(
-    private readonly auditLogService: AuditLogService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
+    @Inject(AuditLogService) private readonly auditLogService: AuditLogService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
   ) {}
 
   ngOnInit(): void {

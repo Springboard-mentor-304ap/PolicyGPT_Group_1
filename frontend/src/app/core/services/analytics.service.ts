@@ -533,7 +533,9 @@ export class AnalyticsService {
 
   private readonly auth = inject(Auth);
 
-  constructor(private readonly http: HttpClient) {
+  private readonly http = inject(HttpClient);
+
+  constructor() {
     // User-scoped caches must never survive logout/user-switch in a
     // shared tab; drop both settled and in-flight entries.
     this.auth.onLoggedOut?.(() => {

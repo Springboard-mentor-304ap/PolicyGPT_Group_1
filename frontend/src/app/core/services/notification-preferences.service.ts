@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
@@ -15,7 +15,7 @@ import { environment } from '../../../environments/environment';
 export class NotificationPreferencesService {
   private readonly baseUrl = `${environment.apiUrl}/notification-preferences`;
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   /**
    * Fetch caller's global notification preferences.

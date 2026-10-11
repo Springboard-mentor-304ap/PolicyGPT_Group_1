@@ -7,14 +7,14 @@ from app.models.scheme import Scheme
 
 def get_departments(db: Session):
     policy_departments = (
-        db.query(Policy.department)
+        db.query(Policy.department).filter(Policy.is_deleted.is_(False))
         .filter(Policy.department.isnot(None))
         .distinct()
         .all()
     )
 
     scheme_departments = (
-        db.query(Scheme.department)
+        db.query(Scheme.department).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.department.isnot(None))
         .distinct()
         .all()
@@ -121,7 +121,7 @@ def get_department_policies(
     department: str,
     approved_only: bool = False,
 ):
-    query = db.query(Policy).filter(Policy.department == department)
+    query = db.query(Policy).filter(Policy.is_deleted.is_(False)).filter(Policy.department == department)
     if approved_only:
         query = query.filter(Policy.status == "APPROVED")
     return query.order_by(Policy.created_at.desc()).all()
@@ -132,7 +132,7 @@ def get_department_schemes(
     department: str,
     approved_only: bool = False,
 ):
-    query = db.query(Scheme).filter(Scheme.department == department)
+    query = db.query(Scheme).filter(Scheme.is_deleted.is_(False)).filter(Scheme.department == department)
     if approved_only:
         query = query.filter(Scheme.status == "APPROVED")
     return query.order_by(Scheme.created_at.desc()).all()

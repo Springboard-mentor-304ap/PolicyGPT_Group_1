@@ -454,7 +454,7 @@ def get_personal_analytics(
     # labelled platform-wide — not the user's activity)
     # --------------------------------------------------
     policy_cats = (
-        db.query(Policy.category, func.count(Policy.policy_id).label("c"))
+        db.query(Policy.category, func.count(Policy.policy_id).label("c")).filter(Policy.is_deleted.is_(False))
         .filter(Policy.status == "APPROVED", Policy.category.isnot(None))
         .group_by(Policy.category)
         .order_by(func.count(Policy.policy_id).desc())
@@ -462,7 +462,7 @@ def get_personal_analytics(
         .all()
     )
     scheme_cats = (
-        db.query(Scheme.category, func.count(Scheme.scheme_id).label("c"))
+        db.query(Scheme.category, func.count(Scheme.scheme_id).label("c")).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.status == "APPROVED", Scheme.category.isnot(None))
         .group_by(Scheme.category)
         .order_by(func.count(Scheme.scheme_id).desc())

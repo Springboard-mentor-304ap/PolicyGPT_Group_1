@@ -184,6 +184,45 @@ button {
   font-size: 20px;
 }
 
+.secondary-header-action {
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-radius: 11px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 2px 7px rgba(24, 42, 65, 0.05);
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.secondary-header-action .material-icons {
+  font-size: 20px;
+}
+
+.secondary-header-action.deleted-action {
+  border: 1px solid #f1cfcc;
+  color: #b52d26;
+}
+
+.secondary-header-action.deleted-action:hover {
+  background: #fff4f3;
+  border-color: #e5a9a4;
+  color: #98251f;
+  box-shadow: 0 6px 14px rgba(198, 40, 40, 0.14);
+  transform: translateY(-1px);
+}
+
 /* =========================================================
    SHARED CARD
    ========================================================= */

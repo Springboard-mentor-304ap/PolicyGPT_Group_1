@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { timeout } from 'rxjs/operators';
@@ -23,7 +23,7 @@ export class SupportService {
    * of a stuck spinner; the backend dedupes retries by content. */
   private static readonly REQUEST_TIMEOUT_MS = 30_000;
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   /**
    * Retrieve all published FAQs, optionally filtering by search keyword and category.

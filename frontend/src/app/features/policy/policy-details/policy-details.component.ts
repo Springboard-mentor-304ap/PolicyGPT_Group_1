@@ -1046,8 +1046,8 @@ export class PolicyDetailsComponent implements OnInit {
   openApproveDeleteModal(): void {
     if (!this.policy) return;
     const policyId = this.policy.policy_id;
-    this.confirmTitle = "Approve Permanent Deletion";
-    this.confirmMessage = `Permanently delete "${this.policy.title}"? This cannot be undone.`;
+    this.confirmTitle = "Approve Deletion";
+    this.confirmMessage = `Approve deletion of "${this.policy.title}"? It will move to Deleted Policies and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
@@ -1062,8 +1062,8 @@ export class PolicyDetailsComponent implements OnInit {
           this.confirmModalOpen = false;
           this.policySuccessToast(
             null,
-            (n) => `Policy "${n}" permanently deleted.`,
-            "Policy permanently deleted.",
+            (n) => `Deletion approved. Policy "${n}" moved to Deleted Policies.`,
+            "Deletion approved. Policy moved to Deleted Policies.",
           );
           this.cdr.detectChanges();
           setTimeout(() => this.goBack(), 1200);
@@ -1121,7 +1121,7 @@ export class PolicyDetailsComponent implements OnInit {
     if (!this.policy) return;
     const policyId = this.policy.policy_id;
     this.confirmTitle = "Delete Policy";
-    this.confirmMessage = `Permanently delete "${this.policy.title}"? This cannot be undone.`;
+    this.confirmMessage = `Delete "${this.policy.title}"? It will move to Deleted Policies and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmLoading = false;
     this.confirmAction = () => {
@@ -1142,8 +1142,8 @@ export class PolicyDetailsComponent implements OnInit {
             this.confirmModalOpen = false;
             this.policySuccessToast(
               null,
-              (n) => `Policy "${n}" deleted.`,
-              "Policy deleted.",
+              (n) => `Policy "${n}" moved to Deleted Policies.`,
+              "Policy moved to Deleted Policies.",
             );
             this.cdr.detectChanges();
             setTimeout(() => this.goBack(), 1200);

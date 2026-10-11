@@ -1,3 +1,5 @@
+from email import policy
+
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -19,7 +21,10 @@ from app.api.routes.auth import (
 from app.db.database import get_db
 from app.models.user import User
 from app.models.audit_log import AuditLog
-from app.services.audit_log_service import log_request_action
+from app.services.audit_log_service import (
+    log_request_action,
+    resolve_user_display_name,
+)
 
 from app.schemas.policy import (
     PolicyArchiveRequest,
@@ -237,7 +242,10 @@ def search_policy_route(
     # --------------------------------------------------------
     else:
         if role in public_roles:
-            if policy_status is not None and policy_status.upper() != "APPROVED":
+            if (
+                policy_status is not None
+                and policy_status.upper() != "APPROVED"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You can only view approved policies.",
@@ -430,6 +438,86 @@ def save_policy_draft_route(
 
 
 # ============================================================
+# TRASH LISTING (TEMPORARILY DELETED POLICIES)
+#
+# ADMIN + GOVERNMENT OFFICIAL (government sees own rows only)
+#
+# IMPORTANT:
+# This static route must appear before /{policy_id}.
+# ============================================================
+
+
+@router.get(
+    "/deleted",
+    response_model=PolicyListResponse,
+)
+def get_deleted_policies_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+    page: int = 1,
+    limit: int = 100,
+    search: str | None = None,
+):
+    from app.services.policy_service import get_deleted_policies
+
+    result = get_deleted_policies(
+        db=db,
+        page=page,
+        limit=limit,
+        search=search,
+        current_user=current_user,
+    )
+
+    return result
+
+
+# ============================================================
+# PURGE ELIGIBLE TRASH (30-DAY AUTO-CLEANUP, MANUAL TRIGGER)
+#
+# ADMIN ONLY
+# ============================================================
+
+
+@router.post(
+    "/maintenance/purge-deleted",
+)
+def purge_deleted_policies_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+    retention_days: int = 30,
+):
+    from app.services.deletion_cleanup_service import (
+        process_deleted_cleanup,
+    )
+
+    summary = process_deleted_cleanup(
+        db=db,
+        retention_days=retention_days,
+        triggered_by=current_user.user_id,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_PURGE_RUN",
+        "POLICY",
+        None,
+        f"Deleted-policies purge run: {summary['policies_purged']} purged, "
+        f"{summary['policies_skipped_errors']} errors.",
+    )
+
+    return summary
+
+
+# ============================================================
 # GET SINGLE POLICY
 #
 # ALL AUTHENTICATED USERS
@@ -492,9 +580,9 @@ def get_policy_route(
     # View tracking (observability only): one POLICY_VIEW per user/policy
     # per 30 minutes, so workflow refetches and double renders never
     # inflate Usage Statistics counts. Never affects the response.
-    window_start = datetime.now(timezone.utc).replace(
-        tzinfo=None
-    ) - timedelta(minutes=30)
+    window_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        minutes=30
+    )
     recent_view = (
         db.query(AuditLog.audit_id)
         .filter(
@@ -571,12 +659,14 @@ def update_policy_route(
 
 
 # ============================================================
-# DIRECT PERMANENT DELETE
+# DIRECT DELETE (TEMPORARY)
 #
 # ADMIN ONLY
 #
-# This bypasses request workflow.
-# Use only for direct administrative deletion.
+# This bypasses the request workflow and moves the row to Deleted
+# Policies (soft delete). Use only for direct administrative deletion.
+# Physical removal happens exclusively via permanent-delete or the
+# 30-day auto-cleanup.
 # ============================================================
 
 
@@ -589,6 +679,20 @@ def delete_policy_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
+
+    # Capture title + creator BEFORE the permanent delete: the row (and
+    # its created_by link) is gone afterwards. The creator snapshot is
+    # appended to the audit description ("Created by <name>."), which the
+    # Deleted Policies UI parses to show Created By for future records.
+    # (Also fixes a latent NameError: `policy` was previously undefined.)
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    creator_name = resolve_user_display_name(
+        db, getattr(existing, "created_by", None)
+    )
+    creator_suffix = f" Created by {creator_name}." if creator_name else ""
 
     delete_policy(
         db=db,
@@ -603,10 +707,50 @@ def delete_policy_route(
         "POLICY_DELETED",
         "POLICY",
         policy_id,
-        f"Policy #{policy_id} permanently deleted by administrator.",
+        f"Policy '{existing.title}' moved to Deleted Policies.{creator_suffix}",
     )
 
-    return {"message": "Policy deleted successfully."}
+    return {"message": "Policy moved to Deleted Policies."}
+
+
+# ============================================================
+# PERMANENT DELETE (TRASH ONLY)
+#
+# ADMIN ONLY
+#
+# Physically removes a temporarily deleted row. Live rows are
+# rejected: delete them first to move them to Deleted Policies.
+# ============================================================
+
+
+@router.delete(
+    "/{policy_id}/permanent",
+)
+def permanent_delete_policy_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    from app.services.policy_service import permanent_delete_policy
+
+    permanent_delete_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_PERMANENTLY_DELETED",
+        "POLICY",
+        policy_id,
+        f"Policy #{policy_id} permanently deleted from trash.",
+    )
+
+    return {"message": "Policy permanently deleted."}
 
 
 # ============================================================
@@ -954,7 +1098,7 @@ def restore_policy_route(
         "POLICY_RESTORED",
         "POLICY",
         policy_id,
-        f"Policy '{result.title}' restored from archive.",
+        f"Policy '{result.title}' restored successfully.",
     )
 
     return result
@@ -1023,6 +1167,18 @@ def approve_delete_policy_route(
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
+    # Snapshot the creator BEFORE the permanent delete (read-only; the
+    # service re-validates status and raises on failure, so a failed
+    # delete never produces an audit record).
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    creator_name = resolve_user_display_name(
+        db, getattr(existing, "created_by", None)
+    )
+    creator_suffix = f" Created by {creator_name}." if creator_name else ""
+
     approve_delete_policy(
         db=db,
         policy_id=policy_id,
@@ -1037,10 +1193,12 @@ def approve_delete_policy_route(
         "POLICY_DELETE_APPROVED",
         "POLICY",
         policy_id,
-        f"Delete approved; policy #{policy_id} permanently deleted.",
+        f"Delete approved for policy '{existing.title}' (#{policy_id}); moved to Deleted Policies.{creator_suffix}",
     )
 
-    return {"message": ("Policy deletion approved and policy permanently deleted.")}
+    return {
+        "message": ("Policy deletion approved and policy moved to Deleted Policies.")
+    }
 
 
 # ============================================================

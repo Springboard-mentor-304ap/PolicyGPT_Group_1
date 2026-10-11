@@ -132,6 +132,10 @@ def create_scheme(
 
     query = db.query(Scheme).filter(Scheme.name.ilike(name))
 
+    # Trashed rows do not block name reuse; they are invisible everywhere
+    # (parity with policy_service._validate_policy_duplicate).
+    query = query.filter(Scheme.is_deleted.is_(False))
+
     if ministry is None:
         query = query.filter(Scheme.ministry.is_(None))
     else:
@@ -227,9 +231,13 @@ def create_scheme(
 def get_scheme(
     db: Session,
     scheme_id: int,
+    include_deleted: bool = False,
 ) -> Scheme | None:
 
-    return db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first()
+    query = db.query(Scheme).filter(Scheme.scheme_id == scheme_id)
+    if not include_deleted:
+        query = query.filter(Scheme.is_deleted.is_(False))
+    return query.first()
 
 
 def update_scheme(
@@ -305,6 +313,8 @@ def update_scheme(
     query = db.query(Scheme).filter(
         Scheme.scheme_id != scheme.scheme_id,
         Scheme.name.ilike(new_name),
+        # Trashed rows do not block name reuse; they are invisible everywhere.
+        Scheme.is_deleted.is_(False),
     )
 
     if new_ministry is None:
@@ -409,12 +419,28 @@ def update_scheme(
         )
 
 
-def delete_scheme(
-    db: Session,
-    scheme: Scheme,
-) -> None:
+def _purge_scheme_row(db: Session, scheme: Scheme) -> None:
+    """Physically remove a scheme row and its transient dependents.
+
+    Shared by permanent deletion and the 30-day auto-cleanup so both
+    paths honor the same foreign-key behavior: transient in-app
+    notifications go with the row, while any other referencing table
+    (feedback, saved_schemes, scheme_applications, scheme_documents,
+    eligibility_rules) still blocks the purge with an actionable 400.
+    """
+    from app.models.notification import Notification
+
+    scheme_id = scheme.scheme_id
 
     try:
+        # Notifications for this scheme hold a related_scheme_id FK, so
+        # they must go first or the delete below is always refused. They
+        # are transient UI messages about a row that is about to
+        # disappear, so removing them loses nothing.
+        db.query(Notification).filter(
+            Notification.related_scheme_id == scheme_id
+        ).delete(synchronize_session=False)
+
         db.delete(scheme)
         db.commit()
 
@@ -428,6 +454,25 @@ def delete_scheme(
                 "because it is referenced by other records."
             ),
         )
+
+
+def delete_scheme(
+    db: Session,
+    scheme: Scheme,
+    deleted_by: int | None = None,
+) -> None:
+
+    # Temporary (soft) delete: the row stays in the database with its
+    # status and all other data preserved, hidden from every active
+    # view, and recoverable from Deleted Schemes. Physical removal
+    # happens exclusively via permanent_delete_scheme (Deleted modal)
+    # or the 30-day auto-cleanup.
+    scheme.is_deleted = True
+    scheme.deleted_at = current_time()
+    scheme.deleted_by = deleted_by
+    scheme.updated_at = current_time()
+
+    db.commit()
 
 
 def submit_scheme(
@@ -684,6 +729,7 @@ def get_archive_requests(
 
     query = (
         db.query(Scheme)
+        .filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.status == "ARCHIVE_REQUESTED")
         .order_by(Scheme.scheme_id.desc())
     )
@@ -795,8 +841,21 @@ def restore_scheme(
     actor_name: str | None = None,
 ) -> Scheme:
 
+    if scheme.is_deleted:
+        # Trash restore: return to the active set with preserved status
+        # and data untouched.
+        scheme.is_deleted = False
+        scheme.deleted_at = None
+        scheme.deleted_by = None
+        scheme.updated_at = current_time()
+
+        db.commit()
+        db.refresh(scheme)
+
+        return scheme
+
     if scheme.status != "ARCHIVED":
-        raise ValueError("Only ARCHIVED schemes can be restored.")
+        raise ValueError("Only temporarily deleted or ARCHIVED schemes can be restored.")
 
     scheme.status = "APPROVED"
 
@@ -896,6 +955,7 @@ def get_delete_requests(
 
     query = (
         db.query(Scheme)
+        .filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.status == "DELETE_REQUESTED")
         .order_by(Scheme.scheme_id.desc())
     )
@@ -913,7 +973,8 @@ def approve_delete_scheme(
 
     if scheme.status != "DELETE_REQUESTED":
         raise ValueError(
-            "Only DELETE_REQUESTED schemes " "can be permanently deleted."
+            "Only DELETE_REQUESTED schemes "
+            "can have deletion approved."
         )
 
     req_user = scheme.delete_requested_by
@@ -921,53 +982,36 @@ def approve_delete_scheme(
         scheme, "scheme_name", "Public Scheme"))
     scheme_id = scheme.scheme_id
 
-    try:
-        # Notifications for this scheme hold a related_scheme_id FK, so
-        # they must go first or the delete below is always refused. They are
-        # transient UI messages about a row that is about to disappear, so
-        # removing them loses nothing. Any *other* referencing table
-        # (feedback, saved_schemes, scheme_applications, scheme_documents,
-        # eligibility_rules) still blocks the delete and still surfaces
-        # the 400 below, which is the intended behaviour.
-        from app.models.notification import Notification
+    # Approved deletions are temporary (soft): the row keeps its status
+    # and data, leaves every active view, and remains restorable from
+    # Deleted Schemes. Physical removal happens exclusively via
+    # permanent_delete_scheme (Deleted modal) or the 30-day auto-cleanup.
+    scheme.is_deleted = True
+    scheme.deleted_at = current_time()
+    scheme.deleted_by = actor_id
+    scheme.updated_at = current_time()
 
-        db.query(Notification).filter(
-            Notification.related_scheme_id == scheme_id
-        ).delete(synchronize_session=False)
+    db.commit()
 
-        db.delete(scheme)
-        db.commit()
-
-        if req_user:
-            try:
-                from app.services.notification_service import (
-                    notify_request_decision,
-                )
-                notify_request_decision(
-                    db=db,
-                    user_id=req_user,
-                    request_type="Scheme Deletion Request",
-                    decision="APPROVED",
-                    entity_type="SCHEME",
-                    entity_id=scheme_id,
-                    entity_title=title,
-                    decision_by=actor_name or "Administrator",
-                    actor_id=actor_id,
-                    link_entity=False,
-                )
-            except Exception as e:
-                print(f"Notification error on scheme delete approve: {e}")
-
-    except IntegrityError:
-        db.rollback()
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "This scheme cannot be permanently deleted "
-                "because it is referenced by other records."
-            ),
-        )
+    if req_user:
+        try:
+            from app.services.notification_service import (
+                notify_request_decision,
+            )
+            notify_request_decision(
+                db=db,
+                user_id=req_user,
+                request_type="Scheme Deletion Request",
+                decision="APPROVED",
+                entity_type="SCHEME",
+                entity_id=scheme_id,
+                entity_title=title,
+                decision_by=actor_name or "Administrator",
+                actor_id=actor_id,
+                link_entity=False,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme delete approve: {e}")
 
 
 def reject_delete_scheme(
@@ -1029,6 +1073,109 @@ def reject_delete_scheme(
     return scheme
 
 
+# ============================================================
+# PERMANENT DELETE (TRASH ONLY)
+#
+# Physically removes a temporarily deleted row. Only trash rows are
+# eligible: live rows must be soft-deleted first. Retries are safe —
+# a second call finds no row and the route 404s instead of
+# duplicating history.
+# ============================================================
+
+
+def permanent_delete_scheme(db: Session, scheme: Scheme) -> None:
+
+    if not scheme.is_deleted:
+        raise ValueError(
+            "Only temporarily deleted schemes can be permanently deleted. "
+            "Delete the scheme first to move it to Deleted Schemes."
+        )
+
+    _purge_scheme_row(db, scheme)
+
+
+# ============================================================
+# TRASH LISTING
+# ============================================================
+
+
+def get_deleted_schemes(
+    db: Session,
+    page: int = 1,
+    limit: int = 100,
+    search: str | None = None,
+    current_user: User | None = None,
+) -> dict:
+    """Temporarily deleted schemes visible to the caller.
+
+    Admins see every trashed row; other roles see only rows they
+    created. Results carry the full record plus transient display
+    names, newest deletions first.
+    """
+
+    query = db.query(Scheme).filter(Scheme.is_deleted.is_(True))
+
+    if (
+        current_user is not None
+        and _normalize_role(getattr(current_user, "role", "")) not in {"ADMIN", "ADMINISTRATOR"}
+    ):
+        query = query.filter(Scheme.created_by == current_user.user_id)
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                Scheme.name.ilike(search_term),
+                Scheme.description.ilike(search_term),
+                Scheme.category.ilike(search_term),
+            )
+        )
+
+    total = query.count()
+
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+    pages = -(-total // limit) if total else 0
+
+    rows = (
+        query.order_by(Scheme.deleted_at.desc())
+        .offset((page - 1) * limit)
+        .all()
+    )
+
+    _attach_creator_names(db, rows)
+
+    return {
+        "schemes": rows,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+    }
+
+
+def _attach_creator_names(db: Session, rows: list[Scheme]) -> None:
+    """Populate transient created_by_name/deleted_by_name for trash rows."""
+    try:
+        ids = {
+            uid
+            for row in rows
+            for uid in (row.created_by, row.deleted_by, row.delete_requested_by)
+            if uid is not None
+        }
+        names = (
+            {u.user_id: u.full_name for u in db.query(User).filter(User.user_id.in_(ids)).all()}
+            if ids
+            else {}
+        )
+        for row in rows:
+            row.created_by_name = names.get(row.created_by)
+            row.deleted_by_name = names.get(row.deleted_by)
+            row.requested_by_name = names.get(row.delete_requested_by)
+    except Exception as e:
+        print(f"Trash display-name enrichment failed: {e}")
+
+
 def search_schemes(
     db: Session,
     keyword: str | None = None,
@@ -1047,6 +1194,10 @@ def search_schemes(
 ):
 
     query = db.query(Scheme)
+
+    # Soft-deleted rows are invisible to every active view; they surface
+    # only through get_deleted_schemes.
+    query = query.filter(Scheme.is_deleted.is_(False))
 
     # --------------------------------------------------------
     # DRAFT & PENDING APPROVAL PRIVACY RULE
@@ -1142,6 +1293,7 @@ def get_pending_schemes(
 
     query = (
         db.query(Scheme)
+        .filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.status == "PENDING_APPROVAL")
         .order_by(Scheme.scheme_id.desc())
     )

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -197,12 +197,12 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
   adminUsers = signal<AdminUserApi[]>([]);
 
   constructor(
-    private readonly supportService: SupportService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
-    private readonly adminUsersService: AdminUsersService,
-    private readonly scrollLock: BodyScrollLockService,
+    @Inject(SupportService) private readonly supportService: SupportService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(AdminUsersService) private readonly adminUsersService: AdminUsersService,
+    @Inject(BodyScrollLockService) private readonly scrollLock: BodyScrollLockService,
   ) {}
 
   ngOnInit(): void {

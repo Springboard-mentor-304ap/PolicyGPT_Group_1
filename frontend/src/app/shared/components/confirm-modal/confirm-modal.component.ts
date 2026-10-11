@@ -35,7 +35,16 @@ import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
           </div>
 
           <h3 class="modal-title">{{ title() }}</h3>
-          @if (highlightText()) {
+          @if (details().length) {
+            <dl class="modal-details">
+              @for (row of details(); track row.label) {
+                <div class="modal-detail">
+                  <dt class="modal-detail-label">{{ row.label }}:</dt>
+                  <dd class="modal-detail-value">{{ row.value }}</dd>
+                </div>
+              }
+            </dl>
+          } @else if (highlightText()) {
             <p class="modal-message">
               {{ messageBefore()
               }}<strong class="modal-highlight">{{ highlightText() }}</strong
@@ -171,6 +180,37 @@ import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
       .modal-message .modal-highlight {
         font-weight: 700;
         color: #0f172a;
+      }
+
+      .modal-details {
+        margin: 14px 0 20px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        text-align: left;
+      }
+      .modal-detail {
+        display: block;
+        margin: 0;
+      }
+      .modal-detail-label,
+      .modal-detail-value {
+        display: inline;
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+      .modal-detail-label {
+        font-weight: 700;
+        color: #0f172a;
+        margin-right: 4px;
+      }
+      .modal-detail-value {
+        font-weight: 400;
+        color: #475569;
       }
 
       .modal-error {
@@ -346,6 +386,14 @@ export class ConfirmModalComponent implements OnDestroy {
   messageBefore = input<string>("");
   highlightText = input<string>("");
   messageAfter = input<string>("");
+  /**
+   * Optional structured detail rows (label/value pairs) rendered as a
+   * left-aligned vertical list with bold labels and normal-weight
+   * values. Takes precedence over message/highlight/quote rendering
+   * when non-empty; existing callers are unaffected.
+   */
+  details = input<Array<{ label: string; value: string }>>([]);
+
   /**
    * Render `"Record Name"` segments in `message()` bold without quotes.
    * Enabled by default for operational confirmations; set false when

@@ -65,7 +65,13 @@ describe("AdminAnalyticsDataService", () => {
     };
 
     const promise1 = firstValueFrom(service.getAdminOverview("Last 9 Months"));
-    const req1 = httpMock.expectOne(`${baseUrl}/overview?timeframe=Last%209%20Months`);
+    const req1 = httpMock.expectOne(
+      (r) =>
+        r.url === `${baseUrl}/overview` &&
+        r.params.get("timeframe") === "Last 9 Months" &&
+        r.params.has("start_date") &&
+        r.params.has("end_date"),
+    );
     expect(req1.request.method).toBe("GET");
     req1.flush(mockOverview);
 
@@ -77,7 +83,11 @@ describe("AdminAnalyticsDataService", () => {
     const promise2 = firstValueFrom(service.getAdminOverview("Last 9 Months"));
     const res2 = await promise2;
     expect(res2.metrics.length).toBe(8);
-    httpMock.expectNone(`${baseUrl}/overview?timeframe=Last%209%20Months`);
+    httpMock.expectNone(
+      (r) =>
+        r.url === `${baseUrl}/overview` &&
+        r.params.get("timeframe") === "Last 9 Months",
+    );
   });
 
   it("should fetch policy analytics with filters", async () => {
@@ -100,7 +110,13 @@ describe("AdminAnalyticsDataService", () => {
     };
 
     const promise = firstValueFrom(service.getAdminPolicyAnalytics({ status: "APPROVED" }));
-    const req = httpMock.expectOne(`${baseUrl}/policies?status=APPROVED`);
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${baseUrl}/policies` &&
+        r.params.get("status") === "APPROVED" &&
+        r.params.has("start_date") &&
+        r.params.has("end_date"),
+    );
     expect(req.request.method).toBe("GET");
     req.flush(mockPolicies);
 
@@ -123,7 +139,12 @@ describe("AdminAnalyticsDataService", () => {
     };
 
     const promise = firstValueFrom(service.getAdminSchemeAnalytics());
-    const req = httpMock.expectOne(`${baseUrl}/schemes`);
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${baseUrl}/schemes` &&
+        r.params.has("start_date") &&
+        r.params.has("end_date"),
+    );
     expect(req.request.method).toBe("GET");
     req.flush(mockSchemes);
 
@@ -199,7 +220,13 @@ describe("AdminAnalyticsDataService", () => {
     };
 
     const promise = firstValueFrom(service.getAdminDepartmentAnalytics());
-    const req = httpMock.expectOne(`${baseUrl}/departments?selected_department=all`);
+    const req = httpMock.expectOne(
+      (r) =>
+        r.url === `${baseUrl}/departments` &&
+        r.params.get("selected_department") === "all" &&
+        r.params.has("start_date") &&
+        r.params.has("end_date"),
+    );
     expect(req.request.method).toBe("GET");
     req.flush(mockDepts);
 
@@ -249,9 +276,14 @@ describe("AdminAnalyticsDataService", () => {
         status: "All Status",
       }),
     );
-    const req = httpMock.expectOne(`${baseUrl}/policies`);
+    const req = httpMock.expectOne((r) => r.url === `${baseUrl}/policies`);
     expect(req.request.method).toBe("GET");
-    expect(req.request.params.keys().length).toBe(0);
+    // Frontend "All ..." defaults are dropped; only the global range bounds remain.
+    for (const key of ["state", "category", "ministry", "department", "status"]) {
+      expect(req.request.params.has(key)).toBe(false);
+    }
+    expect(req.request.params.has("start_date")).toBe(true);
+    expect(req.request.params.has("end_date")).toBe(true);
     req.flush(mockPolicies);
     const res = await promise;
     expect(res.stats.length).toBe(0);

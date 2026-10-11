@@ -53,6 +53,12 @@ export interface SchemeResponse extends SchemeBase {
   delete_requested_by?: number | null;
   delete_requested_at?: string | null;
   delete_requested_from_status?: string | null;
+  is_deleted?: boolean | null;
+  deleted_at?: string | null;
+  deleted_by?: number | null;
+  created_by_name?: string | null;
+  deleted_by_name?: string | null;
+  requested_by_name?: string | null;
   created_at: string;
   updated_at: string;
 }

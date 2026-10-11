@@ -167,8 +167,10 @@ describe("EligibilityChecker", () => {
     expect(schemeTitle).toBeTruthy();
     expect(policyTitle).toBeTruthy();
 
-    const badgeElements = fixture.debugElement.queryAll(By.css(".status-eligible"));
-    expect(badgeElements.length).toBe(2);
+    // Fresh results render one .result-row per eligible entity (status
+    // badges only appear in the saved-results list).
+    const resultRows = fixture.debugElement.queryAll(By.css(".result-row"));
+    expect(resultRows.length).toBe(2);
   });
 
   it("5. should handle empty results correctly without showing an error banner", () => {

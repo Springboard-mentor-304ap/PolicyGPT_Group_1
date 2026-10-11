@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, Inject, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { of } from "rxjs";
@@ -83,13 +83,13 @@ export class UserDetailsComponent implements OnInit {
   private rawAuditLogs: UserAuditLogApi[] = [];
 
   constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private adminUsersService: AdminUsersService,
-    private policyService: PolicyService,
-    private schemeService: SchemeService,
-    private searchHistoryService: SearchHistoryService,
-    private cdr: ChangeDetectorRef
+    @Inject(ActivatedRoute) private route: ActivatedRoute,
+    @Inject(Router) private router: Router,
+    @Inject(AdminUsersService) private adminUsersService: AdminUsersService,
+    @Inject(PolicyService) private policyService: PolicyService,
+    @Inject(SchemeService) private schemeService: SchemeService,
+    @Inject(SearchHistoryService) private searchHistoryService: SearchHistoryService,
+    @Inject(ChangeDetectorRef) private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {

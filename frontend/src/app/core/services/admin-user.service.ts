@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
@@ -98,7 +98,7 @@ export class AdminUsersService {
   private readonly authUsersUrl = `${environment.apiUrl}/auth/users`;
   private readonly auditLogsUrl = `${environment.apiUrl}/audit-logs`;
 
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getUsers(): Observable<AdminUserApi[]> {
     return this.http.get<AdminUserApi[]>(this.apiUrl);

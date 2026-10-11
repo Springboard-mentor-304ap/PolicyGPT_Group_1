@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  Inject,
   OnInit,
 } from "@angular/core";
 import { CommonModule } from "@angular/common";
@@ -50,11 +51,11 @@ export class SavedItemsComponent implements OnInit {
   errorMessage = "";
 
   constructor(
-    private readonly savedItemsService: SavedItemsService,
-    private readonly router: Router,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly auth: Auth,
-    private readonly permissions: PermissionService,
+    @Inject(SavedItemsService) private readonly savedItemsService: SavedItemsService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(Auth) private readonly auth: Auth,
+    @Inject(PermissionService) private readonly permissions: PermissionService,
   ) {}
 
   ngOnInit(): void {

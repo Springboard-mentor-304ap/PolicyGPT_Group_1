@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, signal } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, HostListener, ElementRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { Subscription, finalize, take } from 'rxjs';
@@ -40,10 +40,10 @@ export class NotificationBellComponent implements OnInit, OnDestroy {
   private liveSub?: Subscription;
 
   constructor(
-    private readonly notificationService: NotificationService,
-    private readonly authService: Auth,
-    private readonly router: Router,
-    private readonly elementRef: ElementRef
+    @Inject(NotificationService) private readonly notificationService: NotificationService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(Router) private readonly router: Router,
+    @Inject(ElementRef) private readonly elementRef: ElementRef
   ) {}
 
   ngOnInit(): void {

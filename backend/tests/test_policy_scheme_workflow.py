@@ -21,8 +21,12 @@ from app.services import policy_service, scheme_service
 
 def make_db(policy=None):
     db = MagicMock()
-    # _policy_or_404 / get_* chain: db.query(X).filter(...).first()
-    db.query.return_value.filter.return_value.first.return_value = policy
+    # _policy_or_404 / get_* chain: db.query(X).filter(...).first().
+    # filter() returns the same query mock so multi-filter chains
+    # (e.g. id + is_deleted) resolve identically.
+    q = db.query.return_value
+    q.filter.return_value = q
+    q.first.return_value = policy
     return db
 
 
@@ -55,6 +59,9 @@ def fake_policy(**kw):
         delete_requested_by=None,
         delete_requested_at=None,
         delete_requested_from_status=None,
+        is_deleted=False,
+        deleted_at=None,
+        deleted_by=None,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -76,6 +83,9 @@ def fake_scheme(**kw):
         delete_requested_by=None,
         delete_requested_at=None,
         delete_requested_from_status=None,
+        is_deleted=False,
+        deleted_at=None,
+        deleted_by=None,
     )
     base.update(kw)
     return SimpleNamespace(**base)
@@ -544,3 +554,272 @@ def test_policy_restore_rejects_non_archived():
         policy_service.restore_policy(db, 10, admin(1))
     assert exc.value.status_code == 400
     assert pol.status == "APPROVED"  # unchanged
+
+
+# ------------------------------------------- soft-delete lifecycle
+
+
+def test_policy_direct_delete_is_temporary():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    policy_service.delete_policy(db, 10, admin(1))
+    assert pol.is_deleted is True
+    assert pol.deleted_at is not None
+    assert pol.deleted_by == 1
+    assert pol.status == "APPROVED"  # preserved
+    assert pol.title == "Test Policy"
+    db.delete.assert_not_called()
+
+
+def test_policy_direct_delete_missing_is_404():
+    db = make_db(None)
+    with pytest.raises(HTTPException) as exc:
+        policy_service.delete_policy(db, 999, admin(1))
+    assert exc.value.status_code == 404
+
+
+def test_policy_approve_delete_moves_to_trash():
+    pol = fake_policy(
+        status="DELETE_REQUESTED",
+        created_by=2,
+        delete_requested_by=2,
+        delete_requested_from_status="APPROVED",
+    )
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_request_decision"
+    ):
+        policy_service.approve_delete_policy(db, 10, admin(1))
+    assert pol.is_deleted is True
+    assert pol.deleted_by == 1
+    assert pol.status == "DELETE_REQUESTED"  # preserved
+    db.delete.assert_not_called()
+
+
+def test_policy_restore_trash_preserves_data():
+    pol = fake_policy(
+        status="APPROVED",
+        created_by=2,
+        is_deleted=True,
+        deleted_by=1,
+    )
+    db = make_db(pol)
+    with patch(
+        "app.services.notification_service.notify_request_decision"
+    ):
+        out = policy_service.restore_policy(db, 10, admin(1))
+    assert out.is_deleted is False
+    assert out.deleted_at is None
+    assert out.deleted_by is None
+    assert out.status == "APPROVED"
+    assert out.title == "Test Policy"
+    assert out.created_by == 2
+
+
+def test_policy_restore_live_non_archived_is_400():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    with pytest.raises(HTTPException) as exc:
+        policy_service.restore_policy(db, 10, admin(1))
+    assert exc.value.status_code == 400
+
+
+def test_policy_permanent_delete_requires_trash():
+    pol = fake_policy(status="APPROVED", created_by=2)
+    db = make_db(pol)
+    with pytest.raises(HTTPException) as exc:
+        policy_service.permanent_delete_policy(db, 10, admin(1))
+    assert exc.value.status_code == 400
+    db.delete.assert_not_called()
+
+
+def test_policy_permanent_delete_removes_trashed_row():
+    pol = fake_policy(status="APPROVED", created_by=2, is_deleted=True, deleted_by=1)
+    db = make_db(pol)
+    policy_service.permanent_delete_policy(db, 10, admin(1))
+    db.delete.assert_called_once_with(pol)
+
+
+def test_policy_trashed_list_scoping_and_search():
+    from app.services import policy_service as ps
+
+    rows = [
+        fake_policy(policy_id=1, created_by=2, is_deleted=True, deleted_by=1),
+        fake_policy(policy_id=2, created_by=3, is_deleted=True, deleted_by=1),
+    ]
+    db = make_db()
+    q = db.query.return_value
+    q.count.return_value = 2
+    q.order_by.return_value.offset.return_value.all.return_value = rows
+    q.all.return_value = [
+        SimpleNamespace(user_id=1, full_name="Admin User"),
+        SimpleNamespace(user_id=2, full_name="Gov User"),
+    ]
+    out = ps.get_deleted_policies(db, current_user=admin(1))
+    assert out["total"] == 2
+    assert [p.policy_id for p in out["policies"]] == [1, 2]
+    # Transient display names enriched, never stored.
+    assert rows[0].created_by_name == "Gov User"
+    assert rows[0].deleted_by_name == "Admin User"
+    filter_calls = [str(c.args[0]) for c in q.filter.call_args_list]
+    assert any("is_deleted" in c for c in filter_calls)
+    # Government officials are scoped to their own rows.
+    db2 = make_db()
+    q2 = db2.query.return_value
+    q2.count.return_value = 1
+    q2.order_by.return_value.offset.return_value.all.return_value = rows[:1]
+    q2.all.return_value = []
+    ps.get_deleted_policies(db2, current_user=govt(2))
+    gov_calls = [str(c.args[0]) for c in q2.filter.call_args_list]
+    assert any("created_by" in c for c in gov_calls)
+
+
+def test_scheme_direct_delete_restore_permanent_round_trip():
+    from app.services import scheme_service as ss
+
+    sch = fake_scheme(status="APPROVED", created_by=2)
+    db = make_db()
+    ss.delete_scheme(db, sch, deleted_by=1)
+    assert sch.is_deleted is True
+    assert sch.deleted_by == 1
+    assert sch.status == "APPROVED"
+    db.delete.assert_not_called()
+
+    out = ss.restore_scheme(db, sch, actor_id=1, actor_name="Admin User")
+    assert out.is_deleted is False
+    assert out.deleted_at is None
+    assert out.status == "APPROVED"
+
+    sch.is_deleted = True
+    ss.permanent_delete_scheme(db, sch)
+    db.delete.assert_called_once_with(sch)
+
+
+def test_scheme_permanent_delete_requires_trash():
+    from app.services import scheme_service as ss
+
+    sch = fake_scheme(status="APPROVED", created_by=2)
+    db = make_db()
+    with pytest.raises(ValueError):
+        ss.permanent_delete_scheme(db, sch)
+    db.delete.assert_not_called()
+
+
+def _trash_db(policy_rows, scheme_rows):
+    """Mock db routing entity queries to canned trash rows."""
+    db = MagicMock()
+
+    def _query(entity, *args):
+        name = getattr(entity, "__name__", "")
+        rows = (
+            policy_rows
+            if name == "Policy"
+            else (scheme_rows if name == "Scheme" else [])
+        )
+        q = MagicMock()
+        q.filter.return_value = q
+        q.order_by.return_value = q
+        q.offset.return_value = q
+        q.all.return_value = rows
+        q.count.return_value = len(rows)
+        q.first.return_value = None
+        return q
+
+    db.query.side_effect = _query
+    return db
+
+
+def test_cleanup_purges_only_30_day_trash():
+    from datetime import datetime, timedelta, timezone
+
+    from app.services import deletion_cleanup_service as cleanup
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    cutoff = now - timedelta(days=30)
+    old = fake_policy(policy_id=1, is_deleted=True, deleted_by=1,
+                      deleted_at=now - timedelta(days=31))
+    boundary = fake_policy(policy_id=2, is_deleted=True, deleted_by=1,
+                           deleted_at=now - timedelta(days=30, seconds=5))
+    fresh = fake_policy(policy_id=3, is_deleted=True, deleted_by=1,
+                        deleted_at=now - timedelta(days=29))
+    live = fake_policy(policy_id=4, is_deleted=False, deleted_by=None,
+                       deleted_at=None)
+    old_scheme = fake_scheme(scheme_id=21, is_deleted=True, deleted_by=1,
+                             deleted_at=now - timedelta(days=45))
+
+    # Eligibility boundaries, evaluated directly (mocked queries cannot
+    # apply SQL predicates, so the sweep is fed pre-filtered rows).
+    assert cleanup.is_purge_eligible(old, cutoff) is True
+    assert cleanup.is_purge_eligible(boundary, cutoff) is True
+    assert cleanup.is_purge_eligible(fresh, cutoff) is False
+    assert cleanup.is_purge_eligible(live, cutoff) is False
+    assert cleanup.is_purge_eligible(
+        fake_policy(is_deleted=True, deleted_by=1, deleted_at=None), cutoff
+    ) is False
+
+    db = _trash_db([old, boundary], [old_scheme])
+    summary = cleanup.process_deleted_cleanup(db, retention_days=30)
+    assert summary["policies_purged"] == [1, 2]
+    assert summary["policies_skipped_errors"] == 0
+    assert summary["schemes_purged"] == [21]
+    assert summary["schemes_skipped_errors"] == 0
+
+    # Restored rows are excluded on later passes.
+    db2 = _trash_db([], [])
+    again = cleanup.process_deleted_cleanup(db2, retention_days=30)
+    assert again["policies_purged"] == []
+    assert again["policies_skipped_errors"] == 0
+    assert again["schemes_purged"] == []
+    assert again["schemes_skipped_errors"] == 0
+
+
+def test_cleanup_counts_row_errors_without_aborting():
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy.exc import IntegrityError
+
+    from app.services import deletion_cleanup_service as cleanup
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    blocked = fake_policy(policy_id=9, is_deleted=True, deleted_by=1,
+                          deleted_at=now - timedelta(days=60))
+    ok = fake_policy(policy_id=10, is_deleted=True, deleted_by=1,
+                     deleted_at=now - timedelta(days=60))
+    db = _trash_db([blocked, ok], [])
+    db.delete.side_effect = [
+        IntegrityError("x", "y", Exception("fk")),
+        None,
+    ]
+    summary = cleanup.process_deleted_cleanup(db, retention_days=30)
+    assert summary["policies_purged"] == [10]
+    assert summary["policies_skipped_errors"] == 1
+
+
+# ------------------------------------------- creator-name resolution
+
+
+def test_resolve_creator_name_returns_full_name():
+    from app.services.audit_log_service import resolve_user_display_name
+
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = (
+        SimpleNamespace(full_name="  Original Creator  ")
+    )
+    assert resolve_user_display_name(db, 7) == "Original Creator"
+
+
+def test_resolve_creator_name_unknown_or_missing():
+    from app.services.audit_log_service import resolve_user_display_name
+
+    db = MagicMock()
+    db.query.return_value.filter.return_value.first.return_value = None
+    assert resolve_user_display_name(db, 99) is None
+    assert resolve_user_display_name(db, None) is None
+
+
+def test_resolve_creator_name_never_raises():
+    from app.services.audit_log_service import resolve_user_display_name
+
+    db = MagicMock()
+    db.query.side_effect = Exception("db down")
+    assert resolve_user_display_name(db, 7) is None

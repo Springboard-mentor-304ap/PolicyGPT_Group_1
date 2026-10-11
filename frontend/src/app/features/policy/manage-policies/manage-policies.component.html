@@ -38,6 +38,13 @@
                 View Deleted Policies
             </button>
             }
+            @if (!isAdmin) {
+            <button type="button" class="secondary-header-action deleted-action"
+                (click)="$event.stopPropagation(); openGovtDeletedModal()">
+                <span class="material-icons">delete_sweep</span>
+                View Deleted Policies
+            </button>
+            }
 
             <button type="button" class="secondary-header-action draft-action"
                 (click)="$event.stopPropagation(); openDraftsModal()">
@@ -591,6 +598,10 @@
     <app-deleted-policies-modal [open]="deletedModalOpen" (closed)="onDeletedModalClosed()"
         (dataChanged)="onChildDataChanged()">
     </app-deleted-policies-modal>
+
+    <!-- Read-only Deleted Policies view for Government Officials -->
+    <app-govt-deleted-policies-modal [open]="govtDeletedModalOpen" (closed)="onGovtDeletedModalClosed()">
+    </app-govt-deleted-policies-modal>
 
     <app-draft-policies-modal [open]="draftsModalOpen" (closed)="onDraftsModalClosed()"
         (dataChanged)="onChildDataChanged()">

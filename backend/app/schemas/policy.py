@@ -237,6 +237,21 @@ class PolicyResponse(BaseModel):
     # or ARCHIVED state.
     delete_requested_from_status: str | None
 
+    # Soft delete (trash). Backward-compatible additions: existing rows
+    # read as not deleted. Trash endpoints also populate the transient
+    # display names below (never stored).
+    is_deleted: bool = False
+
+    deleted_at: datetime | None = None
+
+    deleted_by: int | None = None
+
+    created_by_name: str | None = None
+
+    deleted_by_name: str | None = None
+
+    requested_by_name: str | None = None
+
     created_at: datetime
 
     updated_at: datetime

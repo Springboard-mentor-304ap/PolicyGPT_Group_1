@@ -162,9 +162,13 @@ def _validate_url_field(field_name: str, value: str | None) -> str | None:
 def _policy_or_404(
     db: Session,
     policy_id: int,
+    allow_deleted: bool = False,
 ) -> Policy:
 
-    policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+    query = db.query(Policy).filter(Policy.policy_id == policy_id)
+    if not allow_deleted:
+        query = query.filter(Policy.is_deleted.is_(False))
+    policy = query.first()
 
     if not policy:
         raise HTTPException(
@@ -193,6 +197,9 @@ def _validate_policy_duplicate(
 ) -> None:
 
     query = db.query(Policy).filter(func.lower(Policy.title) == title.strip().lower())
+
+    # Trashed rows do not block title reuse; they are invisible everywhere.
+    query = query.filter(Policy.is_deleted.is_(False))
 
     if exclude_policy_id is not None:
         query = query.filter(Policy.policy_id != exclude_policy_id)
@@ -593,21 +600,21 @@ def update_policy(
 # ============================================================
 
 
-def delete_policy(
-    db: Session,
-    policy_id: int,
-    current_user: User,
-) -> None:
+def _purge_policy_row(db: Session, policy: Policy) -> None:
+    """Physically remove a policy row and its transient dependents.
 
-    policy = _policy_or_404(
-        db=db,
-        policy_id=policy_id,
-    )
+    Shared by permanent deletion and the 30-day auto-cleanup so both
+    paths honor the same foreign-key behavior: citizen feedback is
+    preserved (reference nullified), transient in-app notifications go
+    with the row, and any other referencing table still blocks the
+    purge with an actionable 409 via _handle_delete_exception.
+    """
+    from app.models.feedback import Feedback
+    from app.models.notification import Notification
+
+    policy_id = policy.policy_id
 
     try:
-        from app.models.feedback import Feedback
-        from app.models.notification import Notification
-
         # Nullify feedback reference to preserve citizen feedback records and audit trail
         db.query(Feedback).filter(
             Feedback.policy_id == policy_id
@@ -624,6 +631,30 @@ def delete_policy(
     except Exception as exc:
         db.rollback()
         _handle_delete_exception(exc, policy_id)
+
+
+def delete_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> None:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+    )
+
+    # Temporary (soft) delete: the row stays in the database with its
+    # status and all other data preserved, hidden from every active
+    # view, and recoverable from Deleted Policies. Physical removal
+    # happens exclusively via permanent_delete_policy (Deleted modal)
+    # or the 30-day auto-cleanup.
+    policy.is_deleted = True
+    policy.deleted_at = _now()
+    policy.deleted_by = getattr(current_user, "user_id", None)
+    policy.updated_at = _now()
+
+    db.commit()
 
 
 # ============================================================
@@ -1144,6 +1175,7 @@ def get_archive_requests(
 
     query = (
         db.query(Policy)
+        .filter(Policy.is_deleted.is_(False))
         .filter(Policy.status == "ARCHIVE_REQUESTED")
         .order_by(Policy.updated_at.desc())
     )
@@ -1351,7 +1383,13 @@ def restore_policy(
     current_user: User,
     background_tasks=None,
 ) -> Policy:
-    """Restore an ARCHIVED policy to APPROVED (see section header).
+    """Restore a temporarily deleted policy or an ARCHIVED policy.
+
+    - Soft-deleted rows return to the active set with their preserved
+      status and data untouched (is_deleted cleared).
+    - ARCHIVED rows keep the legacy behavior (ARCHIVED -> APPROVED).
+    - Anything else is rejected: restore it first is meaningless, and
+      permanently removed rows cannot be recreated here.
 
     Notification fan-out is noncritical side-effect work: when a FastAPI
     ``background_tasks`` instance is supplied (HTTP route), it runs after
@@ -1363,22 +1401,33 @@ def restore_policy(
     policy = _policy_or_404(
         db=db,
         policy_id=policy_id,
+        allow_deleted=True,
     )
 
-    if policy.status != "ARCHIVED":
+    if policy.is_deleted:
+        policy.is_deleted = False
+        policy.deleted_at = None
+        policy.deleted_by = None
+        policy.updated_at = _now()
+
+        db.commit()
+        db.refresh(policy)
+
+    elif policy.status != "ARCHIVED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=("Only ARCHIVED policies can be restored."),
+            detail=("Only temporarily deleted or ARCHIVED policies can be restored."),
         )
 
-    policy.status = "APPROVED"
+    else:
+        policy.status = "APPROVED"
 
-    policy.approved_by = current_user.user_id
+        policy.approved_by = current_user.user_id
 
-    policy.updated_at = _now()
+        policy.updated_at = _now()
 
-    db.commit()
-    db.refresh(policy)
+        db.commit()
+        db.refresh(policy)
 
     if not policy.created_by:
         return policy
@@ -1565,6 +1614,7 @@ def get_delete_requests(
 
     query = (
         db.query(Policy)
+        .filter(Policy.is_deleted.is_(False))
         .filter(Policy.status == "DELETE_REQUESTED")
         .order_by(Policy.updated_at.desc())
     )
@@ -1613,52 +1663,42 @@ def approve_delete_policy(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Only policies with a DELETE_REQUESTED "
-                "status can be permanently deleted."
+                "status can have deletion approved."
             ),
         )
 
     req_user = policy.delete_requested_by
     title = policy.title
 
-    try:
-        from app.models.feedback import Feedback
-        from app.models.notification import Notification
+    # Approved deletions are temporary (soft): the row keeps its status
+    # and data, leaves every active view, and remains restorable from
+    # Deleted Policies. Physical removal happens exclusively via
+    # permanent_delete_policy (Deleted modal) or the 30-day auto-cleanup.
+    policy.is_deleted = True
+    policy.deleted_at = _now()
+    policy.deleted_by = current_user.user_id
+    policy.updated_at = _now()
 
-        # Nullify feedback reference to preserve citizen feedback records and audit trail
-        db.query(Feedback).filter(
-            Feedback.policy_id == policy_id
-        ).update({Feedback.policy_id: None}, synchronize_session=False)
+    db.commit()
+    db.refresh(policy)
 
-        # Remove transient in-app notifications
-        db.query(Notification).filter(
-            Notification.related_policy_id == policy_id
-        ).delete(synchronize_session=False)
+    if req_user:
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Policy Deletion Request",
+            "decision": "APPROVED",
+            "entity_type": "POLICY",
+            "entity_id": policy_id,
+            "entity_title": title,
+            "decision_by": current_user.full_name or "Administrator",
+            "actor_id": current_user.user_id,
+            "link_entity": False,
+        }
 
-        db.delete(policy)
-
-        db.commit()
-
-        if req_user:
-            notify_args = {
-                "user_id": req_user,
-                "request_type": "Policy Deletion Request",
-                "decision": "APPROVED",
-                "entity_type": "POLICY",
-                "entity_id": policy_id,
-                "entity_title": title,
-                "decision_by": current_user.full_name or "Administrator",
-                "actor_id": current_user.user_id,
-                "link_entity": False,
-            }
-
-            if background_tasks is not None:
-                background_tasks.add_task(_run_decision_notifications, notify_args)
-            else:
-                _run_decision_notifications(notify_args, db=db)
-
-    except Exception as exc:
-        db.rollback()
-        _handle_delete_exception(exc, policy_id)
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
 
 # ============================================================
@@ -1746,6 +1786,126 @@ def reject_delete_policy(
 
 
 # ============================================================
+# PERMANENT DELETE (TRASH ONLY)
+#
+# ADMIN ONLY (enforced at the route)
+#
+# Physically removes a temporarily deleted row. Only rows already in
+# the trash are eligible: live rows must be soft-deleted first, and
+# missing rows 404 via allow_deleted retrieval. Retries are safe —
+# a second call finds no row and 404s instead of duplicating history.
+# ============================================================
+
+
+def permanent_delete_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+) -> None:
+
+    policy = _policy_or_404(
+        db=db,
+        policy_id=policy_id,
+        allow_deleted=True,
+    )
+
+    if not policy.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only temporarily deleted policies can be permanently "
+                "deleted. Delete the policy first to move it to Deleted Policies."
+            ),
+        )
+
+    _purge_policy_row(db, policy)
+
+
+# ============================================================
+# TRASH LISTING
+# ============================================================
+
+
+def get_deleted_policies(
+    db: Session,
+    page: int = 1,
+    limit: int = 100,
+    search: str | None = None,
+    current_user: User | None = None,
+) -> dict:
+    """Temporarily deleted policies visible to the caller.
+
+    Admins see every trashed row; other roles see only rows they
+    created. Results carry the full record (title, description,
+    creator, status, deletion actor/timestamp) plus transient display
+    names, newest deletions first.
+    """
+
+    query = db.query(Policy).filter(Policy.is_deleted.is_(True))
+
+    if (
+        current_user is not None
+        and str(getattr(current_user, "role", "")).strip().upper()
+        not in {"ADMIN", "ADMINISTRATOR"}
+    ):
+        query = query.filter(Policy.created_by == current_user.user_id)
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                Policy.title.ilike(search_term),
+                Policy.description.ilike(search_term),
+                Policy.category.ilike(search_term),
+            )
+        )
+
+    total = query.count()
+
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+    pages = _calculate_pages(total, limit)
+
+    rows = (
+        query.order_by(Policy.deleted_at.desc())
+        .offset((page - 1) * limit)
+        .all()
+    )
+
+    _attach_creator_names(db, rows)
+
+    return {
+        "policies": rows,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "pages": pages,
+    }
+
+
+def _attach_creator_names(db: Session, rows: list[Policy]) -> None:
+    """Populate transient created_by_name/deleted_by_name for trash rows."""
+    try:
+        ids = {
+            uid
+            for row in rows
+            for uid in (row.created_by, row.deleted_by, row.delete_requested_by)
+            if uid is not None
+        }
+        names = (
+            {u.user_id: u.full_name for u in db.query(User).filter(User.user_id.in_(ids)).all()}
+            if ids
+            else {}
+        )
+        for row in rows:
+            row.created_by_name = names.get(row.created_by)
+            row.deleted_by_name = names.get(row.deleted_by)
+            row.requested_by_name = names.get(row.delete_requested_by)
+    except Exception:
+        logger.warning("Trash display-name enrichment failed")
+
+
+# ============================================================
 # SEARCH POLICIES
 # ============================================================
 
@@ -1767,6 +1927,10 @@ def search_policies(
 ) -> dict:
 
     query = db.query(Policy)
+
+    # Soft-deleted rows are invisible to every active view; they surface
+    # only through get_deleted_policies.
+    query = query.filter(Policy.is_deleted.is_(False))
 
     # --------------------------------------------------------
     # DRAFT & PENDING APPROVAL PRIVACY RULE
@@ -1900,6 +2064,7 @@ def get_pending_approval_policies(
 
     query = (
         db.query(Policy)
+        .filter(Policy.is_deleted.is_(False))
         .filter(Policy.status == "PENDING_APPROVAL")
         .order_by(Policy.updated_at.desc())
     )
@@ -1937,6 +2102,7 @@ def get_archived_policies(
 
     query = (
         db.query(Policy)
+        .filter(Policy.is_deleted.is_(False))
         .filter(Policy.status == "ARCHIVED")
         .order_by(Policy.updated_at.desc())
     )
@@ -1964,9 +2130,23 @@ def compare_policies(
     policy_id_1: int,
     policy_id_2: int,
 ):
-    policy_1 = db.query(Policy).filter(Policy.policy_id == policy_id_1).first()
+    policy_1 = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id_1,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
 
-    policy_2 = db.query(Policy).filter(Policy.policy_id == policy_id_2).first()
+    policy_2 = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id_2,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
 
     if not policy_1:
         raise HTTPException(

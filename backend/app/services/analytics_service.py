@@ -29,7 +29,7 @@ def get_dashboard_analytics(
     user_self_only = not user_is_admin and user_id is not None
 
     pol_rows = (
-        db.query(Policy.status, func.count(Policy.policy_id))
+        db.query(Policy.status, func.count(Policy.policy_id)).filter(Policy.is_deleted.is_(False))
         .group_by(Policy.status)
         .all()
     )
@@ -41,7 +41,7 @@ def get_dashboard_analytics(
     policies_archived = pol_by_status.get("ARCHIVED", 0)
 
     sch_rows = (
-        db.query(Scheme.status, func.count(Scheme.scheme_id))
+        db.query(Scheme.status, func.count(Scheme.scheme_id)).filter(Scheme.is_deleted.is_(False))
         .group_by(Scheme.status)
         .all()
     )
@@ -110,7 +110,7 @@ def get_dashboard_analytics(
 def get_policy_analytics(db: Session, approved_only: bool = False):
 
     status_rows = (
-        db.query(Policy.status, func.count(Policy.policy_id))
+        db.query(Policy.status, func.count(Policy.policy_id)).filter(Policy.is_deleted.is_(False))
         .group_by(Policy.status)
         .all()
     )
@@ -204,7 +204,7 @@ def get_policy_analytics(db: Session, approved_only: bool = False):
 def get_scheme_analytics(db: Session, approved_only: bool = False):
 
     status_rows = (
-        db.query(Scheme.status, func.count(Scheme.scheme_id))
+        db.query(Scheme.status, func.count(Scheme.scheme_id)).filter(Scheme.is_deleted.is_(False))
         .group_by(Scheme.status)
         .all()
     )
@@ -370,7 +370,7 @@ def get_scheme_usage(db: Session, approved_only: bool = False):
 
     if approved_only:
         approved = (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "APPROVED")
             .count()
         )
@@ -384,28 +384,28 @@ def get_scheme_usage(db: Session, approved_only: bool = False):
         }
 
     return {
-        "total_schemes": db.query(Scheme).count(),
+        "total_schemes": db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count(),
 
         "approved_schemes": (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "APPROVED")
             .count()
         ),
 
         "pending_schemes": (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "PENDING_APPROVAL")
             .count()
         ),
 
         "rejected_schemes": (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "REJECTED")
             .count()
         ),
 
         "archived_schemes": (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "ARCHIVED")
             .count()
         ),
@@ -643,18 +643,18 @@ def get_usage_statistics(
         "users": user_query.count(),
 
         # Policies and schemes are shared platform data.
-        "policies": db.query(Policy).count(),
+        "policies": db.query(Policy).filter(Policy.is_deleted.is_(False)).count(),
 
-        "schemes": db.query(Scheme).count(),
+        "schemes": db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count(),
 
         "approved_policies": (
-            db.query(Policy)
+            db.query(Policy).filter(Policy.is_deleted.is_(False))
             .filter(Policy.status == "APPROVED")
             .count()
         ),
 
         "approved_schemes": (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "APPROVED")
             .count()
         ),

@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, Inject, OnDestroy, OnInit } from "@angular/core";
 import {
   AbstractControl,
   FormBuilder,
@@ -111,11 +111,11 @@ export class PasswordResetComponent implements OnDestroy, OnInit {
   passwordForm: FormGroup;
 
   constructor(
-    private fb: FormBuilder,
-    private auth: Auth,
-    private router: Router,
-    private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef,
+    @Inject(FormBuilder) private fb: FormBuilder,
+    @Inject(Auth) private auth: Auth,
+    @Inject(Router) private router: Router,
+    @Inject(ActivatedRoute) private route: ActivatedRoute,
+    @Inject(ChangeDetectorRef) private cdr: ChangeDetectorRef,
   ) {
     this.identifierForm = this.fb.group({
       identifier: ["", [Validators.required, identifierValidator]],

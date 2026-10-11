@@ -33,6 +33,7 @@ def get_saved_policies(
         )
         .filter(
             SavedPolicy.user_id == user_id,
+            Policy.is_deleted.is_(False),
         )
         .order_by(
             SavedPolicy.saved_at.desc(),
@@ -152,6 +153,7 @@ def get_saved_schemes(
         )
         .filter(
             SavedScheme.user_id == user_id,
+            Scheme.is_deleted.is_(False),
         )
         .order_by(
             SavedScheme.saved_at.desc(),

@@ -56,6 +56,9 @@ CREATE TABLE policies (
     delete_requested_by BIGINT REFERENCES users(user_id),
     delete_requested_at TIMESTAMP,
     delete_requested_from_status VARCHAR(30),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP,
+    deleted_by BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -90,6 +93,9 @@ CREATE TABLE schemes (
     delete_requested_by BIGINT REFERENCES users(user_id),
     delete_requested_at TIMESTAMP,
     delete_requested_from_status VARCHAR(30),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP,
+    deleted_by BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

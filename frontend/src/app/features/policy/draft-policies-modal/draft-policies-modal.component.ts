@@ -586,8 +586,8 @@ export class DraftPoliciesModalComponent
     }
     this.confirmTitle = "Delete Draft Policy";
     this.confirmMessage =
-      `Permanently delete draft "${policy.title}"? This action is ` +
-      `irreversible and uses the existing deletion workflow.`;
+      `Move draft "${policy.title}" to Deleted Policies? It will be ` +
+      `hidden from active views and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmText = "Delete";
     this.confirmLoading = false;
@@ -616,8 +616,8 @@ export class DraftPoliciesModalComponent
             const deletedName = this.draftToastName(null, policy.title);
             this.showSuccess(
               deletedName
-                ? `Policy "${deletedName}" permanently deleted.`
-                : "Draft policy deleted.",
+                ? `Policy "${deletedName}" moved to Deleted Policies.`
+                : "Draft policy moved to Deleted Policies.",
             );
             this.loadPolicies();
             this.dataChanged.emit();

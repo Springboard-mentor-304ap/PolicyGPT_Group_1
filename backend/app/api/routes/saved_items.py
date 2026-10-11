@@ -116,6 +116,7 @@ def save_policy(
         db.query(Policy)
         .filter(
             Policy.policy_id == policy_id,
+            Policy.is_deleted.is_(False),
         )
         .first()
     )
@@ -161,6 +162,7 @@ def save_scheme(
         db.query(Scheme)
         .filter(
             Scheme.scheme_id == scheme_id,
+            Scheme.is_deleted.is_(False),
         )
         .first()
     )

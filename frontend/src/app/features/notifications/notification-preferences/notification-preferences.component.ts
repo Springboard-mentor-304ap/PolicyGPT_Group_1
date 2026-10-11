@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -109,11 +109,11 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   typeOptions: any[] = [];
 
   constructor(
-    private readonly preferencesService: NotificationPreferencesService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
-    private readonly cdr: ChangeDetectorRef
+    @Inject(NotificationPreferencesService) private readonly preferencesService: NotificationPreferencesService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {

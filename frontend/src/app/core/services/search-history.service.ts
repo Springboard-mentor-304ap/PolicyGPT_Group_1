@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -30,7 +30,7 @@ export interface SearchHistoryStatsResponse {
 export class SearchHistoryService {
   private readonly baseUrl = `${environment.apiUrl}/search-history`;
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getUserSearchHistory(userId: number): Observable<SearchHistoryItem[]> {
     return this.http.get<SearchHistoryItem[]>(`${this.baseUrl}/me/${userId}`);

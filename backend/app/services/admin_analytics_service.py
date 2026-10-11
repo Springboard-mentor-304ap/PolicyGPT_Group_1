@@ -371,7 +371,7 @@ def get_admin_overview_analytics(
 
     # 3. Schemes by Category
     category_counts = (
-        db.query(Scheme.category, func.count(Scheme.scheme_id))
+        db.query(Scheme.category, func.count(Scheme.scheme_id)).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.category.isnot(None))
         .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(Scheme.category)
@@ -503,7 +503,7 @@ def get_admin_policy_analytics(
     db: Session, filters: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     filters = filters or {}
-    q = db.query(Policy)
+    q = db.query(Policy).filter(Policy.is_deleted.is_(False))
 
     if filters.get("state") and not _is_all_filter_value(filters["state"]):
         q = q.filter(Policy.state == filters["state"])
@@ -740,7 +740,7 @@ def get_admin_scheme_analytics(
     db: Session, filters: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
     filters = filters or {}
-    q = db.query(Scheme)
+    q = db.query(Scheme).filter(Scheme.is_deleted.is_(False))
 
     if filters.get("state") and not _is_all_filter_value(filters["state"]):
         q = q.filter(Scheme.state == filters["state"])
@@ -1693,7 +1693,7 @@ def get_admin_department_analytics(
 
     # Top by policies & schemes (windowed)
     top_pols = (
-        db.query(Policy.department, func.count(Policy.policy_id))
+        db.query(Policy.department, func.count(Policy.policy_id)).filter(Policy.is_deleted.is_(False))
         .filter(Policy.department.isnot(None))
         .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .group_by(Policy.department)
@@ -1706,7 +1706,7 @@ def get_admin_department_analytics(
     ]
 
     top_schs = (
-        db.query(Scheme.department, func.count(Scheme.scheme_id))
+        db.query(Scheme.department, func.count(Scheme.scheme_id)).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.department.isnot(None))
         .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .group_by(Scheme.department)
@@ -1726,7 +1726,7 @@ def get_admin_department_analytics(
     # table (and the details modal) respect the selected date range.
     # Two grouped join queries (never one request per department).
     pol_view_rows = (
-        db.query(Policy.department, func.count(AuditLog.audit_id))
+        db.query(Policy.department, func.count(AuditLog.audit_id)).filter(Policy.is_deleted.is_(False))
         .join(
             AuditLog,
             and_(
@@ -1744,7 +1744,7 @@ def get_admin_department_analytics(
         .all()
     )
     sch_view_rows = (
-        db.query(Scheme.department, func.count(AuditLog.audit_id))
+        db.query(Scheme.department, func.count(AuditLog.audit_id)).filter(Scheme.is_deleted.is_(False))
         .join(
             AuditLog,
             and_(
@@ -1783,13 +1783,13 @@ def get_admin_department_analytics(
     # lastUpdated is the real max(updated_at) per dept —
     # 2 grouped queries instead of 2×N MAX lookups.
     pol_max_rows = (
-        db.query(Policy.department, func.max(Policy.updated_at))
+        db.query(Policy.department, func.max(Policy.updated_at)).filter(Policy.is_deleted.is_(False))
         .filter(Policy.department.isnot(None))
         .group_by(Policy.department)
         .all()
     )
     sch_max_rows = (
-        db.query(Scheme.department, func.max(Scheme.updated_at))
+        db.query(Scheme.department, func.max(Scheme.updated_at)).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.department.isnot(None))
         .group_by(Scheme.department)
         .all()
@@ -2103,7 +2103,7 @@ def get_admin_usage_statistics(
     # unavailable counters ("—").
     # Top policies
     top_pols = (
-        db.query(Policy)
+        db.query(Policy).filter(Policy.is_deleted.is_(False))
         .filter(Policy.created_at >= win_start, Policy.created_at < win_end_excl)
         .order_by(Policy.created_at.desc())
         .limit(10)
@@ -2122,7 +2122,7 @@ def get_admin_usage_statistics(
 
     # Top schemes
     top_schs = (
-        db.query(Scheme)
+        db.query(Scheme).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.created_at >= win_start, Scheme.created_at < win_end_excl)
         .order_by(Scheme.created_at.desc())
         .limit(10)

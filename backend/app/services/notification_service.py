@@ -2021,7 +2021,14 @@ def notify_policy_published(
     Refuses to fire for anything that is not in a public status, so a draft or
     a rejected policy can never reach the public feed.
     """
-    policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+    policy = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
     if (
         policy is not None
         and (policy.status or "").upper() not in _public_live_status()
@@ -2071,7 +2078,14 @@ def notify_policy_updated(
     change_summary: str | None = None,
 ) -> list[Notification]:
     """Tell the public that an already published policy changed."""
-    policy = db.query(Policy).filter(Policy.policy_id == policy_id).first()
+    policy = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
     if policy is None:
         return []
     if (policy.status or "").upper() not in _public_live_status():
@@ -2116,7 +2130,14 @@ def notify_scheme_published(
     ministry: str | None = None,
 ) -> list[Notification]:
     """Tell Citizen / Researcher / Organization that a scheme went public."""
-    scheme = db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first()
+    scheme = (
+        db.query(Scheme)
+        .filter(
+            Scheme.scheme_id == scheme_id,
+            Scheme.is_deleted.is_(False),
+        )
+        .first()
+    )
     if (
         scheme is not None
         and (scheme.status or "").upper() not in _public_live_status()
@@ -2168,7 +2189,14 @@ def notify_scheme_updated(
     change_summary: str | None = None,
 ) -> list[Notification]:
     """Tell subscribed public users that a live scheme changed."""
-    scheme = db.query(Scheme).filter(Scheme.scheme_id == scheme_id).first()
+    scheme = (
+        db.query(Scheme)
+        .filter(
+            Scheme.scheme_id == scheme_id,
+            Scheme.is_deleted.is_(False),
+        )
+        .first()
+    )
     if (
         scheme is not None
         and (scheme.status or "").upper() not in _public_live_status()

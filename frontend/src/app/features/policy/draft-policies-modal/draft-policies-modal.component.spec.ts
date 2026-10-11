@@ -297,7 +297,7 @@ describe("DraftPoliciesModalComponent", () => {
     expect(c.confirmVariant).toBe("danger");
     c.onConfirmModalConfirmed();
     expect(mocks.policyService.deletePolicy).toHaveBeenCalledWith(30);
-    expect(c.successMessage).toContain("deleted");
+    expect(c.successMessage).toContain("moved to Deleted Policies");
     expect(changed).toEqual(["changed"]);
   });
 

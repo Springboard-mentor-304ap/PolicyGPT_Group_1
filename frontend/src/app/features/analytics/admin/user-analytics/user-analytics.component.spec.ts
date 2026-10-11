@@ -225,10 +225,13 @@ describe("UserAnalyticsComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  it("should load 6 KPI cards", () => {
-    expect(component.kpis().length).toBe(6);
+  it("should load 8 KPI cards (6 API KPIs + derived Admins/Citizens)", () => {
+    expect(component.kpis().length).toBe(8);
     expect(component.kpis()[0].label).toBe("Total Users");
     expect(component.kpis()[0].value).toBe("5,820");
+    const labels = component.kpis().map((k) => k.label);
+    expect(labels).toContain("Admins");
+    expect(labels).toContain("Citizens");
   });
 
   it("should load user growth trend datasets", () => {

@@ -136,14 +136,14 @@ describe("DepartmentAnalyticsComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  it("should render 6 metric cards", () => {
+  it("should render 4 metric cards", () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector(".page-title")?.textContent).toContain(
       "Department Analytics",
     );
     expect(
       compiled.querySelectorAll(".top-cards-grid .metric-card").length,
-    ).toBe(6);
+    ).toBe(4);
   });
 
   it("should filter departments based on search query", () => {

@@ -254,7 +254,7 @@ def build_policy_dataset(
     staff = _is_staff(user.role)
     start, end = _date_range(filters)
 
-    query = db.query(Policy)
+    query = db.query(Policy).filter(Policy.is_deleted.is_(False))
 
     if not staff:
         # Non-staff see approved/public policies only.
@@ -425,7 +425,7 @@ def build_scheme_dataset(
     staff = _is_staff(user.role)
     start, end = _date_range(filters)
 
-    query = db.query(Scheme)
+    query = db.query(Scheme).filter(Scheme.is_deleted.is_(False))
 
     if not staff:
         query = query.filter(Scheme.status == "APPROVED")
@@ -705,8 +705,8 @@ def build_department_dataset(
 ) -> dict:
     start, end = _date_range(filters)
 
-    policy_query = db.query(Policy)
-    scheme_query = db.query(Scheme)
+    policy_query = db.query(Policy).filter(Policy.is_deleted.is_(False))
+    scheme_query = db.query(Scheme).filter(Scheme.is_deleted.is_(False))
     if not _is_staff(user.role):
         policy_query = policy_query.filter(Policy.status == "APPROVED")
         scheme_query = scheme_query.filter(Scheme.status == "APPROVED")
@@ -1137,8 +1137,8 @@ def build_ministry_dataset(
 ) -> dict:
     start, end = _date_range(filters)
 
-    policy_query = db.query(Policy)
-    scheme_query = db.query(Scheme)
+    policy_query = db.query(Policy).filter(Policy.is_deleted.is_(False))
+    scheme_query = db.query(Scheme).filter(Scheme.is_deleted.is_(False))
     if not _is_staff(user.role):
         # Public/aggregate scope: approved rows only.
         policy_query = policy_query.filter(Policy.status == "APPROVED")
@@ -1261,8 +1261,8 @@ def build_state_dataset(
 ) -> dict:
     start, end = _date_range(filters)
 
-    policy_query = db.query(Policy)
-    scheme_query = db.query(Scheme)
+    policy_query = db.query(Policy).filter(Policy.is_deleted.is_(False))
+    scheme_query = db.query(Scheme).filter(Scheme.is_deleted.is_(False))
     if not _is_staff(user.role):
         # Public/aggregate scope: approved rows only.
         policy_query = policy_query.filter(Policy.status == "APPROVED")

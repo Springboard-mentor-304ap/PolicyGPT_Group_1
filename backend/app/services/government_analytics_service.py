@@ -142,7 +142,7 @@ def _dept_expr(model):
 
 def _recent_policies(db: Session, start, end, extra=(), limit=RECENT_LIMIT):
     rows = (
-        db.query(Policy)
+        db.query(Policy).filter(Policy.is_deleted.is_(False))
         .filter(Policy.created_at >= start, Policy.created_at < end, *extra)
         .order_by(Policy.created_at.desc())
         .limit(limit)
@@ -163,7 +163,7 @@ def _recent_policies(db: Session, start, end, extra=(), limit=RECENT_LIMIT):
 
 def _recent_schemes(db: Session, start, end, extra=(), limit=RECENT_LIMIT):
     rows = (
-        db.query(Scheme)
+        db.query(Scheme).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.created_at >= start, Scheme.created_at < end, *extra)
         .order_by(Scheme.created_at.desc())
         .limit(limit)
@@ -242,9 +242,9 @@ def get_government_overview(
     start, end = resolve_gov_window(months, date_from, date_to)
     keys = _month_keys(start, end)
 
-    total_policies = db.query(Policy).count()
-    total_schemes = db.query(Scheme).count()
-    draft_policies = db.query(Policy).filter(Policy.status == "DRAFT").count()
+    total_policies = db.query(Policy).filter(Policy.is_deleted.is_(False)).count()
+    total_schemes = db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count()
+    draft_policies = db.query(Policy).filter(Policy.is_deleted.is_(False)).filter(Policy.status == "DRAFT").count()
     departments = len(_departments_list(db, limit=1000))
     total_users = db.query(User).count()
     new_notifications = (
@@ -372,8 +372,8 @@ def get_government_policy_scheme(
     if category:
         scheme_filters.append(Scheme.category == category)
 
-    total_policies = db.query(Policy).count()
-    total_schemes = db.query(Scheme).count()
+    total_policies = db.query(Policy).filter(Policy.is_deleted.is_(False)).count()
+    total_schemes = db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count()
     policy_status_all = _status_counts(
         db, Policy, Policy.policy_id, start, end
     )
@@ -415,7 +415,7 @@ def get_government_policy_scheme(
     )
 
     policy_cats = (
-        db.query(Policy.category, func.count(Policy.policy_id).label("c"))
+        db.query(Policy.category, func.count(Policy.policy_id).label("c")).filter(Policy.is_deleted.is_(False))
         .filter(Policy.category.isnot(None))
         .group_by(Policy.category)
         .order_by(func.count(Policy.policy_id).desc())
@@ -423,7 +423,7 @@ def get_government_policy_scheme(
         .all()
     )
     scheme_cats = (
-        db.query(Scheme.category, func.count(Scheme.scheme_id).label("c"))
+        db.query(Scheme.category, func.count(Scheme.scheme_id).label("c")).filter(Scheme.is_deleted.is_(False))
         .filter(Scheme.category.isnot(None))
         .group_by(Scheme.category)
         .order_by(func.count(Scheme.scheme_id).desc())

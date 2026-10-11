@@ -830,7 +830,7 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.scheme) return;
     const schemeId = this.scheme.scheme_id;
     this.confirmTitle = "Approve Deletion";
-    this.confirmMessage = `Permanently delete "${this.scheme.name}"? This action cannot be undone.`;
+    this.confirmMessage = `Approve deletion of "${this.scheme.name}"? It will move to Deleted Schemes and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
@@ -845,8 +845,8 @@ export class SchemeDetailsComponent implements OnInit {
           this.confirmModalOpen = false;
           this.schemeSuccessToast(
             null,
-            (n) => `Scheme "${n}" permanently deleted.`,
-            "Scheme permanently deleted.",
+            (n) => `Deletion approved. Scheme "${n}" moved to Deleted Schemes.`,
+            "Deletion approved. Scheme moved to Deleted Schemes.",
           );
           this.goBack();
           this.cdr.detectChanges();
@@ -904,7 +904,7 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.scheme) return;
     const schemeId = this.scheme.scheme_id;
     this.confirmTitle = "Delete Scheme";
-    this.confirmMessage = `Are you sure you want to delete "${this.scheme.name}"?`;
+    this.confirmMessage = `Delete "${this.scheme.name}"? It will move to Deleted Schemes and can be restored within 30 days.`;
     this.confirmVariant = "danger";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
@@ -919,8 +919,8 @@ export class SchemeDetailsComponent implements OnInit {
           this.confirmModalOpen = false;
           this.schemeSuccessToast(
             null,
-            (n) => `Scheme "${n}" permanently deleted.`,
-            "Scheme permanently deleted.",
+            (n) => `Scheme "${n}" moved to Deleted Schemes.`,
+            "Scheme moved to Deleted Schemes.",
           );
           this.goBack();
           this.cdr.detectChanges();

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
+import { Component, Inject, OnInit, OnDestroy, ChangeDetectorRef } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { RouterModule, Router, ActivatedRoute } from "@angular/router";
@@ -143,12 +143,12 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   private liveSub?: Subscription;
 
   constructor(
-    private readonly notificationService: NotificationService,
-    private readonly authService: Auth,
-    private readonly toastService: ToastService,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly cdr: ChangeDetectorRef,
+    @Inject(NotificationService) private readonly notificationService: NotificationService,
+    @Inject(Auth) private readonly authService: Auth,
+    @Inject(ToastService) private readonly toastService: ToastService,
+    @Inject(Router) private readonly router: Router,
+    @Inject(ActivatedRoute) private readonly route: ActivatedRoute,
+    @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {

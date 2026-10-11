@@ -38,9 +38,15 @@ class DeadlineReminderService:
         reminders_sent = 0
         schemes_evaluated = 0
 
-        # Query active/approved schemes
+        # Query active/approved schemes. Soft-deleted rows are invisible to
+        # every active view: they surface only through GET /schemes/deleted.
         approved_schemes = (
-            db.query(Scheme).filter(Scheme.status == "APPROVED").all()
+            db.query(Scheme)
+            .filter(
+                Scheme.status == "APPROVED",
+                Scheme.is_deleted.is_(False),
+            )
+            .all()
         )
 
         # Audience resolved via the rule matrix so the preferences UI

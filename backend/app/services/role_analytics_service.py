@@ -53,44 +53,44 @@ def get_role_analytics(db: Session, user: User):
             },
 
             "policies": {
-                "total": db.query(Policy).count(),
+                "total": db.query(Policy).filter(Policy.is_deleted.is_(False)).count(),
 
                 "approved": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "APPROVED")
                     .count()
                 ),
 
                 "pending": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "PENDING_APPROVAL")
                     .count()
                 ),
 
                 "rejected": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "REJECTED")
                     .count()
                 ),
 
                 "archived": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "ARCHIVED")
                     .count()
                 )
             },
 
             "schemes": {
-                "total": db.query(Scheme).count(),
+                "total": db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count(),
 
                 "approved": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "APPROVED")
                     .count()
                 ),
 
                 "pending": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "PENDING_APPROVAL")
                     .count()
                 )
@@ -103,38 +103,38 @@ def get_role_analytics(db: Session, user: User):
             "role": "GOVERNMENT_OFFICIAL",
 
             "policies": {
-                "total": db.query(Policy).count(),
+                "total": db.query(Policy).filter(Policy.is_deleted.is_(False)).count(),
 
                 "approved": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "APPROVED")
                     .count()
                 ),
 
                 "pending": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "PENDING_APPROVAL")
                     .count()
                 ),
 
                 "rejected": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "REJECTED")
                     .count()
                 )
             },
 
             "schemes": {
-                "total": db.query(Scheme).count(),
+                "total": db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count(),
 
                 "approved": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "APPROVED")
                     .count()
                 ),
 
                 "pending": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "PENDING_APPROVAL")
                     .count()
                 )
@@ -166,7 +166,7 @@ def get_role_analytics(db: Session, user: User):
 
             "policies": {
                 "total": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "APPROVED")
                     .count()
                 ),
@@ -175,7 +175,7 @@ def get_role_analytics(db: Session, user: User):
 
             "schemes": {
                 "total": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "APPROVED")
                     .count()
                 ),
@@ -189,18 +189,18 @@ def get_role_analytics(db: Session, user: User):
 
     elif role == "RESEARCHER":
 
-        total_policies = db.query(Policy).count()
+        total_policies = db.query(Policy).filter(Policy.is_deleted.is_(False)).count()
 
         approved_policies = (
-            db.query(Policy)
+            db.query(Policy).filter(Policy.is_deleted.is_(False))
             .filter(Policy.status == "APPROVED")
             .count()
         )
 
-        total_schemes = db.query(Scheme).count()
+        total_schemes = db.query(Scheme).filter(Scheme.is_deleted.is_(False)).count()
 
         approved_schemes = (
-            db.query(Scheme)
+            db.query(Scheme).filter(Scheme.is_deleted.is_(False))
             .filter(Scheme.status == "APPROVED")
             .count()
         )
@@ -258,13 +258,13 @@ def get_role_analytics(db: Session, user: User):
 
             "available": {
                 "policies": (
-                    db.query(Policy)
+                    db.query(Policy).filter(Policy.is_deleted.is_(False))
                     .filter(Policy.status == "APPROVED")
                     .count()
                 ),
 
                 "schemes": (
-                    db.query(Scheme)
+                    db.query(Scheme).filter(Scheme.is_deleted.is_(False))
                     .filter(Scheme.status == "APPROVED")
                     .count()
                 )

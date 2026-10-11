@@ -391,7 +391,7 @@ describe("DraftPoliciesModalComponent", () => {
     expect(mocks.policyService.requestDelete).toHaveBeenCalledWith(30, "duplicate draft");
     expect(mocks.policyService.deletePolicy).not.toHaveBeenCalled();
     expect(c.reasonModalOpen).toBe(false);
-    expect(c.successMessage).toContain("submitted to Admin");
+    expect(c.successMessage).toContain('Deletion request for policy "Draft water policy"');
     expect(mocks.policyService.getPolicies).toHaveBeenCalledTimes(2);
     expect(changed).toEqual(["changed"]);
   });

@@ -297,9 +297,15 @@ export class DraftPoliciesModalComponent
   }
 
   showSuccess(message: string): void {
+    // Single user-facing notification per operation via the shared
+    // toast service (top-right). successMessage is retained only for
+    // existing specs; it is no longer rendered inline to avoid a
+    // duplicate banner + toast for the same operation. Each caller
+    // passes a distinct, record-specific sentence — never a generic
+    // shared title — so different actions never show identical text.
     this.successMessage = message;
     try {
-      this.toastService.success("Action completed", message);
+      this.toastService.success(message);
     } catch {
       // Inline banner still shows when the global container is unavailable.
     }
@@ -320,6 +326,23 @@ export class DraftPoliciesModalComponent
     } catch {
       // Ignore when toast container is unavailable.
     }
+  }
+
+  /**
+   * Record name for toast messages, preferring the authoritative name
+   * from the API response with the row's title as fallback. Returns
+   * null when no usable name exists.
+   */
+  private draftToastName(
+    updated?: { title?: string | null } | null,
+    fallback?: string | null,
+  ): string | null {
+    const raw =
+      typeof updated?.title === "string" && updated.title.trim()
+        ? updated.title
+        : (fallback ?? "");
+    const name = String(raw).trim();
+    return name ? name : null;
   }
 
   loadPolicies(): void {
@@ -493,17 +516,26 @@ export class DraftPoliciesModalComponent
             // globally, let the parent refresh, close, and navigate now.
             const approved =
               String(updated?.status || "").toUpperCase() === "APPROVED";
+            const draftName = this.draftToastName(updated, policy.title);
             if (approved) {
               this.showSuccess(
-                this.isAdmin
-                  ? "Policy published successfully."
-                  : "Policy submitted and approved.",
+                draftName
+                  ? this.isAdmin
+                    ? `Policy "${draftName}" published successfully.`
+                    : `Policy "${draftName}" submitted and approved.`
+                  : this.isAdmin
+                    ? "Policy published successfully."
+                    : "Policy submitted and approved.",
               );
             } else {
               this.showSuccess(
-                this.isAdmin
-                  ? "Policy submitted successfully."
-                  : "Policy submitted for approval.",
+                draftName
+                  ? this.isAdmin
+                    ? `Policy "${draftName}" submitted successfully.`
+                    : `Policy "${draftName}" submitted for approval.`
+                  : this.isAdmin
+                    ? "Policy submitted successfully."
+                    : "Policy submitted for approval.",
               );
             }
             this.dataChanged.emit();
@@ -581,7 +613,12 @@ export class DraftPoliciesModalComponent
             this.confirmErrorMessage = null;
             this.clearHighlight();
             this.relockBodyScroll();
-            this.showSuccess("Draft policy deleted.");
+            const deletedName = this.draftToastName(null, policy.title);
+            this.showSuccess(
+              deletedName
+                ? `Policy "${deletedName}" permanently deleted.`
+                : "Draft policy deleted.",
+            );
             this.loadPolicies();
             this.dataChanged.emit();
           },
@@ -659,7 +696,12 @@ export class DraftPoliciesModalComponent
             this.reasonAction = null;
             this.reasonErrorMessage = null;
             this.relockBodyScroll();
-            this.showSuccess("Delete request submitted to Admin.");
+            const requestName = this.draftToastName(null, policy.title);
+            this.showSuccess(
+              requestName
+                ? `Deletion request for policy "${requestName}" submitted successfully.`
+                : "Delete request submitted to Admin.",
+            );
             this.loadPolicies();
             this.dataChanged.emit();
           },

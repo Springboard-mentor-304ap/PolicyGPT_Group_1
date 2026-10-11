@@ -525,7 +525,10 @@ export class EditSchemeComponent implements OnInit {
       next: () => {
         this.isSaving = false;
         this.savedDraftToast = true;
-        this.toastService.success('Scheme changes saved as draft.');
+        this.toastService.success(this.schemeDraftToast(
+          (n) => `Scheme "${n}" updated successfully.`,
+          'Scheme changes saved as draft.',
+        ));
         this.cdr.detectChanges();
         setTimeout(() => {
           this.savedDraftToast = false;
@@ -605,6 +608,15 @@ export class EditSchemeComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
+  }
+
+  /**
+   * Draft toast message naming the scheme from the form when available.
+   * Falls back to `generic` when the name is empty.
+   */
+  private schemeDraftToast(withName: (name: string) => string, generic: string): string {
+    const raw = String(this.schemeForm.get('name')?.value ?? '').trim();
+    return raw ? withName(raw) : generic;
   }
 
   private getErrorMessage(error: any): string {

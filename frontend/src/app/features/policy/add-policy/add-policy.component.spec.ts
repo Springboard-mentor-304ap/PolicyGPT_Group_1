@@ -196,13 +196,12 @@ describe('AddPolicyComponent Submission Flow', () => {
 
     // Admin first modal
     expect(component.modalType).toBe('submitted');
-    expect(component.modalTitle).toBe('Policy Added Successfully');
+    expect(component.modalTitle).toBe('Policy Submitted for Review');
 
-    // Click OK on Admin first modal -> silently calls approvePolicy
+    // Click OK on Admin first modal -> advances to add-more popup
     component.onModalOk();
-    expect(approveSpy).toHaveBeenCalledWith(99);
     expect(component.modalType).toBe('add-more');
-    expect(component.modalTitle).toBe('Policy Approved Successfully');
+    expect(component.modalTitle).toBe('Policy Submitted for Review');
 
     // Click NO -> navigates to admin policies
     const navigateSpy = vi.spyOn(component['router'], 'navigate');

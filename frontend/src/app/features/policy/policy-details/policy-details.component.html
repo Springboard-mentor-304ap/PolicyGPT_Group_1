@@ -683,14 +683,5 @@
     [reasonLabel]="reasonLabel" [variant]="reasonVariant" (confirmed)="reasonAction && reasonAction($event)"
     (cancelled)="reasonModalOpen = false"></app-reason-modal>
 
-  <!-- =====================================================
-       TOAST NOTIFICATION
-       ===================================================== -->
-  <div class="toast-popup" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
-    <span class="toast-icon material-icons">
-      {{ toastType === 'success' ? 'check_circle' : toastType === 'error' ? 'cancel' : 'info' }}
-    </span>
-    <span class="toast-text">{{ toastMessage }}</span>
-  </div>
 
 </div>

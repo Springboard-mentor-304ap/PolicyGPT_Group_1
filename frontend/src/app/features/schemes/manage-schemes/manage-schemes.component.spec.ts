@@ -383,7 +383,7 @@ describe('ManageSchemesComponent', () => {
     expect(submitSpy).toHaveBeenCalledWith(draftScheme.id);
     expect(component.confirmModalOpen).toBe(false);
     expect(component.confirmLoading).toBe(false);
-    expect(component.successToastMessage).toBe('Scheme submitted for approval.');
+    expect(component.successToastMessage).toBe('Scheme "Scheme A - Draft" submitted for approval.');
     expect(loadSpy).toHaveBeenCalled();
   });
 

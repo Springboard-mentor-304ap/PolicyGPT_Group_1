@@ -1,7 +1,8 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { ToastService } from "../../../core/services/toast.service";
 import { Subject, Subscription, finalize, takeUntil, timeout } from "rxjs";
 import type { Observable } from "rxjs";
 import {
@@ -166,10 +167,6 @@ export class EligibilitySpecific implements OnInit, OnDestroy {
   /** Current user's server saved list (source for the Save button state). */
   savedResults: SavedEligibilityResult[] = [];
 
-  toastMessage: string | null = null;
-  toastType: "success" | "info" | "error" = "success";
-  private toastTimeout: any = null;
-
   setTab(tab: "find" | "specific" | "saved"): void {
     this.activeTab = tab;
     if (tab === "find") {
@@ -181,13 +178,12 @@ export class EligibilitySpecific implements OnInit, OnDestroy {
     }
   }
 
-  constructor(
-    private eligibilityService: EligibilityService,
-    private policyService: PolicyService,
-    private schemeService: SchemeService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private eligibilityService = inject(EligibilityService);
+  private policyService = inject(PolicyService);
+  private schemeService = inject(SchemeService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private toastService = inject(ToastService);
 
   /**
    * Breadcrumb trail: Home > Eligibility Checker > Check Specific.
@@ -224,10 +220,6 @@ export class EligibilitySpecific implements OnInit, OnDestroy {
     this.entitiesSub?.unsubscribe();
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.toastTimeout) {
-      clearTimeout(this.toastTimeout);
-      this.toastTimeout = null;
-    }
   }
 
   /**
@@ -584,16 +576,13 @@ export class EligibilitySpecific implements OnInit, OnDestroy {
   }
 
   showToast(message: string, type: "success" | "info" | "error" = "success"): void {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.cdr.detectChanges();
-    if (this.toastTimeout) {
-      clearTimeout(this.toastTimeout);
+    if (type === "error") {
+      this.toastService.error(message);
+    } else if (type === "info") {
+      this.toastService.info(message);
+    } else {
+      this.toastService.success(message);
     }
-    this.toastTimeout = setTimeout(() => {
-      this.toastMessage = null;
-      this.cdr.detectChanges();
-    }, 3500);
   }
 
   /**

@@ -219,10 +219,11 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   }
 
   showSuccessToast(message: string): void {
+    // Single top-right notification per operation via the shared toast
+    // service. successToastMessage is retained only for existing specs;
+    // no inline toast is rendered, so only one toast appears.
     this.successToastMessage = message;
     this.cdr.detectChanges();
-    // Use the shared PolicyGPT toast system (auto-dismiss, success styling)
-    // in addition to the inline confirmation so notifications stay consistent.
     try {
       this.toastService.success(message);
     } catch {
@@ -240,6 +241,25 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
     } catch {
       // Ignore when toast container is unavailable (e.g. isolated specs).
     }
+  }
+
+  /**
+   * Builds a record-specific toast message, preferring the authoritative
+   * name from the API response with the row's title as fallback.
+   * Falls back to `generic` when no usable name exists.
+   */
+  private schemeToastMessage(
+    updated: SchemeResponse | null | undefined,
+    fallbackTitle: string | null | undefined,
+    withName: (name: string) => string,
+    generic: string,
+  ): string {
+    const raw =
+      typeof updated?.name === 'string' && updated.name.trim()
+        ? updated.name
+        : (fallbackTitle ?? '');
+    const name = String(raw).trim();
+    return name ? withName(name) : generic;
   }
 
   loadSchemes(): void {
@@ -697,7 +717,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Scheme submitted for approval.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Scheme "${n}" submitted for approval.`,
+              'Scheme submitted for approval.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           }
@@ -708,6 +735,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -752,7 +780,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Scheme approved successfully.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Scheme "${n}" approved successfully.`,
+              'Scheme approved successfully.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -764,6 +799,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -798,7 +834,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.reasonModalOpen = false;
           this.reasonAction = null;
           this.reasonErrorMessage = null;
-          this.showSuccessToast('Scheme rejected.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Scheme "${n}" rejected successfully.`,
+              'Scheme rejected successfully.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -810,6 +853,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.reasonErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -839,7 +883,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.reasonModalOpen = false;
           this.reasonAction = null;
           this.reasonErrorMessage = null;
-          this.showSuccessToast('Archive request submitted to Admin.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Archive request for scheme "${n}" submitted to Admin.`,
+              'Archive request submitted to Admin.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -851,6 +902,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.reasonErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -886,7 +938,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Scheme archived successfully.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Scheme "${n}" archived successfully.`,
+              'Scheme archived successfully.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -898,6 +957,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -933,7 +993,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Archive request rejected. Scheme reverted to APPROVED.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Archive request for scheme "${n}" rejected successfully.`,
+              'Archive request rejected successfully.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -945,6 +1012,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -974,7 +1042,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.reasonModalOpen = false;
           this.reasonAction = null;
           this.reasonErrorMessage = null;
-          this.showSuccessToast('Delete request submitted to Admin.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Deletion request for scheme "${n}" submitted successfully.`,
+              'Deletion request submitted successfully.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -986,6 +1061,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.reasonErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -1034,7 +1110,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast('Scheme deleted successfully.');
+            this.showSuccessToast(
+              this.schemeToastMessage(
+                null,
+                scheme.title,
+                (n) => `Scheme "${n}" permanently deleted.`,
+                'Scheme permanently deleted.',
+              ),
+            );
             this.loadSchemes();
           },
           error: (err) => {
@@ -1090,7 +1173,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast('Deletion request rejected successfully.');
+            this.showSuccessToast(
+              this.schemeToastMessage(
+                null,
+                scheme.title,
+                (n) => `Deletion request for scheme "${n}" rejected successfully.`,
+                'Deletion request rejected successfully.',
+              ),
+            );
             this.loadSchemes();
           },
           error: (err) => {
@@ -1133,7 +1223,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Scheme restored to APPROVED.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              updated,
+              scheme.title,
+              (n) => `Scheme "${n}" restored to APPROVED.`,
+              'Scheme restored to APPROVED.',
+            ),
+          );
           if (updated) {
             this.applySchemeUpdate(updated);
           } else {
@@ -1145,6 +1242,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });
@@ -1180,7 +1278,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showSuccessToast('Scheme permanently deleted.');
+          this.showSuccessToast(
+            this.schemeToastMessage(
+              null,
+              scheme.title,
+              (n) => `Scheme "${n}" permanently deleted.`,
+              'Scheme permanently deleted.',
+            ),
+          );
           this.removeSchemeRow(scheme.id);
         },
         error: (err) => {
@@ -1188,6 +1293,7 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
           const errorMsg = this.getErrorMessage(err);
           this.confirmErrorMessage = errorMsg;
           this.errorMessage = errorMsg;
+          this.showErrorToast(errorMsg);
           this.cdr.detectChanges();
         },
       });

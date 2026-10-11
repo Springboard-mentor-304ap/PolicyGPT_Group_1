@@ -9,6 +9,7 @@ import {
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { catchError, finalize, of, take } from "rxjs";
 
+import { ToastService } from "../../../core/services/toast.service";
 import { PolicyService } from "../../../core/services/policy.service";
 import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { Auth } from "../../../core/services/auth";
@@ -68,6 +69,7 @@ export class PolicyDetailsComponent implements OnInit {
   private readonly auth = inject(Auth);
   private readonly permissions = inject(PermissionService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly toastService = inject(ToastService);
 
   bookmarked = false;
   bookmarkLoading = true;
@@ -82,11 +84,6 @@ export class PolicyDetailsComponent implements OnInit {
   eligibilityError = "";
   loading = false;
   errorMessage = "";
-
-  // Toast notification
-  toastMessage: string | null = null;
-  toastType: "success" | "error" | "info" = "success";
-  private toastTimeout: any = null;
 
   // Modals state
   confirmModalOpen = false;
@@ -536,16 +533,37 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   showToast(message: string, type: "success" | "error" | "info" = "success"): void {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.cdr.detectChanges();
-    if (this.toastTimeout) {
-      clearTimeout(this.toastTimeout);
+    if (type === "success") {
+      this.toastService.success(message);
+    } else if (type === "error") {
+      this.toastService.error(message);
+    } else {
+      this.toastService.info(message);
     }
-    this.toastTimeout = setTimeout(() => {
-      this.toastMessage = null;
-      this.cdr.detectChanges();
-    }, 3500);
+  }
+
+  /**
+   * Display name for toast messages. Prefers the authoritative name from
+   * the API response, falling back to the loaded record. Returns null
+   * when no usable name exists so callers can use a generic message.
+   */
+  private policyToastName(updated?: { title?: string | null } | null): string | null {
+    const raw =
+      (typeof updated?.title === "string" && updated.title.trim()
+        ? updated.title
+        : this.policy?.title) ?? "";
+    const name = String(raw).trim();
+    return name ? name : null;
+  }
+
+  /** Success message for an action on a policy, named when possible. */
+  private policySuccessToast(
+    updated: { title?: string | null } | null | undefined,
+    withName: (name: string) => string,
+    generic: string,
+  ): void {
+    const name = this.policyToastName(updated);
+    this.showToast(name ? withName(name) : generic, "success");
   }
 
   getStatusLabel(status: string): string {
@@ -682,12 +700,16 @@ export class PolicyDetailsComponent implements OnInit {
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
       this.policyService.submitPolicy(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.showToast("Policy submitted for approval.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" submitted for approval.`,
+            "Policy submitted for approval.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
@@ -719,15 +741,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Policy";
     this.confirmMessage = `Are you sure you want to approve "${this.policy.title}"?`;
     this.confirmVariant = "success";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.approvePolicy(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Policy successfully approved.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" approved successfully.`,
+            "Policy approved successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -746,14 +780,23 @@ export class PolicyDetailsComponent implements OnInit {
     this.reasonLabel = "Rejection Reason";
     this.reasonVariant = "danger";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.policyService.rejectPolicy(policyId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.showToast("Policy rejected.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" rejected successfully.`,
+            "Policy rejected successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -774,17 +817,29 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Archive Policy";
     this.confirmMessage = `Are you sure you want to archive "${this.policy.title}"?`;
     this.confirmVariant = "warning";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       // Direct admin archive (POST /policies/{id}/archive,
       // APPROVED -> ARCHIVED). Mirrors Scheme direct archive.
       this.policyService.archiveDirect(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Policy successfully archived.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" archived successfully.`,
+            "Policy archived successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -803,14 +858,23 @@ export class PolicyDetailsComponent implements OnInit {
     this.reasonLabel = "Archive Reason";
     this.reasonVariant = "warning";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.policyService.requestArchive(policyId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.showToast("Archive request submitted to Admin.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Archive request for policy "${n}" submitted to Admin.`,
+            "Archive request submitted to Admin.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -827,15 +891,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Archive Request";
     this.confirmMessage = `Approve archiving of "${this.policy.title}"? The policy will be moved to ARCHIVED.`;
     this.confirmVariant = "warning";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.approveArchive(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Policy archived successfully.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" archived successfully.`,
+            "Policy archived successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -852,15 +928,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Reject Archive Request";
     this.confirmMessage = `Reject archive request for "${this.policy.title}"? The policy will remain APPROVED.`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.rejectArchive(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Archive request rejected. Policy reverted to APPROVED.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Archive request for policy "${n}" rejected successfully.`,
+            "Archive request rejected successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -877,15 +965,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Restore Policy";
     this.confirmMessage = `Restore "${this.policy.title}" back to APPROVED state?`;
     this.confirmVariant = "success";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.restore(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Policy restored to APPROVED.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Policy "${n}" restored to APPROVED.`,
+            "Policy restored to APPROVED.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -904,14 +1004,23 @@ export class PolicyDetailsComponent implements OnInit {
     this.reasonLabel = "Deletion Reason";
     this.reasonVariant = "danger";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.policyService.requestDelete(policyId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.showToast("Delete request submitted to Admin.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Deletion request for policy "${n}" submitted successfully.`,
+            "Deletion request submitted successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -928,15 +1037,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Permanent Deletion";
     this.confirmMessage = `Permanently delete "${this.policy.title}"? This cannot be undone.`;
     this.confirmVariant = "danger";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.approveDelete(policyId).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Policy permanently deleted.", "success");
+          this.policySuccessToast(
+            null,
+            (n) => `Policy "${n}" permanently deleted.`,
+            "Policy permanently deleted.",
+          );
           this.cdr.detectChanges();
           setTimeout(() => this.goBack(), 1200);
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -953,15 +1074,27 @@ export class PolicyDetailsComponent implements OnInit {
     this.confirmTitle = "Reject Delete Request";
     this.confirmMessage = `Reject delete request for "${this.policy.title}"? The policy will revert to its previous status.`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.policyService.rejectDelete(policyId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.showToast("Delete request rejected.", "success");
+          this.policySuccessToast(
+            updated,
+            (n) => `Deletion request for policy "${n}" rejected successfully.`,
+            "Deletion request rejected successfully.",
+          );
           this.loadPolicy(policyId);
           this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.showToast(this.getErrorMessage(err), "error");
           this.cdr.detectChanges();
@@ -995,7 +1128,11 @@ export class PolicyDetailsComponent implements OnInit {
         .subscribe({
           next: () => {
             this.confirmModalOpen = false;
-            this.showToast("Policy deleted permanently.", "success");
+            this.policySuccessToast(
+              null,
+              (n) => `Policy "${n}" permanently deleted.`,
+              "Policy permanently deleted.",
+            );
             this.cdr.detectChanges();
             setTimeout(() => this.goBack(), 1200);
           },

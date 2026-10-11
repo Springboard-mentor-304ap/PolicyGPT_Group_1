@@ -1188,65 +1188,7 @@
   }
 }
 
-/* =========================================================
-   TOAST POPUP
-   ========================================================= */
-.toast-popup {
-  position: fixed;
-  bottom: 28px;
-  right: 28px;
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 12px 18px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  z-index: 1000;
-  animation: slideUp 0.25s ease-out;
 
-  .toast-icon {
-    font-size: 20px;
-  }
-
-  .toast-text {
-    font-size: 13px;
-    font-weight: 500;
-    color: #0f172a;
-  }
-
-  &.toast-success {
-    border-left: 4px solid #16a34a;
-    .toast-icon {
-      color: #16a34a;
-    }
-  }
-
-  &.toast-error {
-    border-left: 4px solid #dc2626;
-    .toast-icon {
-      color: #dc2626;
-    }
-  }
-
-  &.toast-info {
-    border-left: 4px solid #2563eb;
-    .toast-icon {
-      color: #2563eb;
-    }
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 /* =========================================================
    RESPONSIVE DESIGN

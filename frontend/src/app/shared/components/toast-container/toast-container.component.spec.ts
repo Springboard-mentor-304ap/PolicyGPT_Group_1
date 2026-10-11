@@ -82,11 +82,14 @@ describe('ToastContainerComponent', () => {
 
   it('should listen to live notifications and surface them as toasts', () => {
     const item: NotificationItem = {
-      id: 99,
-      recipient_id: 1,
+      notification_id: 99,
+      user_id: 1,
       title: 'Realtime Alert',
       message: 'New policy submitted for review.',
+      notification_type: 'POLICY_APPROVAL_REQUEST',
       priority: 'HIGH',
+      channel: 'IN_APP',
+      action_url: null,
       is_read: false,
       created_at: new Date().toISOString(),
     };

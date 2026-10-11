@@ -405,7 +405,7 @@ describe("ManagePoliciesComponent", () => {
     expect(component.confirmModalOpen).toBe(false);
     expect(component.confirmLoading).toBe(false);
     expect(component.successToastMessage).toBe(
-      "Policy submitted for approval.",
+      'Policy "Policy A - Draft" submitted for approval.',
     );
     expect(
       component.policies.find((p) => p.id === draftPolicy.id)?.status,

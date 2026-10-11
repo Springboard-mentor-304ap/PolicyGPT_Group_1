@@ -14,10 +14,13 @@ const LIVE_TOAST_MS = 6000;
 /**
  * Renders the app-wide toast stack.
  *
- * This was previously dead code: `ToastService` was called from a dozen
- * components but no template ever mounted a `ToastComponent`, so none of those
- * messages were visible. Mounting the container makes every existing call site
- * work and gives live notifications a surface at the same time.
+ * Single fixed top-right container (below the fixed header) for every
+ * toast in the app. The floating chatbot lives bottom-right, so the two
+ * never overlap; the stack's z-index sits above page content, modals,
+ * and the sidebar. Stacking is vertical with consistent spacing, capped
+ * at 3 visible with the rest queued in ToastService, so notifications
+ * never render on top of one another and never shift page layout
+ * (pointer-events are isolated to individual toasts).
  *
  * Accessibility: the stack is an `aria-live` region so a screen reader announces
  * each toast without focus being stolen, and every toast has a keyboard-
@@ -41,15 +44,16 @@ const LIVE_TOAST_MS = 6000;
     `
       .toast-stack {
         position: fixed;
-        top: 92px;
+        top: 98px;
         right: 24px;
         z-index: 999999;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         width: 380px;
         max-width: calc(100vw - 32px);
         pointer-events: none;
+        isolation: isolate;
       }
 
       .toast-stack app-toast {
@@ -59,7 +63,7 @@ const LIVE_TOAST_MS = 6000;
 
       @media (max-width: 640px) {
         .toast-stack {
-          top: 76px;
+          top: 82px;
           left: 16px;
           right: 16px;
           width: auto;

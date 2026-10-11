@@ -588,7 +588,7 @@ export class DeletedPoliciesModalComponent
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.relockBodyScroll();
-          this.showSuccess("Policy restored.");
+          this.showSuccess(this.restoreToastMessage(record));
           this.loadDeleted();
           this.dataChanged.emit();
         },
@@ -645,7 +645,7 @@ export class DeletedPoliciesModalComponent
           this.confirmAction = null;
           this.confirmErrorMessage = null;
           this.relockBodyScroll();
-          this.showSuccess("Policy permanently deleted.");
+          this.showSuccess(this.permanentDeleteToastMessage(record));
           this.loadDeleted();
           this.dataChanged.emit();
         },
@@ -682,10 +682,29 @@ export class DeletedPoliciesModalComponent
 
   private showSuccess(message: string): void {
     try {
-      this.toastService.success("Action completed", message);
+      this.toastService.success(message);
     } catch {
       // No inline banner in this modal; toast container is global.
     }
+  }
+
+  /**
+   * Distinct, record-specific success messages (never a shared generic
+   * title) so different operations never show identical text. Falls
+   * back to a generic message when the record has no usable title.
+   */
+  private restoreToastMessage(record: DeletedRecordItem): string {
+    const title = this.displayTitle(record).trim();
+    return title && title !== "Deleted policy"
+      ? `Policy "${title}" restored successfully.`
+      : "Policy restored successfully.";
+  }
+
+  private permanentDeleteToastMessage(record: DeletedRecordItem): string {
+    const title = this.displayTitle(record).trim();
+    return title && title !== "Deleted policy"
+      ? `Policy "${title}" permanently deleted.`
+      : "Policy permanently deleted.";
   }
 
   private showFailure(message: string): void {

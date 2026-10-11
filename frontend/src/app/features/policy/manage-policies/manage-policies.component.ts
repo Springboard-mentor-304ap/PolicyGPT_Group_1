@@ -217,10 +217,11 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   }
 
   showSuccessToast(message: string): void {
+    // Single top-right notification per operation via the shared toast
+    // service. successToastMessage is retained only for existing specs;
+    // no inline toast is rendered, so only one toast appears.
     this.successToastMessage = message;
     this.cdr.detectChanges();
-    // Use the shared PolicyGPT toast system (auto-dismiss, success styling)
-    // in addition to the inline confirmation so notifications stay consistent.
     try {
       this.toastService.success(message);
     } catch {
@@ -238,6 +239,25 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
     } catch {
       // Ignore when toast container is unavailable (e.g. isolated specs).
     }
+  }
+
+  /**
+   * Builds a record-specific toast message, preferring the authoritative
+   * name from the API response with the row's title as fallback.
+   * Falls back to `generic` when no usable name exists.
+   */
+  private policyToastMessage(
+    updated: PolicyResponse | null | undefined,
+    fallbackTitle: string | null | undefined,
+    withName: (name: string) => string,
+    generic: string,
+  ): string {
+    const raw =
+      typeof updated?.title === "string" && updated.title.trim()
+        ? updated.title
+        : (fallbackTitle ?? "");
+    const name = String(raw).trim();
+    return name ? withName(name) : generic;
   }
 
   loadPolicies(): void {
@@ -762,9 +782,17 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             const approved =
               String(updated?.status || "").toUpperCase() === "APPROVED";
             this.showSuccessToast(
-              approved
-                ? "Policy submitted and approved."
-                : "Policy submitted for approval.",
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) =>
+                  approved
+                    ? `Policy "${n}" submitted and approved.`
+                    : `Policy "${n}" submitted for approval.`,
+                approved
+                  ? "Policy submitted and approved."
+                  : "Policy submitted for approval.",
+              ),
             );
             if (updated) {
               this.applyPolicyUpdate(updated);
@@ -834,7 +862,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy approved successfully.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Policy "${n}" approved successfully.`,
+                "Policy approved successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -888,7 +923,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.reasonModalOpen = false;
             this.reasonAction = null;
             this.reasonErrorMessage = null;
-            this.showSuccessToast("Policy rejected.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Policy "${n}" rejected successfully.`,
+                "Policy rejected successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -937,7 +979,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.reasonModalOpen = false;
             this.reasonAction = null;
             this.reasonErrorMessage = null;
-            this.showSuccessToast("Archive request submitted to Admin.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Archive request for policy "${n}" submitted to Admin.`,
+                "Archive request submitted to Admin.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -992,7 +1041,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy archived successfully.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Policy "${n}" archived successfully.`,
+                "Policy archived successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -1048,7 +1104,12 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmAction = null;
             this.confirmErrorMessage = null;
             this.showSuccessToast(
-              "Archive request rejected. Policy reverted to APPROVED.",
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Archive request for policy "${n}" rejected successfully.`,
+                "Archive request rejected successfully.",
+              ),
             );
             if (updated) {
               this.applyPolicyUpdate(updated);
@@ -1098,7 +1159,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.reasonModalOpen = false;
             this.reasonAction = null;
             this.reasonErrorMessage = null;
-            this.showSuccessToast("Delete request submitted to Admin.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Deletion request for policy "${n}" submitted successfully.`,
+                "Deletion request submitted successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -1157,7 +1225,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy deleted successfully.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                null,
+                policy.title,
+                (n) => `Policy "${n}" permanently deleted.`,
+                "Policy permanently deleted.",
+              ),
+            );
             this.removePolicyRow(policy.id);
           },
           error: (err) => {
@@ -1213,7 +1288,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Deletion request rejected successfully.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Deletion request for policy "${n}" rejected successfully.`,
+                "Deletion request rejected successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -1278,7 +1360,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy archived successfully.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Policy "${n}" archived successfully.`,
+                "Policy archived successfully.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -1333,7 +1422,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy restored to APPROVED.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                updated,
+                policy.title,
+                (n) => `Policy "${n}" restored to APPROVED.`,
+                "Policy restored to APPROVED.",
+              ),
+            );
             if (updated) {
               this.applyPolicyUpdate(updated);
             } else {
@@ -1388,7 +1484,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
             this.confirmModalOpen = false;
             this.confirmAction = null;
             this.confirmErrorMessage = null;
-            this.showSuccessToast("Policy permanently deleted.");
+            this.showSuccessToast(
+              this.policyToastMessage(
+                null,
+                policy.title,
+                (n) => `Policy "${n}" permanently deleted.`,
+                "Policy permanently deleted.",
+              ),
+            );
             this.removePolicyRow(policy.id);
           },
           error: (err) => {

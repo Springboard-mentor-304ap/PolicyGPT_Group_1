@@ -165,27 +165,8 @@ $success-border: #bbf7d0;
       }
     }
   }
-
-  // Toast
-  &__toast {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 18px;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    animation: fadeIn 0.3s ease;
-
-    .material-icons {
-      color: $success-green;
-      font-size: 20px;
-    }
-  }
+  // Page-level toast styles removed: all notifications use the shared
+  // top-right ToastService + app-toast-container. See toast.component.ts.
 }
 
 .policy-create__title-box h1 {

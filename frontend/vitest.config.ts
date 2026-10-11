@@ -21,7 +21,7 @@ function inlineAngularResources(): Plugin {
     enforce: 'pre',
     transform(code: string, id: string) {
       const file = id.split('?')[0];
-      if (!file.endsWith('.component.ts') || !file.includes('/src/')) {
+      if (!file.endsWith('.ts') || file.endsWith('.spec.ts') || !file.includes('/src/')) {
         return;
       }
       if (

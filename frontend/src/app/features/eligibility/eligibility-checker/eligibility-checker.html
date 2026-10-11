@@ -496,12 +496,6 @@
     (cancelled)="cancelDelete()">
   </app-confirm-modal>
 
-  <!-- Toast Notification -->
-  <div class="toast-notification" *ngIf="toastMessage" [ngClass]="'toast-' + toastType">
-    <span class="material-icons">
-      {{ toastType === 'success' ? 'check_circle' : (toastType === 'error' ? 'error_outline' : 'info') }}
-    </span>
-    <span>{{ toastMessage }}</span>
-  </div>
+
 
 </div>

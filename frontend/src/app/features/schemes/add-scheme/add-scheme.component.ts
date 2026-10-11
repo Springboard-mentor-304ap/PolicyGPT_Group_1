@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Auth, AuthUser } from '../../../core/services/auth';
@@ -80,14 +80,12 @@ export class AddSchemeComponent implements OnInit {
   // Dynamic additional eligibility criteria list
   additionalCriteriaList: string[] = [];
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private authService: Auth,
-    private schemeService: SchemeService,
-    private toastService: ToastService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private authService = inject(Auth);
+  private schemeService = inject(SchemeService);
+  private toastService = inject(ToastService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.detectRole();
@@ -417,7 +415,10 @@ export class AddSchemeComponent implements OnInit {
         next: () => {
           this.isSaving = false;
           this.savedDraftToast = true;
-          this.toastService.success('Draft updated successfully.');
+          this.toastService.success(this.schemeDraftToast(
+            (n) => `Scheme "${n}" updated successfully.`,
+            'Draft updated successfully.',
+          ));
           this.cdr.detectChanges();
           setTimeout(() => {
             this.savedDraftToast = false;
@@ -437,7 +438,10 @@ export class AddSchemeComponent implements OnInit {
           this.editingSchemeId = res.scheme_id;
           this.isSaving = false;
           this.savedDraftToast = true;
-          this.toastService.success('Draft saved successfully.');
+          this.toastService.success(this.schemeDraftToast(
+            (n) => `Scheme "${n}" draft saved successfully.`,
+            'Draft saved successfully.',
+          ));
           this.cdr.detectChanges();
           setTimeout(() => {
             this.savedDraftToast = false;
@@ -522,6 +526,15 @@ export class AddSchemeComponent implements OnInit {
 
   cancel(): void {
     this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
+  }
+
+  /**
+   * Draft toast message naming the scheme from the form when available.
+   * Falls back to `generic` when the name is empty.
+   */
+  private schemeDraftToast(withName: (name: string) => string, generic: string): string {
+    const raw = String(this.schemeForm.get('name')?.value ?? '').trim();
+    return raw ? withName(raw) : generic;
   }
 
   private getErrorMessage(error: any): string {

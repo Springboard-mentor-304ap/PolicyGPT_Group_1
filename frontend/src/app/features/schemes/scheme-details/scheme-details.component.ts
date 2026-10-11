@@ -443,7 +443,38 @@ export class SchemeDetailsComponent implements OnInit {
 
   /*
    * Workflow Action Handlers
+   *
+   * Toast helpers below prefer the authoritative record name from the
+   * API response, falling back to the loaded scheme. A generic message
+   * is used only when no usable name exists.
    */
+  private schemeToastName(updated?: { name?: string | null } | null): string | null {
+    const raw =
+      typeof updated?.name === "string" && updated.name.trim()
+        ? updated.name
+        : (this.scheme?.name ?? "");
+    const name = String(raw).trim();
+    return name ? name : null;
+  }
+
+  private schemeSuccessToast(
+    updated: { name?: string | null } | null | undefined,
+    withName: (name: string) => string,
+    generic: string,
+  ): void {
+    const name = this.schemeToastName(updated);
+    this.toastService.success(name ? withName(name) : generic);
+  }
+
+  private schemeInfoToast(
+    updated: { name?: string | null } | null | undefined,
+    withName: (name: string) => string,
+    generic: string,
+  ): void {
+    const name = this.schemeToastName(updated);
+    this.toastService.info(name ? withName(name) : generic);
+  }
+
   openSubmitModal(): void {
     if (!this.scheme) return;
     if (!this.canSubmit) {
@@ -463,20 +494,27 @@ export class SchemeDetailsComponent implements OnInit {
       if (this.confirmLoading) return;
       this.confirmLoading = true;
       this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.submitScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
           this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.toastService.success("Scheme submitted for approval.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" submitted for approval.`,
+            "Scheme submitted for approval.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
           this.confirmLoading = false;
           const msg = this.getErrorMessage(err);
           this.confirmErrorMessage = msg;
           this.toastService.error(msg);
+          this.cdr.detectChanges();
         },
       });
     };
@@ -498,16 +536,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Scheme";
     this.confirmMessage = `Are you sure you want to approve "${this.scheme.name}"?`;
     this.confirmVariant = "success";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.approveScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme successfully approved.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" approved successfully.`,
+            "Scheme approved successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -523,15 +575,26 @@ export class SchemeDetailsComponent implements OnInit {
     this.reasonLabel = "Rejection Reason";
     this.reasonVariant = "danger";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.schemeService.rejectScheme(schemeId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.toastService.success("Scheme rejected.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" rejected successfully.`,
+            "Scheme rejected successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -545,16 +608,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Archive Scheme";
     this.confirmMessage = `Are you sure you want to archive "${this.scheme.name}"?`;
     this.confirmVariant = "warning";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.archiveScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme successfully archived.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" archived successfully.`,
+            "Scheme archived successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -570,15 +647,26 @@ export class SchemeDetailsComponent implements OnInit {
     this.reasonLabel = "Archival Reason";
     this.reasonVariant = "warning";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.schemeService.requestArchiveScheme(schemeId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.toastService.success("Archive request submitted for review.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Archive request for scheme "${n}" submitted to Admin.`,
+            "Archive request submitted to Admin.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -592,16 +680,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Archival";
     this.confirmMessage = `Approve archival request for "${this.scheme.name}"?`;
     this.confirmVariant = "warning";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.approveArchiveScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme archived.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" archived successfully.`,
+            "Scheme archived successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -615,16 +717,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Reject Archival Request";
     this.confirmMessage = `Reject archival request for "${this.scheme.name}" and keep scheme active?`;
     this.confirmVariant = "danger";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.rejectArchiveScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.info("Archival request rejected.");
+          this.schemeInfoToast(
+            updated,
+            (n) => `Archive request for scheme "${n}" rejected successfully.`,
+            "Archive request rejected successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -638,16 +754,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Restore Scheme";
     this.confirmMessage = `Restore "${this.scheme.name}" to Draft status?`;
     this.confirmVariant = "primary";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.restoreScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme restored to draft.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Scheme "${n}" restored to draft.`,
+            "Scheme restored to draft.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -663,15 +793,26 @@ export class SchemeDetailsComponent implements OnInit {
     this.reasonLabel = "Deletion Reason";
     this.reasonVariant = "danger";
     this.reasonAction = (reason: string) => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.cdr.detectChanges();
       this.schemeService.requestDeleteScheme(schemeId, reason).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
-          this.toastService.success("Deletion request submitted.");
+          this.schemeSuccessToast(
+            updated,
+            (n) => `Deletion request for scheme "${n}" submitted successfully.`,
+            "Deletion request submitted successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.reasonModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -685,16 +826,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Approve Deletion";
     this.confirmMessage = `Permanently delete "${this.scheme.name}"? This action cannot be undone.`;
     this.confirmVariant = "danger";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.approveDeleteScheme(schemeId).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme permanently deleted.");
+          this.schemeSuccessToast(
+            null,
+            (n) => `Scheme "${n}" permanently deleted.`,
+            "Scheme permanently deleted.",
+          );
           this.goBack();
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -708,16 +863,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Reject Deletion Request";
     this.confirmMessage = `Reject deletion request for "${this.scheme.name}"?`;
     this.confirmVariant = "warning";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.rejectDeleteScheme(schemeId).subscribe({
-        next: () => {
+        next: (updated) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.info("Deletion request rejected.");
+          this.schemeInfoToast(
+            updated,
+            (n) => `Deletion request for scheme "${n}" rejected successfully.`,
+            "Deletion request rejected successfully.",
+          );
           this.loadScheme(schemeId);
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };
@@ -731,16 +900,30 @@ export class SchemeDetailsComponent implements OnInit {
     this.confirmTitle = "Delete Scheme";
     this.confirmMessage = `Are you sure you want to permanently delete "${this.scheme.name}"?`;
     this.confirmVariant = "danger";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
     this.confirmAction = () => {
+      if (this.confirmLoading) return;
+      this.confirmLoading = true;
+      this.confirmErrorMessage = null;
+      this.cdr.detectChanges();
       this.schemeService.deleteScheme(schemeId).subscribe({
         next: () => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
-          this.toastService.success("Scheme deleted.");
+          this.schemeSuccessToast(
+            null,
+            (n) => `Scheme "${n}" permanently deleted.`,
+            "Scheme permanently deleted.",
+          );
           this.goBack();
+          this.cdr.detectChanges();
         },
         error: (err) => {
+          this.confirmLoading = false;
           this.confirmModalOpen = false;
           this.toastService.error(this.getErrorMessage(err));
+          this.cdr.detectChanges();
         },
       });
     };

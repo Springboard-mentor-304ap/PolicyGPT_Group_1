@@ -1,5 +1,5 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 
 import {
   FormArray,
@@ -14,6 +14,7 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { PolicyService } from "../../../core/services/policy.services";
+import { ToastService } from "../../../core/services/toast.service";
 
 import {
   PolicyCreate,
@@ -199,17 +200,16 @@ export class AddPolicyComponent implements OnInit {
   additionalEligibilityConditions: string[] = [];
 
   /* ============================================================
-     CONSTRUCTOR
+     DEPENDENCIES
      ============================================================ */
 
-  constructor(
-    private readonly fb: FormBuilder,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly authService: Auth,
-    private readonly policyService: PolicyService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly authService = inject(Auth);
+  private readonly policyService = inject(PolicyService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly toastService = inject(ToastService);
 
   /* ============================================================
      INIT
@@ -1378,11 +1378,13 @@ export class AddPolicyComponent implements OnInit {
           this.modalType = "submitted";
           this.modalTitle = "Policy Submitted for Review";
           this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted. A different administrator must approve it before publication.`;
+          this.toastService.success(`Policy "${this.getPolicyTitleForModal()}" submitted for review.`);
         } else {
           console.log("[ADD POLICY] setting Government modal");
           this.modalType = "pending";
           this.modalTitle = "Policy Submitted for Approval";
           this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted to the admin for approval.`;
+          this.toastService.success(`Policy "${this.getPolicyTitleForModal()}" submitted for approval.`);
         }
         console.log("[ADD POLICY] modalType is now:", this.modalType);
         this.cdr.detectChanges();
@@ -1397,6 +1399,7 @@ export class AddPolicyComponent implements OnInit {
           error,
           "Failed to submit policy for approval.",
         );
+        this.toastService.error(this.errorMessage);
         window.scrollTo({ top: 0, behavior: "smooth" });
         this.cdr.detectChanges();
       },
@@ -1563,11 +1566,14 @@ export class AddPolicyComponent implements OnInit {
      ============================================================ */
 
   private showDraftToast(): void {
-    this.savedDraftToast = true;
-
-    window.setTimeout(() => {
-      this.savedDraftToast = false;
-    }, 3000);
+    const rawTitle = String(this.policyForm.get("title")?.value ?? "").trim();
+    if (rawTitle) {
+      this.toastService.success(
+        `Policy "${rawTitle}" updated successfully. You can resume anytime.`,
+      );
+      return;
+    }
+    this.toastService.success("Policy draft saved successfully! You can resume anytime.");
   }
 
   /* ============================================================

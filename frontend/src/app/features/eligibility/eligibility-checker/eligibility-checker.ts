@@ -12,6 +12,7 @@ import {
   MatchedEntity,
   SavedEligibilityResult,
 } from "../eligibility.service";
+import { ToastService } from "../../../core/services/toast.service";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import {
   BreadcrumbComponent,
@@ -145,17 +146,11 @@ export class EligibilityChecker implements OnInit {
   deleteModalOpen = false;
   itemToDelete: SavedEligibilityResult | null = null;
 
-  toastMessage: string | null = null;
-  toastType: "success" | "info" | "error" = "success";
-  private toastTimeout: any = null;
-
   private readonly route = inject(ActivatedRoute, { optional: true });
-
-  constructor(
-    private eligibilityService: EligibilityService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private readonly eligibilityService = inject(EligibilityService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly toastService = inject(ToastService);
 
   /**
    * Breadcrumb trail: Home > Eligibility Checker.
@@ -643,16 +638,13 @@ export class EligibilityChecker implements OnInit {
    * Display temporary toast alert.
    */
   showToast(message: string, type: "success" | "info" | "error" = "success"): void {
-    this.toastMessage = message;
-    this.toastType = type;
-    this.cdr.detectChanges();
-    if (this.toastTimeout) {
-      clearTimeout(this.toastTimeout);
+    if (type === "error") {
+      this.toastService.error(message);
+    } else if (type === "info") {
+      this.toastService.info(message);
+    } else {
+      this.toastService.success(message);
     }
-    this.toastTimeout = setTimeout(() => {
-      this.toastMessage = null;
-      this.cdr.detectChanges();
-    }, 3500);
   }
 
   /**

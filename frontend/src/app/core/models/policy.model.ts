@@ -99,6 +99,17 @@ export interface PolicyDeleteRequest {
   reason: string;
 }
 
+export interface PolicyDocumentResponse {
+  document_id: number;
+  policy_id: number;
+  document_name: string;
+  document_type?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  uploaded_by?: number | null;
+  created_at?: string | null;
+}
+
 export interface PolicyFilters {
   search?: string;
   keyword?: string;

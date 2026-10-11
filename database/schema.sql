@@ -302,6 +302,9 @@ CREATE TABLE policy_documents (
     document_type VARCHAR(50),
     document_url TEXT,
     uploaded_by BIGINT REFERENCES users(user_id),
+    file_data BYTEA,
+    file_size BIGINT,
+    mime_type VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

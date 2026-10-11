@@ -14,13 +14,16 @@ import {
 } from "@angular/forms";
 
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { HttpEventType } from "@angular/common/http";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { PolicyService } from "../../../core/services/policy.services";
 import { ToastService } from "../../../core/services/toast.service";
+import { environment } from "../../../../environments/environment";
 
 import {
   PolicyCreate,
+  PolicyDocumentResponse,
   PolicyResponse,
 } from "../../../core/models/policy.model";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
@@ -211,6 +214,38 @@ export class AddPolicyComponent implements OnInit {
   rejectionReason: string | null = null;
 
   errorMessage: string | null = null;
+
+  /* ============================================================
+     POLICY DOCUMENT UPLOAD (STEP 4)
+     Separate from the external document_url: an uploaded PDF is
+     stored server-side (metadata only in JSON, bytes stream via
+     the authorized download endpoint). In Add mode the file is
+     held as pending until the draft exists (avoids orphans); in
+     Edit mode the policy already exists so uploads apply
+     immediately and atomically replace the current file.
+     ============================================================ */
+
+  readonly policyDocumentMaxSizeMB =
+    (environment as { policyDocumentMaxSizeMB?: number })
+      ?.policyDocumentMaxSizeMB ?? 10;
+
+  get policyDocumentMaxBytes(): number {
+    return this.policyDocumentMaxSizeMB * 1024 * 1024;
+  }
+
+  /** File chosen in Add mode, not yet uploaded (no policy ID yet). */
+  pendingDocumentFile: File | null = null;
+
+  /** Server-side uploaded document for the policy being edited. */
+  existingDocument: PolicyDocumentResponse | null = null;
+  existingDocumentLoading = false;
+
+  documentError: string | null = null;
+  documentUploading = false;
+  documentProgress = 0;
+  isDocumentDragging = false;
+  isRemovingDocument = false;
+  isDownloadingDocument = false;
 
   /* ============================================================
      WORKFLOW STATE
@@ -621,6 +656,333 @@ export class AddPolicyComponent implements OnInit {
     } else {
       this.keyHighlights.at(0).setValue("");
     }
+  }
+
+  /* ============================================================
+     POLICY DOCUMENT UPLOAD
+     Frontend validation mirrors the backend (extension, size,
+     MIME, then actual PDF magic bytes) so renamed executables
+     are rejected before any upload. Uploads use multipart
+     FormData with progress events.
+     ============================================================ */
+
+  formatFileSize(bytes: number | null | undefined): string {
+    if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
+      return "—";
+    }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  onDocumentDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (this.isReadOnly || this.documentUploading) return;
+    this.isDocumentDragging = true;
+  }
+
+  onDocumentDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDocumentDragging = false;
+  }
+
+  onDocumentDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDocumentDragging = false;
+    if (this.isReadOnly || this.documentUploading) return;
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (file) void this.handleDocumentFile(file);
+  }
+
+  onDocumentFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    if (input) input.value = "";
+    if (!file) return;
+    if (this.isReadOnly || this.documentUploading) return;
+    void this.handleDocumentFile(file);
+  }
+
+  private readPdfMagic(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      try {
+        const slice = file.slice(0, 5);
+        const reader = new FileReader();
+        reader.onload = () => {
+          const buf = reader.result as ArrayBuffer | null;
+          if (!buf) {
+            resolve("");
+            return;
+          }
+          try {
+            resolve(new TextDecoder().decode(new Uint8Array(buf)));
+          } catch {
+            resolve("");
+          }
+        };
+        reader.onerror = () => resolve("");
+        reader.readAsArrayBuffer(slice);
+      } catch {
+        resolve("");
+      }
+    });
+  }
+
+  private async validateDocumentFile(file: File): Promise<string | null> {
+    const name = (file.name || "").trim();
+    const lowerExt = name.includes(".")
+      ? String(name.split(".").pop() ?? "").trim().toLowerCase()
+      : "";
+    if (lowerExt !== "pdf") {
+      return "Only PDF documents (.pdf) are accepted.";
+    }
+    if (file.size > this.policyDocumentMaxBytes) {
+      return `Policy document must be ${this.policyDocumentMaxSizeMB} MB or smaller.`;
+    }
+    if (file.size === 0) {
+      return "Uploaded file is empty.";
+    }
+    const mime = String(file.type || "").split(";")[0].trim().toLowerCase();
+    if (
+      mime &&
+      mime !== "application/pdf" &&
+      mime !== "application/x-pdf"
+    ) {
+      return "Uploaded file must be a PDF document.";
+    }
+    const magic = (await this.readPdfMagic(file)).replace(/^\s+/, "");
+    if (!magic.startsWith("%PDF-")) {
+      return "File content is not a valid PDF document.";
+    }
+    return null;
+  }
+
+  async handleDocumentFile(file: File): Promise<void> {
+    this.documentError = null;
+    const error = await this.validateDocumentFile(file);
+    if (error) {
+      this.documentError = error;
+      this.cdr.detectChanges();
+      return;
+    }
+    // Edit mode: the policy row already exists, so upload immediately
+    // (the backend replaces atomically — the current file survives a
+    // failed replacement). Add mode: hold as pending until the draft
+    // exists so a failed policy creation can never orphan an upload.
+    if (this.isEditMode && this.editingPolicyId !== null) {
+      await this.uploadDocumentToPolicy(this.editingPolicyId, file);
+      return;
+    }
+    this.pendingDocumentFile = file;
+    this.cdr.detectChanges();
+  }
+
+  clearPendingDocument(): void {
+    this.pendingDocumentFile = null;
+    this.documentError = null;
+    this.documentProgress = 0;
+    this.cdr.detectChanges();
+  }
+
+  private uploadDocumentToPolicy(
+    policyId: number,
+    file: File,
+  ): Promise<PolicyDocumentResponse> {
+    this.documentUploading = true;
+    this.documentProgress = 0;
+    this.documentError = null;
+    this.cdr.detectChanges();
+    return new Promise((resolve, reject) => {
+      this.policyService.uploadPolicyDocument(policyId, file).subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            const total = event.total ?? file.size ?? 0;
+            this.documentProgress =
+              total > 0
+                ? Math.round((100 * event.loaded) / total)
+                : 0;
+            this.cdr.detectChanges();
+          } else if (event.type === HttpEventType.Response) {
+            this.documentUploading = false;
+            this.documentProgress = 100;
+            const body =
+              event.body as PolicyDocumentResponse | null;
+            if (body) {
+              this.existingDocument = body;
+              this.pendingDocumentFile = null;
+            }
+            this.cdr.detectChanges();
+            resolve(body as PolicyDocumentResponse);
+          }
+        },
+        error: (err) => {
+          this.documentUploading = false;
+          this.documentProgress = 0;
+          const message = this.getErrorMessage(
+            err,
+            "Failed to upload the policy document.",
+          );
+          this.documentError = message;
+          this.toastService.error(message);
+          this.cdr.detectChanges();
+          reject(new Error(message));
+        },
+      });
+    });
+  }
+
+  /** Upload the Add-mode pending file once the draft exists. */
+  private uploadPendingDocument(
+    policyId: number,
+  ): Promise<PolicyDocumentResponse | null> {
+    if (!this.pendingDocumentFile) return Promise.resolve(null);
+    const file = this.pendingDocumentFile;
+    return this.uploadDocumentToPolicy(policyId, file).then(
+      (doc) => {
+        this.toastService.success(
+          `Document "${doc?.document_name ?? file.name}" uploaded successfully.`,
+        );
+        return doc;
+      },
+      (err) => {
+        // Policy already exists as a draft; keep the user on the form
+        // state (caller decides navigation) with an accurate message.
+        throw err;
+      },
+    );
+  }
+
+  loadExistingDocument(policyId: number): void {
+    this.existingDocumentLoading = true;
+    this.cdr.detectChanges();
+    this.policyService.getPolicyDocument(policyId).subscribe({
+      next: (doc) => {
+        this.existingDocument = doc;
+        this.existingDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.existingDocument = null;
+        this.existingDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  removeExistingDocument(): void {
+    if (
+      this.isReadOnly ||
+      this.isRemovingDocument ||
+      this.documentUploading ||
+      this.editingPolicyId === null
+    ) {
+      return;
+    }
+    this.isRemovingDocument = true;
+    this.documentError = null;
+    this.cdr.detectChanges();
+    this.policyService.deletePolicyDocument(this.editingPolicyId).subscribe({
+      next: () => {
+        this.isRemovingDocument = false;
+        this.existingDocument = null;
+        this.toastService.success("Uploaded document removed.");
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isRemovingDocument = false;
+        const message = this.getErrorMessage(
+          err,
+          "Failed to remove the uploaded document.",
+        );
+        this.documentError = message;
+        this.toastService.error(message);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  downloadExistingDocument(): void {
+    if (
+      this.editingPolicyId === null ||
+      this.isDownloadingDocument ||
+      !this.existingDocument
+    ) {
+      return;
+    }
+    this.isDownloadingDocument = true;
+    this.cdr.detectChanges();
+    this.policyService.downloadPolicyDocument(this.editingPolicyId).subscribe({
+      next: (blob) => {
+        this.isDownloadingDocument = false;
+        this.cdr.detectChanges();
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download =
+            this.existingDocument?.document_name ?? "policy-document.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch {
+          this.toastService.error("Could not download the document.");
+        }
+      },
+      error: (err) => {
+        this.isDownloadingDocument = false;
+        this.toastService.error(
+          this.getErrorMessage(err, "Could not download the document."),
+        );
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /**
+   * Open the uploaded policy PDF directly in a new browser tab using
+   * Chrome's built-in PDF viewer. Fetches the PDF blob via the authorized
+   * backend endpoint and opens a Blob URL. Download remains a separate
+   * same-tab action via downloadExistingDocument().
+   */
+  previewExistingDocument(): void {
+    if (this.editingPolicyId === null || !this.existingDocument) {
+      return;
+    }
+
+    this.isDownloadingDocument = true;
+    this.cdr.detectChanges();
+
+    this.policyService.downloadPolicyDocument(this.editingPolicyId).subscribe({
+      next: (blob) => {
+        this.isDownloadingDocument = false;
+        this.cdr.detectChanges();
+
+        try {
+          const blobUrl = URL.createObjectURL(blob);
+          const newTab = window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+          if (!newTab || newTab.closed || typeof newTab.closed === "undefined") {
+            // Popup blocked or failed to open
+            URL.revokeObjectURL(blobUrl);
+            this.toastService.error("Popup blocked. Please allow popups for this site to view the PDF.");
+            return;
+          }
+
+          // Revoke the Blob URL after a delay to allow the PDF to load
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch {
+          this.toastService.error("Could not open the document.");
+        }
+      },
+      error: (err) => {
+        this.isDownloadingDocument = false;
+        this.toastService.error(
+          this.getErrorMessage(err, "Could not open the document."),
+        );
+        this.cdr.detectChanges();
+      },
+    });
   }
 
   /* ============================================================
@@ -1207,6 +1569,15 @@ export class AddPolicyComponent implements OnInit {
 
         this.currentStep = 1;
         this.completedSteps = new Set<number>();
+
+        // Uploaded-document state follows the policy being edited:
+        // preserved untouched unless the user replaces/removes it.
+        this.pendingDocumentFile = null;
+        this.documentError = null;
+        this.documentProgress = 0;
+        this.documentUploading = false;
+        this.existingDocument = null;
+        this.loadExistingDocument(id);
       },
 
       error: (error) => {
@@ -1486,6 +1857,14 @@ export class AddPolicyComponent implements OnInit {
       return;
     }
 
+    if (this.documentUploading) {
+      this.errorMessage =
+        "Please wait for the document upload to finish before saving.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+      return;
+    }
+
     /*
      * Existing policy must be in an editable workflow state.
      */
@@ -1513,26 +1892,49 @@ export class AddPolicyComponent implements OnInit {
        ---------------------------------------------------------- */
 
     if (this.isEditMode && this.editingPolicyId !== null) {
-      this.policyService.updatePolicy(this.editingPolicyId, payload).subscribe({
+      const policyId = this.editingPolicyId;
+      this.policyService.updatePolicy(policyId, payload).subscribe({
         next: (response) => {
-          try {
-            this.setPolicyStatus(
-              response?.status,
-              this.currentPolicyStatus ?? "DRAFT",
+          // A pending file can only exist if the user picked it just
+          // before confirming; upload it now so the draft keeps its
+          // document association.
+          const afterUpdate = () => {
+            try {
+              this.setPolicyStatus(
+                response?.status,
+                this.currentPolicyStatus ?? "DRAFT",
+              );
+              this.closeConfirmModal();
+              this.showDraftToast();
+              this.router.navigate([
+                "/dashboard",
+                this.rolePrefix,
+                "policies",
+                "manage",
+              ]);
+            } finally {
+              this.isSaving = false;
+              this.closeConfirmModal();
+              this.cdr.detectChanges();
+            }
+          };
+          if (this.pendingDocumentFile) {
+            void this.uploadPendingDocument(policyId).then(
+              () => afterUpdate(),
+              () => {
+                this.isSaving = false;
+                this.confirmLoading = false;
+                this.errorMessage =
+                  this.documentError ?? "Failed to upload the policy document.";
+                this.confirmErrorMessage = this.errorMessage;
+                this.currentStep = 4;
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                this.cdr.detectChanges();
+              },
             );
-            this.closeConfirmModal();
-            this.showDraftToast();
-            this.router.navigate([
-              "/dashboard",
-              this.rolePrefix,
-              "policies",
-              "manage",
-            ]);
-          } finally {
-            this.isSaving = false;
-            this.closeConfirmModal();
-            this.cdr.detectChanges();
+            return;
           }
+          afterUpdate();
         },
 
         error: (error) => {
@@ -1576,6 +1978,45 @@ export class AddPolicyComponent implements OnInit {
           window.scrollTo({ top: 0, behavior: "smooth" });
           this.cdr.detectChanges();
 
+          return;
+        }
+
+        // The draft now exists: upload any pending file against this
+        // policy ID before leaving, so drafts retain their document
+        // association and no orphaned upload is possible (uploads only
+        // ever run after a successful policy creation).
+        if (this.pendingDocumentFile) {
+          this.editingPolicyId = policyId;
+          this.isEditMode = true;
+          this.setPolicyStatus(response?.status, "DRAFT");
+          void this.uploadPendingDocument(policyId).then(
+            () => {
+              try {
+                this.closeConfirmModal();
+                this.showDraftToast();
+                this.router.navigate([
+                  "/dashboard",
+                  this.rolePrefix,
+                  "policies",
+                  "manage",
+                ]);
+              } finally {
+                this.isSaving = false;
+                this.closeConfirmModal();
+                this.cdr.detectChanges();
+              }
+            },
+            () => {
+              this.isSaving = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
           return;
         }
 
@@ -1778,6 +2219,14 @@ export class AddPolicyComponent implements OnInit {
       return;
     }
 
+    if (this.documentUploading) {
+      this.errorMessage =
+        "Please wait for the document upload to finish before submitting.";
+      this.confirmErrorMessage = this.errorMessage;
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.confirmLoading = true;
     this.confirmErrorMessage = null;
     this.cdr.detectChanges();
@@ -1850,6 +2299,29 @@ export class AddPolicyComponent implements OnInit {
 
         this.setPolicyStatus(response?.status, "DRAFT");
 
+        // Upload any pending file before submitting so the submitted
+        // policy carries its document. An upload failure aborts the
+        // submit (the draft already exists) with an accurate message.
+        if (this.pendingDocumentFile) {
+          void this.uploadPendingDocument(policyId).then(
+            () => {
+              console.log("[ADD POLICY] calling submit API:", policyId);
+              this.callSubmitApi(policyId);
+            },
+            () => {
+              this.isSubmitting = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
+          return;
+        }
+
         /*
          * STEP 2:
          *
@@ -1892,6 +2364,16 @@ export class AddPolicyComponent implements OnInit {
       return;
     }
 
+    if (this.documentUploading) {
+      this.isSubmitting = false;
+      this.errorMessage =
+        "Please wait for the document upload to finish before submitting.";
+      this.confirmErrorMessage = this.errorMessage;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.isSubmitting = true;
 
     /*
@@ -1905,6 +2387,25 @@ export class AddPolicyComponent implements OnInit {
           response?.status,
           this.currentPolicyStatus ?? "DRAFT",
         );
+
+        // Upload a just-picked replacement before submitting so the
+        // submitted revision carries it. Failures abort the submit.
+        if (this.pendingDocumentFile) {
+          void this.uploadPendingDocument(policyId).then(
+            () => this.callSubmitApi(policyId),
+            () => {
+              this.isSubmitting = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
+          return;
+        }
 
         /*
          * Then:
@@ -2092,6 +2593,16 @@ export class AddPolicyComponent implements OnInit {
     this.conditionBlocks = [];
 
     this.passthroughEligibilityRules = [];
+
+    this.pendingDocumentFile = null;
+    this.existingDocument = null;
+    this.existingDocumentLoading = false;
+    this.documentError = null;
+    this.documentUploading = false;
+    this.documentProgress = 0;
+    this.isDocumentDragging = false;
+    this.isRemovingDocument = false;
+    this.isDownloadingDocument = false;
 
     this.initForm();
 

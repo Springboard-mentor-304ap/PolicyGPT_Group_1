@@ -606,17 +606,17 @@
     }
   }
 
-/* Bulleted detail lists, usable outside .left-panel (eligibility tab). */
-.detail-bullets {
-  margin: 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #334155;
-}
+  /* Bulleted detail lists, usable outside .left-panel (eligibility tab). */
+  .detail-bullets {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+  }
 
   .divider {
     border: none;
@@ -759,6 +759,53 @@
   &:hover {
     text-decoration: underline;
     color: #1e40af;
+  }
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.document-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+
+  .doc-sep {
+    color: #94a3b8;
+  }
+}
+
+/* Long filenames wrap cleanly without overflowing the card. */
+.doc-file-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.doc-action-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b91c1c;
+  margin: 8px 0 0;
+
+  .material-icons {
+    font-size: 16px;
+    flex-shrink: 0;
   }
 }
 
@@ -931,17 +978,25 @@
 /* DOCUMENTS GRID */
 .documents-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 
   .document-resource-card {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
     padding: 20px;
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
+
+    .document-resource-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      flex: 1;
+      min-width: 0;
+    }
 
     .document-resource-icon {
       width: 44px;
@@ -962,6 +1017,7 @@
 
     .document-resource-content {
       flex: 1;
+      min-width: 0;
 
       h4 {
         font-size: 16px;
@@ -973,8 +1029,12 @@
       p {
         font-size: 13px;
         color: #64748b;
-        margin: 0 0 12px;
+        margin: 0;
         line-height: 1.5;
+      }
+
+      p + p {
+        margin-top: 6px;
       }
     }
   }
@@ -1232,8 +1292,6 @@
   }
 }
 
-
-
 /* =========================================================
    RESPONSIVE DESIGN
    ========================================================= */
@@ -1277,6 +1335,16 @@
 
   .audit-card .audit-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .documents-grid .document-resource-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .documents-grid .document-actions {
+    justify-content: flex-start;
   }
 }
 

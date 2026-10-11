@@ -15,6 +15,7 @@ import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { Auth } from "../../../core/services/auth";
 import { PermissionService } from "../../../core/services/permission.service";
 import {
+  PolicyDocumentResponse,
   PolicyResponse,
   PolicyStatus,
 } from "../../../core/models/policy.model";
@@ -89,6 +90,14 @@ export class PolicyDetailsComponent implements OnInit {
   eligibilityError = "";
   loading = false;
   errorMessage = "";
+
+  /** Uploaded PDF stored server-side (distinct from the external URL). */
+  uploadedDocument: PolicyDocumentResponse | null = null;
+  uploadedDocumentLoading = false;
+
+  /** Download loading / error state (stays on the same page). */
+  downloadLoading = false;
+  downloadError: string | null = null;
 
   // Modals state
   confirmModalOpen = false;
@@ -347,6 +356,7 @@ export class PolicyDetailsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = "";
     this.policy = null;
+    this.downloadError = null;
     this.cdr.detectChanges();
 
     // Bookmark state and eligibility rules need only the route policyId,
@@ -354,6 +364,7 @@ export class PolicyDetailsComponent implements OnInit {
     // fetch instead of waiting for it (independent requests).
     this.loadBookmarkState(policyId);
     this.loadEligibilityRules(policyId);
+    this.loadUploadedDocument(policyId);
 
     this.policyService
       .getPolicy(policyId)
@@ -399,6 +410,138 @@ export class PolicyDetailsComponent implements OnInit {
         this.eligibilityRules = Array.isArray(rules) ? rules : [];
         this.cdr.detectChanges();
       });
+  }
+
+  loadUploadedDocument(policyId: number): void {
+    this.uploadedDocumentLoading = true;
+    this.uploadedDocument = null;
+    this.policyService.getPolicyDocument(policyId).subscribe({
+      next: (doc) => {
+        this.uploadedDocument = doc;
+        this.uploadedDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.uploadedDocument = null;
+        this.uploadedDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  formatDocSize(bytes: number | null | undefined): string {
+    if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
+      return "";
+    }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  downloadUploadedDocument(): void {
+    if (!this.policy || this.downloadLoading || !this.uploadedDocument) return;
+    this.downloadLoading = true;
+    this.downloadError = null;
+    this.cdr.detectChanges();
+    this.policyService.downloadPolicyDocument(this.policy.policy_id).subscribe({
+      next: (blob) => {
+        this.downloadLoading = false;
+        this.cdr.detectChanges();
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download =
+            this.uploadedDocument?.document_name ?? "policy-document.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch {
+          this.downloadError = "Could not download the document.";
+          this.showToast(this.downloadError, "error");
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        this.downloadLoading = false;
+        this.downloadError = this.getErrorMessage(
+          err,
+          "Could not download the document.",
+        );
+        this.showToast(this.downloadError, "error");
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /**
+   * Open the uploaded policy PDF directly in a new browser tab using
+   * Chrome's built-in PDF viewer. Fetches the PDF blob via the authorized
+   * backend endpoint and opens a Blob URL. Download remains a separate
+   * same-tab action via downloadUploadedDocument().
+   */
+  openDocumentPreview(): void {
+    const policyId = this.policy?.policy_id;
+    if (!policyId || !this.uploadedDocument) {
+      this.showToast("The uploaded document is not available.", "error");
+      return;
+    }
+
+    this.downloadLoading = true;
+    this.downloadError = null;
+    this.cdr.detectChanges();
+
+    this.policyService.downloadPolicyDocument(policyId).subscribe({
+      next: (blob) => {
+        this.downloadLoading = false;
+        this.cdr.detectChanges();
+
+        try {
+          const blobUrl = URL.createObjectURL(blob);
+          const newTab = window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+          if (!newTab || newTab.closed || typeof newTab.closed === "undefined") {
+            // Popup blocked or failed to open
+            URL.revokeObjectURL(blobUrl);
+            this.showToast("Popup blocked. Please allow popups for this site to view the PDF.", "error");
+            return;
+          }
+
+          // Revoke the Blob URL after a delay to allow the PDF to load
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch {
+          this.downloadError = "Could not open the document.";
+          this.showToast(this.downloadError, "error");
+          this.cdr.detectChanges();
+        }
+      },
+      error: (err) => {
+        this.downloadLoading = false;
+        this.downloadError = this.getErrorMessage(err, "Could not open the document.");
+        this.showToast(this.downloadError, "error");
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /** Source portals are external websites: validated, then new tab. */
+  isValidHttpUrl(value: string | null | undefined): boolean {
+    if (!value) return false;
+    const text = String(value).trim().toLowerCase();
+    return text.startsWith("http://") || text.startsWith("https://");
+  }
+
+  openSourcePortal(): void {
+    const url = String(this.policy?.source_url ?? "").trim();
+    if (!this.isValidHttpUrl(url)) {
+      this.showToast(
+        "The official source URL is missing or invalid.",
+        "error",
+      );
+      return;
+    }
+    window.open(url, "_blank", "noopener");
   }
 
   setActiveTab(
@@ -686,7 +829,7 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   get hasDocument(): boolean {
-    return !!this.policy?.document_url;
+    return !!this.policy?.document_url || !!this.uploadedDocument;
   }
 
   goBack(): void {
@@ -1190,7 +1333,7 @@ export class PolicyDetailsComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
-  private getErrorMessage(error: any): string {
+  private getErrorMessage(error: any, fallback?: string): string {
     if (typeof error?.error?.detail === "string") return error.error.detail;
     if (error?.status === 401)
       return "Your session has expired. Please login again.";
@@ -1199,6 +1342,6 @@ export class PolicyDetailsComponent implements OnInit {
     if (error?.status === 404) return "Policy not found.";
     if (error?.status === 0) return "Unable to connect to the backend server.";
     if (typeof error?.message === "string") return error.message;
-    return "Unable to process your request. Please try again.";
+    return fallback ?? "Unable to process your request. Please try again.";
   }
 }

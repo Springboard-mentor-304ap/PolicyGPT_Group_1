@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError, timeout } from 'rxjs';
 import { catchError, finalize, shareReplay, tap } from 'rxjs/operators';
 import { Auth } from './auth';
@@ -12,6 +12,7 @@ import {
   PolicyUpdate,
   PolicyAnalyticsResponse,
   PolicyComparisonResponse,
+  PolicyDocumentResponse,
 } from '../models/policy.model';
 import { environment } from '../../../environments/environment';
 
@@ -398,6 +399,67 @@ export class PolicyService {
     return this.http.delete<{ message: string }>(
       `${this.apiUrl}/${id}/permanent`,
     );
+  }
+
+  // ============================================================
+  // POLICY DOCUMENT UPLOAD (PDF)
+  // ============================================================
+
+  /**
+   * Upload (or atomically replace) a policy's PDF document.
+   * Multipart FormData POST; emits HttpEvents so callers can render
+   * upload progress. The backend validates type/size/content and
+   * stores bytes server-side, returning metadata only.
+   */
+  uploadPolicyDocument(
+    id: number,
+    file: File,
+  ): Observable<HttpEvent<PolicyDocumentResponse>> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    if (!file) {
+      throw new Error('A file is required.');
+    }
+    this.clearCache();
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<PolicyDocumentResponse>(
+      `${this.apiUrl}/${id}/document`,
+      form,
+      { reportProgress: true, observe: 'events' },
+    );
+  }
+
+  /** Uploaded-document metadata, or null when the policy has none. */
+  getPolicyDocument(id: number): Observable<PolicyDocumentResponse | null> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    return this.http
+      .get<PolicyDocumentResponse>(`${this.apiUrl}/${id}/document`)
+      .pipe(catchError((err) => (err?.status === 404 ? of(null) : throwError(() => err))));
+  }
+
+  /** Remove a policy's uploaded document. */
+  deletePolicyDocument(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/document`,
+    );
+  }
+
+  /** Download the uploaded file bytes (authorized blob). */
+  downloadPolicyDocument(id: number): Observable<Blob> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    return this.http.get(`${this.apiUrl}/${id}/document/download`, {
+      responseType: 'blob',
+    });
   }
 
   // ============================================================

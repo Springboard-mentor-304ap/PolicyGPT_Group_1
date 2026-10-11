@@ -18,6 +18,7 @@ from app.models.saved_eligibility_result import SavedEligibilityResult
 from app.models.search_history import SearchHistory
 from app.models.audit_log import AuditLog
 from app.models.eligibility_rule import EligibilityRule
+from app.models.policy_document import PolicyDocument
 
 __all__ = [
     "User",
@@ -40,4 +41,5 @@ __all__ = [
     "SearchHistory",
     "AuditLog",
     "EligibilityRule",
+    "PolicyDocument",
 ]

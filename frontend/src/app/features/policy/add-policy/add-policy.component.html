@@ -734,6 +734,111 @@
                         <p class="form-helper">Direct link to the official gazette or policy document PDF.</p>
                     </div>
 
+                    <!-- UPLOAD POLICY DOCUMENT -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">cloud_upload</span>
+                            <label class="form-label" for="policy-doc-file">Upload Policy Document</label>
+                        </div>
+                        <div class="document-upload-dropzone" [class.drag-over]="isDocumentDragging"
+                            [class.disabled]="isReadOnly || documentUploading"
+                            (dragover)="onDocumentDragOver($event)" (dragleave)="onDocumentDragLeave($event)"
+                            (drop)="onDocumentDrop($event)" (click)="docFileInput.click()"
+                            (keydown.enter)="docFileInput.click()" (keydown.space)="docFileInput.click()"
+                            tabindex="0" role="button" aria-label="Upload policy document">
+                            <input #docFileInput id="policy-doc-file" type="file" accept=".pdf,application/pdf"
+                                class="document-upload-input" (change)="onDocumentFileSelected($event)"
+                                [disabled]="isReadOnly || documentUploading" aria-hidden="true" tabindex="-1" />
+                            <div class="document-upload-icon">
+                                <span class="material-icons">cloud_upload</span>
+                            </div>
+                            <p class="document-upload-text">Drag and drop your policy document here, or browse files.
+                            </p>
+                            <p class="form-helper">PDF only &middot; Max {{ policyDocumentMaxSizeMB }} MB. Stored
+                                securely; the external URL above is kept separately.</p>
+                            <button type="button" class="btn-outline-criteria"
+                                [disabled]="isReadOnly || documentUploading"
+                                (click)="$event.stopPropagation(); docFileInput.click()">
+                                <span class="material-icons">folder_open</span>
+                                <span>Browse Files</span>
+                            </button>
+                        </div>
+
+                        @if (documentUploading) {
+                        <div class="document-upload-progress" role="progressbar" aria-label="Upload progress"
+                            [attr.aria-valuenow]="documentProgress" aria-valuemin="0" aria-valuemax="100">
+                            <div class="document-upload-progress__track">
+                                <div class="document-upload-progress__fill" [style.width.%]="documentProgress"></div>
+                            </div>
+                            <span class="document-upload-progress__label">Uploading&hellip; {{ documentProgress
+                                }}%</span>
+                        </div>
+                        }
+
+                        @if (existingDocumentLoading) {
+                        <p class="form-helper">Loading uploaded document&hellip;</p>
+                        }
+
+                        @if (!documentUploading && existingDocument) {
+                        <div class="document-file-chip">
+                            <span class="material-icons document-file-chip__icon">picture_as_pdf</span>
+                            <div class="document-file-chip__meta">
+                                <span class="document-file-chip__name">{{ existingDocument.document_name }}</span>
+                                <span class="document-file-chip__sub">Uploaded file &middot; {{
+                                    formatFileSize(existingDocument.file_size) }}</span>
+                            </div>
+                            <div class="document-file-chip__actions">
+                                <button type="button" class="document-chip-btn" (click)="previewExistingDocument()"
+                                    title="Preview uploaded document">
+                                    <span class="material-icons">visibility</span>
+                                    <span>Preview</span>
+                                </button>
+                                <button type="button" class="document-chip-btn" (click)="downloadExistingDocument()"
+                                    [disabled]="isDownloadingDocument" title="Download uploaded document">
+                                    <span class="material-icons">download</span>
+                                    <span>Download</span>
+                                </button>
+                                @if (!isReadOnly) {
+                                <button type="button" class="document-chip-btn document-chip-btn--danger"
+                                    (click)="removeExistingDocument()" [disabled]="isRemovingDocument"
+                                    title="Remove uploaded document">
+                                    <span class="material-icons">{{ isRemovingDocument ? 'hourglass_empty' : 'delete_outline'
+                                        }}</span>
+                                    <span>{{ isRemovingDocument ? 'Removing…' : 'Remove' }}</span>
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        <p class="form-helper">Select a new file above to replace the current upload. The existing file
+                            is kept until the replacement succeeds.</p>
+                        }
+
+                        @if (!documentUploading && !existingDocument && pendingDocumentFile) {
+                        <div class="document-file-chip">
+                            <span class="material-icons document-file-chip__icon">picture_as_pdf</span>
+                            <div class="document-file-chip__meta">
+                                <span class="document-file-chip__name">{{ pendingDocumentFile.name }}</span>
+                                <span class="document-file-chip__sub">Selected file &middot; {{
+                                    formatFileSize(pendingDocumentFile.size) }} &middot; uploads when the draft is
+                                    saved</span>
+                            </div>
+                            <div class="document-file-chip__actions">
+                                @if (!isReadOnly) {
+                                <button type="button" class="document-chip-btn document-chip-btn--danger"
+                                    (click)="clearPendingDocument()" title="Remove selected file">
+                                    <span class="material-icons">delete_outline</span>
+                                    <span>Remove</span>
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        }
+
+                        @if (documentError) {
+                        <span class="form-error" role="alert">{{ documentError }}</span>
+                        }
+                    </div>
+
                     <!-- SOURCE URL -->
                     <div class="form-group form-group--full">
                         <div class="form-label-with-icon">
@@ -1064,8 +1169,51 @@
                                         {{ policyForm.get('documentUrl')?.value }}
                                         <span class="material-icons">open_in_new</span>
                                     </a>
+                                    <span class="review-doc-badge review-doc-badge--link">External link</span>
                                     } @else {
                                     <span>Not provided</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Uploaded Document</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">
+                                    @if (existingDocument) {
+                                    <span class="review-doc-name">
+                                        <span class="material-icons review-doc-icon">picture_as_pdf</span>
+                                        {{ existingDocument.document_name }} ({{ formatFileSize(existingDocument.file_size)
+                                        }})
+                                    </span>
+                                    <span class="review-doc-badge">Uploaded file</span>
+                                    <span class="review-doc-links">
+                                        <button type="button" class="link-external link-button"
+                                            (click)="previewExistingDocument()">
+                                            Preview
+                                            <span class="material-icons">visibility</span>
+                                        </button>
+                                        <span class="review-doc-sep">·</span>
+                                        <button type="button" class="link-external link-button"
+                                            (click)="downloadExistingDocument()" [disabled]="isDownloadingDocument">
+                                            Download
+                                            <span class="material-icons">download</span>
+                                        </button>
+                                    </span>
+                                    } @else if (pendingDocumentFile) {
+                                    <span class="review-doc-name">
+                                        <span class="material-icons review-doc-icon">picture_as_pdf</span>
+                                        {{ pendingDocumentFile.name }} ({{ formatFileSize(pendingDocumentFile.size) }})
+                                    </span>
+                                    <span class="review-doc-badge">Uploaded file</span>
+                                    <span class="review-doc-note">Selected — uploads when the draft is saved.</span>
+                                    } @else if (documentUploading) {
+                                    <span>Uploading… {{ documentProgress }}%</span>
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                    @if (documentError) {
+                                    <span class="form-error review-doc-error">{{ documentError }}</span>
                                     }
                                 </span>
                             </div>

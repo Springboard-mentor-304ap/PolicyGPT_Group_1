@@ -4,11 +4,14 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    File,
     HTTPException,
     Query,
     Request,
+    UploadFile,
     status,
 )
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from datetime import datetime, timedelta, timezone
@@ -515,6 +518,214 @@ def purge_deleted_policies_route(
     )
 
     return summary
+
+
+# ============================================================
+# POLICY DOCUMENT UPLOAD (PDF)
+#
+# ADMIN + GOVERNMENT OFFICIAL (officials only for their own policies,
+# enforced in the service). One current file per policy, replaced
+# atomically; bytes stream only through the authorized download
+# endpoint below, never inside JSON.
+# ============================================================
+
+
+def _readable_policy_or_404(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+):
+    """Policy row the caller is allowed to read (mirrors GET /{id})."""
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    role = normalize_role(current_user.role)
+
+    public_roles = {
+        "CITIZEN",
+        "RESEARCHER",
+        "ORGANIZATION",
+        "GUEST",
+    }
+
+    if role in public_roles:
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role == "GOVERNMENT_OFFICIAL":
+        if policy.status != "APPROVED" and (
+            policy.created_by != current_user.user_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role != "ADMIN":
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+
+    return policy
+
+
+@router.post(
+    "/{policy_id}/document",
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_policy_document_route(
+    policy_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    from app.services.policy_document_service import (
+        to_metadata,
+        upload_policy_document,
+    )
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    try:
+        content = await file.read()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not read the uploaded file.",
+        ) from exc
+
+    doc = upload_policy_document(
+        db=db,
+        policy=policy,
+        current_user=current_user,
+        content=content,
+        filename=file.filename,
+        content_type=file.content_type,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DOCUMENT_UPLOADED",
+        "POLICY",
+        policy_id,
+        f"Document '{doc.document_name}' uploaded for policy '{policy.title}'.",
+    )
+
+    return to_metadata(doc)
+
+
+@router.get("/{policy_id}/document")
+def get_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.policy_document_service import (
+        get_policy_document,
+        to_metadata,
+    )
+
+    _readable_policy_or_404(db, policy_id, current_user)
+
+    doc = get_policy_document(db, policy_id)
+
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    return to_metadata(doc)
+
+
+@router.get("/{policy_id}/document/download")
+def download_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    import io
+
+    from app.services.policy_document_service import get_policy_document
+
+    _readable_policy_or_404(db, policy_id, current_user)
+
+    doc = get_policy_document(db, policy_id)
+
+    if doc is None or not doc.file_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    data = bytes(doc.file_data)
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=doc.mime_type or "application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{doc.document_name}"'
+            ),
+            "Content-Length": str(len(data)),
+        },
+    )
+
+
+@router.delete("/{policy_id}/document")
+def delete_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    from app.services.policy_document_service import (
+        assert_can_manage_documents,
+        delete_policy_document,
+    )
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    assert_can_manage_documents(policy, current_user)
+
+    if not delete_policy_document(db, policy):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DOCUMENT_DELETED",
+        "POLICY",
+        policy_id,
+        f"Uploaded document removed for policy '{policy.title}'.",
+    )
+
+    return {"message": "Uploaded document removed."}
 
 
 # ============================================================

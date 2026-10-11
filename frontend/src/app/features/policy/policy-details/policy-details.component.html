@@ -25,10 +25,7 @@
        ===================================================== -->
   <ng-container *ngIf="!loading && !errorMessage && policy">
 
-    <app-breadcrumb
-      *ngIf="breadcrumbItems.length > 0"
-      [items]="breadcrumbItems"
-    ></app-breadcrumb>
+    <app-breadcrumb *ngIf="breadcrumbItems.length > 0" [items]="breadcrumbItems"></app-breadcrumb>
 
     <!-- ===================================================
          PAGE HEADER
@@ -189,7 +186,8 @@
 
               <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
                 <span class="material-icons">publish</span>
-                <span>{{ isAdmin ? 'Submit' : (policy.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval') }}</span>
+                <span>{{ isAdmin ? 'Submit' : (policy.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for
+                  Approval') }}</span>
               </button>
 
               <button type="button" class="workflow-option workflow-option--success" *ngIf="canApprove"
@@ -425,15 +423,6 @@
           </section>
         </ng-container>
 
-        <!-- COMPLIANCE DOCUMENTS -->
-        <ng-container *ngIf="policy.documents_required">
-          <hr class="divider" />
-          <section class="section-block">
-            <h3>Compliance Documents</h3>
-            <p class="section-desc pre-wrap">{{ policy.documents_required }}</p>
-          </section>
-        </ng-container>
-
         <!-- IMPLEMENTATION WORKFLOW -->
         <ng-container *ngIf="policy.implementation_process">
           <hr class="divider" />
@@ -492,11 +481,24 @@
           <div class="highlight-item" *ngIf="policy.document_url">
             <div class="highlight-icon"><span class="material-icons">description</span></div>
             <div>
-              <label>Official Document</label>
+              <label>Official Document (External Link)</label>
               <p>
                 <a [href]="policy.document_url" target="_blank" rel="noopener noreferrer" class="link-external">
                   View Full Document
                 </a>
+              </p>
+            </div>
+          </div>
+
+          <div class="highlight-item" *ngIf="uploadedDocument">
+            <div class="highlight-icon"><span class="material-icons">picture_as_pdf</span></div>
+            <div>
+              <label>Uploaded Document</label>
+              <p>
+                <button type="button" class="link-external link-button" (click)="openDocumentPreview()"
+                  [disabled]="!uploadedDocument">
+                  {{ uploadedDocument.document_name }}
+                </button>
               </p>
             </div>
           </div>
@@ -630,16 +632,55 @@
         <p class="tab-subtitle">Official gazette notifications, documentation files, and affiliated web portals.</p>
       </div>
 
-      <div class="documents-grid" *ngIf="policy.document_url || policy.source_url || policy.documents_required || policy.implementation_process">
-        <!-- Policy Document -->
-        <div class="document-resource-card" *ngIf="policy.document_url">
-          <div class="document-resource-icon">
-            <span class="material-icons">description</span>
+      <div class="documents-grid"
+        *ngIf="policy.document_url || policy.source_url || uploadedDocument || policy.documents_required || policy.implementation_process">
+        <!-- Uploaded policy file (stored server-side, authorized download) -->
+        <div class="document-resource-card" *ngIf="uploadedDocument">
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">picture_as_pdf</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Uploaded Policy Document</h4>
+              <p class="doc-file-name" [title]="uploadedDocument.document_name">{{ uploadedDocument.document_name
+                }}<span *ngIf="uploadedDocument.file_size"> · {{
+                  formatDocSize(uploadedDocument.file_size) }}</span></p>
+              <p class="doc-action-error" *ngIf="downloadError" role="alert">
+                <span class="material-icons">error_outline</span>
+                <span>{{ downloadError }}</span>
+              </p>
+            </div>
           </div>
 
-          <div class="document-resource-content">
-            <h4>Official Policy Documentation</h4>
-            <p>Access the official government notification, guidelines, or gazette document.</p>
+          <div class="document-actions">
+            <button type="button" class="doc-action-btn doc-action-btn--primary" (click)="openDocumentPreview()"
+              [disabled]="!uploadedDocument">
+              <span class="material-icons">visibility</span>
+              <span>Preview</span>
+            </button>
+            <button type="button" class="doc-action-btn doc-action-btn--secondary" (click)="downloadUploadedDocument()"
+              [disabled]="downloadLoading || !uploadedDocument">
+              <span class="material-icons">{{ downloadLoading ? 'hourglass_empty' : 'download' }}</span>
+              <span>{{ downloadLoading ? 'Preparing…' : 'Download' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Policy Document -->
+        <div class="document-resource-card" *ngIf="policy.document_url">
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">description</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Official Policy Documentation</h4>
+              <p>Access the official government notification, guidelines, or gazette document.</p>
+            </div>
+          </div>
+
+          <div class="document-actions">
             <a [href]="policy.document_url" target="_blank" rel="noopener noreferrer" class="link-external">
               <span>Open Document</span>
               <span class="material-icons link-icon">open_in_new</span>
@@ -649,17 +690,23 @@
 
         <!-- Source Portal -->
         <div class="document-resource-card" *ngIf="policy.source_url">
-          <div class="document-resource-icon">
-            <span class="material-icons">language</span>
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">language</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Official Source Portal</h4>
+              <p>Visit the official government authority portal or ministry page for this policy.</p>
+            </div>
           </div>
 
-          <div class="document-resource-content">
-            <h4>Official Source Portal</h4>
-            <p>Visit the official government authority portal or ministry page for this policy.</p>
-            <a [href]="policy.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+          <div class="document-actions">
+            <button type="button" class="doc-action-btn doc-action-btn--secondary" (click)="openSourcePortal()"
+              [disabled]="!isValidHttpUrl(policy.source_url)">
               <span>Visit Portal</span>
-              <span class="material-icons link-icon">open_in_new</span>
-            </a>
+              <span class="material-icons">open_in_new</span>
+            </button>
           </div>
         </div>
 
@@ -674,21 +721,10 @@
             <p class="pre-wrap">{{ policy.documents_required }}</p>
           </div>
         </div>
-
-        <!-- Implementation Workflow -->
-        <div class="document-resource-card" *ngIf="policy.implementation_process">
-          <div class="document-resource-icon">
-            <span class="material-icons">account_tree</span>
-          </div>
-
-          <div class="document-resource-content">
-            <h4>Implementation Workflow</h4>
-            <p class="pre-wrap">{{ policy.implementation_process }}</p>
-          </div>
-        </div>
       </div>
 
-      <div class="no-content" *ngIf="!policy.document_url && !policy.source_url && !policy.documents_required && !policy.implementation_process">
+      <div class="no-content"
+        *ngIf="!policy.document_url && !policy.source_url && !uploadedDocument && !policy.documents_required && !policy.implementation_process">
         <div class="no-content-icon"><span class="material-icons">attachment</span></div>
         <p>No uploaded policy document or file attached to this record.</p>
       </div>
@@ -787,8 +823,7 @@
        ===================================================== -->
   <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
     [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-    (confirmed)="confirmAction && confirmAction()"
-    (cancelled)="confirmModalOpen = false"></app-confirm-modal>
+    (confirmed)="confirmAction && confirmAction()" (cancelled)="confirmModalOpen = false"></app-confirm-modal>
 
   <!-- =====================================================
        SHARED REASON MODAL

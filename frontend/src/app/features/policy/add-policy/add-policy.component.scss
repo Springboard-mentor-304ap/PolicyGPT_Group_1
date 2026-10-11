@@ -2509,3 +2509,261 @@ $success-border: #bbf7d0;
     color: #854d0e;
   }
 }
+
+/* =========================================================
+   POLICY DOCUMENT UPLOAD (STEP 4)
+   Matches the existing card/form language: dashed dropzone,
+   PDF file chip, progress bar, and review badges.
+   ========================================================= */
+
+.document-upload-dropzone {
+  border: 1.5px dashed #93c5fd;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: $primary-light;
+    border-color: $primary-blue;
+  }
+
+  &.drag-over {
+    background: $primary-light;
+    border-color: $primary-blue;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+  }
+
+  &.disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-blue;
+    outline-offset: 2px;
+  }
+}
+
+.document-upload-input {
+  display: none;
+}
+
+.document-upload-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: $primary-light;
+  color: $primary-blue;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .material-icons {
+    font-size: 28px;
+  }
+}
+
+.document-upload-text {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.document-file-chip {
+  margin-top: 12px;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  &__icon {
+    color: #dc2626;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  &__meta {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: $text-dark;
+    overflow-wrap: anywhere;
+  }
+
+  &__sub {
+    font-size: 12px;
+    color: $text-muted;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.document-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .material-icons {
+    font-size: 17px;
+  }
+
+  &--danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+
+    &:hover:not(:disabled) {
+      background: #fee2e2;
+    }
+  }
+}
+
+.document-upload-progress {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__track {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: $primary-blue;
+    transition: width 0.2s ease;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $primary-blue;
+  }
+}
+
+.review-doc-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: $primary-light;
+  color: $primary-blue;
+  border: 1px solid #bfdbfe;
+  vertical-align: middle;
+
+  &--link {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+}
+
+.review-doc-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.review-doc-icon {
+  font-size: 18px;
+  color: #dc2626;
+}
+
+.review-doc-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.review-doc-sep {
+  color: #94a3b8;
+}
+
+.review-doc-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.review-doc-error {
+  display: block;
+  margin-top: 6px;
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 640px) {
+  .document-file-chip {
+    align-items: flex-start;
+  }
+
+  .document-file-chip__actions {
+    width: 100%;
+  }
+}

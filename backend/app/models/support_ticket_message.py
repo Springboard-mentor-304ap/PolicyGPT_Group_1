@@ -40,7 +40,7 @@ class SupportTicketMessage(Base):
 
     sender_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id", ondelete="SET NULL"),
+        ForeignKey("extensions.users.user_id", ondelete="SET NULL"),
         nullable=True,
     )
 

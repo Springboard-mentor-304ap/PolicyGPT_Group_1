@@ -10,6 +10,7 @@ from app.db.database import Base
 class Policy(Base):
 
     __tablename__ = "policies"
+    __table_args__ = {"schema": "extensions"}
 
     # ========================================================
     # PRIMARY KEY
@@ -155,13 +156,13 @@ class Policy(Base):
 
     created_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
     approved_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -195,7 +196,7 @@ class Policy(Base):
 
     archive_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -215,7 +216,7 @@ class Policy(Base):
 
     delete_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 

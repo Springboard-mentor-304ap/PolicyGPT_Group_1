@@ -18,7 +18,7 @@ class NotificationPreference(Base):
 
     user_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=False
     )
 

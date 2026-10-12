@@ -21,7 +21,7 @@ class ChatbotConversation(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -108,7 +108,7 @@ class ChatbotUsage(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
         unique=True,
     )

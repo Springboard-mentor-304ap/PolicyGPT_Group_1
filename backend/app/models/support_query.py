@@ -22,7 +22,7 @@ class SupportQuery(Base):
 
     user_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -56,7 +56,7 @@ class SupportQuery(Base):
 
     assigned_to: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 

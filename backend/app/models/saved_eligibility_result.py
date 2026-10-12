@@ -35,6 +35,7 @@ class SavedEligibilityResult(Base):
             "entity_type",
             "entity_id",
         ),
+        {"schema": "extensions"},
     )
 
     saved_id: Mapped[int] = mapped_column(
@@ -46,7 +47,7 @@ class SavedEligibilityResult(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(
-            "users.user_id",
+            "extensions.users.user_id",
             ondelete="CASCADE",
         ),
         nullable=False,

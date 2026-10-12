@@ -42,7 +42,7 @@ class NotificationPreferenceRule(Base):
 
     user_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id", ondelete="CASCADE"),
+        ForeignKey("extensions.users.user_id", ondelete="CASCADE"),
         nullable=False,
     )
 

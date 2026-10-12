@@ -17,6 +17,7 @@ class PolicyDocument(Base):
     """
 
     __tablename__ = "policy_documents"
+    __table_args__ = {"schema": "extensions"}
 
     document_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -26,7 +27,7 @@ class PolicyDocument(Base):
 
     policy_id: Mapped[int] = mapped_column(
         BigInteger,
-        ForeignKey("policies.policy_id", ondelete="CASCADE"),
+        ForeignKey("extensions.policies.policy_id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -47,7 +48,7 @@ class PolicyDocument(Base):
 
     uploaded_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 

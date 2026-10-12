@@ -10,6 +10,7 @@ from app.models.policy import Policy
 
 class Scheme(Base):
     __tablename__ = "schemes"
+    __table_args__ = {"schema": "extensions"}
 
     scheme_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -120,13 +121,13 @@ class Scheme(Base):
 
     created_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
     approved_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -152,7 +153,7 @@ class Scheme(Base):
 
     archive_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -168,7 +169,7 @@ class Scheme(Base):
 
     delete_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -191,7 +192,7 @@ class Scheme(Base):
     # preserves scheme rows when a policy is purged.
     related_policy_id: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("policies.policy_id"),
+        ForeignKey("extensions.policies.policy_id"),
         nullable=True,
     )
 

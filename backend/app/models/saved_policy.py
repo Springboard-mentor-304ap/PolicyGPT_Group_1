@@ -18,6 +18,7 @@ class SavedPolicy(Base):
         # Drives role-analytics aggregations: per-user counts, trend
         # buckets and windowed joins on (user_id, saved_at).
         Index("ix_saved_policies_user_saved", "user_id", "saved_at"),
+        {"schema": "extensions"},
     )
 
     saved_id: Mapped[int] = mapped_column(
@@ -29,7 +30,7 @@ class SavedPolicy(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(
-            "users.user_id",
+            "extensions.users.user_id",
             ondelete="CASCADE",
         ),
         nullable=False,
@@ -38,7 +39,7 @@ class SavedPolicy(Base):
     policy_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey(
-            "policies.policy_id",
+            "extensions.policies.policy_id",
             ondelete="CASCADE",
         ),
         nullable=False,

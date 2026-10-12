@@ -26,6 +26,7 @@ class PasswordResetToken(Base):
     __table_args__ = (
         # Reset-link validation looks up by token hash on every request.
         Index("ix_password_reset_token_hash", "token_hash"),
+        {"schema": "extensions"},
     )
 
     # =====================================================
@@ -44,7 +45,7 @@ class PasswordResetToken(Base):
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "users.user_id",
+            "extensions.users.user_id",
             ondelete="CASCADE",
         ),
         nullable=False,

@@ -24,14 +24,7 @@ class Report(Base):
 
     generated_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        # Unqualified on purpose. `User.__tablename__` is "users" with no
-        # explicit schema, so SQLAlchemy's metadata holds it under "users";
-        # a qualified "extensions.users.user_id" here fails to resolve at
-        # flush time with NoReferencedTableError. The connection's
-        # search_path already points at `extensions`, so the emitted DDL
-        # and the live constraint both resolve correctly.
-        # Live DB: extensions.reports.generated_by -> users(user_id).
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True
     )
 

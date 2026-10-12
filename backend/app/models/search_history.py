@@ -24,10 +24,7 @@ class SearchHistory(Base):
 
     user_id: Mapped[int] = mapped_column(
         BigInteger,
-        # Unqualified on purpose (see AuditLog/Report). The live
-        # constraint is extensions.search_history.user_id -> users(user_id)
-        # resolved via search_path.
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=False
     )
 

@@ -16,6 +16,7 @@ from app.db.database import Base
 
 class EligibilityRule(Base):
     __tablename__ = "eligibility_rules"
+    __table_args__ = {"schema": "extensions"}
 
     # =========================================================
     # PRIMARY KEY
@@ -35,7 +36,7 @@ class EligibilityRule(Base):
     policy_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(
-            "policies.policy_id",
+            "extensions.policies.policy_id",
             ondelete="CASCADE",
         ),
         nullable=True,
@@ -44,7 +45,7 @@ class EligibilityRule(Base):
     scheme_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey(
-            "schemes.scheme_id",
+            "extensions.schemes.scheme_id",
             ondelete="CASCADE",
         ),
         nullable=True,

@@ -26,6 +26,7 @@ class OTPVerification(Base):
         # Hot paths: latest-unused OTP per (user, channel) and the hourly
         # rate-limit count per user.
         Index("ix_otp_user_channel_used", "user_id", "channel", "used"),
+        {"schema": "extensions"},
     )
 
     # =====================================================
@@ -44,7 +45,7 @@ class OTPVerification(Base):
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "users.user_id",
+            "extensions.users.user_id",
             ondelete="CASCADE",
         ),
         nullable=False,

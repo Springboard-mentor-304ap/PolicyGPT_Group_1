@@ -83,17 +83,15 @@ class Settings(BaseSettings):
 
     # Primary frontend URL used for user-facing backend-generated links
     # (emails, notifications). No trailing slash; normalized by validator.
-    # Development default is the local Angular dev server. Production must
-    # provide the real deployed frontend domain via env, e.g.
+    # Loaded from environment variables / backend .env file, e.g.
     # FRONTEND_URL=https://your-production-frontend-domain.com
-    FRONTEND_URL: str = "http://localhost:4200"
+    FRONTEND_URL: str = ""
 
     # Comma-separated frontend origins allowed to call the API (CORS,
-    # export endpoints included). Development default covers the local
-    # Angular dev server on localhost and 127.0.0.1. Set FRONTEND_ORIGINS
-    # in production, e.g.
+    # export endpoints included). Loaded from environment variables /
+    # backend .env file, e.g.
     # FRONTEND_ORIGINS=https://your-production-frontend-domain.com
-    FRONTEND_ORIGINS: str = "http://localhost:4200,http://127.0.0.1:4200"
+    FRONTEND_ORIGINS: str = ""
 
     # =========================================================
     # CHATBOT (PolicyGPT Assistant) CONFIGURATION
@@ -138,7 +136,7 @@ class Settings(BaseSettings):
     def _normalize_frontend_url(cls, value: object) -> object:
         if isinstance(value, str):
             cleaned = value.strip().rstrip("/")
-            return cleaned or "http://localhost:4200"
+            return cleaned
         return value
 
     @property

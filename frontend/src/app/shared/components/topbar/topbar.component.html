@@ -1,0 +1,186 @@
+<header class="topbar" role="banner">
+
+  <div class="topbar__bar">
+
+    <!-- ===================================================
+     LEFT: menu + logo + brand
+     =================================================== -->
+
+    <div class="topbar__left">
+
+      @if (showMenuToggle) {
+      <button type="button" class="topbar__toggle" (click)="menuToggle.emit()" aria-label="Toggle sidebar"
+        [attr.aria-expanded]="!sidebarCollapsed">
+        <span class="material-icons" aria-hidden="true">menu</span>
+      </button>
+      }
+
+      <a [routerLink]="homeRoute" class="topbar__logo-link" aria-label="PolicyGPT home"
+        (click)="logoClick.emit()">
+        <img src="/images/logo.png" alt="PolicyGPT" class="topbar__logo" />
+        <span class="topbar__brand-text">
+          <span class="topbar__title">Policy<span>GPT</span></span>
+          <span class="topbar__tagline">Government Information Simplified.</span>
+        </span>
+      </a>
+
+    </div>
+
+    <!-- ===================================================
+     CENTER: global search (authenticated roles) or guest nav
+     =================================================== -->
+
+    <div class="topbar__center">
+
+      @if (!guest) {
+      <div class="topbar-search">
+        <span class="material-icons topbar-search__icon" aria-hidden="true">search</span>
+        <input type="search" [(ngModel)]="searchText" (ngModelChange)="onGlobalSearchInput()"
+          (focus)="onGlobalSearchFocus()" (keydown)="onGlobalSearchKeydown($event)" (keyup.enter)="performSearch()"
+          (search)="onGlobalSearchInput()" placeholder="Search policies / schemes"
+          aria-label="Search policies and schemes" autocomplete="off" />
+
+        @if (searchText) {
+        <button type="button" class="topbar-search__clear" aria-label="Clear search" (click)="clearGlobalSearch()">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+        }
+
+        @if (showGlobalDropdown) {
+        <app-global-search-dropdown [query]="searchText" [policies]="globalPolicies" [schemes]="globalSchemes"
+          [totalPolicies]="globalTotalPolicies" [totalSchemes]="globalTotalSchemes" [loading]="globalLoading"
+          [error]="globalError" [activeIndex]="globalActiveIndex" (selectPolicy)="selectGlobalPolicy($event)"
+          (selectScheme)="selectGlobalScheme($event)" (viewAllPolicies)="viewAllGlobalPolicies()"
+          (viewAllSchemes)="viewAllGlobalSchemes()"></app-global-search-dropdown>
+        }
+      </div>
+      } @else {
+      <nav class="topbar__guest-nav" aria-label="Main Navigation">
+        @for (item of guestNavItems; track item.label) {
+        @if (item.requiresLogin) {
+        <button type="button" class="topbar__nav-link topbar__nav-link--button" (click)="requireLogin(item.label)"
+          [attr.title]="item.label + ' - Login Required'">
+          <span>{{ item.label }}</span>
+        </button>
+        } @else {
+        <a [routerLink]="item.route" routerLinkActive="topbar__nav-link--active"
+          [routerLinkActiveOptions]="{ exact: !!item.exact }" class="topbar__nav-link">
+          <span>{{ item.label }}</span>
+        </a>
+        }
+        }
+      </nav>
+      }
+
+    </div>
+
+    <!-- ===================================================
+     RIGHT: notifications + profile, or guest actions
+     =================================================== -->
+
+    <div class="topbar__right">
+
+      @if (!guest) {
+      <app-notification-bell></app-notification-bell>
+
+      <a class="topbar__profile" [routerLink]="profileRoute" aria-label="View profile">
+        <span class="topbar__avatar" aria-hidden="true">
+          @if (avatarLoading()) {
+          <span class="material-icons topbar__avatar-placeholder">person</span>
+          } @else if (avatarSrc()) {
+          <img [src]="avatarSrc()" alt="" class="topbar__photo" />
+          } @else {
+          <span class="material-icons">account_circle</span>
+          }
+        </span>
+        <span class="topbar__user-info">
+          <span class="topbar__user-name">{{ userName() }}</span>
+          <span class="topbar__user-role">{{ userRoleLabel() }}</span>
+        </span>
+      </a>
+      } @else {
+      <div class="topbar__guest-actions">
+        <a routerLink="/auth/login" class="topbar__btn topbar__btn--login" (click)="closeGuestDrawer()">
+          <span class="material-icons topbar__btn-icon" aria-hidden="true">login</span>
+          <span>Login</span>
+        </a>
+        <a routerLink="/auth/register" class="topbar__btn topbar__btn--signup" (click)="closeGuestDrawer()">
+          <span class="material-icons topbar__btn-icon" aria-hidden="true">person_add</span>
+          <span>Signup</span>
+        </a>
+      </div>
+      <button type="button" class="topbar__mobile-toggle" (click)="toggleGuestDrawer()"
+        [attr.aria-expanded]="guestDrawerOpen" aria-label="Toggle navigation menu">
+        <span class="material-icons" aria-hidden="true">{{ guestDrawerOpen ? 'close' : 'menu' }}</span>
+      </button>
+      }
+
+    </div>
+
+  </div>
+
+  <!-- =====================================================
+   GUEST MOBILE DRAWER + LOGIN MODAL
+   ===================================================== -->
+
+  @if (guest) {
+  @if (guestDrawerOpen) {
+  <div class="topbar__drawer" role="navigation" aria-label="Mobile Navigation">
+    <div class="topbar__drawer-links">
+      @for (item of guestNavItems; track item.label) {
+      @if (item.requiresLogin) {
+      <button type="button" class="topbar__drawer-link topbar__drawer-link--button" (click)="requireLogin(item.label)">
+        <span class="material-icons topbar__drawer-link-icon" aria-hidden="true">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </button>
+      } @else {
+      <a [routerLink]="item.route" routerLinkActive="topbar__drawer-link--active"
+        [routerLinkActiveOptions]="{ exact: !!item.exact }" class="topbar__drawer-link" (click)="closeGuestDrawer()">
+        <span class="material-icons topbar__drawer-link-icon" aria-hidden="true">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </a>
+      }
+      }
+    </div>
+    <div class="topbar__drawer-divider"></div>
+    <div class="topbar__drawer-actions">
+      <a routerLink="/auth/login" class="topbar__btn topbar__btn--login topbar__btn--full" (click)="closeGuestDrawer()">
+        <span class="material-icons topbar__btn-icon" aria-hidden="true">login</span>
+        <span>Login</span>
+      </a>
+      <a routerLink="/auth/register" class="topbar__btn topbar__btn--signup topbar__btn--full"
+        (click)="closeGuestDrawer()">
+        <span class="material-icons topbar__btn-icon" aria-hidden="true">person_add</span>
+        <span>Signup</span>
+      </a>
+    </div>
+  </div>
+  }
+  }
+
+</header>
+
+@if (guest && guestDrawerOpen) {
+<div class="topbar__scrim" (click)="closeGuestDrawer()" aria-hidden="true"></div>
+}
+
+@if (guest && showLoginMessage) {
+<div class="topbar__login-overlay" (click)="closeLoginMessage()" role="presentation">
+  <div class="topbar__login-modal" role="dialog" aria-modal="true" aria-labelledby="topbar-login-title"
+    (click)="$event.stopPropagation()">
+    <div class="topbar__login-modal-icon">
+      <span class="material-icons" aria-hidden="true">lock</span>
+    </div>
+    <h2 id="topbar-login-title">Login Required</h2>
+    <p>{{ loginMessage }}</p>
+    <p class="topbar__login-modal-hint">Please login or signup to continue using this feature.</p>
+    <div class="topbar__login-modal-actions">
+      <button type="button" class="topbar__login-modal-cancel" (click)="closeLoginMessage()">Cancel</button>
+      <button type="button" class="topbar__login-modal-login" (click)="goToLogin()">
+        <span class="material-icons" aria-hidden="true">login</span>
+        Login
+      </button>
+    </div>
+  </div>
+</div>
+}

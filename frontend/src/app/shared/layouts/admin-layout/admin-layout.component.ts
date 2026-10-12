@@ -1,7 +1,12 @@
-import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
   NavigationEnd,
@@ -13,13 +18,12 @@ import {
 import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
-import { AvatarService } from "../../../core/services/avatar.service";
+import { Auth } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
-import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 // =========================================================
 // NAV ITEM
@@ -50,36 +54,18 @@ export type AdminMenuGroup =
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
-    NotificationBellComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./admin-layout.component.html",
   styleUrl: "./admin-layout.component.scss",
 })
 export class AdminLayoutComponent implements OnInit {
-  // =======================================================
-  // USER
-  // =======================================================
-
-  userName = signal("Admin User");
-  userRole = signal("Administrator");
-
-  /** Object URL of the authenticated user's photo; null = default icon. */
-  avatarSrc = signal<string | null>(null);
-
-  /**
-   * True while the avatar image is being resolved (stored user known,
-   * photo blob still loading). The template shows a subtle placeholder
-   * — never the default avatar as if it were the user's actual photo.
-   */
-  avatarLoading = signal(false);
-
   // =======================================================
   // SIDEBAR
   // =======================================================
@@ -96,12 +82,6 @@ export class AdminLayoutComponent implements OnInit {
   schemesMenuOpen = false;
   analyticsMenuOpen = false;
   supportMenuOpen = false;
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
 
   // =======================================================
   // LOGOUT MODAL
@@ -180,7 +160,6 @@ export class AdminLayoutComponent implements OnInit {
   constructor(
     private authService: Auth,
     private router: Router,
-    private avatarService: AvatarService,
   ) {}
 
   private readonly destroyRef = inject(DestroyRef);
@@ -190,25 +169,6 @@ export class AdminLayoutComponent implements OnInit {
   // =======================================================
 
   ngOnInit(): void {
-    // Shared current-user state FIRST: the BehaviorSubject replays the
-    // stored/login user synchronously, so name/role/photo-version are
-    // available before the background /me refresh below resolves.
-    this.authService.currentUser$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (!user) {
-          this.userName.set("Admin User");
-          this.userRole.set("Administrator");
-          this.avatarSrc.set(null);
-          this.avatarLoading.set(false);
-          return;
-        }
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      });
-
-    this.loadCurrentUser();
-
     this.syncMenusWithRoute();
 
     // Keep expansion in sync with navigation (direct URL entry, in-app
@@ -259,144 +219,6 @@ export class AdminLayoutComponent implements OnInit {
       this.schemesMenuOpen = false;
       this.analyticsMenuOpen = false;
       this.supportMenuOpen = true;
-    }
-  }
-
-  // =======================================================
-  // LOAD CURRENT USER
-  // =======================================================
-
-  private loadCurrentUser(): void {
-    const snapshot =
-      (this.authService as unknown as { getCurrentUserSnapshot?: () => AuthUser | null }).getCurrentUserSnapshot?.() ??
-      this.authService.getStoredUser();
-
-    if (snapshot) {
-      this.setUserDetails(snapshot);
-      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(true);
-      } else if (!snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(false);
-      }
-    }
-
-    if (!this.authService.isLoggedIn()) {
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
-      return;
-    }
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load logged-in admin:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =======================================================
-  // SET USER DETAILS
-  // =======================================================
-
-  private setUserDetails(user: AuthUser): void {
-    if (!user) {
-      return;
-    }
-
-    if (typeof user.full_name === "string" && user.full_name.trim()) {
-      this.userName.set(user.full_name.trim());
-    }
-
-    this.userRole.set(this.formatRole(user.role));
-  }
-
-  /**
-   * Resolve the avatar image for the given user through the shared
-   * AvatarService (per-version cached blob URL, default icon on
-   * error or when the user has no photo).
-   */
-  private refreshAvatar(user: AuthUser): void {
-    if (!user?.profile_photo_updated_at) {
-      this.avatarSrc.set(null);
-      this.avatarLoading.set(false);
-      return;
-    }
-    if (!this.avatarSrc()) {
-      this.avatarLoading.set(true);
-    }
-    this.avatarService.photoSrcFor(user).subscribe({
-      next: (src) => {
-        this.avatarSrc.set(src);
-        this.avatarLoading.set(false);
-      },
-      error: () => {
-        this.avatarSrc.set(null);
-        this.avatarLoading.set(false);
-      },
-    });
-  }
-
-  // =======================================================
-  // FORMAT ROLE
-  // =======================================================
-
-  private formatRole(role: string | null | undefined): string {
-    if (!role) {
-      return "Administrator";
-    }
-
-    const normalizedRole = role.trim().toUpperCase();
-
-    switch (normalizedRole) {
-      case "ADMIN":
-        return "Admin";
-
-      case "ADMINISTRATOR":
-        return "Administrator";
-
-      case "GOVERNMENT_OFFICIAL":
-        return "Government Official";
-
-      case "CITIZEN":
-        return "Citizen";
-
-      case "RESEARCHER":
-        return "Researcher";
-
-      case "ORGANIZATION":
-      case "ORGANISATION":
-        return "Organization";
-
-      default:
-        return role
-          .trim()
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char: string) => char.toUpperCase());
     }
   }
 
@@ -717,34 +539,6 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =======================================================
   // OPEN LOGOUT MODAL
   // =======================================================
 
@@ -767,11 +561,6 @@ export class AdminLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset UI
-    this.userName.set("Admin User");
-    this.userRole.set("Administrator");
-    this.avatarSrc.set(null);
-    this.avatarLoading.set(false);
-
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
     this.usersMenuOpen = false;

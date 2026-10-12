@@ -1,0 +1,100 @@
+<div class="gs-dropdown" role="listbox" aria-label="Search suggestions">
+  @if (loading) {
+    <div class="gs-state gs-state--loading" role="status" aria-live="polite">
+      <span class="gs-spinner" aria-hidden="true"></span>
+      <span>Searching…</span>
+    </div>
+  } @else if (error) {
+    <div class="gs-state gs-state--error" role="alert">
+      <span class="material-icons" aria-hidden="true">error_outline</span>
+      <span>{{ error }}</span>
+    </div>
+  } @else if (showEmpty) {
+    <div class="gs-state gs-state--empty">
+      <span class="material-icons" aria-hidden="true">search_off</span>
+      <div>
+        <p class="gs-empty-title">No policies or schemes found</p>
+        <p class="gs-empty-sub">
+          @if (query) {
+            No matches for “{{ query }}”. Try a different keyword.
+          } @else {
+            Type to search policies and schemes.
+          }
+        </p>
+      </div>
+    </div>
+  } @else {
+    @if (policies.length > 0) {
+      <div class="gs-section">
+        <p class="gs-section-title">
+          <span class="material-icons" aria-hidden="true">policy</span>
+          Policies
+          <span class="gs-count">{{ totalPolicies }}</span>
+        </p>
+        @for (p of policies; track p.policy_id; let i = $index) {
+          <button
+            type="button"
+            class="gs-item"
+            [class.gs-item--active]="isActive('policy', i)"
+            role="option"
+            [attr.aria-selected]="isActive('policy', i)"
+            (click)="selectPolicy.emit(p)"
+          >
+            <span class="gs-badge gs-badge--policy">Policy</span>
+            <span class="gs-item-body">
+              <span class="gs-item-title" [innerHTML]="highlight(policyTitle(p))"></span>
+              <span class="gs-item-desc">{{ shortDescription(p.description) }}</span>
+              @if (metaForPolicy(p)) {
+                <span class="gs-item-meta">{{ metaForPolicy(p) }}</span>
+              }
+            </span>
+          </button>
+        }
+      </div>
+    }
+    @if (schemes.length > 0) {
+      <div class="gs-section">
+        <p class="gs-section-title">
+          <span class="material-icons" aria-hidden="true">account_balance</span>
+          Schemes
+          <span class="gs-count">{{ totalSchemes }}</span>
+        </p>
+        @for (s of schemes; track s.scheme_id; let i = $index) {
+          <button
+            type="button"
+            class="gs-item"
+            [class.gs-item--active]="isActive('scheme', i)"
+            role="option"
+            [attr.aria-selected]="isActive('scheme', i)"
+            (click)="selectScheme.emit(s)"
+          >
+            <span class="gs-badge gs-badge--scheme">Scheme</span>
+            <span class="gs-item-body">
+              <span class="gs-item-title" [innerHTML]="highlight(schemeTitle(s))"></span>
+              <span class="gs-item-desc">{{ shortDescription(s.description) }}</span>
+              @if (metaForScheme(s)) {
+                <span class="gs-item-meta">{{ metaForScheme(s) }}</span>
+              }
+            </span>
+          </button>
+        }
+      </div>
+    }
+    @if (totalPolicies > 0 || totalSchemes > 0) {
+      <div class="gs-footer">
+        @if (totalPolicies > 0) {
+          <button type="button" class="gs-view-all" (click)="viewAllPolicies.emit()">
+            View all {{ totalPolicies }} polic{{ totalPolicies === 1 ? 'y' : 'ies' }}
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </button>
+        }
+        @if (totalSchemes > 0) {
+          <button type="button" class="gs-view-all" (click)="viewAllSchemes.emit()">
+            View all {{ totalSchemes }} scheme{{ totalSchemes === 1 ? '' : 's' }}
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </button>
+        }
+      </div>
+    }
+  }
+</div>

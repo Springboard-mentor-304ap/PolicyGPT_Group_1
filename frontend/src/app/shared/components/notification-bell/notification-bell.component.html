@@ -105,9 +105,14 @@
 
     <!-- Footer -->
     <div class="dropdown-footer">
-      <button type="button" class="view-all-btn" (click)="viewAll($event)">
+      <button
+        type="button"
+        class="view-all-btn"
+        (click)="viewAll($event)"
+        aria-label="View all notifications"
+      >
         <span>View All Notifications</span>
-        <span class="material-icons">arrow_forward</span>
+        <span class="material-icons" aria-hidden="true">arrow_forward</span>
       </button>
     </div>
   </div>

@@ -5,7 +5,7 @@ from math import ceil
 from typing import Any
 
 from fastapi import HTTPException, status
-from sqlalchemy import cast, func, or_, String
+from sqlalchemy import and_, cast, func, or_, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -188,6 +188,89 @@ def _calculate_pages(
         return 0
 
     return ceil(total / limit)
+
+
+# ============================================================
+# GLOBAL FREE-TEXT SEARCH HELPERS
+#
+# Shared by the Policies listing and the combined global search.
+# Case-insensitive (ilike), partial (%token%), whitespace-tolerant,
+# LIKE-escaped, multi-token (AND across tokens, OR across fields),
+# covering scalar columns plus ARRAY (benefits/key_objectives) and
+# JSONB (eligibility_rules) via text casts so department/category/
+# ministry/description matches work even when the query does not
+# equal the title.
+# ============================================================
+
+
+def _normalize_search_text(value: str | None) -> str:
+    """Collapse whitespace and trim; empty string when meaningless."""
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).strip())
+
+
+def _search_tokens(normalized: str) -> list[str]:
+    """Split a normalized query into meaningful tokens.
+
+    Single-token queries keep the token as-is (even 1 char, the
+    frontend gates on "meaningful" input). Multi-token queries drop
+    tokens shorter than 2 chars (e.g. "of"/"a") so "Ministry of
+    Agriculture" reduces to ["Ministry", "Agriculture"] instead of
+    requiring a stopword to match. Falls back to the whole phrase
+    when filtering empties the list.
+    """
+    if not normalized:
+        return []
+    parts = [p for p in normalized.split(" ") if p]
+    if len(parts) <= 1:
+        return parts
+    meaningful = [p for p in parts if len(p) >= 2]
+    return meaningful or [normalized]
+
+
+def _escape_like(token: str) -> str:
+    """Escape LIKE wildcards so user %/_/\\ match literally."""
+    return (
+        token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+
+
+def _policy_token_condition(token: str):
+    """OR across every searchable Policy field for one token."""
+    like = f"%{_escape_like(token)}%"
+    esc = "\\"
+    return or_(
+        Policy.title.ilike(like, escape=esc),
+        Policy.description.ilike(like, escape=esc),
+        Policy.category.ilike(like, escape=esc),
+        Policy.ministry.ilike(like, escape=esc),
+        Policy.department.ilike(like, escape=esc),
+        Policy.state.ilike(like, escape=esc),
+        Policy.sector.ilike(like, escape=esc),
+        Policy.additional_info.ilike(like, escape=esc),
+        Policy.important_notes.ilike(like, escape=esc),
+        Policy.documents_required.ilike(like, escape=esc),
+        Policy.implementation_process.ilike(like, escape=esc),
+        cast(Policy.benefits, String).ilike(like, escape=esc),
+        cast(Policy.key_objectives, String).ilike(like, escape=esc),
+        cast(Policy.eligibility_rules, String).ilike(like, escape=esc),
+    )
+
+
+def _apply_policy_free_text(query, search: str | None):
+    """AND across tokens of the OR-per-token policy condition."""
+    normalized = _normalize_search_text(search)
+    if not normalized:
+        return query
+    tokens = _search_tokens(normalized)
+    if not tokens:
+        return query
+    if len(tokens) == 1:
+        return query.filter(_policy_token_condition(tokens[0]))
+    return query.filter(
+        and_(*[_policy_token_condition(t) for t in tokens])
+    )
 
 
 def _clean_text_block(value: str | None) -> str | None:
@@ -2054,22 +2137,13 @@ def search_policies(
         query = query.filter(Policy.created_by == created_by)
 
     # --------------------------------------------------------
-    # SEARCH
+    # SEARCH (multi-field free text: title/description/category/
+    # ministry/department/state/sector/benefits/eligibility/
+    # documents/notes/objectives/process)
     # --------------------------------------------------------
 
-    if search:
-        search_term = f"%{search.strip()}%"
-
-        query = query.filter(
-            or_(
-                Policy.title.ilike(search_term),
-                Policy.description.ilike(search_term),
-                Policy.category.ilike(search_term),
-                Policy.ministry.ilike(search_term),
-                Policy.department.ilike(search_term),
-                Policy.sector.ilike(search_term),
-            )
-        )
+    if search and _normalize_search_text(search):
+        query = _apply_policy_free_text(query, search)
 
     # --------------------------------------------------------
     # FILTERS

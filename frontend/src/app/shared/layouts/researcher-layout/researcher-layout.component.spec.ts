@@ -1,4 +1,7 @@
 import { TestBed } from "@angular/core/testing";
+import { ElementRef } from "@angular/core";
+import { provideHttpClient } from "@angular/common/http";
+import { provideHttpClientTesting } from "@angular/common/http/testing";
 import { NavigationEnd } from "@angular/router";
 import { of, Subject } from "rxjs";
 
@@ -22,6 +25,23 @@ import { ResearcherLayoutComponent } from "./researcher-layout.component";
 describe("ResearcherLayoutComponent (research analytics state)", () => {
   const ANALYTICS = "/dashboard/researcher/analytics";
   const TRENDS = "/dashboard/researcher/analytics/trends";
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: ElementRef,
+          useValue: new ElementRef(document.createElement("div")),
+        },
+      ],
+    });
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
 
   function setup(url: string) {
     const events = new Subject<unknown>();

@@ -1,7 +1,6 @@
-import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
   NavigationEnd,
@@ -13,13 +12,12 @@ import {
 import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
-import { AvatarService } from "../../../core/services/avatar.service";
+import { Auth } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
-import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 // =========================================================
 // NAVIGATION ITEM
@@ -41,36 +39,18 @@ export interface GovernmentNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
-    NotificationBellComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./government-layout.component.html",
   styleUrl: "./government-layout.component.scss",
 })
 export class GovernmentLayoutComponent implements OnInit {
-  // =======================================================
-  // USER
-  // =======================================================
-
-  userName = signal("Government Official");
-  userRole = signal("Government Official");
-
-  /** Object URL of the authenticated user's photo; null = default icon. */
-  avatarSrc = signal<string | null>(null);
-
-  /**
-   * True while the avatar image is being resolved (stored user known,
-   * photo blob still loading). The template shows a subtle placeholder
-   * — never the default avatar as if it were the user's actual photo.
-   */
-  avatarLoading = signal(false);
-
   // =======================================================
   // SIDEBAR
   // =======================================================
@@ -94,12 +74,6 @@ export class GovernmentLayoutComponent implements OnInit {
   private static readonly GROUP_FIRST_CHILD: Record<'analytics', string> = {
     analytics: '/dashboard/government/analytics',
   };
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
 
   // =======================================================
   // LOGOUT MODAL
@@ -156,7 +130,6 @@ export class GovernmentLayoutComponent implements OnInit {
   constructor(
     private authService: Auth,
     private router: Router,
-    private avatarService: AvatarService,
   ) {}
 
   private readonly destroyRef = inject(DestroyRef);
@@ -166,25 +139,6 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   ngOnInit(): void {
-    // Shared current-user state: refreshes name, role and avatar
-    // immediately after login, profile edits and photo changes,
-    // with no refresh, re-login or navigation required.
-    this.authService.currentUser$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (!user) {
-          this.userName.set("Government Official");
-          this.userRole.set("Government Official");
-          this.avatarSrc.set(null);
-          this.avatarLoading.set(false);
-          return;
-        }
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      });
-
-    this.loadCurrentUser();
-
     this.syncMenusWithRoute();
 
     // Keep expansion in sync with navigation (direct URL entry, in-app
@@ -217,130 +171,6 @@ export class GovernmentLayoutComponent implements OnInit {
       this.schemesMenuOpen = false;
       this.analyticsMenuOpen = true;
     }
-  }
-
-  // =======================================================
-  // LOAD CURRENT USER
-  // =======================================================
-
-  private loadCurrentUser(): void {
-    const snapshot =
-      this.authService.getCurrentUserSnapshot?.() ??
-      this.authService.getStoredUser();
-
-    // -----------------------------------------------------
-    // USE SNAPSHOT FIRST
-    // -----------------------------------------------------
-
-    if (snapshot) {
-      this.setUserDetails(snapshot);
-      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(true);
-      } else if (!snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(false);
-      }
-    }
-
-    // -----------------------------------------------------
-    // CHECK TOKEN
-    // -----------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
-      return;
-    }
-
-    // -----------------------------------------------------
-    // GET CURRENT USER FROM BACKEND
-    // -----------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load current user:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =======================================================
-  // SET USER DETAILS
-  // =======================================================
-
-  private setUserDetails(user: AuthUser): void {
-    if (!user) {
-      return;
-    }
-
-    this.userName.set(user.full_name || "Government Official");
-
-    this.userRole.set(this.formatRole(user.role || "GOVERNMENT_OFFICIAL"));
-  }
-
-  /**
-   * Resolve the avatar image for the given user through the shared
-   * AvatarService (per-version cached blob URL, default icon when the
-   * user has no photo). While a photo blob is loading, `avatarLoading`
-   * stays true so the template shows a placeholder instead of
-   * presenting the default avatar as the user's actual photo.
-   */
-  private refreshAvatar(user: AuthUser): void {
-    if (!user?.profile_photo_updated_at) {
-      this.avatarSrc.set(null);
-      this.avatarLoading.set(false);
-      return;
-    }
-    // Photo exists on the backend: show placeholder until bytes arrive.
-    if (!this.avatarSrc()) {
-      this.avatarLoading.set(true);
-    }
-    this.avatarService.photoSrcFor(user).subscribe({
-      next: (src) => {
-        this.avatarSrc.set(src);
-        this.avatarLoading.set(false);
-      },
-      error: () => {
-        this.avatarSrc.set(null);
-        this.avatarLoading.set(false);
-      },
-    });
-  }
-
-  // =======================================================
-  // FORMAT ROLE
-  // =======================================================
-
-  private formatRole(role: string): string {
-    return role
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (char: string) => char.toUpperCase());
   }
 
   // =======================================================
@@ -565,36 +395,6 @@ export class GovernmentLayoutComponent implements OnInit {
   }
 
   // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    console.log("Government search:", query);
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =======================================================
   // OPEN LOGOUT MODAL
   // =======================================================
 
@@ -613,11 +413,6 @@ export class GovernmentLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset layout
-    this.userName.set("Government Official");
-    this.userRole.set("Government Official");
-    this.avatarSrc.set(null);
-    this.avatarLoading.set(false);
-
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
 

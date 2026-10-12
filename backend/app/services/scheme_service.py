@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
 
+import re
+
 from fastapi import HTTPException, status
-from sqlalchemy import cast, or_, String
+from sqlalchemy import and_, cast, or_, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -104,6 +106,64 @@ def _validate_scheme_eligibility(rules: object) -> object:
 
 def current_time() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+# ============================================================
+# GLOBAL FREE-TEXT SEARCH HELPERS (mirrors policy_service)
+# ============================================================
+
+
+def _normalize_search_text(value: str | None) -> str:
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).strip())
+
+
+def _search_tokens(normalized: str) -> list[str]:
+    if not normalized:
+        return []
+    parts = [p for p in normalized.split(" ") if p]
+    if len(parts) <= 1:
+        return parts
+    meaningful = [p for p in parts if len(p) >= 2]
+    return meaningful or [normalized]
+
+
+def _escape_like(token: str) -> str:
+    return (
+        token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+
+
+def _scheme_token_condition(token: str):
+    like = f"%{_escape_like(token)}%"
+    esc = "\\"
+    return or_(
+        Scheme.name.ilike(like, escape=esc),
+        Scheme.description.ilike(like, escape=esc),
+        Scheme.category.ilike(like, escape=esc),
+        Scheme.ministry.ilike(like, escape=esc),
+        Scheme.department.ilike(like, escape=esc),
+        Scheme.state.ilike(like, escape=esc),
+        Scheme.documents_required.ilike(like, escape=esc),
+        Scheme.application_process.ilike(like, escape=esc),
+        cast(Scheme.benefits, String).ilike(like, escape=esc),
+        cast(Scheme.eligibility_rules, String).ilike(like, escape=esc),
+    )
+
+
+def _apply_scheme_free_text(query, keyword: str | None):
+    normalized = _normalize_search_text(keyword)
+    if not normalized:
+        return query
+    tokens = _search_tokens(normalized)
+    if not tokens:
+        return query
+    if len(tokens) == 1:
+        return query.filter(_scheme_token_condition(tokens[0]))
+    return query.filter(
+        and_(*[_scheme_token_condition(t) for t in tokens])
+    )
 
 
 def create_scheme(
@@ -1220,21 +1280,8 @@ def search_schemes(
     if created_by is not None:
         query = query.filter(Scheme.created_by == created_by)
 
-    if keyword:
-        search = f"%{keyword.strip()}%"
-
-        query = query.filter(
-            or_(
-                Scheme.name.ilike(search),
-                Scheme.description.ilike(search),
-                Scheme.category.ilike(search),
-                Scheme.ministry.ilike(search),
-                Scheme.department.ilike(search),
-                Scheme.state.ilike(search),
-                Scheme.documents_required.ilike(search),
-                Scheme.application_process.ilike(search),
-            )
-        )
+    if keyword and _normalize_search_text(keyword):
+        query = _apply_scheme_free_text(query, keyword)
 
     if category:
         query = query.filter(Scheme.category.ilike(category.strip()))

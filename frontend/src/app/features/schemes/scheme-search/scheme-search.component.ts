@@ -112,6 +112,8 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
 
   get activeFiltersCount(): number {
     let count = 0;
+    if (this.selectedCategory) count++;
+    if (this.selectedMinistry) count++;
     if (this.selectedDepartment) count++;
     if (this.selectedState) count++;
     if (this.selectedSector) count++;
@@ -268,6 +270,8 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
 
     const filters: SchemeFilters = {
       keyword: this.searchQuery.trim() || undefined,
+      category: this.selectedCategory || undefined,
+      ministry: this.selectedMinistry || undefined,
       department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
       sector: this.selectedSector || undefined,

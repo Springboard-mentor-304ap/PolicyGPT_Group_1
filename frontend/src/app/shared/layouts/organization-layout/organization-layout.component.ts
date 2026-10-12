@@ -1,7 +1,12 @@
-import { Component, DestroyRef, HostListener, OnInit, inject, signal } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
   NavigationEnd,
@@ -13,11 +18,10 @@ import {
 import { filter } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
-import { AvatarService } from "../../../core/services/avatar.service";
+import { Auth } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
-import { NotificationBellComponent } from "../../components/notification-bell/notification-bell.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 /* =========================================================
    ORGANIZATION NAVIGATION ITEM
@@ -47,13 +51,12 @@ export interface OrganizationNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
-    NotificationBellComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./organization-layout.component.html",
@@ -61,37 +64,12 @@ export interface OrganizationNavItem {
 })
 export class OrganizationLayoutComponent implements OnInit {
   // =========================================================
-  // USER
-  // =========================================================
-
-  user: AuthUser | null = null;
-
-  userName = signal("Organization");
-  userRole = signal("ORGANIZATION");
-
-  /** Object URL of the authenticated user's photo; null = default icon. */
-  avatarSrc = signal<string | null>(null);
-
-  /**
-   * True while the avatar image is being resolved (stored user known,
-   * photo blob still loading). The template shows a subtle placeholder
-   * — never the default avatar as if it were the user's actual photo.
-   */
-  avatarLoading = signal(false);
-
-  // =========================================================
   // SIDEBAR
   // =========================================================
 
   sidebarCollapsed = false;
   mobileMenuOpen = false;
   analyticsMenuOpen = false;
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  searchText = "";
 
   // =========================================================
   // LOGOUT MODAL
@@ -170,7 +148,6 @@ export class OrganizationLayoutComponent implements OnInit {
   constructor(
     private readonly authService: Auth,
     private readonly router: Router,
-    private readonly avatarService: AvatarService,
   ) {}
 
   private readonly destroyRef = inject(DestroyRef);
@@ -180,25 +157,6 @@ export class OrganizationLayoutComponent implements OnInit {
   // =========================================================
 
   ngOnInit(): void {
-    // Shared current-user state FIRST: the BehaviorSubject replays the
-    // stored/login user synchronously, so name/role/photo-version are
-    // available before the background /me refresh below resolves.
-    this.authService.currentUser$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (!user) {
-          this.userName.set("Organization");
-          this.userRole.set("ORGANIZATION");
-          this.avatarSrc.set(null);
-          this.avatarLoading.set(false);
-          return;
-        }
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      });
-
-    this.loadCurrentUser();
-
     if (this.isAnalyticsRouteActive()) {
       this.analyticsMenuOpen = true;
     }
@@ -247,130 +205,6 @@ export class OrganizationLayoutComponent implements OnInit {
   }
 
   // =========================================================
-  // LOAD CURRENT USER
-  // =========================================================
-
-  private loadCurrentUser(): void {
-    const snapshot =
-      this.authService.getCurrentUserSnapshot?.() ??
-      this.authService.getStoredUser();
-
-    if (snapshot) {
-      this.setUserDetails(snapshot);
-      if (!this.avatarSrc() && snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(true);
-      } else if (!snapshot.profile_photo_updated_at) {
-        this.avatarLoading.set(false);
-      }
-    }
-
-    // -------------------------------------------------------
-    // CHECK TOKEN
-    // -------------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // GET CURRENT USER FROM BACKEND
-    // -------------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-        this.refreshAvatar(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load organization user:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =========================================================
-  // SET USER DETAILS
-  // =========================================================
-
-  private setUserDetails(user: AuthUser): void {
-    this.user = user;
-
-    this.userName.set(user.full_name?.trim() || "Organization");
-
-    this.userRole.set(user.role?.trim().toUpperCase() || "ORGANIZATION");
-  }
-
-  /**
-   * Resolve the avatar image for the given user through the shared
-   * AvatarService (per-version cached blob URL, default icon when the
-   * user has no photo). While a photo blob is loading, `avatarLoading`
-   * stays true so the template shows a placeholder instead of
-   * presenting the default avatar as the user's actual photo.
-   */
-  private refreshAvatar(user: AuthUser): void {
-    if (!user?.profile_photo_updated_at) {
-      this.avatarSrc.set(null);
-      this.avatarLoading.set(false);
-      return;
-    }
-    // Photo exists on the backend: show placeholder until bytes arrive.
-    if (!this.avatarSrc()) {
-      this.avatarLoading.set(true);
-    }
-    this.avatarService.photoSrcFor(user).subscribe({
-      next: (src) => {
-        this.avatarSrc.set(src);
-        this.avatarLoading.set(false);
-      },
-      error: () => {
-        this.avatarSrc.set(null);
-        this.avatarLoading.set(false);
-      },
-    });
-  }
-
-  // =========================================================
-  // DISPLAY ROLE
-  // =========================================================
-
-  get displayRole(): string {
-    switch ((this.userRole() || "").toUpperCase().replace(/[\s-]+/g, "_")) {
-      case "ORGANIZATION":
-      case "ORGANISATION":
-        return "Organization";
-
-      default:
-        return "Organization";
-    }
-  }
-
-  // =========================================================
   // SIDEBAR TOGGLE
   // =========================================================
 
@@ -412,36 +246,6 @@ export class OrganizationLayoutComponent implements OnInit {
   }
 
   // =========================================================
-  // SEARCH
-  // =========================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    // Keep search inside Organization Layout
-
-    this.router.navigate(["/dashboard/organization/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =========================================================
-  // CLEAR SEARCH
-  // =========================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =========================================================
   // LOGOUT
   // =========================================================
 
@@ -465,18 +269,6 @@ export class OrganizationLayoutComponent implements OnInit {
     // -------------------------------------------------------
 
     this.authService.logout();
-
-    // -------------------------------------------------------
-    // RESET USER
-    // -------------------------------------------------------
-
-    this.user = null;
-
-    this.userName.set("Organization");
-    this.userRole.set("ORGANIZATION");
-
-    this.avatarSrc.set(null);
-    this.avatarLoading.set(false);
 
     // -------------------------------------------------------
     // RESET LAYOUT

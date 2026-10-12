@@ -140,4 +140,28 @@ describe('WorkflowTimelineComponent', () => {
     expect(text.length).toBeGreaterThan(10);
     expect(component.formatDateTime(null)).toBe('Not specified');
   });
+
+  it('reveals everything immediately without an IntersectionObserver', () => {
+    // jsdom has no IntersectionObserver: the component must degrade
+    // to fully visible content instead of an empty animated list.
+    expect(typeof IntersectionObserver).toBe('undefined');
+    flushEvents([mockEvent, { ...mockEvent, audit_id: 2 }], 2);
+    expect(component.revealed).toBe(2);
+    expect(component.progressPct).toBe(100);
+  });
+
+  it('keeps reveal progress monotonic and disconnects on destroy', () => {
+    flushEvents([mockEvent, { ...mockEvent, audit_id: 2 }], 2);
+    expect(component.revealed).toBe(2);
+    const disconnect = vi.fn();
+    (component as any).observer = { disconnect } as never;
+    fixture.destroy();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('reports zero progress with no events', () => {
+    flushEvents([], 0);
+    expect(component.revealed).toBe(0);
+    expect(component.progressPct).toBe(0);
+  });
 });

@@ -22,9 +22,14 @@
     </div>
   </div>
   } @else {
-  <ol class="tl-list">
+  <ol class="tl-list" [style.--progress.%]="progressPct">
     @for (event of events; track trackByAuditId($index, event)) {
-    <li class="tl-item">
+    <li
+      class="tl-item"
+      [attr.data-index]="$index"
+      [class.is-visible]="$index < revealed"
+      [style.--d]="$index"
+    >
       <span class="tl-rail" aria-hidden="true">
         <span class="tl-dot">
           <span class="material-icons" aria-hidden="true">{{ iconFor(event.action) }}</span>

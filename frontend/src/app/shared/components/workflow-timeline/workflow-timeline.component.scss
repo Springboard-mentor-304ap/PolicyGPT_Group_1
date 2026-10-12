@@ -22,6 +22,21 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  position: relative;
+}
+
+/* Foreground progress line: grows with the revealed share of events. */
+.tl-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: 2px;
+  height: var(--progress, 0%);
+  background: #4b78f1;
+  border-radius: 2px;
+  z-index: 0;
+  transition: height 0.6s ease;
 }
 
 .tl-item {
@@ -33,6 +48,19 @@
   &:last-child {
     padding-bottom: 2px;
   }
+
+  /* Pre-reveal state reserves full space (no layout shift). */
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+  transition-delay: calc(min(var(--d, 0), 10) * 60ms);
+}
+
+.tl-item.is-visible {
+  opacity: 1;
+  transform: none;
 }
 
 .tl-rail {
@@ -53,10 +81,17 @@
   border: 1px solid #bfdbfe;
   color: #1d4ed8;
   z-index: 1;
+  transform: scale(0.55);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-delay: calc(min(var(--d, 0), 10) * 60ms);
 
   .material-icons {
     font-size: 18px;
   }
+}
+
+.tl-item.is-visible .tl-dot {
+  transform: scale(1);
 }
 
 .tl-item:not(:last-child) .tl-rail::after {
@@ -65,7 +100,6 @@
   flex: 1;
   min-height: 14px;
   margin-top: 4px;
-  background: #e2e8f0;
   border-radius: 2px;
 }
 
@@ -271,5 +305,19 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-item,
+  .tl-dot {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .tl-list::before {
+    height: 100%;
+    transition: none;
   }
 }

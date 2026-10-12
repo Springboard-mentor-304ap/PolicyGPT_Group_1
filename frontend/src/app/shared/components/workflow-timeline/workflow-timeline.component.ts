@@ -1,5 +1,8 @@
 import {
+  AfterViewChecked,
+  ChangeDetectorRef,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
@@ -32,7 +35,7 @@ import type { AuditLog } from '../../../core/models/audit-log.model';
   templateUrl: './workflow-timeline.component.html',
   styleUrls: ['./workflow-timeline.component.scss'],
 })
-export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
+export class WorkflowTimelineComponent implements OnInit, OnChanges, AfterViewChecked, OnDestroy {
   @Input() entityType: 'POLICY' | 'SCHEME' = 'POLICY';
   @Input() entityId: number | null = null;
   /** Bump to reload page 1 (hosts bump after workflow actions). */
@@ -41,6 +44,8 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
   @Output() timelineLoaded = new EventEmitter<AuditLog[]>();
 
   private readonly auditLogService = inject(AuditLogService);
+  private readonly host = inject(ElementRef);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   events: AuditLog[] = [];
   total = 0;
@@ -52,6 +57,97 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
   errorMessage = '';
 
   private loadSub: Subscription | null = null;
+
+  /* =========================================================
+     SCROLL-TRIGGERED REVEAL
+     Monotonic count of visible events (never decreases, so
+     scrolling back up never hides or replays anything).
+     ========================================================= */
+
+  revealed = 0;
+
+  private observer: IntersectionObserver | null = null;
+  private needsObserve = false;
+
+  /** 0-100 progress for the foreground connecting line. */
+  get progressPct(): number {
+    if (!this.events.length) return 0;
+    return Math.min(100, (this.revealed / this.events.length) * 100);
+  }
+
+  private prefersReducedMotion(): boolean {
+    try {
+      return (
+        typeof matchMedia !== 'undefined' &&
+        matchMedia('(prefers-reduced-motion: reduce)').matches
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  private supportsObserver(): boolean {
+    return typeof IntersectionObserver !== 'undefined';
+  }
+
+  ngAfterViewChecked(): void {
+    // Runs after every render; the flag keeps it to one observation
+    // pass per data change (no timers, no per-frame work).
+    if (!this.needsObserve) return;
+    this.needsObserve = false;
+    this.observeItems();
+  }
+
+  private observeItems(): void {
+    this.disconnectObserver();
+
+    const items: NodeListOf<HTMLElement> =
+      this.host.nativeElement.querySelectorAll('.tl-list .tl-item');
+
+    // No observer (old browsers, SSR, jsdom specs) or reduced motion:
+    // everything is visible immediately, no animation.
+    if (!this.supportsObserver() || this.prefersReducedMotion() || !items.length) {
+      if (this.revealed !== this.events.length) {
+        this.revealed = this.events.length;
+        this.cdr.detectChanges();
+      }
+      return;
+    }
+
+    this.observer = new IntersectionObserver(
+      (entries) => this.onIntersect(entries),
+      { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.15 },
+    );
+    items.forEach((item) => this.observer?.observe(item));
+  }
+
+  private onIntersect(entries: IntersectionObserverEntry[]): void {
+    let high = this.revealed;
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const index = Number(
+        (entry.target as HTMLElement).dataset['index'],
+      );
+      if (Number.isFinite(index)) high = Math.max(high, index + 1);
+    }
+    high = Math.min(high, this.events.length);
+    if (high !== this.revealed) {
+      this.revealed = high;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private disconnectObserver(): void {
+    this.observer?.disconnect();
+    this.observer = null;
+  }
+
+  /** Reset reveal state for fresh data and re-observe after render. */
+  private resetReveal(): void {
+    this.disconnectObserver();
+    this.revealed = 0;
+    this.needsObserve = true;
+  }
 
   ngOnInit(): void {
     this.load(1);
@@ -75,6 +171,7 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.loadSub?.unsubscribe();
+    this.disconnectObserver();
   }
 
   load(page: number): void {
@@ -82,6 +179,7 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
       this.events = [];
       this.total = 0;
       this.pages = 0;
+      this.resetReveal();
       return;
     }
     this.loadSub?.unsubscribe();
@@ -96,6 +194,12 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
           this.page = Math.max(1, Number(res?.page) || page);
           this.pages = Math.max(0, Number(res?.pages) || 0);
           this.loading = false;
+          this.resetReveal();
+          if (!this.supportsObserver() || this.prefersReducedMotion()) {
+            // No scroll animation possible: show everything now so
+            // the list is never stuck invisible.
+            this.revealed = this.events.length;
+          }
           this.timelineLoaded.emit(this.events);
         },
         error: (err) => {
@@ -103,6 +207,7 @@ export class WorkflowTimelineComponent implements OnInit, OnChanges, OnDestroy {
           this.events = [];
           this.total = 0;
           this.pages = 0;
+          this.resetReveal();
           this.errorMessage = this.describeError(err);
         },
       });

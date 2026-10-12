@@ -25,6 +25,7 @@ from app.db.database import get_db
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.services.audit_log_service import (
+    attach_actor_display_names,
     log_request_action,
     resolve_user_display_name,
 )
@@ -816,6 +817,8 @@ def get_policy_route(
             f"Policy '{policy.title}' viewed.",
         )
 
+    attach_actor_display_names(db, policy)
+
     return policy
 
 
@@ -858,6 +861,13 @@ def update_policy_route(
         background_tasks=background_tasks,
     )
 
+    # Concise change summary (field names only, never values) so the
+    # timeline shows what was edited without duplicating data.
+    changed_fields = sorted(data.model_dump(exclude_unset=True).keys())
+    change_suffix = (
+        f" Changed fields: {', '.join(changed_fields)}." if changed_fields else ""
+    )
+
     log_request_action(
         request,
         db,
@@ -865,7 +875,7 @@ def update_policy_route(
         "POLICY_UPDATED",
         "POLICY",
         policy_id,
-        f"Policy '{result.title}' updated.",
+        f"Policy '{result.title}' updated.{change_suffix}",
     )
 
     return result
@@ -992,12 +1002,22 @@ def submit_policy_route(
     ),
 ):
 
+    # Resubmissions (REJECTED -> PENDING_APPROVAL) are worded distinctly
+    # so the timeline distinguishes them from first-time submissions.
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    was_rejected = existing.status == "REJECTED"
+
     result = submit_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
         background_tasks=background_tasks,
     )
+
+    submit_verb = "resubmitted for approval" if was_rejected else "submitted for approval"
 
     log_request_action(
         request,
@@ -1006,7 +1026,7 @@ def submit_policy_route(
         "POLICY_SUBMITTED",
         "POLICY",
         policy_id,
-        f"Policy '{result.title}' submitted for approval.",
+        f"Policy '{result.title}' {submit_verb}.",
     )
 
     # Admin direct approval (DRAFT -> APPROVED) is also recorded as an

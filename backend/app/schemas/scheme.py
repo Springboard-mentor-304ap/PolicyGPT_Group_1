@@ -194,6 +194,14 @@ class SchemeResponse(BaseModel):
 
     created_by_name: str | None = None
 
+    #: Live role of the creator (populated on single-entity reads).
+    created_by_role: str | None = None
+
+    #: Live display name/role of the approver (single-entity reads).
+    approved_by_name: str | None = None
+
+    approved_by_role: str | None = None
+
     deleted_by_name: str | None = None
 
     requested_by_name: str | None = None

@@ -619,11 +619,14 @@
         <div class="audit-item">
           <span class="audit-label">Created By</span>
           <strong class="audit-value">{{ getCreatorDisplayName(scheme.created_by) }}</strong>
+          <span class="audit-role" *ngIf="getCreatorRole()">{{ getCreatorRole() }}</span>
         </div>
 
         <div class="audit-item">
-          <span class="audit-label">Created Date</span>
-          <strong class="audit-value">{{ formatDate(scheme.created_at) }}</strong>
+          <span class="audit-label">Created Date &amp; Time</span>
+          <strong class="audit-value" [attr.title]="scheme.created_at">{{
+            formatDateTime(scheme.created_at)
+          }}</strong>
         </div>
 
         <div class="audit-item">
@@ -631,11 +634,22 @@
           <strong class="audit-value">
             {{ scheme.approved_by ? getApproverDisplayName(scheme.approved_by) : 'Pending Review' }}
           </strong>
+          <span class="audit-role" *ngIf="scheme.approved_by && getApproverRole()">{{
+            getApproverRole()
+          }}</span>
         </div>
 
         <div class="audit-item">
-          <span class="audit-label">Last Modified</span>
-          <strong class="audit-value">{{ formatDate(scheme.updated_at) }}</strong>
+          <span class="audit-label">Last Modified By</span>
+          <strong class="audit-value">{{ getLastModifierName() }}</strong>
+          <span class="audit-role" *ngIf="getLastModifierRole()">{{ getLastModifierRole() }}</span>
+        </div>
+
+        <div class="audit-item">
+          <span class="audit-label">Last Modified Date &amp; Time</span>
+          <strong class="audit-value" [attr.title]="scheme.updated_at">{{
+            formatDateTime(scheme.updated_at)
+          }}</strong>
         </div>
       </div>
 
@@ -654,8 +668,9 @@
           <strong>Archive Information</strong>
           <p *ngIf="scheme.archive_reason">Reason: {{ scheme.archive_reason }}</p>
           <p class="callout-subtext" *ngIf="scheme.archive_requested_by">
-            Requested by {{ getRequesterDisplayName(scheme.archive_requested_by) }}
-            <ng-container *ngIf="scheme.archive_requested_at">on {{ formatDate(scheme.archive_requested_at)
+            Requested by {{ getRequesterDisplayName(scheme.archive_requested_by)
+            }}<ng-container *ngIf="getRequesterRole()"> ({{ getRequesterRole() }})</ng-container>
+            <ng-container *ngIf="scheme.archive_requested_at">on {{ formatDateTime(scheme.archive_requested_at)
               }}</ng-container>
           </p>
         </div>
@@ -667,11 +682,31 @@
           <strong>Deletion Request Information</strong>
           <p *ngIf="scheme.delete_reason">Reason: {{ scheme.delete_reason }}</p>
           <p class="callout-subtext" *ngIf="scheme.delete_requested_by">
-            Requested by {{ getRequesterDisplayName(scheme.delete_requested_by) }}
-            <ng-container *ngIf="scheme.delete_requested_at">on {{ formatDate(scheme.delete_requested_at)
+            Requested by {{ getRequesterDisplayName(scheme.delete_requested_by)
+            }}<ng-container *ngIf="getRequesterRole()"> ({{ getRequesterRole() }})</ng-container>
+            <ng-container *ngIf="scheme.delete_requested_at">on {{ formatDateTime(scheme.delete_requested_at)
               }}</ng-container>
           </p>
         </div>
+      </div>
+
+      <!-- ===================================================
+           WORKFLOW TIMELINE
+           =================================================== -->
+      <div class="timeline-card">
+        <div class="audit-header">
+          <div class="audit-title-group">
+            <span class="material-icons audit-header-icon">history</span>
+            <div>
+              <h3>Workflow Timeline</h3>
+              <p>Chronological record of every successful workflow action on this scheme.</p>
+            </div>
+          </div>
+          <span class="audit-badge">Restricted Access</span>
+        </div>
+        <app-workflow-timeline [entityType]="'SCHEME'" [entityId]="scheme.scheme_id"
+          [refreshToken]="timelineRefresh" (timelineLoaded)="onTimelineLoaded($event)">
+        </app-workflow-timeline>
       </div>
     </div>
 

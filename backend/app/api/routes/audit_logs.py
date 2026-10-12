@@ -7,11 +7,12 @@ from app.db.database import get_db
 from app.api.routes.auth import require_roles
 from app.models.user import User
 
-from app.schemas.audit_log import AuditLogResponse
+from app.schemas.audit_log import AuditLogResponse, EntityAuditTimelineResponse
 
 from app.services.audit_log_service import (
     get_audit_logs,
     get_audit_log,
+    get_entity_audit_logs,
 )
 
 
@@ -61,6 +62,46 @@ def get_audit_logs_route(
         from_date=from_date,
         to_date=to_date,
         skip=skip,
+        limit=limit,
+    )
+
+
+# ============================================================
+# WORKFLOW TIMELINE FOR ONE POLICY / SCHEME
+#
+# ADMIN + GOVERNMENT_OFFICIAL
+#
+# Chronological, paginated workflow history with actor names and
+# roles inlined (no per-event lookups). Public roles are rejected:
+# internal governance details never leak to citizens, researchers,
+# organizations, or guests. Must precede /{audit_id} so "entity"
+# is never parsed as an integer id.
+# ============================================================
+
+
+@router.get(
+    "/entity/{entity_type}/{entity_id}",
+    response_model=EntityAuditTimelineResponse,
+)
+def get_entity_timeline_route(
+    entity_type: str,
+    entity_id: int,
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    return get_entity_audit_logs(
+        db=db,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        current_user=current_user,
+        page=page,
         limit=limit,
     )
 

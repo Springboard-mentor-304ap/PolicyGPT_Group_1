@@ -68,6 +68,9 @@ export interface PolicyResponse extends PolicyBase {
   deleted_at?: string | null;
   deleted_by?: number | null;
   created_by_name?: string | null;
+  created_by_role?: string | null;
+  approved_by_name?: string | null;
+  approved_by_role?: string | null;
   deleted_by_name?: string | null;
   requested_by_name?: string | null;
   created_at: string;

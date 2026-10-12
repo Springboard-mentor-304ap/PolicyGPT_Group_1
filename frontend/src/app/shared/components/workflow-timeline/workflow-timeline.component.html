@@ -1,0 +1,83 @@
+<div class="tl" role="feed" aria-label="Workflow timeline" aria-busy="{{ loading }}">
+  @if (loading && events.length === 0) {
+  <div class="tl-state" role="status" aria-live="polite">
+    <span class="tl-spinner" aria-hidden="true"></span>
+    <span>Loading workflow history…</span>
+  </div>
+  } @else if (errorMessage) {
+  <div class="tl-state tl-state--error" role="alert">
+    <span class="material-icons" aria-hidden="true">error_outline</span>
+    <div>
+      <p class="tl-state-title">Unable to load timeline</p>
+      <p class="tl-state-sub">{{ errorMessage }}</p>
+      <button type="button" class="tl-retry" (click)="retry()">Retry</button>
+    </div>
+  </div>
+  } @else if (events.length === 0) {
+  <div class="tl-state">
+    <span class="material-icons" aria-hidden="true">history</span>
+    <div>
+      <p class="tl-state-title">No workflow events yet</p>
+      <p class="tl-state-sub">Actions performed on this record will appear here.</p>
+    </div>
+  </div>
+  } @else {
+  <ol class="tl-list">
+    @for (event of events; track trackByAuditId($index, event)) {
+    <li class="tl-item">
+      <span class="tl-rail" aria-hidden="true">
+        <span class="tl-dot">
+          <span class="material-icons" aria-hidden="true">{{ iconFor(event.action) }}</span>
+        </span>
+      </span>
+      <div class="tl-body">
+        <div class="tl-head">
+          <strong class="tl-action">{{ eventTitle(event) }}</strong>
+          <span class="tl-time" [attr.title]="event.created_at">{{ formatDateTime(event.created_at) }}</span>
+        </div>
+        <p class="tl-actor">
+          {{ actorName(event) }}
+          @if (actorRole(event)) {
+          <span class="tl-role">{{ actorRole(event) }}</span>
+          }
+        </p>
+        @if (event.from_status || event.to_status) {
+        <p class="tl-transition" aria-label="Status transition">
+          @if (event.from_status) {
+          <span class="tl-status" [ngClass]="statusClass(event.from_status)">{{
+            statusLabel(event.from_status)
+          }}</span>
+          }
+          @if (event.from_status && event.to_status) {
+          <span class="material-icons tl-arrow" aria-hidden="true">arrow_forward</span>
+          }
+          @if (event.to_status) {
+          <span class="tl-status" [ngClass]="statusClass(event.to_status)">{{
+            statusLabel(event.to_status)
+          }}</span>
+          }
+        </p>
+        }
+        @if (event.description) {
+        <p class="tl-desc">{{ event.description }}</p>
+        }
+        @if (event.reason) {
+        <p class="tl-reason"><strong>Reason:</strong> {{ event.reason }}</p>
+        }
+      </div>
+    </li>
+    }
+  </ol>
+  @if (pages > 1) {
+  <div class="tl-pager">
+    <button type="button" class="tl-page-btn" (click)="previousPage()" [disabled]="page <= 1 || loading">
+      Previous
+    </button>
+    <span class="tl-page-info">Page {{ page }} of {{ pages }} · {{ total }} events</span>
+    <button type="button" class="tl-page-btn" (click)="nextPage()" [disabled]="page >= pages || loading">
+      Next
+    </button>
+  </div>
+  }
+  }
+</div>

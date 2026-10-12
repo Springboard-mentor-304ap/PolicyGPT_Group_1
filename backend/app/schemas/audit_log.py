@@ -15,5 +15,21 @@ class AuditLogResponse(BaseModel):
     description: str | None
     ip_address: str | None
     created_at: datetime
+    # Timeline enrichment (populated only by the per-entity timeline
+    # endpoint; None on the generic listing endpoints).
+    action_label: str | None = None
+    from_status: str | None = None
+    to_status: str | None = None
+    reason: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EntityAuditTimelineResponse(BaseModel):
+    entity_type: str
+    entity_id: int
+    total: int
+    page: int
+    limit: int
+    pages: int
+    events: list[AuditLogResponse]

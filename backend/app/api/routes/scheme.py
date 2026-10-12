@@ -23,6 +23,7 @@ from app.models.audit_log import AuditLog
 from app.services.audit_log_service import (
     ACTION_APPROVAL_EVENT,
     ACTION_REJECTION_EVENT,
+    attach_actor_display_names,
     log_request_action,
     resolve_user_display_name,
 )
@@ -423,6 +424,8 @@ def get_scheme_api(
             f"Scheme '{scheme.name}' viewed.",
         )
 
+    attach_actor_display_names(db, scheme)
+
     return scheme
 
 
@@ -478,6 +481,13 @@ def update_scheme_api(
         current_user=current_user,
     )
 
+    # Concise change summary (field names only, never values) so the
+    # timeline shows what was edited without duplicating data.
+    changed_fields = sorted(data.model_dump(exclude_unset=True).keys())
+    change_suffix = (
+        f" Changed fields: {', '.join(changed_fields)}." if changed_fields else ""
+    )
+
     log_request_action(
         request,
         db,
@@ -485,7 +495,7 @@ def update_scheme_api(
         "SCHEME_UPDATED",
         "SCHEME",
         scheme_id,
-        f"Scheme '{scheme.name}' updated.",
+        f"Scheme '{scheme.name}' updated.{change_suffix}",
     )
 
     return result
@@ -616,10 +626,17 @@ def submit_scheme_api(
         )
 
     try:
+        was_rejected = scheme.status == "REJECTED"
         result = submit_scheme(
             db,
             scheme,
             current_user=current_user,
+        )
+
+        submit_verb = (
+            "resubmitted for approval"
+            if was_rejected
+            else "submitted for approval"
         )
 
         log_request_action(
@@ -629,7 +646,7 @@ def submit_scheme_api(
             "SCHEME_SUBMITTED",
             "SCHEME",
             scheme_id,
-            f"Scheme '{scheme.name}' submitted for approval.",
+            f"Scheme '{scheme.name}' {submit_verb}.",
         )
 
         return result

@@ -21,6 +21,8 @@ import {
 } from "../../../core/models/policy.model";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
+import { WorkflowTimelineComponent } from "../../../shared/components/workflow-timeline/workflow-timeline.component";
+import type { AuditLog } from "../../../core/models/audit-log.model";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -62,6 +64,7 @@ interface EligibilityRule {
     ConfirmModalComponent,
     ReasonModalComponent,
     BreadcrumbComponent,
+    WorkflowTimelineComponent,
   ],
   templateUrl: "./policy-details.component.html",
   styleUrls: ["./policy-details.component.scss"],
@@ -190,30 +193,100 @@ export class PolicyDetailsComponent implements OnInit {
   }
 
   getCreatorDisplayName(userId: number | null | undefined): string {
-    if (!userId) return "Official Author";
+    const live = String(this.policy?.created_by_name ?? "").trim();
+    if (live) return live;
+    if (!userId) return "Unknown User";
     const current = this.auth.getStoredUser();
     if (current && current.user_id === userId && current.full_name) {
       return current.full_name;
     }
-    return "Government Official";
+    return "Unknown User";
+  }
+
+  getCreatorRole(): string {
+    return this.formatRoleLabel(this.policy?.created_by_role);
   }
 
   getApproverDisplayName(userId: number | null | undefined): string {
-    if (!userId) return "Authorized Administrator";
+    const live = String(this.policy?.approved_by_name ?? "").trim();
+    if (live) return live;
+    if (!userId) return "Pending Review";
     const current = this.auth.getStoredUser();
     if (current && current.user_id === userId && current.full_name) {
       return current.full_name;
     }
-    return "Authorized Administrator";
+    return "Unknown User";
+  }
+
+  getApproverRole(): string {
+    if (!this.policy?.approved_by) return "";
+    return this.formatRoleLabel(this.policy?.approved_by_role);
   }
 
   getRequesterDisplayName(userId: number | null | undefined): string {
-    if (!userId) return "Government Official";
+    const hit = this.latestRequestEvent();
+    const live = String(hit?.user_name ?? "").trim();
+    if (live) return live;
+    if (!userId) return "Unknown User";
     const current = this.auth.getStoredUser();
     if (current && current.user_id === userId && current.full_name) {
       return current.full_name;
     }
-    return "Government Official";
+    return "Unknown User";
+  }
+
+  getRequesterRole(): string {
+    const hit = this.latestRequestEvent();
+    return this.formatRoleLabel(hit?.user_role);
+  }
+
+  /** Latest archive/delete request event (timeline is chronological). */
+  private latestRequestEvent(): AuditLog | null {
+    for (let i = this.timelineEvents.length - 1; i >= 0; i--) {
+      const action = String(this.timelineEvents[i]?.action || "").toUpperCase();
+      if (action.includes("ARCHIVE_REQUESTED") || action.includes("DELETE_REQUESTED")) {
+        return this.timelineEvents[i];
+      }
+    }
+    return null;
+  }
+
+  /** Actor of the latest workflow event (timeline excludes views). */
+  getLastModifierName(): string {
+    if (!this.timelineLoaded) return "Loading…";
+    const last = this.timelineEvents[this.timelineEvents.length - 1];
+    const live = String(last?.user_name ?? "").trim();
+    return live || "Unknown User";
+  }
+
+  getLastModifierRole(): string {
+    if (!this.timelineLoaded) return "";
+    const last = this.timelineEvents[this.timelineEvents.length - 1];
+    return this.formatRoleLabel(last?.user_role);
+  }
+
+  private formatRoleLabel(role: string | null | undefined): string {
+    const clean = String(role ?? "").trim();
+    if (!clean) return "";
+    return clean
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  // ============================================================
+  // WORKFLOW TIMELINE
+  // ============================================================
+
+  timelineEvents: AuditLog[] = [];
+  timelineLoaded = false;
+  timelineRefresh = 0;
+  private timelinePrimed = false;
+
+  onTimelineLoaded(events: AuditLog[]): void {
+    this.timelineEvents = Array.isArray(events) ? events : [];
+    this.timelineLoaded = true;
+    this.cdr.detectChanges();
   }
 
   get isOwner(): boolean {
@@ -383,6 +456,12 @@ export class PolicyDetailsComponent implements OnInit {
       .subscribe((policy) => {
         if (!policy) return;
         this.policy = policy;
+        // Refresh the timeline after every reload except the first:
+        // all workflow handlers funnel through loadPolicy on success.
+        if (this.timelinePrimed) {
+          this.timelineRefresh++;
+        }
+        this.timelinePrimed = true;
         this.cdr.detectChanges();
       });
   }
@@ -754,6 +833,21 @@ export class PolicyDetailsComponent implements OnInit {
       day: "2-digit",
       month: "short",
       year: "numeric",
+    });
+  }
+
+  /** Date + exact local time for audit metadata (ISO on hover). */
+  formatDateTime(date: string | null | undefined): string {
+    if (!date) return "Not specified";
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return date;
+    return parsed.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
     });
   }
 

@@ -10,6 +10,21 @@ export interface AuditLog {
   description?: string | null;
   ip_address?: string | null;
   created_at: string;
+  /** Timeline enrichment (per-entity endpoint only). */
+  action_label?: string | null;
+  from_status?: string | null;
+  to_status?: string | null;
+  reason?: string | null;
+}
+
+export interface EntityAuditTimeline {
+  entity_type: string;
+  entity_id: number;
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+  events: AuditLog[];
 }
 
 export interface AuditLogFilters {

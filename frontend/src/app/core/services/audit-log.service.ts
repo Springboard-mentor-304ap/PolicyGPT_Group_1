@@ -1,10 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuditLog, AuditLogFilters } from '../models/audit-log.model';
+import { AuditLog, AuditLogFilters, EntityAuditTimeline } from '../models/audit-log.model';
 import { environment } from '../../../environments/environment';
 
-export type { AuditLog, AuditLogFilters };
+export type { AuditLog, AuditLogFilters, EntityAuditTimeline };
 
 @Injectable({
   providedIn: 'root',
@@ -43,5 +43,28 @@ export class AuditLogService {
    */
   getAuditLog(id: number): Observable<AuditLog> {
     return this.http.get<AuditLog>(`${this.baseUrl}/${id}`);
+  }
+
+  /**
+   * Chronological workflow timeline for one policy/scheme (staff-only on
+   * the backend; actor names/roles are inlined, no per-event lookups).
+   * GET /audit-logs/entity/{entityType}/{entityId}?page=&limit=
+   */
+  getEntityTimeline(
+    entityType: 'POLICY' | 'SCHEME',
+    entityId: number,
+    page = 1,
+    limit = 50,
+  ): Observable<EntityAuditTimeline> {
+    if (!entityId || entityId <= 0) {
+      throw new Error('A valid entity ID is required.');
+    }
+    const params = new HttpParams()
+      .set('page', Math.max(1, page).toString())
+      .set('limit', Math.max(1, Math.min(limit, 200)).toString());
+    return this.http.get<EntityAuditTimeline>(
+      `${this.baseUrl}/entity/${entityType}/${entityId}`,
+      { params },
+    );
   }
 }

@@ -1,0 +1,705 @@
+@use "../../../shared/styles/status-badges" as status;
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+:host {
+  display: contents;
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+/* =========================================================
+   OVERLAY — same dark translucent backdrop + blur as the
+   existing Delete Policy confirmation dialog, one layer below
+   the nested confirmation dialogs (theirs is z-index 99999).
+   Above header / sidebar / chatbot / table overlays.
+   ========================================================= */
+
+.dp-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 90000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(5, 15, 35, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dp-card {
+  width: min(880px, 100%);
+  max-height: min(86vh, 860px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 20px 40px -15px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  overflow: hidden;
+  animation: dpScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dpScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.dp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid #e5eaf1;
+}
+
+.dp-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dp-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #eef4ff;
+  color: #2457d6;
+}
+
+.dp-icon .material-icons {
+  font-size: 22px;
+}
+
+.dp-icon--danger {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #dc2626;
+}
+
+.dp-icon--draft {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  color: #d97706;
+}
+
+.dp-title-text {
+  min-width: 0;
+}
+
+.dp-title-text h2 {
+  margin: 0;
+  color: #1a2439;
+  font-size: 19px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.dp-title-text p {
+  margin: 5px 0 0;
+  color: #71829c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dp-close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #50627c;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dp-close:hover {
+  border-color: #aebfd5;
+  background: #f4f8fd;
+  color: #2457d6;
+}
+
+.dp-close .material-icons {
+  font-size: 19px;
+}
+
+/* =========================================================
+   BANNERS
+   ========================================================= */
+
+.dp-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 20px 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.dp-banner .material-icons {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.dp-banner--success {
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  color: #047857;
+}
+
+.dp-banner--error {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b91c1c;
+}
+
+.dp-banner-dismiss {
+  margin-left: auto;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+}
+
+.dp-banner-dismiss .material-icons {
+  font-size: 16px;
+}
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.dp-search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.dp-search-box {
+  height: 44px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd7e6;
+  border-radius: 10px;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dp-search-box:focus-within {
+  border-color: #2457d6;
+  box-shadow: 0 0 0 3px rgba(36, 87, 214, 0.09);
+}
+
+.dp-search-icon {
+  margin: 0 8px 0 12px;
+  color: #6e819d;
+  font-size: 20px;
+}
+
+.dp-search-box input {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #17223b;
+  font-size: 12px;
+}
+
+.dp-search-box input::placeholder {
+  color: #93a2b8;
+}
+
+.dp-search-clear {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #8190a5;
+  cursor: pointer;
+}
+
+.dp-search-clear:hover {
+  background: #f1f5f9;
+  color: #26354d;
+}
+
+.dp-search-clear .material-icons {
+  font-size: 17px;
+}
+
+.dp-count {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  color: #8491a4;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dp-count strong {
+  color: #2457d6;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* =========================================================
+   LIST (internal scroll)
+   ========================================================= */
+
+.dp-list {
+  flex: 1;
+  min-height: 200px;
+  overflow-y: auto;
+  padding: 4px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dp-state {
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: #7a8aa1;
+  text-align: center;
+}
+
+.dp-state strong {
+  color: #34445d;
+  font-size: 13px;
+}
+
+.dp-state span {
+  color: #8593a7;
+  font-size: 11px;
+}
+
+.dp-spinner {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 3px;
+  border: 3px solid #dce5f1;
+  border-top-color: #2457d6;
+  border-radius: 50%;
+  animation: dpSpin 0.75s linear infinite;
+}
+
+@keyframes dpSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dp-empty-icon {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dce5ef;
+  border-radius: 13px;
+  background: #f7f9fc;
+  color: #71839d;
+}
+
+.dp-empty-icon .material-icons {
+  font-size: 25px;
+}
+
+.dp-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 1px solid #e6ebf1;
+  border-radius: 12px;
+  background: #fff;
+  transition: background 0.12s ease;
+}
+
+.dp-row:hover {
+  background: #fbfcff;
+}
+
+.dp-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.dp-name {
+  max-width: 100%;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+  color: #214fbe;
+  cursor: pointer;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.dp-name:hover {
+  color: #163f9e;
+  text-decoration: underline;
+}
+
+.dp-desc {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: #7d8ca2;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dp-meta {
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #7d8ca2;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.dp-meta-sep {
+  color: #b6c2d3;
+}
+
+.status-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: 1px solid #f0dfbd;
+  border-radius: 7px;
+  background: #fff9ed;
+  color: #9c620e;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-pill-colors;
+}
+
+.status-pill .status-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: #c98517;
+}
+
+.dp-row-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.dp-more-btn {
+  width: 35px;
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #50627c;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dp-more-btn:hover,
+.dp-more-btn.open {
+  border-color: #aebfd5;
+  background: #f4f8fd;
+  color: #2457d6;
+}
+
+.dp-more-btn .material-icons {
+  font-size: 19px;
+}
+
+/* =========================================================
+   FLOATING ROW MENU — fixed-position so it escapes the
+   scrolling list and the card's overflow, same look as the
+   Manage Policies action menus.
+   ========================================================= */
+
+.dp-float-menu {
+  position: fixed;
+  z-index: 2;
+}
+
+.dp-menu {
+  width: 240px;
+  max-width: calc(100vw - 16px);
+  max-height: min(420px, calc(100vh - 40px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #d7e0eb;
+  border-radius: 11px;
+  background: #ffffff;
+  box-shadow:
+    0 12px 30px rgba(25, 44, 72, 0.12),
+    0 4px 10px rgba(25, 44, 72, 0.06);
+  box-sizing: border-box;
+  animation: dpScaleIn 0.12s ease-out;
+}
+
+.dp-menu button {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #3d4d65;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  box-sizing: border-box;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.dp-menu button:hover {
+  background: #f3f6fa;
+  color: #2457d6;
+}
+
+.dp-menu button.danger {
+  color: #b52d26;
+}
+
+.dp-menu button.danger:hover {
+  background: #fff3f2;
+  color: #98251f;
+}
+
+.dp-menu .material-icons {
+  width: 18px;
+  min-width: 18px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.dp-menu .menu-separator {
+  height: 1px;
+  margin: 5px;
+  background: #e6ebf1;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.dp-btn {
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #d5dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #50627c;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dp-btn .material-icons {
+  font-size: 16px;
+}
+
+.dp-btn:hover {
+  border-color: #aebfd5;
+  background: #f4f8fd;
+  color: #2457d6;
+}
+
+.dp-btn--restore {
+  color: #16734a;
+}
+
+.dp-btn--restore:hover {
+  background: #eff9f3;
+  border-color: #bfe3d2;
+  color: #12613e;
+}
+
+.dp-btn--danger {
+  color: #b52d26;
+}
+
+.dp-btn--danger:hover {
+  background: #fff3f2;
+  border-color: #eec2be;
+  color: #98251f;
+}
+
+.dp-btn--secondary {
+  height: 40px;
+  padding: 0 18px;
+  font-size: 12px;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.dp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e1e7ef;
+  background: #fbfcfe;
+  border-radius: 0 0 16px 16px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 680px) {
+  .dp-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .dp-card {
+    max-height: 92vh;
+  }
+
+  .dp-header {
+    padding: 16px 14px 12px;
+  }
+
+  .dp-banner {
+    margin: 10px 14px 0;
+  }
+
+  .dp-search-row {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+  }
+
+  .dp-count {
+    align-self: flex-start;
+  }
+
+  .dp-list {
+    padding: 4px 14px 10px;
+  }
+
+  .dp-row {
+    flex-wrap: wrap;
+  }
+
+  .dp-row-main {
+    flex: 1 1 100%;
+  }
+
+  .dp-row-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dp-footer {
+    padding: 12px 14px;
+  }
+
+  .dp-footer .dp-btn--secondary {
+    width: 100%;
+  }
+}

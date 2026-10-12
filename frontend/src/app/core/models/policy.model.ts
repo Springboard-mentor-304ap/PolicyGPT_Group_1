@@ -56,6 +56,7 @@ export interface PolicyResponse extends PolicyBase {
   status: PolicyStatus;
   created_by?: number | null;
   approved_by?: number | null;
+  updated_by?: number | null;
   rejection_reason?: string | null;
   archive_reason?: string | null;
   archive_requested_by?: number | null;

@@ -819,6 +819,24 @@
   }
 }
 
+/* CONTINUOUS TEXT LISTS (Application Process, Documents Required) */
+.plain-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.plain-list-item {
+  font-size: 15px;
+  color: #1e293b;
+  line-height: 1.6;
+  padding: 12px 4px;
+  overflow-wrap: anywhere;
+
+  & + & {
+    border-top: 1px solid #f1f5f9;
+  }
+}
+
 /* BENEFITS LIST */
 .benefits-list {
   display: flex;
@@ -836,10 +854,35 @@
     background: #f8fafc;
     border: 1px solid #f1f5f9;
     border-radius: 8px;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
+
+    &:hover {
+      background: #f1f8ff;
+      border-color: #dbeafe;
+    }
 
     .check-icon {
       font-size: 19px;
       color: #16a34a;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
       flex-shrink: 0;
       margin-top: 1px;
     }
@@ -1229,4 +1272,110 @@
       grid-template-columns: 1fr;
     }
   }
+}
+
+/* =========================================================
+   POLICY PARITY (shared detail patterns)
+   ========================================================= */
+
+/* Preserve user line breaks for multi-line saved text blocks. */
+.pre-wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Bulleted detail lists, usable outside .left-panel (eligibility tab). */
+.detail-bullets {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.left-panel {
+  /* Bulleted detail lists (key objectives). */
+  .detail-bullets {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  .pre-wrap {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Structured (parsed-JSON) condition details. */
+.rule-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .rule-detail {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  .rule-detail-label {
+    font-weight: 700;
+    color: #0f172a;
+    margin-right: 4px;
+  }
+
+  .rule-detail-value {
+    overflow-wrap: anywhere;
+  }
+
+  .rule-detail-children {
+    margin: 6px 0 2px 14px;
+    padding-left: 12px;
+    border-left: 2px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-bullets {
+    margin: 6px 0 2px;
+  }
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.document-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.document-resource-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
 }

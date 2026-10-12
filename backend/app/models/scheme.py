@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String, Text, select
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, column_property, mapped_column
 
 from app.db.database import Base
+from app.models.policy import Policy
 
 
 class Scheme(Base):
@@ -46,8 +47,28 @@ class Scheme(Base):
         nullable=True,
     )
 
+    eligibility_state: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
     benefits: Mapped[list[str] | None] = mapped_column(
         ARRAY(String),
+        nullable=True,
+    )
+
+    key_highlights: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+    )
+
+    additional_info: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    important_notes: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
     )
 
@@ -66,6 +87,11 @@ class Scheme(Base):
         nullable=True,
     )
 
+    application_source_url: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
     application_end_date: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,
@@ -73,6 +99,11 @@ class Scheme(Base):
 
     source_url: Mapped[str | None] = mapped_column(
         Text,
+        nullable=True,
+    )
+
+    launch_date: Mapped[date | None] = mapped_column(
+        Date,
         nullable=True,
     )
 
@@ -96,6 +127,16 @@ class Scheme(Base):
     approved_by: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("users.user_id"),
+        nullable=True,
+    )
+
+    # Latest editor (draft ownership). created_by never changes;
+    # updated_by tracks who last saved the record so draft lists can
+    # attribute ownership to the latest editor. FK-less
+    # (application-managed, like deleted_by) so user administration
+    # can never be blocked by these references.
+    updated_by: Mapped[int | None] = mapped_column(
+        BigInteger,
         nullable=True,
     )
 
@@ -139,6 +180,30 @@ class Scheme(Base):
     delete_requested_from_status: Mapped[str | None] = mapped_column(
         String(30),
         nullable=True,
+    )
+
+    # ========================================================
+    # RELATED POLICY (OPTIONAL)
+    # ========================================================
+    # Nullable reference to the policy this scheme implements or
+    # relates to. Never stores a title: display info is resolved via
+    # the correlated title below. ON DELETE SET NULL (migration)
+    # preserves scheme rows when a policy is purged.
+    related_policy_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("policies.policy_id"),
+        nullable=True,
+    )
+
+    # Transient display title for the referenced policy (None when no
+    # reference or the policy row is gone). Rendered as a correlated
+    # scalar subquery so every read path (single, list, trash) carries
+    # it without extra queries or per-endpoint enrichment.
+    related_policy_title: Mapped[str | None] = column_property(
+        select(Policy.title)
+        .where(Policy.policy_id == related_policy_id)
+        .scalar_subquery(),
+        deferred=False,
     )
 
     # ========================================================

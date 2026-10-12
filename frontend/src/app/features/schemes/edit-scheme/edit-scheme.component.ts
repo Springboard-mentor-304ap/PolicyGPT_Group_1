@@ -9,11 +9,14 @@ import {
   FormsModule,
 } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, forkJoin, of } from 'rxjs';
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { SchemeService } from '../../../core/services/scheme.service';
+import { PolicyService } from '../../../core/services/policy.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SchemeResponse, SchemeUpdate } from '../../../core/models/scheme.model';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import {
   SCHEME_CATEGORIES,
   MINISTRIES,
@@ -24,7 +27,7 @@ import {
 @Component({
   selector: 'app-edit-scheme',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent, ConfirmModalComponent],
   templateUrl: './edit-scheme.component.html',
   styleUrls: ['./edit-scheme.component.scss'],
 })
@@ -38,6 +41,11 @@ export class EditSchemeComponent implements OnInit {
   schemeId: number = 0;
   existingScheme: SchemeResponse | null = null;
 
+  /** True while the saved record is being fetched; Save/Submit wait for it. */
+  isLoadingRecord = false;
+  /** Load failure message with retry; the form never shows silently empty. */
+  loadError: string | null = null;
+
   // Role
   isAdmin = false;
   rolePrefix = 'government';
@@ -49,9 +57,38 @@ export class EditSchemeComponent implements OnInit {
   submitted = false;
   stepSubmitted: { [key: number]: boolean } = {};
   showSuccessModal = false;
+
+  /** Backend-confirmed outcome of the last submission (modal messaging). */
+  submittedApproved = false;
   savedDraftToast = false;
   isSaving = false;
   isSubmitting = false;
+
+  /* ============================================================
+     POST-SUBMIT WORKFLOW MODAL (mirrors Add Policy: result -> add-more)
+     ============================================================ */
+
+  modalType: "submitted" | "pending" | "add-more" | null = null;
+  modalTitle = "";
+  modalMessage = "";
+
+  /* ============================================================
+     PRE-ACTION CONFIRM MODAL (shared ConfirmModalComponent)
+     Same component and configuration as Add Policy.
+     ============================================================ */
+
+  confirmModalOpen = false;
+  confirmTitle = "";
+  confirmMessage = "";
+  confirmMessageBefore = "";
+  confirmHighlight = "";
+  confirmMessageAfter = "";
+  confirmParseQuotes = true;
+  confirmVariant: "primary" | "danger" | "warning" = "primary";
+  confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
+  confirmText = "Confirm";
 
   // Dropdown options
   categories: string[] = SCHEME_CATEGORIES;
@@ -116,12 +153,18 @@ export class EditSchemeComponent implements OnInit {
   // Dynamic additional eligibility criteria list
   additionalCriteriaList: string[] = [];
 
+  // Related Policy options (loaded from the real backend; optional).
+  relatedPolicyOptions: { value: string; label: string }[] = [];
+  relatedPoliciesLoading = false;
+  relatedPoliciesError: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private authService: Auth,
     private schemeService: SchemeService,
+    private policyService: PolicyService,
     private toastService: ToastService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -131,8 +174,93 @@ export class EditSchemeComponent implements OnInit {
     const idParam = this.route.snapshot.paramMap.get('id');
     this.schemeId = idParam ? parseInt(idParam, 10) : 0;
     this.initForm();
+    this.loadRelatedPolicies();
     if (this.schemeId > 0) {
       this.loadSchemeData();
+    }
+  }
+
+  /**
+   * Load referenceable policies once for the Related Policy selector.
+   * APPROVED policies are visible to every role; the backend still
+   * validates the final reference authoritatively on save/submit.
+   */
+  loadRelatedPolicies(): void {
+    if (this.relatedPoliciesLoading) return;
+    this.relatedPoliciesLoading = true;
+    this.relatedPoliciesError = null;
+    this.policyService.getPolicies({ status: 'APPROVED', page: 1, limit: 100 }).subscribe({
+      next: (res) => {
+        const list = Array.isArray(res?.policies) ? res.policies : [];
+        this.relatedPolicyOptions = list.map((p) => ({
+          value: String(p.policy_id),
+          label: p.title,
+        }));
+        this.ensureSelectedPolicyOption();
+        this.relatedPoliciesLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.relatedPoliciesLoading = false;
+        this.relatedPoliciesError = this.getErrorMessage(err);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /**
+   * Keep a previously saved selection visible even when it is absent
+   * from the APPROVED list (e.g. own non-approved policy): resolve it
+   * by ID so step navigation, review, and reopening never lose it.
+   */
+  private ensureSelectedPolicyOption(): void {
+    const raw = this.schemeForm?.get('relatedPolicyId')?.value;
+    const id = raw === null || raw === undefined || raw === '' ? null : Number(raw);
+    if (id === null || !Number.isInteger(id) || id <= 0) return;
+    if (this.relatedPolicyOptions.some((o) => o.value === String(id))) return;
+    this.policyService.getPolicy(id).subscribe({
+      next: (p) => {
+        if (p && (p as any).policy_id) {
+          this.relatedPolicyOptions = [
+            { value: String((p as any).policy_id), label: (p as any).title },
+            ...this.relatedPolicyOptions,
+          ];
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {},
+    });
+  }
+
+  /** Display label of the selected related policy for the review screen. */
+  get relatedPolicyLabel(): string {
+    const raw = this.schemeForm?.get('relatedPolicyId')?.value;
+    if (raw === null || raw === undefined || raw === '') return 'None';
+    const found = this.relatedPolicyOptions.find((o) => o.value === String(raw));
+    return found ? found.label : `Policy #${raw}`;
+  }
+
+  /**
+   * Record a backend-confirmed policy reference (draft save) so its
+   * display label survives without an extra fetch.
+   */
+  private trackSavedPolicyReference(res: any): void {
+    const id = res?.related_policy_id;
+    if (id === null || id === undefined || id === '') return;
+    if (this.relatedPolicyOptions.some((o) => o.value === String(id))) {
+      this.ensureSelectedPolicyOption();
+      return;
+    }
+    const title = typeof res?.related_policy_title === 'string' && res.related_policy_title.trim()
+      ? res.related_policy_title.trim()
+      : null;
+    if (title) {
+      this.relatedPolicyOptions = [
+        { value: String(id), label: title },
+        ...this.relatedPolicyOptions,
+      ];
+    } else {
+      this.ensureSelectedPolicyOption();
     }
   }
 
@@ -152,8 +280,8 @@ export class EditSchemeComponent implements OnInit {
       // Step 1: Basic Information
       name: ['', [Validators.required, Validators.maxLength(300)]],
       category: ['', Validators.required],
-      ministry: [''],
-      department: [''],
+      ministry: ['', Validators.required],
+      department: ['', Validators.required],
       state: ['All India'],
       description: ['', [Validators.required, Validators.maxLength(5000)]],
       benefits: this.fb.array([this.fb.control(''), this.fb.control('')]),
@@ -164,7 +292,6 @@ export class EditSchemeComponent implements OnInit {
       keyHighlights: this.fb.array([this.fb.control(''), this.fb.control('')]),
       additionalInfo: ['', [Validators.maxLength(1000)]],
       importantNotes: ['', [Validators.maxLength(1000)]],
-      mediaFileName: [''],
 
       // Step 3: Eligibility Criteria
       minAge: ['', [Validators.min(0), Validators.max(120)]],
@@ -185,6 +312,12 @@ export class EditSchemeComponent implements OnInit {
 
       // Step 5: Declaration
       declarationAgreed: [true, Validators.requiredTrue],
+
+      // Related Policy (optional reference to a real policy record).
+      relatedPolicyId: [null],
+
+      // Publication / Launch Date (required).
+      launchDate: ['', Validators.required],
     });
   }
 
@@ -201,7 +334,8 @@ export class EditSchemeComponent implements OnInit {
     if (specificDepts && specificDepts.length > 0) {
       this.departmentOptions = [...specificDepts];
       const currentDept = this.schemeForm.get('department')?.value;
-      if (clearIfInvalid && currentDept && !specificDepts.includes(currentDept)) {
+      if (clearIfInvalid && currentDept && !specificDepts.includes(currentDept) &&
+        this.isKnownDepartment(currentDept)) {
         this.schemeForm.get('department')?.setValue('');
       }
     } else {
@@ -213,17 +347,56 @@ export class EditSchemeComponent implements OnInit {
     }
   }
 
+  /*
+   * Ministry changes reset a stale *predefined* department, but a
+   * custom-typed department (not present in any known list) is kept:
+   * clearing it would silently destroy user input.
+   */
+  private isKnownDepartment(value: unknown): boolean {
+    if (typeof value !== 'string' || !value) return false;
+    if (ALL_DEPARTMENTS.includes(value)) return true;
+    return Object.values(MINISTRY_DEPARTMENTS_MAP).some((list) =>
+      list.includes(value),
+    );
+  }
+
   onMinistryChange(selectedMinistry: string): void {
     this.updateDepartmentOptions(selectedMinistry, true);
   }
 
   private loadSchemeData(): void {
-    this.schemeService.getScheme(this.schemeId).subscribe({
-      next: (scheme: SchemeResponse) => {
+    if (this.schemeId <= 0) {
+      this.loadError = 'Invalid scheme ID.';
+      this.cdr.detectChanges();
+      return;
+    }
+    this.isLoadingRecord = true;
+    this.loadError = null;
+    this.cdr.detectChanges();
+
+    // Independent reads fire concurrently: the record and its
+    // relational eligibility rules need only the route ID. A rules
+    // failure must never wipe the saved record, so it degrades to [].
+    forkJoin({
+      scheme: this.schemeService.getScheme(this.schemeId),
+      rules: this.schemeService.getEligibilityRules(this.schemeId).pipe(
+        catchError((err) => {
+          console.error('Failed to load eligibility rules:', err);
+          return of([]);
+        }),
+      ),
+    }).subscribe({
+      next: ({ scheme, rules }) => {
         this.existingScheme = scheme;
 
-        // Set department options before patching form values, preserving existing department
-        this.updateDepartmentOptions(scheme.ministry || '', false);
+        // Reset repeatable UI-only state so reloads/retries never
+        // duplicate dynamic rows (controls below are rebuilt fresh).
+        this.additionalCriteriaList = [];
+
+        // Options first (ministry before department), preserving saved
+        // values — including custom values missing from static lists —
+        // so every dropdown shows its selection immediately.
+        this.ensureSavedOptions(scheme);
 
         // Set form fields
         this.schemeForm.patchValue({
@@ -237,7 +410,39 @@ export class EditSchemeComponent implements OnInit {
           applicationUrl: scheme.application_url || '',
           applicationProcess: scheme.application_process || '',
           documentsRequired: scheme.documents_required || '',
+          relatedPolicyId: scheme.related_policy_id != null ? String(scheme.related_policy_id) : null,
+          launchDate: (scheme as any).launch_date || '',
+          additionalInfo: (scheme as any).additional_info || '',
+          importantNotes: (scheme as any).important_notes || '',
+          eligibilityState: (scheme as any).eligibility_state || 'All India',
+          applicationSourceUrl: (scheme as any).application_source_url || '',
         });
+
+        // Set key-highlights FormArray from the saved record.
+        if (Array.isArray((scheme as any).key_highlights) && (scheme as any).key_highlights.length > 0) {
+          const highlightsArray = this.fb.array(
+            (scheme as any).key_highlights.map((h: unknown) => this.fb.control(String(h ?? '')))
+          );
+          this.schemeForm.setControl('keyHighlights', highlightsArray);
+        }
+
+        // Keep a saved reference visible even when absent from the list.
+        if (scheme.related_policy_id != null) {
+          const id = String(scheme.related_policy_id);
+          if (!this.relatedPolicyOptions.some((o) => o.value === id)) {
+            const title = typeof scheme.related_policy_title === 'string' && scheme.related_policy_title.trim()
+              ? scheme.related_policy_title.trim()
+              : null;
+            if (title) {
+              this.relatedPolicyOptions = [
+                { value: id, label: title },
+                ...this.relatedPolicyOptions,
+              ];
+            } else {
+              this.ensureSelectedPolicyOption();
+            }
+          }
+        }
 
         // Set benefits FormArray
         if (Array.isArray(scheme.benefits) && scheme.benefits.length > 0) {
@@ -247,11 +452,50 @@ export class EditSchemeComponent implements OnInit {
           this.schemeForm.setControl('benefits', benefitsArray);
         }
 
-        // Fetch eligibility rules
-        this.schemeService.getEligibilityRules(this.schemeId).subscribe({
-          next: (rules) => {
-            if (Array.isArray(rules)) {
-              rules.forEach((rule: any) => {
+        this.applyEligibilityRules(Array.isArray(rules) ? rules : []);
+        this.isLoadingRecord = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load scheme:', err);
+        this.isLoadingRecord = false;
+        this.loadError = this.getErrorMessage(err);
+        this.toastService.error('Failed to load scheme details');
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /** Retry a failed record load without losing route context. */
+  retryLoad(): void {
+    this.loadError = null;
+    this.loadSchemeData();
+  }
+
+  /**
+   * Guarantee every saved dropdown value has a matching option the
+   * moment data arrives — including custom values absent from static
+   * lists — without mutating the shared constants. Dependent lists
+   * resolve in order: ministries, then that ministry's departments.
+   */
+  private ensureSavedOptions(scheme: SchemeResponse): void {
+    const present = (v: unknown): v is string =>
+      typeof v === 'string' && v.trim().length > 0;
+    const withSaved = (list: string[], v: unknown): string[] =>
+      present(v) && !list.includes(v.trim()) ? [v.trim(), ...list] : list;
+
+    this.categories = withSaved(SCHEME_CATEGORIES, scheme.category);
+    this.ministries = withSaved(MINISTRIES, scheme.ministry);
+    // Department options depend on the saved ministry; the saved
+    // department is preserved (never cleared) below.
+    this.updateDepartmentOptions(scheme.ministry || '', false);
+    this.departmentOptions = withSaved(this.departmentOptions, scheme.department);
+    this.states = withSaved(this.states, scheme.state || 'All India');
+  }
+
+  /** Patch relational eligibility rules into the form (one pass). */
+  private applyEligibilityRules(rules: any[]): void {
+    rules.forEach((rule: any) => {
                 if (rule.rule_type === 'AGE_CRITERIA') {
                   if (rule.min_age !== null && rule.min_age !== undefined) {
                     this.schemeForm.patchValue({ minAge: rule.min_age });
@@ -270,32 +514,27 @@ export class EditSchemeComponent implements OnInit {
                 } else if (rule.rule_type === 'SOCIAL_CATEGORY' && rule.value) {
                   this.schemeForm.patchValue({ socialCategory: rule.value });
                 } else if (rule.rule_type === 'DISABILITY_STATUS') {
+                  // null persists 'Both'; true/false map back directly.
+                  const v = (rule as any).value;
                   this.schemeForm.patchValue({
-                    disabilityStatus: rule.value ? 'Applicable' : 'Not Applicable',
+                    disabilityStatus: v === null || v === undefined ? 'Both' : v ? 'Applicable' : 'Not Applicable',
                   });
                 } else if (rule.rule_type === 'TARGET_BENEFICIARIES' && rule.value) {
                   this.schemeForm.patchValue({ targetBeneficiaries: rule.value });
                 } else if (rule.rule_type === 'CUSTOM_CONDITION' && rule.description) {
                   this.additionalCriteriaList.push(rule.description);
                 }
-              });
-            }
-            this.cdr.detectChanges();
-          },
-          error: (err) => {
-            console.error('Failed to load eligibility rules:', err);
-            this.cdr.detectChanges();
-          },
-        });
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Failed to load scheme:', err);
-        this.toastService.error('Failed to load scheme details');
-        this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
-      },
     });
+
+    // Custom rule values absent from static lists get matching options
+    // so their dropdowns display immediately.
+    const withSaved = (list: string[], v: unknown): string[] => {
+      const s = typeof v === 'string' ? v.trim() : '';
+      return s && !list.includes(s) ? [s, ...list] : list;
+    };
+    this.educationOptions = withSaved(this.educationOptions, this.schemeForm.get('education')?.value);
+    this.occupationOptions = withSaved(this.occupationOptions, this.schemeForm.get('occupation')?.value);
+    this.socialCategoryOptions = withSaved(this.socialCategoryOptions, this.schemeForm.get('socialCategory')?.value);
   }
 
   // --- Form Array Getters ---
@@ -341,13 +580,30 @@ export class EditSchemeComponent implements OnInit {
   }
 
   // --- Stepper Navigation ---
+  /**
+   * Blue progress-fill width (%) across the four step connections,
+   * derived from the active step index: 0/20/40/60/80.
+   */
+  get stepperProgress(): number {
+    return (this.currentStep - 1) * 20;
+  }
+
+  /**
+   * Slide direction of the last successful step change. Drives the
+   * CSS step-transition; stays null until the first navigation so
+   * initial loads never animate.
+   */
+  stepTransition: "forward" | "back" | null = null;
+
   goToStep(step: number): void {
     if (step < this.currentStep) {
       this.currentStep = step;
+      this.stepTransition = "back";
       this.cdr.detectChanges();
     } else if (this.isStepValid(this.currentStep)) {
       this.completedSteps.add(this.currentStep);
       this.currentStep = step;
+      this.stepTransition = "forward";
       this.cdr.detectChanges();
     } else {
       this.stepSubmitted[this.currentStep] = true;
@@ -368,6 +624,7 @@ export class EditSchemeComponent implements OnInit {
     this.completedSteps.add(this.currentStep);
     if (this.currentStep < this.totalSteps) {
       this.currentStep++;
+      this.stepTransition = "forward";
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     this.cdr.detectChanges();
@@ -376,6 +633,7 @@ export class EditSchemeComponent implements OnInit {
   prevStep(): void {
     if (this.currentStep > 1) {
       this.currentStep--;
+      this.stepTransition = "back";
       window.scrollTo({ top: 0, behavior: 'smooth' });
       this.cdr.detectChanges();
     }
@@ -387,9 +645,12 @@ export class EditSchemeComponent implements OnInit {
         return (
           !!this.schemeForm.get('name')?.valid &&
           !!this.schemeForm.get('category')?.valid &&
+          !!this.schemeForm.get('ministry')?.valid &&
+          !!this.schemeForm.get('department')?.valid &&
           !!this.schemeForm.get('description')?.valid
         );
       case 2:
+        return !!this.schemeForm.get('launchDate')?.valid;
       case 3:
       case 4:
         return true;
@@ -406,6 +667,11 @@ export class EditSchemeComponent implements OnInit {
         this.schemeForm.get('name')?.markAsTouched();
         this.schemeForm.get('category')?.markAsTouched();
         this.schemeForm.get('description')?.markAsTouched();
+        this.schemeForm.get('ministry')?.markAsTouched();
+        this.schemeForm.get('department')?.markAsTouched();
+        break;
+      case 2:
+        this.schemeForm.get('launchDate')?.markAsTouched();
         break;
       case 5:
         this.schemeForm.get('declarationAgreed')?.markAsTouched();
@@ -482,7 +748,12 @@ export class EditSchemeComponent implements OnInit {
     }
 
     if (formVal.disabilityStatus && formVal.disabilityStatus !== 'Not Applicable') {
-      rules.push({ rule_type: 'DISABILITY_STATUS', value: formVal.disabilityStatus === 'Applicable' });
+      rules.push({
+        rule_type: 'DISABILITY_STATUS',
+        // 'Both' persists as null so reopening restores 'Both'
+        // instead of collapsing to 'Not Applicable'.
+        value: formVal.disabilityStatus === 'Applicable' ? true : formVal.disabilityStatus === 'Both' ? null : false,
+      });
     }
 
     this.additionalCriteriaList
@@ -498,6 +769,13 @@ export class EditSchemeComponent implements OnInit {
     const formVal = this.schemeForm.value;
     const eligibilityRules = this.buildEligibilityRules();
 
+    const relRaw = formVal.relatedPolicyId;
+    const relId = relRaw === null || relRaw === undefined || relRaw === ''
+      ? null
+      : Number(relRaw);
+    const relatedPolicyId =
+      relId !== null && Number.isInteger(relId) && relId > 0 ? relId : null;
+
     return {
       name: String(formVal.name ?? '').trim(),
       description: String(formVal.description ?? '').trim(),
@@ -505,43 +783,134 @@ export class EditSchemeComponent implements OnInit {
       ministry: formVal.ministry || null,
       department: formVal.department || null,
       state: formVal.state || null,
+      eligibility_state: formVal.eligibilityState || null,
       benefits: this.filteredBenefits.length > 0 ? this.filteredBenefits : null,
+      key_highlights: this.filteredHighlights.length > 0 ? this.filteredHighlights : null,
+      additional_info: String(formVal.additionalInfo ?? '').trim() || null,
+      important_notes: String(formVal.importantNotes ?? '').trim() || null,
       source_url: formVal.sourceUrl || null,
       application_url: formVal.applicationUrl || null,
+      application_source_url: formVal.applicationSourceUrl || null,
       application_process: formVal.applicationProcess || null,
       documents_required: formVal.documentsRequired || null,
       eligibility_rules: eligibilityRules.length > 0 ? eligibilityRules : null,
+      launch_date: formVal.launchDate || null,
+      related_policy_id: relatedPolicyId,
     };
   }
 
   // --- Save / Submit Handlers ---
+  private getSchemeTitleForModal(): string {
+    const raw = String(this.schemeForm.get('name')?.value ?? '').trim();
+    return raw || 'Scheme';
+  }
+
+  /**
+   * Open the Save-as-Draft confirmation immediately (no API call yet).
+   * The request fires only after the user confirms in the modal.
+   */
+  openSaveDraftConfirm(): void {
+    if (this.isSaving || this.isSubmitting || this.confirmModalOpen || this.isLoadingRecord) {
+      return;
+    }
+
+    if (!this.schemeForm.get('name')?.value || !this.schemeForm.get('category')?.value ||
+      !this.schemeForm.get('description')?.value || !this.schemeForm.get('ministry')?.value ||
+      !this.schemeForm.get('department')?.value || !this.schemeForm.get('launchDate')?.value) {
+      this.schemeForm.get('name')?.markAsTouched();
+      this.schemeForm.get('category')?.markAsTouched();
+      this.schemeForm.get('description')?.markAsTouched();
+      this.schemeForm.get('ministry')?.markAsTouched();
+      this.schemeForm.get('department')?.markAsTouched();
+      this.schemeForm.get('launchDate')?.markAsTouched();
+      this.toastService.warning('Please enter Scheme Name, Category, Ministry, Department, Description, and Publication / Launch Date to save a draft.');
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const title = this.getSchemeTitleForModal();
+    this.confirmTitle = 'Save Scheme as Draft';
+    this.confirmMessage = `You are about to save ${title} as a draft. You can continue editing it later.`;
+    this.confirmMessageBefore = 'You are about to save ';
+    this.confirmHighlight = title;
+    this.confirmMessageAfter = ' as a draft. You can continue editing it later.';
+    this.confirmParseQuotes = true;
+    this.confirmVariant = 'primary';
+    this.confirmText = 'Save as Draft';
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => this.saveDraft();
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
   saveDraft(): void {
-    if (this.isSaving) return;
+    if (this.isSaving || this.isLoadingRecord) return;
+
+    if (!this.schemeForm.get('name')?.value || !this.schemeForm.get('category')?.value ||
+      !this.schemeForm.get('description')?.value || !this.schemeForm.get('ministry')?.value ||
+      !this.schemeForm.get('department')?.value || !this.schemeForm.get('launchDate')?.value) {
+      this.schemeForm.get('name')?.markAsTouched();
+      this.schemeForm.get('category')?.markAsTouched();
+      this.schemeForm.get('description')?.markAsTouched();
+      this.schemeForm.get('ministry')?.markAsTouched();
+      this.schemeForm.get('department')?.markAsTouched();
+      this.schemeForm.get('launchDate')?.markAsTouched();
+      this.toastService.warning('Please enter Scheme Name, Category, Ministry, Department, Description, and Publication / Launch Date to save a draft.');
+      this.cdr.detectChanges();
+      return;
+    }
 
     this.isSaving = true;
+    this.confirmLoading = true;
+    this.confirmErrorMessage = null;
     const payload = this.buildSchemePayload();
 
     this.schemeService.updateScheme(this.schemeId, payload).subscribe({
-      next: () => {
+      next: (res) => {
         this.isSaving = false;
+        this.trackSavedPolicyReference(res);
         this.savedDraftToast = true;
         this.toastService.success(this.schemeDraftToast(
           (n) => `Scheme "${n}" updated successfully.`,
           'Scheme changes saved as draft.',
         ));
+        this.closeConfirmModal();
         this.cdr.detectChanges();
-        setTimeout(() => {
-          this.savedDraftToast = false;
-          this.cdr.detectChanges();
-        }, 3500);
+        this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
       },
       error: (err) => {
         this.isSaving = false;
+        this.confirmLoading = false;
         console.error('Failed to save draft:', err);
-        this.toastService.error(this.getErrorMessage(err));
+        const message = this.getErrorMessage(err);
+        this.confirmErrorMessage = message;
+        this.toastService.error(message);
         this.cdr.detectChanges();
       },
     });
+  }
+
+  /** Dismiss the pre-action confirmation and reset its state. */
+  private closeConfirmModal(): void {
+    this.confirmModalOpen = false;
+    this.confirmAction = null;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmText = 'Confirm';
+  }
+
+  onConfirmModalConfirmed(): void {
+    if (this.confirmLoading) return;
+    if (this.confirmAction) {
+      this.confirmAction();
+    }
+  }
+
+  onConfirmModalCancelled(): void {
+    if (this.confirmLoading) return;
+    this.closeConfirmModal();
+    this.cdr.detectChanges();
   }
 
   onSubmit(): void {
@@ -555,47 +924,103 @@ export class EditSchemeComponent implements OnInit {
       return;
     }
 
+    // Validation passed: confirm before any API call.
+    this.openSubmitConfirm();
+  }
+
+  /**
+   * Open the Submit confirmation immediately after validation passes.
+   * The update-then-submit requests fire only after the user confirms
+   * in the modal.
+   */
+  private openSubmitConfirm(): void {
+    if (this.confirmModalOpen || this.isLoadingRecord) return;
+
+    const title = this.getSchemeTitleForModal();
+    this.confirmTitle = 'Submit Scheme';
+    this.confirmMessage = this.isAdmin
+      ? `You are about to submit ${title}. It will be published on the SchemeGPT platform.`
+      : `You are about to submit ${title}. It will be submitted to the Admin for review and approval, and published only after approval.`;
+    this.confirmMessageBefore = 'You are about to submit ';
+    this.confirmHighlight = title;
+    this.confirmMessageAfter = this.isAdmin
+      ? '. It will be published on the SchemeGPT platform.'
+      : '. It will be submitted to the Admin for review and approval, and published only after approval.';
+    this.confirmParseQuotes = true;
+    this.confirmVariant = 'primary';
+    this.confirmText = this.isAdmin ? 'Submit' : 'Submit for Approval';
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => this.executeSubmit();
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /** Run the validated update-then-submit sequence after confirmation. */
+  private executeSubmit(): void {
+    if (this.isSubmitting || this.isSaving || this.showSuccessModal || this.isLoadingRecord) {
+      return;
+    }
+
+    this.confirmLoading = true;
+    this.confirmErrorMessage = null;
+    this.cdr.detectChanges();
+
     this.isSubmitting = true;
     const payload = this.buildSchemePayload();
 
     this.schemeService.updateScheme(this.schemeId, payload).subscribe({
       next: () => {
-        if (this.isAdmin) {
-          // Admin approves
-          this.schemeService.approveScheme(this.schemeId).subscribe({
-            next: () => {
-              this.isSubmitting = false;
-              this.showSuccessModal = true;
-              this.cdr.detectChanges();
-            },
-            error: (err) => {
-              this.isSubmitting = false;
-              console.error('Approval failed:', err);
-              this.toastService.error(this.getErrorMessage(err));
-              this.cdr.detectChanges();
-            },
-          });
-        } else {
-          // Government Official submits for approval
-          this.schemeService.submitScheme(this.schemeId).subscribe({
-            next: () => {
-              this.isSubmitting = false;
-              this.showSuccessModal = true;
-              this.cdr.detectChanges();
-            },
-            error: (err) => {
-              this.isSubmitting = false;
-              console.error('Submit for approval failed:', err);
-              this.toastService.error(this.getErrorMessage(err));
-              this.cdr.detectChanges();
-            },
-          });
-        }
+        // One submission path for every role: the backend determines the
+        // resulting status from the authenticated role (admin drafts are
+        // direct-approved, officials go to PENDING_APPROVAL). Never call
+        // approve directly here — approve rejects non-pending records.
+        this.schemeService.submitScheme(this.schemeId).subscribe({
+          next: (res) => {
+            this.isSubmitting = false;
+            this.submittedApproved =
+              String(res?.status || '').toUpperCase() === 'APPROVED';
+            const schemeName = String(this.schemeForm.get('name')?.value ?? '').trim();
+            if (this.submittedApproved) {
+              this.toastService.success(
+                schemeName
+                  ? `Scheme "${schemeName}" approved successfully.`
+                  : 'Scheme approved successfully.',
+              );
+            } else {
+              this.toastService.success(
+                schemeName
+                  ? `Scheme "${schemeName}" submitted for approval.`
+                  : 'Scheme submitted for approval.',
+              );
+            }
+            this.closeConfirmModal();
+            // Completion stage (mirrors Policy's add-more popup): YES
+            // restarts on the Add page, NO goes to Manage Schemes.
+            this.modalType = 'add-more';
+            this.modalTitle = 'Scheme Submission Complete';
+            this.modalMessage = 'Do you want to add another scheme?';
+            this.showSuccessModal = true;
+            this.cdr.detectChanges();
+          },
+          error: (err) => {
+            this.isSubmitting = false;
+            this.confirmLoading = false;
+            console.error('Submit for approval failed:', err);
+            const message = this.getErrorMessage(err);
+            this.confirmErrorMessage = message;
+            this.toastService.error(message);
+            this.cdr.detectChanges();
+          },
+        });
       },
       error: (err) => {
         this.isSubmitting = false;
+        this.confirmLoading = false;
         console.error('Update failed:', err);
-        this.toastService.error(this.getErrorMessage(err));
+        const message = this.getErrorMessage(err);
+        this.confirmErrorMessage = message;
+        this.toastService.error(message);
         this.cdr.detectChanges();
       },
     });
@@ -603,6 +1028,49 @@ export class EditSchemeComponent implements OnInit {
 
   closeSuccessModal(): void {
     this.showSuccessModal = false;
+    this.modalType = null;
+    this.cdr.detectChanges();
+    this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
+  }
+
+  /**
+   * Completion popup OK (result stages): advance to the add-more
+   * prompt, mirroring Add Policy's onModalOk.
+   */
+  onModalOk(): void {
+    if (this.isSubmitting || this.isSaving) {
+      return;
+    }
+    if (this.modalType === 'submitted' || this.modalType === 'pending') {
+      this.modalType = 'add-more';
+      this.modalTitle = 'Scheme Submission Complete';
+      this.modalMessage = 'Do you want to add another scheme?';
+      this.cdr.detectChanges();
+      return;
+    }
+    this.modalType = null;
+    this.cdr.detectChanges();
+  }
+
+  /** Completion popup YES: fresh Add Scheme form (no carried-over data). */
+  onAddMoreScheme(): void {
+    if (this.isSubmitting || this.isSaving) {
+      return;
+    }
+    this.showSuccessModal = false;
+    this.modalType = null;
+    this.cdr.detectChanges();
+    this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/add`]);
+  }
+
+  /** Completion popup NO: go to Manage Schemes. */
+  onFinishAddingSchemes(): void {
+    if (this.isSubmitting || this.isSaving) {
+      return;
+    }
+    this.showSuccessModal = false;
+    this.modalType = null;
+    this.cdr.detectChanges();
     this.router.navigate([`/dashboard/${this.rolePrefix}/schemes/manage`]);
   }
 

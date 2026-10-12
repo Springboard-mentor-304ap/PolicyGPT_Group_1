@@ -21,7 +21,9 @@
 
     <header class="page-header">
         <div class="page-title-area">
+
             <h1>Manage Schemes</h1>
+
             <p>
                 Review, monitor and manage government schemes through the official
                 scheme administration workflow.
@@ -29,11 +31,6 @@
         </div>
 
         <div class="header-actions">
-            <div class="role-chip">
-                <span class="material-icons">verified_user</span>
-                {{ isAdmin ? 'Administrator' : 'Government Official' }}
-            </div>
-
             @if (isAdmin) {
             <button type="button" class="secondary-header-action deleted-action"
                 (click)="$event.stopPropagation(); openDeletedModal()">
@@ -41,6 +38,19 @@
                 View Deleted Schemes
             </button>
             }
+            @if (!isAdmin) {
+            <button type="button" class="secondary-header-action deleted-action"
+                (click)="$event.stopPropagation(); openGovtDeletedModal()">
+                <span class="material-icons">delete_sweep</span>
+                View Deleted Schemes
+            </button>
+            }
+
+            <button type="button" class="secondary-header-action draft-action"
+                (click)="$event.stopPropagation(); openDraftsModal()">
+                <span class="material-icons">edit_note</span>
+                View Draft Schemes
+            </button>
 
             <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewScheme()">
                 <span class="material-icons">add</span>
@@ -55,7 +65,9 @@
        ========================================================= -->
 
     <section class="overview-section">
+
         <div class="stats-grid">
+
             <article class="stat-item">
                 <div class="stat-icon blue">
                     <span class="material-icons">description</span>
@@ -105,6 +117,7 @@
                     <strong>{{ stats.archived }}</strong>
                 </div>
             </article>
+
         </div>
     </section>
 
@@ -113,27 +126,9 @@
        ========================================================= -->
 
     <section class="filter-card">
-        <div class="card-heading">
-            <div class="heading-icon">
-                <span class="material-icons">manage_search</span>
-            </div>
-
-            <div>
-                <h2>Find a Scheme</h2>
-                <p>Search the official scheme register or filter records by status.</p>
-            </div>
-
-            @if (searchText || selectedCategory || selectedStatus) {
-            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
-                <span class="material-icons">restart_alt</span>
-                Clear filters
-            </button>
-            }
-        </div>
-
-        <div class="filter-divider"></div>
 
         <div class="filter-grid">
+
             <div class="form-field search-control">
                 <label for="scheme-search">Search schemes</label>
 
@@ -141,7 +136,7 @@
                     <span class="material-icons input-icon">search</span>
 
                     <input id="scheme-search" type="search" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
-                        placeholder="Search by scheme title, category, ministry or department" autocomplete="off" />
+                        placeholder="Search by scheme name, category, ministry, department or state" autocomplete="off" />
 
                     @if (searchText) {
                     <button type="button" class="input-clear" aria-label="Clear search"
@@ -153,25 +148,55 @@
             </div>
 
             <div class="form-field">
-                <label for="scheme-category">Category</label>
-
-                <app-searchable-select id="scheme-category" icon="category" placeholder="All categories"
-                    [searchable]="true" searchPlaceholder="Search categories..." [options]="categories"
-                    [(ngModel)]="selectedCategory" (selectionChange)="applyFilters()" />
-            </div>
-
-            <div class="form-field">
-                <label for="scheme-status">Workflow status</label>
+                <label for="scheme-status">Status</label>
 
                 <app-searchable-select id="scheme-status" icon="flag" placeholder="All statuses" [searchable]="false"
                     [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
             </div>
 
-            <button type="button" class="export-button" (click)="exportSchemes(); $event.stopPropagation()">
-                <span class="material-icons">file_download</span>
-                Export CSV
+            <div class="form-field">
+                <label for="scheme-sort">Sort by</label>
+
+                <app-searchable-select id="scheme-sort" icon="sort" placeholder="Latest" [searchable]="false"
+                    [options]="sortOptions" [(ngModel)]="selectedSort" (selectionChange)="applyFilters()" />
+            </div>
+
+            <div class="export-wrap">
+                <button type="button" class="export-button" (click)="toggleExportMenu($event)" [disabled]="exporting"
+                    aria-haspopup="menu" [attr.aria-expanded]="exportMenuOpen" title="Export schemes">
+                    @if (exporting) {
+                    <span class="export-spinner" aria-hidden="true"></span>
+                    <span>Exporting...</span>
+                    } @else {
+                    <span class="material-icons" aria-hidden="true">download</span>
+                    <span>Export</span>
+                    <span class="material-icons dropdown-icon" aria-hidden="true">expand_more</span>
+                    }
+                </button>
+                @if (exportMenuOpen && !exporting) {
+                <div class="export-menu" role="menu" aria-label="Export schemes" (click)="$event.stopPropagation()">
+                    <p class="export-menu-title">Export Schemes</p>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportPdf()">
+                        <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportExcel()">
+                        <span class="material-icons" aria-hidden="true">table_view</span>
+                        <span>Export as Excel</span>
+                    </button>
+                </div>
+                }
+            </div>
+
+            @if (searchText || selectedStatus || selectedSort !== 'latest') {
+            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
+                <span class="material-icons">restart_alt</span>
+                Clear filters
             </button>
+            }
+
         </div>
+
     </section>
 
     <!-- =========================================================
@@ -179,6 +204,7 @@
        ========================================================= -->
 
     <section class="register-card">
+
         <div class="register-header">
             <div class="register-title">
                 <div class="register-icon">
@@ -198,6 +224,7 @@
         </div>
 
         <div class="register-body">
+
             @if (loading) {
             <div class="loading-state">
                 <div class="spinner"></div>
@@ -218,7 +245,7 @@
                     Try another keyword or clear the workflow status filter.
                 </span>
 
-                @if (searchText || selectedCategory || selectedStatus) {
+                @if (searchText || selectedStatus || selectedSort !== 'latest') {
                 <button type="button" class="secondary-action" (click)="resetFilters(); $event.stopPropagation()">
                     Clear filters
                 </button>
@@ -228,12 +255,14 @@
 
             @if (!loading && paginatedSchemes.length > 0) {
             <div class="table-wrapper">
+
                 <table>
                     <thead>
                         <tr>
                             <th class="col-number">NO.</th>
-                            <th class="col-policy">SCHEME</th>
+                            <th class="col-scheme">SCHEME</th>
                             <th class="col-status">STATUS</th>
+                            <th class="col-datetime">DATE &amp; TIME</th>
                             <th class="col-actions">ACTIONS</th>
                         </tr>
                     </thead>
@@ -250,29 +279,27 @@
 
                             <td class="policy-cell">
                                 <div class="policy-cell__row" [class.policy-cell__row--no-icon]="isAdmin">
-                                    @if (!isAdmin) {
-                                    <span class="category-mini" [ngStyle]="categoryIconStyle(scheme.category)">
-                                        <span class="material-icons" aria-hidden="true">{{ categoryIcon(scheme.category)
-                                            }}</span>
-                                    </span>
-                                    }
                                     <div class="policy-cell__text">
                                         <button type="button" class="policy-name"
                                             (click)="viewScheme(scheme); $event.stopPropagation()">
-                                            {{ scheme.name || scheme.title }}
+                                            {{ scheme.title }}
                                         </button>
 
                                         @if (scheme.description) {
                                         <p>{{ scheme.description }}</p>
                                         }
-
-                                        @if (scheme.category || scheme.ministry) {
-                                        <div class="scheme-meta-tags">
-                                            <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
-                                            <span class="meta-dot" *ngIf="scheme.category && scheme.ministry">•</span>
-                                            <span class="meta-ministry" *ngIf="scheme.ministry">{{ scheme.ministry
-                                                }}</span>
-                                        </div>
+                                        @if (scheme.ministry || scheme.department) {
+                                        <p class="policy-meta">
+                                            @if (scheme.ministry) {
+                                            <span>{{ scheme.ministry }}</span>
+                                            }
+                                            @if (scheme.ministry && scheme.department) {
+                                            <span class="policy-meta-sep">•</span>
+                                            }
+                                            @if (scheme.department) {
+                                            <span>{{ scheme.department }}</span>
+                                            }
+                                        </p>
                                         }
                                     </div>
                                 </div>
@@ -280,13 +307,31 @@
 
                             <td>
                                 <span class="status-pill" [ngClass]="scheme.status.toLowerCase()">
+
                                     <span class="status-dot"></span>
                                     {{ getStatusLabel(scheme.status) }}
                                 </span>
                             </td>
 
+                            <td class="col-datetime">
+                                <div class="datetime-cell">
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Created:</span>
+                                        {{ formatDateTime(scheme.createdAt) }}
+                                    </span>
+                                    @if (hasDistinctUpdate(scheme)) {
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Updated:</span>
+                                        {{ formatDateTime(scheme.updatedAt) }}
+                                    </span>
+                                    }
+                                </div>
+                            </td>
+
                             <td class="actions-cell">
+
                                 <div class="actions" (click)="$event.stopPropagation()">
+
                                     <button type="button" class="view-action" (click)="viewScheme(scheme)">
                                         <span class="material-icons">visibility</span>
                                         View
@@ -310,9 +355,35 @@
                                         [cdkConnectedOverlayGrowAfterOpen]="true" (backdropClick)="closeMenu()"
                                         (overlayKeydown)="onOverlayKeydown($event)">
                                         <div class="action-menu" role="menu">
-                                            <!-- DRAFT / REJECTED -->
-                                            @if (scheme.status === 'DRAFT' || scheme.status === 'REJECTED') {
-                                            <button type="button" (click)="editScheme(scheme)">
+
+                                            <!-- DRAFT -->
+                                            @if (scheme.status === 'DRAFT') {
+
+                                            <button type="button" (click)="openEditFlow(scheme)">
+                                                <span class="material-icons">edit</span>
+                                                Edit scheme
+                                            </button>
+
+                                            @if (canSubmitScheme(scheme)) {
+                                            <button type="button" (click)="openSubmitModal(scheme)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(scheme) }}
+                                            </button>
+                                            }
+
+                                            <div class="menu-separator"></div>
+
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(scheme)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete scheme
+                                            </button>
+                                            }
+
+                                            <!-- REJECTED -->
+                                            @if (scheme.status === 'REJECTED') {
+
+                                            <button type="button" (click)="openEditFlow(scheme)">
                                                 <span class="material-icons">edit</span>
                                                 Edit scheme
                                             </button>
@@ -335,14 +406,11 @@
                                             }
                                             }
 
-                                            <!-- PENDING_APPROVAL -->
-                                            @if (scheme.status === 'PENDING_APPROVAL') {
-                                            @if (isAdmin) {
-                                            <button type="button" (click)="openViewSubmissionDetails(scheme)">
-                                                <span class="material-icons">info</span>
-                                                View submission details
-                                            </button>
 
+                                            <!-- PENDING -->
+                                            @if (scheme.status === 'PENDING_APPROVAL') {
+
+                                            @if (isAdmin) {
                                             <button type="button" class="success" (click)="openApproveModal(scheme)">
                                                 <span class="material-icons">check_circle_outline</span>
                                                 Approve request
@@ -353,7 +421,7 @@
                                                 Reject request
                                             </button>
                                             } @else {
-                                            <button type="button" (click)="editScheme(scheme)">
+                                            <button type="button" (click)="openEditFlow(scheme)">
                                                 <span class="material-icons">edit</span>
                                                 Edit scheme
                                             </button>
@@ -362,7 +430,8 @@
 
                                             <!-- APPROVED -->
                                             @if (scheme.status === 'APPROVED') {
-                                            <button type="button" (click)="editScheme(scheme)">
+
+                                            <button type="button" (click)="openEditFlow(scheme)">
                                                 <span class="material-icons">edit</span>
                                                 Edit scheme
                                             </button>
@@ -379,6 +448,11 @@
                                                 Request deletion
                                             </button>
                                             } @else {
+                                            <button type="button" (click)="openArchiveModal(scheme)">
+                                                <span class="material-icons">archive</span>
+                                                Archive scheme
+                                            </button>
+
                                             <div class="menu-separator"></div>
 
                                             <button type="button" class="danger"
@@ -391,12 +465,18 @@
 
                                             <!-- ARCHIVED -->
                                             @if (scheme.status === 'ARCHIVED') {
-                                            <button type="button" (click)="editScheme(scheme)">
+
+                                            <button type="button" (click)="openEditFlow(scheme)">
                                                 <span class="material-icons">edit</span>
                                                 Edit scheme
                                             </button>
 
                                             @if (isAdmin) {
+                                            <button type="button" (click)="openViewArchiveReason(scheme)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
+                                            </button>
+
                                             <button type="button" class="success" (click)="openRestoreModal(scheme)">
                                                 <span class="material-icons">restore</span>
                                                 Restore scheme
@@ -410,6 +490,11 @@
                                                 Delete scheme
                                             </button>
                                             } @else {
+                                            <button type="button" (click)="openSubmitModal(scheme)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(scheme) }}
+                                            </button>
+
                                             <button type="button" class="danger"
                                                 (click)="openRequestDeleteModal(scheme)">
                                                 <span class="material-icons">delete_sweep</span>
@@ -418,11 +503,12 @@
                                             }
                                             }
 
-                                            <!-- ARCHIVE_REQUESTED -->
+                                            <!-- ARCHIVE REQUESTED -->
                                             @if (scheme.status === 'ARCHIVE_REQUESTED') {
-                                            <button type="button" (click)="editScheme(scheme)">
-                                                <span class="material-icons">edit</span>
-                                                Edit scheme
+
+                                            <button type="button" (click)="openViewArchiveReason(scheme)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
                                             </button>
 
                                             @if (isAdmin) {
@@ -437,19 +523,12 @@
                                                 <span class="material-icons">cancel</span>
                                                 Reject archive
                                             </button>
-
-                                            <div class="menu-separator"></div>
-
-                                            <button type="button" class="danger"
-                                                (click)="openDirectDeleteModal(scheme)">
-                                                <span class="material-icons">delete_outline</span>
-                                                Delete scheme
-                                            </button>
                                             }
                                             }
 
-                                            <!-- DELETE_REQUESTED -->
+                                            <!-- DELETE REQUESTED -->
                                             @if (scheme.status === 'DELETE_REQUESTED') {
+
                                             @if (isAdmin) {
                                             <button type="button" (click)="openViewDeleteReason(scheme)">
                                                 <span class="material-icons">info</span>
@@ -466,22 +545,21 @@
                                                 <span class="material-icons">undo</span>
                                                 Reject deletion
                                             </button>
-                                            } @else {
-                                            <button type="button" (click)="editScheme(scheme)">
-                                                <span class="material-icons">edit</span>
-                                                Edit scheme
-                                            </button>
                                             }
                                             }
+
                                         </div>
                                     </ng-template>
                                 </div>
+
                             </td>
                         </tr>
                     </tbody>
                 </table>
+
             </div>
             }
+
         </div>
 
         <!-- =======================================================
@@ -489,6 +567,7 @@
          ======================================================= -->
 
         <footer class="pagination">
+
             <div class="pagination-info">
                 Showing
                 <strong>{{ startItem }}</strong>
@@ -500,6 +579,7 @@
             </div>
 
             <div class="pagination-right">
+
                 <div class="page-size">
                     <label for="page-size">Rows</label>
 
@@ -511,6 +591,7 @@
                 </div>
 
                 <div class="page-controls">
+
                     <button type="button" class="page-button" [disabled]="currentPage === 1" (click)="previousPage()"
                         aria-label="Previous page">
                         <span class="material-icons">chevron_left</span>
@@ -528,12 +609,15 @@
                         (click)="nextPage()" aria-label="Next page">
                         <span class="material-icons">chevron_right</span>
                     </button>
+
                 </div>
             </div>
+
         </footer>
+
     </section>
 
-    <!-- Workflow modals -->
+    <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
         [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
         [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
@@ -547,9 +631,55 @@
         (cancelled)="onReasonModalCancelled()">
     </app-reason-modal>
 
-    <!-- Deleted schemes modal (centered over this page) -->
+    <!-- Deleted / Draft scheme modals (centered over this page) -->
     <app-deleted-schemes-modal [open]="deletedModalOpen" (closed)="onDeletedModalClosed()"
         (dataChanged)="onChildDataChanged()">
     </app-deleted-schemes-modal>
+
+    <!-- Read-only Deleted Schemes view for Government Officials -->
+    <app-govt-deleted-schemes-modal [open]="govtDeletedModalOpen" (closed)="onGovtDeletedModalClosed()">
+    </app-govt-deleted-schemes-modal>
+
+    <app-draft-schemes-modal [open]="draftsModalOpen" (closed)="onDraftsModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-draft-schemes-modal>
+
+    <!-- Edit-status popup: choose which permitted status to edit under -->
+    @if (editStatusModalOpen && editStatusScheme) {
+    <div class="edit-status-overlay" (click)="onEditStatusBackdrop($event)">
+        <div class="edit-status-card" role="dialog" aria-modal="true" aria-label="Choose edit status"
+            (click)="$event.stopPropagation()">
+            <div class="edit-status-header">
+                <h2>Edit / Archive Scheme</h2>
+                <p class="edit-status-name">{{ editStatusScheme.title }}</p>
+                <p class="edit-status-desc">Choose whether to edit this scheme or archive it.</p>
+            </div>
+
+            <div class="edit-status-options" role="radiogroup" aria-label="Permitted edit statuses">
+                @for (status of editStatusOptions; track status) {
+                <label class="edit-status-option" [class.selected]="editStatusChoice === status">
+                    <input type="radio" name="edit-status" [value]="status" [(ngModel)]="editStatusChoice" />
+                    <span class="edit-status-option-text">
+                        <strong>{{ status === 'DRAFT' ? 'Draft' : 'Archived' }}</strong>
+                        <small>{{ status === 'DRAFT' ? 'Edit as a draft scheme.' : 'Archive this scheme.'
+                            }}</small>
+                    </span>
+                </label>
+                }
+            </div>
+
+            <p class="edit-status-note">The editing form enforces role permissions and backend workflow rules.</p>
+
+            <div class="edit-status-actions">
+                <button type="button" class="edit-status-btn edit-status-btn--cancel" (click)="cancelEditStatus()">
+                    Cancel
+                </button>
+                <button type="button" class="edit-status-btn edit-status-btn--continue" (click)="confirmEditStatus()">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+    }
 
 </div>

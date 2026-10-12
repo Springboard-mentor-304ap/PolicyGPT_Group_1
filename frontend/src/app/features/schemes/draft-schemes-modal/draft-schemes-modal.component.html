@@ -1,0 +1,171 @@
+@if (open) {
+<div class="dp-overlay" (click)="onBackdropClick($event)">
+    <div class="dp-card" role="dialog" aria-modal="true" aria-label="Draft Schemes"
+        (click)="$event.stopPropagation()">
+
+        <div class="dp-header">
+            <div class="dp-title-wrap">
+                <div class="dp-icon dp-icon--draft">
+                    <span class="material-icons">edit_note</span>
+                </div>
+                <div class="dp-title-text">
+                    <h2>Draft Schemes</h2>
+                    <p>Edit drafts, submit them into the approval workflow, or delete them.</p>
+                </div>
+            </div>
+            <button type="button" class="dp-close" aria-label="Close draft schemes"
+                (click)="requestClose()">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        @if (errorMessage) {
+        <div class="dp-banner dp-banner--error" role="alert">
+            <span class="material-icons">error_outline</span>
+            <span>{{ errorMessage }}</span>
+            <button type="button" class="dp-banner-dismiss" aria-label="Dismiss error"
+                (click)="errorMessage = ''">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+        }
+
+        <div class="dp-search-row">
+            <div class="dp-search-box">
+                <span class="material-icons dp-search-icon">search</span>
+                <input type="search" [(ngModel)]="searchText"
+                    placeholder="Search by title, ministry, department or state" autocomplete="off"
+                    aria-label="Search draft schemes" />
+                @if (searchText) {
+                <button type="button" class="dp-search-clear" aria-label="Clear search" (click)="clearSearch()">
+                    <span class="material-icons">close</span>
+                </button>
+                }
+            </div>
+            <div class="dp-count">
+                <strong>{{ filteredSchemes.length }}</strong>
+                <span>records</span>
+            </div>
+        </div>
+
+        <div class="dp-list">
+            @if (loading) {
+            <div class="dp-state">
+                <div class="dp-spinner"></div>
+                <strong>Loading draft schemes</strong>
+                <span>Retrieving the latest draft records.</span>
+            </div>
+            }
+
+            @if (!loading && errorMessage && filteredSchemes.length === 0) {
+            <div class="dp-state">
+                <div class="dp-empty-icon">
+                    <span class="material-icons">error_outline</span>
+                </div>
+                <strong>Couldn't load draft schemes</strong>
+                <span>{{ errorMessage }}</span>
+                <button type="button" class="dp-btn dp-btn--secondary" (click)="loadSchemes()">
+                    Retry
+                </button>
+            </div>
+            }
+
+            @if (!loading && !errorMessage && filteredSchemes.length === 0) {
+            <div class="dp-state">
+                <div class="dp-empty-icon">
+                    <span class="material-icons">edit_note</span>
+                </div>
+                <strong>No draft schemes found</strong>
+                <span>
+                    @if (searchText) {
+                    No drafts match your search.
+                    } @else {
+                    There are no draft schemes.
+                    }
+                </span>
+                @if (searchText) {
+                <button type="button" class="dp-btn dp-btn--secondary" (click)="clearSearch()">
+                    Clear search
+                </button>
+                }
+            </div>
+            }
+
+            @if (!loading && filteredSchemes.length > 0) {
+            @for (scheme of filteredSchemes; track scheme.id) {
+            <article class="dp-row">
+                <div class="dp-row-main">
+                    <button type="button" class="dp-name" (click)="viewScheme(scheme)">
+                        {{ scheme.title }}
+                    </button>
+                    @if (scheme.description) {
+                    <p class="dp-desc">{{ scheme.description }}</p>
+                    }
+                    <div class="dp-meta">
+                        @if (scheme.ministry || scheme.department) {
+                        <span>{{ scheme.ministry || scheme.department }}</span>
+                        <span class="dp-meta-sep">•</span>
+                        }
+                        <span>Updated: {{ formatDate(scheme.updatedAt) }}</span>
+                    </div>
+                </div>
+                <div class="dp-row-actions">
+                    <button type="button" class="dp-more-btn" [class.open]="menuOpenId === scheme.id"
+                        [attr.aria-expanded]="menuOpenId === scheme.id" aria-haspopup="menu"
+                        aria-label="More draft actions" (click)="toggleMenu(scheme, $event)">
+                        <span class="material-icons">more_horiz</span>
+                    </button>
+                </div>
+            </article>
+            }
+            }
+        </div>
+
+        <div class="dp-footer">
+            <button type="button" class="dp-btn dp-btn--secondary" (click)="requestClose()">
+                Close
+            </button>
+        </div>
+
+    </div>
+
+    @if (menuOpenScheme; as menuScheme) {
+    <div class="dp-float-menu" [ngStyle]="menuStyle" (click)="$event.stopPropagation()">
+        <div class="dp-menu" role="menu">
+            <button type="button" (click)="viewScheme(menuScheme)">
+                <span class="material-icons">visibility</span>
+                View Scheme
+            </button>
+            <button type="button" (click)="editScheme(menuScheme)">
+                <span class="material-icons">edit</span>
+                Edit Scheme
+            </button>
+            @if (canSubmitScheme(menuScheme)) {
+            <button type="button" (click)="openSubmitModal(menuScheme)">
+                <span class="material-icons">send</span>
+                Submit
+            </button>
+            }
+            <div class="menu-separator"></div>
+            <button type="button" class="danger" (click)="openDeleteModal(menuScheme)">
+                <span class="material-icons">delete_outline</span>
+                Delete Scheme
+            </button>
+        </div>
+    </div>
+    }
+</div>
+
+<app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+    [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight"
+    [messageAfter]="confirmMessageAfter" [variant]="confirmVariant" [isLoading]="confirmLoading"
+    [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="true"
+    (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+</app-confirm-modal>
+
+<app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+    [reasonLabel]="reasonLabel" variant="danger" [isLoading]="reasonLoading"
+    [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
+    (cancelled)="onReasonModalCancelled()">
+</app-reason-modal>
+}

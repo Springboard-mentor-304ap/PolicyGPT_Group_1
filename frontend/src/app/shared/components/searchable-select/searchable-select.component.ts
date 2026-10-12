@@ -196,15 +196,6 @@ export type PgDropdownOptionsInput = Array<string | PgDropdownOption>;
                     }
                   </div>
                 }
-              } @else if (!showAllOption) {
-                <div class="no-options">
-                  <span
-                    class="material-icons no-options-icon"
-                    aria-hidden="true"
-                    >search_off</span
-                  >
-                  <span>{{ emptyText }}</span>
-                </div>
               }
               @if (customCandidate) {
                 <div

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ManageSchemesComponent } from './manage-schemes.component';
@@ -222,8 +222,8 @@ describe('ManageSchemesComponent', () => {
     expect(component.stats.archived).toBe(1);
   });
 
-  // Test 5: In-memory filtering and search
-  it('5. should filter schemes by search text, category, and status', () => {
+  // Test 5: In-memory filtering, search, and sort
+  it('5. should filter schemes by search text and status, and sort', () => {
     vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
     vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
     vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
@@ -236,7 +236,7 @@ describe('ManageSchemesComponent', () => {
     // Filter by search text
     component.searchText = 'Scheme A';
     expect(component.filteredSchemes.length).toBe(1);
-    expect(component.filteredSchemes[0].name).toBe('Scheme A - Draft');
+    expect(component.filteredSchemes[0].title).toBe('Scheme A - Draft');
 
     // Filter by status
     component.searchText = '';
@@ -244,8 +244,16 @@ describe('ManageSchemesComponent', () => {
     expect(component.filteredSchemes.length).toBe(1);
     expect(component.filteredSchemes[0].status).toBe('PENDING_APPROVAL');
 
+    // Sort ascending by name
+    component.searchText = '';
+    component.selectedStatus = '';
+    component.selectedSort = 'ascending';
+    component.applyFilters();
+    expect(component.filteredSchemes[0].title).toBe('Scheme A - Draft');
+
     // Reset filters
     component.resetFilters();
+    expect(component.selectedSort).toBe('latest');
     expect(component.filteredSchemes.length).toBe(4);
   });
 
@@ -289,8 +297,8 @@ describe('ManageSchemesComponent', () => {
     expect(component.errorMessage).toBeTruthy();
   });
 
-  // Test 8: Submit action label for Admin vs Other roles
-  it('8. Menu label should be "Submit" for Admin and "Submit for approval" for Gov Official', () => {
+  // Test 8: Submit action label follows the register convention
+  it('8. Menu label should be "Resubmit" for REJECTED and "Submit" otherwise', () => {
     vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
     vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
     vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
@@ -303,12 +311,8 @@ describe('ManageSchemesComponent', () => {
     const draftScheme = component.schemes[0];
     expect(component.getSubmitActionLabel(draftScheme)).toBe('Submit');
 
-    // For Government Official
-    component.userRole = 'GOVERNMENT_OFFICIAL';
-    expect(component.getSubmitActionLabel(draftScheme)).toBe('Submit for approval');
-
     const rejectedScheme = { ...draftScheme, status: 'REJECTED' };
-    expect(component.getSubmitActionLabel(rejectedScheme)).toBe('Re-submit for approval');
+    expect(component.getSubmitActionLabel(rejectedScheme)).toBe('Resubmit');
   });
 
   // Test 9: Submit opens confirmation modal with dynamic scheme name
@@ -322,7 +326,7 @@ describe('ManageSchemesComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const draftScheme = component.schemes[0];
+    const draftScheme = component.schemes.find((s) => s.status === 'DRAFT')!;
     component.openSubmitModal(draftScheme);
 
     expect(component.confirmModalOpen).toBe(true);
@@ -343,7 +347,7 @@ describe('ManageSchemesComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const draftScheme = component.schemes[0];
+    const draftScheme = component.schemes.find((s) => s.status === 'DRAFT')!;
     component.openSubmitModal(draftScheme);
     expect(component.confirmModalOpen).toBe(true);
 
@@ -352,7 +356,9 @@ describe('ManageSchemesComponent', () => {
     expect(component.confirmModalOpen).toBe(false);
     expect(component.confirmAction).toBeNull();
     expect(submitSpy).not.toHaveBeenCalled();
-    expect(component.schemes[0].status).toBe('DRAFT');
+    expect(
+      component.schemes.find((s) => s.id === draftScheme.id)?.status,
+    ).toBe('DRAFT');
   });
 
   // Test 11: Confirm sends correct record ID and transitions to PENDING_APPROVAL
@@ -374,9 +380,7 @@ describe('ManageSchemesComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const loadSpy = vi.spyOn(component, 'loadSchemes');
-
-    const draftScheme = component.schemes[0];
+    const draftScheme = component.schemes.find((s) => s.status === 'DRAFT')!;
     component.openSubmitModal(draftScheme);
     component.onConfirmModalConfirmed();
 
@@ -384,7 +388,9 @@ describe('ManageSchemesComponent', () => {
     expect(component.confirmModalOpen).toBe(false);
     expect(component.confirmLoading).toBe(false);
     expect(component.successToastMessage).toBe('Scheme "Scheme A - Draft" submitted for approval.');
-    expect(loadSpy).toHaveBeenCalled();
+    expect(
+      component.schemes.find((s) => s.id === draftScheme.id)?.status,
+    ).toBe('PENDING_APPROVAL');
   });
 
   // Test 12: Duplicate clicks do not create duplicate API requests
@@ -403,7 +409,7 @@ describe('ManageSchemesComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const draftScheme = component.schemes[0];
+    const draftScheme = component.schemes.find((s) => s.status === 'DRAFT')!;
     component.openSubmitModal(draftScheme);
 
     // Simulate loading state active
@@ -428,14 +434,16 @@ describe('ManageSchemesComponent', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const draftScheme = component.schemes[0];
+    const draftScheme = component.schemes.find((s) => s.status === 'DRAFT')!;
     component.openSubmitModal(draftScheme);
     component.onConfirmModalConfirmed();
 
     expect(component.confirmLoading).toBe(false);
-    expect(component.errorMessage).toContain('Only DRAFT or REJECTED schemes can be submitted.');
-    expect(component.confirmErrorMessage).toContain('Only DRAFT or REJECTED schemes can be submitted.');
-    expect(component.schemes[0].status).toBe('DRAFT');
+    expect(component.errorMessage).toContain('DRAFT or REJECTED');
+    expect(component.confirmErrorMessage).toContain('DRAFT or REJECTED');
+    expect(
+      component.schemes.find((s) => s.id === draftScheme.id)?.status,
+    ).toBe('DRAFT');
   });
 
   // Test 14: Next available action after PENDING_APPROVAL is Approve/Reject, not Submit
@@ -633,6 +641,181 @@ describe('ManageSchemesComponent', () => {
     component.pageSize = 6;
     component.ngOnInit();
     expect(component.selectedPageSize).toBe(5);
+  });
+
+  // Test 22: Export menu and rows respect filters
+  it('22. export menu toggles and exportRows covers all filtered records', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.exportMenuOpen).toBe(false);
+    component.toggleExportMenu(new MouseEvent('click'));
+    expect(component.exportMenuOpen).toBe(true);
+    component.closeExportMenu();
+    expect(component.exportMenuOpen).toBe(false);
+
+    component.searchText = 'Scheme';
+    const rows = (component as unknown as { exportRows: () => string[][] }).exportRows();
+    expect(rows.length).toBe(4);
+    expect(rows[0].length).toBe(9);
+  });
+
+  // Test 23: Drafts and deleted modals open
+  it('23. header actions open drafts and deleted modals', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.openDraftsModal();
+    expect(component.draftsModalOpen).toBe(true);
+    component.onDraftsModalClosed();
+    expect(component.draftsModalOpen).toBe(false);
+
+    component.openDeletedModal();
+    expect(component.deletedModalOpen).toBe(true);
+    component.onDeletedModalClosed();
+    expect(component.deletedModalOpen).toBe(false);
+
+    component.userRole = 'GOVERNMENT_OFFICIAL';
+    component.openGovtDeletedModal();
+    expect(component.govtDeletedModalOpen).toBe(true);
+    component.onGovtDeletedModalClosed();
+    expect(component.govtDeletedModalOpen).toBe(false);
+  });
+
+  // Test 24: Admin direct archive from APPROVED
+  it('24. openArchiveModal archives an APPROVED scheme via archiveScheme', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+    const archiveSpy = vi
+      .spyOn(schemeService, 'archiveScheme')
+      .mockReturnValue(of({ ...sampleSchemes[2], status: 'ARCHIVED' }));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const approved = component.schemes.find((s) => s.status === 'APPROVED')!;
+    component.openArchiveModal(approved);
+    expect(component.confirmModalOpen).toBe(true);
+    component.onConfirmModalConfirmed();
+    expect(archiveSpy).toHaveBeenCalledWith(approved.id);
+    expect(component.schemes.find((s) => s.id === approved.id)?.status).toBe('ARCHIVED');
+  });
+
+  // Test 25: Edit flow and details navigation
+  it('25. openEditFlow routes by status and history opens details', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const router = TestBed.inject(Router);
+    const navSpy = vi.spyOn(router, 'navigate');
+
+    const draft = component.schemes.find((s) => s.status === 'DRAFT')!;
+    component.openEditFlow(draft);
+    expect(navSpy).toHaveBeenCalledWith(['/dashboard', 'admin', 'schemes', 'edit', draft.id]);
+
+    const approved = component.schemes.find((s) => s.status === 'APPROVED')!;
+    component.openEditFlow(approved);
+    expect(component.confirmTitle).toBe('Scheme Must Be Archived');
+
+    component.viewScheme(approved);
+    expect(navSpy).toHaveBeenCalledWith(['/dashboard', 'admin', 'schemes', approved.id]);
+  });
+
+  // Test 27: Gov direct draft delete (own DRAFT only)
+  it('27. gov can directly delete own DRAFT; others and non-drafts blocked', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('GOVERNMENT_OFFICIAL');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockGovUserA);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+    const deleteSpy = vi
+      .spyOn(schemeService, 'deleteScheme')
+      .mockReturnValue(of({ message: 'Scheme moved to Deleted Schemes.' }));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    // Own DRAFT opens the existing confirm dialog and deletes on confirm.
+    const draft = component.schemes.find((s) => s.status === 'DRAFT')!;
+    component.openDirectDeleteModal(draft);
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmTitle).toBe('Delete Scheme');
+    component.onConfirmModalConfirmed();
+    expect(deleteSpy).toHaveBeenCalledWith(draft.id);
+    expect(component.schemes.find((s) => s.id === draft.id)).toBeUndefined();
+
+    // Another user's draft is protected.
+    deleteSpy.mockClear();
+    component.openDirectDeleteModal({
+      ...draft,
+      id: 99,
+      title: 'Foreign draft',
+      createdBy: 99,
+    });
+    expect(component.confirmModalOpen).toBe(false);
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // Non-draft keeps the existing workflow for gov.
+    component.openDirectDeleteModal({
+      ...draft,
+      id: 100,
+      title: 'Pending one',
+      status: 'PENDING_APPROVAL',
+      createdBy: 2,
+    });
+    expect(component.confirmModalOpen).toBe(false);
+    expect(deleteSpy).not.toHaveBeenCalled();
+
+    // Cancellation leaves the scheme unchanged (dialog cancelled pre-confirm).
+    const draft2 = { ...draft, id: 101, title: 'Cancel draft', createdBy: 2 };
+    component.openDirectDeleteModal(draft2);
+    expect(component.confirmModalOpen).toBe(true);
+    component.onConfirmModalCancelled();
+    expect(deleteSpy).not.toHaveBeenCalledWith(101);
+  });
+
+  // Test 26: Datetime column helpers
+  it('26. formatDateTime renders IST timestamps and detects distinct updates', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.formatDateTime('2026-01-01T00:00:00Z')).toContain('2026');
+    expect(component.formatDateTime(null)).toBe('—');
+    expect(
+      component.hasDistinctUpdate({
+        ...component.schemes[0],
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-02T00:00:00Z',
+      }),
+    ).toBe(true);
+    expect(component.hasDistinctUpdate(component.schemes[0])).toBe(false);
   });
 });
 

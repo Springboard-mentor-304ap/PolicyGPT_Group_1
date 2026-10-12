@@ -266,6 +266,9 @@ class PolicyResponse(BaseModel):
 
     approved_by: int | None
 
+    #: Latest editor (draft ownership); created_by never changes.
+    updated_by: int | None = None
+
     # Approval rejection
     rejection_reason: str | None
 

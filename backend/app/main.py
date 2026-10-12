@@ -2,8 +2,9 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.api.routes.feedback import router as feedback_router
 from app.api.routes.reports import router as reports_router
@@ -401,6 +402,26 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition", "X-Report-Id"],
 )
+
+
+# =========================================================
+# GLOBAL ERROR HANDLING
+# =========================================================
+# Starlette's ServerErrorMiddleware sits outside CORSMiddleware, so an
+# unhandled exception would otherwise return a 500 WITHOUT CORS headers
+# (the browser then reports a CORS failure instead of the real error).
+# Handling Exception here keeps the response inside the CORS middleware,
+# logs the full traceback server-side, and returns a safe message.
+# HTTPException paths (400/401/403/404) are untouched.
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )
 
 
 # =========================================================

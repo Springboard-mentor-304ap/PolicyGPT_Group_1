@@ -419,6 +419,7 @@ def create_policy(
         implementation_process=_clean_text_block(data.implementation_process),
         created_by=current_user.user_id,
         approved_by=None,
+        updated_by=current_user.user_id,
         rejection_reason=None,
         archive_reason=None,
         archive_requested_by=None,
@@ -718,6 +719,8 @@ def update_policy(
 
     elif old_status == "REJECTED":
         policy.rejection_reason = None
+
+    policy.updated_by = current_user.user_id
 
     policy.updated_at = _now()
 
@@ -2111,7 +2114,9 @@ def search_policies(
 
     # --------------------------------------------------------
     # DRAFT & PENDING APPROVAL PRIVACY RULE
-    # Draft policies can ONLY be seen by the user who created them.
+    # Draft policies can ONLY be seen by the user who created them or
+    # last saved them (updated_by tracks the latest editor; NULL on
+    # legacy rows falls back to the creator via the OR below).
     # When submitted (PENDING_APPROVAL), only Admin & creator can see them.
     # --------------------------------------------------------
     if current_user is not None:
@@ -2119,6 +2124,7 @@ def search_policies(
             or_(
                 Policy.status != "DRAFT",
                 Policy.created_by == current_user.user_id,
+                Policy.updated_by == current_user.user_id,
             )
         )
         if str(current_user.role).strip().upper() != "ADMIN":

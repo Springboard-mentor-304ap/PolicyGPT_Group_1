@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,7 +47,18 @@ class SchemeCreate(BaseModel):
         max_length=100,
     )
 
+    eligibility_state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
     benefits: list[str] | None = None
+
+    key_highlights: list[str] | None = None
+
+    additional_info: str | None = None
+
+    important_notes: str | None = None
 
     documents_required: str | None = None
 
@@ -55,9 +66,15 @@ class SchemeCreate(BaseModel):
 
     application_url: str | None = None
 
+    application_source_url: str | None = None
+
     source_url: str | None = None
 
     eligibility_rules: list[dict[str, Any]] | None = None
+
+    related_policy_id: int | None = None
+
+    launch_date: date | None = None
 
 
 class SchemeUpdate(BaseModel):
@@ -93,7 +110,18 @@ class SchemeUpdate(BaseModel):
         max_length=100,
     )
 
+    eligibility_state: str | None = Field(
+        default=None,
+        max_length=100,
+    )
+
     benefits: list[str] | None = None
+
+    key_highlights: list[str] | None = None
+
+    additional_info: str | None = None
+
+    important_notes: str | None = None
 
     documents_required: str | None = None
 
@@ -101,9 +129,15 @@ class SchemeUpdate(BaseModel):
 
     application_url: str | None = None
 
+    application_source_url: str | None = None
+
     source_url: str | None = None
 
     eligibility_rules: list[dict[str, Any]] | None = None
+
+    related_policy_id: int | None = None
+
+    launch_date: date | None = None
 
 
 class SchemeRejectRequest(BaseModel):
@@ -149,13 +183,23 @@ class SchemeResponse(BaseModel):
 
     state: str | None
 
+    eligibility_state: str | None = None
+
     benefits: list[str] | None
+
+    key_highlights: list[str] | None = None
+
+    additional_info: str | None = None
+
+    important_notes: str | None = None
 
     documents_required: str | None
 
     application_process: str | None
 
     application_url: str | None
+
+    application_source_url: str | None = None
 
     source_url: str | None
 
@@ -166,6 +210,9 @@ class SchemeResponse(BaseModel):
     created_by: int | None
 
     approved_by: int | None
+
+    #: Latest editor (draft ownership); created_by never changes.
+    updated_by: int | None = None
 
     rejection_reason: str | None
 
@@ -182,6 +229,14 @@ class SchemeResponse(BaseModel):
     delete_requested_at: datetime | None
 
     delete_requested_from_status: str | None
+
+    related_policy_id: int | None = None
+
+    #: Display title of the referenced policy (transient, resolved by
+    #: the backend from the real policy row; never stored on schemes).
+    related_policy_title: str | None = None
+
+    launch_date: date | None = None
 
     # Soft delete (trash). Backward-compatible additions: existing rows
     # read as not deleted. Trash endpoints also populate the transient

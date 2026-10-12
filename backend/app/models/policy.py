@@ -165,6 +165,16 @@ class Policy(Base):
         nullable=True,
     )
 
+    # Latest editor (draft ownership). created_by never changes;
+    # updated_by tracks who last saved the record so draft lists can
+    # attribute ownership to the latest editor. FK-less
+    # (application-managed, like deleted_by) so user administration
+    # can never be blocked by these references.
+    updated_by: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+    )
+
     # ========================================================
     # REJECTION
     # ========================================================

@@ -140,6 +140,11 @@ $success-border: #bbf7d0;
       background: $primary-light;
     }
 
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     .material-icons {
       font-size: 18px;
     }
@@ -182,9 +187,40 @@ $success-border: #bbf7d0;
 
   &__track {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
+    position: relative;
+
+    /*
+     * Full-width light-gray base line running circle-center to
+     * circle-center. Five equal columns put the centers at
+     * 10/30/50/70/90% of the track at every viewport width.
+     */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #e2e8f0;
+    }
+  }
+
+  /*
+   * Animated blue progress layer above the base line. Width is bound
+   * to the active step (0/20/40/60/80%) and eases between values, so
+   * the line grows and retracts progressively instead of jumping.
+   * Circles (z-index 1, opaque) paint above both layers.
+   */
+  &__progress {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 0;
+    height: 2px;
+    background: $primary-blue;
+    transition: width 400ms ease-in-out;
   }
 
   &__step {
@@ -193,7 +229,11 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    min-width: 110px;
+    /* Equal columns keep the 10/30/50/70/90% track circle centers
+       aligned at any width. */
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
     user-select: none;
     transition: transform 0.15s ease;
 
@@ -214,6 +254,8 @@ $success-border: #bbf7d0;
     background: #ffffff;
     border: 2px solid #cbd5e1;
     color: #64748b;
+    position: relative;
+    z-index: 1;
     transition: all 0.25s ease;
 
     .material-icons {
@@ -229,18 +271,6 @@ $success-border: #bbf7d0;
     text-align: center;
     white-space: nowrap;
     transition: color 0.25s ease;
-  }
-
-  &__line {
-    flex: 1;
-    height: 2px;
-    background: #e2e8f0;
-    margin: 0 12px 22px 12px;
-    transition: background 0.25s ease;
-
-    &--active {
-      background: $primary-blue;
-    }
   }
 
   // Active step
@@ -270,6 +300,56 @@ $success-border: #bbf7d0;
       color: #334155;
       font-weight: 600;
     }
+  }
+}
+
+/* =========================================================
+   STEP-TRANSITION ANIMATION (CSS-only, no animation library)
+   ========================================================= */
+
+@keyframes schemeStepInForward {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes schemeStepInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.step-anim-forward .scheme-layout {
+  animation: schemeStepInForward 0.25s ease-out;
+}
+
+.step-anim-back .scheme-layout {
+  animation: schemeStepInBack 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-anim-forward .scheme-layout,
+  .step-anim-back .scheme-layout {
+    animation: none;
+  }
+
+  .scheme-stepper__step,
+  .scheme-stepper__circle,
+  .scheme-stepper__label,
+  .scheme-stepper__progress {
+    transition: none;
   }
 }
 
@@ -1493,11 +1573,63 @@ $success-border: #bbf7d0;
 
 .modal-actions {
   width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+
+  .modal-btn-confirm,
+  .modal-btn-secondary {
+    width: auto;
+  }
 
   .modal-btn-confirm {
-    width: 100%;
+    flex: 1 1 0;
     height: 44px;
     font-size: 13px;
+  }
+}
+
+.modal-icon-confirm {
+  background: #eff6ff;
+  color: $primary-blue;
+}
+
+.modal-btn-secondary {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  box-sizing: border-box;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #334155;
+
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  .material-icons {
+    font-size: 18px;
   }
 }
 
@@ -1582,10 +1714,10 @@ $success-border: #bbf7d0;
   width: 100%;
   box-sizing: border-box;
 
-  padding: 16px 24px 15px;
-  margin-bottom: 20px;
+  padding: 18px 28px;
+  margin-bottom: 24px;
 
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 .scheme-stepper__track {
@@ -1593,21 +1725,16 @@ $success-border: #bbf7d0;
 }
 
 .scheme-stepper__step {
-  min-width: 100px;
+  min-width: 0;
 }
 
 .scheme-stepper__circle {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
 }
 
 .scheme-stepper__label {
-  font-size: 12px;
-}
-
-.scheme-stepper__line {
-  margin-left: 10px;
-  margin-right: 10px;
+  font-size: 13px;
 }
 
 /* ---------------------------------------------------------
@@ -1628,8 +1755,8 @@ $success-border: #bbf7d0;
   min-width: 0;
   box-sizing: border-box;
 
-  padding: 24px;
-  border-radius: 14px;
+  padding: 28px;
+  border-radius: 12px;
 }
 
 /* Prevent long text from pushing the page horizontally */
@@ -1642,8 +1769,8 @@ $success-border: #bbf7d0;
 }
 
 .scheme-card__header {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
 }
 
 .scheme-card__title {
@@ -1839,8 +1966,8 @@ $success-border: #bbf7d0;
   }
 
   .scheme-stepper {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .scheme-stepper__step {
@@ -1888,7 +2015,7 @@ $success-border: #bbf7d0;
   }
 
   .scheme-stepper__track {
-    min-width: 620px;
+    min-width: 600px;
   }
 
   .scheme-layout {
@@ -1985,5 +2112,70 @@ $success-border: #bbf7d0;
   .scheme-create__footer-right .btn,
   .scheme-create__footer-left .btn {
     width: 100%;
+  }
+}
+
+/* =========================================================
+   RECORD LOAD BANNERS (edit form loading / error + retry)
+   ========================================================= */
+
+.load-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+
+  &__spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    border-top-color: #1d4ed8;
+    animation: loadBannerSpin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  &--error {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+
+    .material-icons {
+      color: #dc2626;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn {
+    flex-shrink: 0;
+  }
+}
+
+@keyframes loadBannerSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .load-banner__spinner {
+    animation: none;
   }
 }

@@ -135,6 +135,19 @@
           </app-searchable-select>
         </div>
 
+        <!-- Status (staff roles only) -->
+        @if (isAdminOrGov) {
+        <div class="filter-field">
+          <label for="status">
+            <span>Status</span>
+          </label>
+          <app-searchable-select id="status" [options]="statusDisplayOptions" [(ngModel)]="selectedStatusDisplay"
+            (ngModelChange)="onStatusDisplayChange($event)" placeholder="All Statuses" allOptionLabel="All Statuses"
+            searchPlaceholder="Search statuses..." icon="flag">
+          </app-searchable-select>
+        </div>
+        }
+
         <!-- Publication Date -->
         <div class="filter-field">
           <label for="publicationDate">
@@ -351,9 +364,17 @@
 
           <div class="title-row">
 
-            <h3>
-              {{ scheme.name }}
-            </h3>
+            <div class="title-group">
+              <h3>
+                {{ scheme.name }}
+              </h3>
+
+              @if (isAdminOrGov) {
+              <span class="metadata-item status-badge" [ngClass]="'status-' + (scheme.status || '').toLowerCase()">
+                {{ getStatusLabel(scheme.status) }}
+              </span>
+              }
+            </div>
 
           </div>
 
@@ -373,6 +394,10 @@
 
             <span *ngIf="scheme.category" class="metadata-item">
               {{ scheme.category }}
+            </span>
+
+            <span *ngIf="scheme.department" class="metadata-item">
+              {{ scheme.department }}
             </span>
 
             <span *ngIf="scheme.state" class="metadata-item">

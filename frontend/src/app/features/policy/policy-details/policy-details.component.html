@@ -744,7 +744,6 @@
             <p>Internal governance metadata, lifecycle status, and administrative audit trail.</p>
           </div>
         </div>
-        <span class="audit-badge">Restricted Access</span>
       </div>
 
       <div class="audit-grid">
@@ -767,7 +766,7 @@
           <span class="audit-label">Created Date &amp; Time</span>
           <strong class="audit-value" [attr.title]="policy.created_at">{{
             formatDateTime(policy.created_at)
-          }}</strong>
+            }}</strong>
         </div>
 
         <div class="audit-item">
@@ -777,7 +776,7 @@
           </strong>
           <span class="audit-role" *ngIf="policy.approved_by && getApproverRole()">{{
             getApproverRole()
-          }}</span>
+            }}</span>
         </div>
 
         <div class="audit-item">
@@ -790,7 +789,7 @@
           <span class="audit-label">Last Modified Date &amp; Time</span>
           <strong class="audit-value" [attr.title]="policy.updated_at">{{
             formatDateTime(policy.updated_at)
-          }}</strong>
+            }}</strong>
         </div>
       </div>
 
@@ -845,10 +844,9 @@
             <p>Chronological record of every successful workflow action on this policy.</p>
           </div>
         </div>
-        <span class="audit-badge">Restricted Access</span>
       </div>
-      <app-workflow-timeline [entityType]="'POLICY'" [entityId]="policy.policy_id"
-        [refreshToken]="timelineRefresh" (timelineLoaded)="onTimelineLoaded($event)">
+      <app-workflow-timeline [entityType]="'POLICY'" [entityId]="policy.policy_id" [refreshToken]="timelineRefresh"
+        (timelineLoaded)="onTimelineLoaded($event)">
       </app-workflow-timeline>
     </div>
 

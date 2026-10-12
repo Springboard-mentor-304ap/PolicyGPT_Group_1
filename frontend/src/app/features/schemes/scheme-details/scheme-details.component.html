@@ -15,20 +15,17 @@
     <div class="state-icon"><span class="material-icons">error_outline</span></div>
     <h3>Unable to load scheme</h3>
     <p>{{ errorMessage }}</p>
-    <button type="button" class="retry-btn" (click)="loadScheme(schemeIdNum!)">
-      Try Again
+    <button type="button" class="retry-btn" (click)="goBack()">
+      Go Back
     </button>
   </div>
 
   <!-- =====================================================
-       MAIN PAGE CONTENT
+       MAIN PAGE
        ===================================================== -->
-  <div *ngIf="scheme && !loading">
+  <ng-container *ngIf="!loading && !errorMessage && scheme">
 
-    <app-breadcrumb
-      *ngIf="breadcrumbItems.length > 0"
-      [items]="breadcrumbItems"
-    ></app-breadcrumb>
+    <app-breadcrumb *ngIf="breadcrumbItems.length > 0" [items]="breadcrumbItems"></app-breadcrumb>
 
     <!-- ===================================================
          PAGE HEADER
@@ -151,7 +148,7 @@
           </div>
 
           <p class="hero-description">
-            {{ scheme.description }}
+            <app-linkified-text [text]="scheme.description"></app-linkified-text>
           </p>
         </div>
 
@@ -189,7 +186,8 @@
 
               <button type="button" class="workflow-option" *ngIf="canSubmit" (click)="openSubmitModal()">
                 <span class="material-icons">publish</span>
-                <span>{{ isAdmin ? 'Submit' : (scheme.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for Approval') }}</span>
+                <span>{{ isAdmin ? 'Submit' : (scheme.status === 'REJECTED' ? 'Re-submit for Approval' : 'Submit for
+                  Approval') }}</span>
               </button>
 
               <button type="button" class="workflow-option workflow-option--success" *ngIf="canApprove"
@@ -273,7 +271,7 @@
 
       <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'"
         (click)="setActiveTab('eligibility')">
-        Eligibility
+        Eligibility Criteria
       </button>
 
       <button type="button" class="tab-btn" [class.active]="activeTab === 'benefits'"
@@ -281,9 +279,18 @@
         Benefits
       </button>
 
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'application'"
+        (click)="setActiveTab('application')">
+        Application Process
+      </button>
+
       <button type="button" class="tab-btn" [class.active]="activeTab === 'documents'"
         (click)="setActiveTab('documents')">
-        Documents
+        Documents Required
+      </button>
+
+      <button type="button" class="tab-btn" [class.active]="activeTab === 'links'" (click)="setActiveTab('links')">
+        Documents & Links
       </button>
     </div>
 
@@ -296,31 +303,42 @@
       <div class="detail-card left-panel">
         <section class="section-block">
           <h3>About the Scheme</h3>
-          <p class="section-desc">{{ scheme.description }}</p>
+          <p class="section-desc"><app-linkified-text [text]="scheme.description"></app-linkified-text></p>
         </section>
 
         <hr class="divider" />
 
         <div class="meta-grid">
-          <!-- APPLICATION PROCESS -->
-          <div class="meta-item full-width" *ngIf="scheme.application_process">
+          <!-- CATEGORY -->
+          <div class="meta-item">
             <div class="meta-icon">
-              <span class="material-icons">description</span>
+              <span class="material-icons">category</span>
             </div>
             <div class="meta-content">
-              <label>Application Process</label>
-              <p>{{ scheme.application_process }}</p>
+              <label>Category</label>
+              <p>{{ scheme.category }}</p>
             </div>
           </div>
 
-          <!-- DOCUMENTS REQUIRED -->
-          <div class="meta-item full-width" *ngIf="scheme.documents_required">
+          <!-- MINISTRY -->
+          <div class="meta-item">
             <div class="meta-icon">
-              <span class="material-icons">article</span>
+              <span class="material-icons">account_balance</span>
             </div>
             <div class="meta-content">
-              <label>Documents Required</label>
-              <p>{{ scheme.documents_required }}</p>
+              <label>Ministry</label>
+              <p>{{ scheme.ministry || "Not specified" }}</p>
+            </div>
+          </div>
+
+          <!-- DEPARTMENT -->
+          <div class="meta-item">
+            <div class="meta-icon">
+              <span class="material-icons">corporate_fare</span>
+            </div>
+            <div class="meta-content">
+              <label>Department</label>
+              <p>{{ scheme.department || "Not specified" }}</p>
             </div>
           </div>
 
@@ -331,18 +349,24 @@
             </div>
             <div class="meta-content">
               <label>State / Region</label>
-              <p>{{ scheme.state || "All India" }}</p>
+              <p>{{ scheme.state || "All India / Not specified" }}</p>
             </div>
           </div>
 
-          <!-- DEPARTMENT -->
-          <div class="meta-item">
+          <!-- RELATED POLICY -->
+          <div class="meta-item" *ngIf="scheme.related_policy_id">
             <div class="meta-icon">
-              <span class="material-icons">account_balance</span>
+              <span class="material-icons">policy</span>
             </div>
             <div class="meta-content">
-              <label>Department</label>
-              <p>{{ scheme.department || "Not specified" }}</p>
+              <label>Related Policy</label>
+              <p>
+                <a [routerLink]="['/dashboard', rolePrefix, 'policies', scheme.related_policy_id]"
+                  class="link-external">
+                  {{ scheme.related_policy_title || ('Policy #' + scheme.related_policy_id) }}
+                  <span class="material-icons link-icon">open_in_new</span>
+                </a>
+              </p>
             </div>
           </div>
 
@@ -365,6 +389,17 @@
             <div class="meta-content">
               <label>Last Updated</label>
               <p>{{ formatDate(scheme.updated_at) }}</p>
+            </div>
+          </div>
+
+          <!-- PUBLICATION / LAUNCH DATE -->
+          <div class="meta-item" *ngIf="scheme.launch_date">
+            <div class="meta-icon">
+              <span class="material-icons">event_available</span>
+            </div>
+            <div class="meta-content">
+              <label>Publication / Launch Date</label>
+              <p>{{ formatDate(scheme.launch_date) }}</p>
             </div>
           </div>
 
@@ -400,12 +435,61 @@
             </div>
           </div>
         </div>
+
+        <!-- KEY HIGHLIGHTS (bullet list) -->
+        <ng-container *ngIf="scheme.key_highlights && scheme.key_highlights.length > 0">
+          <hr class="divider" />
+          <section class="section-block">
+            <h3>Key Highlights</h3>
+            <ul class="detail-bullets">
+              <li *ngFor="let highlight of scheme.key_highlights">{{ highlight }}</li>
+            </ul>
+          </section>
+        </ng-container>
+
+        <!-- ADDITIONAL INFO -->
+        <ng-container *ngIf="scheme.additional_info">
+          <hr class="divider" />
+          <section class="section-block">
+            <h3>Additional Information</h3>
+            <p class="section-desc pre-wrap">{{ scheme.additional_info }}</p>
+          </section>
+        </ng-container>
+
+        <!-- IMPORTANT NOTES -->
+        <ng-container *ngIf="scheme.important_notes">
+          <hr class="divider" />
+          <section class="section-block">
+            <h3>Important Notes</h3>
+            <p class="section-desc pre-wrap">{{ scheme.important_notes }}</p>
+          </section>
+        </ng-container>
       </div>
 
       <!-- RIGHT: Scheme Highlights -->
       <div class="right-stack">
         <div class="detail-card highlights-card">
           <h3>Scheme Highlights</h3>
+
+          <div class="highlight-item" *ngIf="!isPublicRole">
+            <div class="highlight-icon"><span class="material-icons">verified</span></div>
+            <div>
+              <label>Current Status</label>
+              <p>
+                <span class="status-badge" [ngClass]="'status-' + scheme.status.toLowerCase()">
+                  {{ getStatusLabel(scheme.status) }}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div class="highlight-item" *ngIf="scheme.category">
+            <div class="highlight-icon"><span class="material-icons">category</span></div>
+            <div>
+              <label>Primary Focus</label>
+              <p>{{ scheme.category }}</p>
+            </div>
+          </div>
 
           <div class="highlight-item" *ngIf="scheme.benefits && scheme.benefits.length > 0">
             <div class="highlight-icon"><span class="material-icons">card_giftcard</span></div>
@@ -484,34 +568,72 @@
         </button>
       </div>
 
-      <!-- Rules List -->
-      <div *ngIf="!eligibilityLoading && !eligibilityError">
-        <div class="eligibility-rules" *ngIf="hasEligibilityRules">
-          <div class="eligibility-rule-card" *ngFor="let rule of eligibilityRules; let index = index">
-            <div class="rule-content">
-              <h4>Rule Condition #{{ index + 1 }}</h4>
+      <!-- No Rules -->
+      <div class="no-rules" *ngIf="!eligibilityLoading && !eligibilityError && !hasAnyEligibility">
+        <h4>No Restrictions</h4>
+        <p>This scheme is openly applicable to citizens without specialized eligibility restrictions.</p>
+      </div>
 
-              <div class="rule-list" *ngIf="getRuleDescriptions(rule).length > 0">
-                <div class="rule-row" *ngFor="let desc of getRuleDescriptions(rule)">
-                  <span class="material-icons check-icon">check_circle</span>
-                  <span>{{ desc }}</span>
-                </div>
-              </div>
+      <!-- Saved criteria (submitted with the scheme record) -->
+      <div class="eligibility-rules" *ngIf="!eligibilityLoading && !eligibilityError && hasSavedEligibility">
+        <div class="eligibility-rule-card" *ngFor="let group of savedEligibilityGroups">
+          <div class="rule-content">
+            <h4>{{ group.title }}</h4>
 
-              <div class="rule-empty" *ngIf="getRuleDescriptions(rule).length === 0">
-                No specific parameters configured for this rule.
+            <ul class="detail-bullets" *ngIf="group.bulleted">
+              <li *ngFor="let line of group.lines">{{ line }}</li>
+            </ul>
+
+            <div class="rule-list" *ngIf="!group.bulleted && group.lines.length > 0">
+              <div class="rule-row" *ngFor="let line of group.lines">
+                <span class="material-icons check-icon">check_circle</span>
+                <span>{{ line }}</span>
               </div>
+            </div>
+
+            <div class="rule-details" *ngIf="group.details.length > 0">
+              <ng-container *ngFor="let detail of group.details">
+                <ng-container *ngTemplateOutlet="eligibilityDetail; context: { $implicit: detail }">
+                </ng-container>
+              </ng-container>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- No Rules -->
-        <div class="no-rules" *ngIf="!hasEligibilityRules">
-          <h4>No Restrictions</h4>
-          <p>
-            This scheme is openly applicable to citizens without specialized eligibility restrictions.
-            Please consult the official website for additional details.
-          </p>
+      <ng-template #eligibilityDetail let-detail>
+        <div class="rule-detail">
+          <span class="rule-detail-label" *ngIf="detail.label">{{ detail.label }}:</span>
+          <span class="rule-detail-value" *ngIf="detail.value !== undefined">{{ detail.value }}</span>
+          <ul class="detail-bullets" *ngIf="detail.items && detail.items.length > 0">
+            <li *ngFor="let item of detail.items">{{ item }}</li>
+          </ul>
+          <div class="rule-detail-children" *ngIf="detail.children && detail.children.length > 0">
+            <ng-container *ngFor="let child of detail.children">
+              <ng-container *ngTemplateOutlet="eligibilityDetail; context: { $implicit: child }">
+              </ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </ng-template>
+
+      <!-- Rules -->
+      <div class="eligibility-rules" *ngIf="!eligibilityLoading && !eligibilityError && eligibilityRules.length > 0">
+        <div class="eligibility-rule-card" *ngFor="let rule of eligibilityRules; let index = index">
+          <div class="rule-content">
+            <h4>Rule Condition #{{ index + 1 }}</h4>
+
+            <div class="rule-list" *ngIf="getRuleDescriptions(rule).length > 0">
+              <div class="rule-row" *ngFor="let desc of getRuleDescriptions(rule)">
+                <span class="material-icons check-icon">check_circle</span>
+                <span>{{ desc }}</span>
+              </div>
+            </div>
+
+            <div class="rule-empty" *ngIf="getRuleDescriptions(rule).length === 0">
+              No specific parameters configured for this rule.
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -534,15 +656,56 @@
 
       <div class="no-content" *ngIf="benefits.length === 0">
         <div class="no-content-icon"><span class="material-icons">info</span></div>
-        <h4>No Benefits Listed</h4>
         <p>Specific benefits information has not yet been cataloged for this scheme.</p>
       </div>
     </div>
 
     <!-- ===================================================
-         TAB CONTENT: DOCUMENTS TAB
+         TAB CONTENT: APPLICATION PROCESS TAB
+         =================================================== -->
+    <div class="detail-card tab-content-card" *ngIf="activeTab === 'application'">
+      <div class="tab-heading">
+        <h3>Application Process</h3>
+        <p class="tab-subtitle">Step-by-step procedure to apply for this scheme.</p>
+      </div>
+
+      <div class="plain-list" *ngIf="applicationSteps.length > 0">
+        <div class="plain-list-item" *ngFor="let step of applicationSteps">
+          <app-linkified-text [text]="step"></app-linkified-text>
+        </div>
+      </div>
+
+      <div class="no-content" *ngIf="applicationSteps.length === 0">
+        <div class="no-content-icon"><span class="material-icons">info</span></div>
+        <p>No application process has been cataloged for this scheme yet.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         TAB CONTENT: DOCUMENTS REQUIRED TAB
          =================================================== -->
     <div class="detail-card tab-content-card" *ngIf="activeTab === 'documents'">
+      <div class="tab-heading">
+        <h3>Documents Required</h3>
+        <p class="tab-subtitle">Documents applicants must furnish for this scheme.</p>
+      </div>
+
+      <div class="plain-list" *ngIf="requiredDocuments.length > 0">
+        <div class="plain-list-item" *ngFor="let doc of requiredDocuments">
+          <app-linkified-text [text]="doc"></app-linkified-text>
+        </div>
+      </div>
+
+      <div class="no-content" *ngIf="requiredDocuments.length === 0">
+        <div class="no-content-icon"><span class="material-icons">info</span></div>
+        <p>No required documents have been cataloged for this scheme yet.</p>
+      </div>
+    </div>
+
+    <!-- ===================================================
+         TAB CONTENT: DOCUMENTS & LINKS TAB
+         =================================================== -->
+    <div class="detail-card tab-content-card" *ngIf="activeTab === 'links'">
       <div class="tab-heading">
         <h3>Documents & Links</h3>
         <p class="tab-subtitle">Application portals, guidelines, and official government publications.</p>
@@ -551,13 +714,18 @@
       <div class="documents-grid" *ngIf="hasDocument">
         <!-- Application Portal -->
         <div class="document-resource-card" *ngIf="scheme.application_url">
-          <div class="document-resource-icon">
-            <span class="material-icons">language</span>
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">language</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Online Application Portal</h4>
+              <p>Access the official digital portal to submit applications and register for this scheme.</p>
+            </div>
           </div>
 
-          <div class="document-resource-content">
-            <h4>Online Application Portal</h4>
-            <p>Access the official digital portal to submit applications and register for this scheme.</p>
+          <div class="document-actions">
             <a [href]="scheme.application_url" target="_blank" rel="noopener noreferrer" class="link-external">
               <span>Open Application Portal</span>
               <span class="material-icons link-icon">open_in_new</span>
@@ -567,15 +735,41 @@
 
         <!-- Official Source -->
         <div class="document-resource-card" *ngIf="scheme.source_url">
-          <div class="document-resource-icon">
-            <span class="material-icons">description</span>
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">description</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Official Source Documentation</h4>
+              <p>View the original government publication, circular, or guidelines for this scheme.</p>
+            </div>
           </div>
 
-          <div class="document-resource-content">
-            <h4>Official Source Documentation</h4>
-            <p>View the original government publication, circular, or guidelines for this scheme.</p>
+          <div class="document-actions">
             <a [href]="scheme.source_url" target="_blank" rel="noopener noreferrer" class="link-external">
               <span>View Source Document</span>
+              <span class="material-icons link-icon">open_in_new</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Additional Reference -->
+        <div class="document-resource-card" *ngIf="scheme.application_source_url">
+          <div class="document-resource-main">
+            <div class="document-resource-icon">
+              <span class="material-icons">link</span>
+            </div>
+
+            <div class="document-resource-content">
+              <h4>Additional Reference</h4>
+              <p>An additional official reference link provided for this scheme.</p>
+            </div>
+          </div>
+
+          <div class="document-actions">
+            <a [href]="scheme.application_source_url" target="_blank" rel="noopener noreferrer" class="link-external">
+              <span>Open Reference</span>
               <span class="material-icons link-icon">open_in_new</span>
             </a>
           </div>
@@ -603,7 +797,6 @@
             <p>Internal governance metadata, lifecycle status, and administrative audit trail.</p>
           </div>
         </div>
-        <span class="audit-badge">Restricted Access</span>
       </div>
 
       <div class="audit-grid">
@@ -626,7 +819,7 @@
           <span class="audit-label">Created Date &amp; Time</span>
           <strong class="audit-value" [attr.title]="scheme.created_at">{{
             formatDateTime(scheme.created_at)
-          }}</strong>
+            }}</strong>
         </div>
 
         <div class="audit-item">
@@ -636,7 +829,7 @@
           </strong>
           <span class="audit-role" *ngIf="scheme.approved_by && getApproverRole()">{{
             getApproverRole()
-          }}</span>
+            }}</span>
         </div>
 
         <div class="audit-item">
@@ -649,7 +842,7 @@
           <span class="audit-label">Last Modified Date &amp; Time</span>
           <strong class="audit-value" [attr.title]="scheme.updated_at">{{
             formatDateTime(scheme.updated_at)
-          }}</strong>
+            }}</strong>
         </div>
       </div>
 
@@ -689,36 +882,35 @@
           </p>
         </div>
       </div>
-
-      <!-- ===================================================
-           WORKFLOW TIMELINE
-           =================================================== -->
-      <div class="timeline-card">
-        <div class="audit-header">
-          <div class="audit-title-group">
-            <span class="material-icons audit-header-icon">history</span>
-            <div>
-              <h3>Workflow Timeline</h3>
-              <p>Chronological record of every successful workflow action on this scheme.</p>
-            </div>
-          </div>
-          <span class="audit-badge">Restricted Access</span>
-        </div>
-        <app-workflow-timeline [entityType]="'SCHEME'" [entityId]="scheme.scheme_id"
-          [refreshToken]="timelineRefresh" (timelineLoaded)="onTimelineLoaded($event)">
-        </app-workflow-timeline>
-      </div>
     </div>
 
-  </div>
+    <!-- ===================================================
+         WORKFLOW TIMELINE
+         (Visible ONLY to Admin & Government Official)
+         =================================================== -->
+    <div class="audit-card timeline-card" *ngIf="canViewAudit">
+      <div class="audit-header">
+        <div class="audit-title-group">
+          <span class="material-icons audit-header-icon">history</span>
+          <div>
+            <h3>Workflow Timeline</h3>
+            <p>Chronological record of every successful workflow action on this scheme.</p>
+          </div>
+        </div>
+      </div>
+      <app-workflow-timeline [entityType]="'SCHEME'" [entityId]="scheme.scheme_id" [refreshToken]="timelineRefresh"
+        (timelineLoaded)="onTimelineLoaded($event)">
+      </app-workflow-timeline>
+    </div>
+
+  </ng-container>
 
   <!-- =====================================================
        SHARED CONFIRM MODAL
        ===================================================== -->
   <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
     [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-    (confirmed)="confirmAction && confirmAction()"
-    (cancelled)="confirmModalOpen = false"></app-confirm-modal>
+    (confirmed)="confirmAction && confirmAction()" (cancelled)="confirmModalOpen = false"></app-confirm-modal>
 
   <!-- =====================================================
        SHARED REASON MODAL

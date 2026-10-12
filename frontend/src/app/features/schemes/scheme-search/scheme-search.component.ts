@@ -86,6 +86,8 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     { label: 'Draft', value: 'DRAFT' },
     { label: 'Rejected', value: 'REJECTED' },
     { label: 'Archived', value: 'ARCHIVED' },
+    { label: 'Archive Requested', value: 'ARCHIVE_REQUESTED' },
+    { label: 'Delete Requested', value: 'DELETE_REQUESTED' },
   ];
 
   readonly statusDisplayOptions: string[] = [
@@ -94,6 +96,8 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     'Draft',
     'Rejected',
     'Archived',
+    'Archive Requested',
+    'Delete Requested',
   ];
 
   selectedStatusDisplay = '';
@@ -105,6 +109,8 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
       'Draft': 'DRAFT',
       'Rejected': 'REJECTED',
       'Archived': 'ARCHIVED',
+      'Archive Requested': 'ARCHIVE_REQUESTED',
+      'Delete Requested': 'DELETE_REQUESTED',
     };
     this.selectedStatus = map[displayVal] || '';
     this.applyFilters();

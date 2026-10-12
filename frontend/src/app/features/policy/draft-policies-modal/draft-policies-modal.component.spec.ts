@@ -82,6 +82,47 @@ describe("DraftPoliciesModalComponent", () => {
     expect(c.loading).toBe(false);
   });
 
+  it("1b. draft ownership follows the latest editor, not the creator", () => {
+    mocks.auth.getUserRole.mockReturnValue("GOVERNMENT_OFFICIAL");
+    mocks.auth.getStoredUser.mockReturnValue({ user_id: 2, role: "GOVERNMENT_OFFICIAL" });
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({
+        total: 3,
+        page: 1,
+        limit: 100,
+        pages: 1,
+        policies: [
+          draftRow({ policy_id: 30, created_by: 2 }),
+          // Created by this official but last saved by the admin.
+          draftRow({ policy_id: 31, title: "Taken", created_by: 2, updated_by: 1 }),
+          // Created by another official but last saved by this one.
+          draftRow({ policy_id: 32, title: "Adopted", created_by: 9, updated_by: 2 }),
+        ],
+      }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    expect(c.policies.map((p) => p.id).sort()).toEqual([30, 32]);
+  });
+
+  it("1c. admin sees every draft regardless of editor", () => {
+    mocks.policyService.getPolicies.mockReturnValue(
+      of({
+        total: 2,
+        page: 1,
+        limit: 100,
+        pages: 1,
+        policies: [
+          draftRow({ policy_id: 30, created_by: 2, updated_by: 1 }),
+          draftRow({ policy_id: 31, title: "Gov", created_by: 2 }),
+        ],
+      }),
+    );
+    const c = makeComponent(mocks);
+    c.ngOnInit();
+    expect(c.policies.map((p) => p.id).sort()).toEqual([30, 31]);
+  });
+
   it("2. requestClose emits closed; Escape and backdrop also close", () => {
     const c = makeComponent(mocks);
     c.ngOnInit();

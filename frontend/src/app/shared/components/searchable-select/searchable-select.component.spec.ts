@@ -124,7 +124,7 @@ describe('SearchableSelectComponent & Dependent Behavior', () => {
     expect(optionLabels).not.toContain('Education');
   });
 
-  it('should display "No matching options" if typing does not match any item', () => {
+  it('should keep the panel open with no empty message on zero matches', () => {
     const triggerEl = hostFixture.nativeElement.querySelector('#test-category .select-trigger') as HTMLElement;
     triggerEl.click();
     hostFixture.detectChanges();
@@ -134,9 +134,36 @@ describe('SearchableSelectComponent & Dependent Behavior', () => {
     searchInput.dispatchEvent(new Event('input'));
     hostFixture.detectChanges();
 
-    const noOptionsEl = hostFixture.nativeElement.querySelector('.no-options');
-    expect(noOptionsEl).toBeTruthy();
-    expect(noOptionsEl.textContent).toContain('No matching options');
+    // Dropdown stays open with the search intact; no empty-state message.
+    expect(hostFixture.nativeElement.querySelector('.dropdown-panel')).toBeTruthy();
+    expect((hostFixture.nativeElement.querySelector('.search-input') as HTMLInputElement).value).toBe(
+      'xyz123nonexistent',
+    );
+    expect(hostFixture.nativeElement.querySelector('.no-options')).toBeNull();
+    expect(hostFixture.nativeElement.querySelectorAll('.option-item').length).toBe(0);
+  });
+
+  it('should still offer the custom value when nothing matches', () => {
+    const triggerEl = hostFixture.nativeElement.querySelector('#test-department .select-trigger') as HTMLElement;
+    hostComponent.testForm.get('ministry')?.setValue('Ministry of Agriculture and Farmers Welfare');
+    hostComponent.onMinistryChange('Ministry of Agriculture and Farmers Welfare');
+    hostFixture.detectChanges();
+    triggerEl.click();
+    hostFixture.detectChanges();
+
+    const searchInput = hostFixture.nativeElement.querySelector('.search-input') as HTMLInputElement;
+    searchInput.value = 'Brand New Dept';
+    searchInput.dispatchEvent(new Event('input'));
+    hostFixture.detectChanges();
+
+    const customRow = hostFixture.nativeElement.querySelector('.is-custom-option');
+    expect(customRow).toBeTruthy();
+    expect(customRow.textContent).toContain('Use custom value');
+    expect(hostFixture.nativeElement.querySelector('.no-options')).toBeNull();
+
+    (customRow as HTMLElement).click();
+    hostFixture.detectChanges();
+    expect(hostComponent.testForm.get('department')?.value).toBe('Brand New Dept');
   });
 
   it('should select an option on click, update form control, and close dropdown', () => {
@@ -199,7 +226,7 @@ describe('SearchableSelectComponent & Dependent Behavior', () => {
     ]);
   });
 
-  it('shows a compact empty state with a clickable custom option on no match', () => {
+  it('shows only the clickable custom option on no match (no empty message)', () => {
     hostComponent.testForm.get('ministry')?.setValue('Ministry of Education');
     hostComponent.onMinistryChange('Ministry of Education');
     hostFixture.detectChanges();
@@ -213,9 +240,8 @@ describe('SearchableSelectComponent & Dependent Behavior', () => {
     searchInput.dispatchEvent(new Event('input'));
     hostFixture.detectChanges();
 
-    // Single compact message plus exactly one custom option below it.
-    const messages = hostFixture.nativeElement.querySelectorAll('#test-department .no-options');
-    expect(messages.length).toBe(1);
+    // No empty-state message; exactly one custom option below the search.
+    expect(hostFixture.nativeElement.querySelectorAll('#test-department .no-options').length).toBe(0);
     const customRow = hostFixture.nativeElement.querySelector('#test-department .is-custom-option') as HTMLElement;
     expect(customRow).toBeTruthy();
     expect(customRow.textContent).toContain('Department of School Education & Literacy');

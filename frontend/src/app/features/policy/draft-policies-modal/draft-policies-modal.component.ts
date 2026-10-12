@@ -35,6 +35,8 @@ export interface DraftPolicyItem {
   sector: string;
   status: string;
   createdBy?: number | null;
+  /** Latest editor; legacy rows fall back to the creator. */
+  updatedBy?: number | null;
   updatedAt?: string | null;
 }
 
@@ -364,8 +366,11 @@ export class DraftPoliciesModalComponent
             ? response.policies
             : [];
           if (!this.isAdmin && currentUserId) {
+            // Draft ownership follows the latest editor (updated_by),
+            // falling back to the creator for legacy rows.
             source = source.filter(
-              (p: PolicyResponse) => p.created_by === currentUserId,
+              (p: PolicyResponse) =>
+                (p.updated_by ?? p.created_by) === currentUserId,
             );
           }
           this.policies = source
@@ -399,6 +404,7 @@ export class DraftPoliciesModalComponent
       sector: policy.sector || "",
       status: String(policy.status || "DRAFT").toUpperCase(),
       createdBy: policy.created_by,
+      updatedBy: policy.updated_by ?? null,
       updatedAt: policy.updated_at || null,
     };
   }

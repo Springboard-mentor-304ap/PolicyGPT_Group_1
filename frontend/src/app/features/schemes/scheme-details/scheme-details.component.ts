@@ -6,7 +6,7 @@ import {
   HostListener,
 } from "@angular/core";
 import { CommonModule, Location } from "@angular/common";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { catchError, finalize, of } from "rxjs";
 
 import { SchemeService, Scheme } from "../../../core/services/scheme.service";
@@ -15,9 +15,14 @@ import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
 import { PermissionService } from "../../../core/services/permission.service";
 import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import { LinkifiedTextComponent } from "../../../shared/components/linkified-text/linkified-text.component";
 import { ReasonModalComponent } from "../../../shared/components/reason-modal/reason-modal.component";
 import { WorkflowTimelineComponent } from "../../../shared/components/workflow-timeline/workflow-timeline.component";
 import type { AuditLog } from "../../../core/models/audit-log.model";
+import {
+  mapSavedEligibilityRules,
+  type SavedEligibilityGroup,
+} from "../../policy/policy-details/policy-eligibility.util";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -50,10 +55,12 @@ interface EligibilityRule {
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     ConfirmModalComponent,
     ReasonModalComponent,
     BreadcrumbComponent,
     WorkflowTimelineComponent,
+    LinkifiedTextComponent,
   ],
   templateUrl: "./scheme-details.component.html",
   styleUrls: ["./scheme-details.component.scss"],
@@ -69,7 +76,7 @@ export class SchemeDetailsComponent implements OnInit {
   private readonly permissions = inject(PermissionService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  activeTab: "overview" | "eligibility" | "benefits" | "documents" = "overview";
+  activeTab: "overview" | "eligibility" | "benefits" | "application" | "documents" | "links" = "overview";
 
   schemeId: string | null = null;
   schemeIdNum: number | null = null;
@@ -359,12 +366,13 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   get canDirectDelete(): boolean {
-    return (
-      this.isAdmin &&
-      ["DRAFT", "REJECTED", "APPROVED", "ARCHIVED"].includes(
+    if (this.isAdmin) {
+      return ["DRAFT", "REJECTED", "APPROVED", "ARCHIVED"].includes(
         this.scheme?.status || "",
-      )
-    );
+      );
+    }
+    // Government Officials may directly delete only their own DRAFTs.
+    return this.isGov && this.scheme?.status === "DRAFT" && this.isOwner;
   }
 
   get hasWorkflowActions(): boolean {
@@ -466,7 +474,7 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   setActiveTab(
-    tab: "overview" | "eligibility" | "benefits" | "documents",
+    tab: "overview" | "eligibility" | "benefits" | "application" | "documents" | "links",
   ): void {
     this.activeTab = tab;
     this.cdr.detectChanges();
@@ -586,11 +594,24 @@ export class SchemeDetailsComponent implements OnInit {
           this.confirmModalOpen = false;
           this.confirmAction = null;
           this.confirmErrorMessage = null;
-          this.schemeSuccessToast(
-            updated,
-            (n) => `Scheme "${n}" submitted for approval.`,
-            "Scheme submitted for approval.",
-          );
+          // Use the backend-confirmed status: admin direct-approves
+          // drafts (APPROVED), government officials go to PENDING_APPROVAL.
+          const approved =
+            String((updated as any)?.status || "").toUpperCase() ===
+            "APPROVED";
+          if (approved) {
+            this.schemeSuccessToast(
+              updated,
+              (n) => `Scheme "${n}" approved successfully.`,
+              "Scheme approved successfully.",
+            );
+          } else {
+            this.schemeSuccessToast(
+              updated,
+              (n) => `Scheme "${n}" submitted for approval.`,
+              "Scheme submitted for approval.",
+            );
+          }
           this.loadScheme(schemeId);
           this.cdr.detectChanges();
         },
@@ -837,7 +858,7 @@ export class SchemeDetailsComponent implements OnInit {
     if (!this.scheme) return;
     const schemeId = this.scheme.scheme_id;
     this.confirmTitle = "Restore Scheme";
-    this.confirmMessage = `Restore "${this.scheme.name}" to Draft status?`;
+    this.confirmMessage = `Restore "${this.scheme.name}" back to APPROVED state?`;
     this.confirmVariant = "primary";
     this.confirmLoading = false;
     this.confirmErrorMessage = null;
@@ -852,8 +873,8 @@ export class SchemeDetailsComponent implements OnInit {
           this.confirmModalOpen = false;
           this.schemeSuccessToast(
             updated,
-            (n) => `Scheme "${n}" restored to draft.`,
-            "Scheme restored to draft.",
+            (n) => `Scheme "${n}" restored to APPROVED.`,
+            "Scheme restored to APPROVED.",
           );
           this.loadScheme(schemeId);
           this.cdr.detectChanges();
@@ -1266,10 +1287,36 @@ export class SchemeDetailsComponent implements OnInit {
   }
 
   /*
-   * Documents
+   * External links (portal / source / reference) shown on the
+   * Documents & Links tab. Documents Required lives on its own tab.
    */
   get hasDocument(): boolean {
-    return !!this.scheme?.source_url || !!this.scheme?.application_url;
+    return !!this.scheme?.source_url || !!this.scheme?.application_url || !!this.scheme?.application_source_url;
+  }
+
+  /*
+   * Application process steps and required documents.
+   *
+   * Both are stored as free text (TEXT columns). Values may be
+   * newline-separated lists ("1. ...\n2. ..."), a single paragraph,
+   * or missing entirely. Splitting on newlines preserves the saved
+   * order and numbering; a single block renders as one step.
+   */
+  private splitTextLines(value: string | null | undefined): string[] {
+    const text = String(value ?? "").replace(/\r\n?/g, "\n").trim();
+    if (!text) return [];
+    return text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  }
+
+  get applicationSteps(): string[] {
+    return this.splitTextLines(this.scheme?.application_process);
+  }
+
+  get requiredDocuments(): string[] {
+    return this.splitTextLines(this.scheme?.documents_required);
   }
 
   /*
@@ -1277,6 +1324,26 @@ export class SchemeDetailsComponent implements OnInit {
    */
   get hasEligibilityRules(): boolean {
     return this.eligibilityRules.length > 0;
+  }
+
+  /**
+   * Eligibility criteria submitted with the scheme, read from the
+   * saved scheme record itself (scheme.eligibility_rules, same JSONB
+   * row shapes as policies). The separate eligibility-rules API only
+   * holds relationally managed rules, so the saved record is the
+   * source of truth here. Reuses the shared grouping helpers.
+   */
+  get savedEligibilityGroups(): SavedEligibilityGroup[] {
+    return mapSavedEligibilityRules(this.scheme?.eligibility_rules);
+  }
+
+  get hasSavedEligibility(): boolean {
+    return this.savedEligibilityGroups.length > 0;
+  }
+
+  /** True when either the saved record or the rules API has criteria. */
+  get hasAnyEligibility(): boolean {
+    return this.hasSavedEligibility || this.eligibilityRules.length > 0;
   }
 
   /*

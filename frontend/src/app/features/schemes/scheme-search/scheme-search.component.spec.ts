@@ -127,4 +127,45 @@ describe('SchemeSearchComponent', () => {
     expect(component.isBookmarked(101)).toBe(false);
     expect(toastService.info).toHaveBeenCalledWith('Scheme removed from bookmarks');
   });
+
+  it('6. status filter maps every workflow display value', () => {
+    const cases: Array<[string, string]> = [
+      ['Approved', 'APPROVED'],
+      ['Pending Approval', 'PENDING_APPROVAL'],
+      ['Draft', 'DRAFT'],
+      ['Rejected', 'REJECTED'],
+      ['Archived', 'ARCHIVED'],
+      ['Archive Requested', 'ARCHIVE_REQUESTED'],
+      ['Delete Requested', 'DELETE_REQUESTED'],
+    ];
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockSchemeList));
+    for (const [display, value] of cases) {
+      component.onStatusDisplayChange(display);
+      expect(component.selectedStatus).toBe(value);
+    }
+    expect(component.statusDisplayOptions).toEqual([
+      'Approved',
+      'Pending Approval',
+      'Draft',
+      'Rejected',
+      'Archived',
+      'Archive Requested',
+      'Delete Requested',
+    ]);
+  });
+
+  it('7. status badge labels resolve for every workflow status', () => {
+    const labels: Record<string, string> = {
+      DRAFT: 'Draft',
+      PENDING_APPROVAL: 'Pending Approval',
+      APPROVED: 'Approved',
+      REJECTED: 'Rejected',
+      ARCHIVED: 'Archived',
+      ARCHIVE_REQUESTED: 'Archive Requested',
+      DELETE_REQUESTED: 'Delete Requested',
+    };
+    for (const [status, label] of Object.entries(labels)) {
+      expect(component.getStatusLabel(status)).toBe(label);
+    }
+  });
 });

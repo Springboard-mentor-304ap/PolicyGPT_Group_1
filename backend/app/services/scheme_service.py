@@ -7,8 +7,56 @@ from sqlalchemy import and_, cast, or_, String
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.models.policy import Policy
 from app.models.scheme import Scheme
 from app.models.user import User
+
+
+def _validate_related_policy(
+    db: Session,
+    policy_id: int,
+    current_user: User | None = None,
+) -> None:
+    """Validate a scheme's related-policy reference.
+
+    The policy must exist and not be trashed. When the caller's identity
+    is known, they must also be permitted to reference it: APPROVED
+    policies are referenceable by anyone, other statuses only by their
+    creator or an Admin (mirrors GET /policies/{id} visibility).
+    """
+    policy = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
+
+    if policy is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Referenced policy does not exist.",
+        )
+
+    if current_user is None:
+        return
+
+    role = _normalize_role(getattr(current_user, "role", ""))
+
+    if role == "ADMIN":
+        return
+
+    if policy.status == "APPROVED":
+        return
+
+    if policy.created_by == current_user.user_id:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not permitted to reference this policy.",
+    )
 
 
 def _normalize_role(value: object) -> str:
@@ -170,6 +218,7 @@ def create_scheme(
     db: Session,
     data,
     user_id: int,
+    current_user: User | None = None,
 ) -> Scheme:
 
     name = data.name.strip()
@@ -189,6 +238,12 @@ def create_scheme(
     )
 
     state = data.state.strip() if data.state and data.state.strip() else None
+
+    eligibility_state = (
+        data.eligibility_state.strip()
+        if data.eligibility_state and data.eligibility_state.strip()
+        else None
+    )
 
     query = db.query(Scheme).filter(Scheme.name.ilike(name))
 
@@ -222,6 +277,11 @@ def create_scheme(
 
     now = current_time()
 
+    related_policy_id = getattr(data, "related_policy_id", None)
+
+    if related_policy_id is not None:
+        _validate_related_policy(db, related_policy_id, current_user)
+
     scheme = Scheme(
         name=name,
         description=description,
@@ -229,7 +289,19 @@ def create_scheme(
         ministry=ministry,
         department=department,
         state=state,
+        eligibility_state=eligibility_state,
         benefits=data.benefits,
+        key_highlights=data.key_highlights,
+        additional_info=(
+            data.additional_info.strip()
+            if data.additional_info and data.additional_info.strip()
+            else None
+        ),
+        important_notes=(
+            data.important_notes.strip()
+            if data.important_notes and data.important_notes.strip()
+            else None
+        ),
         documents_required=(
             data.documents_required.strip()
             if data.documents_required and data.documents_required.strip()
@@ -243,11 +315,17 @@ def create_scheme(
         application_url=_validate_scheme_url(
             "application_url", data.application_url
         ),
+        application_source_url=_validate_scheme_url(
+            "application_source_url", data.application_source_url
+        ),
         source_url=_validate_scheme_url("source_url", data.source_url),
         eligibility_rules=_validate_scheme_eligibility(data.eligibility_rules),
+        related_policy_id=related_policy_id,
+        launch_date=getattr(data, "launch_date", None),
         status="DRAFT",
         created_by=user_id,
         approved_by=None,
+        updated_by=user_id,
         created_at=now,
         updated_at=now,
     )
@@ -356,6 +434,11 @@ def update_scheme(
         scheme.state,
     )
 
+    new_eligibility_state = update_data.get(
+        "eligibility_state",
+        scheme.eligibility_state,
+    )
+
     if isinstance(new_name, str):
         new_name = new_name.strip()
 
@@ -369,6 +452,13 @@ def update_scheme(
 
     if isinstance(new_state, str):
         new_state = new_state.strip() if new_state.strip() else None
+
+    if isinstance(new_eligibility_state, str):
+        new_eligibility_state = (
+            new_eligibility_state.strip()
+            if new_eligibility_state.strip()
+            else None
+        )
 
     query = db.query(Scheme).filter(
         Scheme.scheme_id != scheme.scheme_id,
@@ -413,11 +503,16 @@ def update_scheme(
     if "state" in update_data:
         update_data["state"] = new_state
 
+    if "eligibility_state" in update_data:
+        update_data["eligibility_state"] = new_eligibility_state
+
     text_fields = [
         "description",
         "category",
         "documents_required",
         "application_process",
+        "additional_info",
+        "important_notes",
     ]
 
     for field in text_fields:
@@ -432,6 +527,11 @@ def update_scheme(
             "application_url", update_data["application_url"]
         )
 
+    if "application_source_url" in update_data:
+        update_data["application_source_url"] = _validate_scheme_url(
+            "application_source_url", update_data["application_source_url"]
+        )
+
     if "source_url" in update_data:
         update_data["source_url"] = _validate_scheme_url(
             "source_url", update_data["source_url"]
@@ -442,11 +542,28 @@ def update_scheme(
             update_data["eligibility_rules"]
         )
 
+    if "related_policy_id" in update_data:
+        if update_data["related_policy_id"] is not None:
+            _validate_related_policy(
+                db, update_data["related_policy_id"], current_user
+            )
+
     for field, value in update_data.items():
         setattr(scheme, field, value)
 
     if scheme.status == "ARCHIVED":
+        # Edited archived records re-enter the workflow as drafts
+        # (mirrors policy_service.update_policy): previous approval is
+        # no longer valid and pending-request metadata must not linger
+        # on a draft. The archival decision itself stays in audit logs.
         scheme.status = "DRAFT"
+        scheme.approved_by = None
+        scheme.archive_reason = None
+        scheme.archive_requested_by = None
+        scheme.archive_requested_at = None
+
+    if current_user is not None:
+        scheme.updated_by = current_user.user_id
 
     scheme.updated_at = current_time()
 
@@ -540,6 +657,14 @@ def submit_scheme(
     scheme: Scheme,
     current_user: User | None = None,
 ) -> Scheme:
+    """Submit a scheme.
+
+    Role-based status transition (mirrors submit_policy):
+
+    ADMIN:                DRAFT -> APPROVED (direct approval)
+                          REJECTED -> PENDING_APPROVAL (unchanged)
+    GOVERNMENT_OFFICIAL:  DRAFT / REJECTED -> PENDING_APPROVAL (unchanged)
+    """
 
     # Creator-only submission check: only the creator (or Admin) can submit
     is_admin = current_user and str(getattr(current_user, "role", "")).strip().upper() in {"ADMIN", "ADMINISTRATOR"}
@@ -559,7 +684,17 @@ def submit_scheme(
     }:
         raise ValueError("Only DRAFT or REJECTED schemes " "can be submitted.")
 
-    scheme.status = "PENDING_APPROVAL"
+    # Admin submitting a draft approves it directly: no PENDING_APPROVAL
+    # stopover, approved_by recorded. Every other submission keeps the
+    # existing approval workflow (approved_by untouched until real approval).
+    direct_approve = bool(is_admin) and scheme.status == "DRAFT"
+
+    if direct_approve:
+        scheme.status = "APPROVED"
+
+        scheme.approved_by = current_user.user_id
+    else:
+        scheme.status = "PENDING_APPROVAL"
 
     scheme.rejection_reason = None
 
@@ -568,22 +703,40 @@ def submit_scheme(
     db.commit()
     db.refresh(scheme)
 
-    try:
-        from app.services.notification_service import notify_scheme_submitted
-        notify_scheme_submitted(
-            db=db,
-            scheme_id=scheme.scheme_id,
-            scheme_title=getattr(scheme, "name", getattr(
-                scheme, "scheme_name", "Public Scheme")),
-            submitted_by_id=(
-                current_user.user_id
-                if current_user is not None
-                else (scheme.created_by or 0)
-            ),
-            ministry=scheme.ministry,
-        )
-    except Exception as e:
-        print(f"Notification error on scheme submit: {e}")
+    if direct_approve:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_approved,
+            )
+            notify_scheme_approved(
+                db=db,
+                scheme_id=scheme.scheme_id,
+                scheme_title=getattr(scheme, "name", getattr(
+                    scheme, "scheme_name", "Public Scheme")),
+                creator_id=scheme.created_by,
+                ministry=scheme.ministry,
+                actor_id=current_user.user_id if current_user is not None else None,
+                actor_name=getattr(current_user, "full_name", None),
+            )
+        except Exception as e:
+            print(f"Notification error on scheme direct approve: {e}")
+    else:
+        try:
+            from app.services.notification_service import notify_scheme_submitted
+            notify_scheme_submitted(
+                db=db,
+                scheme_id=scheme.scheme_id,
+                scheme_title=getattr(scheme, "name", getattr(
+                    scheme, "scheme_name", "Public Scheme")),
+                submitted_by_id=(
+                    current_user.user_id
+                    if current_user is not None
+                    else (scheme.created_by or 0)
+                ),
+                ministry=scheme.ministry,
+            )
+        except Exception as e:
+            print(f"Notification error on scheme submit: {e}")
 
     return scheme
 
@@ -1261,7 +1414,9 @@ def search_schemes(
 
     # --------------------------------------------------------
     # DRAFT & PENDING APPROVAL PRIVACY RULE
-    # Draft schemes can ONLY be seen by the user who created them.
+    # Draft schemes can ONLY be seen by the user who created them or
+    # last saved them (updated_by tracks the latest editor; NULL on
+    # legacy rows falls back to the creator via the OR below).
     # When submitted (PENDING_APPROVAL), only Admin & creator can see them.
     # --------------------------------------------------------
     if current_user is not None:
@@ -1269,9 +1424,10 @@ def search_schemes(
             or_(
                     Scheme.status != "DRAFT",
                     Scheme.created_by == current_user.user_id,
+                    Scheme.updated_by == current_user.user_id,
                 )
         )
-        if str(current_user.role).strip().upper() != "ADMIN":
+        if _normalize_role(getattr(current_user, "role", "")) != "ADMIN":
             query = query.filter(
                 or_(Scheme.status != "PENDING_APPROVAL",
                     Scheme.created_by == current_user.user_id)

@@ -86,6 +86,7 @@ def create_scheme_api(
         db=db,
         data=data,
         user_id=current_user.user_id,
+        current_user=current_user,
     )
 
     log_request_action(
@@ -121,6 +122,7 @@ def save_scheme_draft_route(
         db=db,
         data=data,
         user_id=current_user.user_id,
+        current_user=current_user,
     )
 
     log_request_action(
@@ -508,7 +510,12 @@ def delete_scheme_api(
     scheme_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles("ADMIN")),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
 ):
 
     scheme = get_scheme(
@@ -521,6 +528,28 @@ def delete_scheme_api(
             status_code=404,
             detail="Scheme not found",
         )
+
+    # Direct deletion: Admins keep the existing behavior; Government
+    # Officials may directly delete only their own DRAFT schemes.
+    # Every other status keeps the request/approval workflow.
+    _role = normalize_role(getattr(current_user, "role", ""))
+    if _role != "ADMIN":
+        if scheme.status != "DRAFT":
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Only DRAFT schemes can be deleted directly. "
+                    "Use the deletion-request workflow for other statuses."
+                ),
+            )
+        if scheme.created_by != current_user.user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "You are not authorized to delete this scheme. "
+                    "Only the user who created it can delete it."
+                ),
+            )
 
     scheme_name = scheme.name
 
@@ -648,6 +677,20 @@ def submit_scheme_api(
             scheme_id,
             f"Scheme '{scheme.name}' {submit_verb}.",
         )
+
+        # Admin direct approval (DRAFT -> APPROVED) is also recorded as
+        # an approval, mirroring POST /schemes/{id}/approve.
+        if result.status == "APPROVED":
+            log_request_action(
+                request,
+                db,
+                current_user,
+                ACTION_APPROVAL_EVENT,
+                "SCHEME",
+                scheme_id,
+                f"Scheme '{scheme.name}' approved by admin "
+                f"{current_user.user_id}.",
+            )
 
         return result
 

@@ -214,11 +214,43 @@ def _apply_scheme_free_text(query, keyword: str | None):
     )
 
 
+def _run_create_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out scheme-creation notifications (IN_APP rows + delivery).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_created,
+            )
+            notify_scheme_created(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                created_by_id=args["created_by_id"],
+                ministry=args["ministry"],
+            )
+        except Exception as e:
+            print(f"Notification error on scheme create: {e}")
+    finally:
+        if close_after:
+            db.close()
+
+
 def create_scheme(
     db: Session,
     data,
     user_id: int,
     current_user: User | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     name = data.name.strip()
@@ -343,16 +375,18 @@ def create_scheme(
             if creator_role in (
                 "GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"
             ):
-                from app.services.notification_service import (
-                    notify_scheme_created,
-                )
-                notify_scheme_created(
-                    db=db,
-                    scheme_id=scheme.scheme_id,
-                    scheme_title=scheme.name,
-                    created_by_id=user_id,
-                    ministry=scheme.ministry,
-                )
+                notify_args = {
+                    "scheme_id": scheme.scheme_id,
+                    "scheme_title": scheme.name,
+                    "created_by_id": user_id,
+                    "ministry": scheme.ministry,
+                }
+                if background_tasks is not None:
+                    background_tasks.add_task(
+                        _run_create_notifications, notify_args
+                    )
+                else:
+                    _run_create_notifications(notify_args, db=db)
         except Exception as e:
             print(f"Notification error on scheme create: {e}")
 
@@ -378,11 +412,43 @@ def get_scheme(
     return query.first()
 
 
+def _run_update_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out scheme-update notifications (IN_APP rows + delivery).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_updated,
+            )
+            notify_scheme_updated(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                ministry=args["ministry"],
+                action="updated",
+            )
+        except Exception as e:
+            print(f"Notification error on scheme update: {e}")
+    finally:
+        if close_after:
+            db.close()
+
+
 def update_scheme(
     db: Session,
     scheme: Scheme,
     data,
     current_user: User | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if (
@@ -572,19 +638,16 @@ def update_scheme(
         db.refresh(scheme)
 
         if scheme.status == "APPROVED":
-            try:
-                from app.services.notification_service import (
-                    notify_scheme_updated,
-                )
-                notify_scheme_updated(
-                    db=db,
-                    scheme_id=scheme.scheme_id,
-                    scheme_title=scheme.name,
-                    ministry=scheme.ministry,
-                    action="updated",
-                )
-            except Exception as e:
-                print(f"Notification error on scheme update: {e}")
+            notify_args = {
+                "scheme_id": scheme.scheme_id,
+                "scheme_title": scheme.name,
+                "ministry": scheme.ministry,
+            }
+
+            if background_tasks is not None:
+                background_tasks.add_task(_run_update_notifications, notify_args)
+            else:
+                _run_update_notifications(notify_args, db=db)
 
         return scheme
 
@@ -656,6 +719,7 @@ def submit_scheme(
     db: Session,
     scheme: Scheme,
     current_user: User | None = None,
+    background_tasks=None,
 ) -> Scheme:
     """Submit a scheme.
 
@@ -703,42 +767,75 @@ def submit_scheme(
     db.commit()
     db.refresh(scheme)
 
-    if direct_approve:
-        try:
-            from app.services.notification_service import (
-                notify_scheme_approved,
-            )
-            notify_scheme_approved(
-                db=db,
-                scheme_id=scheme.scheme_id,
-                scheme_title=getattr(scheme, "name", getattr(
-                    scheme, "scheme_name", "Public Scheme")),
-                creator_id=scheme.created_by,
-                ministry=scheme.ministry,
-                actor_id=current_user.user_id if current_user is not None else None,
-                actor_name=getattr(current_user, "full_name", None),
-            )
-        except Exception as e:
-            print(f"Notification error on scheme direct approve: {e}")
+    notify_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": getattr(scheme, "name", getattr(
+            scheme, "scheme_name", "Public Scheme")),
+        "ministry": scheme.ministry,
+        "created_by": scheme.created_by,
+        "actor_id": (
+            current_user.user_id
+            if current_user is not None
+            else (scheme.created_by or 0)
+        ),
+        "actor_name": getattr(current_user, "full_name", None),
+        "direct_approve": direct_approve,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_submit_notifications, notify_args)
     else:
-        try:
-            from app.services.notification_service import notify_scheme_submitted
-            notify_scheme_submitted(
-                db=db,
-                scheme_id=scheme.scheme_id,
-                scheme_title=getattr(scheme, "name", getattr(
-                    scheme, "scheme_name", "Public Scheme")),
-                submitted_by_id=(
-                    current_user.user_id
-                    if current_user is not None
-                    else (scheme.created_by or 0)
-                ),
-                ministry=scheme.ministry,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme submit: {e}")
+        _run_submit_notifications(notify_args, db=db)
 
     return scheme
+
+
+def _run_submit_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out submit notifications (IN_APP rows + delivery legs).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        if args["direct_approve"]:
+            try:
+                from app.services.notification_service import (
+                    notify_scheme_approved,
+                )
+                notify_scheme_approved(
+                    db=db,
+                    scheme_id=args["scheme_id"],
+                    scheme_title=args["scheme_title"],
+                    creator_id=args["created_by"],
+                    ministry=args["ministry"],
+                    actor_id=args["actor_id"],
+                    actor_name=args["actor_name"],
+                )
+            except Exception as e:
+                print(f"Notification error on scheme direct approve: {e}")
+        else:
+            try:
+                from app.services.notification_service import (
+                    notify_scheme_submitted,
+                )
+                notify_scheme_submitted(
+                    db=db,
+                    scheme_id=args["scheme_id"],
+                    scheme_title=args["scheme_title"],
+                    submitted_by_id=args["actor_id"],
+                    ministry=args["ministry"],
+                )
+            except Exception as e:
+                print(f"Notification error on scheme submit: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def approve_scheme(
@@ -746,6 +843,7 @@ def approve_scheme(
     scheme: Scheme,
     admin_user_id: int,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
@@ -773,22 +871,55 @@ def approve_scheme(
     db.commit()
     db.refresh(scheme)
 
-    try:
-        from app.services.notification_service import notify_scheme_approved
-        notify_scheme_approved(
-            db=db,
-            scheme_id=scheme.scheme_id,
-            scheme_title=getattr(scheme, "name", getattr(
-                scheme, "scheme_name", "Public Scheme")),
-            creator_id=scheme.created_by,
-            ministry=scheme.ministry,
-            actor_id=admin_user_id,
-            actor_name=actor_name,
-        )
-    except Exception as e:
-        print(f"Notification error on scheme approve: {e}")
+    notify_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": getattr(scheme, "name", getattr(
+            scheme, "scheme_name", "Public Scheme")),
+        "creator_id": scheme.created_by,
+        "ministry": scheme.ministry,
+        "actor_id": admin_user_id,
+        "actor_name": actor_name,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_approve_notifications, notify_args)
+    else:
+        _run_approve_notifications(notify_args, db=db)
 
     return scheme
+
+
+def _run_approve_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out approval notifications (IN_APP rows + delivery legs).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_approved,
+            )
+            notify_scheme_approved(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                creator_id=args["creator_id"],
+                ministry=args["ministry"],
+                actor_id=args["actor_id"],
+                actor_name=args["actor_name"],
+            )
+        except Exception as e:
+            print(f"Notification error on scheme approve: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def reject_scheme(
@@ -797,6 +928,7 @@ def reject_scheme(
     reason: str,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "PENDING_APPROVAL":
@@ -814,22 +946,55 @@ def reject_scheme(
     db.commit()
     db.refresh(scheme)
 
-    try:
-        from app.services.notification_service import notify_scheme_rejected
-        notify_scheme_rejected(
-            db=db,
-            scheme_id=scheme.scheme_id,
-            scheme_title=getattr(scheme, "name", getattr(
-                scheme, "scheme_name", "Public Scheme")),
-            creator_id=scheme.created_by or 0,
-            reason=reason,
-            actor_id=actor_id,
-            actor_name=actor_name,
-        )
-    except Exception as e:
-        print(f"Notification error on scheme reject: {e}")
+    notify_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": getattr(scheme, "name", getattr(
+            scheme, "scheme_name", "Public Scheme")),
+        "creator_id": scheme.created_by or 0,
+        "reason": reason,
+        "actor_id": actor_id,
+        "actor_name": actor_name,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_reject_notifications, notify_args)
+    else:
+        _run_reject_notifications(notify_args, db=db)
 
     return scheme
+
+
+def _run_reject_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out rejection notifications (IN_APP rows + delivery legs).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_rejected,
+            )
+            notify_scheme_rejected(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                creator_id=args["creator_id"],
+                reason=args["reason"],
+                actor_id=args["actor_id"],
+                actor_name=args["actor_name"],
+            )
+        except Exception as e:
+            print(f"Notification error on scheme reject: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def archive_scheme(
@@ -837,6 +1002,7 @@ def archive_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "APPROVED":
@@ -858,25 +1024,60 @@ def archive_scheme(
     db.refresh(scheme)
 
     if req_user:
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Scheme Archive Request",
+            "decision": "APPROVED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme.scheme_id,
+            "entity_title": title,
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
+
+    return scheme
+
+
+def _run_decision_notifications(args: dict, db: Session | None = None) -> None:
+    """Fan out request-decision notifications (IN_APP + delivery legs).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
         try:
             from app.services.notification_service import (
                 notify_request_decision,
             )
             notify_request_decision(
                 db=db,
-                user_id=req_user,
-                request_type="Scheme Archive Request",
-                decision="APPROVED",
-                entity_type="SCHEME",
-                entity_id=scheme.scheme_id,
-                entity_title=title,
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
+                user_id=args["user_id"],
+                request_type=args["request_type"],
+                decision=args["decision"],
+                entity_type=args["entity_type"],
+                entity_id=args["entity_id"],
+                entity_title=args["entity_title"],
+                reason=args.get("reason"),
+                decision_by=args["decision_by"],
+                actor_id=args["actor_id"],
+                link_entity=args.get("link_entity", True),
             )
         except Exception as e:
-            print(f"Notification error on scheme archive approve: {e}")
-
-    return scheme
+            print(f"Notification error on scheme request decision: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def request_archive_scheme(
@@ -884,6 +1085,7 @@ def request_archive_scheme(
     scheme: Scheme,
     user_id: int,
     reason: str,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.created_by != user_id:
@@ -916,22 +1118,55 @@ def request_archive_scheme(
     db.commit()
     db.refresh(scheme)
 
-    try:
-        from app.services.notification_service import (
-            notify_scheme_archive_requested,
+    notify_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": getattr(scheme, "name", getattr(
+            scheme, "scheme_name", "Public Scheme")),
+        "requested_by_id": user_id,
+        "reason": reason,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(
+            _run_request_archive_notifications, notify_args
         )
-        notify_scheme_archive_requested(
-            db=db,
-            scheme_id=scheme.scheme_id,
-            scheme_title=getattr(scheme, "name", getattr(
-                scheme, "scheme_name", "Public Scheme")),
-            requested_by_id=user_id,
-            reason=reason,
-        )
-    except Exception as e:
-        print(f"Notification error on scheme archive request: {e}")
+    else:
+        _run_request_archive_notifications(notify_args, db=db)
 
     return scheme
+
+
+def _run_request_archive_notifications(
+    args: dict, db: Session | None = None
+) -> None:
+    """Fan out archive-request notifications (IN_APP rows + delivery).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_archive_requested,
+            )
+            notify_scheme_archive_requested(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                requested_by_id=args["requested_by_id"],
+                reason=args["reason"],
+            )
+        except Exception as e:
+            print(f"Notification error on scheme archive request: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def get_archive_requests(
@@ -956,6 +1191,7 @@ def approve_archive_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "ARCHIVE_REQUESTED":
@@ -977,23 +1213,21 @@ def approve_archive_scheme(
     db.refresh(scheme)
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Scheme Archive Request",
-                decision="APPROVED",
-                entity_type="SCHEME",
-                entity_id=scheme.scheme_id,
-                entity_title=title,
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme archive approve: {e}")
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Scheme Archive Request",
+            "decision": "APPROVED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme.scheme_id,
+            "entity_title": title,
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
     return scheme
 
@@ -1003,6 +1237,7 @@ def reject_archive_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "ARCHIVE_REQUESTED":
@@ -1026,23 +1261,21 @@ def reject_archive_scheme(
     db.refresh(scheme)
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Scheme Archive Request",
-                decision="REJECTED",
-                entity_type="SCHEME",
-                entity_id=scheme.scheme_id,
-                entity_title=title,
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme archive reject: {e}")
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Scheme Archive Request",
+            "decision": "REJECTED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme.scheme_id,
+            "entity_title": title,
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
     return scheme
 
@@ -1052,6 +1285,7 @@ def restore_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.is_deleted:
@@ -1078,24 +1312,22 @@ def restore_scheme(
     db.refresh(scheme)
 
     if scheme.created_by:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
-            notify_request_decision(
-                db=db,
-                user_id=scheme.created_by,
-                request_type="Scheme Restoration",
-                decision="APPROVED",
-                entity_type="SCHEME",
-                entity_id=scheme.scheme_id,
-                entity_title=scheme.name,
-                reason="Scheme has been restored to active status.",
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme restore: {e}")
+        notify_args = {
+            "user_id": scheme.created_by,
+            "request_type": "Scheme Restoration",
+            "decision": "APPROVED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme.scheme_id,
+            "entity_title": scheme.name,
+            "reason": "Scheme has been restored to active status.",
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
     return scheme
 
@@ -1105,6 +1337,7 @@ def request_delete_scheme(
     scheme: Scheme,
     user_id: int,
     reason: str,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.created_by != user_id:
@@ -1142,22 +1375,55 @@ def request_delete_scheme(
     db.commit()
     db.refresh(scheme)
 
-    try:
-        from app.services.notification_service import (
-            notify_scheme_delete_requested,
+    notify_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": getattr(scheme, "name", getattr(
+            scheme, "scheme_name", "Public Scheme")),
+        "requested_by_id": user_id,
+        "reason": reason,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(
+            _run_request_delete_notifications, notify_args
         )
-        notify_scheme_delete_requested(
-            db=db,
-            scheme_id=scheme.scheme_id,
-            scheme_title=getattr(scheme, "name", getattr(
-                scheme, "scheme_name", "Public Scheme")),
-            requested_by_id=user_id,
-            reason=reason,
-        )
-    except Exception as e:
-        print(f"Notification error on scheme delete request: {e}")
+    else:
+        _run_request_delete_notifications(notify_args, db=db)
 
     return scheme
+
+
+def _run_request_delete_notifications(
+    args: dict, db: Session | None = None
+) -> None:
+    """Fan out delete-request notifications (IN_APP rows + delivery).
+
+    Runs inline with the request session, or after the response with
+    its own short-lived session as a background task. Never raises.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_delete_requested,
+            )
+            notify_scheme_delete_requested(
+                db=db,
+                scheme_id=args["scheme_id"],
+                scheme_title=args["scheme_title"],
+                requested_by_id=args["requested_by_id"],
+                reason=args["reason"],
+            )
+        except Exception as e:
+            print(f"Notification error on scheme delete request: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def get_delete_requests(
@@ -1182,6 +1448,7 @@ def approve_delete_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> None:
 
     if scheme.status != "DELETE_REQUESTED":
@@ -1207,24 +1474,22 @@ def approve_delete_scheme(
     db.commit()
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Scheme Deletion Request",
-                decision="APPROVED",
-                entity_type="SCHEME",
-                entity_id=scheme_id,
-                entity_title=title,
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
-                link_entity=False,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme delete approve: {e}")
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Scheme Deletion Request",
+            "decision": "APPROVED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme_id,
+            "entity_title": title,
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+            "link_entity": False,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
 
 def reject_delete_scheme(
@@ -1232,6 +1497,7 @@ def reject_delete_scheme(
     scheme: Scheme,
     actor_id: int | None = None,
     actor_name: str | None = None,
+    background_tasks=None,
 ) -> Scheme:
 
     if scheme.status != "DELETE_REQUESTED":
@@ -1265,23 +1531,21 @@ def reject_delete_scheme(
     db.refresh(scheme)
 
     if req_user:
-        try:
-            from app.services.notification_service import (
-                notify_request_decision,
-            )
-            notify_request_decision(
-                db=db,
-                user_id=req_user,
-                request_type="Scheme Deletion Request",
-                decision="REJECTED",
-                entity_type="SCHEME",
-                entity_id=scheme.scheme_id,
-                entity_title=title,
-                decision_by=actor_name or "Administrator",
-                actor_id=actor_id,
-            )
-        except Exception as e:
-            print(f"Notification error on scheme delete reject: {e}")
+        notify_args = {
+            "user_id": req_user,
+            "request_type": "Scheme Deletion Request",
+            "decision": "REJECTED",
+            "entity_type": "SCHEME",
+            "entity_id": scheme.scheme_id,
+            "entity_title": title,
+            "decision_by": actor_name or "Administrator",
+            "actor_id": actor_id,
+        }
+
+        if background_tasks is not None:
+            background_tasks.add_task(_run_decision_notifications, notify_args)
+        else:
+            _run_decision_notifications(notify_args, db=db)
 
     return scheme
 

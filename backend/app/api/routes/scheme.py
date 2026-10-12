@@ -1,5 +1,6 @@
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -74,6 +75,7 @@ router = APIRouter(
 def create_scheme_api(
     data: SchemeCreate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -87,6 +89,7 @@ def create_scheme_api(
         data=data,
         user_id=current_user.user_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -110,6 +113,7 @@ def create_scheme_api(
 def save_scheme_draft_route(
     data: SchemeCreate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -123,6 +127,7 @@ def save_scheme_draft_route(
         data=data,
         user_id=current_user.user_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     log_request_action(
@@ -439,6 +444,7 @@ def update_scheme_api(
     scheme_id: int,
     data: SchemeUpdate,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -481,6 +487,7 @@ def update_scheme_api(
         scheme=scheme,
         data=data,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
 
     # Concise change summary (field names only, never values) so the
@@ -634,6 +641,7 @@ def permanent_delete_scheme_api(
 def submit_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -660,6 +668,7 @@ def submit_scheme_api(
             db,
             scheme,
             current_user=current_user,
+            background_tasks=background_tasks,
         )
 
         submit_verb = (
@@ -708,6 +717,7 @@ def submit_scheme_api(
 def approve_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -729,6 +739,7 @@ def approve_scheme_api(
             scheme,
             current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -759,6 +770,7 @@ def reject_scheme_api(
     scheme_id: int,
     data: SchemeRejectRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -781,6 +793,7 @@ def reject_scheme_api(
             data.reason,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -810,6 +823,7 @@ def reject_scheme_api(
 def archive_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -831,6 +845,7 @@ def archive_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -860,6 +875,7 @@ def request_archive_scheme_api(
     scheme_id: int,
     data: SchemeArchiveRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -881,6 +897,7 @@ def request_archive_scheme_api(
             scheme=scheme,
             user_id=current_user.user_id,
             reason=data.reason,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -909,6 +926,7 @@ def request_archive_scheme_api(
 def approve_archive_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -930,6 +948,7 @@ def approve_archive_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -958,6 +977,7 @@ def approve_archive_scheme_api(
 def reject_archive_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -979,6 +999,7 @@ def reject_archive_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -1007,6 +1028,7 @@ def reject_archive_scheme_api(
 def restore_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -1029,6 +1051,7 @@ def restore_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -1058,6 +1081,7 @@ def request_delete_scheme_api(
     scheme_id: int,
     data: SchemeDeleteRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
@@ -1079,6 +1103,7 @@ def request_delete_scheme_api(
             scheme=scheme,
             user_id=current_user.user_id,
             reason=data.reason,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -1106,6 +1131,7 @@ def request_delete_scheme_api(
 def approve_delete_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -1132,6 +1158,7 @@ def approve_delete_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(
@@ -1164,6 +1191,7 @@ def approve_delete_scheme_api(
 def reject_delete_scheme_api(
     scheme_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
@@ -1185,6 +1213,7 @@ def reject_delete_scheme_api(
             scheme,
             actor_id=current_user.user_id,
             actor_name=current_user.full_name,
+            background_tasks=background_tasks,
         )
 
         log_request_action(

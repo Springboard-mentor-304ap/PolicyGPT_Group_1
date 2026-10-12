@@ -559,8 +559,8 @@
                 <div class="page-size">
                     <label for="page-size">Rows</label>
 
-                    <app-searchable-select id="page-size" class="page-size-select"
-                        placeholder="Rows" [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
+                    <app-searchable-select id="page-size" class="page-size-select" placeholder="Rows"
+                        [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
                         [(ngModel)]="pageSizeOption" (selectionChange)="changePageSize()" />
 
                     <span>per page</span>
@@ -574,9 +574,8 @@
                     </button>
 
                     <div class="page-numbers">
-                        <button type="button" *ngFor="let page of visiblePages"
-                            class="page-button page-number" [class.current]="currentPage === page"
-                            (click)="goToPage(page)">
+                        <button type="button" *ngFor="let page of visiblePages" class="page-button page-number"
+                            [class.current]="currentPage === page" (click)="goToPage(page)">
                             {{ page }}
                         </button>
                     </div>
@@ -596,9 +595,9 @@
     <!-- Existing workflow modals -->
     <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
         [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
-        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
-        [confirmText]="confirmText" [showCancel]="showCancelConfirm" (confirmed)="onConfirmModalConfirmed()"
-        (cancelled)="onConfirmModalCancelled()">
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading"
+        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="showCancelConfirm"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 
     <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"

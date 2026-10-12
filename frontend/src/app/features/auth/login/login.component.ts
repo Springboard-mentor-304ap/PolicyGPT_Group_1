@@ -13,6 +13,9 @@ import { Auth } from "../../../core/services/auth";
 import { AvatarService } from "../../../core/services/avatar.service";
 import { NotificationService } from "../../../core/services/notification.service";
 
+import { takeUntil } from "rxjs/operators";
+import { Subject } from "rxjs";
+
 @Component({
   selector: "app-login",
   standalone: true,
@@ -34,6 +37,8 @@ export class LoginComponent {
   hidePassword = true;
 
   loginMode: "email" | "phone" = "email";
+
+  private readonly destroyed$ = new Subject<void>();
 
   // =========================================================
   // CONSTRUCTOR
@@ -66,6 +71,15 @@ export class LoginComponent {
     // =======================================================
 
     this.setLoginValidators();
+  }
+
+  // =========================================================
+  // CLEANUP ON DESTROY
+  // =========================================================
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
   // =========================================================
@@ -279,7 +293,9 @@ export class LoginComponent {
     // CALL BACKEND
     // =======================================================
 
-    this.authService.login(identifier, password).subscribe({
+    this.authService.login(identifier, password).pipe(
+      takeUntil(this.destroyed$),
+    ).subscribe({
       // =====================================================
       // SUCCESS
       // =====================================================

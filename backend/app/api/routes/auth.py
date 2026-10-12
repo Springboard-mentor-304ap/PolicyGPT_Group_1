@@ -3,6 +3,7 @@ import hmac
 import logging
 import re
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 
 from fastapi import (
@@ -469,6 +470,12 @@ def register(data: RegisterRequest, request: Request, db: Session = Depends(get_
 def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
+    # MEASURE TOTAL LOGIN DURATION
+    # -----------------------------------------------------
+
+    total_start = time.time()
+
+    # -----------------------------------------------------
     # CLEAN IDENTIFIER
     # -----------------------------------------------------
 
@@ -483,20 +490,34 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     normalized_phone = re.sub(r"\D", "", identifier)
 
     # -----------------------------------------------------
-    # FIND USER
+    # FIND USER - try email first (uses index), then phone
     # -----------------------------------------------------
 
+    query_start = time.time()
+
+    # Try email lookup first - case-insensitive trimmed match
     user = (
         db.query(User)
         .filter(
-            or_(
-                func.lower(func.trim(User.email)) == normalized_email,
-                User.phone == identifier,
-                User.phone == normalized_phone,
-            )
+            func.lower(func.trim(User.email)) == normalized_email
         )
         .first()
     )
+
+    # If not found by email, try phone lookup
+    if not user:
+        user = (
+            db.query(User)
+            .filter(
+                or_(
+                    User.phone == identifier,
+                    User.phone == normalized_phone,
+                )
+            )
+            .first()
+        )
+
+    query_duration = time.time() - query_start
 
     # -----------------------------------------------------
     # ACCOUNT DOES NOT EXIST
@@ -523,7 +544,9 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # CHECK PASSWORD
     # -----------------------------------------------------
 
+    pw_verify_start = time.time()
     password_valid = verify_password(data.password, user.password_hash)
+    pw_verify_duration = time.time() - pw_verify_start
 
     # -----------------------------------------------------
     # PASSWORD IS WRONG
@@ -559,6 +582,7 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # CREATE ACCESS TOKEN
     # -----------------------------------------------------
 
+    token_start = time.time()
     log_request_action(
         request,
         db,
@@ -568,8 +592,21 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
         user.user_id,
         f"User {user.email} logged in.",
     )
-
     token = create_user_token(user)
+    token_duration = time.time() - token_start
+
+    total_duration = time.time() - total_start
+
+    # -----------------------------------------------------
+    # LOG TIMING SUMMARY
+    # -----------------------------------------------------
+
+    logger.info(
+        f"LOGIN TIMING - total: {total_duration:.3f}s "
+        f"query: {query_duration:.3f}s "
+        f"pw_verify: {pw_verify_duration:.3f}s "
+        f"token: {token_duration:.3f}s"
+    )
 
     # -----------------------------------------------------
     # RETURN LOGIN RESPONSE

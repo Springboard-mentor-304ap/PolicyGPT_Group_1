@@ -7,6 +7,7 @@ import { Subscription } from "rxjs";
 
 import { NotificationService } from "../../../core/services/notification.service";
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import { QuotedNamesComponent } from "../../../shared/components/quoted-names/quoted-names.component";
@@ -150,6 +151,7 @@ export class NotificationListComponent implements OnInit, OnDestroy {
     @Inject(Router) private readonly router: Router,
     @Inject(ActivatedRoute) private readonly route: ActivatedRoute,
     @Inject(ChangeDetectorRef) private readonly cdr: ChangeDetectorRef,
+    @Inject(NavigationContextService) private readonly navContext: NavigationContextService,
   ) {}
 
   ngOnInit(): void {
@@ -909,6 +911,7 @@ export class NotificationListComponent implements OnInit, OnDestroy {
     if (feedbackId !== null) {
       // Existing feedback surface with a deep link to the actual record.
       // The backend detail endpoint enforces ownership (404 otherwise).
+      this.navContext.markActionSource();
       this.router.navigate([`/dashboard/${prefix}/feedback`], {
         queryParams: { id: feedbackId },
       });

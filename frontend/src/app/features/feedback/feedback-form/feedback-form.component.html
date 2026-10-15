@@ -15,11 +15,13 @@
       </div>
 
       <div class="header-actions">
-        <!-- BACK BUTTON -->
+        <!-- BACK BUTTON (in-page navigation only) -->
+        @if (navContext.shouldShowBack()) {
         <button type="button" class="back-button" (click)="goBack()">
           <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
           <span>Back</span>
         </button>
+        }
       </div>
     </div>
 

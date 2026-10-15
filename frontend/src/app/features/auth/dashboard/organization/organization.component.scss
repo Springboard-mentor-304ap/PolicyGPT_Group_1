@@ -800,7 +800,7 @@ $dash-purple: #8b00e8;
 
 @media (max-width: 768px) {
   .organization-dashboard {
-    padding: 20px 16px 32px;
+    padding: 20px 16px 30px;
   }
 
   .dash-welcome {
@@ -917,11 +917,6 @@ $dash-purple: #8b00e8;
 }
 
 @media (max-width: 1200px) {
-  .organization-dashboard {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
-
   .dash-stats {
     gap: 20px;
   }
@@ -964,11 +959,6 @@ $dash-purple: #8b00e8;
 }
 
 @media (max-width: 480px) {
-  .organization-dashboard {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
   .dash-welcome__actions {
     width: 100%;
   }

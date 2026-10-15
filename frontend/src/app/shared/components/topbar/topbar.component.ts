@@ -38,6 +38,7 @@ import {
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
 import { AvatarService } from "../../../core/services/avatar.service";
 import { LoginPromptService } from "../../../core/services/login-prompt.service";
 import {
@@ -207,6 +208,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private readonly globalSearchService = inject(GlobalSearchService);
   private readonly hostElement = inject(ElementRef);
   private readonly loginPrompt = inject(LoginPromptService);
+  private readonly navContext = inject(NavigationContextService);
   // The app runs zoneless: HttpClient emissions inside the debounced search
   // pipeline do NOT schedule change detection on their own, so without an
   // explicit mark the dropdown stays stuck on "Searching…" until the next
@@ -543,6 +545,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const q = normalizeGlobalQuery(this.searchText);
     this.closeGlobalDropdown();
     this.closeMobileSearch();
+    this.navContext.markActionSource();
     this.router.navigate(["/dashboard", this.rolePrefix, "policies/search"], {
       queryParams: q ? { q } : {},
     });
@@ -552,6 +555,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const q = normalizeGlobalQuery(this.searchText);
     this.closeGlobalDropdown();
     this.closeMobileSearch();
+    this.navContext.markActionSource();
     this.router.navigate(["/dashboard", this.rolePrefix, "schemes"], {
       queryParams: q ? { q } : {},
     });

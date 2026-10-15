@@ -1,10 +1,11 @@
-import { Component, HostListener, Inject, OnInit, signal, computed } from '@angular/core';
+import { Component, HostListener, Inject, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuditLog } from '../../core/models/audit-log.model';
 import { AuditLogService } from '../../core/services/audit-log.service';
 import { Auth } from '../../core/services/auth';
+import { NavigationContextService } from '../../core/services/navigation-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { downloadBlob, XLSX_MIME_TYPE } from '../../core/utils/file-download.util';
 import { formatAuditLabel } from '../../core/utils/audit-label.util';
@@ -488,11 +489,10 @@ export class AuditLogComponent implements OnInit {
     ];
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate(['/dashboard/admin']);
-    }
+    this.navContext.goBack();
   }
 }

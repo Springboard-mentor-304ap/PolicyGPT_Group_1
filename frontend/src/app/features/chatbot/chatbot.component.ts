@@ -14,6 +14,7 @@ import { finalize } from "rxjs";
 import { Auth } from "../../core/services/auth";
 import { ChatbotService } from "../../core/services/chatbot.service";
 import { PermissionService } from "../../core/services/permission.service";
+import { NavigationContextService } from "../../core/services/navigation-context.service";
 import { ToastService } from "../../core/services/toast.service";
 import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 import {
@@ -267,6 +268,7 @@ export class ChatbotComponent {
   private readonly chatbot = inject(ChatbotService);
   private readonly auth = inject(Auth);
   private readonly permissions = inject(PermissionService);
+  private readonly navContext = inject(NavigationContextService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   // The app runs zoneless: plain-field writes inside async subscriptions do
@@ -885,11 +887,13 @@ export class ChatbotComponent {
 
   runAction(action: ChatAction): void {
     if (action.route) {
+      this.navContext.markActionSource();
       void this.router.navigateByUrl(action.route);
       return;
     }
     const fallback = this.fallbackRoute(action.type);
     if (fallback) {
+      this.navContext.markActionSource();
       void this.router.navigateByUrl(fallback);
     }
   }

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, signal, computed } from '@angular/core';
+import { Component, Inject, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -7,6 +7,7 @@ import { FeedbackService } from '../../../core/services/feedback.service';
 import { PolicyService } from '../../../core/services/policy.service';
 import { SchemeService } from '../../../core/services/scheme.service';
 import { Auth, AuthUser } from '../../../core/services/auth';
+import { NavigationContextService } from '../../../core/services/navigation-context.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
   BreadcrumbComponent,
@@ -424,11 +425,10 @@ export class FeedbackFormComponent implements OnInit {
     ];
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate([this.getHomeRoute()]);
-    }
+    this.navContext.goBack();
   }
 }

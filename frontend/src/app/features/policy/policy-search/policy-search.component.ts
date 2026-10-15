@@ -1,4 +1,4 @@
-import { CommonModule, Location } from "@angular/common";
+import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
@@ -16,6 +16,7 @@ import { SavedItemsService } from "../../../core/services/saved-items.service";
 import { SearchHistoryService } from "../../../core/services/search-history.service";
 import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
 import { visiblePageWindow } from "../../../core/utils/pagination.util";
 
 import {
@@ -65,8 +66,6 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly searchHistoryService = inject(SearchHistoryService);
   private readonly toastService = inject(ToastService);
-
-  private readonly location = inject(Location);
 
   private readonly auth = inject(Auth);
 
@@ -901,8 +900,11 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // BACK
   // ============================================================
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    this.location.back();
+    this.navContext.goBack();
   }
 
   // ============================================================

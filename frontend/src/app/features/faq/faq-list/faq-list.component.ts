@@ -1,10 +1,11 @@
-import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { FAQ, FAQCreate, FAQUpdate, FAQ_AUDIENCE_OPTIONS, normalizeFaqAudience, faqAudienceChips, faqAudienceLabel } from '../../../core/models/faq.model';
 import { FaqService } from '../../../core/services/faq.service';
 import { Auth } from '../../../core/services/auth';
+import { NavigationContextService } from '../../../core/services/navigation-context.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { BodyScrollLockService } from '../../../core/services/body-scroll-lock.service';
 import {
@@ -330,12 +331,11 @@ export class FaqListComponent implements OnInit, OnDestroy {
     ];
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate([this.getHomeRoute()]);
-    }
+    this.navContext.goBack();
   }
 
   // =========================================================

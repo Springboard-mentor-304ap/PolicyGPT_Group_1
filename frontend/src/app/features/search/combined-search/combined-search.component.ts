@@ -11,6 +11,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { Subject, catchError, finalize, forkJoin, of, takeUntil } from "rxjs";
 
 import { Auth } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
 import { PolicyService } from "../../../core/services/policy.service";
 import { SchemeService } from "../../../core/services/scheme.service";
 import { CategoryIconComponent } from "../../../shared/components/category-icon/category-icon.component";
@@ -52,6 +53,7 @@ export class CombinedSearchComponent implements OnInit, OnDestroy {
   private readonly authService = inject(Auth);
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
+  private readonly navContext = inject(NavigationContextService);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
 
@@ -250,6 +252,7 @@ export class CombinedSearchComponent implements OnInit, OnDestroy {
 
   goToPolicies(): void {
     const q = (this.activeSearchTerm || this.searchQuery || "").trim();
+    this.navContext.markActionSource();
     this.router.navigate(["/dashboard", this.rolePrefix, "policies/search"], {
       queryParams: q ? { q } : {},
     });
@@ -257,6 +260,7 @@ export class CombinedSearchComponent implements OnInit, OnDestroy {
 
   goToSchemes(): void {
     const q = (this.activeSearchTerm || this.searchQuery || "").trim();
+    this.navContext.markActionSource();
     this.router.navigate(["/dashboard", this.rolePrefix, "schemes"], {
       queryParams: q ? { q } : {},
     });

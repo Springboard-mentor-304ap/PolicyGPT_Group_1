@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, OnDestroy, signal, computed, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
@@ -9,6 +9,7 @@ import { SavedItemsService } from '../../../core/services/saved-items.service';
 import { SearchHistoryService } from '../../../core/services/search-history.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { Auth } from '../../../core/services/auth';
+import { NavigationContextService } from '../../../core/services/navigation-context.service';
 import { SchemeResponse, SchemeListResponse, SchemeFilters } from '../../../core/models/scheme.model';
 import { getStatusLabel, getStatusBadgeClass } from '../../../core/utils/status.utils';
 import { visiblePageWindow } from '../../../core/utils/pagination.util';
@@ -39,7 +40,6 @@ import {
   styleUrls: ['./scheme-search.component.scss'],
 })
 export class SchemeSearchComponent implements OnInit, OnDestroy {
-  private readonly location = inject(Location);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly schemeService = inject(SchemeService);
@@ -448,8 +448,11 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     this.filtersExpanded = !this.filtersExpanded;
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    this.location.back();
+    this.navContext.goBack();
   }
 
   get pageNumbers(): number[] {

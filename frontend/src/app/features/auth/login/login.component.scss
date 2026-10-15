@@ -210,8 +210,6 @@ $login-error: #dc3545;
 /* SUBTEXT */
 
 .login-hero__subtext {
-  max-width: 420px;
-
   margin: 0;
 
   color: rgba(255, 255, 255, 0.88);
@@ -317,8 +315,6 @@ $login-error: #dc3545;
 
 .login-feature p,
 .login-feature__desc {
-  max-width: 300px;
-
   margin: 0;
 
   color: rgba(255, 255, 255, 0.76);
@@ -379,6 +375,7 @@ $login-error: #dc3545;
   width: 100%;
   height: 100vh;
   min-height: 100vh;
+  min-height: 100dvh;
 
   display: flex;
   flex-direction: column;
@@ -404,7 +401,6 @@ $login-error: #dc3545;
 
 .login-form-panel__top {
   width: 100%;
-  max-width: 660px;
 
   display: flex;
 
@@ -479,12 +475,34 @@ $login-error: #dc3545;
 }
 
 /* =========================================================
+   CENTERED LOGIN CONTENT
+   margin auto centers the card + support link in the leftover
+   panel space independently of the top account row, and unlike
+   justify-content:center it never clips overflowing content:
+   with no free space the margins compute to zero so the panel
+   scrolls normally on small screens.
+   ========================================================= */
+
+.login-form-panel__center {
+  width: 100%;
+
+  margin-top: auto;
+  margin-bottom: auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+/* =========================================================
    LOGIN CARD
    ========================================================= */
 
 .login-card {
   width: 100%;
-  max-width: 660px;
 
   margin: 0 auto;
 
@@ -905,7 +923,7 @@ $login-error: #dc3545;
 
   width: 100%;
 
-  min-height: 50px;
+  min-height: 46px;
   height: 50px;
 
   margin: 0;
@@ -1162,8 +1180,6 @@ $login-error: #dc3545;
 .login-support {
   width: 100%;
 
-  max-width: 660px;
-
   margin: 25px auto 4px;
 
   padding: 0;
@@ -1220,27 +1236,80 @@ $login-error: #dc3545;
   }
 
   .login-form-panel {
-    padding-left: 70px;
-    padding-right: 70px;
+    padding: 50px 70px;
   }
 
-  .login-card,
-  .login-form-panel__top,
-  .login-support {
-    max-width: 690px;
+  .login-field-label {
+    font-size: 16px;
   }
 
+  .login-input {
+    height: 56px;
+    font-size: 16px;
+  }
+
+  /* Desktop branding scale-up (laptop and below untouched). */
   .login-hero__logo-img {
-    width: 76px;
-    height: 76px;
+    width: 104px;
+    height: 104px;
   }
 
   .login-hero__title {
-    font-size: 34px;
+    font-size: clamp(30px, 2.1vw, 42px);
+  }
+
+  .login-hero__tagline {
+    font-size: 17px;
+  }
+
+  .login-hero__intro {
+    margin-top: 50px;
   }
 
   .login-hero__headline {
-    font-size: 40px;
+    font-size: clamp(32px, 2.5vw, 47px);
+    max-width: 520px;
+  }
+
+  .login-hero__subtext {
+    font-size: 19px;
+  }
+
+  .login-features {
+    margin-top: 64px;
+    gap: 32px;
+  }
+
+  .login-feature {
+    gap: 20px;
+  }
+
+  .login-feature__icon {
+    width: 62px;
+    height: 62px;
+    flex-basis: 62px;
+  }
+
+  .login-feature__icon .material-icons {
+    font-size: 34px;
+  }
+
+  .login-feature h3,
+  .login-feature__title {
+    font-size: 22px;
+  }
+
+  .login-feature p,
+  .login-feature__desc {
+    font-size: 19px;
+  }
+
+  .login-hero__quote-mark {
+    font-size: 52px;
+  }
+
+  .login-hero__quote p {
+    font-size: 19px;
   }
 
   .login-card {
@@ -1266,10 +1335,6 @@ $login-error: #dc3545;
   .login-form-panel {
     padding-left: 45px;
     padding-right: 45px;
-  }
-
-  .login-card {
-    max-width: 650px;
   }
 }
 
@@ -1384,11 +1449,11 @@ $login-error: #dc3545;
 
 @media (max-width: 960px) and (min-width: 701px) {
   .login-page {
-    grid-template-columns: 35% 65%;
+    grid-template-columns: 40% 60%;
   }
 
   .login-hero {
-    padding: 23px 20px 22px;
+    padding: 30px 20px;
   }
 
   .login-form-panel {
@@ -1413,7 +1478,7 @@ $login-error: #dc3545;
   }
 
   .login-hero__intro {
-    margin-top: 30px;
+    margin-top: 40px;
   }
 
   .login-hero__headline {
@@ -1425,9 +1490,9 @@ $login-error: #dc3545;
   }
 
   .login-features {
-    margin-top: 25px;
+    margin-top: 40px;
 
-    gap: 14px;
+    gap: 30spx;
   }
 
   .login-feature {
@@ -1452,8 +1517,6 @@ $login-error: #dc3545;
 
   .login-feature p,
   .login-feature__desc {
-    max-width: 170px;
-
     font-size: 12px;
   }
 
@@ -1918,14 +1981,14 @@ $login-error: #dc3545;
 
     min-height: 100vh;
 
-    padding: 77px 9px 28px;
+    padding: 77px 16px 28px;
   }
 
   .login-form-panel__top {
-    top: 14px;
+    top: 16px;
 
     left: 9px;
-    right: 9px;
+    right: 16px;
 
     gap: 6px;
   }
@@ -2050,9 +2113,7 @@ $login-error: #dc3545;
   }
 
   .login-social {
-    grid-template-columns: 1fr;
-
-    gap: 9px;
+    gap: 6px;
   }
 
   .login-social__button {

@@ -1,4 +1,4 @@
-import { Component, Inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,7 @@ import {
 import { TicketConversationComponent } from '../../../shared/components/ticket-conversation/ticket-conversation.component';
 import { SupportService } from '../../../core/services/support.service';
 import { Auth } from '../../../core/services/auth';
+import { NavigationContextService } from '../../../core/services/navigation-context.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { BodyScrollLockService } from '../../../core/services/body-scroll-lock.service';
 import {
@@ -488,11 +489,10 @@ export class AdminSupportComponent implements OnInit, OnDestroy {
     ];
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-    } else {
-      this.router.navigate(['/dashboard/admin']);
-    }
+    this.navContext.goBack();
   }
 }

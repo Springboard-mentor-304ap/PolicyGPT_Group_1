@@ -36,10 +36,12 @@
                 </p>
             </div>
 
+            @if (navContext.shouldShowBack()) {
             <button type="button" class="back-button" (click)="goToViewUsers()">
                 <span class="material-icons">arrow_back</span>
                 Back to Users
             </button>
+            }
         </section>
 
         <!-- LOADING STATE -->

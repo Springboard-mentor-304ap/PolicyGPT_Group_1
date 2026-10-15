@@ -926,10 +926,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (min-width: 1440px) {
-  .government-dashboard {
-    padding: 32px 40px 46px;
-  }
-
   .dash-welcome {
     min-height: 300px;
 
@@ -954,10 +950,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 1439px) {
-  .government-dashboard {
-    padding: 28px 30px 40px;
-  }
-
   .dash-welcome {
     min-height: 195px;
 
@@ -984,10 +976,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 1199px) {
-  .government-dashboard {
-    padding: 24px 22px 36px;
-  }
-
   .dash-welcome {
     min-height: 175px;
 
@@ -1040,10 +1028,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 991px) {
-  .government-dashboard {
-    padding: 22px 18px 34px;
-  }
-
   .dash-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 
@@ -1075,7 +1059,7 @@ $purple: #8b00e8;
 
 @media (max-width: 767px) {
   .government-dashboard {
-    padding: 18px 14px 28px;
+    padding: 20px 16px 30px;
   }
 
   .dash-welcome {
@@ -1335,10 +1319,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 480px) {
-  .government-dashboard {
-    padding: 14px 10px 24px;
-  }
-
   .dash-welcome {
     min-height: 145px;
 
@@ -1473,10 +1453,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 380px) {
-  .government-dashboard {
-    padding: 12px 9px 20px;
-  }
-
   .dash-stats {
     grid-template-columns: 1fr;
 
@@ -1511,10 +1487,6 @@ $purple: #8b00e8;
 // =====================================================
 
 @media (max-width: 320px) {
-  .government-dashboard {
-    padding: 10px 7px 18px;
-  }
-
   .dash-welcome {
     padding: 16px 12px;
   }

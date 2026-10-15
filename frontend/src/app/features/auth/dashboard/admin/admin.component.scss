@@ -690,10 +690,6 @@ $admin-purple: #8b00e8;
    ========================================================= */
 
 @media (max-width: 1199px) {
-  .admin-dashboard {
-    padding: 24px 25px 35px;
-  }
-
   .dash-welcome {
     min-height: 180px;
   }
@@ -747,7 +743,7 @@ $admin-purple: #8b00e8;
 
 @media (max-width: 767px) {
   .admin-dashboard {
-    padding: 18px;
+    padding: 20px 16px 30px;
   }
 
   /* Welcome */
@@ -902,10 +898,6 @@ $admin-purple: #8b00e8;
    ========================================================= */
 
 @media (max-width: 480px) {
-  .admin-dashboard {
-    padding: 14px;
-  }
-
   .dash-welcome {
     min-height: 145px;
 
@@ -1008,12 +1000,6 @@ $admin-purple: #8b00e8;
    ========================================================= */
 
 @media (max-width: 320px) {
-  .admin-dashboard {
-    padding-left: 8px;
-
-    padding-right: 8px;
-  }
-
   .dash-welcome {
     padding-left: 13px;
 

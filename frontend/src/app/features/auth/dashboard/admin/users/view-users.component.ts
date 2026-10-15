@@ -10,6 +10,7 @@ import {
 } from "../../../../../core/services/admin-user.service";
 import { visiblePageWindow } from "../../../../../core/utils/pagination.util";
 import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
+import { NavigationContextService } from "../../../../../core/services/navigation-context.service";
 
 /* =======================================================
    ALLOWED USER ROLES
@@ -117,6 +118,7 @@ export class ViewUsersComponent implements OnInit {
     private route: ActivatedRoute,
     private adminUsersService: AdminUsersService,
     private cdr: ChangeDetectorRef,
+    private readonly navContext: NavigationContextService,
   ) {}
 
   /* =======================================================
@@ -585,6 +587,7 @@ export class ViewUsersComponent implements OnInit {
 
   viewUser(user: AdminUser): void {
     if (user?.id) {
+      this.navContext.markActionSource();
       this.router.navigate(["/dashboard/admin/users", user.id]);
     }
   }

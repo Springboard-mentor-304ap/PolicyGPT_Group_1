@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Inject, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, Inject, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { ActivatedRoute, Router } from "@angular/router";
 import { of } from "rxjs";
@@ -9,6 +9,7 @@ import {
   UserAuditLogApi,
 } from "../../../../../core/services/admin-user.service";
 import { PolicyService } from "../../../../../core/services/policy.service";
+import { NavigationContextService } from "../../../../../core/services/navigation-context.service";
 import { SchemeService } from "../../../../../core/services/scheme.service";
 import {
   SearchHistoryService,
@@ -551,8 +552,11 @@ export class UserDetailsComponent implements OnInit {
     this.router.navigate(["/dashboard/admin"]);
   }
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goToViewUsers(): void {
-    this.router.navigate(["/dashboard/admin/users"]);
+    this.navContext.goBack();
   }
 
   viewPolicyDetails(policyId: number): void {

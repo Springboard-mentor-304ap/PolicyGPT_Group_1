@@ -6,6 +6,7 @@ import { catchError } from "rxjs/operators";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../core/services/auth";
+import { NavigationContextService } from "../../core/services/navigation-context.service";
 import { AvatarService } from "../../core/services/avatar.service";
 import { NotificationPreferencesService } from "../../core/services/notification-preferences.service";
 import { NotificationPreferences } from "../../core/models/notification.model";
@@ -65,6 +66,7 @@ export class SettingsComponent implements OnInit {
   private readonly preferenceService = inject(NotificationPreferencesService);
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly searchHistoryService = inject(SearchHistoryService);
+  private readonly navContext = inject(NavigationContextService);
   private readonly destroyRef = inject(DestroyRef);
 
   role: SettingsRole = "citizen";
@@ -291,6 +293,7 @@ export class SettingsComponent implements OnInit {
   }
 
   goChangePassword(): void {
+    this.navContext.markActionSource();
     void this.router.navigate(["/dashboard", this.role, "change-password"]);
   }
 

@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectorRef, Component, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 
@@ -9,6 +9,7 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Router } from "@angular/router";
 
 import { Auth } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -471,43 +472,10 @@ export class ChangePasswordComponent {
   // BACK
   // =========================================================
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    const currentUrl = this.router.url;
-
-    // -------------------------------------------------------
-    // ADMIN
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/admin")) {
-      this.router.navigate(["/dashboard/admin/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // CITIZEN
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/citizen")) {
-      this.router.navigate(["/dashboard/citizen/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // GOVERNMENT
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/government")) {
-      this.router.navigate(["/dashboard/government/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
-    // -------------------------------------------------------
-
-    this.router.navigate(["/dashboard/user-dashboard/profile"]);
+    this.navContext.goBack();
   }
 }

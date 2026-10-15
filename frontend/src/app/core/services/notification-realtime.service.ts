@@ -44,6 +44,11 @@ const FALLBACK_POLL_MS = 15_000;
 const MAX_BACKOFF_MS = 10_000;
 const BASE_BACKOFF_MS = 1_000;
 const PING_INTERVAL_MS = 25_000;
+// Consecutive failed handshakes tolerated before giving up on the socket
+// (e.g. the endpoint is absent from the deployed backend and answers 404).
+// The REST polling fallback keeps notifications flowing, so retrying
+// forever would only repeat failing handshakes and console errors.
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 /**
  * Owns the single WebSocket connection used for live notifications.
@@ -242,6 +247,15 @@ export class NotificationRealtimeService {
 
   private scheduleReconnect(): void {
     if (!this.wantConnection || this.reconnectTimer) {
+      return;
+    }
+
+    // The endpoint is persistently unavailable (e.g. repeated 404s from a
+    // backend that does not serve the socket): stop opening new sockets and
+    // stay on the REST polling fallback instead of erroring forever. A later
+    // manual reconnect() resets the counter and tries again.
+    if (this.reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
+      this.stateSubject.next('polling');
       return;
     }
 

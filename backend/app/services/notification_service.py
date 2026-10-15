@@ -2575,11 +2575,15 @@ def notify_report_completed(
     )
 
 
-def notify_new_user(db: Session, new_user: User) -> None:
+def notify_new_user(db: Session, new_user: User, background_tasks=None) -> None:
     """
     When a new user registers:
     1. Notify ADMINISTRATORS of the new user registration.
     2. Send a welcoming SYSTEM_ALERT notification to the new user.
+
+    Slow external delivery legs (Brevo/SMTP) are deferred through
+    ``background_tasks`` when supplied, so user registration never waits
+    on the mail provider.
     """
     # 1. Notify Admins
     for admin in admin_audience(db, "NEW_FEEDBACK"):
@@ -2600,6 +2604,7 @@ def notify_new_user(db: Session, new_user: User) -> None:
                 entity_id=new_user.user_id,
                 source_name="User Management",
             ),
+            background_tasks=background_tasks,
         )
 
     # 2. Welcome in-app notification for the newly registered user
@@ -2621,6 +2626,7 @@ def notify_new_user(db: Session, new_user: User) -> None:
             entity_id=new_user.user_id,
             source_name="PolicyGPT National Portal",
         ),
+        background_tasks=background_tasks,
     )
 
 

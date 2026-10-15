@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     File,
     HTTPException,
@@ -327,7 +328,7 @@ def hash_reset_token(token: str) -> str:
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def register(data: RegisterRequest, request: Request, db: Session = Depends(get_db)):
+def register(data: RegisterRequest, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
 
     # -----------------------------------------------------
     # CLEAN EMAIL
@@ -411,7 +412,9 @@ def register(data: RegisterRequest, request: Request, db: Session = Depends(get_
         db.refresh(user)
 
         # Initialize default notification preferences and dispatch
-        # registration alerts
+        # registration alerts. External delivery (Brevo/SMTP) runs in
+        # background tasks so a slow or unreachable mail provider can
+        # never hold the registration response open.
         try:
             from app.services.notification_preference_service import (
                 get_or_create_preferences,
@@ -419,7 +422,9 @@ def register(data: RegisterRequest, request: Request, db: Session = Depends(get_
             from app.services.notification_service import NotificationService
 
             get_or_create_preferences(db, user.user_id, user.role)
-            NotificationService.notify_new_user(db, user)
+            NotificationService.notify_new_user(
+                db, user, background_tasks=background_tasks
+            )
         except Exception as notif_err:
             logger.error(
                 f"Error initializing user notification preferences or alert: "

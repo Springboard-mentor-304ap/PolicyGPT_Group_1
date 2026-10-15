@@ -76,6 +76,11 @@ $danger-light: #fee2e2;
     }
   }
 
+  /* Current-page crumb: Notifications renders black; Home stays blue. */
+  button:last-of-type {
+    color: $heading;
+  }
+
   .material-icons {
     font-size: 13px;
     color: #94a3b8;

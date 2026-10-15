@@ -96,15 +96,25 @@
               maxlength="200" />
           </div>
 
-          <!-- OPTIONAL REFERENCES (POLICY & SCHEME IDS) -->
+          <!-- OPTIONAL REFERENCES (POLICY & SCHEME) -->
           <div class="form-row">
             <div class="form-group col-half">
-              <label for="policyId">Related Policy ID <span class="optional-tag">(Optional)</span></label>
-              <input id="policyId" type="number" placeholder="e.g. 101" [(ngModel)]="policyId" />
+              <label for="policyId">Related Policy <span class="optional-tag">(Optional)</span></label>
+              <app-searchable-select id="policyId" placeholder="Select a policy"
+                searchPlaceholder="Search policies..." [options]="policyOptions" [ngModel]="policyIdValue"
+                (selectionChange)="onPolicySelect($event)" [searchable]="true" [clearable]="true"
+                [loading]="policiesLoading" loadingText="Loading policies..."
+                [errorText]="policiesError || ''" emptyText="No policies available"
+                ariaLabel="Related policy" />
             </div>
             <div class="form-group col-half">
-              <label for="schemeId">Related Scheme ID <span class="optional-tag">(Optional)</span></label>
-              <input id="schemeId" type="number" placeholder="e.g. 204" [(ngModel)]="schemeId" />
+              <label for="schemeId">Related Scheme <span class="optional-tag">(Optional)</span></label>
+              <app-searchable-select id="schemeId" placeholder="Select a scheme"
+                searchPlaceholder="Search schemes..." [options]="schemeOptions" [ngModel]="schemeIdValue"
+                (selectionChange)="onSchemeSelect($event)" [searchable]="true" [clearable]="true"
+                [loading]="schemesLoading" loadingText="Loading schemes..."
+                [errorText]="schemesError || ''" emptyText="No schemes available"
+                ariaLabel="Related scheme" />
             </div>
           </div>
 

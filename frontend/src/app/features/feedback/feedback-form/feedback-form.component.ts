@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Feedback, FeedbackCreate, FeedbackType } from '../../../core/models/feedback.model';
 import { FeedbackService } from '../../../core/services/feedback.service';
+import { PolicyService } from '../../../core/services/policy.service';
+import { SchemeService } from '../../../core/services/scheme.service';
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import {
@@ -35,6 +37,15 @@ export class FeedbackFormComponent implements OnInit {
   policyId: number | null = null;
   schemeId: number | null = null;
   submitting = signal<boolean>(false);
+
+  // Related-policy/scheme dropdown options (names loaded once from the
+  // existing list APIs; the submitted payload still carries numeric IDs).
+  policyOptions: { value: string; label: string }[] = [];
+  schemeOptions: { value: string; label: string }[] = [];
+  policiesLoading = false;
+  schemesLoading = false;
+  policiesError: string | null = null;
+  schemesError: string | null = null;
 
   // History State
   userFeedbacks = signal<Feedback[]>([]);
@@ -159,6 +170,8 @@ export class FeedbackFormComponent implements OnInit {
     @Inject(ToastService) private readonly toastService: ToastService,
     @Inject(Router) private readonly router: Router,
     @Inject(ActivatedRoute) private readonly route: ActivatedRoute,
+    @Inject(PolicyService) private readonly policyService: PolicyService,
+    @Inject(SchemeService) private readonly schemeService: SchemeService,
   ) {}
 
   ngOnInit(): void {
@@ -182,6 +195,69 @@ export class FeedbackFormComponent implements OnInit {
     });
 
     this.loadHistory();
+    this.loadReferenceOptions();
+  }
+
+  /**
+   * Load selectable policies/schemes once for the optional Related
+   * dropdowns. APPROVED records are visible to every role; list APIs are
+   * response-cached by the services, so no duplicate requests occur.
+   */
+  loadReferenceOptions(): void {
+    if (!this.policiesLoading && this.policyOptions.length === 0 && !this.policiesError) {
+      this.policiesLoading = true;
+      this.policyService.getPolicies({ status: 'APPROVED', page: 1, limit: 100 }).subscribe({
+        next: (res) => {
+          const list = Array.isArray(res?.policies) ? res.policies : [];
+          this.policyOptions = list.map((p) => ({
+            value: String(p.policy_id),
+            label: p.title,
+          }));
+          this.policiesLoading = false;
+        },
+        error: () => {
+          this.policiesLoading = false;
+          this.policiesError = 'Could not load policies.';
+        },
+      });
+    }
+    if (!this.schemesLoading && this.schemeOptions.length === 0 && !this.schemesError) {
+      this.schemesLoading = true;
+      this.schemeService.getSchemes({ status: 'APPROVED', page: 1, limit: 100 }).subscribe({
+        next: (res) => {
+          const list = Array.isArray(res?.schemes) ? res.schemes : [];
+          this.schemeOptions = list.map((s) => ({
+            value: String(s.scheme_id),
+            label: s.name,
+          }));
+          this.schemesLoading = false;
+        },
+        error: () => {
+          this.schemesLoading = false;
+          this.schemesError = 'Could not load schemes.';
+        },
+      });
+    }
+  }
+
+  /** String-bound dropdown value for the numeric related-policy ID. */
+  get policyIdValue(): string | null {
+    return this.policyId === null ? null : String(this.policyId);
+  }
+
+  /** String-bound dropdown value for the numeric related-scheme ID. */
+  get schemeIdValue(): string | null {
+    return this.schemeId === null ? null : String(this.schemeId);
+  }
+
+  /** Store the selected policy ID (or clear the optional reference). */
+  onPolicySelect(value: string): void {
+    this.policyId = value ? Number(value) : null;
+  }
+
+  /** Store the selected scheme ID (or clear the optional reference). */
+  onSchemeSelect(value: string): void {
+    this.schemeId = value ? Number(value) : null;
   }
 
   /** Jump to one feedback record: history tab, filters cleared, highlight. */

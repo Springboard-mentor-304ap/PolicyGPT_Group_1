@@ -93,6 +93,13 @@ class Settings(BaseSettings):
     # FRONTEND_ORIGINS=https://your-production-frontend-domain.com
     FRONTEND_ORIGINS: str = ""
 
+    # Optional regex for dynamic frontend origins (e.g. Vercel preview
+    # deployments whose exact subdomain is not known ahead of time).
+    # The exact production origin should ALSO be listed in
+    # FRONTEND_ORIGINS; this pattern only widens matching to sibling
+    # deploy previews under the same trusted suffix.
+    FRONTEND_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"
+
     # =========================================================
     # CHATBOT (PolicyGPT Assistant) CONFIGURATION
     # =========================================================

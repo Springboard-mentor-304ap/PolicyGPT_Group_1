@@ -91,10 +91,14 @@ $dash-purple: #8b00e8;
 
 .dash-welcome__title {
   margin: 0;
-  color: #111111;
+  color: #12366b;
   font-size: 30px;
   font-weight: 700;
   line-height: 1.2;
+
+  .dash-welcome__title-user {
+    color: #ff821b;
+  }
 }
 
 .dash-welcome__sub {

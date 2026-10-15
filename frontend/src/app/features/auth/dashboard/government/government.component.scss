@@ -136,7 +136,7 @@ $purple: #8b00e8;
 .dash-welcome__title {
   margin: 0;
 
-  color: #101827;
+  color: #12366b;
 
   font-size: 30px;
 
@@ -145,6 +145,10 @@ $purple: #8b00e8;
   letter-spacing: -0.5px;
 
   line-height: 1.2;
+
+  .dash-welcome__title-user {
+    color: #ff821b;
+  }
 }
 
 .dash-welcome__sub {

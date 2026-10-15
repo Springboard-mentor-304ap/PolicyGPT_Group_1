@@ -56,7 +56,9 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   sidebarCollapsed = false;
-  mobileMenuOpen = false;
+  // Expanded by default on every screen size: on mobile this opens the
+  // overlay drawer (closed on navigation, reopened via hamburger).
+  mobileMenuOpen = true;
 
   // =======================================================
   // SUBMENUS
@@ -139,6 +141,11 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   ngOnInit(): void {
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
     this.syncMenusWithRoute();
 
     // Keep expansion in sync with navigation (direct URL entry, in-app

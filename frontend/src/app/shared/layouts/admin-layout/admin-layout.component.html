@@ -341,7 +341,8 @@
 
                 <a class="dash-nav__item" routerLink="/dashboard/admin/support-analytics"
                     routerLinkActive="dash-nav__submenu-item--active" [routerLinkActiveOptions]="{ exact: true }"
-                    (click)="closeMobileMenu()">
+                    (click)="closeMobileMenu()"
+                    [attr.title]="sidebarCollapsed ? 'Support Analytics' : null">
                     <span class="material-icons">
                         insights
                     </span>

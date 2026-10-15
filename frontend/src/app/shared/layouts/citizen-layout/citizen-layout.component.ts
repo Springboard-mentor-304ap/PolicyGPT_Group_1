@@ -65,7 +65,9 @@ export class CitizenLayoutComponent implements OnInit {
   // =========================================================
 
   sidebarCollapsed = false;
-  mobileMenuOpen = false;
+  // Expanded by default on every screen size: on mobile this opens the
+  // overlay drawer (closed on navigation, reopened via hamburger).
+  mobileMenuOpen = true;
   analyticsMenuOpen = false;
 
   // =========================================================
@@ -166,6 +168,11 @@ export class CitizenLayoutComponent implements OnInit {
   // =========================================================
 
   ngOnInit(): void {
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
     if (this.isAnalyticsRouteActive()) {
       this.analyticsMenuOpen = true;
     }

@@ -41,23 +41,8 @@
   }
 
   @if (loading) {
-  <div class="stats-grid" aria-label="Loading trends">
-    @for (i of [1, 2, 3, 4]; track i) {
-    <div class="stat-card stat-card--skeleton" aria-hidden="true">
-      <span class="skeleton skeleton-icon"></span>
-      <span class="skeleton-body">
-        <span class="skeleton skeleton-title"></span>
-        <span class="skeleton skeleton-line"></span>
-      </span>
-    </div>
-    }
-  </div>
-  <div class="table-skeleton" aria-hidden="true">
-    <div class="skeleton skeleton-table-head"></div>
-    @for (i of [1, 2, 3]; track i) {
-    <div class="skeleton skeleton-table-row"></div>
-    }
-  </div>
+    <app-loading-indicator message="Loading trends...">
+  </app-loading-indicator>
   } @else if (error && !trends && !overview) {
   <section class="state-card error-state">
     <div class="state-icon">

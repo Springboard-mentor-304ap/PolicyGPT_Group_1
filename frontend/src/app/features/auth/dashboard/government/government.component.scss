@@ -899,55 +899,11 @@ $purple: #8b00e8;
 }
 
 // =====================================================
-// SKELETON
 // =====================================================
 
-.skeleton {
-  position: relative;
 
-  overflow: hidden;
 
-  border-radius: 5px;
 
-  background: #e8edf5;
-}
-
-.skeleton::after {
-  content: "";
-
-  position: absolute;
-
-  top: 0;
-
-  bottom: 0;
-
-  left: -100%;
-
-  width: 100%;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.65),
-    transparent
-  );
-
-  animation: skeleton-loading 1.35s infinite;
-}
-
-.skeleton--stat-num {
-  width: 42px;
-
-  height: 23px;
-
-  margin: 0 0 5px;
-}
-
-@keyframes skeleton-loading {
-  100% {
-    left: 100%;
-  }
-}
 
 // =====================================================
 // ACCESSIBILITY

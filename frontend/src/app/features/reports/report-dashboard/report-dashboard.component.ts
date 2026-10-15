@@ -11,6 +11,7 @@ import {
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import { visiblePageWindow } from '../../../core/utils/pagination.util';
 import {
   ReportDataset,
@@ -126,7 +127,7 @@ function newNotificationsTabState(): NotificationsTabState {
 @Component({
   selector: 'app-report-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   styleUrl: '../reports-shared.scss',
   templateUrl: './report-dashboard.component.html',
 })

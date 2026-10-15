@@ -170,6 +170,17 @@ def _normalize_search_text(value: str | None) -> str:
 def _search_tokens(normalized: str) -> list[str]:
     if not normalized:
         return []
+    # Shared tokenizer so SQL recall matches the Python relevance stage
+    # (splits "PM-KISAN" -> ["pm", "kisan"], strips punctuation).
+    try:
+        from app.services.search_relevance import tokenize_query as _shared_tokenize
+    except Exception:
+        _shared_tokenize = None
+    if _shared_tokenize is not None:
+        tokens = _shared_tokenize(normalized)
+        if tokens:
+            return tokens
+        return []
     parts = [p for p in normalized.split(" ") if p]
     if len(parts) <= 1:
         return parts
@@ -1700,7 +1711,14 @@ def search_schemes(
     if created_by is not None:
         query = query.filter(Scheme.created_by == created_by)
 
-    if keyword and _normalize_search_text(keyword):
+    # SQL stage is broad recall (substring ilike, hyphen-split tokens).
+    # A Python relevance stage below re-filters short-token queries to
+    # word-prefix matches and ranks name matches above description
+    # matches, so "pm" no longer returns "development" false positives.
+    keyword_norm = _normalize_search_text(keyword) if keyword else ""
+    has_keyword = bool(keyword_norm)
+
+    if has_keyword:
         query = _apply_scheme_free_text(query, keyword)
 
     if category:
@@ -1729,6 +1747,81 @@ def search_schemes(
 
     elif not include_archived:
         query = query.filter(Scheme.status != "ARCHIVED")
+
+    # --------------------------------------------------------
+    # RELEVANCE STAGE (Python, single source for ranking/precision)
+    # Counts/pages reflect the filtered ranked set.
+    # --------------------------------------------------------
+    if has_keyword:
+        from app.services.search_relevance import (
+            normalize_text_for_match,
+            record_matches,
+            relevance_score,
+            tokenize_query,
+            values_to_text,
+        )
+
+        tokens = tokenize_query(keyword_norm)
+        if not tokens:
+            return {
+                "total": 0,
+                "page": page,
+                "limit": limit,
+                "pages": 1,
+                "schemes": [],
+            }
+        phrase_norm = normalize_text_for_match(keyword_norm)
+
+        candidates = query.all()
+        scored: list[tuple[int, object]] = []
+        for scheme in candidates:
+            # Same field coverage as the SQL token condition: name,
+            # description, category, ministry, department, state,
+            # documents_required, application_process, benefits,
+            # eligibility_rules.
+            raw_fields = [
+                getattr(scheme, "name", None),
+                getattr(scheme, "description", None),
+                getattr(scheme, "category", None),
+                getattr(scheme, "ministry", None),
+                getattr(scheme, "department", None),
+                getattr(scheme, "state", None),
+                getattr(scheme, "documents_required", None),
+                getattr(scheme, "application_process", None),
+                values_to_text(getattr(scheme, "benefits", None)),
+                values_to_text(getattr(scheme, "eligibility_rules", None)),
+            ]
+            norm_fields = [normalize_text_for_match(v) for v in raw_fields]
+            if not record_matches(tokens, norm_fields):
+                continue
+            title_norm = norm_fields[0]
+            other_norm = " ".join(f for f in norm_fields[1:] if f)
+            score = relevance_score(tokens, phrase_norm, title_norm, other_norm)
+            scored.append((score, scheme))
+
+        def _scheme_id(item: object) -> int:
+            try:
+                return int(getattr(item, "scheme_id", 0) or 0)
+            except (TypeError, ValueError):
+                return 0
+
+        # Rank: relevance first, then newest (scheme_id desc preserves the
+        # existing recency tiebreaker). One row per record (deduplicated).
+        scored.sort(key=lambda entry: (entry[0], _scheme_id(entry[1])), reverse=True)
+        ranked = [scheme for _, scheme in scored]
+
+        total = len(ranked)
+        offset = max(0, (page - 1) * limit)
+        schemes = ranked[offset : offset + limit]
+        pages = (total + limit - 1) // limit if total > 0 else 1
+
+        return {
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": pages,
+            "schemes": schemes,
+        }
 
     total = query.count()
 

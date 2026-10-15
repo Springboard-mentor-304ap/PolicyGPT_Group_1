@@ -640,9 +640,18 @@ def _combined_terms(terms: str = "", filters=None) -> str:
 
 def _union_token_search(fetch, tokens: list[str], limit: int) -> dict:
     """OR-fallback: union per-token result sets when the combined query
-    matches nothing. Bounded and RBAC-safe (same fetch each time)."""
+    matches nothing. Bounded and RBAC-safe (same fetch each time).
+
+    Only significant tokens (length > 2, at most 8) are fanned out: short
+    tokens match far too broadly to be useful and each token costs a full
+    database scan, so looking up "me"/"to"/"of" only adds latency.
+    """
+    significant = [t for t in tokens if len(t) > 2][:8] or tokens[:1]
+    # Identical tokens would repeat the same full scan: dedupe (order
+    # preserved) — the unioned row set is exactly unchanged.
+    significant = list(dict.fromkeys(significant)) or significant[:1]
     seen: dict = {}
-    for token in tokens:
+    for token in significant:
         try:
             data = fetch(token, limit)
         except Exception:
@@ -1165,7 +1174,12 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
 
         elif intent_name in (intent.ELIGIBILITY_CHECK, intent.SCHEME_RECOMMENDATION):
             current_profile = entities.get("profile") or {}
-            history_profile = context.get_conversation_profile(db, conversation_id)
+            # One history load shared by the profile merge and the entity
+            # resolution below (previously three sequential loads).
+            shared_history = context.load_recent_messages(db, conversation_id)
+            history_profile = context.get_conversation_profile(
+                db, conversation_id, messages=shared_history
+            )
             user_basics = {} if role == "GUEST" else context.user_basics_as_profile(user)
             full_profile = context.merge_profiles(
                 context.merge_profiles(user_basics, history_profile), current_profile
@@ -1177,7 +1191,8 @@ def _handle_intent(db, user, role: str, prefix: str, intent_name: str,
                 target = found.get("best")
             if target is None and intent_name == intent.ELIGIBILITY_CHECK:
                 target = context.resolve_referenced_entity(
-                    db, user, conversation_id, text, kind_hint="scheme"
+                    db, user, conversation_id, text, kind_hint="scheme",
+                    messages=shared_history,
                 )
             profile_lines = context.profile_summary_lines(full_profile)
             if target is not None:

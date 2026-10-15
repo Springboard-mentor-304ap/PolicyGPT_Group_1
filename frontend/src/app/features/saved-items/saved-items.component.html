@@ -103,19 +103,9 @@
     </div>
 
 
-    <!-- SKELETON -->
-    <div class="skeleton-block" *ngIf="loading" aria-label="Loading saved items">
-
-      <div class="skeleton-card" *ngFor="let n of [1, 2, 3]">
-        <div class="skeleton skeleton-icon"></div>
-
-        <div class="skeleton-body">
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-line"></div>
-        </div>
-      </div>
-
-    </div>
+    <!-- LOADING INDICATOR -->
+    <app-loading-indicator *ngIf="loading" message="Loading saved items...">
+    </app-loading-indicator>
 
 
     <!-- ERROR -->
@@ -251,12 +241,11 @@
           </div>
 
 
-          <div>
+          <div *ngIf="policy.department?.trim() || policy.ministry?.trim()">
             <span class="metadata">
               {{
-              policy.department ||
-              policy.ministry ||
-              '—'
+              policy.department?.trim() ||
+              policy.ministry
               }}
             </span>
           </div>
@@ -392,12 +381,11 @@
           </div>
 
 
-          <div>
+          <div *ngIf="scheme.department?.trim() || scheme.ministry?.trim()">
             <span class="metadata">
               {{
-              scheme.department ||
-              scheme.ministry ||
-              '—'
+              scheme.department?.trim() ||
+              scheme.ministry
               }}
             </span>
           </div>

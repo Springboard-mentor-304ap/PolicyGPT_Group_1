@@ -57,8 +57,7 @@
 
         @if (loadingStats) {
 
-        <div class="skeleton
-                     skeleton--stat-num"></div>
+        <app-loading-indicator size="sm" message=""></app-loading-indicator>
 
         } @else {
 
@@ -174,12 +173,16 @@
               {{ scheme.name }}
             </p>
 
+            @if (scheme.ministry?.trim() || scheme.status) {
             <p class="dash-list__meta">
+              @if (scheme.ministry?.trim()) {
               {{ scheme.ministry }}
+              }
               @if (scheme.status) {
-                • <strong style="font-size: 0.8rem;">{{ scheme.status }}</strong>
+              @if (scheme.ministry?.trim()) { • }<strong style="font-size: 0.8rem;">{{ scheme.status }}</strong>
               }
             </p>
+            }
 
           </div>
 
@@ -283,12 +286,16 @@
               {{ policy.name }}
             </p>
 
+            @if (policy.ministry?.trim() || policy.status) {
             <p class="dash-list__meta">
+              @if (policy.ministry?.trim()) {
               {{ policy.ministry }}
+              }
               @if (policy.status) {
-                • <strong style="font-size: 0.8rem;">{{ policy.status }}</strong>
+              @if (policy.ministry?.trim()) { • }<strong style="font-size: 0.8rem;">{{ policy.status }}</strong>
               }
             </p>
+            }
 
             <p class="dash-list__submeta">
               Uploaded on {{ policy.savedOn }}

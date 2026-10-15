@@ -216,11 +216,8 @@
         </div>
 
         @if (prefsLoading) {
-        <div class="skeleton-block" aria-label="Loading notification preferences">
-          @for (i of [1, 2, 3, 4]; track i) {
-          <div class="skeleton skeleton-line" aria-hidden="true"></div>
-          }
-        </div>
+        <app-loading-indicator message="Loading notification preferences...">
+        </app-loading-indicator>
         } @else if (!prefs) {
         <p class="hint-text">
           Preference summary is unavailable right now. You can still

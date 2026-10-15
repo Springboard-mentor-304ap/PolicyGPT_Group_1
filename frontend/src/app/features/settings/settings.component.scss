@@ -528,7 +528,7 @@ $danger: #dc2626;
 }
 
 /* =========================================================
-   PILLS / SKELETON
+   STATUS PILLS
    ========================================================= */
 
 .status-pill {
@@ -544,44 +544,6 @@ $danger: #dc2626;
 .status-pill--active {
   background: $green-light;
   color: $green;
-}
-
-.skeleton-block {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 6px 0;
-}
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: #e9edf2;
-  border-radius: 6px;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.75),
-      transparent
-    );
-    animation: settings-shimmer 1.4s infinite;
-  }
-}
-
-.skeleton-line {
-  height: 34px;
-}
-
-@keyframes settings-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
 }
 
 /* =========================================================

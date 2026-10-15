@@ -19,11 +19,8 @@
 
 
   <!-- Loading State -->
-  <div class="loading-state" *ngIf="loading">
-    <div class="skeleton-list">
-      <div class="skeleton-suggestion" *ngFor="let _ of [1, 2, 3, 4, 5, 6]"></div>
-    </div>
-  </div>
+  <app-loading-indicator *ngIf="loading" message="Loading options...">
+  </app-loading-indicator>
 
 
   <!-- Error State -->

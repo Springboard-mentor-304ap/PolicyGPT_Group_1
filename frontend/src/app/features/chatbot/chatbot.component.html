@@ -19,7 +19,8 @@
       <h2>PolicyGPT Assistant</h2>
       <p>Your Government Policy &amp; Scheme Assistant</p>
       <span class="chatbot-header__status">
-        <span class="chatbot-header__dot" [class.chatbot-header__dot--offline]="!serviceOnline" aria-hidden="true"></span>
+        <span class="chatbot-header__dot" [class.chatbot-header__dot--offline]="!serviceOnline"
+          aria-hidden="true"></span>
         @if (!serviceOnline) {
         Offline — retrying
         } @else if (loading || sending) {
@@ -77,11 +78,8 @@
       </button>
 
       @if (historyLoading) {
-      <div class="chatbot-history__list" aria-label="Loading conversations">
-        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
-        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
-        <div class="chatbot-history__skeleton" aria-hidden="true"></div>
-      </div>
+      <app-loading-indicator message="Loading conversations...">
+      </app-loading-indicator>
       } @else if (historyError) {
       <div class="chatbot-history__error" role="alert">
         <span class="material-icons" aria-hidden="true">error_outline</span>
@@ -191,11 +189,14 @@
         <div class="chatbot-msg chatbot-msg--assistant">
           <img class="chatbot-msg__avatar" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
           <div class="chatbot-msg__content">
+            @if (!msg.limitReached) {
             <div class="chatbot-bubble chatbot-bubble--assistant" [innerHTML]="renderMarkdown(displayText(msg))"></div>
+            }
             @if (msg.data?.['eligibility_label']) {
-            <div class="chatbot-eligibility" [ngClass]="eligibilityClass(msg.data?.['eligibility_label'])"
-              role="status" aria-label="Eligibility assessment">
-              <span class="material-icons" aria-hidden="true">{{ eligibilityIcon(msg.data?.['eligibility_label']) }}</span>
+            <div class="chatbot-eligibility" [ngClass]="eligibilityClass(msg.data?.['eligibility_label'])" role="status"
+              aria-label="Eligibility assessment">
+              <span class="material-icons" aria-hidden="true">{{ eligibilityIcon(msg.data?.['eligibility_label'])
+                }}</span>
               <span class="chatbot-eligibility__label">{{ msg.data?.['eligibility_label'] }}</span>
             </div>
             }
@@ -324,12 +325,6 @@
         <span class="material-icons" aria-hidden="true">send</span>
       </button>
     </div>
-
-    <p class="chatbot-disclaimer">
-      Information is based on available government data. Please verify
-      important eligibility, deadlines and application details with official
-      sources.
-    </p>
   </div>
   </div>
 </section>

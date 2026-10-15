@@ -9,13 +9,14 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 
 const PAGE_SIZE = 20;
 
 @Component({
   selector: "app-report-history",
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, LoadingIndicatorComponent],
   styleUrl: "../reports-shared.scss",
   template: `
     <div class="reports-page">
@@ -36,17 +37,7 @@ const PAGE_SIZE = 20;
       </header>
 
       @if (loading()) {
-        <div class="skeleton-list" aria-label="Loading report history">
-          @for (i of [1, 2, 3]; track i) {
-            <div class="skeleton-card" aria-hidden="true">
-              <div class="skeleton skeleton-icon"></div>
-              <div class="skeleton-body">
-                <div class="skeleton skeleton-title"></div>
-                <div class="skeleton skeleton-line"></div>
-              </div>
-            </div>
-          }
-        </div>
+        <app-loading-indicator message="Loading report history..."></app-loading-indicator>
       } @else if (error) {
         <section class="state-card error-state">
           <div class="state-icon">

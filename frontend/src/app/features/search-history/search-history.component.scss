@@ -893,91 +893,14 @@ $scheme-text: #1c7a3d;
 }
 
 // ============================================================
-// SKELETON LIST
 // ============================================================
 
-.skeleton-list {
-  display: flex;
 
-  flex-direction: column;
 
-  gap: 13px;
-}
 
-.skeleton-card {
-  display: flex;
 
-  gap: 17px;
 
-  padding: 21px 20px;
 
-  background: $white;
-
-  border: 1px solid $border;
-
-  border-radius: 12px;
-}
-
-.skeleton {
-  position: relative;
-
-  overflow: hidden;
-
-  background: #e9edf2;
-
-  border-radius: 6px;
-
-  &::after {
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    transform: translateX(-100%);
-
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.75),
-      transparent
-    );
-
-    animation: skeleton 1.4s infinite;
-  }
-}
-
-.skeleton-icon {
-  width: 48px;
-
-  height: 48px;
-
-  flex-shrink: 0;
-
-  border-radius: 11px;
-}
-
-.skeleton-body {
-  flex: 1;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 10px;
-}
-
-.skeleton-title {
-  width: 48%;
-
-  height: 18px;
-}
-
-.skeleton-line {
-  width: 30%;
-
-  height: 13px;
-}
 
 // ============================================================
 // STATE CARD
@@ -1120,14 +1043,8 @@ $scheme-text: #1c7a3d;
 }
 
 // ============================================================
-// SKELETON ANIMATION
 // ============================================================
 
-@keyframes skeleton {
-  100% {
-    transform: translateX(100%);
-  }
-}
 
 // ============================================================
 // RESPONSIVE (tablet)

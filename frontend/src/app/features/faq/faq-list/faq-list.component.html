@@ -120,10 +120,9 @@
      ========================================================= -->
   <main class="faq-content">
 
-    <!-- LOADING SKELETON -->
-    <div *ngIf="loading()" class="skeleton-container">
-      <div class="skeleton-card" *ngFor="let i of [1, 2, 3, 4]"></div>
-    </div>
+    <!-- LOADING INDICATOR -->
+    <app-loading-indicator *ngIf="loading()" message="Loading FAQs...">
+    </app-loading-indicator>
 
     <!-- ERROR STATE -->
     <div *ngIf="!loading() && error()" class="error-card">

@@ -9,6 +9,7 @@ import {
   OnDestroy,
   OnInit,
   Output,
+  ViewChild,
   inject,
   signal,
 } from "@angular/core";
@@ -36,6 +37,7 @@ import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { AvatarService } from "../../../core/services/avatar.service";
+import { LoginPromptService } from "../../../core/services/login-prompt.service";
 import {
   GlobalSearchService,
   normalizeGlobalQuery,
@@ -136,6 +138,16 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private lastGlobalQuery = "";
 
   // =========================================================
+  // MOBILE SEARCH (collapsed behind icon on narrow screens)
+  // =========================================================
+
+  /** True while the mobile search input is expanded as an overlay. */
+  mobileSearchOpen = false;
+
+  @ViewChild("globalSearchInput")
+  globalSearchInput?: ElementRef<HTMLInputElement>;
+
+  // =========================================================
   // GUEST NAVIGATION + LOGIN MODAL
   // =========================================================
 
@@ -192,6 +204,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly globalSearchService = inject(GlobalSearchService);
   private readonly hostElement = inject(ElementRef);
+  private readonly loginPrompt = inject(LoginPromptService);
 
   // =========================================================
   // INIT
@@ -199,6 +212,13 @@ export class TopbarComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.rolePrefix = this.resolveRolePrefix();
+
+    // Footer login-gated actions reuse this same guest modal instance.
+    this.loginPrompt.prompt$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((feature) => {
+        this.requireLogin(feature || "This feature");
+      });
 
     if (this.guest) {
       this.loadingUser = false;
@@ -234,6 +254,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
       )
       .subscribe(() => {
         this.closeGlobalDropdown();
+        this.closeMobileSearch();
       });
   }
 
@@ -467,6 +488,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   onGlobalSearchKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") {
       this.closeGlobalDropdown();
+      this.closeMobileSearch();
       return;
     }
     const count =
@@ -509,6 +531,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const id = Number(policy?.policy_id);
     if (!Number.isFinite(id) || id <= 0) return;
     this.closeGlobalDropdown();
+    this.closeMobileSearch();
     this.router.navigate(["/dashboard", this.rolePrefix, "policies", id]);
   }
 
@@ -516,12 +539,14 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const id = Number(scheme?.scheme_id);
     if (!Number.isFinite(id) || id <= 0) return;
     this.closeGlobalDropdown();
+    this.closeMobileSearch();
     this.router.navigate(["/dashboard", this.rolePrefix, "schemes", id]);
   }
 
   viewAllGlobalPolicies(): void {
     const q = normalizeGlobalQuery(this.searchText);
     this.closeGlobalDropdown();
+    this.closeMobileSearch();
     this.router.navigate(["/dashboard", this.rolePrefix, "policies/search"], {
       queryParams: q ? { q } : {},
     });
@@ -530,6 +555,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   viewAllGlobalSchemes(): void {
     const q = normalizeGlobalQuery(this.searchText);
     this.closeGlobalDropdown();
+    this.closeMobileSearch();
     this.router.navigate(["/dashboard", this.rolePrefix, "schemes"], {
       queryParams: q ? { q } : {},
     });
@@ -559,6 +585,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
     const query = normalizeGlobalQuery(this.searchText);
     if (!query) return;
     this.closeGlobalDropdown();
+    this.closeMobileSearch();
     // Researcher topbar is policy-oriented; every other role keeps the
     // existing schemes listing target. All targets stay in-layout.
     const target =
@@ -568,12 +595,49 @@ export class TopbarComponent implements OnInit, OnDestroy {
     });
   }
 
+  // =========================================================
+  // MOBILE SEARCH TOGGLE (narrow screens)
+  // =========================================================
+
+  toggleMobileSearch(): void {
+    this.mobileSearchOpen = !this.mobileSearchOpen;
+    if (this.mobileSearchOpen) {
+      setTimeout(() => {
+        this.globalSearchInput?.nativeElement?.focus();
+      }, 0);
+    } else {
+      this.closeGlobalDropdown();
+    }
+  }
+
+  closeMobileSearch(): void {
+    this.mobileSearchOpen = false;
+  }
+
   @HostListener("document:click", ["$event"])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.showGlobalDropdown) return;
     const target = event.target as HTMLElement | null;
+    // Close the expanded mobile search when tapping outside it.
+    if (this.mobileSearchOpen && target) {
+      const hostContains =
+        this.hostElement?.nativeElement?.contains(target) ?? false;
+      if (!hostContains) {
+        this.closeMobileSearch();
+        this.closeGlobalDropdown();
+        return;
+      }
+      const insideSearch = (target as HTMLElement).closest?.(
+        ".topbar-search, .topbar__search-toggle",
+      );
+      if (!insideSearch) {
+        this.closeMobileSearch();
+      }
+    }
+    if (!this.showGlobalDropdown) return;
     if (target && this.hostElement?.nativeElement?.contains(target)) {
-      const searchBox = (target as HTMLElement).closest?.(".topbar-search");
+      const searchBox = (target as HTMLElement).closest?.(
+        ".topbar-search, .topbar__search-toggle",
+      );
       if (searchBox) return;
     }
     this.closeGlobalDropdown();
@@ -595,6 +659,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
   onWindowResize(): void {
     if (window.innerWidth > 960) {
       this.guestDrawerOpen = false;
+    }
+    if (window.innerWidth > 767) {
+      this.closeMobileSearch();
     }
   }
 

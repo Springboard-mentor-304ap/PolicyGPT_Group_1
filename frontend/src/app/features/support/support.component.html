@@ -1,7 +1,7 @@
-<div class="support-page">
+<div class="support-page" [class.support-page--guest]="isGuest">
 
-  <!-- BREADCRUMB -->
-  <nav class="support-breadcrumb" aria-label="Breadcrumb">
+  <!-- BREADCRUMB (authenticated roles only; hidden for guests) -->
+  <nav *ngIf="!isGuest" class="support-breadcrumb" aria-label="Breadcrumb">
     <button type="button" (click)="navigateToHome()">Home</button>
     <span class="material-icons" aria-hidden="true">chevron_right</span>
     <strong>Support</strong>
@@ -14,7 +14,7 @@
   </header>
 
   <!-- QUICK SUPPORT NAV -->
-  <nav class="quick-nav" aria-label="Quick support">
+  <nav class="quick-nav" [class.quick-nav--guest]="isGuest" aria-label="Quick support">
     <button type="button" class="quick-card" (click)="focusFaqSearch()">
       <span class="material-icons quick-icon" aria-hidden="true">help_outline</span>
       <span class="quick-body">
@@ -77,13 +77,9 @@
 
     <div class="help-main">
 
-      <!-- Skeleton while real data loads -->
-      <div *ngIf="loadingFaqs" class="faq-rows-skeleton" aria-busy="true" aria-label="Loading FAQs">
-        <div class="faq-row-skeleton" *ngFor="let i of [1, 2, 3, 4, 5, 6]">
-          <span class="skeleton-num"></span>
-          <span class="skeleton-line"></span>
-        </div>
-      </div>
+      <!-- Loader while real data loads -->
+      <app-loading-indicator *ngIf="loadingFaqs" message="Loading FAQs...">
+      </app-loading-indicator>
 
       <!-- Error -->
       <div *ngIf="faqError && !loadingFaqs" class="support-state-box error-state" role="alert">
@@ -199,12 +195,8 @@
       </div>
     </div>
 
-    <div *ngIf="loadingRequests" class="req-list-skeleton" aria-busy="true">
-      <div class="req-row-skeleton" *ngFor="let i of [1, 2, 3]">
-        <span class="skeleton-line skeleton-title"></span>
-        <span class="skeleton-line skeleton-sub"></span>
-      </div>
-    </div>
+    <app-loading-indicator *ngIf="loadingRequests" message="Loading requests...">
+    </app-loading-indicator>
 
     <div *ngIf="requestsError && !loadingRequests" class="support-state-box error-state">
       <div class="state-icon-box state-icon-box--danger">

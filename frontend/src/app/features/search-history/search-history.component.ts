@@ -11,6 +11,7 @@ import {
 import { Auth } from "../../core/services/auth";
 import { ToastService } from "../../core/services/toast.service";
 import { ConfirmModalComponent } from "../../shared/components/confirm-modal/confirm-modal.component";
+import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -21,7 +22,7 @@ type HistoryFilter = "ALL" | "POLICY" | "SCHEME";
 @Component({
   selector: "app-search-history",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ConfirmModalComponent, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ConfirmModalComponent, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: "./search-history.component.html",
   styleUrl: "./search-history.component.scss",
 })

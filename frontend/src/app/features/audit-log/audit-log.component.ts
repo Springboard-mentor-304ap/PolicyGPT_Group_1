@@ -6,6 +6,7 @@ import { AuditLog } from '../../core/models/audit-log.model';
 import { AuditLogService } from '../../core/services/audit-log.service';
 import { Auth } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
+import { downloadBlob, XLSX_MIME_TYPE } from '../../core/utils/file-download.util';
 import { formatAuditLabel } from '../../core/utils/audit-label.util';
 import { visiblePageWindow } from '../../core/utils/pagination.util';
 import {
@@ -13,11 +14,12 @@ import {
   BreadcrumbItem,
 } from '../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
 
 @Component({
   selector: 'app-audit-log',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   templateUrl: './audit-log.component.html',
   styleUrls: [
     './audit-log.component.scss',
@@ -211,7 +213,7 @@ export class AuditLogComponent implements OnInit {
 
   loadLogs(): void {
     // Keep existing rows visible during refresh instead of blanking the
-    // page; the skeleton only shows on the very first load.
+    // page; the loader only shows on the very first load.
     if (this.logs().length === 0) {
       this.loading.set(true);
     }
@@ -390,7 +392,9 @@ export class AuditLogComponent implements OnInit {
       if (rows.length === 0) {
         doc.text('No records match the current filters.', margin, y + 16);
       }
-      doc.save(this.exportFileStem('pdf'));
+      // Browser-managed download (never `doc.save()`: outside a real
+      // browser it falls back to writing the file beside the project).
+      downloadBlob(doc.output('blob'), this.exportFileStem('pdf'));
       this.toastService.success('Export Complete', 'Audit logs exported as PDF.');
     } catch (err) {
       console.error('Failed to export audit logs as PDF:', err);
@@ -418,7 +422,13 @@ export class AuditLogComponent implements OnInit {
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Audit Logs');
-      XLSX.writeFile(wb, this.exportFileStem('xlsx'));
+      // In-memory bytes + browser download (never `XLSX.writeFile()`,
+      // which writes to disk when it detects Node instead of a browser).
+      const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      downloadBlob(
+        new Blob([bytes], { type: XLSX_MIME_TYPE }),
+        this.exportFileStem('xlsx'),
+      );
       this.toastService.success('Export Complete', 'Audit logs exported as Excel.');
     } catch (err) {
       console.error('Failed to export audit logs as Excel:', err);

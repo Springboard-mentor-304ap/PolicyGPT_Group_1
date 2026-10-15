@@ -1,12 +1,21 @@
 import { CommonModule } from "@angular/common";
-import { Component, ElementRef, HostListener, ViewChild, inject } from "@angular/core";
+import {
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  HostListener,
+  ViewChild,
+  inject,
+} from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
+import { finalize } from "rxjs";
 
 import { Auth } from "../../core/services/auth";
 import { ChatbotService } from "../../core/services/chatbot.service";
 import { PermissionService } from "../../core/services/permission.service";
 import { ToastService } from "../../core/services/toast.service";
+import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 import {
   ChatAction,
   ChatConversation,
@@ -34,51 +43,184 @@ const ROLE_GREETING_BODY: Record<string, string> = {
 
 const ROLE_QUICK_ACTIONS: Record<string, QuickAction[]> = {
   CITIZEN: [
-    { label: "Find schemes for me", message: "Find schemes for me", icon: "search" },
-    { label: "Check my eligibility", message: "How do I check my eligibility?", icon: "fact_check" },
-    { label: "Explain a policy", message: "Explain a policy in simple language", icon: "description" },
-    { label: "Compare schemes", message: "Compare two schemes", icon: "compare_arrows" },
-    { label: "Show notifications", message: "Show my notifications", icon: "notifications" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Find schemes for me",
+      message: "Find schemes for me",
+      icon: "search",
+    },
+    {
+      label: "Check my eligibility",
+      message: "How do I check my eligibility?",
+      icon: "fact_check",
+    },
+    {
+      label: "Explain a policy",
+      message: "Explain a policy in simple language",
+      icon: "description",
+    },
+    {
+      label: "Explain a scheme",
+      message: "Explain a government scheme in simple language",
+      icon: "menu_book",
+    },
+    {
+      label: "Compare schemes",
+      message: "Compare two schemes",
+      icon: "compare_arrows",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
   GOVERNMENT_OFFICIAL: [
-    { label: "Search policies", message: "Search government policies", icon: "search" },
-    { label: "Search schemes", message: "Search government schemes", icon: "search" },
-    { label: "Explain policy", message: "Explain a policy", icon: "description" },
-    { label: "Compare schemes", message: "Compare two schemes", icon: "compare_arrows" },
-    { label: "Department information", message: "Show department information", icon: "domain" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Search policies",
+      message: "Search government policies",
+      icon: "search",
+    },
+    {
+      label: "Search schemes",
+      message: "Search government schemes",
+      icon: "search",
+    },
+    {
+      label: "Explain policy",
+      message: "Explain a policy",
+      icon: "description",
+    },
+    {
+      label: "Explain a scheme",
+      message: "Explain a government scheme in simple language",
+      icon: "menu_book",
+    },
+    {
+      label: "Compare schemes",
+      message: "Compare two schemes",
+      icon: "compare_arrows",
+    },
+    {
+      label: "Department information",
+      message: "Show department information",
+      icon: "domain",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
   RESEARCHER: [
     { label: "Search policies", message: "Search policies", icon: "search" },
     { label: "Search schemes", message: "Search schemes", icon: "search" },
-    { label: "Compare policies", message: "Compare two policies", icon: "compare_arrows" },
-    { label: "Compare schemes", message: "Compare two schemes", icon: "compare_arrows" },
-    { label: "Policy analysis", message: "Show policy trends and analysis", icon: "analytics" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Compare policies",
+      message: "Compare two policies",
+      icon: "compare_arrows",
+    },
+    {
+      label: "Compare schemes",
+      message: "Compare two schemes",
+      icon: "compare_arrows",
+    },
+    {
+      label: "Policy analysis",
+      message: "Show policy trends and analysis",
+      icon: "analytics",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
   ORGANIZATION: [
-    { label: "Find relevant schemes", message: "Find schemes relevant for organizations", icon: "search" },
+    {
+      label: "Find relevant schemes",
+      message: "Find schemes relevant for organizations",
+      icon: "search",
+    },
     { label: "Search policies", message: "Search policies", icon: "search" },
-    { label: "Check eligibility", message: "How do I check eligibility?", icon: "fact_check" },
-    { label: "Compare schemes", message: "Compare two schemes", icon: "compare_arrows" },
-    { label: "Application guidance", message: "How do I apply for a scheme?", icon: "assignment" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Check eligibility",
+      message: "How do I check eligibility?",
+      icon: "fact_check",
+    },
+    {
+      label: "Compare schemes",
+      message: "Compare two schemes",
+      icon: "compare_arrows",
+    },
+    {
+      label: "Application guidance",
+      message: "How do I apply for a scheme?",
+      icon: "assignment",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
   ADMIN: [
-    { label: "Policy information", message: "Show policy information", icon: "description" },
-    { label: "Scheme information", message: "Show scheme information", icon: "account_balance" },
-    { label: "Analytics information", message: "Show analytics information", icon: "analytics" },
-    { label: "Reports information", message: "Show reports information", icon: "query_stats" },
-    { label: "User management help", message: "Help with user management", icon: "group" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Policy information",
+      message: "Show policy information",
+      icon: "description",
+    },
+    {
+      label: "Scheme information",
+      message: "Show scheme information",
+      icon: "account_balance",
+    },
+    {
+      label: "Analytics information",
+      message: "Show analytics information",
+      icon: "analytics",
+    },
+    {
+      label: "Reports information",
+      message: "Show reports information",
+      icon: "query_stats",
+    },
+    {
+      label: "User management help",
+      message: "Help with user management",
+      icon: "group",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
   GUEST: [
-    { label: "Search public policies", message: "Search public policies", icon: "search" },
-    { label: "Search public schemes", message: "Search public schemes", icon: "search" },
-    { label: "Explain public information", message: "Explain a government scheme in simple language", icon: "description" },
-    { label: "General FAQ", message: "Show frequently asked questions", icon: "quiz" },
-    { label: "Help & Support", message: "I need help and support", icon: "support_agent" },
+    {
+      label: "Search public policies",
+      message: "Search public policies",
+      icon: "search",
+    },
+    {
+      label: "Search public schemes",
+      message: "Search public schemes",
+      icon: "search",
+    },
+    {
+      label: "Explain public information",
+      message: "Explain a government scheme in simple language",
+      icon: "description",
+    },
+    {
+      label: "General FAQ",
+      message: "Show frequently asked questions",
+      icon: "quiz",
+    },
+    {
+      label: "Help & Support",
+      message: "I need help and support",
+      icon: "support_agent",
+    },
   ],
 };
 
@@ -87,7 +229,7 @@ const QUICK_ACTION_DESCRIPTIONS: Record<string, string> = {
   "Check my eligibility": "Check who qualifies",
   "Explain a policy": "Simple explanations",
   "Compare schemes": "Side-by-side compare",
-  "Show notifications": "Your latest updates",
+  "Explain a scheme": "Simple scheme explanations",
   "Help & Support": "FAQs and help",
   "Search policies": "Browse policies",
   "Search schemes": "Browse schemes",
@@ -117,7 +259,7 @@ export interface ConversationGroup {
 @Component({
   selector: "app-chatbot",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, LoadingIndicatorComponent],
   templateUrl: "./chatbot.component.html",
   styleUrl: "./chatbot.component.scss",
 })
@@ -127,6 +269,11 @@ export class ChatbotComponent {
   private readonly permissions = inject(PermissionService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  // The app runs zoneless: plain-field writes inside async subscriptions do
+  // NOT schedule change detection (replies appeared only after the next
+  // click). markForCheck() after each completed request renders the new
+  // messages, typing state, and guest-limit card immediately.
+  private readonly cdr = inject(ChangeDetectorRef);
 
   @ViewChild("messageList") private messageList?: ElementRef<HTMLElement>;
   @ViewChild("composer") private composer?: ElementRef<HTMLTextAreaElement>;
@@ -149,7 +296,8 @@ export class ChatbotComponent {
   showDeleteConfirm = false;
   deletingHistory = false;
   selectedConversation: number | null = null;
-  guestUsage: { message_count: number; guest_remaining: number | null } | null = null;
+  guestUsage: { message_count: number; guest_remaining: number | null } | null =
+    null;
 
   // Conversation state: the active view (`messages`) renders exactly one
   // conversation; every conversation keeps its own cached turns so
@@ -234,7 +382,10 @@ export class ChatbotComponent {
   }
 
   get displayName(): string {
-    const stored = this.auth.getStoredUser() as unknown as Record<string, unknown> | null;
+    const stored = this.auth.getStoredUser() as unknown as Record<
+      string,
+      unknown
+    > | null;
     const fullName =
       typeof stored?.["full_name"] === "string"
         ? (stored["full_name"] as string).trim()
@@ -280,8 +431,7 @@ export class ChatbotComponent {
 
   get greeting(): string {
     const body =
-      ROLE_GREETING_BODY[this.userRole] ||
-      "How can I help you today?";
+      ROLE_GREETING_BODY[this.userRole] || "How can I help you today?";
     const name = this.displayName;
     if (name) {
       return `Hello, ${name}! \u{1F44B}\n\n${body}\n\nHow can I help you today?`;
@@ -434,12 +584,15 @@ export class ChatbotComponent {
     this.conversationId = conversationId;
     this.selectedConversation = conversationId;
     this.pendingNewChat = false;
-    this.messagesByConversation.set(conversationId, []);
-    this.loadedConversations.add(conversationId);
-    // Reset the view to a clean welcome; the first user message follows
-    // through the normal send path and is cached with its reply.
+    // Reset the view to a clean welcome, then seed the new conversation's
+    // cache with it: the welcome is already rendered, so dropping it from
+    // the cache would make the next append wipe it while typing. The first
+    // user message follows through the normal send path and is cached
+    // with its reply.
     this.messages = [];
     this.pushAssistant(this.greeting);
+    this.messagesByConversation.set(conversationId, [...this.messages]);
+    this.loadedConversations.add(conversationId);
     const now = new Date().toISOString();
     this.conversations = [
       {
@@ -451,9 +604,7 @@ export class ChatbotComponent {
         created_at: now,
         updated_at: now,
       },
-      ...this.conversations.filter(
-        (c) => c.conversation_id !== conversationId,
-      ),
+      ...this.conversations.filter((c) => c.conversation_id !== conversationId),
     ];
   }
 
@@ -462,7 +613,9 @@ export class ChatbotComponent {
     if (this.conversationId === null) {
       return;
     }
-    this.messages = [...(this.messagesByConversation.get(this.conversationId) ?? [])];
+    this.messages = [
+      ...(this.messagesByConversation.get(this.conversationId) ?? []),
+    ];
   }
 
   /** Append a turn to its originating conversation's cache (and the view
@@ -480,8 +633,7 @@ export class ChatbotComponent {
   private syncSendFlags(): void {
     const active = this.conversationId;
     this.sending =
-      this.creatingNew ||
-      (active !== null && this.sendingFor.has(active));
+      this.creatingNew || (active !== null && this.sendingFor.has(active));
     this.loading = this.sending;
   }
 
@@ -519,23 +671,26 @@ export class ChatbotComponent {
       return;
     }
     this.deletingHistory = true;
-    this.chatbot.clearHistory().subscribe({
-      next: () => {
-        this.deletingHistory = false;
-        this.showDeleteConfirm = false;
-        this.isHistoryOpen = false;
-        this.conversations = [];
-        this.messagesByConversation.clear();
-        this.loadedConversations.clear();
-        this.pendingDeleteId = null;
-        this.startNewChat();
-      },
-      error: () => {
-        this.deletingHistory = false;
-        this.showDeleteConfirm = false;
-        this.toast.error("Error", "Could not clear the conversation.");
-      },
-    });
+    this.chatbot
+      .clearHistory()
+      .pipe(finalize(() => this.cdr.markForCheck()))
+      .subscribe({
+        next: () => {
+          this.deletingHistory = false;
+          this.showDeleteConfirm = false;
+          this.isHistoryOpen = false;
+          this.conversations = [];
+          this.messagesByConversation.clear();
+          this.loadedConversations.clear();
+          this.pendingDeleteId = null;
+          this.startNewChat();
+        },
+        error: () => {
+          this.deletingHistory = false;
+          this.showDeleteConfirm = false;
+          this.toast.error("Error", "Could not clear the conversation.");
+        },
+      });
   }
 
   // =========================================================
@@ -569,30 +724,46 @@ export class ChatbotComponent {
         return;
       }
       this.creatingNew = true;
+      // Optimistic render: show the user's message and clear the composer
+      // immediately, before the create-conversation round trip, so the
+      // sent message never waits on the network. adoptConversation() below
+      // resets the view to a clean greeting and sendToConversation()
+      // re-seeds this same text into the minted conversation, so the
+      // message is rendered exactly once and never duplicated.
+      this.draft = "";
+      this.messages = [
+        ...this.messages,
+        { id: ++this.messageSeq, sender: "user" as const, text },
+      ];
       this.syncSendFlags();
+      this.stickToBottom = true;
+      this.scrollToBottom(true);
       const epoch = this.chatEpoch;
-      this.chatbot.createConversation().subscribe({
-        next: (created) => {
-          this.creatingNew = false;
-          if (epoch !== this.chatEpoch) {
-            // The user moved on while creating; drop the abandoned empty
-            // conversation quietly and keep the fresh view untouched.
+      this.chatbot
+        .createConversation()
+        .pipe(finalize(() => this.cdr.markForCheck()))
+        .subscribe({
+          next: (created) => {
+            this.creatingNew = false;
+            if (epoch !== this.chatEpoch) {
+              // The user moved on while creating; drop the abandoned empty
+              // conversation quietly and keep the fresh view untouched.
+              this.syncSendFlags();
+              this.chatbot
+                .deleteConversation(created.conversation_id)
+                .subscribe({ error: () => undefined });
+              return;
+            }
+            this.adoptConversation(created.conversation_id);
+            this.sendToConversation(created.conversation_id, text, epoch);
+          },
+          error: (error) => {
+            this.creatingNew = false;
             this.syncSendFlags();
-            this.chatbot
-              .deleteConversation(created.conversation_id)
-              .subscribe({ error: () => undefined });
-            return;
-          }
-          this.adoptConversation(created.conversation_id);
-          this.sendToConversation(created.conversation_id, text, epoch);
-        },
-        error: (error) => {
-          this.creatingNew = false;
-          this.syncSendFlags();
-          this.handleSendError(error);
-          this.scrollToBottom(true);
-        },
-      });
+            this.handleSendError(error);
+            this.scrollToBottom(true);
+          },
+        });
       return;
     }
     // Duplicate-submission guard, scoped per conversation so other chats
@@ -622,11 +793,12 @@ export class ChatbotComponent {
         conversation_id: convId,
         context: { page: this.router.url },
       })
+      .pipe(finalize(() => this.cdr.markForCheck()))
       .subscribe({
         next: (response) => {
           console.debug(
             `[chatbot] client-observed response time: ${Math.round(performance.now() - sentAt)} ms ` +
-            `(conversation ${response.conversation_id})`,
+              `(conversation ${response.conversation_id})`,
           );
           this.sendingFor.delete(convId);
           this.serviceOnline = true;
@@ -767,18 +939,21 @@ export class ChatbotComponent {
     }
     this.historyLoading = true;
     this.historyError = null;
-    this.chatbot.listConversations().subscribe({
-      next: (res) => {
-        this.historyLoading = false;
-        this.serviceOnline = true;
-        this.conversations = res.conversations || [];
-      },
-      error: () => {
-        this.historyLoading = false;
-        this.historyError =
-          "Couldn't load your conversations. Please try again.";
-      },
-    });
+    this.chatbot
+      .listConversations()
+      .pipe(finalize(() => this.cdr.markForCheck()))
+      .subscribe({
+        next: (res) => {
+          this.historyLoading = false;
+          this.serviceOnline = true;
+          this.conversations = res.conversations || [];
+        },
+        error: () => {
+          this.historyLoading = false;
+          this.historyError =
+            "Couldn't load your conversations. Please try again.";
+        },
+      });
   }
 
   /**
@@ -818,40 +993,49 @@ export class ChatbotComponent {
     this.messages = [];
     this.isHistoryOpen = false;
     this.stickToBottom = true;
-    this.chatbot.getHistory(conversationId).subscribe({
-      next: (history) => {
-        if (token !== this.loadToken || this.conversationId !== conversationId) {
-          return;
-        }
-        const mapped = (history.messages || []).map((m) =>
-          this.mapHistoryMessage(m),
-        );
-        this.messagesByConversation.set(conversationId, mapped);
-        this.loadedConversations.add(conversationId);
-        this.loadingConversation = false;
-        this.serviceOnline = true;
-        this.renderActive();
-        this.touchConversationEntry(conversationId);
-        this.syncSendFlags();
-        this.scrollToBottom(true);
-      },
-      error: (error) => {
-        if (token !== this.loadToken || this.conversationId !== conversationId) {
-          return;
-        }
-        this.loadingConversation = false;
-        const status = (error as { status?: number })?.status ?? 0;
-        if (status === 0 || status >= 500) {
-          this.serviceOnline = false;
-        }
-        this.conversationError =
-          status === 404
-            ? "This conversation is no longer available."
-            : status === 401 || status === 403
-              ? "Please sign in to continue using PolicyGPT Assistant."
-              : "Couldn't load this conversation. Please try again.";
-      },
-    });
+    this.chatbot
+      .getHistory(conversationId)
+      .pipe(finalize(() => this.cdr.markForCheck()))
+      .subscribe({
+        next: (history) => {
+          if (
+            token !== this.loadToken ||
+            this.conversationId !== conversationId
+          ) {
+            return;
+          }
+          const mapped = (history.messages || []).map((m) =>
+            this.mapHistoryMessage(m),
+          );
+          this.messagesByConversation.set(conversationId, mapped);
+          this.loadedConversations.add(conversationId);
+          this.loadingConversation = false;
+          this.serviceOnline = true;
+          this.renderActive();
+          this.touchConversationEntry(conversationId);
+          this.syncSendFlags();
+          this.scrollToBottom(true);
+        },
+        error: (error) => {
+          if (
+            token !== this.loadToken ||
+            this.conversationId !== conversationId
+          ) {
+            return;
+          }
+          this.loadingConversation = false;
+          const status = (error as { status?: number })?.status ?? 0;
+          if (status === 0 || status >= 500) {
+            this.serviceOnline = false;
+          }
+          this.conversationError =
+            status === 404
+              ? "This conversation is no longer available."
+              : status === 401 || status === 403
+                ? "Please sign in to continue using PolicyGPT Assistant."
+                : "Couldn't load this conversation. Please try again.";
+        },
+      });
   }
 
   /** Retry restoring the currently selected conversation. */
@@ -967,7 +1151,10 @@ export class ChatbotComponent {
     return new Date(ts).toLocaleDateString([], {
       day: "numeric",
       month: "short",
-      year: new Date(ts).getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+      year:
+        new Date(ts).getFullYear() === new Date().getFullYear()
+          ? undefined
+          : "numeric",
     });
   }
 
@@ -1006,27 +1193,30 @@ export class ChatbotComponent {
       return;
     }
     this.deletingConversation = true;
-    this.chatbot.deleteConversation(conversationId).subscribe({
-      next: () => {
-        this.deletingConversation = false;
-        this.pendingDeleteId = null;
-        this.menuOpenId = null;
-        this.conversations = this.conversations.filter(
-          (c) => c.conversation_id !== conversationId,
-        );
-        this.messagesByConversation.delete(conversationId);
-        this.loadedConversations.delete(conversationId);
-        if (this.conversationId === conversationId) {
-          // The active chat was deleted: move to a clean new chat.
-          this.startNewChat();
-        }
-      },
-      error: () => {
-        this.deletingConversation = false;
-        this.pendingDeleteId = null;
-        this.toast.error("Error", "Could not delete the conversation.");
-      },
-    });
+    this.chatbot
+      .deleteConversation(conversationId)
+      .pipe(finalize(() => this.cdr.markForCheck()))
+      .subscribe({
+        next: () => {
+          this.deletingConversation = false;
+          this.pendingDeleteId = null;
+          this.menuOpenId = null;
+          this.conversations = this.conversations.filter(
+            (c) => c.conversation_id !== conversationId,
+          );
+          this.messagesByConversation.delete(conversationId);
+          this.loadedConversations.delete(conversationId);
+          if (this.conversationId === conversationId) {
+            // The active chat was deleted: move to a clean new chat.
+            this.startNewChat();
+          }
+        },
+        error: () => {
+          this.deletingConversation = false;
+          this.pendingDeleteId = null;
+          this.toast.error("Error", "Could not delete the conversation.");
+        },
+      });
   }
 
   // =========================================================
@@ -1052,8 +1242,7 @@ export class ChatbotComponent {
       lastLi = null;
     };
 
-    const isTableRow = (line: string): boolean =>
-      /^\s*\|.*\|\s*$/.test(line);
+    const isTableRow = (line: string): boolean => /^\s*\|.*\|\s*$/.test(line);
     const isSeparatorRow = (line: string): boolean =>
       /^\s*\|[\s:|-]+\|\s*$/.test(line) && line.includes("-");
 
@@ -1190,7 +1379,10 @@ export class ChatbotComponent {
       }
       kept.push(line);
     }
-    return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    return kept
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   }
 
   /**
@@ -1250,9 +1442,17 @@ export class ChatbotComponent {
     }
     switch ((item.type || "").toLowerCase()) {
       case "policy":
-        return { label: "View Policy Details", type: "VIEW_POLICY", route: item.route };
+        return {
+          label: "View Policy Details",
+          type: "VIEW_POLICY",
+          route: item.route,
+        };
       case "scheme":
-        return { label: "View Scheme Details", type: "VIEW_SCHEME", route: item.route };
+        return {
+          label: "View Scheme Details",
+          type: "VIEW_SCHEME",
+          route: item.route,
+        };
       case "statistic":
         return { label: "View All", type: "NAVIGATE", route: item.route };
       case "user":

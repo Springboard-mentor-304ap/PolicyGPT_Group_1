@@ -53,30 +53,8 @@
 
   @if (loading) {
 
-  <div class="skeleton-list" aria-label="Loading search history">
-
-    @for (i of [1, 2, 3]; track i) {
-
-    <div class="skeleton-card" aria-hidden="true">
-
-      <div class="skeleton skeleton-icon">
-      </div>
-
-      <div class="skeleton-body">
-
-        <div class="skeleton skeleton-title">
-        </div>
-
-        <div class="skeleton skeleton-line">
-        </div>
-
-      </div>
-
-    </div>
-
-    }
-
-  </div>
+  <app-loading-indicator message="Loading search history...">
+  </app-loading-indicator>
 
   }
 

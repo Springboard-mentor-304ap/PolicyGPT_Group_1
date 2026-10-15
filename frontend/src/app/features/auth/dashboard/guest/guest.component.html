@@ -9,7 +9,7 @@
         <div class="guest-welcome__content dash-welcome__text">
 
             <h1 class="dash-welcome__title">
-                Welcome to <span>PolicyGPT</span>
+                Welcome to <span class="dash-welcome__title-policy">Policy</span><span class="dash-welcome__title-gpt">GPT</span>
             </h1>
 
             <p class="dash-welcome__sub">
@@ -79,13 +79,15 @@
 
         <form class="guest-search" (submit)="onSearch(searchInput.value); $event.preventDefault()">
 
-            <span class="material-icons">
-                search
-            </span>
+            <div class="guest-search__field">
+                <span class="material-icons">
+                    search
+                </span>
 
-            <input #searchInput type="search" [value]="searchQuery"
-                placeholder="Search policies, schemes, benefits, education, healthcare..."
-                aria-label="Search policies, schemes, benefits, education, healthcare..." />
+                <input #searchInput type="search" [value]="searchQuery"
+                    placeholder="Search policies, schemes, benefits, education, healthcare..."
+                    aria-label="Search policies, schemes, benefits, education, healthcare..." />
+            </div>
 
             <button type="submit" class="guest-search__button">
                 Search
@@ -104,7 +106,6 @@
 
         <div class="guest-results-header">
             <div class="guest-results-meta">
-                <span class="material-icons">manage_search</span>
                 <div>
                     <h3>Results for "{{ activeSearchTerm }}"</h3>
                     <p>Found {{ totalPolicies }} {{ totalPolicies === 1 ? 'policy' : 'policies' }} and {{ totalSchemes

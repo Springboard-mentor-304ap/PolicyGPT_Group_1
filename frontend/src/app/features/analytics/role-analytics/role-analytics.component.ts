@@ -21,6 +21,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   AnalyticsDonutChartComponent,
   AnalyticsHBarChartComponent,
@@ -118,6 +119,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     CountUpDirective,
+    LoadingIndicatorComponent,
   ],
   templateUrl: "./role-analytics.component.html",
   styleUrl: "./role-analytics.component.scss",

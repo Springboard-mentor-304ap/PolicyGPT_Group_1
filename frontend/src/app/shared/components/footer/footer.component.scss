@@ -24,6 +24,7 @@ $border-accent: rgba(56, 189, 248, 0.2);
 
 .official-portal-footer {
   width: 100%;
+  margin: 0;
   background: $footer-bg;
   color: $text-light;
   font-family:
@@ -35,11 +36,12 @@ $border-accent: rgba(56, 189, 248, 0.2);
     sans-serif;
   box-sizing: border-box;
   border-top: 3px solid $gold-accent;
+  overflow-x: clip;
 }
 
 .footer-container {
   width: 100%;
-  max-width: 1360px;
+  min-width: 0;
   margin: 0 auto;
   padding: 0 32px;
   box-sizing: border-box;
@@ -85,6 +87,8 @@ $border-accent: rgba(56, 189, 248, 0.2);
     }
 
     .emblem-text {
+      min-width: 0;
+
       .emblem-org {
         font-size: 11px;
         font-weight: 700;
@@ -121,10 +125,13 @@ $border-accent: rgba(56, 189, 248, 0.2);
       padding: 11px 20px;
       background: linear-gradient(135deg, $gold-accent 0%, #d97706 100%);
       color: #0f172a;
+      border: none;
       border-radius: 8px;
+      font-family: inherit;
       font-size: 13px;
       font-weight: 700;
       text-decoration: none;
+      cursor: pointer;
       box-shadow: 0 3px 10px rgba(245, 158, 11, 0.25);
       transition: all 0.2s ease;
 
@@ -137,6 +144,71 @@ $border-accent: rgba(56, 189, 248, 0.2);
         box-shadow: 0 5px 14px rgba(245, 158, 11, 0.35);
         filter: brightness(1.05);
       }
+
+      &:focus-visible {
+        outline: 2px solid #ffffff;
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  /* Guest brand lockup: exact topbar logo asset + PolicyGPT wordmark.
+     Row 1 holds the logo beside the name/tagline; the description
+     sits on its own row below, aligned with the logo's left edge. */
+  .footer-brand {
+    max-width: 820px;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 16px;
+    row-gap: 10px;
+    align-items: center;
+  }
+
+  .footer-brand__row {
+    display: contents;
+  }
+
+  .footer-brand__text {
+    min-width: 0;
+  }
+
+  .footer-brand__desc {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: $text-muted;
+    overflow-wrap: break-word;
+  }
+  .footer-brand {
+    .footer-brand__logo {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .footer-brand__name {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1;
+      color: #ffffff;
+      white-space: nowrap;
+
+      span {
+        color: #ff821b;
+      }
+    }
+
+    .footer-brand__tagline {
+      margin: 5px 0 0;
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.72);
+      white-space: nowrap;
     }
   }
 }
@@ -156,6 +228,7 @@ $border-accent: rgba(56, 189, 248, 0.2);
   .footer-col {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 
     .col-title {
       margin: 0 0 16px;
@@ -187,7 +260,8 @@ $border-accent: rgba(56, 189, 248, 0.2);
       flex-direction: column;
       gap: 10px;
 
-      li a {
+      li a,
+      li button.col-link-button {
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -214,18 +288,33 @@ $border-accent: rgba(56, 189, 248, 0.2);
           }
         }
 
-        &.highlight-link {
+        &:focus-visible {
+          outline: 2px solid $blue-hover;
+          outline-offset: 2px;
+        }
+
+        &.highlight-link,
+        &.highlight-link:hover,
+        &.highlight-link:focus,
+        &.highlight-link:active,
+        &.highlight-link:visited {
           color: #fef08a;
           font-weight: 600;
 
           .bullet-icon {
             color: $gold-accent;
           }
-
-          &:hover {
-            color: #ffffff;
-          }
         }
+      }
+
+      /* Button reset so login-gated footer actions match link styling. */
+      li button.col-link-button {
+        border: none;
+        background: transparent;
+        padding: 0;
+        font-family: inherit;
+        cursor: pointer;
+        text-align: left;
       }
     }
 
@@ -331,6 +420,16 @@ $border-accent: rgba(56, 189, 248, 0.2);
         color: #ffffff;
         text-decoration: underline;
       }
+
+      &.bottom-nav--active,
+      &.bottom-nav--active:hover,
+      &.bottom-nav--active:focus,
+      &.bottom-nav--active:active,
+      &.bottom-nav--active:visited {
+        color: #fef08a;
+        font-weight: 600;
+        text-decoration: none;
+      }
     }
 
     .divider {
@@ -343,6 +442,26 @@ $border-accent: rgba(56, 189, 248, 0.2);
 /* =========================================================
    RESPONSIVE ADAPTATIONS
 ========================================================= */
+/* =========================================================
+   DESKTOP FULL-WIDTH GUARD (min-width: 1024px only)
+   Pins the outer footer sections edge to edge so no parent
+   max-width, margin, or grid constraint can inset the navy
+   backgrounds or the orange divider. The inner .footer-container
+   content well stays centered (max-width 1360px) for readability.
+   Plain 100% (never 100vw) avoids scrollbar overflow.
+   ========================================================= */
+@media (min-width: 1024px) {
+  .official-portal-footer,
+  .footer-top-banner,
+  .footer-main-nav,
+  .footer-bottom {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
 @media (max-width: 1024px) {
   .footer-main-nav .footer-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -360,14 +479,46 @@ $border-accent: rgba(56, 189, 248, 0.2);
     align-items: flex-start;
   }
 
+  .footer-top-banner .footer-cta-action {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .footer-brand {
+    column-gap: 12px;
+    row-gap: 8px;
+  }
+
+  .footer-brand .footer-brand__logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  .footer-brand .footer-brand__desc {
+    font-size: 13px;
+  }
+
   .footer-main-nav .footer-grid {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 30px;
+  }
+
+  .footer-main-nav .footer-col {
+    min-width: 0;
+  }
+
+  .footer-main-nav .contact-value {
+    overflow-wrap: anywhere;
   }
 
   .footer-bottom .bottom-flex {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .footer-bottom .bottom-legal {
+    min-width: 0;
+    max-width: 100%;
   }
 }

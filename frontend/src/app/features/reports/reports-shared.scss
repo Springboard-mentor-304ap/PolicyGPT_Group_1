@@ -960,101 +960,15 @@ a.metadata-item {
 }
 
 // ============================================================
-// SKELETON LOADING
 // ============================================================
 
-.skeleton-list {
-  margin: 27px auto 0;
 
-  display: flex;
 
-  flex-direction: column;
 
-  gap: 13px;
-}
 
-.skeleton-card {
-  display: flex;
 
-  align-items: flex-start;
 
-  gap: 17px;
 
-  padding: 21px 20px;
-
-  background: $white;
-
-  border: 1px solid $border;
-
-  border-radius: 12px;
-}
-
-.skeleton {
-  position: relative;
-
-  overflow: hidden;
-
-  background: #e9edf2;
-
-  border-radius: 6px;
-
-  &::after {
-    content: "";
-
-    position: absolute;
-
-    inset: 0;
-
-    transform: translateX(-100%);
-
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.75),
-      transparent
-    );
-
-    animation: skeleton 1.4s infinite;
-  }
-}
-
-.skeleton-icon {
-  width: 48px;
-
-  height: 48px;
-
-  flex-shrink: 0;
-
-  border-radius: 11px;
-}
-
-.skeleton-body {
-  flex: 1;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 10px;
-}
-
-.skeleton-title {
-  width: 48%;
-
-  height: 18px;
-}
-
-.skeleton-line {
-  width: 30%;
-
-  height: 13px;
-}
-
-@keyframes skeleton {
-  100% {
-    transform: translateX(100%);
-  }
-}
 
 // ============================================================
 // EMPTY / ERROR STATES
@@ -2314,17 +2228,7 @@ a.metadata-item {
   overflow: visible;
 }
 
-.report-tab--skeleton {
-  min-width: 140px;
-  justify-content: center;
-  pointer-events: none;
-}
 
-.skeleton-pill {
-  display: inline-block;
-  width: 100px;
-  height: 14px;
-}
 
 .stat-text {
   display: flex;
@@ -2346,9 +2250,6 @@ a.metadata-item {
   font-weight: 500;
 }
 
-.stat-card--skeleton {
-  pointer-events: none;
-}
 
 .report-search-row {
   margin: 16px 0 4px;
@@ -2446,20 +2347,8 @@ a.metadata-item {
   font-size: 18px !important;
 }
 
-.table-skeleton {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
-.skeleton-table-head {
-  height: 40px;
-}
 
-.skeleton-table-row {
-  height: 44px;
-}
 
 .toolbar-actions .btn-secondary .material-icons {
   font-size: 18px;

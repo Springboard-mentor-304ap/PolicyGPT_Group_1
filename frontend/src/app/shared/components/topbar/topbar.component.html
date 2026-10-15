@@ -30,12 +30,16 @@
      CENTER: global search (authenticated roles) or guest nav
      =================================================== -->
 
-    <div class="topbar__center">
+    <div class="topbar__center" [class.topbar__center--search-open]="mobileSearchOpen">
 
       @if (!guest) {
-      <div class="topbar-search">
+      <button type="button" class="topbar__search-toggle" (click)="toggleMobileSearch()"
+        [attr.aria-expanded]="mobileSearchOpen" aria-label="Toggle search">
+        <span class="material-icons" aria-hidden="true">{{ mobileSearchOpen ? 'close' : 'search' }}</span>
+      </button>
+      <div class="topbar-search" [class.topbar-search--mobile-open]="mobileSearchOpen">
         <span class="material-icons topbar-search__icon" aria-hidden="true">search</span>
-        <input type="search" [(ngModel)]="searchText" (ngModelChange)="onGlobalSearchInput()"
+        <input #globalSearchInput type="search" [(ngModel)]="searchText" (ngModelChange)="onGlobalSearchInput()"
           (focus)="onGlobalSearchFocus()" (keydown)="onGlobalSearchKeydown($event)" (keyup.enter)="performSearch()"
           (search)="onGlobalSearchInput()" placeholder="Search policies / schemes"
           aria-label="Search policies and schemes" autocomplete="off" />

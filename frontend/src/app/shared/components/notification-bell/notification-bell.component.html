@@ -64,9 +64,8 @@
     <!-- Items List -->
     <div class="dropdown-list">
       <!-- Loading State -->
-      <div *ngIf="loading()" class="dropdown-loading">
-        <div class="bell-skeleton" *ngFor="let i of [1, 2, 3]"></div>
-      </div>
+      <app-loading-indicator *ngIf="loading()" size="sm" message="Loading notifications...">
+      </app-loading-indicator>
 
       <!-- Error State -->
       <div *ngIf="!loading() && hasError()" class="dropdown-error">

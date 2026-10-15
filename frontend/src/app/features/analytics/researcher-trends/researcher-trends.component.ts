@@ -23,6 +23,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   AnalyticsDonutChartComponent,
   AnalyticsHBarChartComponent,
@@ -61,6 +62,7 @@ import { downloadResearcherTrendsCsv, printAnalyticsPdf } from "../shared/analyt
     AnalyticsDonutChartComponent,
     AnalyticsHBarChartComponent,
     CountUpDirective,
+    LoadingIndicatorComponent,
   ],
   templateUrl: "./researcher-trends.component.html",
   styleUrl: "./researcher-trends.component.scss",

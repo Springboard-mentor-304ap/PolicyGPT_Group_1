@@ -5,6 +5,28 @@
      ========================================================= -->
   <div class="footer-top-banner">
     <div class="footer-container">
+      @if (isGuestUser()) {
+      <div class="footer-brand">
+        <div class="footer-brand__row">
+          <img src="/images/logo.png" alt="PolicyGPT" class="footer-brand__logo" />
+          <div class="footer-brand__text">
+            <div class="footer-brand__name">Policy<span>GPT</span></div>
+            <p class="footer-brand__tagline">Government Information Simplified.</p>
+          </div>
+        </div>
+        <p class="footer-brand__desc">
+          Bridging public welfare policies and government schemes directly to citizens, researchers, and
+          administrators with transparent, AI-driven insights.
+        </p>
+      </div>
+
+      <div class="footer-cta-action">
+        <button type="button" class="btn-footer-feedback" (click)="promptLogin('Feedback')">
+          <span class="material-icons">rate_review</span>
+          <span>Submit Grievance / Feedback</span>
+        </button>
+      </div>
+      } @else {
       <div class="footer-emblem-wrap">
         <div class="emblem-seal" aria-hidden="true">
           <span class="material-icons">account_balance</span>
@@ -25,6 +47,7 @@
           <span>Submit Grievance / Feedback</span>
         </a>
       </div>
+      }
     </div>
   </div>
 
@@ -37,63 +60,139 @@
       <!-- COL 1: EXPLORATION & SERVICES -->
       <div class="footer-col">
         <h3 class="col-title">Portal Services</h3>
+        @if (isGuestUser()) {
         <ul class="col-links">
           <li>
-            <a [routerLink]="getPoliciesRoute()">
+            <a routerLink="/dashboard/guest/policies/search"
+              [class.highlight-link]="isFooterSectionActive('policies')">
               <span class="material-icons bullet-icon">chevron_right</span>
               <span>Search Policies</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="getSchemesRoute()">
+            <a routerLink="/dashboard/guest/schemes"
+              [class.highlight-link]="isFooterSectionActive('schemes')">
               <span class="material-icons bullet-icon">chevron_right</span>
               <span>Search Public Schemes</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="getEligibilityRoute()">
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('eligibility')"
+              (click)="promptLogin('Eligibility Checker')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Eligibility Checker</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('compare')"
+              (click)="promptLogin('Compare')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Compare Policies & Schemes</span>
+            </button>
+          </li>
+        </ul>
+        } @else {
+        <ul class="col-links">
+          <li>
+            <a [routerLink]="getPoliciesRoute()"
+              [class.highlight-link]="isFooterSectionActive('policies')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Policies</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getSchemesRoute()"
+              [class.highlight-link]="isFooterSectionActive('schemes')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Public Schemes</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getEligibilityRoute()"
+              [class.highlight-link]="isFooterSectionActive('eligibility')">
               <span class="material-icons bullet-icon">chevron_right</span>
               <span>Eligibility Checker</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="getCompareRoute()">
+            <a [routerLink]="getCompareRoute()"
+              [class.highlight-link]="isFooterSectionActive('compare')">
               <span class="material-icons bullet-icon">chevron_right</span>
               <span>Compare Policies & Schemes</span>
             </a>
           </li>
         </ul>
+        }
       </div>
 
       <!-- COL 2: CITIZEN GRIEVANCE & SUPPORT -->
       <div class="footer-col">
         <h3 class="col-title">Help & Grievances</h3>
+        @if (isGuestUser()) {
         <ul class="col-links">
           <li>
-            <a [routerLink]="getFeedbackRoute()" class="highlight-link">
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('feedback')"
+              (click)="promptLogin('Feedback')">
               <span class="material-icons bullet-icon">rate_review</span>
-              <span>Feedback & Grievances</span>
-            </a>
+              <span>Submit Grievance / Feedback</span>
+            </button>
           </li>
           <li>
-            <a [routerLink]="getFaqRoute()">
+            <a routerLink="/dashboard/guest/faqs"
+              [class.highlight-link]="isFooterSectionActive('faqs')">
               <span class="material-icons bullet-icon">help_outline</span>
               <span>Frequently Asked Questions</span>
             </a>
           </li>
           <li>
-            <a [routerLink]="getFaqRoute()">
+            <a routerLink="/dashboard/guest/support"
+              [class.highlight-link]="isFooterSectionActive('support')">
+              <span class="material-icons bullet-icon">support_agent</span>
+              <span>Public Help Information</span>
+            </a>
+          </li>
+          <li>
+            <a href="tel:1800117654">
+              <span class="material-icons bullet-icon">call</span>
+              <span>Contact & Support</span>
+            </a>
+          </li>
+        </ul>
+        } @else {
+        <ul class="col-links">
+          <li>
+            <a [routerLink]="getFeedbackRoute()"
+              [class.highlight-link]="isFooterSectionActive('feedback')">
+              <span class="material-icons bullet-icon">rate_review</span>
+              <span>Feedback & Grievances</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getFaqRoute()"
+              [class.highlight-link]="isFooterSectionActive('faqs')">
+              <span class="material-icons bullet-icon">help_outline</span>
+              <span>Frequently Asked Questions</span>
+            </a>
+          </li>
+          <li>
+            <a [routerLink]="getFaqRoute()"
+              [class.highlight-link]="isFooterSectionActive('support')">
               <span class="material-icons bullet-icon">support_agent</span>
               <span>Citizen Support Desk</span>
             </a>
           </li>
           <li>
-            <a routerLink="/terms">
+            <a routerLink="/terms"
+              [class.highlight-link]="isFooterSectionActive('terms')">
               <span class="material-icons bullet-icon">verified_user</span>
               <span>Citizen Charter & Norms</span>
             </a>
           </li>
         </ul>
+        }
       </div>
 
 
@@ -135,23 +234,20 @@
     <div class="footer-container bottom-flex">
       <div class="bottom-legal">
         <p class="copyright-text">
-          &copy; {{ currentYear }} <strong>PolicyGPT</strong> &bull; Platform designed and managed for transparent
-          public administration.
-        </p>
-        <p class="compliance-note">
-          Compliant with Guidelines for Indian Government Websites (GIGW) &bull; Content maintained by National Policy
-          Intelligence Unit.
+          &copy; {{ currentYear }} <strong>PolicyGPT</strong> &bull; Government Policy & Public Scheme Intelligence
+          Platform
         </p>
       </div>
 
       <nav class="bottom-nav" aria-label="Legal and Policy links">
-        <a routerLink="/privacy">Privacy Policy</a>
+        <a routerLink="/privacy"
+          [class.bottom-nav--active]="isFooterSectionActive('privacy')">Privacy Policy</a>
         <span class="divider">&bull;</span>
-        <a routerLink="/terms">Terms of Service</a>
+        <a routerLink="/terms"
+          [class.bottom-nav--active]="isFooterSectionActive('terms')">Terms of Service</a>
         <span class="divider">&bull;</span>
-        <a [routerLink]="getFeedbackRoute()">Feedback</a>
-        <span class="divider">&bull;</span>
-        <a [routerLink]="getFaqRoute()">Help & FAQs</a>
+        <a [routerLink]="getFaqRoute()"
+          [class.bottom-nav--active]="isFooterSectionActive('faqs', 'support')">Help & FAQs</a>
       </nav>
     </div>
   </div>

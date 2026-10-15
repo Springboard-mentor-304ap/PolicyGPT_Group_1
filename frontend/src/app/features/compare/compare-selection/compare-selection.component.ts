@@ -40,6 +40,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   CategoryInput,
   getCategoryIconName,
@@ -73,7 +74,7 @@ export const MAX_COMPARE_ITEMS = 4;
 @Component({
   selector: "app-compare-selection",
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: "./compare-selection.component.html",
   styleUrls: ["./compare-selection.component.scss"],
 })

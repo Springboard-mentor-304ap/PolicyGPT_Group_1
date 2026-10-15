@@ -20,6 +20,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 import {
   CategoryInput,
   getCategoryIconName,
@@ -31,7 +32,7 @@ type SavedTab = "all" | "policies" | "schemes";
 @Component({
   selector: "app-saved-items",
   standalone: true,
-  imports: [CommonModule, BreadcrumbComponent],
+  imports: [CommonModule, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: "./saved-items.component.html",
   styleUrl: "./saved-items.component.scss",
   changeDetection: ChangeDetectionStrategy.OnPush,

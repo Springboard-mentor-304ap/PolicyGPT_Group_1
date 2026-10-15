@@ -75,6 +75,7 @@ export interface SavedItemPreview extends CategoryIconFields {
 }
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import { LoadingIndicatorComponent } from "../../../../shared/components/loading-indicator/loading-indicator.component";
 
 // =====================================================
 // CITIZEN COMPONENT
@@ -83,7 +84,7 @@ import { CountUpDirective } from "../../../../shared/directives/count-up.directi
 @Component({
   selector: "app-citizen",
   standalone: true,
-  imports: [CommonModule, RouterLink, CountUpDirective],
+  imports: [CommonModule, RouterLink, CountUpDirective, LoadingIndicatorComponent],
   templateUrl: "./citizen.component.html",
   styleUrl: "./citizen.component.scss",
 })
@@ -185,7 +186,7 @@ export class CitizenComponent implements OnInit {
       kind: "policy" as const,
       id: p.policy_id,
       name: p.title || "Untitled Policy",
-      ministry: p.ministry || p.department || "Government of India",
+      ministry: p.ministry || p.department || "",
       category: p.category ?? null,
       ...categoryIconFields(p.category),
     }));
@@ -195,7 +196,7 @@ export class CitizenComponent implements OnInit {
       kind: "scheme" as const,
       id: s.scheme_id,
       name: s.name || "Untitled Scheme",
-      ministry: s.ministry || s.department || "Government of India",
+      ministry: s.ministry || s.department || "",
       category: s.category ?? null,
       ...categoryIconFields(s.category),
     }));
@@ -347,7 +348,7 @@ export class CitizenComponent implements OnInit {
         this.eligibleSchemes = schemeList.map((s) => ({
           id: s.scheme_id,
           name: s.name || (s as any).title || "Untitled Scheme",
-          ministry: s.ministry || s.department || "Government of India",
+          ministry: s.ministry || s.department || "",
           category: s.category ?? null,
           ...categoryIconFields(s.category),
         }));
@@ -357,7 +358,7 @@ export class CitizenComponent implements OnInit {
         this.savedPolicies = policyList.map((p) => ({
           id: p.policy_id,
           name: p.title || "Untitled Policy",
-          ministry: p.ministry || p.department || "Government of India",
+          ministry: p.ministry || p.department || "",
           savedOn: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
           category: p.category ?? null,
           ...categoryIconFields(p.category),

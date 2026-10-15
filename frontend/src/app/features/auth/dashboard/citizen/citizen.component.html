@@ -59,7 +59,7 @@
 
         @if (loadingStats) {
 
-        <div class="skeleton skeleton--stat-num"></div>
+        <app-loading-indicator size="sm" message=""></app-loading-indicator>
 
         } @else {
 
@@ -164,9 +164,11 @@
               {{ scheme.name }}
             </p>
 
+            @if (scheme.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ scheme.ministry }}
             </p>
+            }
 
           </div>
 
@@ -260,9 +262,11 @@
               {{ policy.name }}
             </p>
 
+            @if (policy.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ policy.ministry }}
             </p>
+            }
 
             <p class="dash-list__submeta">
               Published on {{ policy.savedOn }}
@@ -460,7 +464,7 @@
             </p>
 
             <p class="dash-list__meta">
-              {{ item.kind === 'policy' ? 'Policy' : 'Scheme' }} · {{ item.ministry }}
+              {{ item.kind === 'policy' ? 'Policy' : 'Scheme' }}@if (item.ministry?.trim()) { · {{ item.ministry }} }
             </p>
 
           </div>

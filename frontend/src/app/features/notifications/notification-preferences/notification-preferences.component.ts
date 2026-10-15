@@ -9,6 +9,7 @@ import { NotificationPreferencesService } from '../../../core/services/notificat
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import {
   NotificationPreferences,
   NotificationFrequency,
@@ -47,7 +48,7 @@ export type ChannelToggleState = 'allOn' | 'allOff' | 'mixed';
 @Component({
   selector: 'app-notification-preferences',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent, LoadingIndicatorComponent],
   templateUrl: './notification-preferences.component.html',
   styleUrls: ['./notification-preferences.component.scss'],
 })
@@ -57,7 +58,7 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   isGuest = false;
 
   // Loading & State
-  // `loading` gates the skeleton and is only true when there is no UI to
+  // `loading` gates the loader and is only true when there is no UI to
   // show yet. `syncing` / `syncError` track the background preference sync
   // and must NEVER hide the already-visible preferences UI.
   loading = true;
@@ -266,7 +267,7 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
   // ============================================================
 
   loadMatrix(): void {
-    // Only show the skeleton when there is genuinely nothing to render yet.
+    // Only show the loader when there is genuinely nothing to render yet.
     // The role-config prepopulation in ngOnInit means the preferences UI is
     // already visible here, so a slow/erroring API must not hide the page.
     this.loading = this.workingGroups.length === 0;

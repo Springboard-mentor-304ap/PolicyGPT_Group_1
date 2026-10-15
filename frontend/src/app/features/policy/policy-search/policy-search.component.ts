@@ -1,5 +1,5 @@
 import { CommonModule, Location } from "@angular/common";
-import { ActivatedRoute, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
@@ -33,6 +33,7 @@ import {
 } from "../../../core/constants/government-data.constants";
 
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -47,7 +48,7 @@ import {
   selector: "app-policy-search",
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent, LoadingIndicatorComponent],
 
   templateUrl: "./policy-search.component.html",
 
@@ -60,6 +61,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
 
   private readonly policyService = inject(PolicyService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly searchHistoryService = inject(SearchHistoryService);
   private readonly toastService = inject(ToastService);
@@ -302,6 +304,25 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.restoreSearchFromQueryParams();
 
     /*
+     * Track browser back/forward and external navigations that change
+     * ?q= while this component is alive (e.g. guest "View All" to the
+     * same listing with a new term). The equality guard keeps the
+     * initial emission (same as snapshot) from triggering a duplicate
+     * API request.
+     */
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const q =
+          typeof params["q"] === "string" ? params["q"].trim() : "";
+        if (q !== (this.searchQuery || "").trim()) {
+          this.searchQuery = q;
+          this.currentPage = 1;
+          this.loadPolicies();
+        }
+      });
+
+    /*
      * CRITICAL:
      *
      * Load policies immediately.
@@ -359,6 +380,36 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /**
+   * Keep ?q= synchronized with the search input (View All passes q in,
+   * refresh/back-forward restore from it). replaceUrl avoids history
+   * spam on debounced keystrokes; merge preserves facet params. Never
+   * blocks search on navigation errors.
+   */
+  private syncSearchToUrl(): void {
+    try {
+      const snapshotParams = this.route.snapshot.queryParams ?? {};
+      const currentQ =
+        typeof snapshotParams["q"] === "string"
+          ? snapshotParams["q"].trim()
+          : "";
+      const nextQ = (this.searchQuery || "").trim();
+      if (currentQ === nextQ) {
+        return;
+      }
+      this.router
+        .navigate([], {
+          relativeTo: this.route,
+          queryParams: { q: nextQ || null },
+          queryParamsHandling: "merge",
+          replaceUrl: true,
+        })
+        .catch(() => undefined);
+    } catch {
+      // URL sync is best-effort only.
+    }
+  }
+
   // ============================================================
   // SEARCH
   // ============================================================
@@ -387,6 +438,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.loadSub?.unsubscribe();
     this.loading = true;
     this.errorMessage = "";
+    this.syncSearchToUrl();
     this.cdr.detectChanges();
 
     const searchValue = this.searchQuery.trim();
@@ -832,6 +884,17 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
       .replace(/_/g, " ")
       .toLowerCase()
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  // ============================================================
+  // FILTER PANEL (collapsed behind a toggle on mobile/tablet)
+  // ============================================================
+
+  /** Mobile/tablet filter panel visibility. Desktop always shows filters. */
+  filtersExpanded = false;
+
+  toggleFilters(): void {
+    this.filtersExpanded = !this.filtersExpanded;
   }
 
   // ============================================================

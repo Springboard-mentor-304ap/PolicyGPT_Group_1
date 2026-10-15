@@ -191,6 +191,9 @@ export class FaqDetailsComponent implements OnInit, OnDestroy {
   }
 
   get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.dashboardPrefix() === "guest") {
+      return [];
+    }
     const prefix = this.dashboardPrefix();
     const trail: BreadcrumbItem[] = [];
     if (prefix) {

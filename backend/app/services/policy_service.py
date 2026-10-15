@@ -219,8 +219,23 @@ def _search_tokens(normalized: str) -> list[str]:
     Agriculture" reduces to ["Ministry", "Agriculture"] instead of
     requiring a stopword to match. Falls back to the whole phrase
     when filtering empties the list.
+
+    Hyphens/underscores split tokens and surrounding punctuation is
+    stripped so "PM-KISAN", "PM KISAN" and "pm kisan." all tokenize to
+    ["pm", "kisan"] (see search_relevance.tokenize_query).
     """
     if not normalized:
+        return []
+    # Reuse the shared tokenizer so SQL pre-filter recall matches the
+    # Python relevance stage (hyphen/punctuation insensitive).
+    try:
+        from app.services.search_relevance import tokenize_query as _shared_tokenize
+    except Exception:
+        _shared_tokenize = None
+    if _shared_tokenize is not None:
+        tokens = _shared_tokenize(normalized)
+        if tokens:
+            return tokens
         return []
     parts = [p for p in normalized.split(" ") if p]
     if len(parts) <= 1:
@@ -2146,9 +2161,17 @@ def search_policies(
     # SEARCH (multi-field free text: title/description/category/
     # ministry/department/state/sector/benefits/eligibility/
     # documents/notes/objectives/process)
+    #
+    # SQL stage is broad recall (substring ilike, hyphen-split tokens).
+    # A Python relevance stage below re-filters short-token queries to
+    # word-prefix matches and ranks title matches above description
+    # matches, so "pm" no longer returns "development" false positives.
     # --------------------------------------------------------
 
-    if search and _normalize_search_text(search):
+    search_norm = _normalize_search_text(search) if search else ""
+    has_search = bool(search_norm)
+
+    if has_search:
         query = _apply_policy_free_text(query, search)
 
     # --------------------------------------------------------
@@ -2191,6 +2214,86 @@ def search_policies(
     # see ALL statuses including ARCHIVED, so the Manage Policies stats and
     # archive restore work. Public roles never reach this branch because the
     # route forces status=APPROVED for them.
+
+    # --------------------------------------------------------
+    # RELEVANCE STAGE (Python, single source for ranking/precision)
+    #
+    # SQL above is recall-oriented. For non-empty queries, re-filter
+    # with word-prefix rules (short tokens like "pm" must start a word,
+    # so "development" no longer matches) and rank title matches above
+    # description/metadata matches. Counts/pages reflect the filtered
+    # ranked set, preserving tabs and pagination.
+    # --------------------------------------------------------
+
+    if has_search:
+        from app.services.search_relevance import (
+            normalize_text_for_match,
+            record_matches,
+            relevance_score,
+            tokenize_query,
+            values_to_text,
+        )
+
+        tokens = tokenize_query(search_norm)
+        if not tokens:
+            total = 0
+            return {
+                "total": 0,
+                "page": page,
+                "limit": limit,
+                "pages": _calculate_pages(total=0, limit=limit),
+                "policies": [],
+            }
+        phrase_norm = normalize_text_for_match(search_norm)
+
+        candidates = query.all()
+        scored: list[tuple[int, object]] = []
+        for policy in candidates:
+            raw_fields = [
+                getattr(policy, "title", None),
+                getattr(policy, "description", None),
+                getattr(policy, "category", None),
+                getattr(policy, "ministry", None),
+                getattr(policy, "department", None),
+                getattr(policy, "state", None),
+                getattr(policy, "sector", None),
+                getattr(policy, "additional_info", None),
+                getattr(policy, "important_notes", None),
+                getattr(policy, "documents_required", None),
+                getattr(policy, "implementation_process", None),
+                values_to_text(getattr(policy, "benefits", None)),
+                values_to_text(getattr(policy, "key_objectives", None)),
+                values_to_text(getattr(policy, "eligibility_rules", None)),
+            ]
+            norm_fields = [normalize_text_for_match(v) for v in raw_fields]
+            if not record_matches(tokens, norm_fields):
+                continue
+            title_norm = norm_fields[0]
+            other_norm = " ".join(f for f in norm_fields[1:] if f)
+            score = relevance_score(tokens, phrase_norm, title_norm, other_norm)
+            scored.append((score, policy))
+
+        # Rank: relevance first, then newest (preserve existing recency
+        # tiebreaker). Deduplication is inherent (one row per record).
+        def _created_at(item: object):
+            created = getattr(item, "created_at", None)
+            return created if created is not None else _now()
+
+        scored.sort(key=lambda entry: (entry[0], _created_at(entry[1])), reverse=True)
+        ranked = [policy for _, policy in scored]
+
+        total = len(ranked)
+        pages = _calculate_pages(total=total, limit=limit)
+        start = max(0, (page - 1) * limit)
+        policies = ranked[start : start + limit]
+
+        return {
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": pages,
+            "policies": policies,
+        }
 
     # --------------------------------------------------------
     # COUNT

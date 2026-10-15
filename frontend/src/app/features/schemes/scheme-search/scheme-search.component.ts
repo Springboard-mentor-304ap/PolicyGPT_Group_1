@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, OnDestroy, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { SchemeService } from '../../../core/services/scheme.service';
@@ -20,6 +20,7 @@ import {
   STATES,
 } from '../../../core/constants/government-data.constants';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import {
   BreadcrumbComponent,
   BreadcrumbItem,
@@ -33,13 +34,14 @@ import {
 @Component({
   selector: 'app-scheme-search',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: './scheme-search.component.html',
   styleUrls: ['./scheme-search.component.scss'],
 })
 export class SchemeSearchComponent implements OnInit, OnDestroy {
   private readonly location = inject(Location);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly schemeService = inject(SchemeService);
   private readonly savedItemsService = inject(SavedItemsService);
   private readonly searchHistoryService = inject(SearchHistoryService);
@@ -240,6 +242,16 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.setupDebouncedSearch();
     this.restoreSearchFromQueryParams();
+    // Track browser back/forward and external navigations that change
+    // ?q= while alive. Equality guard avoids a duplicate initial load.
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+      const q = typeof params['q'] === 'string' ? params['q'].trim() : '';
+      if (q !== (this.searchQuery || '').trim()) {
+        this.searchQuery = q;
+        this.currentPage.set(1);
+        this.loadSchemes();
+      }
+    });
     this.loadBookmarks();
     this.loadSchemes();
   }
@@ -258,6 +270,33 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Keep ?q= synchronized with the search input. replaceUrl avoids
+   * history spam on debounced keystrokes; merge preserves facet params.
+   * Best-effort: never blocks search.
+   */
+  private syncSearchToUrl(): void {
+    try {
+      const snapshotParams = this.route.snapshot.queryParams ?? {};
+      const currentQ =
+        typeof snapshotParams['q'] === 'string' ? snapshotParams['q'].trim() : '';
+      const nextQ = (this.searchQuery || '').trim();
+      if (currentQ === nextQ) {
+        return;
+      }
+      this.router
+        .navigate([], {
+          relativeTo: this.route,
+          queryParams: { q: nextQ || null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        })
+        .catch(() => undefined);
+    } catch {
+      // ignore
+    }
+  }
+
   onSearchChange(): void {
     this.searchSubject.next(this.searchQuery);
   }
@@ -268,6 +307,7 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     this.loadSub?.unsubscribe();
     this.loading.set(true);
     this.errorMessage.set('');
+    this.syncSearchToUrl();
     this.cdr.detectChanges();
 
     const status = this.isAdminOrGov
@@ -399,6 +439,13 @@ export class SchemeSearchComponent implements OnInit, OnDestroy {
     this.currentPage.set(page);
     this.loadSchemes();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /** Mobile/tablet filter panel visibility. Desktop always shows filters. */
+  filtersExpanded = false;
+
+  toggleFilters(): void {
+    this.filtersExpanded = !this.filtersExpanded;
   }
 
   goBack(): void {

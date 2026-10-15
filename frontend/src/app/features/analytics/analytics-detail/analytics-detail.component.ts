@@ -13,6 +13,7 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 
 export type AnalyticsVariant =
   | "overview"
@@ -124,7 +125,7 @@ function prettyLabel(value: unknown): string {
 @Component({
   selector: "app-analytics-detail",
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: "./analytics-detail.component.html",
   styleUrl: "./analytics-detail.component.scss",
 })

@@ -5,6 +5,7 @@ import { RouterLink } from "@angular/router";
 
 import { GovtDepartments } from "../../../core/services/analytics.service";
 import { BreadcrumbComponent } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   AnalyticsDonutChartComponent,
   AnalyticsGroupedBarChartComponent,
@@ -36,6 +37,7 @@ import { SearchableSelectComponent } from "../../../shared/components/searchable
     AnalyticsGroupedBarChartComponent,
     CountUpDirective,
     SearchableSelectComponent,
+    LoadingIndicatorComponent,
   ],
   templateUrl: "./govt-departments.component.html",
   styleUrl: "./government-analytics.scss",

@@ -3,6 +3,8 @@
    Hover reveals · progressive disclosure · 150–220ms motion
    ========================================================= */
 
+@use "../../shared/styles/guest-typography" as guest-type;
+
 $blue: #2457d6;
 $blue-dark: #1d49b8;
 $blue-light: #e9f0fd;
@@ -185,6 +187,12 @@ $ease: 180ms ease;
   gap: 12px;
   margin-top: 16px;
   align-items: stretch;
+}
+
+/* Guests see only two cards (My Requests is hidden), so the grid
+   drops to two equal columns instead of leaving a third empty. */
+.quick-nav--guest {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .quick-card {
@@ -395,41 +403,28 @@ $ease: 180ms ease;
 .faq-filters {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   width: 100%;
   max-width: none;
   min-width: 0;
   box-sizing: border-box;
-  background: $white;
-  border: 1px solid #dce3ed;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  min-height: 52px;
-  padding: 6px 6px 6px 0;
   margin: 14px 0;
-  transition: border-color $ease;
-
-  &:focus-within {
-    border-color: $blue;
-  }
 
   .requests-search {
-    flex: 1;
-    min-width: 0;
-    border: none;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-
-    &:focus-within {
-      border-color: transparent;
-      box-shadow: none;
-    }
+    flex: 1 1 auto;
+    min-width: 170px;
   }
 
   .status-select-wrap {
     flex: 0 0 auto;
+    min-width: 0;
+    width: 190px;
+    max-width: 100%;
+
+    ::ng-deep .searchable-select.is-filter .select-trigger {
+      min-height: 46px;
+    }
   }
 
   .btn-text-action {
@@ -705,49 +700,6 @@ $ease: 180ms ease;
         }
       }
     }
-  }
-}
-
-/* Skeleton rows */
-.faq-rows-skeleton {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid $border-light;
-  padding-top: 4px;
-}
-
-.faq-row-skeleton {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 8px;
-  border-bottom: 1px solid $border-light;
-  animation: shimmerPulse 1.5s infinite ease-in-out;
-
-  .skeleton-num {
-    width: 30px;
-    height: 14px;
-    background: #e2e8f0;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-
-  .skeleton-line {
-    height: 14px;
-    width: 62%;
-    background: #e2e8f0;
-    border-radius: 4px;
-  }
-}
-
-@keyframes shimmerPulse {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-
-  50% {
-    opacity: 0.85;
   }
 }
 
@@ -1403,37 +1355,6 @@ $ease: 180ms ease;
   }
 }
 
-.req-list-skeleton {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid $border-light;
-  padding-top: 4px;
-
-  .req-row-skeleton {
-    padding: 14px 8px;
-    border-bottom: 1px solid $border-light;
-    animation: shimmerPulse 1.5s infinite ease-in-out;
-
-    .skeleton-line {
-      background: #e2e8f0;
-      border-radius: 4px;
-    }
-
-    .skeleton-title {
-      display: block;
-      height: 15px;
-      width: 55%;
-      margin-bottom: 8px;
-    }
-
-    .skeleton-sub {
-      display: block;
-      height: 12px;
-      width: 80%;
-    }
-  }
-}
-
 /* ============ STATE BOXES ============ */
 .support-state-box {
   background: $white;
@@ -1982,6 +1903,80 @@ $ease: 180ms ease;
   font-weight: 600;
 }
 
+/* ============ GUEST TYPOGRAPHY ALIGNMENT ============
+   Guest-only whole-number scale matching the Guest Homepage and
+   Policy/Scheme Search pages (see shared/styles/_guest-typography
+   for the audited token scale). Scoped to .support-page--guest
+   so authenticated roles keep their existing styles. No layout
+   or color changes. */
+.support-page--guest {
+  .support-header h1 {
+    margin: 0;
+    font-size: guest-type.$guest-page-title-size;
+    font-weight: guest-type.$guest-page-title-weight;
+    line-height: guest-type.$guest-page-title-lh;
+    letter-spacing: guest-type.$guest-page-title-spacing;
+  }
+
+  .faq-head h2 {
+    margin: 0;
+    font-size: guest-type.$guest-results-title-size;
+    font-weight: guest-type.$guest-results-title-weight;
+    line-height: guest-type.$guest-results-title-lh;
+    letter-spacing: guest-type.$guest-results-title-spacing;
+  }
+
+  .support-header p {
+    margin: 3px 0 0;
+    font-size: guest-type.$guest-body-size;
+  }
+
+  .secnav-item {
+    font-size: guest-type.$guest-body-size;
+  }
+
+  .quick-body small,
+  .rail-action-text small {
+    font-size: guest-type.$guest-secondary-size;
+  }
+
+  .faq-subtitle,
+  .results-count {
+    font-size: guest-type.$guest-secondary-size;
+  }
+
+  .faq-q,
+  .faq-answer-text,
+  .faq-preview-answer {
+    font-size: guest-type.$guest-body-size;
+  }
+
+  .meta-link,
+  .btn-text-action {
+    font-size: guest-type.$guest-body-size;
+  }
+
+  .status-select {
+    font-size: guest-type.$guest-body-size;
+  }
+
+  .slim-cta-text {
+    strong {
+      font-size: guest-type.$guest-body-size;
+    }
+
+    span {
+      font-size: guest-type.$guest-secondary-size;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .support-header h1 {
+      font-size: guest-type.$guest-page-title-mobile-size;
+    }
+  }
+}
+
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1024px) {
   .quick-nav {
@@ -1999,7 +1994,7 @@ $ease: 180ms ease;
 
 @media (max-width: 768px) {
   .support-page {
-    padding: 16px 14px 28px;
+    padding: 20px 24px 32px;
   }
 
   .support-secnav {
@@ -2021,6 +2016,68 @@ $ease: 180ms ease;
     grid-template-columns: 1fr;
   }
 
+  .faq-filters .status-select-wrap {
+    flex: 1 1 100%;
+    width: auto;
+  }
+
+  /* Guest Help & Support (mobile only): FAQs + Report an Issue side by side
+     in a single two-column row. Authenticated layout keeps single column. */
+  .quick-nav--guest {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-items: stretch;
+  }
+
+  .quick-nav--guest .quick-card {
+    min-width: 0;
+    max-width: 100%;
+    padding: 8px 10px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .quick-nav--guest .quick-card .quick-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    font-size: 18px;
+    line-height: 18px;
+  }
+
+  .quick-nav--guest .quick-card .quick-body {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .quick-nav--guest .quick-card .quick-body strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: break-word;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .quick-nav--guest .quick-card .quick-body small {
+    white-space: normal;
+    overflow-wrap: break-word;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .quick-nav--guest .quick-card .quick-arrow {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    font-size: 15px;
+    line-height: 15px;
+  }
+
   .ticket-modal-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2029,6 +2086,9 @@ $ease: 180ms ease;
     font-size: 19px;
   }
 
+  .quick-card {
+    min-height: 56px;
+  }
   /* No-hover devices: keep descriptions reachable */
   .quick-card .quick-body small {
     visibility: visible;
@@ -2068,6 +2128,133 @@ $ease: 180ms ease;
 
   .req-chevron {
     display: none;
+  }
+}
+
+/* Guest Help & Support (mobile only): hide left-side icons on the
+   FAQs + Report an Issue cards so text reclaims the space and aligns
+   neatly. Titles, descriptions, and right-arrow icons are untouched.
+   Card dimensions, borders, colors, typography, and hover effects are
+   preserved. Scoped to guest nav only — tablet/laptop/desktop and
+   authenticated views keep their icons. */
+@media (max-width: 767px) {
+  /* Guest Help & Support spacing (mobile only): remove excessive vertical
+     space above/below the FAQs + Report an Issue cards. Parent padding is
+     equal on all four sides (~16px). Only vertical margins/padding
+     are touched; widths, heights, typography, borders, and arrows stay. */
+  .support-page--guest {
+    padding: 16px;
+  }
+
+  .support-page--guest .support-header {
+    margin-bottom: 0;
+  }
+
+  .support-page--guest .quick-nav--guest {
+    margin-top: 16px;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .support-page--guest .support-content {
+    margin-top: 16px;
+  }
+
+  .support-page--guest .quick-nav--guest .quick-card {
+    gap: 8px;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .support-page--guest .quick-nav--guest .quick-card .quick-icon {
+    display: none;
+  }
+
+  .support-page--guest .quick-nav--guest .quick-card .quick-body {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /* FAQ accordion item (mobile only): reduce the horizontal gap between
+     the question number (e.g. 01) and the question text so the visual
+     gap is ~12px. Number styling, question font size, card padding,
+     right-arrow position, borders, and card dimensions are untouched. */
+  .faq-row-btn {
+    gap: 12px;
+    column-gap: 12px;
+    align-items: center;
+  }
+
+  .faq-row-btn .faq-num {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .faq-row-btn .faq-q {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /* FAQ search + All Categories in a single horizontal row (mobile only).
+     Search on the left stretches; category dropdown stays compact on the
+     right. No wrapping, no horizontal overflow. */
+  .faq-filters {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .faq-filters .requests-search {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .faq-filters .requests-search .search-input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 46px;
+    min-height: 46px;
+    box-sizing: border-box;
+  }
+
+  .faq-filters .status-select-wrap {
+    flex: 0 0 138px;
+    width: 138px;
+    min-width: 0;
+    max-width: 138px;
+    box-sizing: border-box;
+  }
+
+  .faq-filters
+    .status-select-wrap
+    ::ng-deep
+    .searchable-select.is-filter
+    .select-trigger {
+    min-height: 46px;
+    height: 46px;
+    padding: 0 8px 0 10px;
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+
+  .faq-filters
+    .status-select-wrap
+    ::ng-deep
+    .searchable-select.is-filter
+    .selected-text {
+    font-size: 12px;
   }
 }
 

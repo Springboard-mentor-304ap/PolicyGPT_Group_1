@@ -137,9 +137,11 @@
               {{ scheme.title }}
             </p>
 
+            @if (scheme.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ scheme.ministry }}
             </p>
+            }
 
           </div>
 
@@ -223,9 +225,11 @@
               {{ policy.title }}
             </p>
 
+            @if (policy.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ policy.ministry }}
             </p>
+            }
 
           </div>
 

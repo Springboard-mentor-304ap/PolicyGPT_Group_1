@@ -232,11 +232,25 @@ export class GuestComponent implements OnInit, OnDestroy {
   // =========================================================
 
   goToPolicies(): void {
-    this.router.navigate(["/dashboard/guest/policies/search"]);
+    const q = (this.activeSearchTerm || this.searchQuery || "").trim();
+    if (q) {
+      this.router.navigate(["/dashboard/guest/policies/search"], {
+        queryParams: { q },
+      });
+    } else {
+      this.router.navigate(["/dashboard/guest/policies/search"]);
+    }
   }
 
   goToSchemes(): void {
-    this.router.navigate(["/dashboard/guest/schemes"]);
+    const q = (this.activeSearchTerm || this.searchQuery || "").trim();
+    if (q) {
+      this.router.navigate(["/dashboard/guest/schemes"], {
+        queryParams: { q },
+      });
+    } else {
+      this.router.navigate(["/dashboard/guest/schemes"]);
+    }
   }
 
   goToLogin(): void {

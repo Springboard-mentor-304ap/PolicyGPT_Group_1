@@ -227,7 +227,7 @@ export class AdminComponent implements OnInit {
         this.schemes = rawSchemes.map((s) => ({
           id: s.scheme_id,
           title: s.name || (s as any).title || "Untitled Scheme",
-          ministry: s.ministry || s.department || "Government of India",
+          ministry: s.ministry || s.department || "",
           icon: this.getSchemeIcon(s.category),
           iconClass: this.getSchemeIconClass(s.category),
           category: s.category ?? null,
@@ -258,7 +258,7 @@ export class AdminComponent implements OnInit {
         this.policies = rawPolicies.map((p) => ({
           id: p.policy_id,
           title: p.title || "Untitled Policy",
-          ministry: p.ministry || p.department || "Government of India",
+          ministry: p.ministry || p.department || "",
           category: p.category ?? null,
           ...categoryIconFields(p.category),
         }));

@@ -94,13 +94,11 @@ a {
 
   border: 0;
 
-  background: rgba(2, 22, 51, 0.52);
-
-  backdrop-filter: blur(2px);
+  background: rgba(3, 14, 33, 0.45);
 
   cursor: pointer;
 
-  z-index: 1150;
+  z-index: 1100;
 }
 
 // =========================================================
@@ -131,11 +129,34 @@ a {
   background-size: cover, cover;
   background-repeat: no-repeat, no-repeat;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
-  z-index: 1100;
+  z-index: 1200;
   overflow: hidden;
+  filter: none;
+  backdrop-filter: none;
   transition:
     width 0.25s ease,
     transform 0.25s ease;
+}
+
+// Dark navy veil above the flag artwork so menu text and icons
+// stay crisp and readable. Sidebar content sits above this layer.
+.dash-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(3, 20, 45, 0.55) 0%,
+    rgba(3, 20, 45, 0.45) 55%,
+    rgba(3, 25, 60, 0.55) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dash-sidebar > * {
+  position: relative;
+  z-index: 2;
 }
 
 // =========================================================
@@ -266,11 +287,22 @@ a {
 .dash-nav__item--active {
   color: $white !important;
 
-  background: #19539a;
+  background: #20589a;
 
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
 
-  box-shadow: inset 3px 0 0 #4b91ff;
+  font-weight: 600;
+
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__item--active .dash-nav__icon,
+.dash-nav__item--active .material-icons {
+  color: $white;
 }
 
 .dash-nav__icon {
@@ -384,8 +416,18 @@ a {
 
 .dash-nav__submenu-item--active {
   color: $white !important;
-  background: rgba(75, 145, 255, 0.22);
-  border-color: rgba(75, 145, 255, 0.18);
+  background: #20589a;
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
+  font-weight: 600;
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__submenu-item--active .material-icons {
+  color: $white;
 }
 
 .dash-nav__submenu-item:focus-visible {

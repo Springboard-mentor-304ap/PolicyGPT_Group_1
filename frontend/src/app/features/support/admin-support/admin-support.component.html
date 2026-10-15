@@ -157,10 +157,9 @@
       ========================================================= -->
   <main class="content-section">
 
-    <!-- LOADING SKELETON -->
-    <div *ngIf="loading()" class="skeleton-table">
-      <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
-    </div>
+    <!-- LOADING INDICATOR -->
+    <app-loading-indicator *ngIf="loading()" message="Loading support requests...">
+    </app-loading-indicator>
 
     <!-- ERROR STATE -->
     <div *ngIf="!loading() && error()" class="error-card">

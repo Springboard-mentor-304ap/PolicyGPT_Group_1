@@ -34,23 +34,8 @@
   </header>
 
   @if (loading) {
-  <div class="stats-grid" aria-label="Loading analytics">
-    @for (i of (role === "citizen" ? [1, 2, 3, 4] : [1, 2, 3, 4, 5, 6]); track i) {
-    <div class="stat-card stat-card--skeleton" aria-hidden="true">
-      <span class="skeleton skeleton-icon"></span>
-      <span class="skeleton-body">
-        <span class="skeleton skeleton-title"></span>
-        <span class="skeleton skeleton-line"></span>
-      </span>
-    </div>
-    }
-  </div>
-  <div class="table-skeleton" aria-hidden="true">
-    <div class="skeleton skeleton-table-head"></div>
-    @for (i of [1, 2, 3]; track i) {
-    <div class="skeleton skeleton-table-row"></div>
-    }
-  </div>
+    <app-loading-indicator message="Loading analytics...">
+  </app-loading-indicator>
   } @else if (error) {
   <section class="state-card error-state">
     <div class="state-icon">

@@ -45,11 +45,11 @@ describe("RoleAnalyticsComponent (citizen)", () => {
     fixture.detectChanges();
   }
 
-  it("renders the layout immediately with skeleton loaders", () => {
+  it("renders the layout immediately with a loading indicator", () => {
     fixture.detectChanges();
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelector(".role-analytics-page")).toBeTruthy();
-    expect(el.querySelector(".stat-card--skeleton")).toBeTruthy();
+    expect(el.querySelector("app-loading-indicator")).toBeTruthy();
     httpMock.expectOne(`${baseUrl}/citizen/overview?range=30d`).flush(CITIZEN_OVERVIEW_FIXTURE);
   });
 

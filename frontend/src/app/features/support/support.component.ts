@@ -19,9 +19,11 @@ import { timeout } from 'rxjs/operators';
 import { SupportService } from '../../core/services/support.service';
 import { Auth, AuthUser } from '../../core/services/auth';
 import { ToastService } from '../../core/services/toast.service';
+import { LoginPromptService } from '../../core/services/login-prompt.service';
 import { BodyScrollLockService } from '../../core/services/body-scroll-lock.service';
 import { SearchableSelectComponent } from '../../shared/components/searchable-select/searchable-select.component';
 import { TicketConversationComponent } from '../../shared/components/ticket-conversation/ticket-conversation.component';
+import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
 import {
   FAQ,
   SupportRequest,
@@ -36,7 +38,7 @@ const TicketDetailsTimeoutMs = 10_000;
 @Component({
   selector: 'app-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   templateUrl: './support.component.html',
   styleUrls: ['./support.component.scss'],
 })
@@ -169,6 +171,7 @@ export class SupportComponent implements OnInit, OnDestroy {
     private readonly router: Router,
     private readonly cdr: ChangeDetectorRef,
     private readonly scrollLock: BodyScrollLockService,
+    private readonly loginPrompt: LoginPromptService,
   ) {}
 
   ngOnInit(): void {
@@ -423,9 +426,9 @@ export class SupportComponent implements OnInit, OnDestroy {
 
   openSubmitModal(): void {
     if (this.isGuest) {
-      this.router.navigate(['/auth/login'], {
-        queryParams: { returnUrl: this.router.url },
-      });
+      // Guests use the same Login/Signup modal as Compare Schemes:
+      // keep the page visible, submit nothing, call no protected API.
+      this.loginPrompt.requestLogin('Report an Issue');
       return;
     }
     this.showSubmitModal = true;

@@ -8,6 +8,7 @@ import { RouterLink } from "@angular/router";
 
 import { GovtPolicyAnalytics } from "../../../core/services/analytics.service";
 import { BreadcrumbComponent } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import { DateRangePickerComponent } from "../shared/date-range-picker/date-range-picker.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import {
@@ -42,6 +43,7 @@ import { CountUpDirective } from "../../../shared/directives/count-up.directive"
     AnalyticsHBarChartComponent,
     CountUpDirective,
     SearchableSelectComponent,
+    LoadingIndicatorComponent,
   ],
   templateUrl: "./govt-policy-analytics.component.html",
   styleUrl: "./government-analytics.scss",

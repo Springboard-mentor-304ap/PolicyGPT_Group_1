@@ -43,7 +43,7 @@ $danger-soft: #fee2e2;
   }
 
   @media (max-width: 640px) {
-    padding: 16px 14px 28px;
+    padding: 20px 24px 32px;
   }
 }
 
@@ -229,9 +229,6 @@ $danger-soft: #fee2e2;
   font-weight: 500;
 }
 
-.stat-card--skeleton {
-  pointer-events: none;
-}
 
 /* ============================================================
    DATA CARDS + TABLES
@@ -365,74 +362,14 @@ $danger-soft: #fee2e2;
 }
 
 /* ============================================================
-   SKELETON / STATES
-   ============================================================ */
 
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: #e9edf2;
-  border-radius: 6px;
 
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.75),
-      transparent
-    );
-    animation: analytics-shimmer 1.4s infinite;
-  }
-}
 
-.skeleton-icon {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  border-radius: 12px;
-}
 
-.skeleton-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
-.skeleton-title {
-  width: 48%;
-  height: 18px;
-}
 
-.skeleton-line {
-  width: 30%;
-  height: 13px;
-}
 
-.table-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-}
 
-.skeleton-table-head {
-  height: 40px;
-}
-
-.skeleton-table-row {
-  height: 44px;
-}
-
-@keyframes analytics-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
 
 .state-card {
   margin: 0 auto;

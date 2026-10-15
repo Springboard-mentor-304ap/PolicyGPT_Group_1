@@ -483,29 +483,6 @@
   }
 }
 
-/* =========================
-   LOADING SKELETON
-   ========================= */
-
-.skeleton-suggestion {
-  height: 56px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
-  background-size: 200% 100%;
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-  border-radius: 10px;
-  margin-bottom: 8px;
-}
-
-/* =========================
-   RESPONSIVE
-   ========================= */
-
-@media (max-width: 1050px) {
-  .compare-page {
-    padding: 22px;
-  }
-}
-
 @media (max-width: 768px) {
   .compare-page {
     padding: 18px;

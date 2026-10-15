@@ -3,7 +3,7 @@
   <!-- =========================================================
      BREADCRUMB
      ========================================================= -->
-  <nav class="preferences-breadcrumb" aria-label="Breadcrumb">
+  <nav *ngIf="!isGuest" class="preferences-breadcrumb" aria-label="Breadcrumb">
     <button type="button" (click)="navigateToHome()">Home</button>
     <span class="material-icons" aria-hidden="true">chevron_right</span>
     <button type="button" (click)="navigateToNotifications()">Notifications</button>
@@ -96,19 +96,9 @@
       </button>
     </div>
 
-    <!-- SKELETON LOADING STATE (Only if no initial data) -->
-    <div *ngIf="loading && workingGroups.length === 0" class="preferences-grid skeleton-loading" aria-busy="true"
-      aria-label="Loading notification preferences">
-      <div class="skeleton-card skeleton-card--left">
-        <div class="skeleton-line skeleton-line--title"></div>
-        <div class="skeleton-line skeleton-line--sub"></div>
-        <div class="skeleton-row" *ngFor="let i of [1, 2, 3, 4, 5]"></div>
-      </div>
-      <div class="skeleton-card skeleton-card--right">
-        <div class="skeleton-line skeleton-line--title"></div>
-        <div class="skeleton-row" *ngFor="let i of [1, 2, 3]"></div>
-      </div>
-    </div>
+    <!-- LOADING INDICATOR (Only if no initial data) -->
+    <app-loading-indicator *ngIf="loading && workingGroups.length === 0" message="Loading notification preferences...">
+    </app-loading-indicator>
 
     <!-- MAIN TWO-COLUMN PREFERENCES GRID (always rendered once groups exist,
          even when the background sync fails) -->

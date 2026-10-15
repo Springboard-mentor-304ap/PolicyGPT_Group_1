@@ -71,6 +71,7 @@ export interface ApplicationItem {
 }
 
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import { LoadingIndicatorComponent } from "../../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   CategoryIconFields,
   categoryIconFields,
@@ -83,7 +84,7 @@ import {
 @Component({
   selector: "app-government",
   standalone: true,
-  imports: [CommonModule, RouterLink, CountUpDirective],
+  imports: [CommonModule, RouterLink, CountUpDirective, LoadingIndicatorComponent],
   templateUrl: "./government.component.html",
   styleUrl: "./government.component.scss",
 })
@@ -302,7 +303,7 @@ export class GovernmentComponent implements OnInit {
         this.upcomingSchemes = schemeList.slice(0, 4).map((s) => ({
           id: s.scheme_id,
           name: s.name || (s as any).title || "Untitled Scheme",
-          ministry: s.ministry || s.department || "Government of India",
+          ministry: s.ministry || s.department || "",
           status: s.status,
           category: s.category ?? null,
           ...categoryIconFields(s.category),
@@ -313,7 +314,7 @@ export class GovernmentComponent implements OnInit {
         this.uploadedPolicies = policyList.slice(0, 4).map((p) => ({
           id: p.policy_id,
           name: p.title || "Untitled Policy",
-          ministry: p.ministry || p.department || "Government of India",
+          ministry: p.ministry || p.department || "",
           savedOn: p.created_at ? new Date(p.created_at).toLocaleDateString() : "Recent",
           status: p.status,
           category: p.category ?? null,

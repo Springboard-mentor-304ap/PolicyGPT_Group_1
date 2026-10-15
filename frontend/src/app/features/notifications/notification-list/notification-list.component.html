@@ -3,7 +3,7 @@
   <!-- =========================================================
      BREADCRUMB
      ========================================================= -->
-  <nav class="notifications-breadcrumb" aria-label="Breadcrumb">
+  <nav *ngIf="!isGuest" class="notifications-breadcrumb" aria-label="Breadcrumb">
     <button type="button" (click)="navigateToHome()">Home</button>
     <span class="material-icons" aria-hidden="true">chevron_right</span>
     <button type="button" (click)="backToList()">Notifications</button>
@@ -229,16 +229,9 @@
           <button type="button" class="btn btn-sm btn-outline" (click)="loadNotifications()">Retry</button>
         </div>
 
-        <!-- LOADING STATE SKELETON (Section 21) -->
-        <div *ngIf="loading" class="full-width-list-container loading-state">
-          <div class="skeleton-card" *ngFor="let item of [1, 2, 3, 4, 5]">
-            <div class="skeleton skeleton-icon"></div>
-            <div class="skeleton-content">
-              <div class="skeleton skeleton-title"></div>
-              <div class="skeleton skeleton-text"></div>
-            </div>
-          </div>
-        </div>
+        <!-- LOADING INDICATOR (Section 21) -->
+        <app-loading-indicator *ngIf="loading" message="Loading notifications...">
+        </app-loading-indicator>
 
         <!-- FULL-WIDTH NOTIFICATION CARDS LIST (Section 8) -->
         <div *ngIf="!loading && !errorMessage" class="full-width-list-container">

@@ -9,11 +9,12 @@ import {
   BreadcrumbComponent,
   BreadcrumbItem,
 } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 
 @Component({
   selector: "app-report-details",
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, LoadingIndicatorComponent],
   styleUrl: "../reports-shared.scss",
   template: `
     <div class="reports-page">
@@ -34,15 +35,7 @@ import {
       </header>
 
       @if (loading()) {
-        <div class="skeleton-list" aria-label="Loading report details">
-          <div class="skeleton-card" aria-hidden="true">
-            <div class="skeleton skeleton-icon"></div>
-            <div class="skeleton-body">
-              <div class="skeleton skeleton-title"></div>
-              <div class="skeleton skeleton-line"></div>
-            </div>
-          </div>
-        </div>
+        <app-loading-indicator message="Loading report details..."></app-loading-indicator>
       } @else if (error) {
         <section class="state-card error-state">
           <div class="state-icon">
@@ -136,15 +129,7 @@ import {
             </div>
 
             @if (dataLoading()) {
-              <div class="skeleton-list" aria-label="Loading report content">
-                <div class="skeleton-card" aria-hidden="true">
-                  <div class="skeleton skeleton-icon"></div>
-                  <div class="skeleton-body">
-                    <div class="skeleton skeleton-title"></div>
-                    <div class="skeleton skeleton-line"></div>
-                  </div>
-                </div>
-              </div>
+              <app-loading-indicator message="Loading report content..."></app-loading-indicator>
             } @else if (dataError) {
               <section class="state-card error-state">
                 <div class="state-icon">

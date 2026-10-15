@@ -11,11 +11,12 @@ import {
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 
 @Component({
   selector: 'app-admin-feedback',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   templateUrl: './admin-feedback.component.html',
   styleUrl: './admin-feedback.component.scss',
 })

@@ -209,10 +209,9 @@
         </div>
       </section>
 
-      <!-- LOADING SKELETON -->
-      <div *ngIf="loadingHistory()" class="skeleton-list">
-        <div class="skeleton-card" *ngFor="let i of [1, 2, 3]"></div>
-      </div>
+      <!-- LOADING INDICATOR -->
+      <app-loading-indicator *ngIf="loadingHistory()" message="Loading submissions...">
+      </app-loading-indicator>
 
       <!-- ERROR STATE -->
       <div *ngIf="!loadingHistory() && historyError()" class="error-card">

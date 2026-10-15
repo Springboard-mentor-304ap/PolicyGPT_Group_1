@@ -575,25 +575,6 @@ $radius: 12px;
   color: $muted !important;
 }
 
-.chatbot-history__skeleton {
-  height: 56px;
-  margin-bottom: 6px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, $bg 25%, #e8eef5 50%, $bg 75%);
-  background-size: 200% 100%;
-  animation: chatbot-skeleton 1.4s ease infinite;
-}
-
-@keyframes chatbot-skeleton {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 .chatbot-history__error {
   margin: 8px 12px;
   padding: 12px;
@@ -1244,7 +1225,6 @@ $radius: 12px;
 
   textarea {
     flex: 1;
-    min-height: 44px;
     max-height: 110px;
     padding: 10px 12px;
     border: 1px solid #cbd5e1;
@@ -1331,9 +1311,9 @@ $radius: 12px;
   }
 }
 
-/* ---------- Mobile: near full-screen app sheet ---------- */
+/* ---------- Mobile: compact floating window (tablet proportions) ---------- */
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .chatbot-launcher {
     right: 16px;
     bottom: 16px;
@@ -1343,32 +1323,45 @@ $radius: 12px;
 
   .chatbot-panel,
   .chatbot-panel--fullscreen {
-    top: 64px;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: auto;
-    max-width: none;
-    height: auto;
-    max-height: none;
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
+    top: auto;
+    left: auto;
+    right: 12px;
+    bottom: 12px;
+    width: calc(100vw - 48px);
+    max-width: 360px;
+    margin-left: 0;
+    margin-right: 0;
+    height: 75vh;
+    height: 75dvh;
+    max-height: 620px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid $border;
+    border-radius: 16px;
+  }
+
+  /* Compact header: smaller padding, avatar, and controls */
+  .chatbot-header {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .chatbot-header__avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chatbot-header__titles h2 {
+    font-size: 16px;
   }
 
   .chatbot-header__titles p {
     display: none;
   }
 
-  .chatbot-header__titles h2 {
-    font-size: 13px;
-  }
-
-  /* Keep essential controls reachable on small screens */
-  .chatbot-header {
-    gap: 8px;
-    padding: 10px;
+  .chatbot-header__status {
+    font-size: 11px;
+    margin-top: 2px;
   }
 
   .chatbot-icon-btn {
@@ -1380,9 +1373,81 @@ $radius: 12px;
     }
   }
 
+  /* Compact conversation: tighter bubbles and spacing */
+  .chatbot-messages {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  .chatbot-msg--assistant {
+    gap: 6px;
+  }
+
+  .chatbot-bubble {
+    padding: 8px 11px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .chatbot-bubble--assistant {
+    p {
+      margin: 0 0 6px;
+    }
+  }
+
+  /* Compact suggested-action cards: two-column grid stays in flow */
   .chatbot-quick {
     grid-template-columns: 1fr 1fr;
-    max-height: 180px;
+    gap: 8px;
+    max-height: 160px;
+    padding: 8px 10px;
+  }
+
+  .chatbot-quick-btn {
+    padding: 8px;
+    gap: 6px;
+
+    .material-icons {
+      font-size: 18px;
+    }
+  }
+
+  .chatbot-quick-btn__title {
+    font-size: 13px;
+  }
+
+  .chatbot-quick-btn__desc {
+    font-size: 11px;
+  }
+
+  /* Compact input + disclaimer pinned at the bottom */
+  .chatbot-composer {
+    gap: 6px;
+    padding: 8px 10px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .chatbot-composer textarea {
+    padding: 8px 10px;
+    font-size: 13px;
+
+    &::placeholder {
+      font-size: 13px;
+    }
+  }
+
+  .chatbot-send {
+    width: 40px;
+    height: 40px;
+
+    .material-icons {
+      font-size: 18px;
+    }
+  }
+
+  .chatbot-disclaimer {
+    padding: 6px 10px 8px;
+    font-size: 10px;
   }
 
   .chatbot-history {
@@ -1404,6 +1469,37 @@ $radius: 12px;
   }
 }
 
+/* ---------- Full-screen takeover (all viewports) ----------
+   Fills the viewport below the website topbar. Higher specificity than
+   the floating/tablet/mobile panel rules so it always wins when active.
+   The offset mirrors the topbar's own spec (80px desktop, 64px mobile);
+   normal floating/minimized styling is untouched. */
+
+.chatbot-panel.chatbot-panel--fullscreen {
+  --chatbot-topbar-offset: 80px;
+  position: fixed;
+  top: var(--chatbot-topbar-offset);
+  left: 0;
+  right: 0;
+  bottom: auto;
+  width: 100%;
+  max-width: none;
+  height: calc(100vh - var(--chatbot-topbar-offset));
+  height: calc(100dvh - var(--chatbot-topbar-offset));
+  max-height: none;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .chatbot-panel.chatbot-panel--fullscreen {
+    --chatbot-topbar-offset: 64px;
+  }
+}
+
 /* ---------- Reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -1411,10 +1507,6 @@ $radius: 12px;
   .chatbot-launcher__icon,
   .chatbot-panel,
   .chatbot-history {
-    animation: none;
-  }
-
-  .chatbot-history__skeleton {
     animation: none;
   }
 

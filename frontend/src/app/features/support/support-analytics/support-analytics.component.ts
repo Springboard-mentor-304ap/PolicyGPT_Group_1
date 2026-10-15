@@ -513,7 +513,7 @@ export interface SupportUpdateItem {
       }
       @media (max-width: 640px) {
         .admin-analytics-page {
-          padding: 16px 14px 28px;
+          padding: 20px 24px 32px;
         }
       }
       .breadcrumb {

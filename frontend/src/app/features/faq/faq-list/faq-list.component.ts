@@ -12,11 +12,12 @@ import {
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 
 @Component({
   selector: 'app-faq-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BreadcrumbComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   templateUrl: './faq-list.component.html',
   styleUrl: './faq-list.component.scss',
 })

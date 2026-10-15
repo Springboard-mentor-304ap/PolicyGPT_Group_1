@@ -123,7 +123,7 @@ img {
     padding: 0;
     border: 0;
 
-    background: rgba(3, 17, 38, 0.48);
+    background: rgba(3, 14, 33, 0.45);
 
     opacity: 0;
     visibility: hidden;
@@ -133,7 +133,7 @@ img {
       opacity 0.25s ease,
       visibility 0.25s ease;
 
-    z-index: 1150;
+    z-index: 1100;
   }
 
   .dash-layout--mobile-menu-open .dash-overlay {
@@ -182,16 +182,20 @@ img {
 
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
 
-  z-index: 1100;
+  z-index: 1200;
 
   overflow: hidden;
+
+  filter: none;
+  backdrop-filter: none;
 
   transition:
     width 0.25s ease,
     transform 0.25s ease;
 }
 
-/* Sidebar overlay */
+/* Sidebar overlay: dark navy veil above the flag artwork so
+   menu text and icons stay crisp and readable. Content sits above. */
 
 .dash-sidebar::before {
   content: "";
@@ -201,9 +205,9 @@ img {
 
   background: linear-gradient(
     180deg,
-    rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 55%,
-    rgba(3, 25, 60, 0.12) 100%
+    rgba(3, 20, 45, 0.55) 0%,
+    rgba(3, 20, 45, 0.45) 55%,
+    rgba(3, 25, 60, 0.55) 100%
   );
 
   pointer-events: none;
@@ -308,13 +312,22 @@ img {
 .dash-nav__item--active {
   color: $researcher-white !important;
 
-  background: $researcher-navy-light;
+  background: #20589a;
 
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
 
-  box-shadow:
-    inset 3px 0 0 #4b91ff,
-    0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__item--active .dash-nav__icon,
+.dash-nav__item--active .material-icons {
+  color: $researcher-white;
 }
 
 /* =========================================================
@@ -456,9 +469,21 @@ img {
 .dash-nav__submenu-item--active {
   color: $researcher-white !important;
 
-  background: rgba(75, 145, 255, 0.22);
+  background: #20589a;
 
-  border-color: rgba(75, 145, 255, 0.18);
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
+
+  font-weight: 600;
+
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__submenu-item--active .material-icons {
+  color: $researcher-white;
 }
 
 .dash-nav__submenu-item:focus-visible {

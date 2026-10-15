@@ -13,6 +13,7 @@ import { finalize, take } from "rxjs";
 import { PolicyService } from "../../../core/services/policy.service";
 import { Auth } from "../../../core/services/auth";
 import { ToastService } from "../../../core/services/toast.service";
+import { downloadBlob, XLSX_MIME_TYPE } from "../../../core/utils/file-download.util";
 import {
   PolicyResponse,
   PolicyListResponse,
@@ -2014,7 +2015,9 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
           align: "right",
         });
       }
-      doc.save(this.exportFileStem("pdf"));
+      // Browser-managed download (never `doc.save()`: outside a real
+      // browser it falls back to writing the file beside the project).
+      downloadBlob(doc.output("blob"), this.exportFileStem("pdf"));
       this.showSuccessToast("Policies exported as PDF.");
     } catch (err) {
       console.error("Failed to export policies as PDF:", err);
@@ -2057,7 +2060,13 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Policies");
-      XLSX.writeFile(wb, this.exportFileStem("xlsx"));
+      // In-memory bytes + browser download (never `XLSX.writeFile()`,
+      // which writes to disk when it detects Node instead of a browser).
+      const bytes = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      downloadBlob(
+        new Blob([bytes], { type: XLSX_MIME_TYPE }),
+        this.exportFileStem("xlsx"),
+      );
       this.showSuccessToast("Policies exported as Excel.");
     } catch (err) {
       console.error("Failed to export policies as Excel:", err);

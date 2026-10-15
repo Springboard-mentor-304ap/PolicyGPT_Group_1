@@ -90,12 +90,24 @@ def _load_messages(db, conversation_id: int, limit: int = 30) -> list:
         return []
 
 
-def get_conversation_profile(db, conversation_id: int | None) -> dict:
+def load_recent_messages(db, conversation_id: int | None, limit: int = 30) -> list:
+    """Public read of recent turns for request-scoped sharing.
+
+    Handlers that need history more than once (profile merge + entity
+    resolution) load once and pass the list via ``messages=`` instead of
+    issuing one query per helper against the remote database.
+    """
+    if conversation_id is None:
+        return []
+    return _load_messages(db, conversation_id, limit)
+
+
+def get_conversation_profile(db, conversation_id: int | None, messages: list | None = None) -> dict:
     """Merge profile facts from recent user messages + current turn."""
     profile: dict = {}
     if conversation_id is None:
         return profile
-    for message in _load_messages(db, conversation_id):
+    for message in messages if messages is not None else _load_messages(db, conversation_id):
         if getattr(message, "sender", "") == "user":
             profile = merge_profiles(
                 profile, intent.extract_profile_details(message.message or "")
@@ -110,16 +122,19 @@ def get_conversation_profile_with_current(
     return merge_profiles(profile, intent.extract_profile_details(current_text or ""))
 
 
-def recent_assistant_titles(db, conversation_id: int | None, limit: int = 10) -> list[str]:
+def recent_assistant_titles(db, conversation_id: int | None, limit: int = 10, messages: list | None = None) -> list[str]:
     """Candidate record titles from recent assistant replies.
 
     Numbered result lines first (most specific), then bolded headings.
     Titles are search terms only — always re-validated against the DB.
+    Pass ``messages=`` to reuse an already-loaded history (one fewer
+    database round-trip per caller).
     """
     titles: list[str] = []
     if conversation_id is None:
         return titles
-    for message in reversed(_load_messages(db, conversation_id)):
+    loaded = messages if messages is not None else _load_messages(db, conversation_id)
+    for message in reversed(loaded):
         if getattr(message, "sender", "") != "assistant":
             continue
         for line in (message.message or "").split("\n"):
@@ -166,9 +181,14 @@ def _kind_order(kind_hint: str) -> tuple[str, ...]:
 
 
 def resolve_referenced_entity(
-    db, user, conversation_id: int | None, text: str, kind_hint: str = "scheme"
+    db, user, conversation_id: int | None, text: str, kind_hint: str = "scheme",
+    messages: list | None = None,
 ):
-    """Resolve "it / second one / <name>" to a real DB row dict or None."""
+    """Resolve "it / second one / <name>" to a real DB row dict or None.
+
+    Pass ``messages=`` with an already-loaded history so the three
+    lookup steps below share a single database round-trip.
+    """
     lowered = (text or "").lower()
     kinds = _kind_order(kind_hint)
 
@@ -183,7 +203,8 @@ def resolve_referenced_entity(
     if conversation_id is None:
         return None
 
-    titles = recent_assistant_titles(db, conversation_id)
+    shared = messages if messages is not None else _load_messages(db, conversation_id)
+    titles = recent_assistant_titles(db, conversation_id, messages=shared)
 
     # 2. Ordinal reference ("the second one").
     ordinal = intent.detect_ordinal(text or "")
@@ -208,7 +229,7 @@ def resolve_referenced_entity(
     # 4. Most recent explicitly named entity from earlier user turns
     # (bounded: older turns are progressively less likely to be meant).
     seen = 0
-    for message in reversed(_load_messages(db, conversation_id)):
+    for message in reversed(shared):
         if getattr(message, "sender", "") != "user":
             continue
         older_hint = intent.extract_name_hint(message.message or "")

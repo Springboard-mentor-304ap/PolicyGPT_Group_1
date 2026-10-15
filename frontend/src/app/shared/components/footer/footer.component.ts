@@ -1,7 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { Auth } from '../../../core/services/auth';
+import { LoginPromptService } from '../../../core/services/login-prompt.service';
 
 @Component({
   selector: 'app-footer',
@@ -10,17 +12,94 @@ import { Auth } from '../../../core/services/auth';
   templateUrl: './footer.component.html',
   styleUrl: './footer.component.scss',
 })
-export class FooterComponent implements OnInit {
+export class FooterComponent implements OnInit, OnDestroy {
   currentYear = new Date().getFullYear();
   userRole = signal<string>('GUEST');
 
-  constructor(private readonly authService: Auth) {}
+  /**
+   * Reactive snapshot of the current URL path (query params and fragments
+   * stripped, lowercased). Updated on init (covers direct URL entry and
+   * page refresh) and on every completed NavigationEnd (covers footer /
+   * header links, programmatic navigation, and browser Back/Forward).
+   * Template active-state bindings read this signal so the yellow
+   * highlight moves immediately without a reload.
+   */
+  readonly currentPath = signal<string>('');
+  private routerEventsSub?: Subscription;
+
+  constructor(
+    private readonly authService: Auth,
+    private readonly loginPrompt: LoginPromptService,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit(): void {
     const role = this.authService.getUserRole();
     if (role) {
       this.userRole.set(role.toUpperCase().trim());
     }
+    this.updateCurrentPath(this.router.url);
+    this.routerEventsSub = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        this.updateCurrentPath(event.urlAfterRedirects || event.url);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.routerEventsSub?.unsubscribe();
+  }
+
+  private updateCurrentPath(url: string): void {
+    this.currentPath.set(
+      (url || '').split('?')[0].split('#')[0].toLowerCase(),
+    );
+  }
+
+  /**
+   * Primary section of the current route, e.g. `policies` for both
+   * `/dashboard/guest/policies/search` and `/dashboard/guest/policies/42`,
+   * or `compare` for `/compare/results`. For `/dashboard/:role/...` URLs
+   * the section is the segment after the role; for top-level URLs it is
+   * the first segment. This keeps nested routes on their section link
+   * while unrelated routes (e.g. analytics) highlight nothing.
+   */
+  private primarySection(): string {
+    const segments = this.currentPath().split('/').filter(Boolean);
+    if (segments.length === 0) {
+      return '';
+    }
+    if (segments[0] === 'dashboard') {
+      return segments[2] ?? '';
+    }
+    return segments[0] ?? '';
+  }
+
+  /**
+   * Route-driven active state for footer links, read from the reactive
+   * `currentPath` snapshot so it stays correct on initial load, refresh,
+   * and every NavigationEnd. Exact section matching prevents similar or
+   * overlapping paths from highlighting multiple links.
+   */
+  isFooterSectionActive(...sections: string[]): boolean {
+    const active = this.primarySection();
+    if (!active) {
+      return false;
+    }
+    return sections.some((section) => section.toLowerCase() === active);
+  }
+
+  /** Logged-out visitors and GUEST-role users share the guest footer. */
+  isGuestUser(): boolean {
+    return !this.authService.isLoggedIn() || this.authService.isGuest();
+  }
+
+  /**
+   * Opens the existing guest topbar login/signup modal (same instance
+   * Compare Schemes uses) without navigating away.
+   */
+  promptLogin(feature: string): void {
+    this.loginPrompt.requestLogin(feature);
   }
 
   getFeedbackRoute(): string {

@@ -17,6 +17,7 @@ import {
   BreadcrumbItem,
 } from "../../shared/components/breadcrumb/breadcrumb.component";
 import { ConfirmModalComponent } from "../../shared/components/confirm-modal/confirm-modal.component";
+import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 
 export type SettingsRole =
   | "admin"
@@ -51,7 +52,7 @@ export interface SettingsSection {
 @Component({
   selector: "app-settings",
   standalone: true,
-  imports: [CommonModule, BreadcrumbComponent, ConfirmModalComponent],
+  imports: [CommonModule, BreadcrumbComponent, ConfirmModalComponent, LoadingIndicatorComponent],
   templateUrl: "./settings.component.html",
   styleUrl: "./settings.component.scss",
 })

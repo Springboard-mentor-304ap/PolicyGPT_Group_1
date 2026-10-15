@@ -322,7 +322,10 @@
             </p>
 
             <p class="dash-list__meta">
-              {{ item.ministry }} • Saved on {{ item.savedOn }}
+              @if (item.ministry?.trim()) {
+              {{ item.ministry }} •
+              }
+              Saved on {{ item.savedOn }}
             </p>
 
           </div>

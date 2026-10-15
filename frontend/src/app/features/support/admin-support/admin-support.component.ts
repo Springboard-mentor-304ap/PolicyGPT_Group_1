@@ -23,11 +23,12 @@ import {
   BreadcrumbItem,
 } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 
 @Component({
   selector: 'app-admin-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, BreadcrumbComponent, TicketConversationComponent, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, TicketConversationComponent, SearchableSelectComponent, LoadingIndicatorComponent],
   templateUrl: './admin-support.component.html',
   styleUrls: [
     './admin-support.component.scss',

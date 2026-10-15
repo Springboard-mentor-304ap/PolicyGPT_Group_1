@@ -10,6 +10,7 @@ import { Auth, AuthUser } from "../../../core/services/auth";
 import { ToastService } from "../../../core/services/toast.service";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import { QuotedNamesComponent } from "../../../shared/components/quoted-names/quoted-names.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import { visiblePageWindow } from "../../../core/utils/pagination.util";
 import {
   AdminNotificationStats,
@@ -24,7 +25,7 @@ import {
 @Component({
   selector: "app-notification-list",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent, QuotedNamesComponent],
+  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent, QuotedNamesComponent, LoadingIndicatorComponent],
   templateUrl: "./notification-list.component.html",
   styleUrls: ["./notification-list.component.scss"],
 })

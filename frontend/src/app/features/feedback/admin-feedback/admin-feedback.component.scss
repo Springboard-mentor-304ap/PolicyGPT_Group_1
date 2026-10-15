@@ -930,7 +930,7 @@ $warning-soft: #fef3c7;
 }
 
 // ============================================================
-// EMPTY & ERROR & SKELETON
+// EMPTY & ERROR
 // ============================================================
 .empty-card,
 .error-card {
@@ -981,19 +981,7 @@ $warning-soft: #fef3c7;
   }
 }
 
-.skeleton-table {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
-.skeleton-row {
-  height: 64px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-  background-size: 200% 100%;
-  border-radius: 10px;
-  animation: shimmer 1.5s infinite;
-}
 
 // ============================================================
 // MODALS
@@ -1285,14 +1273,6 @@ $warning-soft: #fef3c7;
   }
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
 
 // ============================================================
 // RESPONSIVE BREAKPOINTS

@@ -8,6 +8,7 @@ import { RouterLink } from "@angular/router";
 
 import { GovtPolicyScheme } from "../../../core/services/analytics.service";
 import { BreadcrumbComponent } from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
 import {
   AnalyticsDonutChartComponent,
   AnalyticsHBarChartComponent,
@@ -42,6 +43,7 @@ import { SearchableSelectComponent } from "../../../shared/components/searchable
     AnalyticsHBarChartComponent,
     CountUpDirective,
     SearchableSelectComponent,
+    LoadingIndicatorComponent,
   ],
   templateUrl: "./govt-policy-scheme.component.html",
   styleUrl: "./government-analytics.scss",

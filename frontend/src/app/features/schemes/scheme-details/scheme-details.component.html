@@ -131,9 +131,9 @@
         <div class="hero-center">
           <h2 class="hero-title">{{ scheme.name }}</h2>
 
-          <div class="hero-ministry">
+          <div class="hero-ministry" *ngIf="scheme?.ministry?.trim()">
             <span class="material-icons">account_balance</span>
-            <span>{{ scheme.ministry || "Ministry not specified" }}</span>
+            <span>{{ scheme?.ministry }}</span>
           </div>
 
           <div class="hero-meta">
@@ -321,13 +321,13 @@
           </div>
 
           <!-- MINISTRY -->
-          <div class="meta-item">
+          <div class="meta-item" *ngIf="scheme?.ministry?.trim()">
             <div class="meta-icon">
               <span class="material-icons">account_balance</span>
             </div>
             <div class="meta-content">
               <label>Ministry</label>
-              <p>{{ scheme.ministry || "Not specified" }}</p>
+              <p>{{ scheme?.ministry }}</p>
             </div>
           </div>
 

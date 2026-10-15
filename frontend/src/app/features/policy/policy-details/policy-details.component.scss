@@ -10,7 +10,6 @@
 
 .page-container {
   width: 100%;
-  max-width: 1360px;
   min-width: 0;
   margin: 0 auto;
   padding: 24px 28px 48px;
@@ -42,7 +41,7 @@
     }
 
     .subtitle {
-      font-size: 15px;
+      font-size: 14px;
       color: #64748b;
       margin: 0;
       line-height: 1.5;
@@ -57,7 +56,7 @@
     border: 1px solid #e2e8f0;
     padding: 8px 16px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: #1e293b;
     cursor: pointer;
@@ -151,7 +150,7 @@
       gap: 6px;
       padding: 6px 14px;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       border: 1px solid #cbd5e1;
@@ -262,7 +261,7 @@
   min-width: 0;
 
   .hero-title {
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 700;
     color: #0f172a;
     margin: 0 0 6px;
@@ -274,7 +273,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: 16px;
     color: #475569;
     margin-bottom: 12px;
     font-weight: 500;
@@ -294,7 +293,7 @@
   }
 
   .hero-description {
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.6;
     color: #334155;
     margin: 0;
@@ -577,7 +576,7 @@
     }
 
     .section-desc {
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.65;
       color: #334155;
       margin: 0;
@@ -669,7 +668,7 @@
         }
 
         p {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 500;
           color: #0f172a;
           margin: 0;
@@ -814,12 +813,11 @@
    ========================================================= */
 .tab-content-card {
   .tab-heading {
-    margin-bottom: 24px;
     padding-bottom: 16px;
     border-bottom: 1px solid #f1f5f9;
 
     h3 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       color: #0f172a;
       margin: 0 0 6px;
@@ -862,7 +860,7 @@
           display: flex;
           align-items: center;
           gap: 10px;
-          font-size: 15px;
+          font-size: 14px;
           color: #334155;
 
           .check-icon {
@@ -958,7 +956,7 @@
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    font-size: 15px;
+    font-size: 14px;
     color: #1e293b;
     line-height: 1.5;
     padding: 12px 16px;
@@ -1119,7 +1117,7 @@
       }
 
       .audit-value {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 600;
         color: #0f172a;
         line-height: 1.4;
@@ -1248,7 +1246,7 @@
       background: #1d4ed8;
       border: none;
       color: #ffffff;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s;
@@ -1365,7 +1363,7 @@
   }
 
   .hero-center .hero-title {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .audit-card {
@@ -1380,5 +1378,265 @@
     .audit-grid {
       grid-template-columns: 1fr;
     }
+  }
+}
+
+/* =========================================================
+   MOBILE DETAILS LAYOUT (≤767px)
+   Back right; avatar hidden; Save/Share flow onto the
+   ministry row via content/action flattening (desktop and
+   tablet rules above are untouched).
+   ========================================================= */
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-header .header-content {
+    display: contents;
+  }
+
+  .page-header .header-content h1 {
+    order: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 24px;
+  }
+
+  .page-header .header-content .subtitle {
+    order: 2;
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .page-header .btn-back {
+    order: 1;
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: auto;
+    font-size: 13px;
+  }
+
+  .hero-card {
+    padding: 20px 16px;
+  }
+
+  .detail-card,
+  .audit-card {
+    padding: 16px;
+  }
+
+  .hero-header-row {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .hero-avatar {
+    display: none;
+  }
+
+  .hero-center {
+    display: contents;
+  }
+
+  .hero-center .hero-title {
+    order: 0;
+    flex: 1 1 100%;
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 700;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .hero-center .hero-ministry {
+    order: 1;
+    flex: 1 1 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    text-align: left;
+    margin-left: 0;
+    padding-left: 0;
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+
+  .hero-center .hero-ministry > .material-icons {
+    display: none;
+  }
+
+  .hero-actions {
+    order: 4;
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-center .hero-meta {
+    order: 2;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    text-align: left;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .hero-center .category-badge {
+    font-size: 12px;
+  }
+
+  .hero-center .hero-description {
+    order: 3;
+    flex: 1 1 100%;
+    font-size: 14px;
+    line-height: 1.5;
+    display: block;
+    overflow: visible;
+    text-align: left;
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .left-panel .section-block h3,
+  .tab-content-card .tab-heading h3 {
+    font-size: 18px;
+  }
+
+  .workflow-alert .alert-actions .btn-alert-action {
+    font-size: 13px;
+  }
+
+  .state-card.error-state .retry-btn {
+    font-size: 13px;
+  }
+
+  .tabs-container .tab-btn {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   TABLET DETAILS HERO (768px–1023px)
+   Top: icon left with title/ministry right; tags and
+   description flow below inside the content column; Save/Share
+   sit bottom-right below the description. Placed after the
+   max-width:768px rules so it wins at exactly 768px.
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .page-header .header-content {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .page-header .btn-back {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .hero-header-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar center"
+      ". actions";
+    column-gap: 16px;
+    row-gap: 12px;
+    align-items: start;
+  }
+
+  .hero-avatar {
+    grid-area: avatar;
+  }
+
+  .hero-center {
+    grid-area: center;
+    min-width: 0;
+  }
+
+  .hero-center .hero-title,
+  .hero-center .hero-ministry {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hero-center .hero-title {
+    font-size: 22px;
+  }
+
+  .hero-center .hero-ministry {
+    font-size: 15px;
+  }
+
+  .hero-center .category-badge {
+    font-size: 12px;
+  }
+
+  .page-header .header-content h1 {
+    font-size: 28px;
+  }
+
+  .left-panel .section-block h3,
+  .tab-content-card .tab-heading h3 {
+    font-size: 18px;
+  }
+
+  .hero-actions {
+    grid-area: actions;
+    justify-self: end;
+    align-self: start;
+    flex-shrink: 0;
+    margin-left: 0;
+  }
+
+  /* Official Source Portal card: single horizontal row at tablet —
+     icon + title/description left, Visit Portal button far right.
+     Overrides the max-width:768px stacking so it holds at 768px. */
+  .documents-grid .document-resource-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .documents-grid .document-resource-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .documents-grid .document-resource-content {
+    min-width: 0;
+  }
+
+  .documents-grid .document-resource-content p {
+    overflow-wrap: break-word;
+  }
+
+  .documents-grid .document-actions {
+    flex-shrink: 0;
+    justify-content: flex-end;
   }
 }

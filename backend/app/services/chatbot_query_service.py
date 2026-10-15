@@ -157,10 +157,20 @@ def _scheme_kwargs(filters: dict | None) -> dict:
 
 
 def _union_token_rows(fetch_rows, search_text: str, page: int, limit: int):
-    """OR-fallback over per-token fetches. Returns None when not applicable."""
-    tokens = (search_text or "").split()
-    if len(tokens) <= 1:
+    """OR-fallback over per-token fetches. Returns None when not applicable.
+
+    Only significant tokens (length > 2, at most 8) are fanned out: short
+    tokens match far too broadly to be useful and each token costs a full
+    database scan, so looking up "me"/"to"/"of" only adds latency.
+    """
+    tokens = [t for t in (search_text or "").split() if len(t) > 2][:8]
+    if len(tokens) <= 1 and len((search_text or "").split()) <= 1:
         return None
+    if not tokens:
+        return None
+    # Identical tokens would repeat the same full scan: dedupe (order
+    # preserved) — the unioned row set is exactly unchanged.
+    tokens = list(dict.fromkeys(tokens))
     seen: dict = {}
     for token in tokens:
         try:
@@ -513,9 +523,24 @@ def match_profile_schemes(db, profile: dict, limit: int = 5) -> dict | None:
     if hasattr(result, "model_dump"):
         result = result.model_dump()
     eligible = result.get("eligible_entities") or []
+    # One batched lookup instead of N sequential get_scheme() round-trips:
+    # same rows (non-deleted), same order, same match messages.
+    wanted = [item.get("entity_id") for item in eligible[:limit]]
+    wanted = [i for i in wanted if i is not None]
+    by_id: dict = {}
+    if wanted:
+        from app.models.scheme import Scheme
+
+        for scheme in (
+            db.query(Scheme)
+            .filter(Scheme.scheme_id.in_(wanted))
+            .filter(Scheme.is_deleted.is_(False))
+            .all()
+        ):
+            by_id[getattr(scheme, "scheme_id", None)] = scheme
     rows = []
     for item in eligible[:limit]:
-        scheme = scheme_service.get_scheme(db, item.get("entity_id"))
+        scheme = by_id.get(item.get("entity_id"))
         if scheme is not None:
             row = scheme_row(scheme)
             row["match_message"] = item.get("message")

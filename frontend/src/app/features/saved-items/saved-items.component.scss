@@ -2,7 +2,7 @@
    POLICYGPT SAVED ITEMS
    Visual language matches the Notifications page:
    page container, breadcrumb, header, KPI cards, tabs,
-   search, content card, badges, empty and skeleton states.
+   search, content card, badges, empty and loading states.
    All data, handlers and service calls are unchanged.
    ========================================================= */
 
@@ -798,76 +798,14 @@ $danger-light: #fee2e2;
   }
 }
 
-/* =========================================================
-   SKELETON LOADING
-   ========================================================= */
 
-.skeleton-block {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
-.skeleton-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  background: $white;
-  border: 1px solid $border;
-  border-radius: 12px;
-}
 
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background: #e9edf2;
-  border-radius: 6px;
 
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.75),
-      transparent
-    );
-    animation: skeleton-shimmer 1.4s infinite;
-  }
-}
 
-.skeleton-icon {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  border-radius: 10px;
-}
 
-.skeleton-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
-.skeleton-title {
-  width: 45%;
-  height: 14px;
-}
 
-.skeleton-line {
-  width: 75%;
-  height: 12px;
-}
-
-@keyframes skeleton-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
 
 /* =========================================================
    REMOVE SPINNER

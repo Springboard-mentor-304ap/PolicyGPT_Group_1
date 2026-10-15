@@ -34,6 +34,14 @@
 
   <section class="search-section">
 
+    <!-- RESET ROW (right-aligned, above the search row) -->
+    <div class="reset-filters-row" *ngIf="hasActiveFilters">
+      <button type="button" class="reset-filters-btn" (click)="clearFilters()">
+        <span class="material-icons">refresh</span>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+
     <!-- SEARCH ROW -->
 
     <div class="search-row">
@@ -68,22 +76,29 @@
 
       <button type="button" class="search-button" (click)="submitSearch()">
 
-        <svg class="search-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true">
-          <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
-
-          <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
-
         <span>Search</span>
 
+      </button>
+
+
+      <!-- Filter Button (mobile/tablet only, hidden on desktop) -->
+
+      <button type="button" class="filter-toggle-btn" (click)="toggleFilters()"
+        [attr.aria-expanded]="filtersExpanded" aria-label="Toggle filters">
+        <span class="material-icons" aria-hidden="true">filter_list</span>
+        <span>Filter</span>
+        <span class="filter-count-badge" *ngIf="activeFiltersCount > 0">
+          {{ activeFiltersCount }} active
+        </span>
+        <span class="material-icons toggle-chevron" [class.open]="filtersExpanded"
+          aria-hidden="true">expand_more</span>
       </button>
 
     </div>
 
 
     <!-- FILTER PANEL (Zone 2) -->
-    <div class="filter-panel">
+    <div class="filter-panel" [class.filter-panel--collapsed]="!filtersExpanded">
 
       <!-- Filter Panel Header -->
       <div class="filter-panel-header">
@@ -92,11 +107,6 @@
             {{ activeFiltersCount }} active
           </span>
         </div>
-
-        <button *ngIf="hasActiveFilters" type="button" class="reset-filters-btn" (click)="clearFilters()">
-          <span class="material-icons">refresh</span>
-          <span>Reset Filters</span>
-        </button>
       </div>
 
       <!-- Filter Controls Grid -->
@@ -216,27 +226,8 @@
   <!-- INITIAL LOADING -->
   <!-- ====================================================== -->
 
-  <section class="skeleton-list" *ngIf="loading() && schemes().length === 0">
-
-    <div class="skeleton-card" *ngFor="let item of [1, 2, 3, 4, 5]">
-
-      <div class="skeleton skeleton-icon"></div>
-
-      <div class="skeleton-body">
-
-        <div class="skeleton skeleton-title"></div>
-
-        <div class="skeleton skeleton-line"></div>
-
-        <div class="skeleton skeleton-small"></div>
-
-      </div>
-
-      <div class="skeleton skeleton-button"></div>
-
-    </div>
-
-  </section>
+  <app-loading-indicator *ngIf="loading() && schemes().length === 0" message="Loading schemes...">
+  </app-loading-indicator>
 
 
   <!-- ====================================================== -->
@@ -276,7 +267,7 @@
   <!-- RESULTS -->
   <!-- ====================================================== -->
 
-  <section class="results-section" *ngIf="!errorMessage()">
+  <section class="results-section" *ngIf="!errorMessage() && !(loading() && schemes().length === 0)">
 
     <!-- Results Header -->
 
@@ -381,14 +372,17 @@
 
           <p class="ministry">
 
-            {{
-            scheme.ministry ||
-            "Ministry not specified"
-            }}
+            {{ scheme.ministry?.trim() ? scheme.ministry : "Ministry not specified" }}
             <span *ngIf="scheme.department" class="department-sep"> &bull; {{ scheme.department }}</span>
 
           </p>
 
+        </div>
+
+
+        <!-- Tags + description (bottom row on tablet/desktop) -->
+
+        <div class="scheme-card__bottom">
 
           <div class="metadata">
 

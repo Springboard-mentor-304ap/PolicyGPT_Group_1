@@ -1,5 +1,6 @@
 import {
   Component,
+  ChangeDetectorRef,
   DestroyRef,
   ElementRef,
   EventEmitter,
@@ -32,6 +33,7 @@ import {
   filter,
   of,
   switchMap,
+  tap,
 } from "rxjs";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
@@ -205,6 +207,12 @@ export class TopbarComponent implements OnInit, OnDestroy {
   private readonly globalSearchService = inject(GlobalSearchService);
   private readonly hostElement = inject(ElementRef);
   private readonly loginPrompt = inject(LoginPromptService);
+  // The app runs zoneless: HttpClient emissions inside the debounced search
+  // pipeline do NOT schedule change detection on their own, so without an
+  // explicit mark the dropdown stays stuck on "Searching…" until the next
+  // keystroke or click. Notifying here renders results/error/empty states
+  // as soon as each request settles.
+  private readonly cdr = inject(ChangeDetectorRef);
 
   // =========================================================
   // INIT
@@ -440,6 +448,9 @@ export class TopbarComponent implements OnInit, OnDestroy {
           );
         }),
         takeUntilDestroyed(this.destroyRef),
+        // Zoneless: schedule a render for every settled search emission
+        // (results, empty, or handled error) so "Searching…" clears.
+        tap(() => this.cdr.markForCheck()),
       )
       .subscribe((res) => {
         if (res === null) return;
@@ -512,21 +523,6 @@ export class TopbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  private flatGlobalItem(
-    index: number,
-  ): { kind: "policy" | "scheme"; item: PolicyResponse | SchemeResponse } | null {
-    const pCount = this.globalPolicies?.length ?? 0;
-    if (index < 0) return null;
-    if (index < pCount) {
-      return { kind: "policy", item: this.globalPolicies[index] };
-    }
-    const sIndex = index - pCount;
-    if (sIndex < (this.globalSchemes?.length ?? 0)) {
-      return { kind: "scheme", item: this.globalSchemes[sIndex] };
-    }
-    return null;
-  }
-
   selectGlobalPolicy(policy: PolicyResponse): void {
     const id = Number(policy?.policy_id);
     if (!Number.isFinite(id) || id <= 0) return;
@@ -573,41 +569,30 @@ export class TopbarComponent implements OnInit, OnDestroy {
   }
 
   performSearch(): void {
-    const active = this.flatGlobalItem(this.globalActiveIndex);
-    if (this.showGlobalDropdown && active) {
-      if (active.kind === "policy") {
-        this.selectGlobalPolicy(active.item as PolicyResponse);
-      } else {
-        this.selectGlobalScheme(active.item as SchemeResponse);
-      }
-      return;
-    }
+    // Enter always opens the role's combined search results page (the
+    // Guest search experience inside the authenticated dashboard layout)
+    // with the query populated. It never selects a highlighted dropdown
+    // row: detail navigation is reserved for explicitly clicking a result.
     const query = normalizeGlobalQuery(this.searchText);
     if (!query) return;
     this.closeGlobalDropdown();
     this.closeMobileSearch();
-    // Researcher topbar is policy-oriented; every other role keeps the
-    // existing schemes listing target. All targets stay in-layout.
-    const target =
-      this.rolePrefix === "researcher" ? "policies/search" : "schemes";
-    this.router.navigate(["/dashboard", this.rolePrefix, target], {
+    this.router.navigate(["/dashboard", this.rolePrefix, "search"], {
       queryParams: { q: query },
     });
   }
 
   // =========================================================
-  // MOBILE SEARCH TOGGLE (narrow screens)
+  // TABLET/MOBILE SEARCH ICON (narrow screens)
+  // Navigates straight to the role's combined search results page.
   // =========================================================
 
   toggleMobileSearch(): void {
-    this.mobileSearchOpen = !this.mobileSearchOpen;
-    if (this.mobileSearchOpen) {
-      setTimeout(() => {
-        this.globalSearchInput?.nativeElement?.focus();
-      }, 0);
-    } else {
-      this.closeGlobalDropdown();
-    }
+    const query = normalizeGlobalQuery(this.searchText);
+    this.closeGlobalDropdown();
+    this.router.navigate(["/dashboard", this.rolePrefix, "search"], {
+      queryParams: query ? { q: query } : {},
+    });
   }
 
   closeMobileSearch(): void {

@@ -33,10 +33,6 @@
     <div class="topbar__center" [class.topbar__center--search-open]="mobileSearchOpen">
 
       @if (!guest) {
-      <button type="button" class="topbar__search-toggle" (click)="toggleMobileSearch()"
-        [attr.aria-expanded]="mobileSearchOpen" aria-label="Toggle search">
-        <span class="material-icons" aria-hidden="true">{{ mobileSearchOpen ? 'close' : 'search' }}</span>
-      </button>
       <div class="topbar-search" [class.topbar-search--mobile-open]="mobileSearchOpen">
         <span class="material-icons topbar-search__icon" aria-hidden="true">search</span>
         <input #globalSearchInput type="search" [(ngModel)]="searchText" (ngModelChange)="onGlobalSearchInput()"
@@ -85,6 +81,10 @@
     <div class="topbar__right">
 
       @if (!guest) {
+      <button type="button" class="topbar__search-toggle" (click)="toggleMobileSearch()"
+        [attr.aria-expanded]="mobileSearchOpen" aria-label="Open search">
+        <span class="material-icons" aria-hidden="true">search</span>
+      </button>
       <app-notification-bell></app-notification-bell>
 
       <a class="topbar__profile" [routerLink]="profileRoute" aria-label="View profile">

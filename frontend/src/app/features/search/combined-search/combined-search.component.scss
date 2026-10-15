@@ -1,0 +1,23 @@
+/* =========================================================
+   COMBINED SEARCH PAGE (authenticated roles)
+   Page container only. Search-section styling is shared with the
+   Guest stylesheet (see styleUrls in the component): single source
+   of truth, scoped per component by Angular. Do not restyle the
+   search sections here.
+   ========================================================= */
+
+.combined-search-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 28px 32px 40px;
+  overflow-x: hidden;
+}
+
+@media (max-width: 767px) {
+  .combined-search-page {
+    padding: 20px 16px 32px;
+  }
+}

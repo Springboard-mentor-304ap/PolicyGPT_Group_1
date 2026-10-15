@@ -177,6 +177,18 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
       // FAQS & SUPPORT
       {
         path: "faqs",
@@ -527,6 +539,18 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../notifications/notification-list/notification-list.component").then(
             (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
           ),
       },
 
@@ -1021,6 +1045,18 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
       // FAQS & SUPPORT
       {
         path: "faqs",
@@ -1500,6 +1536,18 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
       // FAQS (ADMIN MANAGEMENT)
       {
         path: "faqs",
@@ -1755,6 +1803,18 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import("../../notifications/notification-list/notification-list.component").then(
             (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
           ),
       },
 

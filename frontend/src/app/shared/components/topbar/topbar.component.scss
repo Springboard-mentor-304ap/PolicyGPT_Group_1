@@ -807,8 +807,15 @@ input {
     padding: 10px 18px;
   }
 
+  /* Tablet (768-1100px): icon-only search for authenticated roles.
+     The icon navigates to the role's full search page. Guest renders no
+     search bar or toggle, so it is unaffected. */
   .topbar-search {
-    width: min(450px, 42vw);
+    display: none;
+  }
+
+  .topbar__search-toggle {
+    display: flex;
   }
 
   .topbar__user-info {

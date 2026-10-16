@@ -189,7 +189,7 @@ describe("NotificationListComponent", () => {
       (buttons[0] as HTMLElement).closest(".detail-action-buttons"),
     ).not.toBeNull();
     // Breadcrumb stays functional.
-    expect(fixture.nativeElement.querySelector(".notifications-breadcrumb")).not.toBeNull();
+    expect(fixture.nativeElement.querySelector("app-breadcrumb")).not.toBeNull();
   });
 
   it("9. should navigate View Policy to the real role-scoped record", () => {

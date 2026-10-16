@@ -1151,9 +1151,9 @@ app-user-avatar {
   }
 
   .profile-header {
-    flex-direction: column;
+    flex-direction: row;
 
-    align-items: stretch;
+    align-items: center;
 
     gap: 16px;
 
@@ -1171,9 +1171,11 @@ app-user-avatar {
   }
 
   .header-actions {
-    width: 100%;
+    width: auto;
 
-    justify-content: flex-start;
+    margin-left: auto;
+
+    justify-content: flex-end;
   }
 
   .profile-card {
@@ -1212,8 +1214,6 @@ app-user-avatar {
   }
 
   .action-buttons-row {
-    flex-direction: column;
-
     gap: 12px;
 
     button {
@@ -1229,13 +1229,23 @@ app-user-avatar {
 
 @media (max-width: 600px) {
   .header-actions {
-    width: 100%;
+    width: auto;
 
-    .btn-back,
-    .btn-edit {
+    .btn-back {
       flex: 1;
 
       min-width: 0;
+    }
+
+    .btn-edit {
+      flex: none;
+
+      width: auto;
+      min-width: 0;
+
+      height: 48px;
+
+      padding: 0 20px;
     }
   }
 
@@ -1280,13 +1290,21 @@ app-user-avatar {
   }
 
   .header-actions {
-    flex-direction: column;
+    flex-direction: row;
 
-    width: 100%;
+    justify-content: flex-end;
 
-    .btn-back,
+    width: auto;
+
     .btn-edit {
-      width: 100%;
+      flex: none;
+
+      width: auto;
+      min-width: 0;
+
+      height: 48px;
+
+      padding: 0 20px;
     }
   }
 

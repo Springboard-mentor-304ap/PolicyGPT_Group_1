@@ -49,49 +49,6 @@ $ease: 180ms ease;
   box-sizing: border-box;
 }
 
-/* ============ BREADCRUMB ============ */
-.support-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $muted;
-
-  button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: $blue;
-    font-size: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    min-height: 28px;
-    display: inline-flex;
-    align-items: center;
-
-    &:hover {
-      text-decoration: underline;
-    }
-
-    &:focus-visible {
-      outline: 2px solid $blue;
-      border-radius: 4px;
-    }
-  }
-
-  .material-icons {
-    font-size: 13px;
-    color: #94a3b8;
-  }
-
-  strong {
-    color: $heading;
-    font-weight: 600;
-  }
-}
-
 /* ============ COMPACT HEADER ============ */
 .support-header {
   margin-bottom: 22px;
@@ -1979,10 +1936,6 @@ $ease: 180ms ease;
 
 /* ============ RESPONSIVE ============ */
 @media (max-width: 1024px) {
-  .quick-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .help-columns {
     grid-template-columns: 1fr;
   }

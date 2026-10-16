@@ -8,7 +8,7 @@ import {
   OnInit,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { finalize, take } from "rxjs";
 import { PolicyService } from "../../../core/services/policy.service";
 import { Auth } from "../../../core/services/auth";
@@ -26,6 +26,7 @@ import { DeletedPoliciesModalComponent } from "../deleted-policies-modal/deleted
 import { GovtDeletedPoliciesModalComponent } from "../govt-deleted-policies/govt-deleted-policies-modal.component";
 import { DraftPoliciesModalComponent } from "../draft-policies-modal/draft-policies-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../shared/components/breadcrumb/breadcrumb.component";
 import {
   CategoryInput,
   getCategoryIconName,
@@ -60,7 +61,7 @@ export interface PolicyTableItem {
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
+    BreadcrumbComponent,
     OverlayModule,
     ConfirmModalComponent,
     ReasonModalComponent,
@@ -264,6 +265,14 @@ export class ManagePoliciesComponent implements OnInit, OnDestroy {
   }
   get rolePrefix(): string {
     return this.isAdmin ? "admin" : "government";
+  }
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Policies", route: ["/dashboard", this.rolePrefix, "policies"] },
+      { label: "Manage Policies" },
+    ];
   }
 
   ngOnInit(): void {

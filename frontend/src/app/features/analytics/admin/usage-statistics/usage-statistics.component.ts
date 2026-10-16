@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit, inject, signal, computed } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import {
@@ -23,6 +23,7 @@ import {
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
 import { SearchableSelectComponent } from "../../../../shared/components/searchable-select/searchable-select.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-usage-statistics",
@@ -30,7 +31,7 @@ import { SearchableSelectComponent } from "../../../../shared/components/searcha
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
+    BreadcrumbComponent,
     DateRangePickerComponent,
     LineChartComponent,
     DoughnutChartComponent,
@@ -48,6 +49,14 @@ export class UsageStatisticsComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly isSampleData = this.dataService.isSampleData;
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+      { label: "Usage Statistics" },
+    ];
+  }
 
   // Selected date range
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");

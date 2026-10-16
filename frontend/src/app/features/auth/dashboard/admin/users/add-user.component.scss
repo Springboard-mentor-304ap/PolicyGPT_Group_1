@@ -16,55 +16,6 @@
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.add-user-breadcrumb {
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  margin-bottom: 18px;
-
-  font-size: 13px;
-
-  color: #71809a;
-}
-
-.add-user-breadcrumb button {
-  border: 0;
-
-  background: transparent;
-
-  padding: 0;
-
-  color: #0878e8;
-
-  font: inherit;
-
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-.add-user-breadcrumb button:hover {
-  text-decoration: underline;
-}
-
-.add-user-breadcrumb strong {
-  color: #202b3f;
-  font-weight: 600;
-}
-
-.add-user-breadcrumb .material-icons {
-  font-size: 16px;
-
-  color: #9aa8bd;
-}
-
-/* =========================================================
    HEADER
 ========================================================= */
 
@@ -659,10 +610,6 @@
 @media (max-width: 520px) {
   .add-user-page {
     padding: 14px;
-  }
-
-  .add-user-breadcrumb {
-    font-size: 12px;
   }
 
   .add-user-header h1 {

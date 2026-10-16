@@ -798,15 +798,6 @@ $danger-light: #fee2e2;
   }
 }
 
-
-
-
-
-
-
-
-
-
 /* =========================================================
    REMOVE SPINNER
    ========================================================= */
@@ -832,10 +823,6 @@ $danger-light: #fee2e2;
 @media (max-width: 1024px) {
   .saved-page {
     padding: 20px 20px 40px;
-  }
-
-  .summary-cards {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 

@@ -1,12 +1,6 @@
 <div class="policy-analytics-page" [attr.aria-busy]="isLoading()">
   <!-- Breadcrumb -->
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a routerLink="/dashboard/admin" class="breadcrumb-link">Dashboard</a>
-    <span class="chevron" aria-hidden="true">&gt;</span>
-    <a routerLink="/dashboard/admin/analytics" class="breadcrumb-link">Analytics</a>
-    <span class="chevron" aria-hidden="true">&gt;</span>
-    <span class="current" aria-current="page">Policy Analytics</span>
-  </nav>
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
   <!-- Page Header -->
   <div class="page-header">
@@ -155,7 +149,7 @@
         </div>
       </div>
       <app-vbar-chart [labels]="visibleMinistryLabels()" [values]="visibleMinistryData()" color="#2f6fed"
-        [wrapXAxisLabels]="true" />
+        [wrapXAxisLabels]="true" [xLabelMaxLines]="12" [fitLabelsToWidth]="true" [growWithLabels]="true" />
     </div>
 
     <!-- Latest Policies Table -->

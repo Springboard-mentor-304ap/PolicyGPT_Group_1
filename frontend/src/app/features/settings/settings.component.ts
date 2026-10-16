@@ -1,4 +1,10 @@
-import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from "@angular/core";
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
 import { forkJoin, of } from "rxjs";
@@ -21,11 +27,7 @@ import { ConfirmModalComponent } from "../../shared/components/confirm-modal/con
 import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
 
 export type SettingsRole =
-  | "admin"
-  | "government"
-  | "citizen"
-  | "researcher"
-  | "organization";
+  "admin" | "government" | "citizen" | "researcher" | "organization";
 
 export interface SettingsSection {
   id: string;
@@ -53,7 +55,12 @@ export interface SettingsSection {
 @Component({
   selector: "app-settings",
   standalone: true,
-  imports: [CommonModule, BreadcrumbComponent, ConfirmModalComponent, LoadingIndicatorComponent],
+  imports: [
+    CommonModule,
+    BreadcrumbComponent,
+    ConfirmModalComponent,
+    LoadingIndicatorComponent,
+  ],
   templateUrl: "./settings.component.html",
   styleUrl: "./settings.component.scss",
 })
@@ -322,35 +329,6 @@ export class SettingsComponent implements OnInit {
   }
 
   // =========================================================
-  // COMING-SOON CONTROLS (UI only — no theme/i18n/persistence)
-  // =========================================================
-
-  showDarkModeSoon(): void {
-    this.toast.info(
-      "Coming Soon",
-      "Dark Mode is under development and will be available in a future update.",
-    );
-  }
-
-  showHindiSoon(): void {
-    this.toast.info("Coming Soon", "Hindi language support is coming soon.");
-  }
-
-  showTwoFactorSoon(): void {
-    this.toast.info(
-      "Coming Soon",
-      "Two-factor authentication is coming soon.",
-    );
-  }
-
-  showOtherSessionsSoon(): void {
-    this.toast.info(
-      "Coming Soon",
-      "Managing other sessions is coming soon.",
-    );
-  }
-
-  // =========================================================
   // SEARCH HISTORY (existing backend delete)
   // =========================================================
 
@@ -452,9 +430,10 @@ export class SettingsComponent implements OnInit {
     if (normalized === "ORGANIZATION" || normalized === "ORGANISATION") {
       return "Organization";
     }
-    return (
-      normalized.charAt(0) + normalized.slice(1).toLowerCase()
-    ).replace(/_/g, " ");
+    return (normalized.charAt(0) + normalized.slice(1).toLowerCase()).replace(
+      /_/g,
+      " ",
+    );
   }
 
   displayValue(value: string | null | undefined): string {

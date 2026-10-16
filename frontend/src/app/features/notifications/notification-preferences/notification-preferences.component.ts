@@ -10,6 +10,7 @@ import { Auth, AuthUser } from '../../../core/services/auth';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
+import { BreadcrumbComponent, BreadcrumbItem } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import {
   NotificationPreferences,
   NotificationFrequency,
@@ -48,7 +49,7 @@ export type ChannelToggleState = 'allOn' | 'allOff' | 'mixed';
 @Component({
   selector: 'app-notification-preferences',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent, LoadingIndicatorComponent],
+  imports: [CommonModule, FormsModule, RouterModule, ConfirmModalComponent, LoadingIndicatorComponent, BreadcrumbComponent],
   templateUrl: './notification-preferences.component.html',
   styleUrls: ['./notification-preferences.component.scss'],
 })
@@ -796,6 +797,16 @@ export class NotificationPreferencesComponent implements OnInit, OnDestroy {
     }
     const prefix = this.getRolePrefix();
     this.router.navigate([`/dashboard/${prefix}/notifications`]);
+  }
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.isGuest) return [];
+    const prefix = this.getRolePrefix();
+    return [
+      { label: 'Home', route: [`/dashboard/${prefix}`] },
+      { label: 'Notifications', route: [`/dashboard/${prefix}/notifications`] },
+      { label: 'Notification Preferences' },
+    ];
   }
 
   formatTypeLabel(type: string): string {

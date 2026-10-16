@@ -73,46 +73,6 @@ $danger-light: #fef2f2;
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.user-details-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 16px;
-  color: $muted;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.user-details-breadcrumb button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: $muted;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-
-  &:hover {
-    color: $blue;
-  }
-}
-
-.user-details-breadcrumb strong {
-  color: $heading;
-  font-weight: 600;
-}
-
-.user-details-breadcrumb .material-icons {
-  font-size: 16px;
-  color: #94a3b8;
-}
-
-/* =========================================================
    HEADER
 ========================================================= */
 
@@ -326,7 +286,6 @@ $danger-light: #fef2f2;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-
   span {
     width: 6px;
     height: 6px;
@@ -350,6 +309,49 @@ $danger-light: #fef2f2;
       background: #ef4444;
     }
   }
+}
+
+.status-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid $border;
+  background: $white;
+  color: $text;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+
+  .material-icons {
+    font-size: 16px;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: $heading;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 2px;
+  }
+}
+
+.status-toggle-error {
+  margin: 8px 0 0;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* =========================================================

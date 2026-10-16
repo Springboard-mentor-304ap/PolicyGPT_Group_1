@@ -24,6 +24,7 @@ import { BodyScrollLockService } from '../../core/services/body-scroll-lock.serv
 import { SearchableSelectComponent } from '../../shared/components/searchable-select/searchable-select.component';
 import { TicketConversationComponent } from '../../shared/components/ticket-conversation/ticket-conversation.component';
 import { LoadingIndicatorComponent } from '../../shared/components/loading-indicator/loading-indicator.component';
+import { BreadcrumbComponent, BreadcrumbItem } from '../../shared/components/breadcrumb/breadcrumb.component';
 import {
   FAQ,
   SupportRequest,
@@ -38,7 +39,7 @@ const TicketDetailsTimeoutMs = 10_000;
 @Component({
   selector: 'app-support',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent, SearchableSelectComponent, LoadingIndicatorComponent],
+  imports: [CommonModule, FormsModule, RouterModule, TicketConversationComponent, SearchableSelectComponent, LoadingIndicatorComponent, BreadcrumbComponent],
   templateUrl: './support.component.html',
   styleUrls: ['./support.component.scss'],
 })
@@ -552,6 +553,15 @@ export class SupportComponent implements OnInit, OnDestroy {
   navigateToHome(): void {
     const prefix = this.getRolePrefix();
     this.router.navigate([`/dashboard/${prefix}`]);
+  }
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.isGuest) return [];
+    const prefix = this.getRolePrefix();
+    return [
+      { label: 'Home', route: [`/dashboard/${prefix}`] },
+      { label: 'Support' },
+    ];
   }
 
   openTicket(ticket: SupportRequest): void {

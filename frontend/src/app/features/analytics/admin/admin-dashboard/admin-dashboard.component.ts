@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import { NotificationService } from "../../../../core/services/notification.service";
@@ -18,13 +18,14 @@ import {
   NotificationActivityItem,
 } from "../models/admin-analytics.models";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../shared/components/breadcrumb/breadcrumb.component";
 
 @Component({
   selector: "app-admin-dashboard",
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
+    BreadcrumbComponent,
     DateRangePickerComponent,
     LineChartComponent,
     DoughnutChartComponent,
@@ -42,6 +43,10 @@ export class AdminDashboardComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly isSampleData = this.dataService.isSampleData;
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [{ label: "Home", route: ["/dashboard/admin"] }, { label: "Analytics Overview" }];
+  }
 
   isLoading = signal<boolean>(true);
   hasLoaded = signal<boolean>(false);

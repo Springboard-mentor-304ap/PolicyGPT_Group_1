@@ -4,20 +4,7 @@
        PAGE HEADER
        ========================================================= -->
 
-    <nav class="breadcrumb" aria-label="Breadcrumb">
-        <button type="button" class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]"
-            (click)="$event.stopPropagation()">
-            {{ isAdmin ? 'Admin Dashboard' : 'Government Dashboard' }}
-        </button>
-
-        <span class="material-icons breadcrumb-chevron">chevron_right</span>
-
-        <span class="breadcrumb-current">Policies</span>
-
-        <span class="material-icons breadcrumb-chevron">chevron_right</span>
-
-        <span class="breadcrumb-current active">Manage Policies</span>
-    </nav>
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
     <header class="page-header">
         <div class="page-title-area">
@@ -28,34 +15,6 @@
                 Review, monitor and manage government policies through the official
                 policy administration workflow.
             </p>
-        </div>
-
-        <div class="header-actions">
-            @if (isAdmin) {
-            <button type="button" class="secondary-header-action deleted-action"
-                (click)="$event.stopPropagation(); openDeletedModal()">
-                <span class="material-icons">delete_sweep</span>
-                View Deleted Policies
-            </button>
-            }
-            @if (!isAdmin) {
-            <button type="button" class="secondary-header-action deleted-action"
-                (click)="$event.stopPropagation(); openGovtDeletedModal()">
-                <span class="material-icons">delete_sweep</span>
-                View Deleted Policies
-            </button>
-            }
-
-            <button type="button" class="secondary-header-action draft-action"
-                (click)="$event.stopPropagation(); openDraftsModal()">
-                <span class="material-icons">edit_note</span>
-                View Draft Policies
-            </button>
-
-            <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewPolicy()">
-                <span class="material-icons">add</span>
-                Add New Policy
-            </button>
         </div>
     </header>
 
@@ -74,7 +33,7 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-label">TOTAL POLICIES</span>
-                    <strong>{{ stats.total }}</strong>
+                    <strong>{{ filteredPolicies.length }}</strong>
                 </div>
             </article>
 
@@ -600,6 +559,38 @@
 
         </footer>
 
+    </section>
+
+    <!-- =========================================================
+       PAGE ACTIONS (above footer)
+       ========================================================= -->
+
+    <section class="bottom-actions" aria-label="Policy actions">
+        @if (isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Policies
+        </button>
+        }
+        @if (!isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openGovtDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Policies
+        </button>
+        }
+
+        <button type="button" class="secondary-header-action draft-action"
+            (click)="$event.stopPropagation(); openDraftsModal()">
+            <span class="material-icons">edit_note</span>
+            View Draft Policies
+        </button>
+
+        <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewPolicy()">
+            <span class="material-icons">add</span>
+            Add New Policy
+        </button>
     </section>
 
     <!-- Existing workflow modals -->

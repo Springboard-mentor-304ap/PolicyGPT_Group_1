@@ -2,12 +2,7 @@
     <!-- =========================================================
        BREADCRUMB & HEADER
        ========================================================= -->
-    <nav class="policy-create__breadcrumb" aria-label="Breadcrumb">
-        <a
-            [routerLink]="isAdmin ? ['/dashboard/admin/policies'] : ['/dashboard/government/policies/manage']">Policies</a>
-        <span class="separator">&gt;</span>
-        <span class="current">{{ isEditMode ? 'Edit Policy' : 'Add Policy' }}</span>
-    </nav>
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
     <div class="policy-create__header">
         <div class="policy-create__header-left">

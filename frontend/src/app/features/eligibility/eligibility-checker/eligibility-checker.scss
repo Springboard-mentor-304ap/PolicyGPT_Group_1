@@ -21,42 +21,6 @@
 }
 
 /* =========================================================
-   1. BREADCRUMB
-   ========================================================= */
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #64748b;
-
-  .breadcrumb-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: #64748b;
-
-    .breadcrumb-icon {
-      font-size: 16px;
-      color: #94a3b8;
-    }
-
-    &.current {
-      color: #0f172a;
-      font-weight: 600;
-    }
-  }
-
-  .separator {
-    color: #cbd5e1;
-    font-size: 13px;
-  }
-}
-
-/* =========================================================
    2. PAGE HEADER
    ========================================================= */
 

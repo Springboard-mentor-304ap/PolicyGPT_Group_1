@@ -117,11 +117,7 @@ export interface SupportUpdateItem {
   ],
   template: `
     <div class="admin-analytics-page" [attr.aria-busy]="loading()">
-      <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a routerLink="/dashboard/admin" class="breadcrumb-link">Dashboard</a>
-        <span class="chevron" aria-hidden="true">&gt;</span>
-        <span class="current" aria-current="page">Support Analytics</span>
-      </nav>
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
       <div class="page-header">
         <div class="header-left">
@@ -515,34 +511,6 @@ export interface SupportUpdateItem {
         .admin-analytics-page {
           padding: 20px 24px 32px;
         }
-      }
-      .breadcrumb {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 16px;
-        color: #64748b;
-        font-size: 13px;
-        font-weight: 500;
-      }
-      .breadcrumb-link {
-        color: #0879ed;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .breadcrumb-link:hover {
-        text-decoration: underline;
-      }
-      .chevron {
-        color: #94a3b8;
-        font-size: 13px;
-        line-height: 1;
-        user-select: none;
-      }
-      .current {
-        color: #111827;
-        font-weight: 600;
       }
       .page-header {
         display: flex;

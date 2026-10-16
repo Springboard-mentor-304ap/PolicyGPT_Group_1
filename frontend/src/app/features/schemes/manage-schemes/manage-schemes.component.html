@@ -4,20 +4,7 @@
        PAGE HEADER
        ========================================================= -->
 
-    <nav class="breadcrumb" aria-label="Breadcrumb">
-        <button type="button" class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]"
-            (click)="$event.stopPropagation()">
-            {{ isAdmin ? 'Admin Dashboard' : 'Government Dashboard' }}
-        </button>
-
-        <span class="material-icons breadcrumb-chevron">chevron_right</span>
-
-        <span class="breadcrumb-current">Schemes</span>
-
-        <span class="material-icons breadcrumb-chevron">chevron_right</span>
-
-        <span class="breadcrumb-current active">Manage Schemes</span>
-    </nav>
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
     <header class="page-header">
         <div class="page-title-area">
@@ -28,34 +15,6 @@
                 Review, monitor and manage government schemes through the official
                 scheme administration workflow.
             </p>
-        </div>
-
-        <div class="header-actions">
-            @if (isAdmin) {
-            <button type="button" class="secondary-header-action deleted-action"
-                (click)="$event.stopPropagation(); openDeletedModal()">
-                <span class="material-icons">delete_sweep</span>
-                View Deleted Schemes
-            </button>
-            }
-            @if (!isAdmin) {
-            <button type="button" class="secondary-header-action deleted-action"
-                (click)="$event.stopPropagation(); openGovtDeletedModal()">
-                <span class="material-icons">delete_sweep</span>
-                View Deleted Schemes
-            </button>
-            }
-
-            <button type="button" class="secondary-header-action draft-action"
-                (click)="$event.stopPropagation(); openDraftsModal()">
-                <span class="material-icons">edit_note</span>
-                View Draft Schemes
-            </button>
-
-            <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewScheme()">
-                <span class="material-icons">add</span>
-                Add New Scheme
-            </button>
         </div>
     </header>
 
@@ -74,7 +33,7 @@
                 </div>
                 <div class="stat-content">
                     <span class="stat-label">TOTAL SCHEMES</span>
-                    <strong>{{ stats.total }}</strong>
+                    <strong>{{ filteredSchemes.length }}</strong>
                 </div>
             </article>
 
@@ -625,6 +584,38 @@
 
         </footer>
 
+    </section>
+
+    <!-- =========================================================
+       PAGE ACTIONS (above footer)
+       ========================================================= -->
+
+    <section class="bottom-actions" aria-label="Scheme actions">
+        @if (isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Schemes
+        </button>
+        }
+        @if (!isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openGovtDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Schemes
+        </button>
+        }
+
+        <button type="button" class="secondary-header-action draft-action"
+            (click)="$event.stopPropagation(); openDraftsModal()">
+            <span class="material-icons">edit_note</span>
+            View Draft Schemes
+        </button>
+
+        <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewScheme()">
+            <span class="material-icons">add</span>
+            Add New Scheme
+        </button>
     </section>
 
     <!-- Existing workflow modals -->

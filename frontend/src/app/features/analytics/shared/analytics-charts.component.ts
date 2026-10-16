@@ -730,21 +730,27 @@ export class AnalyticsLineChartComponent {
       .donut-legend {
         list-style: none;
         margin: 0;
-        padding: 0;
+        padding: 0 4px 0 0;
         flex: 1;
         min-width: 180px;
+        max-height: 220px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
         display: flex;
         flex-direction: column;
         gap: 6px;
       }
       .donut-legend li {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
         font-size: 12px;
         padding: 5px 8px;
         border-radius: 6px;
         transition: background 0.15s ease;
+        min-width: 0;
       }
       .donut-legend--active {
         background: #f8fafc;
@@ -754,6 +760,7 @@ export class AnalyticsLineChartComponent {
         height: 9px;
         border-radius: 50%;
         flex-shrink: 0;
+        margin-top: 4px;
       }
       .donut-legend-label {
         color: #334155;
@@ -761,15 +768,21 @@ export class AnalyticsLineChartComponent {
         font-size: 13px;
         flex: 1;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        white-space: normal;
       }
       .donut-legend-value {
         color: #111827;
         font-weight: 600;
         font-size: 12px;
         white-space: nowrap;
+        flex-shrink: 0;
+      }
+      @media (max-width: 640px) {
+        .donut-legend {
+          flex-basis: 100%;
+          max-height: 180px;
+        }
       }
     `,
   ],
@@ -1035,6 +1048,39 @@ export interface GroupedBarSeries {
         font-size: 13px;
         text-align: center;
         margin: 8px 0 0;
+      }
+      /* Tablet/mobile: wrap long category names onto centered lines so
+         neighbouring labels never overlap or merge. Desktop keeps the
+         single-line space-between labels exactly as before. Tooltips
+         and <title> tips still expose the full untruncated name. */
+      @media (max-width: 1024px) {
+        .x-labels {
+          margin-top: 8px;
+        }
+        .x-labels span {
+          flex: 1 1 0;
+          min-width: 0;
+          text-align: center;
+          font-size: 11px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+      }
+      @media (max-width: 480px) {
+        .x-labels span {
+          font-size: 10px;
+        }
+      }
+      /* Crowded charts scroll inside the card on small screens instead
+         of squeezing bars or pushing the page sideways. */
+      @media (max-width: 640px) {
+        .bars-wrap {
+          overflow-x: auto;
+        }
+        .bars-svg,
+        .x-labels {
+          min-width: 560px;
+        }
       }
     `,
   ],

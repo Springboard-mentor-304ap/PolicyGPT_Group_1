@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { SchemeService } from '../../../core/services/scheme.service';
 import { PolicyService } from '../../../core/services/policy.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SchemeCreate } from '../../../core/models/scheme.model';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { BreadcrumbComponent, BreadcrumbItem } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import {
   SCHEME_CATEGORIES,
@@ -19,7 +20,7 @@ import {
 @Component({
   selector: 'app-add-scheme',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent, ConfirmModalComponent],
   templateUrl: './add-scheme.component.html',
   styleUrls: ['./add-scheme.component.scss'],
 })
@@ -32,6 +33,14 @@ export class AddSchemeComponent implements OnInit {
   // Role
   isAdmin = false;
   rolePrefix = 'government';
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: ['/dashboard', this.rolePrefix] },
+      { label: 'Schemes', route: ['/dashboard', this.rolePrefix, 'schemes'] },
+      { label: 'Add Scheme' },
+    ];
+  }
 
   // Forms
   schemeForm!: FormGroup;

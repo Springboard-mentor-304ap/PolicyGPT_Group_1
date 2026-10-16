@@ -12,6 +12,7 @@ import { ToastService } from "../../../core/services/toast.service";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 import { QuotedNamesComponent } from "../../../shared/components/quoted-names/quoted-names.component";
 import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../shared/components/breadcrumb/breadcrumb.component";
 import { visiblePageWindow } from "../../../core/utils/pagination.util";
 import {
   AdminNotificationStats,
@@ -26,7 +27,7 @@ import {
 @Component({
   selector: "app-notification-list",
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent, QuotedNamesComponent, LoadingIndicatorComponent],
+  imports: [CommonModule, FormsModule, RouterModule, SearchableSelectComponent, QuotedNamesComponent, LoadingIndicatorComponent, BreadcrumbComponent],
   templateUrl: "./notification-list.component.html",
   styleUrls: ["./notification-list.component.scss"],
 })
@@ -884,6 +885,22 @@ export class NotificationListComponent implements OnInit, OnDestroy {
   navigateToHome(): void {
     const prefix = this.getRolePrefix();
     this.router.navigate([`/dashboard/${prefix}`]);
+  }
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.isGuest) return [];
+    const prefix = this.getRolePrefix();
+    if (this.selectedNotification) {
+      return [
+        { label: "Home", route: [`/dashboard/${prefix}`] },
+        { label: "Notifications", route: [`/dashboard/${prefix}/notifications`] },
+        { label: this.selectedNotification.title },
+      ];
+    }
+    return [
+      { label: "Home", route: [`/dashboard/${prefix}`] },
+      { label: "Notifications" },
+    ];
   }
 
   navigateToPreferences(): void {

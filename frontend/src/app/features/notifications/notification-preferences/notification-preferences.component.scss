@@ -61,51 +61,6 @@ $red-border: #fecaca;
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-.preferences-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $text-muted;
-
-  button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: $blue;
-    font-size: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    min-height: 24px;
-    display: inline-flex;
-    align-items: center;
-
-    &:hover {
-      text-decoration: underline;
-    }
-
-    &:focus-visible {
-      outline: 2px solid $blue;
-      border-radius: 4px;
-    }
-  }
-
-  .material-icons {
-    font-size: 13px;
-    color: $text-light;
-  }
-
-  strong {
-    color: $text-heading;
-    font-weight: 600;
-  }
-}
-
-/* =========================================================
    PAGE HEADER
 ========================================================= */
 .preferences-header {
@@ -304,7 +259,6 @@ $red-border: #fecaca;
   gap: 24px;
   align-items: start;
   width: 100%;
-  max-width: 1320px;
   box-sizing: border-box;
 
   @media (max-width: 1100px) {
@@ -1276,6 +1230,21 @@ $red-border: #fecaca;
    Tablet (< 768px), Small Laptop / Foldable (< 1024px)
 ========================================================= */
 
+/* =========================================================
+   TABLET LANDSCAPE (< 1024px): keep notification action
+   buttons grouped at the right edge.
+========================================================= */
+@media (max-width: 1024px) {
+  .actions-card {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+
+    button {
+      flex: 0 0 auto;
+    }
+  }
+}
+
 @media (max-width: 900px) {
   .preferences-page {
     padding: 20px 16px 40px;
@@ -1303,6 +1272,15 @@ $red-border: #fecaca;
 
     .header-status-area {
       align-self: flex-start;
+    }
+  }
+
+  .actions-card {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+
+    button {
+      flex: 0 0 auto;
     }
   }
 
@@ -1422,11 +1400,14 @@ $red-border: #fecaca;
 
   .actions-card {
     padding: 12px 14px;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 10px;
 
     button {
-      width: 100%;
+      flex: 0 0 auto;
+      width: auto;
       min-height: 42px;
     }
   }

@@ -8,7 +8,7 @@ import {
   OnInit,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { finalize, take } from "rxjs";
 import { SchemeService } from "../../../core/services/scheme.service";
 import { Auth } from "../../../core/services/auth";
@@ -26,6 +26,7 @@ import { DeletedSchemesModalComponent } from "../deleted-schemes-modal/deleted-s
 import { GovtDeletedSchemesModalComponent } from "../govt-deleted-schemes/govt-deleted-schemes-modal.component";
 import { DraftSchemesModalComponent } from "../draft-schemes-modal/draft-schemes-modal.component";
 import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../shared/components/breadcrumb/breadcrumb.component";
 import {
   CategoryInput,
   getCategoryIconName,
@@ -60,7 +61,7 @@ export interface SchemeTableItem {
   imports: [
     CommonModule,
     FormsModule,
-    RouterLink,
+    BreadcrumbComponent,
     OverlayModule,
     ConfirmModalComponent,
     ReasonModalComponent,
@@ -264,6 +265,14 @@ export class ManageSchemesComponent implements OnInit, OnDestroy {
   }
   get rolePrefix(): string {
     return this.isAdmin ? "admin" : "government";
+  }
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Schemes", route: ["/dashboard", this.rolePrefix, "schemes"] },
+      { label: "Manage Schemes" },
+    ];
   }
 
   ngOnInit(): void {

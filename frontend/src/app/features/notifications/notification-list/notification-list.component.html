@@ -3,15 +3,9 @@
   <!-- =========================================================
      BREADCRUMB
      ========================================================= -->
-  <nav *ngIf="!isGuest" class="notifications-breadcrumb" aria-label="Breadcrumb">
-    <button type="button" (click)="navigateToHome()">Home</button>
-    <span class="material-icons" aria-hidden="true">chevron_right</span>
-    <button type="button" (click)="backToList()">Notifications</button>
-    <ng-container *ngIf="selectedNotification">
-      <span class="material-icons" aria-hidden="true">chevron_right</span>
-      <strong class="breadcrumb-current">{{ selectedNotification.title }}</strong>
-    </ng-container>
-  </nav>
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
 
   <!-- =========================================================
      GUEST VIEW (AUTHENTICATION PROMPT - Section 11, 60)

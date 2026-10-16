@@ -257,6 +257,53 @@ describe('ManageSchemesComponent', () => {
     expect(component.filteredSchemes.length).toBe(4);
   });
 
+  it('TOTAL card shows filtered count across pages and updates with filters', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockAdminUser);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const totalCard = (): number => {
+      const cards = Array.from(
+        fixture.nativeElement.querySelectorAll('.stat-item'),
+      ) as HTMLElement[];
+      const total = cards.find((c) =>
+        c.textContent?.includes('TOTAL SCHEMES'),
+      ) as HTMLElement;
+      return Number(total.querySelector('strong')?.textContent);
+    };
+
+    // No filters: all loaded role-visible rows (not the analytics total).
+    expect(totalCard()).toBe(component.filteredSchemes.length);
+
+    // Search narrows both table and card together.
+    component.searchText = 'Scheme A';
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(component.filteredSchemes.length).toBe(1);
+    expect(totalCard()).toBe(1);
+
+    // Status filter narrows both together (clears search first).
+    component.searchText = '';
+    component.selectedStatus = 'PENDING_APPROVAL';
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(totalCard()).toBe(
+      component.schemes.filter((s) => s.status === 'PENDING_APPROVAL').length,
+    );
+
+    // Empty result shows zero, not a stale total.
+    component.searchText = 'zzz-no-such-scheme';
+    component.selectedStatus = '';
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(totalCard()).toBe(0);
+  });
+
   // Test 6: Workflow approval by Admin
   it('6. Admin approving a scheme should trigger approveScheme and reload data', () => {
     vi.spyOn(authService, 'getUserRole').mockReturnValue('ADMIN');

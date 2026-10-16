@@ -3,27 +3,11 @@
     <!-- MAIN CONTENT -->
     <main class="users-content">
 
-        <!-- BREADCRUMB -->
-        <div class="users-breadcrumb">
-            <button type="button" (click)="goToDashboard()">
-                Admin Dashboard
-            </button>
-            <span class="material-icons">chevron_right</span>
-            <button type="button" (click)="goToViewUsers()">
-                Users
-            </button>
-            <span class="material-icons">chevron_right</span>
-            <strong>
-                Remove User
-            </strong>
-        </div>
+        <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
         <!-- PAGE HEADER -->
         <section class="users-page-header">
             <div>
-                <p class="users-page-header__eyebrow">
-                    USER MANAGEMENT
-                </p>
                 <h1>
                     Remove User
                 </h1>

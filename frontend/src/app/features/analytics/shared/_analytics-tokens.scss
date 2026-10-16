@@ -275,3 +275,53 @@ $analytics-label-font-size: 13.5px;
     }
   }
 }
+
+// Tablet page-header controls (768px-1024px, all roles): the title
+// stays left while the date-range dropdown and Download Report button
+// stay together on the right of the same row. When the pair cannot fit
+// beside the heading, flex wrapping moves them to their own row that
+// remains right-aligned (margin-left: auto) instead of starting at the
+// left edge, and max-width keeps everything inside the viewport.
+// Applies to both header variants (`.analytics-header` and
+// `.page-header`); desktop, laptop, and mobile rules are untouched.
+@media (min-width: 768px) and (max-width: 1024px) {
+  .analytics-header,
+  .page-header {
+    > .header-left {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    > .header-right {
+      margin-left: auto;
+      justify-content: flex-end;
+      align-items: center;
+      max-width: 100%;
+      min-width: 0;
+    }
+  }
+}
+
+// Mobile page-header controls (all roles): the date-range dropdown and
+// Download Report button stack vertically and hug the right edge with
+// consistent spacing instead of stretching full width. The doubled class
+// outranks the per-page mobile rules so one shared block covers every
+// role; tablet, laptop, and desktop rules are untouched. Control heights,
+// typography, icons, borders, colors, and click behavior are unchanged.
+@media (max-width: 768px) {
+  .analytics-header.analytics-header > .header-right,
+  .page-header.page-header > .header-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .analytics-header.analytics-header > .header-right > *,
+  .page-header.page-header > .header-right > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+}

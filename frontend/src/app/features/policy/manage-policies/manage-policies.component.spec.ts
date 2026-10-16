@@ -1097,6 +1097,58 @@ describe("ManagePoliciesComponent", () => {
     expect(pill.textContent).toContain("Approved");
   });
 
+  // Test: TOTAL POLICIES card reflects the filtered table dataset
+  it("TOTAL card shows filtered count across pages and updates with filters", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("ADMIN");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockAdminUser);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const totalCard = (): number => {
+      const cards = Array.from(
+        fixture.nativeElement.querySelectorAll(".stat-item"),
+      ) as HTMLElement[];
+      const total = cards.find((c) =>
+        c.textContent?.includes("TOTAL POLICIES"),
+      ) as HTMLElement;
+      return Number(total.querySelector("strong")?.textContent);
+    };
+
+    // No filters: all loaded role-visible rows (not the analytics total).
+    expect(totalCard()).toBe(component.filteredPolicies.length);
+
+    // Search narrows both table and card together.
+    component.searchText = "Policy A";
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(component.filteredPolicies.length).toBe(1);
+    expect(totalCard()).toBe(1);
+
+    // Status filter narrows both together (clears search first).
+    component.searchText = "";
+    component.selectedStatus = "APPROVED";
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(totalCard()).toBe(
+      component.policies.filter((p) => p.status === "APPROVED").length,
+    );
+
+    // Empty result shows zero, not a stale total.
+    component.searchText = "no-such-policy-zzz";
+    component.selectedStatus = "";
+    component.applyFilters();
+    fixture.detectChanges();
+    expect(totalCard()).toBe(0);
+  });
+
   // Test: Government Official DELETE_REQUESTED dropdown shows
   // View Details + View Deletion Reason (no approve/reject actions)
   it("Govt DELETE_REQUESTED menu shows View Details and View Deletion Reason only", () => {

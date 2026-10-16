@@ -1,11 +1,9 @@
 <div class="support-page" [class.support-page--guest]="isGuest">
 
   <!-- BREADCRUMB (authenticated roles only; hidden for guests) -->
-  <nav *ngIf="!isGuest" class="support-breadcrumb" aria-label="Breadcrumb">
-    <button type="button" (click)="navigateToHome()">Home</button>
-    <span class="material-icons" aria-hidden="true">chevron_right</span>
-    <strong>Support</strong>
-  </nav>
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
 
   <!-- COMPACT HEADER -->
   <header class="support-header">

@@ -181,6 +181,41 @@ $white: #ffffff;
   }
 }
 
+/* Mobile header (max-width: 480px): two rows — title + count badge
+   on the first line, mark-all-as-read left and gear right on the
+   second. Placed after the base header rules so the mobile
+   declarations win tied-specificity conflicts. Desktop, tablet,
+   and laptop layouts are untouched. */
+@media (max-width: 480px) {
+  .dropdown-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .dropdown-header .header-title {
+    min-width: 0;
+    max-width: 100%;
+
+    h3 {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .header-badge {
+      min-width: 0;
+      overflow-wrap: break-word;
+    }
+  }
+
+  .dropdown-header .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
 .dropdown-list {
   max-height: 320px;
   min-height: 0;

@@ -13,8 +13,10 @@ import {
   Validators,
 } from "@angular/forms";
 
-import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { HttpEventType } from "@angular/common/http";
+
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { PolicyService } from "../../../core/services/policy.services";
@@ -143,7 +145,7 @@ export const ageRangeValidator: ValidatorFn = (
     CommonModule,
     ReactiveFormsModule,
     FormsModule,
-    RouterLink,
+    BreadcrumbComponent,
     SearchableSelectComponent,
     ConfirmModalComponent,
   ],
@@ -192,6 +194,18 @@ export class AddPolicyComponent implements OnInit {
 
   isAdmin = false;
   rolePrefix: "admin" | "government" = "government";
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const home: BreadcrumbItem = { label: "Home", route: ["/dashboard", this.rolePrefix] };
+    const policiesRoute = this.isAdmin
+      ? ["/dashboard/admin/policies"]
+      : ["/dashboard/government/policies/manage"];
+    return [
+      home,
+      { label: "Policies", route: policiesRoute },
+      { label: this.isEditMode ? "Edit Policy" : "Add Policy" },
+    ];
+  }
 
   /* ============================================================
      FORM

@@ -15,6 +15,7 @@ import {
 import { Auth, AuthUser } from "../../../../../core/services/auth";
 import { ToastService } from "../../../../../core/services/toast.service";
 import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 export type UserRole =
   | "CITIZEN"
@@ -40,7 +41,7 @@ export interface AdminUser {
 @Component({
   selector: "app-remove-user",
   standalone: true,
-  imports: [CommonModule, FormsModule, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent, BreadcrumbComponent],
   templateUrl: "./remove-user.component.html",
   styleUrls: ["./remove-user.component.scss"],
 })
@@ -631,6 +632,18 @@ export class RemoveUserComponent implements OnInit {
       default:
         return "";
     }
+  }
+
+  // =======================================================
+  // BREADCRUMB
+  // =======================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Users", route: ["/dashboard/admin/users"] },
+      { label: "Remove User" },
+    ];
   }
 
   goToDashboard(): void {

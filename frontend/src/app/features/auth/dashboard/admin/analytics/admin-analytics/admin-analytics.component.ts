@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { AnalyticsService } from "../../../../../../core/services/analytics.service";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface DashboardAnalytics {
   policies: {
@@ -59,7 +60,7 @@ interface UserAnalytics {
 @Component({
   selector: "app-admin-analytics",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./admin-analytics.component.html",
   styleUrls: ["./admin-analytics.component.scss"],
 })
@@ -83,6 +84,10 @@ export class AdminAnalyticsComponent implements OnInit {
 
   activityAvailable = false;
   recentUserActivity: any[] = [];
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [{ label: "Home", route: ["/dashboard/admin"] }, { label: "Analytics" }];
+  }
 
   constructor(private readonly analyticsService: AnalyticsService) {}
 

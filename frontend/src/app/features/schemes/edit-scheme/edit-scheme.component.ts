@@ -8,7 +8,7 @@ import {
   Validators,
   FormsModule,
 } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { Auth, AuthUser } from '../../../core/services/auth';
 import { SchemeService } from '../../../core/services/scheme.service';
@@ -16,6 +16,7 @@ import { PolicyService } from '../../../core/services/policy.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SchemeResponse, SchemeUpdate } from '../../../core/models/scheme.model';
 import { SearchableSelectComponent } from '../../../shared/components/searchable-select/searchable-select.component';
+import { BreadcrumbComponent, BreadcrumbItem } from '../../../shared/components/breadcrumb/breadcrumb.component';
 import { ConfirmModalComponent } from '../../../shared/components/confirm-modal/confirm-modal.component';
 import {
   SCHEME_CATEGORIES,
@@ -27,7 +28,7 @@ import {
 @Component({
   selector: 'app-edit-scheme',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink, SearchableSelectComponent, ConfirmModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent, ConfirmModalComponent],
   templateUrl: './edit-scheme.component.html',
   styleUrls: ['./edit-scheme.component.scss'],
 })
@@ -49,6 +50,15 @@ export class EditSchemeComponent implements OnInit {
   // Role
   isAdmin = false;
   rolePrefix = 'government';
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: 'Home', route: ['/dashboard', this.rolePrefix] },
+      { label: 'Schemes', route: ['/dashboard', this.rolePrefix, 'schemes'] },
+      { label: 'Manage Schemes', route: ['/dashboard', this.rolePrefix, 'schemes', 'manage'] },
+      { label: 'Edit Scheme' },
+    ];
+  }
 
   // Forms
   schemeForm!: FormGroup;

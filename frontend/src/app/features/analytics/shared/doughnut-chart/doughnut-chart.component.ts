@@ -53,21 +53,96 @@ const centerTextPlugin = {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="chart-container" style="position: relative; height: 260px; width: 100%;">
-      @if (labels.length === 0 || data.length === 0) {
-        <div class="chart-empty-state">
-          <span class="material-icons">pie_chart</span>
-          <p>No distribution data available.</p>
-        </div>
+    <div class="doughnut-layout">
+      <div class="chart-container">
+        @if (labels.length === 0 || data.length === 0) {
+          <div class="chart-empty-state">
+            <span class="material-icons">pie_chart</span>
+            <p>No distribution data available.</p>
+          </div>
+        }
+        <canvas #chartCanvas [style.display]="labels.length === 0 ? 'none' : 'block'"></canvas>
+      </div>
+      @if (labels.length > 0 && data.length > 0) {
+        <ul class="doughnut-legend" aria-label="Chart categories">
+          @for (label of labels; track label; let i = $index) {
+            <li [attr.title]="label">
+              <span class="legend-dot" [style.background]="colors[i % colors.length]"></span>
+              <span class="legend-label">{{ label }}</span>
+            </li>
+          }
+        </ul>
       }
-      <canvas #chartCanvas [style.display]="labels.length === 0 ? 'none' : 'block'"></canvas>
     </div>
   `,
   styles: [`
+    .doughnut-layout {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
     .chart-container {
       position: relative;
-      width: 100%;
+      flex: 1 1 auto;
+      min-width: 0;
       height: 260px;
+    }
+    .chart-container canvas {
+      max-width: 100%;
+    }
+    .doughnut-legend {
+      list-style: none;
+      margin: 0;
+      padding: 0 4px 0 0;
+      flex: 0 1 180px;
+      min-width: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .doughnut-legend li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      min-width: 0;
+    }
+    .doughnut-legend .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .doughnut-legend .legend-label {
+      flex: 1;
+      min-width: 0;
+      color: #334155;
+      font-family: Roboto, Inter, sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+      white-space: normal;
+    }
+    @media (max-width: 640px) {
+      .doughnut-layout {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .chart-container {
+        flex: none;
+        width: 100%;
+      }
+      .doughnut-legend {
+        flex: none;
+        width: 100%;
+        max-height: 160px;
+      }
     }
     .chart-empty-state {
       display: flex;
@@ -212,13 +287,7 @@ export class DoughnutChartComponent implements OnChanges, OnDestroy {
         hover: CHART_HOVER_OPTIONS,
         plugins: {
           legend: {
-            display: true,
-            position: 'right',
-            labels: {
-              usePointStyle: true,
-              boxWidth: 8,
-              font: { family: 'Roboto, Inter, sans-serif', size: 12, weight: 500 }
-            }
+            display: false
           },
           tooltip: {
             enabled: true,

@@ -3,31 +3,11 @@
     <!-- MAIN CONTENT -->
     <main class="user-details-content">
 
-        <!-- BREADCRUMB -->
-        <div class="user-details-breadcrumb">
-            <button type="button" (click)="goToDashboard()">
-                Admin Dashboard
-            </button>
-            <span class="material-icons">chevron_right</span>
-            <button type="button" (click)="goToViewUsers()">
-                Users
-            </button>
-            <span class="material-icons">chevron_right</span>
-            <button type="button" (click)="goToViewUsers()">
-                View Users
-            </button>
-            <span class="material-icons">chevron_right</span>
-            <strong>
-                User Details
-            </strong>
-        </div>
+        <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
         <!-- HEADER & BACK ACTION -->
         <section class="user-details-header">
             <div>
-                <p class="user-details-header__eyebrow">
-                    USER MANAGEMENT
-                </p>
                 <h1>
                     User Details
                 </h1>
@@ -89,6 +69,14 @@
                             <span></span>
                             {{ user.status }}
                         </span>
+                        <button type="button" class="status-toggle-btn" (click)="toggleUserStatus()"
+                            [disabled]="isTogglingStatus"
+                            [attr.aria-label]="user.status === 'Active' ? 'Deactivate user' : 'Reactivate user'">
+                            <span class="material-icons">{{ user.status === 'Active' ? 'block' : 'check_circle'
+                                }}</span>
+                            {{ isTogglingStatus ? 'Updating...' : (user.status === 'Active' ? 'Deactivate' :
+                            'Reactivate') }}
+                        </button>
                     </div>
 
                     <div class="profile-card__contact-row">
@@ -106,6 +94,9 @@
                             : '' }}
                         </span>
                     </div>
+                    @if (statusToggleError) {
+                    <p class="status-toggle-error" role="alert">{{ statusToggleError }}</p>
+                    }
                 </div>
             </div>
 

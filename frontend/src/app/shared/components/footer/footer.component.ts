@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
@@ -27,11 +27,9 @@ export class FooterComponent implements OnInit, OnDestroy {
   readonly currentPath = signal<string>('');
   private routerEventsSub?: Subscription;
 
-  constructor(
-    private readonly authService: Auth,
-    private readonly loginPrompt: LoginPromptService,
-    private readonly router: Router,
-  ) {}
+  private readonly authService = inject(Auth);
+  private readonly loginPrompt = inject(LoginPromptService);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
     const role = this.authService.getUserRole();
@@ -125,7 +123,7 @@ export class FooterComponent implements OnInit, OnDestroy {
   getPoliciesRoute(): string {
     const r = this.userRole().toLowerCase();
     if (r === 'admin' || r === 'administrator') return '/dashboard/admin/policies';
-    if (r === 'government_official' || r === 'government') return '/government/policies';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/policies/search';
     if (r === 'researcher') return '/dashboard/researcher/policies/search';
     if (r === 'organization' || r === 'organisation') return '/dashboard/organization/policies';
     if (r === 'citizen') return '/dashboard/citizen/policies/search';
@@ -135,7 +133,7 @@ export class FooterComponent implements OnInit, OnDestroy {
   getSchemesRoute(): string {
     const r = this.userRole().toLowerCase();
     if (r === 'admin' || r === 'administrator') return '/dashboard/admin/schemes';
-    if (r === 'government_official' || r === 'government') return '/government/schemes';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/schemes';
     if (r === 'researcher') return '/dashboard/researcher/schemes';
     if (r === 'organization' || r === 'organisation') return '/dashboard/organization/schemes';
     if (r === 'citizen') return '/dashboard/citizen/schemes';
@@ -148,11 +146,159 @@ export class FooterComponent implements OnInit, OnDestroy {
     return '/eligibility';
   }
 
+  /** Support desk per role (verified routes; admin manages tickets). */
+  getSupportRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/support-requests';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/support';
+    if (r === 'researcher') return '/dashboard/researcher/support';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization/support';
+    if (r === 'citizen') return '/dashboard/citizen/support';
+    return '/dashboard/guest/support';
+  }
+
   getCompareRoute(): string {
     const r = this.userRole().toLowerCase();
     if (r === 'admin' || r === 'administrator') return '/dashboard/admin/compare';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/compare';
     if (r === 'researcher') return '/dashboard/researcher/compare';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization/compare';
     if (r === 'citizen') return '/dashboard/citizen/compare';
     return '/compare';
   }
+
+  /** Dashboard home for the current role (verified dashboard routes). */
+  getDashboardRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government';
+    if (r === 'researcher') return '/dashboard/researcher';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization';
+    if (r === 'citizen') return '/dashboard/citizen';
+    return '/dashboard/guest';
+  }
+
+  /** Saved items (Citizen / Researcher / Organization dashboards only). */
+  getSavedRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'researcher') return '/dashboard/researcher/saved';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization/saved';
+    return '/dashboard/citizen/saved';
+  }
+
+  /** Role analytics overview (verified per-role analytics routes). */
+  getAnalyticsRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/analytics';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/analytics';
+    if (r === 'researcher') return '/dashboard/researcher/analytics';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization/analytics';
+    return '/dashboard/citizen/analytics';
+  }
+
+  /** Reports (Government and Admin dashboards only). */
+  getReportsRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/reports';
+    return '/dashboard/government/reports';
+  }
+
+  getUsersRoute(): string {
+    return '/dashboard/admin/users';
+  }
+
+  getManagePoliciesRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/policies/manage';
+    return '/dashboard/government/policies/manage';
+  }
+
+  getManageSchemesRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/schemes/manage';
+    return '/dashboard/government/schemes/manage';
+  }
+
+  getNotificationsRoute(): string {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') return '/dashboard/admin/notifications';
+    if (r === 'government_official' || r === 'government') return '/dashboard/government/notifications';
+    if (r === 'researcher') return '/dashboard/researcher/notifications';
+    if (r === 'organization' || r === 'organisation') return '/dashboard/organization/notifications';
+    return '/dashboard/citizen/notifications';
+  }
+
+  /**
+   * Role-specific "Portal Services" column. Every route below was verified
+   * against the dashboard route definitions; roles only see options their
+   * dashboards actually serve.
+   */
+  getServiceLinks(): FooterLink[] {
+    const r = this.userRole().toLowerCase();
+    if (r === 'admin' || r === 'administrator') {
+      return [
+        { label: 'Admin Dashboard', icon: 'dashboard', route: this.getDashboardRoute(), sections: [] },
+        { label: 'User Management', icon: 'group', route: this.getUsersRoute(), sections: ['users'] },
+        { label: 'Manage Policies', icon: 'description', route: this.getManagePoliciesRoute(), sections: ['policies'] },
+        { label: 'Manage Schemes', icon: 'account_balance', route: this.getManageSchemesRoute(), sections: ['schemes'] },
+        { label: 'Analytics', icon: 'analytics', route: this.getAnalyticsRoute(), sections: ['analytics'] },
+        { label: 'Reports', icon: 'assessment', route: this.getReportsRoute(), sections: ['reports'] },
+      ];
+    }
+    if (r === 'government_official' || r === 'government' || r === 'govt') {
+      return [
+        { label: 'Government Dashboard', icon: 'account_balance', route: this.getDashboardRoute(), sections: [] },
+        { label: 'Manage Policies', icon: 'description', route: this.getManagePoliciesRoute(), sections: ['policies'] },
+        { label: 'Manage Schemes', icon: 'account_balance', route: this.getManageSchemesRoute(), sections: ['schemes'] },
+        { label: 'Analytics', icon: 'analytics', route: this.getAnalyticsRoute(), sections: ['analytics'] },
+        { label: 'Reports', icon: 'assessment', route: this.getReportsRoute(), sections: ['reports'] },
+      ];
+    }
+    if (r === 'researcher') {
+      return [
+        { label: 'Search Policies', icon: 'chevron_right', route: this.getPoliciesRoute(), sections: ['policies'] },
+        { label: 'Search Public Schemes', icon: 'chevron_right', route: this.getSchemesRoute(), sections: ['schemes'] },
+        { label: 'Research Analytics', icon: 'analytics', route: this.getAnalyticsRoute(), sections: ['analytics'] },
+        { label: 'Compare Policies & Schemes', icon: 'chevron_right', route: this.getCompareRoute(), sections: ['compare'] },
+        { label: 'Saved Items', icon: 'chevron_right', route: this.getSavedRoute(), sections: ['saved'] },
+      ];
+    }
+    if (r === 'organization' || r === 'organisation') {
+      return [
+        { label: 'Search Policies', icon: 'chevron_right', route: this.getPoliciesRoute(), sections: ['policies'] },
+        { label: 'Search Public Schemes', icon: 'chevron_right', route: this.getSchemesRoute(), sections: ['schemes'] },
+        { label: 'Analytics', icon: 'analytics', route: this.getAnalyticsRoute(), sections: ['analytics'] },
+        { label: 'Compare Policies & Schemes', icon: 'chevron_right', route: this.getCompareRoute(), sections: ['compare'] },
+        { label: 'Saved Items', icon: 'chevron_right', route: this.getSavedRoute(), sections: ['saved'] },
+      ];
+    }
+    return [
+      { label: 'Search Policies', icon: 'chevron_right', route: this.getPoliciesRoute(), sections: ['policies'] },
+      { label: 'Search Public Schemes', icon: 'chevron_right', route: this.getSchemesRoute(), sections: ['schemes'] },
+      { label: 'Eligibility Checker', icon: 'chevron_right', route: this.getEligibilityRoute(), sections: ['eligibility'] },
+      { label: 'Compare Policies & Schemes', icon: 'chevron_right', route: this.getCompareRoute(), sections: ['compare'] },
+      { label: 'Saved Items', icon: 'chevron_right', route: this.getSavedRoute(), sections: ['saved'] },
+    ];
+  }
+
+  /** Role-specific "Help & Grievances" column (verified routes only). */
+  getHelpLinks(): FooterLink[] {
+    const r = this.userRole().toLowerCase();
+    const isAdmin = r === 'admin' || r === 'administrator';
+    const supportLabel = isAdmin ? 'Support Requests' : 'Citizen Support Desk';
+    return [
+      { label: 'Notifications', icon: 'notifications_none', route: this.getNotificationsRoute(), sections: ['notifications'] },
+      { label: 'Feedback & Grievances', icon: 'rate_review', route: this.getFeedbackRoute(), sections: ['feedback'] },
+      { label: 'Frequently Asked Questions', icon: 'help_outline', route: this.getFaqRoute(), sections: ['faqs'] },
+      { label: supportLabel, icon: 'support_agent', route: this.getSupportRoute(), sections: ['support'] },
+    ];
+  }
+}
+
+/** Single footer navigation entry rendered in a link column. */
+export interface FooterLink {
+  label: string;
+  icon: string;
+  route: string;
+  sections: string[];
 }

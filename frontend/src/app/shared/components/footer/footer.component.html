@@ -27,18 +27,18 @@
         </button>
       </div>
       } @else {
-      <div class="footer-emblem-wrap">
-        <div class="emblem-seal" aria-hidden="true">
-          <span class="material-icons">account_balance</span>
+      <div class="footer-brand">
+        <div class="footer-brand__row">
+          <img src="/images/logo.png" alt="PolicyGPT" class="footer-brand__logo" />
+          <div class="footer-brand__text">
+            <div class="footer-brand__name">Policy<span>GPT</span></div>
+            <p class="footer-brand__tagline">Government Information Simplified.</p>
+          </div>
         </div>
-        <div class="emblem-text">
-          <div class="emblem-org">Government of India &bull; National Portal</div>
-          <h2 class="emblem-title">PolicyGPT Intelligence Platform</h2>
-          <p class="emblem-sub">
-            Bridging public welfare policies and government schemes directly to citizens, researchers, and
-            administrators with transparent, AI-driven insights.
-          </p>
-        </div>
+        <p class="footer-brand__desc">
+          Bridging public welfare policies and government schemes directly to citizens, researchers, and
+          administrators with transparent, AI-driven insights.
+        </p>
       </div>
 
       <div class="footer-cta-action">
@@ -95,34 +95,15 @@
         </ul>
         } @else {
         <ul class="col-links">
+          @for (link of getServiceLinks(); track link.label) {
           <li>
-            <a [routerLink]="getPoliciesRoute()"
-              [class.highlight-link]="isFooterSectionActive('policies')">
+            <a [routerLink]="link.route"
+              [class.highlight-link]="isFooterSectionActive(...link.sections)">
               <span class="material-icons bullet-icon">chevron_right</span>
-              <span>Search Policies</span>
+              <span>{{ link.label }}</span>
             </a>
           </li>
-          <li>
-            <a [routerLink]="getSchemesRoute()"
-              [class.highlight-link]="isFooterSectionActive('schemes')">
-              <span class="material-icons bullet-icon">chevron_right</span>
-              <span>Search Public Schemes</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="getEligibilityRoute()"
-              [class.highlight-link]="isFooterSectionActive('eligibility')">
-              <span class="material-icons bullet-icon">chevron_right</span>
-              <span>Eligibility Checker</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="getCompareRoute()"
-              [class.highlight-link]="isFooterSectionActive('compare')">
-              <span class="material-icons bullet-icon">chevron_right</span>
-              <span>Compare Policies & Schemes</span>
-            </a>
-          </li>
+          }
         </ul>
         }
       </div>
@@ -163,34 +144,15 @@
         </ul>
         } @else {
         <ul class="col-links">
+          @for (link of getHelpLinks(); track link.label) {
           <li>
-            <a [routerLink]="getFeedbackRoute()"
-              [class.highlight-link]="isFooterSectionActive('feedback')">
-              <span class="material-icons bullet-icon">rate_review</span>
-              <span>Feedback & Grievances</span>
+            <a [routerLink]="link.route"
+              [class.highlight-link]="isFooterSectionActive(...link.sections)">
+              <span class="material-icons bullet-icon">{{ link.icon }}</span>
+              <span>{{ link.label }}</span>
             </a>
           </li>
-          <li>
-            <a [routerLink]="getFaqRoute()"
-              [class.highlight-link]="isFooterSectionActive('faqs')">
-              <span class="material-icons bullet-icon">help_outline</span>
-              <span>Frequently Asked Questions</span>
-            </a>
-          </li>
-          <li>
-            <a [routerLink]="getFaqRoute()"
-              [class.highlight-link]="isFooterSectionActive('support')">
-              <span class="material-icons bullet-icon">support_agent</span>
-              <span>Citizen Support Desk</span>
-            </a>
-          </li>
-          <li>
-            <a routerLink="/terms"
-              [class.highlight-link]="isFooterSectionActive('terms')">
-              <span class="material-icons bullet-icon">verified_user</span>
-              <span>Citizen Charter & Norms</span>
-            </a>
-          </li>
+          }
         </ul>
         }
       </div>

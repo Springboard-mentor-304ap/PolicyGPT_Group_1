@@ -11,7 +11,6 @@ import {
 } from "@angular/core";
 import { finalize } from "rxjs";
 import { CommonModule, DecimalPipe } from "@angular/common";
-import { RouterLink } from "@angular/router";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import {
   DepartmentItem,
@@ -26,6 +25,7 @@ import {
 } from "../../shared/line-chart/line-chart.component";
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../shared/components/breadcrumb/breadcrumb.component";
 import {
   AnalyticsDateRangeService,
   selectionForLabel,
@@ -59,7 +59,7 @@ const DEFAULT_DEPT_ITEM: DepartmentItem = {
   imports: [
     CommonModule,
     DecimalPipe,
-    RouterLink,
+    BreadcrumbComponent,
     DateRangePickerComponent,
     HbarChartComponent,
     LineChartComponent,
@@ -75,6 +75,14 @@ export class DepartmentAnalyticsComponent implements OnInit {
   private readonly rangeService = inject(AnalyticsDateRangeService);
 
   readonly isSampleData = this.dataService.isSampleData;
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+      { label: "Department Analytics" },
+    ];
+  }
 
   searchQuery = signal<string>("");
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");

@@ -17,6 +17,7 @@ import {
 } from "../../../../../core/services/search-history.service";
 import { PolicyResponse } from "../../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../../core/models/scheme.model";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 export type UserRole =
   | "CITIZEN"
@@ -54,7 +55,7 @@ export interface UserActivityItem {
 @Component({
   selector: "app-user-details",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./user-details.component.html",
   styleUrls: ["./user-details.component.scss"],
 })
@@ -69,6 +70,9 @@ export class UserDetailsComponent implements OnInit {
   isLoadingSchemes = false;
   isLoadingActivity = true;
   isLoadingSearches = true;
+
+  isTogglingStatus = false;
+  statusToggleError = "";
 
   userError = "";
   policiesError = "";
@@ -106,6 +110,39 @@ export class UserDetailsComponent implements OnInit {
 
       this.userId = id;
       this.loadUserData(id);
+    });
+  }
+
+  // =======================================================
+  // ACTIVATE / DEACTIVATE USER
+  // =======================================================
+
+  toggleUserStatus(): void {
+    if (!this.user || this.isTogglingStatus) {
+      return;
+    }
+    const targetActive = this.user.status !== "Active";
+    this.isTogglingStatus = true;
+    this.statusToggleError = "";
+    this.cdr.detectChanges();
+
+    this.adminUsersService.updateUserStatus(this.user.id, targetActive).subscribe({
+      next: (res) => {
+        this.isTogglingStatus = false;
+        if (this.user) {
+          this.user.status = res.is_active ? "Active" : "Inactive";
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("Error updating user status:", err);
+        this.isTogglingStatus = false;
+        this.statusToggleError =
+          err?.error?.detail ||
+          err?.message ||
+          "Unable to update user status. Please try again.";
+        this.cdr.detectChanges();
+      },
     });
   }
 
@@ -547,6 +584,18 @@ export class UserDetailsComponent implements OnInit {
   // =======================================================
   // NAVIGATION & TABS
   // =======================================================
+
+  // =======================================================
+  // BREADCRUMB
+  // =======================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Users", route: ["/dashboard/admin/users"] },
+      { label: "User Details" },
+    ];
+  }
 
   goToDashboard(): void {
     this.router.navigate(["/dashboard/admin"]);

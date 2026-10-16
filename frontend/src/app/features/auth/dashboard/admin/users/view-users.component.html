@@ -10,29 +10,7 @@
          BREADCRUMB
          ===================================================== -->
 
-        <div class="users-breadcrumb">
-
-            <button type="button" (click)="goToDashboard()">
-                Admin Dashboard
-            </button>
-
-            <span class="material-icons">
-                chevron_right
-            </span>
-
-            <span>
-                Users
-            </span>
-
-            <span class="material-icons">
-                chevron_right
-            </span>
-
-            <strong>
-                View Users
-            </strong>
-
-        </div>
+        <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
 
         <!-- =====================================================
@@ -42,10 +20,6 @@
         <section class="users-page-header">
 
             <div>
-
-                <p class="users-page-header__eyebrow">
-                    USER MANAGEMENT
-                </p>
 
                 <h1>
                     View Users
@@ -213,16 +187,9 @@
                         Role
                     </label>
 
-                    <app-searchable-select
-                        id="roleFilter"
-                        size="filter"
-                        ariaLabel="Filter by role"
-                        placeholder="All Roles"
-                        [searchable]="false"
-                        [options]="roleFilterOptions"
-                        [(ngModel)]="selectedRole"
-                        (selectionChange)="applyFilters()"
-                    />
+                    <app-searchable-select id="roleFilter" size="filter" ariaLabel="Filter by role"
+                        placeholder="All Roles" [searchable]="false" [options]="roleFilterOptions"
+                        [(ngModel)]="selectedRole" (selectionChange)="applyFilters()" />
 
                 </div>
 
@@ -235,16 +202,9 @@
                         Status
                     </label>
 
-                    <app-searchable-select
-                        id="statusFilter"
-                        size="filter"
-                        ariaLabel="Filter by status"
-                        placeholder="All Status"
-                        [searchable]="false"
-                        [options]="statusFilterOptions"
-                        [(ngModel)]="selectedStatus"
-                        (selectionChange)="applyFilters()"
-                    />
+                    <app-searchable-select id="statusFilter" size="filter" ariaLabel="Filter by status"
+                        placeholder="All Status" [searchable]="false" [options]="statusFilterOptions"
+                        [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
 
                 </div>
 
@@ -509,14 +469,14 @@
                     <!-- PAGE NUMBERS -->
 
                     <div class="users-pagination__pages">
-                    @for (page of pageNumbers; track page) {
+                        @for (page of pageNumbers; track page) {
 
-                    <button type="button" class="users-pagination__page"
-                        [class.users-pagination__page--active]="currentPage === page" (click)="goToPage(page)">
-                        {{ page }}
-                    </button>
+                        <button type="button" class="users-pagination__page"
+                            [class.users-pagination__page--active]="currentPage === page" (click)="goToPage(page)">
+                            {{ page }}
+                        </button>
 
-                    }
+                        }
                     </div>
 
 

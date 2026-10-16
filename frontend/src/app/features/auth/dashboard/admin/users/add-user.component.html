@@ -1,32 +1,6 @@
 <div class="add-user-page">
 
-    <!-- =======================================================
-         BREADCRUMB
-    ======================================================== -->
-
-    <div class="add-user-breadcrumb">
-
-        <button type="button" (click)="goToDashboard()">
-            Admin Dashboard
-        </button>
-
-        <span class="material-icons">
-            chevron_right
-        </span>
-
-        <button type="button" (click)="goToUsers()">
-            Users
-        </button>
-
-        <span class="material-icons">
-            chevron_right
-        </span>
-
-        <strong>
-            Add User
-        </strong>
-
-    </div>
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
 
     <!-- =======================================================
@@ -36,10 +10,6 @@
     <section class="add-user-header">
 
         <div>
-
-            <p class="add-user-header__eyebrow">
-                USER MANAGEMENT
-            </p>
 
             <h1>
                 Add User
@@ -388,15 +358,9 @@
                         <span>*</span>
                     </label>
 
-                    <app-searchable-select
-                        id="state"
-                        placeholder="Select State"
-                        [searchable]="true"
-                        searchPlaceholder="Search states..."
-                        [options]="states"
-                        [ngModel]="state"
-                        (ngModelChange)="state = $event; onStateChange()"
-                    />
+                    <app-searchable-select id="state" placeholder="Select State" [searchable]="true"
+                        searchPlaceholder="Search states..." [options]="states" [ngModel]="state"
+                        (ngModelChange)="state = $event; onStateChange()" />
 
                 </div>
 
@@ -410,15 +374,10 @@
                         <span>*</span>
                     </label>
 
-                    <app-searchable-select
-                        id="district"
-                        [placeholder]="state ? 'Select District' : 'Select State First'"
-                        [searchable]="true"
-                        searchPlaceholder="Search districts..."
-                        [options]="districtOptions"
-                        [disabled]="!state"
-                        [(ngModel)]="district"
-                    />
+                    <app-searchable-select id="district"
+                        [placeholder]="state ? 'Select District' : 'Select State First'" [searchable]="true"
+                        searchPlaceholder="Search districts..." [options]="districtOptions" [disabled]="!state"
+                        [(ngModel)]="district" />
 
                 </div>
 

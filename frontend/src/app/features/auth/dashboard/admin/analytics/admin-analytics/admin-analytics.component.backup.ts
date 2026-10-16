@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
 import { Component, OnInit } from "@angular/core";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface DashboardAnalytics {
   policies: {
@@ -59,11 +60,18 @@ interface UserAnalytics {
 @Component({
   selector: "app-admin-analytics",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./admin-analytics.component.html",
   styleUrls: ["./admin-analytics.component.scss"],
 })
 export class AdminAnalyticsComponent implements OnInit {
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Analytics" },
+    ];
+  }
+
   private readonly apiUrl = "http://localhost:8000";
 
   loading = true;

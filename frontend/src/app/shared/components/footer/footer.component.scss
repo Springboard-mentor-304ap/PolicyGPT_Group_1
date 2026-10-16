@@ -67,7 +67,6 @@ $border-accent: rgba(56, 189, 248, 0.2);
     display: flex;
     align-items: center;
     gap: 16px;
-    max-width: 820px;
 
     .emblem-seal {
       width: 48px;
@@ -156,7 +155,6 @@ $border-accent: rgba(56, 189, 248, 0.2);
      Row 1 holds the logo beside the name/tagline; the description
      sits on its own row below, aligned with the logo's left edge. */
   .footer-brand {
-    max-width: 820px;
     min-width: 0;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);

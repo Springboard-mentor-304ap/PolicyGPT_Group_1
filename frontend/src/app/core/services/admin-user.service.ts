@@ -104,6 +104,16 @@ export class AdminUsersService {
     return this.http.get<AdminUserApi[]>(this.apiUrl);
   }
 
+  updateUserStatus(
+    id: number,
+    isActive: boolean,
+  ): Observable<{ user_id: number; is_active: boolean }> {
+    return this.http.patch<{ user_id: number; is_active: boolean }>(
+      `${this.apiUrl}/${id}/status`,
+      { is_active: isActive },
+    );
+  }
+
   getUserStats(): Observable<UserStatsApi> {
     return this.http.get<UserStatsApi>(`${this.apiUrl}/stats`);
   }

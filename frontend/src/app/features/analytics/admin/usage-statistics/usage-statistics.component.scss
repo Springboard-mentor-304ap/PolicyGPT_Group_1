@@ -25,41 +25,6 @@
   }
 }
 
-// Breadcrumb
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-  color: #64748b;
-  font-size: 13px;
-  font-weight: 500;
-
-  .breadcrumb-link {
-    color: #0879ed;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.15s ease;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  .chevron {
-    color: #94a3b8;
-    font-size: 13px;
-    line-height: 1;
-    user-select: none;
-  }
-
-  .current {
-    color: #111827;
-    font-weight: 600;
-  }
-}
-
 // Page Header
 .page-header {
   display: flex;

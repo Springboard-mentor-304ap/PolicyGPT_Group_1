@@ -51,52 +51,6 @@ $danger-light: #fee2e2;
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-.notifications-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: $muted;
-
-  button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: $blue;
-    font-size: inherit;
-    font-weight: 600;
-    cursor: pointer;
-
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  /* Current-page crumb: Notifications renders black; Home stays blue. */
-  button:last-of-type {
-    color: $heading;
-  }
-
-  .material-icons {
-    font-size: 13px;
-    color: #94a3b8;
-  }
-
-  .breadcrumb-current {
-    color: $heading;
-    font-weight: 600;
-    max-width: 400px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* =========================================================
    PAGE HEADER
 ========================================================= */
 .notifications-header {
@@ -1782,6 +1736,25 @@ $danger-light: #fee2e2;
   .notifications-page {
     padding: 20px 20px 40px;
   }
+
+  // Tablet: keep notification action groups right-aligned.
+  .notifications-toolbar .toolbar-actions {
+    justify-content: flex-end;
+  }
+
+  .detail-top-nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .detail-top-nav .detail-top-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .detail-action-buttons {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1796,9 +1769,10 @@ $danger-light: #fee2e2;
 
     .header-right {
       width: 100%;
+      display: flex;
+      justify-content: flex-end;
 
       .pref-btn {
-        width: 100%;
         justify-content: center;
       }
     }
@@ -1817,6 +1791,7 @@ $danger-light: #fee2e2;
     .toolbar-actions {
       display: flex;
       flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 8px;
       width: 100%;
 
@@ -1847,10 +1822,32 @@ $danger-light: #fee2e2;
       }
 
       .btn {
-        width: 100%;
+        flex: 0 0 auto;
+        width: auto;
         justify-content: center;
       }
     }
+  }
+
+  .detail-top-nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .detail-top-nav .detail-top-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .detail-action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
   }
 
   .notification-card {

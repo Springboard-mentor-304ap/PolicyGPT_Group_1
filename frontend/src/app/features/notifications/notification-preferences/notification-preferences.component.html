@@ -3,13 +3,9 @@
   <!-- =========================================================
      BREADCRUMB
      ========================================================= -->
-  <nav *ngIf="!isGuest" class="preferences-breadcrumb" aria-label="Breadcrumb">
-    <button type="button" (click)="navigateToHome()">Home</button>
-    <span class="material-icons" aria-hidden="true">chevron_right</span>
-    <button type="button" (click)="navigateToNotifications()">Notifications</button>
-    <span class="material-icons" aria-hidden="true">chevron_right</span>
-    <strong>Notification Preferences</strong>
-  </nav>
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
 
   <!-- =========================================================
      GUEST VIEW (PROMPT)

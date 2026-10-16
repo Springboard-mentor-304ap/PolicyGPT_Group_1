@@ -1,10 +1,6 @@
 <div class="admin-analytics-page" [attr.aria-busy]="isLoading()">
   <!-- Breadcrumb -->
-  <nav class="breadcrumb" aria-label="Breadcrumb">
-    <a routerLink="/dashboard/admin" class="breadcrumb-link">Dashboard</a>
-    <span class="chevron" aria-hidden="true">&gt;</span>
-    <span class="current" aria-current="page">Analytics Overview</span>
-  </nav>
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
   <!-- Page Header -->
   <div class="page-header">

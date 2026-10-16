@@ -19,6 +19,10 @@ class ReassignOwnershipRequest(BaseModel):
     confirm: bool
 
 
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+
 router = APIRouter(
     prefix="/admin",
     tags=["Administration"],
@@ -153,6 +157,47 @@ def get_all_users(
         }
         for user in users
     ]
+
+
+@router.patch("/users/{user_id}/status")
+def update_user_status(
+    user_id: int,
+    payload: UserStatusUpdate,
+    current_user: User = Depends(
+        require_roles("ADMINISTRATOR")
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Activate or deactivate a user account.
+
+    Only ADMINISTRATOR users can access it. Administrators cannot change
+    their own status (avoids accidental lockout). The persisted
+    ``is_active`` value is what the User Management list displays, so
+    toggling here is immediately reflected as Active/Inactive.
+    """
+
+    if user_id == current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot change your own account status.",
+        )
+
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    user.is_active = payload.is_active
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "user_id": user.user_id,
+        "is_active": user.is_active,
+    }
 
 
 @router.get("/users/removal-check/{email}")

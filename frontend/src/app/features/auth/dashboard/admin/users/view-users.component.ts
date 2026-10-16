@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { ActivatedRoute, Router } from "@angular/router";
@@ -11,6 +11,7 @@ import {
 import { visiblePageWindow } from "../../../../../core/utils/pagination.util";
 import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
 import { NavigationContextService } from "../../../../../core/services/navigation-context.service";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 /* =======================================================
    ALLOWED USER ROLES
@@ -48,7 +49,7 @@ export interface AdminUser {
 @Component({
   selector: "app-view-users",
   standalone: true,
-  imports: [CommonModule, FormsModule, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent, BreadcrumbComponent],
   templateUrl: "./view-users.component.html",
   styleUrls: ["./view-users.component.scss"],
 })
@@ -113,13 +114,13 @@ export class ViewUsersComponent implements OnInit {
      CONSTRUCTOR
      ======================================================= */
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private adminUsersService: AdminUsersService,
-    private cdr: ChangeDetectorRef,
-    private readonly navContext: NavigationContextService,
-  ) {}
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly adminUsersService = inject(AdminUsersService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly navContext = inject(NavigationContextService);
+
+  constructor() {}
 
   /* =======================================================
      INITIALIZATION
@@ -590,6 +591,17 @@ export class ViewUsersComponent implements OnInit {
       this.navContext.markActionSource();
       this.router.navigate(["/dashboard/admin/users", user.id]);
     }
+  }
+
+  /* =======================================================
+     BREADCRUMB
+     ======================================================= */
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "View Users" },
+    ];
   }
 
   /* =======================================================

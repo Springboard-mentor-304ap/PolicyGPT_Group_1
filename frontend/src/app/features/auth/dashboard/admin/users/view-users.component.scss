@@ -81,45 +81,6 @@ $danger: #dc2626;
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.users-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 16px;
-  color: $muted;
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.users-breadcrumb button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: $blue;
-  font-size: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.users-breadcrumb button:hover {
-  text-decoration: underline;
-}
-
-.users-breadcrumb .material-icons {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.users-breadcrumb strong {
-  color: $text;
-  font-weight: 600;
-}
-
-/* =========================================================
    PAGE HEADER
 ========================================================= */
 

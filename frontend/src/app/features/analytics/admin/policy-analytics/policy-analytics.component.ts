@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, HostListener, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Router, RouterLink } from "@angular/router";
+import { Router } from "@angular/router";
 import { finalize } from "rxjs";
 import { AdminAnalyticsDataService } from "../services/admin-analytics-data.service";
 import {
@@ -17,6 +17,7 @@ import {
 } from "../../shared/line-chart/line-chart.component";
 import { DoughnutChartComponent } from "../../shared/doughnut-chart/doughnut-chart.component";
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../shared/components/breadcrumb/breadcrumb.component";
 import { AnalyticsDateRangeService } from "../../shared/analytics-date-range.service";
 import {
   CategoryInput,
@@ -29,7 +30,7 @@ import {
   standalone: true,
   imports: [
     CommonModule,
-    RouterLink,
+    BreadcrumbComponent,
     DateRangePickerComponent,
     FiltersBarComponent,
     HbarChartComponent,
@@ -48,6 +49,14 @@ export class PolicyAnalyticsComponent implements OnInit {
   private readonly router = inject(Router);
 
   readonly isSampleData = this.dataService.isSampleData;
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+      { label: "Policy Analytics" },
+    ];
+  }
 
   activeFilters = signal<Record<string, string>>({});
   currentRange = signal<string>("Jan 1, 2024 - Sep 30, 2024");

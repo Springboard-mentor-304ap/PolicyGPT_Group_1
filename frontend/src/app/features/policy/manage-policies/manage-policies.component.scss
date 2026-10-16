@@ -31,55 +31,14 @@ button {
 }
 
 /* =========================================================
-   BREADCRUMB
-   ========================================================= */
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #64748b;
-}
-
-.breadcrumb-link {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.breadcrumb-link:hover {
-  color: #2457d6;
-}
-
-.breadcrumb-chevron {
-  color: #94a3b8;
-  font-size: 18px;
-}
-
-.breadcrumb-current {
-  color: #64748b;
-}
-
-.breadcrumb-current.active {
-  color: #182238;
-}
-
-/* =========================================================
    PAGE HEADER
    ========================================================= */
 
 .page-header {
-  width: min(100%, 1460px);
   margin: 0 auto 6px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 30px;
 }
 
 .page-title-area {
@@ -236,13 +195,25 @@ button {
 }
 
 /* =========================================================
+   BOTTOM PAGE ACTIONS (above footer)
+   ========================================================= */
+
+.bottom-actions {
+  margin: 20px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
    SHARED CARD
    ========================================================= */
 
 .overview-card,
 .filter-card,
 .register-card {
-  width: min(100%, 1460px);
   margin-left: auto;
   margin-right: auto;
   border: 1px solid #dce4ef;
@@ -256,7 +227,6 @@ button {
    ========================================================= */
 
 .overview-section {
-  width: min(100%, 1460px);
   margin: 0 auto 22px;
 }
 
@@ -1403,7 +1373,6 @@ td {
    ========================================================= */
 
 .page-security-note {
-  width: min(100%, 1460px);
   margin: 12px auto 0;
   display: flex;
   align-items: center;
@@ -1498,11 +1467,6 @@ td {
     padding: 20px 14px 30px;
   }
 
-  .breadcrumb {
-    margin-bottom: 14px;
-    font-size: 12px;
-  }
-
   .page-title-area h1 {
     font-size: 32px;
   }
@@ -1515,6 +1479,11 @@ td {
     align-items: stretch;
     flex-direction: column;
     justify-content: stretch;
+  }
+
+  .bottom-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .role-chip,

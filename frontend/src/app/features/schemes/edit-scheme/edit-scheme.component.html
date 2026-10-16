@@ -4,13 +4,7 @@
        ========================================================= -->
   <div class="scheme-create__header">
     <div class="scheme-create__header-left">
-      <nav class="scheme-create__breadcrumb" aria-label="Breadcrumb">
-        <a [routerLink]="['/dashboard', rolePrefix, 'schemes']">Schemes</a>
-        <span class="separator">&gt;</span>
-        <a [routerLink]="['/dashboard', rolePrefix, 'schemes', 'manage']">Manage Schemes</a>
-        <span class="separator">&gt;</span>
-        <span class="current">Edit Scheme</span>
-      </nav>
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
       <div class="scheme-create__title-row">
 

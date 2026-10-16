@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { Auth, AuthResponse } from "../../../../../core/services/auth";
 import { SearchableSelectComponent } from "../../../../../shared/components/searchable-select/searchable-select.component";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 type AdminUserRole = "GOVERNMENT_OFFICIAL" | "ADMINISTRATOR";
 
@@ -11,7 +12,7 @@ type AdminUserRole = "GOVERNMENT_OFFICIAL" | "ADMINISTRATOR";
   selector: "app-add-user",
   standalone: true,
 
-  imports: [CommonModule, FormsModule, SearchableSelectComponent],
+  imports: [CommonModule, FormsModule, SearchableSelectComponent, BreadcrumbComponent],
 
   templateUrl: "./add-user.component.html",
   styleUrl: "./add-user.component.scss",
@@ -1260,6 +1261,18 @@ export class AddUserComponent {
     this.errorMessage = "";
 
     this.isSubmitting = false;
+  }
+
+  // =====================================================
+  // BREADCRUMB
+  // =====================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [
+      { label: "Home", route: ["/dashboard/admin"] },
+      { label: "Users", route: ["/dashboard/admin/users"] },
+      { label: "Add User" },
+    ];
   }
 
   // =====================================================

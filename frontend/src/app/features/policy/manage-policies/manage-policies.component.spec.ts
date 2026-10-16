@@ -1096,6 +1096,101 @@ describe("ManagePoliciesComponent", () => {
     expect(pill.classList.contains("approved")).toBe(true);
     expect(pill.textContent).toContain("Approved");
   });
+
+  // Test: Government Official DELETE_REQUESTED dropdown shows
+  // View Details + View Deletion Reason (no approve/reject actions)
+  it("Govt DELETE_REQUESTED menu shows View Details and View Deletion Reason only", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("GOVERNMENT_OFFICIAL");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockGovUserA);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.isAdmin).toBe(false);
+    component.policies = [
+      {
+        id: 77,
+        title: "Policy DEL",
+        description: "d",
+        category: "C",
+        ministry: "M",
+        department: "D",
+        sector: "S",
+        status: "DELETE_REQUESTED",
+        createdBy: 2,
+        deleteReason: "Superseded by a newer policy.",
+      },
+    ] as any;
+    component.pageSize = 100;
+    fixture.detectChanges();
+
+    component.toggleMenu(77);
+    fixture.detectChanges();
+    TestBed.inject(ApplicationRef).tick();
+
+    const menu = document.querySelector(".action-menu") as HTMLElement;
+    expect(menu).toBeTruthy();
+    expect(menu.textContent).toContain("View Details");
+    expect(menu.textContent).toContain("View Deletion Reason");
+    expect(menu.textContent).not.toContain("Approve deletion");
+    expect(menu.textContent).not.toContain("Reject deletion");
+
+    component.closeMenu();
+    fixture.detectChanges();
+  });
+
+  // Test: View Deletion Reason shows the stored reason, with fallback
+  it("openViewDeleteReason shows the stored reason or a clear fallback", () => {
+    vi.spyOn(authService, "getUserRole").mockReturnValue("GOVERNMENT_OFFICIAL");
+    vi.spyOn(authService, "getStoredUser").mockReturnValue(mockGovUserA);
+    vi.spyOn(policyService, "getPolicies").mockReturnValue(
+      of(mockListResponse),
+    );
+    vi.spyOn(policyService, "getPolicyStatistics").mockReturnValue(
+      of(mockStats),
+    );
+
+    fixture = TestBed.createComponent(ManagePoliciesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.openViewDeleteReason({
+      id: 77,
+      title: "Policy DEL",
+      description: "d",
+      category: "C",
+      ministry: "M",
+      department: "D",
+      sector: "S",
+      status: "DELETE_REQUESTED",
+      createdBy: 2,
+      deleteReason: "Superseded by a newer policy.",
+    } as any);
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmMessage).toContain(
+      "Superseded by a newer policy.",
+    );
+
+    component.openViewDeleteReason({
+      id: 78,
+      title: "Policy NOREASON",
+      description: "d",
+      category: "C",
+      ministry: "M",
+      department: "D",
+      sector: "S",
+      status: "DELETE_REQUESTED",
+      createdBy: 2,
+    } as any);
+    expect(component.confirmMessage).toContain("No reason was provided.");
+  });
 });
 
 

@@ -49,37 +49,36 @@ def normalize_role(role: str | None) -> str:
 def get_base_notification_filter(user_id: int, user_role: str):
     """
     Constructs the base query filter for notifications.
-    Any notification specifically addressed to a user_id is accessible
-    by that user.
-    Broadcast notifications (user_id is None) are filtered according to
-    the user's role.
+    Only rows explicitly addressed to the user are visible.
+
+    Recipient-less rows (``user_id IS NULL``) are NEVER visible here:
+    no supported broadcast mechanism exists, and a NULL recipient must
+    not bypass role, audience, preference, or ownership checks. (Ghost
+    NULL rows from manual/fixture inserts previously leaked into every
+    matching user's list and unread badge through the old broadcast
+    arms.) All read paths (list, detail, mark read/unread, mark-all,
+    delete, unread count, summary, admin per-user view) share this
+    filter, so the fix applies globally.
     """
-    norm_role = normalize_role(user_role)
-    if norm_role == "ADMIN":
-        return or_(
-            Notification.user_id == user_id,
-            and_(
-                Notification.user_id.is_(None),
-                Notification.notification_type.in_(ADMIN_NOTIFICATION_TYPES),
-            ),
-        )
-    elif norm_role == "GOVERNMENT_OFFICIAL":
-        return or_(
-            Notification.user_id == user_id,
-            and_(
-                Notification.user_id.is_(None),
-                Notification.notification_type.in_(GOVT_NOTIFICATION_TYPES),
-            ),
-        )
-    else:
-        # CITIZEN, RESEARCHER, ORGANIZATION
-        return or_(
-            Notification.user_id == user_id,
-            and_(
-                Notification.user_id.is_(None),
-                Notification.notification_type.in_(PUBLIC_NOTIFICATION_TYPES),
-            ),
-        )
+    return Notification.user_id == user_id
+
+
+def _valid_user_id(value: Any) -> int | None:
+    """Coerce a stored user id to a positive int, else None (never guess).
+
+    Used to resolve archive-notice recipients from the record's
+    ``created_by`` FK: only genuine ``users.user_id`` values qualify.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped.isdigit():
+            as_int = int(stripped)
+            return as_int if as_int > 0 else None
+    return None
 
 
 def _now() -> datetime:
@@ -503,6 +502,12 @@ def create_notification(
     never holds its DB connection across network calls. Without it (tests,
     scheduler, direct service callers) delivery stays fully synchronous.
     """
+    if data.user_id is None:
+        raise ValueError(
+            "Refusing to create a recipient-less notification "
+            f"(type={data.notification_type}). Every notification must "
+            "address an explicit user_id."
+        )
     if channels is None and data.user_id:
         from app.services.notification_preference_rule_service import (
             resolve_channels_for_user,
@@ -686,6 +691,18 @@ def dispatch_notification(
     this notification type, or when an identical notification was already
     issued inside the dedupe window.
     """
+    if data.user_id is None:
+        # Recipient-less rows bypass role/audience/preference/ownership
+        # checks downstream and leak into every matching user's list and
+        # unread badge as un-attributable ghosts. No supported flow
+        # creates them; refuse instead of storing.
+        logger.warning(
+            "Refusing recipient-less notification: type=%s entity=%s/%s",
+            data.notification_type,
+            data.entity_type,
+            data.entity_id,
+        )
+        return None
     channels: dict[str, bool] | None = None
     if respect_preferences and data.user_id:
         from app.services.notification_preference_rule_service import (
@@ -2123,6 +2140,66 @@ def notify_policy_updated(
     )
 
 
+def notify_policy_archived(
+    db: Session,
+    policy_id: int,
+    actor_user_id: int | None,
+    policy_title: str | None = None,
+    background_tasks=None,
+) -> Notification | None:
+    """Notify the original creator when an admin directly archives a policy.
+
+    Recipient priority: the record's ``created_by`` (original Government
+    Official creator) first, falling back to the authenticated archiving
+    actor when the creator is missing or invalid. Never broadcasts and
+    never invents a recipient: with neither, no notification is created.
+    Call only after the archive commit succeeds.
+    """
+    policy = (
+        db.query(Policy)
+        .filter(
+            Policy.policy_id == policy_id,
+            Policy.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if policy is None:
+        return None
+
+    recipient_id = _valid_user_id(
+        getattr(policy, "created_by", None)
+    ) or _valid_user_id(actor_user_id)
+    if recipient_id is None:
+        logger.warning(
+            "Skipping POLICY_ARCHIVED for policy %s: no valid creator "
+            "or actor user id",
+            policy_id,
+        )
+        return None
+
+    title = policy_title or policy.title
+    return dispatch_notification(
+        db,
+        NotificationCreate(
+            user_id=recipient_id,
+            title="Policy Archived",
+            message=(
+                f'The policy "{title}" has been archived and is no '
+                "longer available."
+            ),
+            notification_type="POLICY_ARCHIVED",
+            priority=tax.PRIORITY_UPDATE.value,
+            channel="IN_APP",
+            action_url=None,
+            entity_type="POLICY",
+            entity_id=policy_id,
+            source_name=policy.ministry or "Government Gazette",
+            related_policy_id=policy_id,
+        ),
+        background_tasks=background_tasks,
+    )
+
+
 def notify_scheme_published(
     db: Session,
     scheme_id: int,
@@ -2244,6 +2321,66 @@ def notify_scheme_updated(
             )
             for recipient in recipients
         ],
+    )
+
+
+def notify_scheme_archived(
+    db: Session,
+    scheme_id: int,
+    actor_user_id: int | None,
+    scheme_title: str,
+    ministry: str | None = None,
+    background_tasks=None,
+) -> Notification | None:
+    """Notify the original creator when an admin directly archives a scheme.
+
+    Mirrors notify_policy_archived: ``created_by`` first, authenticated
+    actor fallback, never a broadcast, no action_url. Call only after
+    the archive commit succeeds.
+    """
+    scheme = (
+        db.query(Scheme)
+        .filter(
+            Scheme.scheme_id == scheme_id,
+            Scheme.is_deleted.is_(False),
+        )
+        .first()
+    )
+    if scheme is None:
+        return None
+
+    recipient_id = _valid_user_id(
+        getattr(scheme, "created_by", None)
+    ) or _valid_user_id(actor_user_id)
+    if recipient_id is None:
+        logger.warning(
+            "Skipping SCHEME_ARCHIVED for scheme %s: no valid creator "
+            "or actor user id",
+            scheme_id,
+        )
+        return None
+
+    return dispatch_notification(
+        db,
+        NotificationCreate(
+            user_id=recipient_id,
+            title="Scheme Archived",
+            message=(
+                f'The scheme "{scheme_title}" has been archived and is '
+                "no longer available."
+            ),
+            notification_type="SCHEME_ARCHIVED",
+            priority=tax.PRIORITY_UPDATE.value,
+            channel="IN_APP",
+            action_url=None,
+            entity_type="SCHEME",
+            entity_id=scheme_id,
+            source_name=ministry
+            or (scheme.ministry if scheme else None)
+            or "National Scheme Portal",
+            related_scheme_id=scheme_id,
+        ),
+        background_tasks=background_tasks,
     )
 
 
@@ -2675,7 +2812,9 @@ class NotificationService:
     # Public lifecycle events
     notify_policy_published = staticmethod(notify_policy_published)
     notify_policy_updated = staticmethod(notify_policy_updated)
+    notify_policy_archived = staticmethod(notify_policy_archived)
     notify_scheme_published = staticmethod(notify_scheme_published)
+    notify_scheme_archived = staticmethod(notify_scheme_archived)
     notify_scheme_ending = staticmethod(notify_scheme_ending)
     notify_scheme_ended = staticmethod(notify_scheme_ended)
 

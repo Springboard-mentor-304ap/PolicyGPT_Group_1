@@ -71,6 +71,37 @@ describe("GovernmentComponent", () => {
     unread: 3,
   };
 
+  const mockNotifications = {
+    items: [
+      {
+        notification_id: 101,
+        title: "Policy approved",
+        message: "Your policy was approved.",
+        notification_type: "POLICY",
+        category: "Policy",
+        entity_type: null,
+        is_read: false,
+        created_at: "2025-02-16T10:00:00Z",
+      },
+      {
+        notification_id: 102,
+        title: "Scheme submitted",
+        message: "A scheme was submitted.",
+        notification_type: "SCHEME",
+        category: "Scheme",
+        entity_type: null,
+        is_read: true,
+        created_at: "2025-02-14T10:00:00Z",
+      },
+    ],
+    total: 2,
+    page: 1,
+    page_size: 4,
+    total_pages: 1,
+    unread_count: 1,
+    summary: { total: 2, unread: 1, read: 1, this_week: 2 },
+  };
+
   const mockSearchHistory = [
     {
       history_id: 1,
@@ -107,6 +138,7 @@ describe("GovernmentComponent", () => {
 
     mockNotificationService = {
       getNotificationStats: vi.fn().mockReturnValue(of(mockNotificationStats)),
+      getNotifications: vi.fn().mockReturnValue(of(mockNotifications)),
     };
 
     mockSearchHistoryService = {
@@ -160,10 +192,16 @@ describe("GovernmentComponent", () => {
     expect(component.searchHistory[0].name).toBe("Water conservation");
   });
 
-  it("should keep applications as empty list cleanly without mock timeouts", () => {
+  it("should load recent notifications on the homepage panel", () => {
     fixture.detectChanges();
-    expect(component.applications.length).toBe(0);
-    expect(component.loadingApplications).toBe(false);
+    expect(mockNotificationService.getNotifications).toHaveBeenCalledWith({
+      page: 1,
+      page_size: 4,
+    });
+    expect(component.loadingNotifications).toBe(false);
+    expect(component.notifications.length).toBe(2);
+    expect(component.notifications[0].title).toBe("Policy approved");
+    expect(component.unreadNotifications).toBe(1);
   });
 
   it("should handle error gracefully when policies or schemes API fails", () => {

@@ -13,6 +13,7 @@ import { NotificationService } from "../../../../core/services/notification.serv
 import { SearchHistoryService, SearchHistoryItem } from "../../../../core/services/search-history.service";
 import { PolicyResponse } from "../../../../core/models/policy.model";
 import { SchemeResponse } from "../../../../core/models/scheme.model";
+import { NotificationItem } from "../../../../core/models/notification.model";
 
 // =========================================================
 // STAT CARD
@@ -61,15 +62,6 @@ export interface HistoryItem {
   filters: string;
 }
 
-// =========================================================
-// APPLICATION
-// =========================================================
-
-export interface ApplicationItem {
-  name: string;
-  appId: string;
-}
-
 import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
 import { LoadingIndicatorComponent } from "../../../../shared/components/loading-indicator/loading-indicator.component";
 import {
@@ -115,7 +107,7 @@ export class GovernmentComponent implements OnInit {
   loadingUpcoming = true;
   loadingUploaded = true;
   loadingHistory = true;
-  loadingApplications = false;
+  loadingNotifications = true;
 
   statsError = "";
   upcomingError = "";
@@ -167,7 +159,8 @@ export class GovernmentComponent implements OnInit {
   upcomingSchemes: SchemeItem[] = [];
   uploadedPolicies: PolicyItem[] = [];
   searchHistory: HistoryItem[] = [];
-  applications: ApplicationItem[] = [];
+  notifications: NotificationItem[] = [];
+  unreadNotifications = 0;
 
   ngOnInit(): void {
     this.loadUserAndData();
@@ -238,8 +231,23 @@ export class GovernmentComponent implements OnInit {
             .getNotificationStats(userId)
             .pipe(catchError(() => of({ total: 0, read: 0, unread: 0 })))
         : of({ total: 0, read: 0, unread: 0 }),
+      recentNotifications: this.notificationService
+        .getNotifications({ page: 1, page_size: 4 })
+        .pipe(
+          catchError(() =>
+            of({
+              items: [],
+              total: 0,
+              page: 1,
+              page_size: 4,
+              total_pages: 1,
+              unread_count: 0,
+              summary: { total: 0, unread: 0, read: 0, this_week: 0 },
+            }),
+          ),
+        ),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: ({ policies, schemes, policyStats, schemeStats, notificationStats }) => {
+      next: ({ policies, schemes, policyStats, schemeStats, notificationStats, recentNotifications }) => {
         const policyList: PolicyResponse[] = Array.isArray(policies?.policies) ? policies.policies : [];
         const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes) ? schemes.schemes : [];
 
@@ -299,6 +307,17 @@ export class GovernmentComponent implements OnInit {
         ];
         this.loadingStats = false;
 
+        // Populate Recent Notifications List (up to 4)
+        const notificationList = Array.isArray(recentNotifications?.items)
+          ? recentNotifications.items
+          : [];
+        this.notifications = notificationList.slice(0, 4);
+        this.unreadNotifications =
+          typeof recentNotifications?.unread_count === "number"
+            ? recentNotifications.unread_count
+            : this.notifications.filter((n) => !n.is_read).length;
+        this.loadingNotifications = false;
+
         // Populate Schemes List (up to 4)
         this.upcomingSchemes = schemeList.slice(0, 4).map((s) => ({
           id: s.scheme_id,
@@ -329,6 +348,7 @@ export class GovernmentComponent implements OnInit {
         this.loadingStats = false;
         this.loadingUpcoming = false;
         this.loadingUploaded = false;
+        this.loadingNotifications = false;
         this.statsError = "Unable to load dashboard data";
         this.cdr.detectChanges();
       },
@@ -361,10 +381,5 @@ export class GovernmentComponent implements OnInit {
       this.loadingHistory = false;
       this.cdr.detectChanges();
     }
-
-    // Application Status: backend does not have an applications submission API.
-    // Display clean empty state as required by instructions.
-    this.applications = [];
-    this.loadingApplications = false;
   }
 }

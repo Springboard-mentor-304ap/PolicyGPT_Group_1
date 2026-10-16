@@ -817,5 +817,88 @@ describe('ManageSchemesComponent', () => {
     ).toBe(true);
     expect(component.hasDistinctUpdate(component.schemes[0])).toBe(false);
   });
+
+  it('Govt DELETE_REQUESTED menu shows View Details and View Deletion Reason only', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('GOVERNMENT_OFFICIAL');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockGovUserA);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.isAdmin).toBe(false);
+    component.schemes = [
+      {
+        id: 77,
+        title: 'Scheme DEL',
+        description: 'd',
+        category: 'C',
+        ministry: 'M',
+        department: 'D',
+        sector: 'S',
+        status: 'DELETE_REQUESTED',
+        createdBy: 2,
+        deleteReason: 'Superseded by a newer scheme.',
+      },
+    ] as any;
+    component.pageSize = 100;
+    fixture.detectChanges();
+
+    component.toggleMenu(77);
+    fixture.detectChanges();
+
+    const menu = document.querySelector('.action-menu') as HTMLElement;
+    expect(menu).toBeTruthy();
+    expect(menu.textContent).toContain('View Details');
+    expect(menu.textContent).toContain('View Deletion Reason');
+    expect(menu.textContent).not.toContain('Approve deletion');
+    expect(menu.textContent).not.toContain('Reject deletion');
+
+    component.closeMenu();
+    fixture.detectChanges();
+  });
+
+  it('openViewDeleteReason shows the stored reason or a clear fallback', () => {
+    vi.spyOn(authService, 'getUserRole').mockReturnValue('GOVERNMENT_OFFICIAL');
+    vi.spyOn(authService, 'getStoredUser').mockReturnValue(mockGovUserA);
+    vi.spyOn(schemeService, 'getSchemes').mockReturnValue(of(mockListResponse));
+    vi.spyOn(schemeService, 'getSchemeStatistics').mockReturnValue(of(mockStats));
+
+    fixture = TestBed.createComponent(ManageSchemesComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.openViewDeleteReason({
+      id: 77,
+      title: 'Scheme DEL',
+      description: 'd',
+      category: 'C',
+      ministry: 'M',
+      department: 'D',
+      sector: 'S',
+      status: 'DELETE_REQUESTED',
+      createdBy: 2,
+      deleteReason: 'Superseded by a newer scheme.',
+    } as any);
+    expect(component.confirmModalOpen).toBe(true);
+    expect(component.confirmMessage).toContain(
+      'Superseded by a newer scheme.',
+    );
+
+    component.openViewDeleteReason({
+      id: 78,
+      title: 'Scheme NOREASON',
+      description: 'd',
+      category: 'C',
+      ministry: 'M',
+      department: 'D',
+      sector: 'S',
+      status: 'DELETE_REQUESTED',
+      createdBy: 2,
+    } as any);
+    expect(component.confirmMessage).toContain('No reason was provided.');
+  });
 });
 

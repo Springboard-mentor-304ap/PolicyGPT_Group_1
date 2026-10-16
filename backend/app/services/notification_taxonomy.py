@@ -98,10 +98,12 @@ TYPE_TO_CATEGORY: dict[str, NotificationCategory] = {
     "NEW_POLICY": NotificationCategory.POLICY,
     "POLICY_PUBLISHED": NotificationCategory.POLICY,
     "POLICY_UPDATED": NotificationCategory.POLICY,
+    "POLICY_ARCHIVED": NotificationCategory.POLICY,
     # --- Public scheme lifecycle --------------------------------------------
     "NEW_SCHEME": NotificationCategory.SCHEME,
     "SCHEME_PUBLISHED": NotificationCategory.SCHEME,
     "SCHEME_UPDATED": NotificationCategory.SCHEME,
+    "SCHEME_ARCHIVED": NotificationCategory.SCHEME,
     # --- Deadlines / expiry -------------------------------------------------
     "SCHEME_ENDING": NotificationCategory.DEADLINE,
     "SCHEME_ENDED": NotificationCategory.DEADLINE,
@@ -236,7 +238,9 @@ GOVT_NOTIFICATION_TYPES: frozenset[str] = frozenset(
         # NEW: public lifecycle events a government official may follow
         "POLICY_PUBLISHED",
         "POLICY_UPDATED",
+        "POLICY_ARCHIVED",
         "SCHEME_PUBLISHED",
+        "SCHEME_ARCHIVED",
         "SCHEME_ENDING",
         "SCHEME_ENDED",
     }
@@ -266,7 +270,9 @@ PUBLIC_NOTIFICATION_TYPES: frozenset[str] = frozenset(
         # NEW: public lifecycle events
         "POLICY_PUBLISHED",
         "POLICY_UPDATED",
+        "POLICY_ARCHIVED",
         "SCHEME_PUBLISHED",
+        "SCHEME_ARCHIVED",
         "SCHEME_ENDING",
         "SCHEME_ENDED",
     }
@@ -360,7 +366,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
             "Receive notifications when published policies "
             "are updated."
         ),
-        types=("POLICY_UPDATED",),
+        types=("POLICY_UPDATED", "POLICY_ARCHIVED"),
         section=POLICY_AND_SCHEME_SECTION,
     ),
     # --- Public scheme lifecycle --------------------------------------------
@@ -381,7 +387,7 @@ PREFERENCE_GROUPS: list[PreferenceGroup] = [
             "Receive notifications when published schemes "
             "are updated."
         ),
-        types=("SCHEME_UPDATED",),
+        types=("SCHEME_UPDATED", "SCHEME_ARCHIVED"),
         section=POLICY_AND_SCHEME_SECTION,
     ),
     # --- Deadlines / Expiry -------------------------------------------------

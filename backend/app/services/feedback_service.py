@@ -141,6 +141,8 @@ def update_feedback(
 
     update_data = data.model_dump(exclude_unset=True)
 
+    previous_status = feedback.status
+
     for field, value in update_data.items():
         setattr(feedback, field, value)
 
@@ -149,7 +151,11 @@ def update_feedback(
     db.commit()
     db.refresh(feedback)
 
-    if update_data.get("admin_response") and feedback.user_id:
+    status_changed = (
+        "status" in update_data
+        and (previous_status or "") != (feedback.status or "")
+    )
+    if (update_data.get("admin_response") or status_changed) and feedback.user_id:
         try:
             from app.services.notification_service import (
                 notify_feedback_updated,

@@ -77,7 +77,9 @@ class DeadlineReminderService:
                 or days_remaining in [14, 30]
             ):
                 deadline_str = deadline_target.strftime("%d %B %Y")
-                for user in target_users[:25]:
+                # Fan out to every eligible user (no truncation): each
+                # recipient still carries its own 24h idempotency check.
+                for user in target_users:
                     # Check if already notified for this scheme in last 24h
                     existing = (
                         db.query(Notification)

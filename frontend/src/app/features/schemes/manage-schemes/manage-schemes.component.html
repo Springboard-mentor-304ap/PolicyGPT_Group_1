@@ -545,6 +545,16 @@
                                                 <span class="material-icons">undo</span>
                                                 Reject deletion
                                             </button>
+                                            } @else {
+                                            <button type="button" (click)="viewScheme(scheme)">
+                                                <span class="material-icons">visibility</span>
+                                                View Details
+                                            </button>
+
+                                            <button type="button" (click)="openViewDeleteReason(scheme)">
+                                                <span class="material-icons">info</span>
+                                                View Deletion Reason
+                                            </button>
                                             }
                                             }
 

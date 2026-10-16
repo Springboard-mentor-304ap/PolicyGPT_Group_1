@@ -451,7 +451,7 @@
 
 
     <!-- =======================================================
-         APPLICATION STATUS
+         NOTIFICATIONS
          ======================================================= -->
 
     <article class="dash-panel">
@@ -459,40 +459,44 @@
       <div class="dash-panel__header">
 
         <h2>
-          Application Status
+          Notifications
         </h2>
 
-        <span class="dash-panel__link" style="opacity: 0.7;">
-          System Overview
-        </span>
+        <a routerLink="/dashboard/government/notifications" class="dash-panel__link">
+          @if (unreadNotifications > 0) {
+          {{ unreadNotifications }} new
+          } @else {
+          View All
+          }
+        </a>
 
       </div>
 
 
-      @if (loadingApplications) {
+      @if (loadingNotifications) {
 
       <div class="dash-loader">
 
         <div class="dash-spinner"></div>
 
         <span>
-          Loading applications...
+          Loading notifications...
         </span>
 
       </div>
 
       } @else if (
-      applications.length === 0
+      notifications.length === 0
       ) {
 
       <div class="dash-loader">
 
         <span class="material-icons">
-          description
+          notifications_none
         </span>
 
         <span>
-          No public applications pending review
+          No notifications yet
         </span>
 
       </div>
@@ -502,17 +506,17 @@
       <ul class="dash-list">
 
         @for (
-        app of applications;
-        track app.appId
+        notification of notifications;
+        track notification.notification_id
         ) {
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--neutral">
+          <div class="dash-list__icon-wrap"
+            [ngClass]="notification.is_read ? 'dash-list__icon-wrap--neutral' : 'dash-list__icon-wrap--unread'">
 
             <span class="material-icons">
-              description
+              {{ notification.is_read ? 'notifications_none' : 'notifications' }}
             </span>
 
           </div>
@@ -521,20 +525,22 @@
           <div class="dash-list__details">
 
             <p class="dash-list__title">
-              {{ app.name }}
+              {{ notification.title }}
             </p>
 
             <p class="dash-list__meta">
-              Application ID:
-              {{ app.appId }}
+              {{ notification.category || notification.notification_type }}
+              @if (notification.created_at) {
+              · {{ notification.created_at | date: 'mediumDate' }}
+              }
             </p>
 
           </div>
 
 
-          <span class="dash-list__action">
-            View Details
-          </span>
+          <a routerLink="/dashboard/government/notifications" class="dash-list__action">
+            View
+          </a>
 
         </li>
 
@@ -545,9 +551,9 @@
       }
 
 
-      <a routerLink="/dashboard/government/schemes/manage" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/notifications" class="dash-panel__footer-link">
 
-        Manage Government Schemes
+        View All Notifications
 
         <span class="material-icons">
           arrow_forward

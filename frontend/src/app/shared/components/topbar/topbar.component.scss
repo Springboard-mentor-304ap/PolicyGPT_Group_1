@@ -205,7 +205,7 @@ input {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 15px;
+  padding: 0 8px;
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   border-radius: 26px;
   background: rgba(255, 255, 255, 0.1);
@@ -224,8 +224,23 @@ input {
 
 .topbar-search__icon {
   flex-shrink: 0;
-  color: $topbar-white;
-  font-size: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #2563eb;
+  font-size: 20px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.topbar-search:focus-within .topbar-search__icon {
+  background: #dce8ff;
+  color: #1d4ed8;
 }
 
 .topbar-search input {
@@ -314,14 +329,17 @@ input {
   flex-shrink: 0;
   padding: 0;
   border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: $topbar-white;
+  border-radius: 50%;
+  background: #eaf2ff;
+  color: #2563eb;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: #dce8ff;
+    color: #1d4ed8;
   }
 
   &:focus-visible {

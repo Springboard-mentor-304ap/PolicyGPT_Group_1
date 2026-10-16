@@ -260,7 +260,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates, status changes, and revisions to published policies.",
       icon: "edit_document",
       iconClass: "icon--policy",
-      types: ["POLICY_UPDATED"],
+      types: ["POLICY_UPDATED", "POLICY_ARCHIVED"],
     },
     {
       key: "new_scheme",
@@ -276,7 +276,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates, status changes, and revisions to published schemes.",
       icon: "update",
       iconClass: "icon--scheme",
-      types: ["SCHEME_UPDATED"],
+      types: ["SCHEME_UPDATED", "SCHEME_ARCHIVED"],
     },
     {
       key: "archive_requests",
@@ -386,7 +386,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates, status changes, and revisions to policies you are authorized to manage.",
       icon: "edit_document",
       iconClass: "icon--policy",
-      types: ["POLICY_UPDATED"],
+      types: ["POLICY_UPDATED", "POLICY_ARCHIVED"],
     },
     {
       key: "new_scheme",
@@ -402,7 +402,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates, status changes, and revisions to schemes you are authorized to manage.",
       icon: "update",
       iconClass: "icon--scheme",
-      types: ["SCHEME_UPDATED"],
+      types: ["SCHEME_UPDATED", "SCHEME_ARCHIVED"],
     },
     {
       key: "policy_approval_results",
@@ -493,7 +493,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates to published policies, including changes to policies you have saved.",
       icon: "edit_document",
       iconClass: "icon--policy",
-      types: ["POLICY_UPDATED"],
+      types: ["POLICY_UPDATED", "POLICY_ARCHIVED"],
     },
     {
       key: "new_scheme",
@@ -509,7 +509,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Scheme updates, eligibility or benefit changes for schemes relevant to you.",
       icon: "update",
       iconClass: "icon--scheme",
-      types: ["SCHEME_UPDATED"],
+      types: ["SCHEME_UPDATED", "SCHEME_ARCHIVED"],
     },
     {
       key: "deadline_reminders",
@@ -576,7 +576,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Policy updates, amendments, revisions, withdrawals, and archival notices.",
       icon: "edit_document",
       iconClass: "icon--policy",
-      types: ["POLICY_UPDATED"],
+      types: ["POLICY_UPDATED", "POLICY_ARCHIVED"],
     },
     {
       key: "new_scheme",
@@ -592,7 +592,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Scheme updates, benefit changes, eligibility changes, and end-date updates.",
       icon: "update",
       iconClass: "icon--scheme",
-      types: ["SCHEME_UPDATED"],
+      types: ["SCHEME_UPDATED", "SCHEME_ARCHIVED"],
     },
     {
       key: "deadline_reminders",
@@ -659,7 +659,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Updates and amendments to policies relevant to your organization, including saved policies.",
       icon: "edit_document",
       iconClass: "icon--policy",
-      types: ["POLICY_UPDATED"],
+      types: ["POLICY_UPDATED", "POLICY_ARCHIVED"],
     },
     {
       key: "new_scheme",
@@ -675,7 +675,7 @@ export const ROLE_NOTIFICATION_CONFIG: Record<string, RoleNotificationCategoryCo
       description: "Scheme updates and eligibility or benefit changes for schemes relevant to you.",
       icon: "update",
       iconClass: "icon--scheme",
-      types: ["SCHEME_UPDATED"],
+      types: ["SCHEME_UPDATED", "SCHEME_ARCHIVED"],
     },
     {
       key: "deadline_reminders",

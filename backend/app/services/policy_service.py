@@ -1224,6 +1224,7 @@ def archive_policy(
     db: Session,
     policy_id: int,
     current_user: User,
+    background_tasks=None,
 ) -> Policy:
 
     policy = _policy_or_404(
@@ -1249,7 +1250,51 @@ def archive_policy(
     db.commit()
     db.refresh(policy)
 
+    # Notify the archiving official (authenticated actor ID only).
+    notify_args = {
+        "policy_id": policy.policy_id,
+        "policy_title": policy.title,
+        "actor_user_id": current_user.user_id,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_archive_actor_notice, notify_args)
+    else:
+        _run_archive_actor_notice(notify_args, db=db)
+
     return policy
+
+
+def _run_archive_actor_notice(args: dict, db: Session | None = None) -> None:
+    """Notify the official who archived the policy (IN_APP + delivery legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_policy_archived,
+            )
+
+            notify_policy_archived(
+                db=db,
+                policy_id=args["policy_id"],
+                actor_user_id=args.get("actor_user_id"),
+                policy_title=args.get("policy_title"),
+            )
+        except Exception as e:
+            print(f"Notification error on policy archive: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 # ============================================================

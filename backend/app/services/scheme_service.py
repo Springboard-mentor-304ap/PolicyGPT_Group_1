@@ -1051,7 +1051,53 @@ def archive_scheme(
         else:
             _run_decision_notifications(notify_args, db=db)
 
+    # Notify the archiving official (authenticated actor ID only).
+    # Skipped when no actor is known; the requester path above already
+    # informed the requester of the decision.
+    archive_notice_args = {
+        "scheme_id": scheme.scheme_id,
+        "scheme_title": title,
+        "actor_user_id": actor_id,
+    }
+
+    if background_tasks is not None:
+        background_tasks.add_task(_run_archive_actor_notice, archive_notice_args)
+    else:
+        _run_archive_actor_notice(archive_notice_args, db=db)
+
     return scheme
+
+
+def _run_archive_actor_notice(args: dict, db: Session | None = None) -> None:
+    """Notify the official who archived the scheme (IN_APP + delivery legs).
+
+    Runs inline when called with the request session, or after the
+    response with its own short-lived session when scheduled as a
+    background task. Never raises into the caller.
+    """
+    close_after = False
+    if db is None:
+        from app.db.database import SessionLocal
+
+        db = SessionLocal()
+        close_after = True
+    try:
+        try:
+            from app.services.notification_service import (
+                notify_scheme_archived,
+            )
+
+            notify_scheme_archived(
+                db=db,
+                scheme_id=args["scheme_id"],
+                actor_user_id=args.get("actor_user_id"),
+                scheme_title=args.get("scheme_title") or "Public Scheme",
+            )
+        except Exception as e:
+            print(f"Notification error on scheme archive: {e}")
+    finally:
+        if close_after:
+            db.close()
 
 
 def _run_decision_notifications(args: dict, db: Session | None = None) -> None:

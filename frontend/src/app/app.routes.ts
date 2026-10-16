@@ -7,19 +7,22 @@ import { supportRedirectGuard } from "./core/guards/support.guard";
 
 export const routes: Routes = [
   // =========================================================
-  // DEFAULT ROUTE
+  // PUBLIC HOMEPAGE (unauthenticated landing)
   // =========================================================
   //
   // /
-  // ↓
-  // /auth/login
+  // Serves the public landing page. Authenticated visitors are
+  // forwarded to their own dashboard by the component itself.
   //
   // =========================================================
 
   {
     path: "",
-    redirectTo: "auth/login",
-    pathMatch: "full",
+
+    loadComponent: () =>
+      import("./features/landing/public-home/public-home.component").then(
+        (m) => m.PublicHomeComponent,
+      ),
   },
 
   // =========================================================

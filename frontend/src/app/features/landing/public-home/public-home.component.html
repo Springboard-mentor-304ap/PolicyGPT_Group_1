@@ -1,0 +1,638 @@
+<div class="landing-page">
+
+  <!-- =====================================================
+       HERO (public background + transparent header)
+       NOTE: .landing-header topbar visuals preserved exactly;
+       actions open popups instead of navigating.
+       ===================================================== -->
+  <section class="landing-hero" aria-label="PolicyGPT introduction">
+
+    <header class="landing-header">
+      <button type="button" class="landing-brand" (click)="openInfo('about')" aria-label="About PolicyGPT">
+        <img src="/images/logo.png" alt="PolicyGPT" class="landing-brand__logo" />
+        <span class="landing-brand__text">
+          <span class="landing-brand__name">Policy<span>GPT</span></span>
+          <span class="landing-brand__tagline">Government Information Simplified.</span>
+        </span>
+      </button>
+
+      <nav class="landing-header__actions" aria-label="Account">
+        <button type="button" class="landing-btn landing-btn--login" (click)="openLogin()">
+          <span class="material-icons" aria-hidden="true">login</span>
+          <span>Login</span>
+        </button>
+        <button type="button" class="landing-btn landing-btn--signup" (click)="openSignup()">
+          <span class="material-icons" aria-hidden="true">person_add</span>
+          <span>Signup</span>
+        </button>
+      </nav>
+    </header>
+
+    <div class="landing-hero__content">
+      <p class="landing-hero__eyebrow">DISCOVER &nbsp;&middot;&nbsp; EXPLORE &nbsp;&middot;&nbsp; UNDERSTAND</p>
+      <h1 class="landing-hero__title">
+        <span class="landing-hero__title-line">Government Policies and Schemes</span>
+        <span class="landing-hero__title-accent">Made Simple</span>
+      </h1>
+
+      <p class="landing-hero__desc">
+        PolicyGPT helps citizens, researchers, organizations and government
+        officials easily access, search and understand government policies
+        and public schemes &mdash; all in one place.
+      </p>
+
+      <div class="landing-hero__actions">
+        <button type="button" class="landing-hero__btn landing-hero__btn--primary" (click)="openLogin()">
+          <span>Login</span>
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        </button>
+        <button type="button" class="landing-hero__btn landing-hero__btn--secondary" (click)="openSignup()">
+          <span>Sign Up</span>
+          <span class="material-icons" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- =====================================================
+       MAIN SEARCH + HIGHLIGHTS (overlaps hero base)
+       ===================================================== -->
+  <div class="landing-container landing-search-wrap">
+    <section class="landing-search-panel" aria-label="Search policies and schemes">
+      <form class="landing-search" role="search" aria-label="Search policies and schemes"
+        (submit)="onInlineSearch(searchInput.value); $event.preventDefault()">
+        <span class="material-icons landing-search__icon" aria-hidden="true">search</span>
+        <input #searchInput type="search" [(ngModel)]="searchQuery" name="q"
+          placeholder="Search policies, schemes, ministries or keywords..."
+          aria-label="Search policies, schemes, ministries or keywords..." autocomplete="off" />
+        <button type="submit" class="landing-search__button" aria-label="Search">
+          <span class="landing-search__button-text">Search</span>
+        </button>
+      </form>
+
+      <div class="landing-highlights" aria-label="Search features">
+        @for (item of highlights; track item.title) {
+        <button type="button" class="landing-highlight" (click)="openFeature(item.feature)"
+          [attr.aria-label]="item.title + ' — ' + item.text">
+          <span class="landing-highlight__icon" aria-hidden="true">
+            <span class="material-icons">{{ item.icon }}</span>
+          </span>
+          <span class="landing-highlight__body">
+            <span class="landing-highlight__title">{{ item.title }}</span>
+            <span class="landing-highlight__text">{{ item.text }}</span>
+          </span>
+        </button>
+        }
+      </div>
+    </section>
+  </div>
+
+  <!-- =====================================================
+       WHO CAN BENEFIT
+       ===================================================== -->
+  <section class="landing-beneficiaries" aria-labelledby="benefit-heading">
+    <div class="landing-container">
+      <p class="landing-eyebrow">ONE PLATFORM FOR A MORE INFORMED INDIA</p>
+      <h2 class="landing-section-title" id="benefit-heading">Who Can Benefit?</h2>
+      <div class="landing-beneficiaries__grid">
+        @for (b of beneficiaries; track b.title) {
+        <article class="landing-beneficiary landing-beneficiary--{{ b.tint }}">
+          <span class="landing-beneficiary__icon" aria-hidden="true">
+            <span class="material-icons">{{ b.icon }}</span>
+          </span>
+          <h3 class="landing-beneficiary__title">{{ b.title }}</h3>
+          <p class="landing-beneficiary__text">{{ b.text }}</p>
+        </article>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       KEY FEATURES OF POLICYGPT
+       ===================================================== -->
+  <section class="landing-keyfeatures" aria-labelledby="keyfeatures-heading">
+    <div class="landing-container">
+      <h2 class="landing-section-title" id="keyfeatures-heading">Key Features of Policy<span
+          class="landing-section-title__accent">GPT</span></h2>
+      <div class="landing-keyfeatures__layout">
+        <div class="landing-keyfeatures__col">
+          @for (f of keyFeaturesLeft; track f.title) {
+          <article class="landing-keyfeature">
+            <span class="landing-keyfeature__icon" aria-hidden="true">
+              <span class="material-icons">{{ f.icon }}</span>
+            </span>
+            <div class="landing-keyfeature__body">
+              <h3>{{ f.title }}</h3>
+              <p>{{ f.text }}</p>
+            </div>
+          </article>
+          }
+        </div>
+        <div class="landing-keyfeatures__art">
+          <img src="/images/logo.png"
+            alt="PolicyGPT illustration showing government building, national flag and policy search" loading="lazy" />
+        </div>
+        <div class="landing-keyfeatures__col">
+          @for (f of keyFeaturesRight; track f.title) {
+          <article class="landing-keyfeature">
+            <span class="landing-keyfeature__icon" aria-hidden="true">
+              <span class="material-icons">{{ f.icon }}</span>
+            </span>
+            <div class="landing-keyfeature__body">
+              <h3>{{ f.title }}</h3>
+              <p>{{ f.text }}</p>
+            </div>
+          </article>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       CALL TO ACTION
+       ===================================================== -->
+  <section class="landing-cta" aria-labelledby="cta-heading">
+    <div class="landing-container landing-cta__inner">
+      <h2 id="cta-heading">Be a Part of a More Informed India</h2>
+      <p>Join PolicyGPT today and explore the world of government policies and schemes.</p>
+      <div class="landing-cta__actions">
+        <button type="button" class="landing-hero__btn landing-hero__btn--primary" (click)="openLogin()">
+          <span>Login</span>
+        </button>
+        <button type="button" class="landing-hero__btn landing-hero__btn--outline" (click)="openSignup()">
+          <span>Sign Up</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================
+       FOOTER
+       ===================================================== -->
+  <footer class="landing-footer" aria-label="PolicyGPT footer">
+    <div class="landing-container landing-footer__inner">
+      <div class="landing-footer__brand">
+        <button type="button" class="landing-footer__brand-row" (click)="openInfo('about')"
+          aria-label="About PolicyGPT">
+          <img src="/images/logo.png" alt="PolicyGPT" class="landing-footer__logo" />
+          <span class="landing-footer__name">Policy<span>GPT</span></span>
+        </button>
+        <p class="landing-footer__tagline">Government Policies Made Simple</p>
+      </div>
+      <nav class="landing-footer__links" aria-label="Footer">
+        <button type="button" (click)="openInfo('contact')">Contact Us</button>
+        <span class="landing-footer__sep" aria-hidden="true">|</span>
+        <button type="button" (click)="openInfo('help')">Help &amp; Support</button>
+        <span class="landing-footer__sep" aria-hidden="true">|</span>
+        <button type="button" (click)="openInfo('privacy')">Privacy Policy</button>
+        <span class="landing-footer__sep" aria-hidden="true">|</span>
+        <button type="button" (click)="openInfo('terms')">Terms of Use</button>
+      </nav>
+      <p class="landing-footer__copy">&copy; {{ currentYear }} PolicyGPT. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- =====================================================
+       HOMEPAGE MODALS (one at a time, never direct routing)
+       ===================================================== -->
+  @if (activeModal !== null) {
+  <div class="landing-modal-backdrop" (click)="onBackdropClick($event)">
+    <div class="landing-modal" role="dialog" aria-modal="true"
+      [class.landing-modal--auth]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot'"
+      [class.landing-modal--wide]="activeModal === 'search'"
+      [attr.aria-label]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot' ? modalAriaLabel() : null"
+      [attr.aria-labelledby]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot' ? null : 'landing-modal-title'"
+      (keydown)="onModalKeydown($event)">
+      <button type="button" class="landing-modal__close" (click)="closeModal()" aria-label="Close dialog">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+
+      @switch (activeModal) {
+      @case ('login') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Login</h2>
+      <p class="landing-modal__desc">Sign in to access your PolicyGPT dashboard.</p>
+      @if (loginNotice) {
+      <p class="landing-auth__notice" role="status">{{ loginNotice }}</p>
+      }
+      <div class="landing-auth__modes" role="group" aria-label="Login method">
+        <button type="button" class="landing-auth__mode" [class.landing-auth__mode--active]="loginMode === 'email'"
+          (click)="toggleLoginMode()" [disabled]="loginLoading">
+          <span class="material-icons" aria-hidden="true">mail_outline</span>
+          <span>Email ID</span>
+        </button>
+        <button type="button" class="landing-auth__mode" [class.landing-auth__mode--active]="loginMode === 'phone'"
+          (click)="toggleLoginMode()" [disabled]="loginLoading">
+          <span class="material-icons" aria-hidden="true">phone</span>
+          <span>Phone Number</span>
+        </button>
+      </div>
+      <form class="landing-auth__form" (submit)="submitLogin(); $event.preventDefault()">
+        <label class="landing-auth__label" [attr.for]="'landing-login-id'">
+          {{ loginMode === 'email' ? 'Email address' : 'Phone number' }}
+        </label>
+        <input id="landing-login-id" class="landing-auth__input" [(ngModel)]="loginId" name="loginId"
+          [type]="loginMode === 'email' ? 'email' : 'tel'"
+          [placeholder]="loginMode === 'email' ? 'you@example.com' : '10-digit mobile number'" autocomplete="username"
+          [disabled]="loginLoading" />
+        <label class="landing-auth__label" [attr.for]="'landing-login-pw'">Password</label>
+        <div class="landing-auth__pwrow">
+          <input id="landing-login-pw" class="landing-auth__input" [(ngModel)]="loginPassword" name="loginPassword"
+            [type]="loginHidePassword ? 'password' : 'text'" placeholder="Enter your password"
+            autocomplete="current-password" [disabled]="loginLoading" />
+          <button type="button" class="landing-auth__iconbtn" (click)="loginHidePassword = !loginHidePassword"
+            [attr.aria-label]="loginHidePassword ? 'Show password' : 'Hide password'">
+            <span class="material-icons" aria-hidden="true">{{ loginHidePassword ? 'visibility' : 'visibility_off'
+              }}</span>
+          </button>
+        </div>
+        <div class="landing-auth__row">
+          <label class="landing-auth__check">
+            <input type="checkbox" [(ngModel)]="loginRemember" name="loginRemember" [disabled]="loginLoading" />
+            <span>Remember Me</span>
+          </label>
+          <button type="button" class="landing-auth__link" (click)="openForgot()" [disabled]="loginLoading">Forgot
+            Password?</button>
+        </div>
+        @if (loginError) {
+        <p class="landing-auth__error" role="alert">{{ loginError }}</p>
+        }
+        <button type="submit" class="landing-modal__btn landing-modal__btn--login" [disabled]="loginLoading">
+          <span class="material-icons" aria-hidden="true">login</span>
+          <span>{{ loginLoading ? 'Logging in...' : 'Login' }}</span>
+        </button>
+      </form>
+      <div class="landing-modal__actions">
+        <button type="button" class="landing-modal__btn landing-modal__btn--guest"
+          (click)="openChoice('', null, ['/dashboard/guest'], false)">
+          <span class="material-icons" aria-hidden="true">person_search</span>
+          <span>Continue as Guest</span>
+        </button>
+      </div>
+      <p class="landing-auth__swap">New here?
+        <button type="button" class="landing-auth__link" (click)="openSignup()">Create an account</button>
+      </p>
+      }
+      @case ('signup') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Sign Up</h2>
+      <p class="landing-modal__desc">Create your PolicyGPT account.</p>
+      <form class="landing-auth__form" (submit)="submitSignup(); $event.preventDefault()">
+        <label class="landing-auth__label" for="landing-su-name">Full name</label>
+        <input id="landing-su-name" class="landing-auth__input" [(ngModel)]="signupName" name="signupName"
+          placeholder="Enter your full name" autocomplete="name" [disabled]="signupLoading" />
+        @if (signupFieldErrors['name']) {
+        <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['name'] }}</p>
+        }
+        <div class="landing-auth__grid">
+          <div>
+            <label class="landing-auth__label" for="landing-su-email">Email</label>
+            <input id="landing-su-email" class="landing-auth__input" [(ngModel)]="signupEmail" name="signupEmail"
+              type="email" placeholder="you@example.com" autocomplete="email" [disabled]="signupLoading" />
+            @if (signupFieldErrors['email']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['email'] }}</p>
+            }
+          </div>
+          <div>
+            <label class="landing-auth__label" for="landing-su-phone">Phone</label>
+            <input id="landing-su-phone" class="landing-auth__input" [(ngModel)]="signupPhone" name="signupPhone"
+              type="tel" placeholder="10-digit number" autocomplete="tel" [disabled]="signupLoading" />
+            @if (signupFieldErrors['phone']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['phone'] }}</p>
+            }
+          </div>
+        </div>
+        <div class="landing-auth__grid">
+          <div>
+            <label class="landing-auth__label" for="landing-su-dob">Date of birth</label>
+            <input id="landing-su-dob" class="landing-auth__input" [(ngModel)]="signupDob" name="signupDob" type="date"
+              [disabled]="signupLoading" />
+            @if (signupFieldErrors['dob']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['dob'] }}</p>
+            }
+          </div>
+          <div>
+            <label class="landing-auth__label" for="landing-su-role">Role</label>
+            <select id="landing-su-role" class="landing-auth__input" [(ngModel)]="signupRole" name="signupRole"
+              [disabled]="signupLoading">
+              <option value="" disabled>Select a role</option>
+              @for (r of signupRoles; track r.value) {
+              <option [value]="r.value">{{ r.label }}</option>
+              }
+            </select>
+            @if (signupFieldErrors['role']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['role'] }}</p>
+            }
+          </div>
+        </div>
+        <div class="landing-auth__grid">
+          <div>
+            <label class="landing-auth__label" for="landing-su-state">State</label>
+            <select id="landing-su-state" class="landing-auth__input" [(ngModel)]="signupState" name="signupState"
+              (change)="onSignupStateChange()" [disabled]="signupLoading">
+              <option value="" disabled>Select a state</option>
+              @for (s of signupStates; track s) {
+              <option [value]="s">{{ s }}</option>
+              }
+            </select>
+            @if (signupFieldErrors['state']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['state'] }}</p>
+            }
+          </div>
+          <div>
+            <label class="landing-auth__label" for="landing-su-district">District</label>
+            <select id="landing-su-district" class="landing-auth__input" [(ngModel)]="signupDistrict"
+              name="signupDistrict" [disabled]="signupLoading || signupDistricts.length === 0">
+              <option value="" disabled>Select a district</option>
+              @for (d of signupDistricts; track d) {
+              <option [value]="d">{{ d }}</option>
+              }
+            </select>
+            @if (signupFieldErrors['district']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['district'] }}</p>
+            }
+          </div>
+        </div>
+        <div class="landing-auth__grid">
+          <div>
+            <label class="landing-auth__label" for="landing-su-pw">Password</label>
+            <div class="landing-auth__pwrow">
+              <input id="landing-su-pw" class="landing-auth__input" [(ngModel)]="signupPassword" name="signupPassword"
+                [type]="signupHidePassword ? 'password' : 'text'" placeholder="Min. 8 characters"
+                autocomplete="new-password" [disabled]="signupLoading" />
+              <button type="button" class="landing-auth__iconbtn" (click)="signupHidePassword = !signupHidePassword"
+                [attr.aria-label]="signupHidePassword ? 'Show password' : 'Hide password'">
+                <span class="material-icons" aria-hidden="true">{{ signupHidePassword ? 'visibility' :
+                  'visibility_off' }}</span>
+              </button>
+            </div>
+            @if (signupFieldErrors['password']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['password'] }}</p>
+            }
+          </div>
+          <div>
+            <label class="landing-auth__label" for="landing-su-pw2">Confirm password</label>
+            <div class="landing-auth__pwrow">
+              <input id="landing-su-pw2" class="landing-auth__input" [(ngModel)]="signupConfirmPassword"
+                name="signupConfirmPassword" [type]="signupHideConfirm ? 'password' : 'text'"
+                placeholder="Repeat password" autocomplete="new-password" [disabled]="signupLoading" />
+              <button type="button" class="landing-auth__iconbtn" (click)="signupHideConfirm = !signupHideConfirm"
+                [attr.aria-label]="signupHideConfirm ? 'Show password' : 'Hide password'">
+                <span class="material-icons" aria-hidden="true">{{ signupHideConfirm ? 'visibility' : 'visibility_off'
+                  }}</span>
+              </button>
+            </div>
+            @if (signupFieldErrors['confirmPassword']) {
+            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['confirmPassword'] }}</p>
+            }
+          </div>
+        </div>
+        <label class="landing-auth__check landing-auth__terms">
+          <input type="checkbox" [(ngModel)]="signupAgreeTerms" name="signupAgreeTerms" [disabled]="signupLoading" />
+          <span>I accept the
+            <button type="button" class="landing-auth__link" (click)="openInfo('terms')">Terms &amp;
+              Conditions</button>
+            and
+            <button type="button" class="landing-auth__link" (click)="openInfo('privacy')">Privacy Policy</button>.
+          </span>
+        </label>
+        @if (signupFieldErrors['agreeTerms']) {
+        <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['agreeTerms'] }}</p>
+        }
+        @if (signupError) {
+        <p class="landing-auth__error" role="alert">{{ signupError }}</p>
+        }
+        <button type="submit" class="landing-modal__btn landing-modal__btn--signup" [disabled]="signupLoading">
+          <span class="material-icons" aria-hidden="true">person_add</span>
+          <span>{{ signupLoading ? 'Creating account...' : 'Sign Up' }}</span>
+        </button>
+      </form>
+      <p class="landing-auth__swap">Already have an account?
+        <button type="button" class="landing-auth__link" (click)="openLogin()">Login</button>
+      </p>
+      }
+      @case ('forgot') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Forgot Password</h2>
+      @if (fpStep === 1) {
+      <p class="landing-modal__desc">Enter your registered email or 10-digit phone number to receive a verification
+        code.</p>
+      <form class="landing-auth__form" (submit)="submitForgotIdentifier(); $event.preventDefault()">
+        <label class="landing-auth__label" for="landing-fp-id">Email or phone</label>
+        <input id="landing-fp-id" class="landing-auth__input" [(ngModel)]="fpIdentifier" name="fpIdentifier"
+          placeholder="Email or 10-digit phone number" autocomplete="username" [disabled]="fpLoading" />
+        @if (fpError) {
+        <p class="landing-auth__error" role="alert">{{ fpError }}</p>
+        }
+        @if (fpSuccess) {
+        <p class="landing-auth__notice" role="status">{{ fpSuccess }}</p>
+        }
+        <button type="submit" class="landing-modal__btn landing-modal__btn--login" [disabled]="fpLoading">
+          <span class="material-icons" aria-hidden="true">send</span>
+          <span>{{ fpLoading ? 'Sending...' : 'Send Code' }}</span>
+        </button>
+      </form>
+      <p class="landing-auth__swap">
+        <button type="button" class="landing-auth__link" (click)="openLogin()">Back to Login</button>
+      </p>
+      } @else if (fpStep === 2) {
+      <p class="landing-modal__desc">Enter the 6-digit code sent to your {{ fpType === 'phone' ? 'phone' : 'email' }}.
+      </p>
+      <form class="landing-auth__form" (submit)="submitForgotOtp(); $event.preventDefault()">
+        <label class="landing-auth__label" for="landing-fp-otp">Verification code</label>
+        <input id="landing-fp-otp" class="landing-auth__input landing-auth__otp" [(ngModel)]="fpOtp" name="fpOtp"
+          inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code"
+          [disabled]="fpLoading" />
+        @if (fpError) {
+        <p class="landing-auth__error" role="alert">{{ fpError }}</p>
+        }
+        @if (fpSuccess) {
+        <p class="landing-auth__notice" role="status">{{ fpSuccess }}</p>
+        }
+        <button type="submit" class="landing-modal__btn landing-modal__btn--login" [disabled]="fpLoading">
+          <span class="material-icons" aria-hidden="true">verified</span>
+          <span>{{ fpLoading ? 'Verifying...' : 'Verify Code' }}</span>
+        </button>
+        <button type="button" class="landing-modal__btn landing-modal__btn--guest" (click)="submitForgotIdentifier()"
+          [disabled]="fpLoading">
+          <span class="material-icons" aria-hidden="true">refresh</span>
+          <span>Resend Code</span>
+        </button>
+      </form>
+      } @else if (fpStep === 3) {
+      <p class="landing-modal__desc">Choose a new password (min. 8 characters).</p>
+      <form class="landing-auth__form" (submit)="submitForgotPassword(); $event.preventDefault()">
+        <label class="landing-auth__label" for="landing-fp-new">New password</label>
+        <div class="landing-auth__pwrow">
+          <input id="landing-fp-new" class="landing-auth__input" [(ngModel)]="fpNewPassword" name="fpNewPassword"
+            [type]="fpHidePassword ? 'password' : 'text'" placeholder="New password" autocomplete="new-password"
+            [disabled]="fpLoading" />
+          <button type="button" class="landing-auth__iconbtn" (click)="fpHidePassword = !fpHidePassword"
+            [attr.aria-label]="fpHidePassword ? 'Show password' : 'Hide password'">
+            <span class="material-icons" aria-hidden="true">{{ fpHidePassword ? 'visibility' : 'visibility_off'
+              }}</span>
+          </button>
+        </div>
+        <label class="landing-auth__label" for="landing-fp-confirm">Confirm new password</label>
+        <input id="landing-fp-confirm" class="landing-auth__input" [(ngModel)]="fpConfirmPassword"
+          name="fpConfirmPassword" [type]="fpHidePassword ? 'password' : 'text'" placeholder="Repeat new password"
+          autocomplete="new-password" [disabled]="fpLoading" />
+        @if (fpError) {
+        <p class="landing-auth__error" role="alert">{{ fpError }}</p>
+        }
+        <button type="submit" class="landing-modal__btn landing-modal__btn--login" [disabled]="fpLoading">
+          <span class="material-icons" aria-hidden="true">lock_reset</span>
+          <span>{{ fpLoading ? 'Saving...' : 'Reset Password' }}</span>
+        </button>
+      </form>
+      } @else {
+      <p class="landing-modal__desc">Your password has been reset successfully. You can now log in with your new
+        password.</p>
+      <div class="landing-modal__actions">
+        <button type="button" class="landing-modal__btn landing-modal__btn--login"
+          (click)="openLogin('Password reset successfully. Please log in.')">
+          <span class="material-icons" aria-hidden="true">login</span>
+          <span>Back to Login</span>
+        </button>
+      </div>
+      }
+      }
+      @case ('search') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Search Policies &amp; Schemes</h2>
+      <p class="landing-modal__desc">Type a keyword to search government policies and schemes together.</p>
+      <form class="landing-modal-search" role="search" aria-label="Search policies and schemes"
+        (submit)="onModalSearch(modalSearchInput.value); $event.preventDefault()">
+        <span class="material-icons landing-modal-search__icon" aria-hidden="true">search</span>
+        <input #modalSearchInput type="search" [(ngModel)]="modalSearchQuery" name="mq"
+          placeholder="Search policies, schemes, ministries or keywords..."
+          aria-label="Search policies, schemes, ministries or keywords..." autocomplete="off" />
+        <button type="submit" class="landing-search__button" aria-label="Search">
+          <span class="landing-search__button-text">Search</span>
+        </button>
+      </form>
+      @if (searchValidation) {
+      <p class="landing-search__hint" role="alert">{{ searchValidation }}</p>
+      }
+      @if (searchStage === 'results') {
+      @if (searchLoading) {
+      <div class="landing-modal__loading" aria-live="polite">
+        <div class="loader" aria-hidden="true"></div>
+        <p>Searching policies and schemes...</p>
+      </div>
+      } @else if (searchError) {
+      <div class="landing-modal__error" role="alert">
+        <p>{{ searchError }}</p>
+        <button type="button" class="landing-modal__btn landing-modal__btn--login"
+          (click)="onModalSearch(modalSearchQuery)">
+          <span class="material-icons" aria-hidden="true">refresh</span>
+          <span>Retry</span>
+        </button>
+      </div>
+      } @else {
+      <p class="landing-modal__meta" aria-live="polite">Found {{ searchTotalPolicies }}
+        {{ searchTotalPolicies === 1 ? 'policy' : 'policies' }} and {{ searchTotalSchemes }}
+        {{ searchTotalSchemes === 1 ? 'scheme' : 'schemes' }}</p>
+      @if (searchHits.length === 0) {
+      <p class="landing-modal__desc">No policies or schemes matched &ldquo;{{ modalSearchQuery }}&rdquo;. Try a
+        different keyword.</p>
+      } @else {
+      <ul class="landing-results">
+        @for (hit of searchHits; track hit.kind + '-' + hit.id) {
+        <li>
+          <button type="button" class="landing-result" (click)="selectSearchHit(hit)"
+            [attr.aria-label]="(hit.kind === 'policy' ? 'Policy' : 'Scheme') + ': ' + hit.title">
+            <span class="landing-result__badge" aria-hidden="true">{{ hit.kind === 'policy' ? 'Policy' :
+              'Scheme' }}</span>
+            <span class="landing-result__text">
+              <span class="landing-result__title">{{ hit.title }}</span>
+              <span class="landing-result__cat">{{ hit.category }}</span>
+            </span>
+            <span class="material-icons landing-result__go" aria-hidden="true">chevron_right</span>
+          </button>
+        </li>
+        }
+      </ul>
+      }
+      <button type="button" class="landing-modal__back" (click)="backToSearchInput()">
+        <span class="material-icons" aria-hidden="true">arrow_back</span>
+        <span>Back to search</span>
+      </button>
+      }
+      }
+      }
+      @case ('choice') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Continue to Search</h2>
+      <p class="landing-modal__desc" id="landing-modal-desc">Choose how you want to explore government policies and
+        schemes.</p>
+      @if (choiceQuery) {
+      <p class="landing-modal__query" aria-live="polite">Searching for: &ldquo;{{ choiceQuery }}&rdquo;</p>
+      }
+      @if (choiceContext) {
+      <p class="landing-modal__query" aria-live="polite">Selected: {{ choiceContext }}</p>
+      }
+      <div class="landing-modal__actions">
+        <button type="button" class="landing-modal__btn landing-modal__btn--guest" (click)="continueAsGuest()">
+          <span class="material-icons" aria-hidden="true">person_search</span>
+          <span>Continue as Guest</span>
+        </button>
+        <button type="button" class="landing-modal__btn landing-modal__btn--login" (click)="goToLoginFromChoice()">
+          <span class="material-icons" aria-hidden="true">login</span>
+          <span>Login</span>
+        </button>
+        <button type="button" class="landing-modal__btn landing-modal__btn--signup" (click)="goToSignupFromChoice()">
+          <span class="material-icons" aria-hidden="true">person_add</span>
+          <span>Sign Up</span>
+        </button>
+      </div>
+      @if (choiceBackToSearch) {
+      <button type="button" class="landing-modal__back" (click)="backToResults()">
+        <span class="material-icons" aria-hidden="true">arrow_back</span>
+        <span>Back to results</span>
+      </button>
+      }
+      }
+      @case ('panel') {
+      <span class="landing-panel__icon" aria-hidden="true">
+        <span class="material-icons">{{ panel.icon }}</span>
+      </span>
+      <h2 class="landing-modal__title" id="landing-modal-title">{{ panel.title }}</h2>
+      <p class="landing-modal__desc">{{ panel.intro }}</p>
+      @if (panel.lines) {
+      <ul class="landing-panel__lines">
+        @for (line of panel.lines; track line) {
+        <li>{{ line }}</li>
+        }
+      </ul>
+      }
+      <div class="landing-modal__actions">
+        @for (action of panel.actions; track action.label) {
+        <button type="button"
+          class="landing-modal__btn {{ action.kind === 'login' || action.kind === 'search' ? 'landing-modal__btn--login' : action.kind === 'signup' ? 'landing-modal__btn--signup' : 'landing-modal__btn--guest' }}"
+          (click)="runPanelAction(action)">
+          <span class="material-icons" aria-hidden="true">{{ action.icon }}</span>
+          <span>{{ action.label }}</span>
+        </button>
+        }
+      </div>
+      }
+      @case ('external') {
+      <h2 class="landing-modal__title" id="landing-modal-title">Leave PolicyGPT?</h2>
+      <p class="landing-modal__desc">You are about to open an external destination:</p>
+      <p class="landing-modal__query">{{ externalLabel }}</p>
+      <div class="landing-modal__actions">
+        <button type="button" class="landing-modal__btn landing-modal__btn--login" (click)="confirmExternal()">
+          <span class="material-icons" aria-hidden="true">open_in_new</span>
+          <span>Open Link</span>
+        </button>
+        <button type="button" class="landing-modal__btn landing-modal__btn--guest" (click)="closeModal()">
+          <span class="material-icons" aria-hidden="true">close</span>
+          <span>Stay Here</span>
+        </button>
+      </div>
+      }
+      }
+    </div>
+  </div>
+  }
+
+</div>

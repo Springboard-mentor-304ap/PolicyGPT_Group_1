@@ -14,6 +14,7 @@ import { finalize } from "rxjs";
 import { Auth } from "../../core/services/auth";
 import { ChatbotService } from "../../core/services/chatbot.service";
 import { PermissionService } from "../../core/services/permission.service";
+import { ChatbotOpenService } from "../../core/services/chatbot-open.service";
 import { NavigationContextService } from "../../core/services/navigation-context.service";
 import { ToastService } from "../../core/services/toast.service";
 import { LoadingIndicatorComponent } from "../../shared/components/loading-indicator/loading-indicator.component";
@@ -271,6 +272,12 @@ export class ChatbotComponent {
   private readonly navContext = inject(NavigationContextService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  // External open requests (e.g. the public homepage assistant card).
+  // App-lifetime component: no teardown needed. Additive only — the
+  // messaging, history, and rendering logic below is untouched.
+  private readonly openRequestSub = inject(ChatbotOpenService).open$.subscribe(
+    () => this.openPanel(),
+  );
   // The app runs zoneless: plain-field writes inside async subscriptions do
   // NOT schedule change detection (replies appeared only after the next
   // click). markForCheck() after each completed request renders the new

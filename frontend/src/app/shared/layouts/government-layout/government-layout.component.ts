@@ -56,9 +56,10 @@ export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
 
   sidebarCollapsed = false;
-  // Expanded by default on every screen size: on mobile this opens the
-  // overlay drawer (closed on navigation, reopened via hamburger).
-  mobileMenuOpen = true;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
+  mobileMenuOpen = false;
 
   // =======================================================
   // SUBMENUS

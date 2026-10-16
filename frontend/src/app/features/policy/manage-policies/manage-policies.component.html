@@ -597,6 +597,7 @@
         [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
         [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading"
         [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="showCancelConfirm"
+        [dialogClass]="confirmTitle === 'Delete Policy' ? 'confirm-modal--delete-policy' : ''"
         (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
     </app-confirm-modal>
 

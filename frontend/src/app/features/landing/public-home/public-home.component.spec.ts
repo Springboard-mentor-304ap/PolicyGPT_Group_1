@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter, Router } from "@angular/router";
 import { Component } from "@angular/core";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { of, throwError } from "rxjs";
+import { of } from "rxjs";
 import { PublicHomeComponent } from "./public-home.component";
 import { Auth } from "../../../core/services/auth";
 import { AvatarService } from "../../../core/services/avatar.service";
@@ -116,38 +116,32 @@ describe("PublicHomeComponent popups", () => {
     expect(el.querySelector(".landing-footer")).toBeTruthy();
   });
 
-  it("opens the login modal from the topbar without navigating", () => {
+  it("navigates to the Login page from the topbar", () => {
     const navSpy = vi.spyOn(router, "navigate");
     const btn = fixture.nativeElement.querySelector(
       ".landing-header__actions .landing-btn--login",
     ) as HTMLElement;
     btn.click();
     fixture.detectChanges();
-    expect(component.activeModal).toBe("login");
-    const dialog: HTMLElement =
-      fixture.nativeElement.querySelector(".landing-modal");
-    expect(dialog.getAttribute("aria-label")).toContain("Login");
-    expect(dialog.querySelector('input[name="loginPassword"]')).toBeTruthy();
-    expect(dialog.textContent).toContain("Remember Me");
-    expect(dialog.textContent).toContain("Forgot");
-    expect(navSpy).not.toHaveBeenCalled();
+    expect(navSpy).toHaveBeenCalledWith(["/auth/login"]);
+    expect(component.activeModal).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(".landing-modal-backdrop"),
+    ).toBeNull();
   });
 
-  it("opens the signup modal from the hero without navigating", () => {
+  it("navigates to the Register page from the hero", () => {
     const navSpy = vi.spyOn(router, "navigate");
     const btn = fixture.nativeElement.querySelector(
       ".landing-hero__actions .landing-hero__btn--secondary",
     ) as HTMLElement;
     btn.click();
     fixture.detectChanges();
-    expect(component.activeModal).toBe("signup");
+    expect(navSpy).toHaveBeenCalledWith(["/auth/register"]);
+    expect(component.activeModal).toBeNull();
     expect(
-      fixture.nativeElement.querySelector('select[name="signupRole"]'),
-    ).toBeTruthy();
-    expect(
-      fixture.nativeElement.querySelector('select[name="signupState"]'),
-    ).toBeTruthy();
-    expect(navSpy).not.toHaveBeenCalled();
+      fixture.nativeElement.querySelector(".landing-modal-backdrop"),
+    ).toBeNull();
   });
 
   it("opens no popup when the inline input is focused", () => {
@@ -165,22 +159,28 @@ describe("PublicHomeComponent popups", () => {
     expect(navSpy).not.toHaveBeenCalled();
   });
 
-  it("navigates to guest results on Enter with a keyword", () => {
+  it("opens the access popup on Enter with a keyword", () => {
     const navSpy = vi.spyOn(router, "navigate");
     component.searchQuery = "health";
     component.onInlineSearch("health");
     fixture.detectChanges();
-    expect(component.activeModal).toBeNull();
-    expect(
-      fixture.nativeElement.querySelector(".landing-modal-backdrop"),
-    ).toBeNull();
-    expect(navSpy).toHaveBeenCalledWith(["/dashboard/guest"], {
-      queryParams: { q: "health" },
-    });
+    expect(component.activeModal).toBe("choice");
+    expect(component.choiceQuery).toBe("health");
     expect(component.searchQuery).toBe("health");
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector(".landing-modal__title")?.textContent).toContain(
+      "Continue to Search",
+    );
+    expect(el.querySelector(".landing-modal__query")?.textContent).toContain(
+      "health",
+    );
+    expect(
+      el.querySelectorAll(".landing-modal__actions .landing-modal__btn").length,
+    ).toBe(3);
+    expect(navSpy).not.toHaveBeenCalled();
   });
 
-  it("navigates to guest results when the Search button is clicked", () => {
+  it("opens the same popup when the Search button is clicked", () => {
     const navSpy = vi.spyOn(router, "navigate");
     fixture.detectChanges();
     const input = fixture.nativeElement.querySelector(
@@ -196,13 +196,9 @@ describe("PublicHomeComponent popups", () => {
       new Event("submit", { bubbles: true, cancelable: true }),
     );
     fixture.detectChanges();
-    expect(component.activeModal).toBeNull();
-    expect(
-      fixture.nativeElement.querySelector(".landing-modal-backdrop"),
-    ).toBeNull();
-    expect(navSpy).toHaveBeenCalledWith(["/dashboard/guest"], {
-      queryParams: { q: "scholarship" },
-    });
+    expect(component.activeModal).toBe("choice");
+    expect(component.choiceQuery).toBe("scholarship");
+    expect(navSpy).not.toHaveBeenCalled();
   });
 
   it("opens the same popup from the Search feature card", () => {
@@ -222,53 +218,45 @@ describe("PublicHomeComponent popups", () => {
     expect(navSpy).not.toHaveBeenCalled();
   });
 
-  it("ignores an empty search without a popup or navigation", () => {
+  it("opens the access popup for an empty search without navigating", () => {
     const navSpy = vi.spyOn(router, "navigate");
     component.onInlineSearch("   ");
     fixture.detectChanges();
-    expect(component.activeModal).toBeNull();
-    expect(
-      fixture.nativeElement.querySelector(".landing-modal-backdrop"),
-    ).toBeNull();
+    expect(component.activeModal).toBe("choice");
     expect(navSpy).not.toHaveBeenCalled();
   });
 
-  it("continues as guest from the popup with the keyword preserved", () => {
+  it("continues as guest from the search popup with the keyword preserved", () => {
     const navSpy = vi.spyOn(router, "navigate");
-    component.searchQuery = "health";
-    component.openFeature("search");
+    component.onInlineSearch("health");
     fixture.detectChanges();
-    component.runPanelAction({
-      label: "Continue as Guest",
-      icon: "person_search",
-      kind: "guest",
-      guestRoute: ["/dashboard/guest"],
-    });
+    expect(component.activeModal).toBe("choice");
+    component.continueAsGuest();
     expect(navSpy).toHaveBeenCalledWith(["/dashboard/guest"], {
       queryParams: { q: "health" },
     });
+    expect(component.searchQuery).toBe("health");
   });
 
-  it("opens the login and signup flows from the popup", () => {
-    component.searchQuery = "health";
-    component.openFeature("search");
-    component.runPanelAction({ label: "Login", icon: "login", kind: "login" });
-    expect(component.activeModal).toBe("login");
-    component.openFeature("search");
-    component.runPanelAction({
-      label: "Sign Up",
-      icon: "person_add",
-      kind: "signup",
-    });
-    expect(component.activeModal).toBe("signup");
-  });
-
-  it("closing the popup does not navigate and keeps the keyword", () => {
+  it("navigates to the Login page from the search popup", () => {
     const navSpy = vi.spyOn(router, "navigate");
-    component.searchQuery = "health";
-    component.openFeature("search");
+    component.onInlineSearch("health");
+    component.goToLoginFromChoice();
+    expect(navSpy).toHaveBeenCalledWith(["/auth/login"]);
+  });
+
+  it("navigates to the Register page from the search popup", () => {
+    const navSpy = vi.spyOn(router, "navigate");
+    component.onInlineSearch("health");
+    component.goToSignupFromChoice();
+    expect(navSpy).toHaveBeenCalledWith(["/auth/register"]);
+  });
+
+  it("closing the search popup does not navigate and keeps the keyword", () => {
+    const navSpy = vi.spyOn(router, "navigate");
+    component.onInlineSearch("health");
     fixture.detectChanges();
-    expect(component.activeModal).toBe("panel");
+    expect(component.activeModal).toBe("choice");
     component.closeModal();
     expect(component.activeModal).toBeNull();
     expect(component.searchQuery).toBe("health");
@@ -285,44 +273,18 @@ describe("PublicHomeComponent popups", () => {
     expect(component.activeModal).toBeNull();
   });
 
-  it("logs in through the modal and routes by role", () => {
+  it("navigates to the Login page via openLogin", () => {
     const navSpy = vi.spyOn(router, "navigate");
     component.openLogin();
-    component.loginId = "user@example.com";
-    component.loginPassword = "Secret123!";
-    component.submitLogin();
-    expect(authStub.login).toHaveBeenCalledWith(
-      "user@example.com",
-      "Secret123!",
-    );
-    expect(navSpy).toHaveBeenCalledWith(["/dashboard/citizen"]);
+    expect(navSpy).toHaveBeenCalledWith(["/auth/login"]);
     expect(component.activeModal).toBeNull();
   });
 
-  it("shows an error for invalid credentials without navigating", () => {
+  it("navigates to the Register page via openSignup", () => {
     const navSpy = vi.spyOn(router, "navigate");
-    authStub.login.mockReturnValueOnce(
-      throwError(() => ({
-        status: 401,
-        error: { detail: "Invalid credential" },
-      })),
-    );
-    component.openLogin();
-    component.loginId = "user@example.com";
-    component.loginPassword = "wrong";
-    component.submitLogin();
-    expect(component.loginError).toBeTruthy();
-    expect(component.activeModal).toBe("login");
-    expect(navSpy).not.toHaveBeenCalled();
-  });
-
-  it("validates the signup form without calling the API", () => {
     component.openSignup();
-    component.submitSignup();
-    expect(authStub.register).not.toHaveBeenCalled();
-    expect(component.signupFieldErrors["email"]).toBeTruthy();
-    expect(component.signupFieldErrors["role"]).toBeTruthy();
-    expect(component.signupError).toBeTruthy();
+    expect(navSpy).toHaveBeenCalledWith(["/auth/register"]);
+    expect(component.activeModal).toBeNull();
   });
 
   it("completes the forgot-password flow and returns to login", () => {

@@ -201,217 +201,16 @@
   @if (activeModal !== null) {
   <div class="landing-modal-backdrop" (click)="onBackdropClick($event)">
     <div class="landing-modal" role="dialog" aria-modal="true"
-      [class.landing-modal--auth]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot'"
+      [class.landing-modal--auth]="activeModal === 'forgot'"
       [class.landing-modal--wide]="activeModal === 'search'"
-      [attr.aria-label]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot' ? modalAriaLabel() : null"
-      [attr.aria-labelledby]="activeModal === 'login' || activeModal === 'signup' || activeModal === 'forgot' ? null : 'landing-modal-title'"
+      [attr.aria-label]="activeModal === 'forgot' ? modalAriaLabel() : null"
+      [attr.aria-labelledby]="activeModal === 'forgot' ? null : 'landing-modal-title'"
       (keydown)="onModalKeydown($event)">
       <button type="button" class="landing-modal__close" (click)="closeModal()" aria-label="Close dialog">
         <span class="material-icons" aria-hidden="true">close</span>
       </button>
 
       @switch (activeModal) {
-      @case ('login') {
-      <h2 class="landing-modal__title" id="landing-modal-title">Login</h2>
-      <p class="landing-modal__desc">Sign in to access your PolicyGPT dashboard.</p>
-      @if (loginNotice) {
-      <p class="landing-auth__notice" role="status">{{ loginNotice }}</p>
-      }
-      <div class="landing-auth__modes" role="group" aria-label="Login method">
-        <button type="button" class="landing-auth__mode" [class.landing-auth__mode--active]="loginMode === 'email'"
-          (click)="toggleLoginMode()" [disabled]="loginLoading">
-          <span class="material-icons" aria-hidden="true">mail_outline</span>
-          <span>Email ID</span>
-        </button>
-        <button type="button" class="landing-auth__mode" [class.landing-auth__mode--active]="loginMode === 'phone'"
-          (click)="toggleLoginMode()" [disabled]="loginLoading">
-          <span class="material-icons" aria-hidden="true">phone</span>
-          <span>Phone Number</span>
-        </button>
-      </div>
-      <form class="landing-auth__form" (submit)="submitLogin(); $event.preventDefault()">
-        <label class="landing-auth__label" [attr.for]="'landing-login-id'">
-          {{ loginMode === 'email' ? 'Email address' : 'Phone number' }}
-        </label>
-        <input id="landing-login-id" class="landing-auth__input" [(ngModel)]="loginId" name="loginId"
-          [type]="loginMode === 'email' ? 'email' : 'tel'"
-          [placeholder]="loginMode === 'email' ? 'you@example.com' : '10-digit mobile number'" autocomplete="username"
-          [disabled]="loginLoading" />
-        <label class="landing-auth__label" [attr.for]="'landing-login-pw'">Password</label>
-        <div class="landing-auth__pwrow">
-          <input id="landing-login-pw" class="landing-auth__input" [(ngModel)]="loginPassword" name="loginPassword"
-            [type]="loginHidePassword ? 'password' : 'text'" placeholder="Enter your password"
-            autocomplete="current-password" [disabled]="loginLoading" />
-          <button type="button" class="landing-auth__iconbtn" (click)="loginHidePassword = !loginHidePassword"
-            [attr.aria-label]="loginHidePassword ? 'Show password' : 'Hide password'">
-            <span class="material-icons" aria-hidden="true">{{ loginHidePassword ? 'visibility' : 'visibility_off'
-              }}</span>
-          </button>
-        </div>
-        <div class="landing-auth__row">
-          <label class="landing-auth__check">
-            <input type="checkbox" [(ngModel)]="loginRemember" name="loginRemember" [disabled]="loginLoading" />
-            <span>Remember Me</span>
-          </label>
-          <button type="button" class="landing-auth__link" (click)="openForgot()" [disabled]="loginLoading">Forgot
-            Password?</button>
-        </div>
-        @if (loginError) {
-        <p class="landing-auth__error" role="alert">{{ loginError }}</p>
-        }
-        <button type="submit" class="landing-modal__btn landing-modal__btn--login" [disabled]="loginLoading">
-          <span class="material-icons" aria-hidden="true">login</span>
-          <span>{{ loginLoading ? 'Logging in...' : 'Login' }}</span>
-        </button>
-      </form>
-      <div class="landing-modal__actions">
-        <button type="button" class="landing-modal__btn landing-modal__btn--guest"
-          (click)="openChoice('', null, ['/dashboard/guest'], false)">
-          <span class="material-icons" aria-hidden="true">person_search</span>
-          <span>Continue as Guest</span>
-        </button>
-      </div>
-      <p class="landing-auth__swap">New here?
-        <button type="button" class="landing-auth__link" (click)="openSignup()">Create an account</button>
-      </p>
-      }
-      @case ('signup') {
-      <h2 class="landing-modal__title" id="landing-modal-title">Sign Up</h2>
-      <p class="landing-modal__desc">Create your PolicyGPT account.</p>
-      <form class="landing-auth__form" (submit)="submitSignup(); $event.preventDefault()">
-        <label class="landing-auth__label" for="landing-su-name">Full name</label>
-        <input id="landing-su-name" class="landing-auth__input" [(ngModel)]="signupName" name="signupName"
-          placeholder="Enter your full name" autocomplete="name" [disabled]="signupLoading" />
-        @if (signupFieldErrors['name']) {
-        <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['name'] }}</p>
-        }
-        <div class="landing-auth__grid">
-          <div>
-            <label class="landing-auth__label" for="landing-su-email">Email</label>
-            <input id="landing-su-email" class="landing-auth__input" [(ngModel)]="signupEmail" name="signupEmail"
-              type="email" placeholder="you@example.com" autocomplete="email" [disabled]="signupLoading" />
-            @if (signupFieldErrors['email']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['email'] }}</p>
-            }
-          </div>
-          <div>
-            <label class="landing-auth__label" for="landing-su-phone">Phone</label>
-            <input id="landing-su-phone" class="landing-auth__input" [(ngModel)]="signupPhone" name="signupPhone"
-              type="tel" placeholder="10-digit number" autocomplete="tel" [disabled]="signupLoading" />
-            @if (signupFieldErrors['phone']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['phone'] }}</p>
-            }
-          </div>
-        </div>
-        <div class="landing-auth__grid">
-          <div>
-            <label class="landing-auth__label" for="landing-su-dob">Date of birth</label>
-            <input id="landing-su-dob" class="landing-auth__input" [(ngModel)]="signupDob" name="signupDob" type="date"
-              [disabled]="signupLoading" />
-            @if (signupFieldErrors['dob']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['dob'] }}</p>
-            }
-          </div>
-          <div>
-            <label class="landing-auth__label" for="landing-su-role">Role</label>
-            <select id="landing-su-role" class="landing-auth__input" [(ngModel)]="signupRole" name="signupRole"
-              [disabled]="signupLoading">
-              <option value="" disabled>Select a role</option>
-              @for (r of signupRoles; track r.value) {
-              <option [value]="r.value">{{ r.label }}</option>
-              }
-            </select>
-            @if (signupFieldErrors['role']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['role'] }}</p>
-            }
-          </div>
-        </div>
-        <div class="landing-auth__grid">
-          <div>
-            <label class="landing-auth__label" for="landing-su-state">State</label>
-            <select id="landing-su-state" class="landing-auth__input" [(ngModel)]="signupState" name="signupState"
-              (change)="onSignupStateChange()" [disabled]="signupLoading">
-              <option value="" disabled>Select a state</option>
-              @for (s of signupStates; track s) {
-              <option [value]="s">{{ s }}</option>
-              }
-            </select>
-            @if (signupFieldErrors['state']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['state'] }}</p>
-            }
-          </div>
-          <div>
-            <label class="landing-auth__label" for="landing-su-district">District</label>
-            <select id="landing-su-district" class="landing-auth__input" [(ngModel)]="signupDistrict"
-              name="signupDistrict" [disabled]="signupLoading || signupDistricts.length === 0">
-              <option value="" disabled>Select a district</option>
-              @for (d of signupDistricts; track d) {
-              <option [value]="d">{{ d }}</option>
-              }
-            </select>
-            @if (signupFieldErrors['district']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['district'] }}</p>
-            }
-          </div>
-        </div>
-        <div class="landing-auth__grid">
-          <div>
-            <label class="landing-auth__label" for="landing-su-pw">Password</label>
-            <div class="landing-auth__pwrow">
-              <input id="landing-su-pw" class="landing-auth__input" [(ngModel)]="signupPassword" name="signupPassword"
-                [type]="signupHidePassword ? 'password' : 'text'" placeholder="Min. 8 characters"
-                autocomplete="new-password" [disabled]="signupLoading" />
-              <button type="button" class="landing-auth__iconbtn" (click)="signupHidePassword = !signupHidePassword"
-                [attr.aria-label]="signupHidePassword ? 'Show password' : 'Hide password'">
-                <span class="material-icons" aria-hidden="true">{{ signupHidePassword ? 'visibility' :
-                  'visibility_off' }}</span>
-              </button>
-            </div>
-            @if (signupFieldErrors['password']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['password'] }}</p>
-            }
-          </div>
-          <div>
-            <label class="landing-auth__label" for="landing-su-pw2">Confirm password</label>
-            <div class="landing-auth__pwrow">
-              <input id="landing-su-pw2" class="landing-auth__input" [(ngModel)]="signupConfirmPassword"
-                name="signupConfirmPassword" [type]="signupHideConfirm ? 'password' : 'text'"
-                placeholder="Repeat password" autocomplete="new-password" [disabled]="signupLoading" />
-              <button type="button" class="landing-auth__iconbtn" (click)="signupHideConfirm = !signupHideConfirm"
-                [attr.aria-label]="signupHideConfirm ? 'Show password' : 'Hide password'">
-                <span class="material-icons" aria-hidden="true">{{ signupHideConfirm ? 'visibility' : 'visibility_off'
-                  }}</span>
-              </button>
-            </div>
-            @if (signupFieldErrors['confirmPassword']) {
-            <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['confirmPassword'] }}</p>
-            }
-          </div>
-        </div>
-        <label class="landing-auth__check landing-auth__terms">
-          <input type="checkbox" [(ngModel)]="signupAgreeTerms" name="signupAgreeTerms" [disabled]="signupLoading" />
-          <span>I accept the
-            <button type="button" class="landing-auth__link" (click)="openInfo('terms')">Terms &amp;
-              Conditions</button>
-            and
-            <button type="button" class="landing-auth__link" (click)="openInfo('privacy')">Privacy Policy</button>.
-          </span>
-        </label>
-        @if (signupFieldErrors['agreeTerms']) {
-        <p class="landing-auth__fielderror" role="alert">{{ signupFieldErrors['agreeTerms'] }}</p>
-        }
-        @if (signupError) {
-        <p class="landing-auth__error" role="alert">{{ signupError }}</p>
-        }
-        <button type="submit" class="landing-modal__btn landing-modal__btn--signup" [disabled]="signupLoading">
-          <span class="material-icons" aria-hidden="true">person_add</span>
-          <span>{{ signupLoading ? 'Creating account...' : 'Sign Up' }}</span>
-        </button>
-      </form>
-      <p class="landing-auth__swap">Already have an account?
-        <button type="button" class="landing-auth__link" (click)="openLogin()">Login</button>
-      </p>
-      }
       @case ('forgot') {
       <h2 class="landing-modal__title" id="landing-modal-title">Forgot Password</h2>
       @if (fpStep === 1) {
@@ -490,7 +289,7 @@
         password.</p>
       <div class="landing-modal__actions">
         <button type="button" class="landing-modal__btn landing-modal__btn--login"
-          (click)="openLogin('Password reset successfully. Please log in.')">
+          (click)="openLogin()">
           <span class="material-icons" aria-hidden="true">login</span>
           <span>Back to Login</span>
         </button>

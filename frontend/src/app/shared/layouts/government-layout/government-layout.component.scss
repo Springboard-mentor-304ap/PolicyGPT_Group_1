@@ -79,26 +79,37 @@ a {
 
 // =========================================================
 // MOBILE OVERLAY
+// Hidden unless the mobile drawer is open (mobile viewports
+// only): an ungated veil here dimmed every government page
+// right after a refresh until the first click closed it.
 // =========================================================
 
 .dash-overlay {
-  position: fixed;
+  display: none;
+}
 
-  inset: 0;
+@media (max-width: 767px) {
+  .dash-layout--mobile-open .dash-overlay {
+    position: fixed;
 
-  width: 100%;
+    inset: 0;
 
-  height: 100%;
+    display: block;
 
-  padding: 0;
+    width: 100%;
 
-  border: 0;
+    height: 100%;
 
-  background: rgba(3, 14, 33, 0.45);
+    padding: 0;
 
-  cursor: pointer;
+    border: 0;
 
-  z-index: 1100;
+    background: rgba(3, 14, 33, 0.45);
+
+    cursor: pointer;
+
+    z-index: 1100;
+  }
 }
 
 // =========================================================

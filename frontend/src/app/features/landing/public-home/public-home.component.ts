@@ -16,9 +16,6 @@ import { BodyScrollLockService } from "../../../core/services/body-scroll-lock.s
 import { PolicyService } from "../../../core/services/policy.service";
 import { SchemeService } from "../../../core/services/scheme.service";
 import { Auth } from "../../../core/services/auth";
-import { AvatarService } from "../../../core/services/avatar.service";
-import { NotificationService } from "../../../core/services/notification.service";
-import { STATE_DISTRICT_MAP } from "../../../core/data/india-states";
 import {
   PolicyListResponse,
   PolicyResponse,
@@ -30,10 +27,10 @@ import {
 
 /* =========================================================
    PUBLIC HOMEPAGE (unauthenticated landing)
-   The inline search bar navigates directly to the guest search
-   results page. Login, signup, forgot-password, info panels and
-   the access-choice dialog open centered modals instead of
-   navigating directly. Authentication runs through the same
+   The inline search bar opens the access-choice popup (Continue as
+   Guest / Login / Sign Up) with the keyword preserved. Login,
+   signup, forgot-password, info panels and the access-choice dialog
+   open centered modals instead of navigating directly. Authentication runs through the same
    Auth service endpoints with the same validation rules and
    error mapping as the standalone Login / Register /
    PasswordReset pages (email+phone login, Remember Me, forgot
@@ -45,8 +42,7 @@ import {
    art, curve, tokens and responsive rules are unchanged.
    ========================================================= */
 
-type HomeModal =
-  "login" | "signup" | "forgot" | "search" | "choice" | "panel" | "external";
+type HomeModal = "forgot" | "search" | "choice" | "panel" | "external";
 
 type PanelActionKind =
   "search" | "login" | "signup" | "guest" | "assistant" | "close";
@@ -117,8 +113,6 @@ export class PublicHomeComponent implements OnDestroy {
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
   private readonly authService = inject(Auth);
-  private readonly avatarService = inject(AvatarService);
-  private readonly notificationService = inject(NotificationService);
   private readonly destroy$ = new Subject<void>();
 
   /** Inline (page) search field — Enter/Search navigates to guest results. */
@@ -157,44 +151,6 @@ export class PublicHomeComponent implements OnDestroy {
   /* ---------------- External-link confirm state ---------------- */
   externalUrl = "";
   externalLabel = "";
-
-  /* ---------------- Login modal state ---------------- */
-  loginMode: "email" | "phone" = "email";
-  loginId = "";
-  loginPassword = "";
-  loginRemember = false;
-  loginHidePassword = true;
-  loginLoading = false;
-  loginError = "";
-  /** Success notice shown after signup or password reset. */
-  loginNotice = "";
-
-  /* ---------------- Signup modal state ---------------- */
-  signupName = "";
-  signupEmail = "";
-  signupPhone = "";
-  signupDob = "";
-  signupState = "";
-  signupDistrict = "";
-  signupOccupation = "";
-  signupOrganization = "";
-  signupPassword = "";
-  signupConfirmPassword = "";
-  signupRole = "";
-  signupAgreeTerms = false;
-  signupHidePassword = true;
-  signupHideConfirm = true;
-  signupLoading = false;
-  signupError = "";
-  signupFieldErrors: Record<string, string> = {};
-  signupDistricts: string[] = [];
-
-  readonly signupStates: string[] = Object.keys(STATE_DISTRICT_MAP);
-  readonly signupRoles = [
-    { value: "citizen", label: "Citizen" },
-    { value: "researcher", label: "Researcher" },
-    { value: "organization", label: "Organization" },
-  ];
 
   /* ---------------- Forgot-password modal state ---------------- */
   fpStep = 1;
@@ -338,10 +294,6 @@ export class PublicHomeComponent implements OnDestroy {
   /** Accessible name for the dialog (auth dialogs use aria-label). */
   modalAriaLabel(): string {
     switch (this.activeModal) {
-      case "login":
-        return "Login dialog";
-      case "signup":
-        return "Sign up dialog";
       case "forgot":
         return "Forgot password dialog";
       case "search":
@@ -386,8 +338,6 @@ export class PublicHomeComponent implements OnDestroy {
     }
     this.activeModal = null;
     this.searchLoading = false;
-    this.loginLoading = false;
-    this.signupLoading = false;
     this.fpLoading = false;
     if (this.scrollLocked) {
       this.scrollLock.unlock();
@@ -459,205 +409,19 @@ export class PublicHomeComponent implements OnDestroy {
   }
 
   /* =========================================================
-     LOGIN MODAL (same endpoint, validation and role routing
-     as the standalone Login page)
+     AUTH PAGES (standalone Login / Register routes)
      ========================================================= */
 
-  openLogin(notice = ""): void {
-    this.loginNotice = notice;
-    this.loginError = "";
-    this.openModal("login");
-  }
-
-  toggleLoginMode(): void {
-    if (this.loginLoading) {
-      return;
-    }
-    this.loginMode = this.loginMode === "email" ? "phone" : "email";
-    this.loginId = "";
-    this.loginPassword = "";
-    this.loginError = "";
-  }
-
-  submitLogin(): void {
-    if (this.loginLoading) {
-      return;
-    }
-    this.loginError = "";
-    const identifier =
-      this.loginMode === "email"
-        ? this.loginId.trim().toLowerCase()
-        : this.loginId.replace(/\D/g, "").trim();
-    if (this.loginMode === "email") {
-      if (!identifier || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
-        this.loginError = "Please enter a valid email address.";
-        return;
-      }
-    } else if (!/^[0-9]{10}$/.test(identifier)) {
-      this.loginError = "Please enter a valid 10-digit phone number.";
-      return;
-    }
-    if (!this.loginPassword) {
-      this.loginError = "Please enter your password.";
-      return;
-    }
-    this.loginLoading = true;
-    this.authService
-      .login(identifier, this.loginPassword)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: {
-          access_token?: string;
-          user?: { role?: string } | null;
-        }) => {
-          this.loginLoading = false;
-          if (!response || !response.access_token) {
-            this.loginError = "Login failed. Access token not received.";
-            return;
-          }
-          const user = response.user;
-          if (!user || !user.role) {
-            this.loginError =
-              "User role not found. Please contact administrator.";
-            return;
-          }
-          try {
-            this.avatarService.prefetchForUser(user as never);
-          } catch {
-            /* best-effort only */
-          }
-          try {
-            (
-              this.notificationService as { ensureInitialized?: () => void }
-            ).ensureInitialized?.();
-          } catch {
-            /* best-effort only */
-          }
-          this.redirectByRole(String(user.role));
-        },
-        error: (err: {
-          status?: number;
-          error?: { detail?: string; message?: string } | string;
-        }) => {
-          this.loginLoading = false;
-          let backendMessage = "";
-          if (typeof err?.error === "string") {
-            backendMessage = err.error.trim();
-          } else {
-            backendMessage = String(
-              err?.error?.detail ?? err?.error?.message ?? "",
-            ).trim();
-          }
-          const message = backendMessage.toLowerCase();
-          const status = err?.status;
-          if (
-            message.includes("invalid_password") ||
-            message.includes("wrong password") ||
-            message.includes("incorrect password")
-          ) {
-            this.loginError = "Invalid password.";
-          } else if (
-            message.includes("invalid_credential") ||
-            message.includes("invalid credential") ||
-            message.includes("invalid email or phone")
-          ) {
-            this.loginError = "Invalid credential.";
-          } else if (status === 401) {
-            this.loginError = "Invalid credential.";
-          } else if (status === 403) {
-            this.loginError =
-              "Your account is inactive. Please contact administrator.";
-          } else if (status === 422) {
-            this.loginError = "Please enter valid login details.";
-          } else if (status !== undefined && status >= 500) {
-            this.loginError = "Server error. Please try again later.";
-          } else if (status === 0) {
-            this.loginError = "Unable to connect to the server.";
-          } else {
-            this.loginError =
-              backendMessage || "Login failed. Please check your credentials.";
-          }
-        },
-      });
-  }
-
-  private normalizeRole(role: string): string {
-    const normalized = String(role || "")
-      .trim()
-      .toUpperCase();
-    if (normalized === "ADMIN" || normalized === "ADMINISTRATOR") {
-      return "ADMIN";
-    }
-    if (
-      normalized === "GOVERNMENT" ||
-      normalized === "GOVT" ||
-      normalized === "GOVERNMENT_OFFICIAL" ||
-      normalized === "GOVERNMENT_OFFICER" ||
-      normalized === "GOVERNMENT OFFICIAL"
-    ) {
-      return "GOVERNMENT_OFFICIAL";
-    }
-    if (normalized === "CITIZEN") {
-      return "CITIZEN";
-    }
-    if (normalized === "RESEARCHER") {
-      return "RESEARCHER";
-    }
-    if (
-      normalized === "ORGANIZATION" ||
-      normalized === "ORGANISATION" ||
-      normalized === "ORG"
-    ) {
-      return "ORGANIZATION";
-    }
-    if (normalized === "GUEST" || normalized === "GUEST_USER") {
-      return "GUEST";
-    }
-    return normalized;
-  }
-
-  private redirectByRole(role: string): void {
-    const target = (() => {
-      switch (this.normalizeRole(role)) {
-        case "ADMIN":
-          return ["/dashboard/admin"];
-        case "GOVERNMENT_OFFICIAL":
-          return ["/dashboard/government"];
-        case "CITIZEN":
-          return ["/dashboard/citizen"];
-        case "RESEARCHER":
-          return ["/dashboard/researcher"];
-        case "ORGANIZATION":
-          return ["/dashboard/organization"];
-        case "GUEST":
-          return ["/dashboard/guest"];
-        default:
-          return null;
-      }
-    })();
-    if (!target) {
-      this.loginError = `Unknown user role: ${role}. Please contact administrator.`;
-      return;
-    }
+  /** Topbar, hero and modal links route to the real Login page. */
+  openLogin(): void {
     this.dismissModalForNavigation();
-    void this.router.navigate(target);
+    void this.router.navigate(["/auth/login"]);
   }
 
-  /* =========================================================
-     SIGNUP MODAL (same endpoint, validation and roles as the
-     standalone Register page)
-     ========================================================= */
-
+  /** Topbar, hero and modal links route to the real Register page. */
   openSignup(): void {
-    this.signupError = "";
-    this.signupFieldErrors = {};
-    this.openModal("signup");
-  }
-
-  onSignupStateChange(): void {
-    this.signupDistricts = STATE_DISTRICT_MAP[this.signupState] || [];
-    this.signupDistrict = "";
-    delete this.signupFieldErrors["district"];
+    this.dismissModalForNavigation();
+    void this.router.navigate(["/auth/register"]);
   }
 
   private passwordIsStrong(password: string): boolean {
@@ -668,93 +432,6 @@ export class PublicHomeComponent implements OnDestroy {
     return (
       [hasLower, hasUpper, hasNumber, hasSpecial].filter(Boolean).length >= 3
     );
-  }
-
-  submitSignup(): void {
-    if (this.signupLoading) {
-      return;
-    }
-    const errors: Record<string, string> = {};
-    if (!this.signupName.trim()) {
-      errors["name"] = "Please enter your name.";
-    }
-    if (
-      !this.signupEmail.trim() ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.signupEmail.trim())
-    ) {
-      errors["email"] = "Please enter a valid email address.";
-    }
-    if (!/^[0-9]{10}$/.test(this.signupPhone.replace(/\D/g, ""))) {
-      errors["phone"] = "Please enter a valid 10-digit phone number.";
-    }
-    if (!this.signupDob) {
-      errors["dob"] = "Please select your date of birth.";
-    }
-    if (!this.signupState) {
-      errors["state"] = "Please select your state.";
-    }
-    if (!this.signupDistrict) {
-      errors["district"] = "Please select your district.";
-    }
-    if (!this.signupPassword || this.signupPassword.length < 8) {
-      errors["password"] = "Password must be at least 8 characters long.";
-    } else if (!this.passwordIsStrong(this.signupPassword)) {
-      errors["password"] =
-        "Use at least 3 of: lowercase, uppercase, number, special character.";
-    }
-    if (this.signupPassword !== this.signupConfirmPassword) {
-      errors["confirmPassword"] = "Passwords do not match.";
-    }
-    if (!this.signupRole) {
-      errors["role"] = "Please select a role.";
-    }
-    if (!this.signupAgreeTerms) {
-      errors["agreeTerms"] = "Please accept the Terms & Conditions.";
-    }
-    this.signupFieldErrors = errors;
-    this.signupError = "";
-    if (Object.keys(errors).length > 0) {
-      this.signupError = "Please fix the highlighted fields and try again.";
-      return;
-    }
-    this.signupLoading = true;
-    this.authService
-      .register({
-        name: this.signupName.trim(),
-        email: this.signupEmail.trim(),
-        phone: this.signupPhone.replace(/\D/g, ""),
-        password: this.signupPassword,
-        confirmPassword: this.signupConfirmPassword,
-        dob: this.signupDob,
-        state: this.signupState,
-        district: this.signupDistrict,
-        occupation: this.signupOccupation || "",
-        organization: this.signupOrganization || "",
-        role: this.signupRole,
-      })
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: () => {
-          this.signupLoading = false;
-          this.openLogin("Account created successfully. Please log in.");
-        },
-        error: (err: {
-          error?: { detail?: string; message?: string } | string;
-          message?: string;
-        }) => {
-          this.signupLoading = false;
-          let backend = "";
-          if (typeof err?.error === "string") {
-            backend = err.error.trim();
-          } else {
-            backend = String(
-              err?.error?.detail ?? err?.error?.message ?? err?.message ?? "",
-            ).trim();
-          }
-          this.signupError =
-            backend || "Registration failed. Please try again.";
-        },
-      });
   }
 
   /* =========================================================
@@ -936,23 +613,20 @@ export class PublicHomeComponent implements OnDestroy {
   }
 
   /* =========================================================
-     SEARCH (inline bar navigates to guest results; the modal
-     below remains for panel flows such as About > Try Search)
+     SEARCH (inline bar opens the access-choice popup; the search
+     modal below remains for panel flows such as About > Try Search)
      ========================================================= */
 
-  /** Inline form submitted (Enter or Search button): navigate straight
-      to the guest combined search results page with the query preserved.
-      Never opens a modal. Empty queries are ignored. */
+  /** Inline form submitted (Enter or Search button — same handler):
+      open the existing access-choice popup with the keyword preserved.
+      No navigation or search API call happens before the visitor chooses. */
   onInlineSearch(query: string): void {
-    const q = (query || "").trim();
-    if (!q) {
+    if (this.activeModal !== null) {
       return;
     }
+    const q = (query || "").trim();
     this.searchQuery = q;
-    this.dismissModalForNavigation();
-    void this.router.navigate(["/dashboard/guest"], {
-      queryParams: { q },
-    });
+    this.openChoice(q, null, ["/dashboard/guest"], false);
   }
 
   /** Search button inside the search popup. */
@@ -1112,18 +786,16 @@ export class PublicHomeComponent implements OnDestroy {
   }
 
   goToLoginFromChoice(): void {
-    this.openModal("login");
+    this.openLogin();
   }
 
   goToSignupFromChoice(): void {
-    this.openModal("signup");
+    this.openSignup();
   }
 
   private dismissModalForNavigation(): void {
     this.activeModal = null;
     this.searchLoading = false;
-    this.loginLoading = false;
-    this.signupLoading = false;
     this.fpLoading = false;
     if (this.scrollLocked) {
       this.scrollLock.unlock();
@@ -1333,10 +1005,10 @@ export class PublicHomeComponent implements OnDestroy {
         this.openModal("search");
         break;
       case "login":
-        this.openModal("login");
+        this.openLogin();
         break;
       case "signup":
-        this.openModal("signup");
+        this.openSignup();
         break;
       case "guest": {
         const target =

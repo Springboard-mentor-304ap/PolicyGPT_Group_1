@@ -18,6 +18,7 @@ import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
       <div class="modal-overlay" (click)="onBackdropClick($event)">
         <div
           class="modal-card"
+          [ngClass]="dialogClass()"
           role="dialog"
           aria-modal="true"
           (click)="$event.stopPropagation()"
@@ -370,6 +371,40 @@ import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
           width: 100%;
         }
       }
+
+      /* Delete Policy dialog only (other confirm dialogs keep the
+         base sizing): roomier mobile/tablet card that fits the
+         viewport height and scrolls internally when needed. */
+      @media (max-width: 1024px) {
+        .modal-card.confirm-modal--delete-policy {
+          width: min(440px, 100%);
+          max-height: calc(100vh - 32px);
+          max-height: calc(100dvh - 32px);
+          overflow-y: auto;
+          padding: 32px 26px 28px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-icon {
+          margin-bottom: 18px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-message,
+        .modal-card.confirm-modal--delete-policy .modal-details {
+          margin-top: 12px;
+          margin-bottom: 22px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-actions {
+          flex-direction: column-reverse;
+          gap: 10px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-btn {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .modal-card.confirm-modal--delete-policy {
+          padding: 28px 20px 24px;
+        }
+      }
     `,
   ],
 })
@@ -403,6 +438,12 @@ export class ConfirmModalComponent implements OnDestroy {
   parseQuotes = input<boolean>(true);
   confirmText = input<string>("Confirm");
   cancelText = input<string>("Cancel");
+  /**
+   * Optional extra class applied to the dialog card (e.g.
+   * "confirm-modal--delete-policy" for dialog-specific responsive
+   * sizing). Empty by default, so existing callers are unaffected.
+   */
+  dialogClass = input<string>("");
   variant = input<"primary" | "danger" | "warning" | "success">("danger");
   showCancel = input<boolean>(true);
   isLoading = input<boolean>(false);

@@ -390,6 +390,64 @@ export class ChatbotComponent {
     return this.permissions.isPublicRole(this.userRole);
   }
 
+  /** True on the public homepage (`/`), where logged-out visitors see an
+   * auth gate inside the chatbot panel instead of the chat UI. */
+  get isPublicHomepage(): boolean {
+    const path = (this.router.url || "")
+      .split("?")[0]
+      .split("#")[0]
+      .trim();
+    return path === "" || path === "/";
+  }
+
+  /** Whether the panel must show the login/signup gate instead of chat.
+   * Only applies on the public homepage for visitors without a session;
+   * every dashboard (including guest mode) keeps its existing behavior. */
+  get needsAuthGate(): boolean {
+    return this.isPublicHomepage && !this.isAuthenticated();
+  }
+
+  /** Session check through the Auth service (token-backed). Tolerant of
+   * partial doubles in tests: falls back to a stored token or user read. */
+  private isAuthenticated(): boolean {
+    const auth = this.auth as unknown as {
+      isLoggedIn?: () => boolean;
+      getToken?: () => string | null;
+      getStoredUser?: () => unknown;
+    };
+    try {
+      if (typeof auth.isLoggedIn === "function") {
+        return !!auth.isLoggedIn();
+      }
+      if (typeof auth.getToken === "function") {
+        return !!auth.getToken();
+      }
+      if (typeof auth.getStoredUser === "function") {
+        return !!auth.getStoredUser();
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  /** Gate actions (public homepage, logged-out visitors only). */
+  goToLogin(): void {
+    this.close();
+    void this.router.navigate(["/auth/login"]);
+  }
+
+  goToSignup(): void {
+    this.close();
+    void this.router.navigate(["/auth/register"]);
+  }
+
+  /** Dismiss the gate without granting chatbot access. The visitor stays
+   * on the public homepage; reopening shows the gate again. */
+  continueAsGuestFromGate(): void {
+    this.close();
+  }
+
   get displayName(): string {
     const stored = this.auth.getStoredUser() as unknown as Record<
       string,
@@ -479,6 +537,14 @@ export class ChatbotComponent {
     }
     this.stickToBottom = true;
     setTimeout(() => {
+      if (this.needsAuthGate && typeof document !== "undefined") {
+        // No composer in the gate view: focus its primary action instead.
+        const btn = document.querySelector(
+          ".chatbot-gate .chatbot-gate__btn-login",
+        ) as HTMLElement | null;
+        btn?.focus();
+        return;
+      }
       this.composer?.nativeElement.focus();
       this.scrollToBottom(true);
     }, 60);
@@ -525,6 +591,11 @@ export class ChatbotComponent {
   @HostListener("document:keydown", ["$event"])
   onDocumentKeydown(event: KeyboardEvent): void {
     if (event.key !== "Escape") {
+      return;
+    }
+    // Dismiss the public-homepage auth gate like the panel close button.
+    if (this.isOpen && this.needsAuthGate) {
+      this.close();
       return;
     }
     if (this.menuOpenId !== null) {

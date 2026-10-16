@@ -136,6 +136,132 @@ $radius: 12px;
   }
 }
 
+/* ---------- Auth gate (public homepage, logged-out visitors) ----------
+   Navy/white/orange PolicyGPT palette, same radii and shadow language
+   as the panel. Replaces the chat UI; the header (with close) stays. */
+
+.chatbot-gate {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 24px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.chatbot-gate__icon {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: $blue-soft;
+  color: $navy;
+
+  .material-icons {
+    font-size: 30px;
+  }
+}
+
+.chatbot-gate__title {
+  margin: 0;
+  color: $navy;
+  font-size: 18px;
+  font-weight: 800;
+  overflow-wrap: break-word;
+}
+
+.chatbot-gate__text {
+  margin: 0;
+  max-width: 300px;
+  color: $muted;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+.chatbot-gate__actions {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chatbot-gate__btn {
+  min-height: 46px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  .material-icons {
+    font-size: 19px;
+  }
+
+  &:active {
+    transform: scale(0.99);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $blue;
+    outline-offset: 2px;
+  }
+}
+
+.chatbot-gate__btn-login {
+  background: $navy;
+  color: $white;
+  box-shadow: 0 3px 12px rgba(8, 32, 70, 0.35);
+
+  &:hover {
+    background: $navy-dark;
+  }
+}
+
+.chatbot-gate__btn-signup {
+  background: linear-gradient(135deg, #ff821b 0%, #f97316 100%);
+  color: $white;
+  box-shadow: 0 3px 12px rgba(255, 130, 27, 0.35);
+
+  &:hover {
+    box-shadow: 0 5px 16px rgba(255, 130, 27, 0.5);
+  }
+}
+
+.chatbot-gate__btn-guest {
+  background: $blue-soft;
+  border-color: #bfdbfe;
+  color: $navy-dark;
+
+  &:hover {
+    background: #dbeafe;
+  }
+}
+
 /* ---------- Fullscreen mode (app viewport, below topbar) ---------- */
 
 .chatbot-panel--fullscreen {
@@ -1448,6 +1574,12 @@ $radius: 12px;
   .chatbot-disclaimer {
     padding: 6px 10px 8px;
     font-size: 10px;
+  }
+
+  /* Auth gate stays compact on small screens. */
+  .chatbot-gate {
+    padding: 20px 16px;
+    gap: 8px;
   }
 
   .chatbot-history {

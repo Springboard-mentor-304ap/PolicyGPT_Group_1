@@ -29,17 +29,19 @@ export class App implements OnInit {
 }
 
 /**
- * Authentication-only routes where the chatbot launcher must not render.
- * Covers /auth/login, /auth/register, /auth/signup and
- * /auth/password-reset (forgot-password + OTP verification + password
- * reset steps all live in that single component), plus any future
- * /auth child route. Authenticated dashboard pages such as
- * /dashboard/.../change-password are NOT matched and keep the chatbot.
+ * Routes where the chatbot launcher must not render: /auth/login,
+ * /auth/register, /auth/signup and /auth/password-reset (forgot-password
+ * + OTP verification + password reset steps all live in that single
+ * component), plus any future /auth child route. Authenticated dashboard
+ * pages such as /dashboard/.../change-password are NOT matched and keep
+ * the chatbot. The public homepage (/) DOES render it: logged-out
+ * visitors get an auth gate inside the panel, signed-in users the
+ * full assistant.
  */
 export function isAuthRoute(url: string): boolean {
   const path = (url || '').split('?')[0].split('#')[0].trim().toLowerCase();
   if (path === '' || path === '/') {
-    return true;
+    return false;
   }
   return path === '/auth' || path.startsWith('/auth/');
 }

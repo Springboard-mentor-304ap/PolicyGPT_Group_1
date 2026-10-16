@@ -857,6 +857,7 @@
        ===================================================== -->
   <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
     [variant]="confirmVariant" [isLoading]="confirmLoading" [errorMessage]="confirmErrorMessage"
+    [dialogClass]="confirmTitle === 'Delete Policy' ? 'confirm-modal--delete-policy' : ''"
     (confirmed)="confirmAction && confirmAction()" (cancelled)="confirmModalOpen = false"></app-confirm-modal>
 
   <!-- =====================================================

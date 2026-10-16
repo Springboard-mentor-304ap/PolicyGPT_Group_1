@@ -18,11 +18,18 @@ function storeUser(role: string): void {
 
 // localStorage-backed Auth stub with the same observable semantics as the
 // real Auth service for the members the chatbot component uses
-// (getStoredUser/getUserRole). The real Auth class cannot be instantiated
-// under raw vitest because JIT constructor-dependency metadata is only
-// produced by the Angular compiler pipeline (`ng test`); the stub keeps
-// every existing assertion exercising identical role/user behaviour.
+// (getStoredUser/getUserRole/isLoggedIn). The real Auth class cannot be
+// instantiated under raw vitest because JIT constructor-dependency metadata
+// is only produced by the Angular compiler pipeline (`ng test`); the stub
+// keeps every existing assertion exercising identical role/user behaviour.
 const authStub = {
+  isLoggedIn: () => {
+    try {
+      return !!localStorage.getItem("policygpt_token");
+    } catch {
+      return false;
+    }
+  },
   getStoredUser: () => {
     try {
       const raw = localStorage.getItem('policygpt_user');
@@ -630,5 +637,71 @@ describe('ChatbotComponent', () => {
     expect(component.relativeTime(new Date(Date.now() - 3 * 3600000).toISOString())).toBe('3h ago');
     expect(component.relativeTime('not-a-date')).toBe('');
     expect(component.relativeTime(null)).toBe('');
+  });
+
+  it('34. should show the auth gate instead of chat on the public homepage when logged out', () => {
+    localStorage.clear();
+    expect(component.isPublicHomepage).toBe(true);
+    expect(component.needsAuthGate).toBe(true);
+    component.openPanel();
+    TestBed.inject(ApplicationRef).tick();
+    const el: HTMLElement = fixture.nativeElement;
+    const gate = el.querySelector('.chatbot-gate');
+    expect(gate).toBeTruthy();
+    expect(gate?.textContent).toContain(
+      'Sign in to access your personal AI assistant',
+    );
+    expect(el.querySelectorAll('.chatbot-gate__btn').length).toBe(3);
+    expect(el.querySelector('.chatbot-composer')).toBeNull();
+    expect(el.querySelector('.chatbot-messages')).toBeNull();
+  });
+
+  it('35. should navigate to login from the gate without granting access', () => {
+    localStorage.clear();
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    component.openPanel();
+    component.goToLogin();
+    expect(navSpy).toHaveBeenCalledWith(['/auth/login']);
+    expect(component.open).toBe(false);
+  });
+
+  it('36. should navigate to register from the gate', () => {
+    localStorage.clear();
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    component.openPanel();
+    component.goToSignup();
+    expect(navSpy).toHaveBeenCalledWith(['/auth/register']);
+    expect(component.open).toBe(false);
+  });
+
+  it('37. should close the gate for Continue as Guest without navigating or granting access', () => {
+    localStorage.clear();
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    component.openPanel();
+    expect(component.isOpen).toBe(true);
+    component.continueAsGuestFromGate();
+    expect(component.open).toBe(false);
+    expect(navSpy).not.toHaveBeenCalled();
+    expect(component.needsAuthGate).toBe(true);
+  });
+
+  it('38. should open the functional chatbot for signed-in visitors on the homepage', () => {
+    storeUser('CITIZEN');
+    expect(component.needsAuthGate).toBe(false);
+    component.openPanel();
+    TestBed.inject(ApplicationRef).tick();
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelector('.chatbot-gate')).toBeNull();
+    expect(el.querySelector('.chatbot-composer')).toBeTruthy();
+  });
+
+  it('39. should close the gate on Escape', () => {
+    localStorage.clear();
+    component.openPanel();
+    expect(component.isOpen).toBe(true);
+    component.onDocumentKeydown(
+      new KeyboardEvent('keydown', { key: 'Escape' }),
+    );
+    expect(component.open).toBe(false);
   });
 });

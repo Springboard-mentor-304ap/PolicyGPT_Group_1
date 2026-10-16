@@ -1,10 +1,10 @@
 <!-- Floating launcher: icon only, no wrapper text or white card -->
 @if (!open || minimized) {
 <button type="button" class="chatbot-launcher" (click)="toggle()" aria-label="Open PolicyGPT Assistant"
-  title="PolicyGPT Assistant">
+  title="Ask PolicyGPT">
   <img class="chatbot-launcher__icon" src="/images/chatbot_icon.png" alt="" aria-hidden="true" draggable="false" />
   <span class="chatbot-launcher__tooltip" aria-hidden="true">
-    PolicyGPT Assistant
+    Ask PolicyGPT
   </span>
 </button>
 }
@@ -55,6 +55,33 @@
   </header>
 
   <div class="chatbot-body">
+    <!-- Auth gate (public homepage, logged-out visitors): no chat UI
+       until the visitor signs in. Authenticated users never see this. -->
+    @if (needsAuthGate) {
+    <div class="chatbot-gate" role="status" aria-label="Login required to use the assistant">
+      <div class="chatbot-gate__icon" aria-hidden="true">
+        <span class="material-icons">lock</span>
+      </div>
+      <h3 class="chatbot-gate__title">Sign in to chat</h3>
+      <p class="chatbot-gate__text">Sign in to access your personal AI assistant and get answers about government
+        policies and public schemes.</p>
+      <div class="chatbot-gate__actions">
+        <button type="button" class="chatbot-gate__btn chatbot-gate__btn-login" (click)="goToLogin()">
+          <span class="material-icons" aria-hidden="true">login</span>
+          <span>Login</span>
+        </button>
+        <button type="button" class="chatbot-gate__btn chatbot-gate__btn-signup" (click)="goToSignup()">
+          <span class="material-icons" aria-hidden="true">person_add</span>
+          <span>Sign Up</span>
+        </button>
+        <button type="button" class="chatbot-gate__btn chatbot-gate__btn-guest"
+          (click)="continueAsGuestFromGate()">
+          <span class="material-icons" aria-hidden="true">person_search</span>
+          <span>Continue as Guest</span>
+        </button>
+      </div>
+    </div>
+    } @else {
     <!-- History side panel (caller-owned conversations only) -->
     @if (isHistoryOpen) {
     <aside class="chatbot-history" aria-label="Chat history">
@@ -326,6 +353,7 @@
       </button>
     </div>
   </div>
+  }
   </div>
 </section>
 }

@@ -6,17 +6,18 @@
       <h1>Policy &amp; Scheme Trends</h1>
       <p>Approved policy and scheme publication trends, category distributions and your search activity.</p>
       @if (trends) {
-      <p class="scope-note">Corpus scope: {{ trends.scope }} records only. Personal activity reflects {{ pickerLabel }}.</p>
+      <p class="scope-note">Corpus scope: {{ trends.scope }} records only. Personal activity reflects {{ pickerLabel }}.
+      </p>
       }
     </div>
 
     <div class="header-right no-print">
-      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets"
-        (rangeChange)="onPickerLabel($event)" (rangeSelect)="onPickerSelect($event)" />
+      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets" (rangeChange)="onPickerLabel($event)"
+        (rangeSelect)="onPickerSelect($event)" />
       <div class="export-wrap">
-        <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || (!trends && !overview)"
-          aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this trends report"
-          aria-label="Download Report">
+        <button type="button" class="btn-download" (click)="toggleExportMenu()"
+          [disabled]="loading || (!trends && !overview)" aria-haspopup="menu" [attr.aria-expanded]="showExportMenu"
+          title="Download this trends report" aria-label="Download Report">
           <span class="material-icons" aria-hidden="true">download</span>
           <span>Download Report</span>
         </button>
@@ -41,7 +42,7 @@
   }
 
   @if (loading) {
-    <app-loading-indicator message="Loading trends...">
+  <app-loading-indicator message="Loading trends...">
   </app-loading-indicator>
   } @else if (error && !trends && !overview) {
   <section class="state-card error-state">
@@ -63,7 +64,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + totalApprovedPolicies">{{ totalApprovedPolicies }}</span>
-        <span class="stat-title">Approved Policies</span>
+        <span class="stat-title">Total Policies</span>
       </span>
     </div>
     <div class="stat-card" role="listitem" title="Approved schemes in the research corpus.">
@@ -72,7 +73,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + totalApprovedSchemes">{{ totalApprovedSchemes }}</span>
-        <span class="stat-title">Approved Schemes</span>
+        <span class="stat-title">Total Schemes</span>
       </span>
     </div>
     <div class="stat-card" role="listitem" title="Policy and scheme searches you ran in this period.">
@@ -81,7 +82,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + ownSearches">{{ ownSearches }}</span>
-        <span class="stat-title">My Searches ({{ pickerLabel }})</span>
+        <span class="stat-title">My Searches</span>
       </span>
     </div>
     <div class="stat-card" role="listitem" title="Policies and schemes you bookmarked in this period.">
@@ -90,7 +91,7 @@
       </span>
       <span class="stat-text">
         <span class="stat-value" [appCountUp]="'' + ownSaved">{{ ownSaved }}</span>
-        <span class="stat-title">My Saved Items ({{ pickerLabel }})</span>
+        <span class="stat-title">My Saved Items</span>
       </span>
     </div>
   </div>
@@ -103,7 +104,8 @@
           <h2>Publication Trend</h2>
           <p class="card-sub">Approved policies and schemes over time ({{ pickerLabel }})</p>
         </div>
-        <a class="link-action" [routerLink]="['/dashboard/researcher/analytics']" title="Open Research Overview">Overview</a>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/analytics']"
+          title="Open Research Overview">Overview</a>
       </div>
       @if (!hasTrendData) {
       <p class="empty-text">No publication data in this window yet.</p>
@@ -131,7 +133,8 @@
           <h2>Policies by Category</h2>
           <p class="card-sub">Approved policies only</p>
         </div>
-        <a class="link-action" [routerLink]="['/dashboard/researcher/policies/search']" title="Search policies">Search</a>
+        <a class="link-action" [routerLink]="['/dashboard/researcher/policies/search']"
+          title="Search policies">Search</a>
       </div>
       @if (policyCategoryBars.length === 0) {
       <p class="empty-text">No policy category data yet.</p>

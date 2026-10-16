@@ -8,8 +8,8 @@
     </div>
 
     <div class="header-right no-print">
-      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets"
-        (rangeChange)="onPickerLabel($event)" (rangeSelect)="onPickerSelect($event)" />
+      <app-date-range-picker [value]="pickerLabel" [presets]="pickerPresets" (rangeChange)="onPickerLabel($event)"
+        (rangeSelect)="onPickerSelect($event)" />
       <div class="export-wrap">
         <button type="button" class="btn-download" (click)="toggleExportMenu()" [disabled]="loading || !data"
           aria-haspopup="menu" [attr.aria-expanded]="showExportMenu" title="Download this analytics report"
@@ -34,7 +34,7 @@
   </header>
 
   @if (loading) {
-    <app-loading-indicator message="Loading analytics...">
+  <app-loading-indicator message="Loading analytics...">
   </app-loading-indicator>
   } @else if (error) {
   <section class="state-card error-state">
@@ -379,23 +379,6 @@
         }
       </ul>
       }
-    </section>
-
-    <section class="data-card" aria-label="Recent comparisons">
-      <div class="card-head">
-        <h2>Recent Comparisons</h2>
-      </div>
-      <div class="state-inline">
-        <span class="material-icons" aria-hidden="true">compare_arrows</span>
-        <p>
-          No comparison history yet. Comparisons are stateless reads
-          and are not stored by the backend.
-        </p>
-        <a class="btn btn-outline" [routerLink]="[baseRoute, 'compare']">
-          <span class="material-icons" aria-hidden="true">compare_arrows</span>
-          <span>Compare Policies</span>
-        </a>
-      </div>
     </section>
     } @else {
     <section class="data-card" aria-label="Saved policies">

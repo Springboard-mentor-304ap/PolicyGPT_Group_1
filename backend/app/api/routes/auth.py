@@ -5,7 +5,7 @@ import re
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
-
+from typing import Any
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -47,7 +47,10 @@ from app.schemas.auth import (
     VerifyOTPRequest,
 )
 from app.services.audit_log_service import log_request_action
-from app.services.email_service import send_otp_email, send_password_reset_email
+from app.services.email_service import (
+    send_otp_email,
+    send_password_reset_email,
+)
 from app.services.sms_service import normalize_indian_phone
 from app.services.twilio_verify_service import (
     check_sms_verification,
@@ -64,7 +67,9 @@ def _password_reset_rate_limited(db: Session, user_id: int) -> bool:
     send-otp request creates exactly one). Prevents unlimited email/SMS
     abuse while keeping the check cheap and race-tolerant.
     """
-    window_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=1)
+    window_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        hours=1
+    )
     recent = (
         db.query(OTPVerification)
         .filter(
@@ -181,7 +186,9 @@ def get_current_user(
     # TOKEN VERSION CHECK
     # -----------------------------------------------------
 
-    if (token_version if token_version is not None else 0) != (user.token_version or 0):
+    if (token_version if token_version is not None else 0) != (
+        user.token_version or 0
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -328,7 +335,12 @@ def hash_reset_token(token: str) -> str:
     response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def register(data: RegisterRequest, request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def register(
+    data: RegisterRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
 
     # -----------------------------------------------------
     # CLEAN EMAIL
@@ -356,7 +368,9 @@ def register(data: RegisterRequest, request: Request, background_tasks: Backgrou
         normalized_registration_phone = re.sub(r"\D", "", data.phone)
 
         existing_phone = (
-            db.query(User).filter(User.phone == normalized_registration_phone).first()
+            db.query(User)
+            .filter(User.phone == normalized_registration_phone)
+            .first()
         )
 
         if existing_phone:
@@ -503,9 +517,7 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
     # Try email lookup first - case-insensitive trimmed match
     user = (
         db.query(User)
-        .filter(
-            func.lower(func.trim(User.email)) == normalized_email
-        )
+        .filter(func.lower(func.trim(User.email)) == normalized_email)
         .first()
     )
 
@@ -663,11 +675,15 @@ def guest_login(db: Session = Depends(get_db)):
             db.refresh(guest_user)
         except IntegrityError:
             db.rollback()
-            guest_user = db.query(User).filter(User.email == guest_email).first()
+            guest_user = (
+                db.query(User).filter(User.email == guest_email).first()
+            )
 
     token = create_user_token(guest_user)
 
-    return AuthResponse(access_token=token, token_type="bearer", user=guest_user)
+    return AuthResponse(
+        access_token=token, token_type="bearer", user=guest_user
+    )
 
 
 # =========================================================
@@ -1015,7 +1031,9 @@ def logout(
 
 
 @router.post("/send-otp")
-def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_db)):
+def send_otp(
+    data: SendOTPRequest, request: Request, db: Session = Depends(get_db)
+):
 
     # -----------------------------------------------------
     # CLEAN EMAIL + RESOLVE CHANNEL
@@ -1095,9 +1113,7 @@ def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_d
     # *accepted* the verification (status pending) — never "delivered".
     if channel == "sms":
         verify_phone = (
-            normalized_phone
-            or normalize_indian_phone(user.phone)
-            or ""
+            normalized_phone or normalize_indian_phone(user.phone) or ""
         )
         verify_result = start_sms_verification(
             recipient_phone=verify_phone,
@@ -1180,7 +1196,9 @@ def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_d
             recipient_email=user.email,
             otp=otp,
         )
-        provider_error = result.get("error") if isinstance(result, dict) else None
+        provider_error = (
+            result.get("error") if isinstance(result, dict) else None
+        )
         if not isinstance(result, dict) or not result.get("success"):
             try:
                 otp_record.used = True
@@ -1236,7 +1254,9 @@ def send_otp(data: SendOTPRequest, request: Request, db: Session = Depends(get_d
 
 
 @router.post("/verify-otp")
-def verify_otp(data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)):
+def verify_otp(
+    data: VerifyOTPRequest, request: Request, db: Session = Depends(get_db)
+):
 
     # -----------------------------------------------------
     # CLEAN IDENTIFIER AND FIND USER
@@ -1349,7 +1369,8 @@ def verify_otp(data: VerifyOTPRequest, request: Request, db: Session = Depends(g
             db.commit()
 
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="OTP has expired",
             )
 
         # -----------------------------------------------------
@@ -1521,7 +1542,9 @@ def forgot_password(
 
     # Abuse protection: same generic response, no new OTP/email.
     if _password_reset_rate_limited(db, user.user_id):
-        logger.warning("Password-reset rate limited for user_id=%s", user.user_id)
+        logger.warning(
+            "Password-reset rate limited for user_id=%s", user.user_id
+        )
         return generic_response
 
     # -----------------------------------------------------
@@ -1553,9 +1576,7 @@ def forgot_password(
     # *accepted* the verification (status pending) — never "delivered".
     if channel == "sms":
         verify_phone = (
-            normalized_phone
-            or normalize_indian_phone(user.phone)
-            or ""
+            normalized_phone or normalize_indian_phone(user.phone) or ""
         )
         verify_result = start_sms_verification(
             recipient_phone=verify_phone,
@@ -1645,7 +1666,9 @@ def forgot_password(
             recipient_email=user.email,
             otp=otp,
         )
-        provider_error = result.get("error") if isinstance(result, dict) else None
+        provider_error = (
+            result.get("error") if isinstance(result, dict) else None
+        )
         if not isinstance(result, dict) or not result.get("success"):
             try:
                 otp_record.used = True
@@ -1726,7 +1749,9 @@ def forgot_password_link(
     if not user or not user.is_active:
         return generic_response
     if _password_reset_rate_limited(db, user.user_id):
-        logger.warning("Password-reset-link rate limited for user_id=%s", user.user_id)
+        logger.warning(
+            "Password-reset-link rate limited for user_id=%s", user.user_id
+        )
         return generic_response
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -1803,7 +1828,9 @@ def reset_token_status(
         )
     record = (
         db.query(PasswordResetToken)
-        .filter(PasswordResetToken.token_hash == hash_reset_token(token.strip()))
+        .filter(
+            PasswordResetToken.token_hash == hash_reset_token(token.strip())
+        )
         .first()
     )
     if not record:
@@ -1955,10 +1982,16 @@ def delete_user(
     )
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     return _admin_remove_user_safely(
-        user, current_user, request, db, reassign_to_user_id=reassign_to_user_id
+        user,
+        current_user,
+        request,
+        db,
+        reassign_to_user_id=reassign_to_user_id,
     )
 
 
@@ -1978,10 +2011,16 @@ def delete_user_by_phone(
     user = db.query(User).filter(User.phone == phone.strip()).first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     return _admin_remove_user_safely(
-        user, current_user, request, db, reassign_to_user_id=reassign_to_user_id
+        user,
+        current_user,
+        request,
+        db,
+        reassign_to_user_id=reassign_to_user_id,
     )
 
 
@@ -2001,10 +2040,16 @@ def delete_user_by_id(
     user = db.query(User).filter(User.user_id == user_id).first()
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     return _admin_remove_user_safely(
-        user, current_user, request, db, reassign_to_user_id=reassign_to_user_id
+        user,
+        current_user,
+        request,
+        db,
+        reassign_to_user_id=reassign_to_user_id,
     )
 
 

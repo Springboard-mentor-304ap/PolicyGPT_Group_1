@@ -216,365 +216,364 @@
 
     <div class="login-form-panel__center">
 
-    <!-- ===================================================
+      <!-- ===================================================
          LOGIN CARD
     ==================================================== -->
 
-    <section class="login-card">
+      <section class="login-card">
 
-      <!-- HEADER -->
+        <!-- HEADER -->
 
-      <div class="login-card__header">
+        <div class="login-card__header">
 
-        <h2 class="login-card__title">
-          Welcome Back!
-        </h2>
+          <h2 class="login-card__title">
+            Welcome Back!
+          </h2>
 
-        <p class="login-card__subtitle">
-          Login to your PolicyGPT account
-        </p>
+          <p class="login-card__subtitle">
+            Login to your PolicyGPT account
+          </p>
 
-      </div>
+        </div>
 
 
-      <!-- =================================================
+        <!-- =================================================
            LOGIN FORM
       ================================================== -->
 
-      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="login-form">
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="login-form">
 
-        <!-- =================================================
+          <!-- =================================================
              EMAIL LOGIN
         ================================================== -->
 
-        @if (loginMode === 'email') {
+          @if (loginMode === 'email') {
 
-        <div class="login-field">
+          <div class="login-field">
 
-          <label class="login-field-label" for="email">
-            Email Address
-          </label>
+            <label class="login-field-label" for="email">
+              Email Address
+            </label>
 
-          <div class="login-input-wrap">
+            <div class="login-input-wrap">
 
-            <span class="material-icons login-input-icon" aria-hidden="true">
-              mail_outline
-            </span>
+              <span class="material-icons login-input-icon" aria-hidden="true">
+                mail_outline
+              </span>
 
-            <input id="email" type="email" class="login-input" formControlName="email"
-              placeholder="Enter your email address" autocomplete="email" />
+              <input id="email" type="email" class="login-input" formControlName="email"
+                placeholder="Enter your email address" autocomplete="email" />
+
+            </div>
+
+
+            <!-- EMAIL REQUIRED -->
+
+            @if (
+            form.get('email')?.hasError('required') &&
+            form.get('email')?.touched
+            ) {
+
+            <p class="login-error">
+              Email is required
+            </p>
+
+            }
+
+
+            <!-- INVALID EMAIL -->
+
+            @if (
+            form.get('email')?.hasError('email') &&
+            form.get('email')?.touched
+            ) {
+
+            <p class="login-error">
+              Enter a valid email address
+            </p>
+
+            }
 
           </div>
 
-
-          <!-- EMAIL REQUIRED -->
-
-          @if (
-          form.get('email')?.hasError('required') &&
-          form.get('email')?.touched
-          ) {
-
-          <p class="login-error">
-            Email is required
-          </p>
-
           }
 
 
-          <!-- INVALID EMAIL -->
-
-          @if (
-          form.get('email')?.hasError('email') &&
-          form.get('email')?.touched
-          ) {
-
-          <p class="login-error">
-            Enter a valid email address
-          </p>
-
-          }
-
-        </div>
-
-        }
-
-
-        <!-- =================================================
+          <!-- =================================================
              PHONE LOGIN
         ================================================== -->
 
-        @else {
+          @else {
 
-        <div class="login-field">
+          <div class="login-field">
 
-          <label class="login-field-label" for="phone">
-            Phone Number
-          </label>
+            <label class="login-field-label" for="phone">
+              Phone Number
+            </label>
 
-          <div class="login-input-wrap">
+            <div class="login-input-wrap">
 
-            <span class="material-icons login-input-icon" aria-hidden="true">
-              phone
-            </span>
+              <span class="material-icons login-input-icon" aria-hidden="true">
+                phone
+              </span>
 
-            <input id="phone" type="tel" class="login-input" formControlName="phone"
-              placeholder="Enter your 10-digit phone number" autocomplete="tel" inputmode="numeric" maxlength="10" />
+              <input id="phone" type="tel" class="login-input" formControlName="phone"
+                placeholder="Enter your 10-digit phone number" autocomplete="tel" inputmode="numeric" maxlength="10" />
+
+            </div>
+
+
+            <!-- PHONE REQUIRED -->
+
+            @if (
+            form.get('phone')?.hasError('required') &&
+            form.get('phone')?.touched
+            ) {
+
+            <p class="login-error">
+              Phone number is required
+            </p>
+
+            }
+
+
+            <!-- INVALID PHONE -->
+
+            @if (
+            form.get('phone')?.hasError('pattern') &&
+            form.get('phone')?.touched
+            ) {
+
+            <p class="login-error">
+              Enter a valid 10-digit phone number
+            </p>
+
+            }
 
           </div>
 
-
-          <!-- PHONE REQUIRED -->
-
-          @if (
-          form.get('phone')?.hasError('required') &&
-          form.get('phone')?.touched
-          ) {
-
-          <p class="login-error">
-            Phone number is required
-          </p>
-
           }
 
 
-          <!-- INVALID PHONE -->
-
-          @if (
-          form.get('phone')?.hasError('pattern') &&
-          form.get('phone')?.touched
-          ) {
-
-          <p class="login-error">
-            Enter a valid 10-digit phone number
-          </p>
-
-          }
-
-        </div>
-
-        }
-
-
-        <!-- =================================================
+          <!-- =================================================
              PASSWORD
         ================================================== -->
 
-        <div class="login-field">
+          <div class="login-field">
 
-          <label class="login-field-label" for="password">
-            Password
-          </label>
+            <label class="login-field-label" for="password">
+              Password
+            </label>
 
-          <div class="login-input-wrap">
+            <div class="login-input-wrap">
 
-            <span class="material-icons login-input-icon" aria-hidden="true">
-              lock_outline
-            </span>
+              <span class="material-icons login-input-icon" aria-hidden="true">
+                lock_outline
+              </span>
 
-            <input id="password" [type]="hidePassword ? 'password' : 'text'" class="login-input"
-              formControlName="password" placeholder="Enter your password" autocomplete="current-password" />
+              <input id="password" [type]="hidePassword ? 'password' : 'text'" class="login-input"
+                formControlName="password" placeholder="Enter your password" autocomplete="current-password" />
 
-            <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword" [attr.aria-label]="
+              <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword" [attr.aria-label]="
                 hidePassword
                   ? 'Show password'
                   : 'Hide password'
               ">
 
-              <span class="material-icons">
+                <span class="material-icons">
 
-                {{
-                hidePassword
-                ? 'visibility'
-                : 'visibility_off'
-                }}
+                  {{
+                  hidePassword
+                  ? 'visibility'
+                  : 'visibility_off'
+                  }}
 
+                </span>
+
+              </button>
+
+            </div>
+
+
+            <!-- PASSWORD REQUIRED -->
+
+            @if (
+            form.get('password')?.hasError('required') &&
+            form.get('password')?.touched
+            ) {
+
+            <p class="login-error">
+              Password is required
+            </p>
+
+            }
+
+          </div>
+
+
+          <!-- =================================================
+             REMEMBER ME / FORGOT PASSWORD
+        ================================================== -->
+
+          <div class="login-options">
+
+            <label class="login-remember">
+
+              <input type="checkbox" formControlName="rememberMe" />
+
+              <span>
+                Remember Me
               </span>
 
+            </label>
+
+
+            <button type="button" class="login-forgot" (click)="goToPasswordReset()">
+              Forgot password?
             </button>
 
           </div>
 
 
-          <!-- PASSWORD REQUIRED -->
+          <!-- =================================================
+             BACKEND LOGIN ERROR
+        ================================================== -->
 
-          @if (
-          form.get('password')?.hasError('required') &&
-          form.get('password')?.touched
-          ) {
+          @if (errorMessage) {
 
-          <p class="login-error">
-            Password is required
-          </p>
+          <div class="login-server-error" role="alert" aria-live="assertive">
+
+            <span class="material-icons" aria-hidden="true">
+              error_outline
+            </span>
+
+            <span>
+              {{ errorMessage }}
+            </span>
+
+          </div>
 
           }
+
+
+          <!-- =================================================
+             LOGIN BUTTON
+        ================================================== -->
+
+          <button type="submit" class="login-submit" [disabled]="loading">
+
+            @if (loading) {
+
+            <span class="login-spinner" aria-hidden="true"></span>
+
+            <span>
+              Logging in...
+            </span>
+
+            }
+
+            @else {
+
+            <span class="material-icons login-submit-icon" aria-hidden="true">
+              login
+            </span>
+
+            <span>
+              Login
+            </span>
+
+            }
+
+          </button>
+
+        </form>
+
+
+        <!-- =================================================
+           DIVIDER
+      ================================================== -->
+
+        <div class="login-divider">
+
+          <span></span>
+
+          <p>
+            or continue with
+          </p>
+
+          <span></span>
 
         </div>
 
 
         <!-- =================================================
-             REMEMBER ME / FORGOT PASSWORD
-        ================================================== -->
+           GUEST LOGIN
+      ================================================== -->
 
-        <div class="login-options">
+        <div class="login-social">
 
-          <label class="login-remember">
+          <!-- GUEST USER -->
 
-            <input type="checkbox" formControlName="rememberMe" />
+          <button type="button" class="login-social__button" (click)="loginAsGuest()" [disabled]="loading">
 
-            <span>
-              Remember Me
+            <span class="material-icons guest-icon" aria-hidden="true">
+              person_outline
             </span>
 
-          </label>
+            <span>
+              Guest User
+            </span>
+
+          </button>
 
 
-          <button type="button" class="login-forgot" (click)="goToPasswordReset()">
-            Forgot password?
+          <!-- PHONE / EMAIL -->
+
+          <button type="button" class="login-social__button" (click)="toggleLoginMode()" [disabled]="loading">
+
+            @if (loginMode === 'email') {
+
+            <span class="material-icons phone-icon" aria-hidden="true">
+              phone
+            </span>
+
+            <span>
+              Phone Number
+            </span>
+
+            }
+
+            @else {
+
+            <span class="material-icons mail-icon" aria-hidden="true">
+              mail_outline
+            </span>
+
+            <span>
+              Email ID
+            </span>
+
+            }
+
           </button>
 
         </div>
 
-
         <!-- =================================================
-             BACKEND LOGIN ERROR
-        ================================================== -->
-
-        @if (errorMessage) {
-
-        <div class="login-server-error" role="alert" aria-live="assertive">
-
-          <span class="material-icons" aria-hidden="true">
-            error_outline
-          </span>
-
-          <span>
-            {{ errorMessage }}
-          </span>
-
-        </div>
-
-        }
-
-
-        <!-- =================================================
-             LOGIN BUTTON
-        ================================================== -->
-
-        <button type="submit" class="login-submit" [disabled]="loading">
-
-          @if (loading) {
-
-          <span class="login-spinner" aria-hidden="true"></span>
-
-          <span>
-            Logging in...
-          </span>
-
-          }
-
-          @else {
-
-          <span class="material-icons login-submit-icon" aria-hidden="true">
-            login
-          </span>
-
-          <span>
-            Login
-          </span>
-
-          }
-
-        </button>
-
-      </form>
-
-
-      <!-- =================================================
-           DIVIDER
-      ================================================== -->
-
-      <div class="login-divider">
-
-        <span></span>
-
-        <p>
-          or continue with
-        </p>
-
-        <span></span>
-
-      </div>
-
-
-      <!-- =================================================
-           GUEST LOGIN
-      ================================================== -->
-
-      <div class="login-social">
-
-        <!-- GUEST USER -->
-
-        <button type="button" class="login-social__button" (click)="loginAsGuest()" [disabled]="loading">
-
-          <span class="material-icons guest-icon" aria-hidden="true">
-            person_outline
-          </span>
-
-          <span>
-            Guest User
-          </span>
-
-        </button>
-
-
-        <!-- PHONE / EMAIL -->
-
-        <button type="button" class="login-social__button" (click)="toggleLoginMode()" [disabled]="loading">
-
-          @if (loginMode === 'email') {
-
-          <span class="material-icons phone-icon" aria-hidden="true">
-            phone
-          </span>
-
-          <span>
-            Phone Number
-          </span>
-
-          }
-
-          @else {
-
-          <span class="material-icons mail-icon" aria-hidden="true">
-            mail_outline
-          </span>
-
-          <span>
-            Email ID
-          </span>
-
-          }
-
-        </button>
-
-      </div>
-
-    </section>
-
-
-    <!-- =================================================
          SUPPORT
     ================================================== -->
 
-    <p class="login-support">
+        <p class="login-support">
 
-      Having trouble logging in?
+          Having trouble logging in?
 
-      <a routerLink="/feedback">
-        Contact Support
-      </a>
+          <a routerLink="/feedback">
+            Contact Support
+          </a>
 
-    </p>
+        </p>
+
+      </section>
 
     </div>
 

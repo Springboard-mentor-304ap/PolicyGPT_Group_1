@@ -1,0 +1,157 @@
+/* =========================================================
+   POLICYGPT SHARED FOOTER
+   ========================================================= */
+
+.dash-footer {
+  width: 100%;
+  min-height: 61px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 13px 60px;
+
+  background: #173a70;
+  color: rgba(255, 255, 255, 0.92);
+
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   COPYRIGHT
+   ========================================================= */
+
+.dash-footer__copy {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.92);
+
+  font-size: 11px;
+  font-weight: 500;
+
+  line-height: 1.4;
+}
+
+/* =========================================================
+   FOOTER LINKS
+   ========================================================= */
+
+.dash-footer__links {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  flex-shrink: 0;
+}
+
+.dash-footer__links a {
+  color: #ffffff;
+
+  font-size: 10.5px;
+  font-weight: 500;
+
+  line-height: 1.4;
+
+  text-decoration: none;
+
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.dash-footer__links a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.dash-footer__links a:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 3px;
+
+  border-radius: 2px;
+}
+
+/* =========================================================
+   DOT
+   ========================================================= */
+
+.dash-footer__dot {
+  color: rgba(255, 255, 255, 0.55);
+
+  font-size: 10px;
+
+  user-select: none;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  .dash-footer {
+    padding: 13px 35px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+  .dash-footer {
+    min-height: auto;
+
+    flex-direction: column;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 15px;
+
+    text-align: center;
+  }
+
+  .dash-footer__copy {
+    font-size: 11px;
+  }
+
+  .dash-footer__links {
+    justify-content: center;
+
+    gap: 8px;
+  }
+
+  .dash-footer__links a {
+    font-size: 10.5px;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .dash-footer {
+    padding: 14px 12px;
+  }
+
+  .dash-footer__copy {
+    font-size: 10px;
+  }
+
+  .dash-footer__links {
+    flex-wrap: wrap;
+
+    justify-content: center;
+
+    row-gap: 5px;
+  }
+
+  .dash-footer__links a {
+    font-size: 10px;
+  }
+}

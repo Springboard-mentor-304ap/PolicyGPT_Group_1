@@ -1,0 +1,477 @@
+<div class="guest-dashboard">
+
+    <!-- =====================================================
+       WELCOME SECTION
+       ===================================================== -->
+
+    <section class="guest-welcome">
+
+        <div class="guest-welcome__content">
+
+            <div class="guest-badge">
+                <span class="material-icons">
+                    public
+                </span>
+
+                Guest Access
+            </div>
+
+            <h1>
+                Welcome to
+                <span>PolicyGPT</span>
+            </h1>
+
+            <p>
+                Discover government policies and public schemes
+                in a simple, reliable and accessible way.
+            </p>
+
+            <p class="guest-welcome__subtext">
+                You can search policies and schemes without
+                creating an account. Login to unlock personalized
+                features.
+            </p>
+
+            <div class="guest-welcome__actions">
+
+                <button type="button" class="guest-primary-btn" (click)="goToPolicies()">
+                    <span class="material-icons">
+                        policy
+                    </span>
+
+                    Explore Policies
+                </button>
+
+                <button type="button" class="guest-secondary-btn" (click)="goToSchemes()">
+                    <span class="material-icons">
+                        account_balance
+                    </span>
+
+                    Search Schemes
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="guest-welcome__visual">
+
+            <div class="guest-visual-card guest-visual-card--main">
+
+                <span class="material-icons">
+                    account_balance
+                </span>
+
+                <div>
+                    <strong>
+                        Government Information
+                    </strong>
+
+                    <span>
+                        Simplified for everyone
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="guest-visual-card guest-visual-card--small">
+
+                <span class="material-icons">
+                    verified
+                </span>
+
+                <div>
+                    <strong>
+                        Reliable
+                    </strong>
+
+                    <span>
+                        Policy information
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+       QUICK SEARCH
+       ===================================================== -->
+
+    <section class="guest-search-section">
+
+        <div class="guest-section-heading">
+
+            <span class="material-icons">
+                search
+            </span>
+
+            <div>
+
+                <h2>
+                    Find a Government Scheme
+                </h2>
+
+                <p>
+                    Search for schemes, benefits and government
+                    programmes.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form class="guest-search" (submit)="searchSchemes(searchInput.value); $event.preventDefault()">
+
+            <span class="material-icons">
+                search
+            </span>
+
+            <input #searchInput type="search" placeholder="Search schemes, benefits, education, healthcare..."
+                aria-label="Search government schemes" />
+
+            <button type="submit" class="guest-search__button">
+                Search
+            </button>
+
+        </form>
+
+    </section>
+
+
+    <!-- =====================================================
+       QUICK ACCESS
+       ===================================================== -->
+
+    <section class="guest-features">
+
+        <div class="guest-section-title">
+
+            <div>
+
+                <span class="eyebrow">
+                    QUICK ACCESS
+                </span>
+
+                <h2>
+                    Explore PolicyGPT
+                </h2>
+
+                <p>
+                    Access useful government information directly
+                    from the guest dashboard.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="guest-feature-grid">
+
+            <!-- POLICY SEARCH -->
+
+            <button type="button" class="guest-feature-card" (click)="goToPolicies()">
+
+                <div class="guest-feature-card__icon blue">
+                    <span class="material-icons">
+                        policy
+                    </span>
+                </div>
+
+                <div class="guest-feature-card__content">
+
+                    <h3>
+                        Policy Search
+                    </h3>
+
+                    <p>
+                        Search and explore government policies
+                        using simple filters and keywords.
+                    </p>
+
+                    <span class="guest-feature-card__link">
+                        Explore Policies
+
+                        <span class="material-icons">
+                            arrow_forward
+                        </span>
+                    </span>
+
+                </div>
+
+            </button>
+
+
+            <!-- SCHEME SEARCH -->
+
+            <button type="button" class="guest-feature-card" (click)="goToSchemes()">
+
+                <div class="guest-feature-card__icon green">
+                    <span class="material-icons">
+                        account_balance
+                    </span>
+                </div>
+
+                <div class="guest-feature-card__content">
+
+                    <h3>
+                        Search Schemes
+                    </h3>
+
+                    <p>
+                        Discover government schemes and benefits
+                        available across different categories.
+                    </p>
+
+                    <span class="guest-feature-card__link">
+                        Search Schemes
+
+                        <span class="material-icons">
+                            arrow_forward
+                        </span>
+                    </span>
+
+                </div>
+
+            </button>
+
+
+            <!-- ELIGIBILITY -->
+
+            <button type="button" class="guest-feature-card guest-feature-card--locked" (click)="goToLogin()">
+
+                <div class="guest-feature-card__icon orange">
+                    <span class="material-icons">
+                        fact_check
+                    </span>
+
+                    <span class="guest-lock">
+                        <span class="material-icons">
+                            lock
+                        </span>
+                    </span>
+                </div>
+
+                <div class="guest-feature-card__content">
+
+                    <div class="guest-feature-card__title-row">
+
+                        <h3>
+                            Eligibility Checker
+                        </h3>
+
+                        <span class="guest-login-required">
+                            Login Required
+                        </span>
+
+                    </div>
+
+                    <p>
+                        Check whether you qualify for government
+                        schemes based on your details.
+                    </p>
+
+                    <span class="guest-feature-card__link">
+                        Login to Check
+
+                        <span class="material-icons">
+                            arrow_forward
+                        </span>
+                    </span>
+
+                </div>
+
+            </button>
+
+
+            <!-- COMPARE -->
+
+            <button type="button" class="guest-feature-card guest-feature-card--locked" (click)="goToLogin()">
+
+                <div class="guest-feature-card__icon purple">
+
+                    <span class="material-icons">
+                        compare_arrows
+                    </span>
+
+                    <span class="guest-lock">
+                        <span class="material-icons">
+                            lock
+                        </span>
+                    </span>
+
+                </div>
+
+                <div class="guest-feature-card__content">
+
+                    <div class="guest-feature-card__title-row">
+
+                        <h3>
+                            Compare Schemes
+                        </h3>
+
+                        <span class="guest-login-required">
+                            Login Required
+                        </span>
+
+                    </div>
+
+                    <p>
+                        Compare government schemes and understand
+                        their benefits, eligibility and requirements.
+                    </p>
+
+                    <span class="guest-feature-card__link">
+                        Login to Compare
+
+                        <span class="material-icons">
+                            arrow_forward
+                        </span>
+                    </span>
+
+                </div>
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+       WHY LOGIN
+       ===================================================== -->
+
+    <section class="guest-login-section">
+
+        <div class="guest-login-section__icon">
+
+            <span class="material-icons">
+                account_circle
+            </span>
+
+        </div>
+
+        <div class="guest-login-section__content">
+
+            <span class="eyebrow">
+                UNLOCK MORE FEATURES
+            </span>
+
+            <h2>
+                Get more from PolicyGPT
+            </h2>
+
+            <p>
+                Create an account to check eligibility,
+                compare schemes and access personalized
+                government information.
+            </p>
+
+        </div>
+
+
+        <div class="guest-login-section__actions">
+
+            <button type="button" class="guest-login-btn" (click)="goToLogin()">
+                Login
+
+                <span class="material-icons">
+                    login
+                </span>
+            </button>
+
+            <button type="button" class="guest-signup-btn" (click)="goToSignup()">
+                Create Account
+
+                <span class="material-icons">
+                    person_add
+                </span>
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+       INFORMATION CARDS
+       ===================================================== -->
+
+    <section class="guest-info-grid">
+
+        <div class="guest-info-card">
+
+            <span class="material-icons">
+                verified_user
+            </span>
+
+            <div>
+
+                <h3>
+                    Reliable Information
+                </h3>
+
+                <p>
+                    Access organized government policy and
+                    scheme information in one place.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="guest-info-card">
+
+            <span class="material-icons">
+                language
+            </span>
+
+            <div>
+
+                <h3>
+                    Easy to Explore
+                </h3>
+
+                <p>
+                    Search government information using
+                    simple keywords and categories.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="guest-info-card">
+
+            <span class="material-icons">
+                security
+            </span>
+
+            <div>
+
+                <h3>
+                    Secure Access
+                </h3>
+
+                <p>
+                    Your personalized features are protected
+                    behind secure account access.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>

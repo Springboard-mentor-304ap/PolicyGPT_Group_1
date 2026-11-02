@@ -1,0 +1,571 @@
+<div class="add-user-page">
+
+    <!-- =======================================================
+         BREADCRUMB
+    ======================================================== -->
+
+    <div class="add-user-breadcrumb">
+
+        <button type="button" (click)="goToDashboard()">
+            Admin Dashboard
+        </button>
+
+        <span class="material-icons">
+            chevron_right
+        </span>
+
+        <button type="button" (click)="goToUsers()">
+            Users
+        </button>
+
+        <span class="material-icons">
+            chevron_right
+        </span>
+
+        <strong>
+            Add User
+        </strong>
+
+    </div>
+
+
+    <!-- =======================================================
+         HEADER
+    ======================================================== -->
+
+    <section class="add-user-header">
+
+        <div>
+
+            <p class="add-user-header__eyebrow">
+                USER MANAGEMENT
+            </p>
+
+            <h1>
+                Add User
+            </h1>
+
+            <p>
+                Create a new government or administrator account.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         MAIN CARD
+    ======================================================== -->
+
+    <section class="add-user-card">
+
+        <!-- CARD HEADER -->
+
+        <div class="add-user-card__header">
+
+            <div>
+
+                <h2>
+                    Create New User
+                </h2>
+
+                <p>
+                    Select the user type and enter the account details.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             USER TYPE
+        ====================================================== -->
+
+        <div class="add-user-section">
+
+            <div class="add-user-section__title">
+
+                <span class="material-icons">
+                    manage_accounts
+                </span>
+
+                <div>
+
+                    <h3>
+                        Select User Type
+                    </h3>
+
+                    <p>
+                        Choose the type of account you want to create.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="user-type-options">
+
+                <!-- GOVERNMENT USER -->
+
+                <button type="button" class="user-type-card"
+                    [class.user-type-card--active]="selectedRole === 'GOVERNMENT_OFFICIAL'"
+                    (click)="selectRole('GOVERNMENT_OFFICIAL')">
+
+                    <div class="user-type-card__icon user-type-card__icon--government">
+
+                        <span class="material-icons">
+                            account_balance
+                        </span>
+
+                    </div>
+
+                    <div class="user-type-card__content">
+
+                        <strong>
+                            Government User
+                        </strong>
+
+                        <span>
+                            Government officials and department users
+                        </span>
+
+                    </div>
+
+                    <span class="material-icons user-type-card__check">
+
+                        {{
+                        selectedRole === "GOVERNMENT_OFFICIAL"
+                        ? "radio_button_checked"
+                        : "radio_button_unchecked"
+                        }}
+
+                    </span>
+
+                </button>
+
+
+                <!-- ADMIN USER -->
+
+                <button type="button" class="user-type-card"
+                    [class.user-type-card--active]="selectedRole === 'ADMINISTRATOR'"
+                    (click)="selectRole('ADMINISTRATOR')">
+
+                    <div class="user-type-card__icon user-type-card__icon--admin">
+
+                        <span class="material-icons">
+                            admin_panel_settings
+                        </span>
+
+                    </div>
+
+                    <div class="user-type-card__content">
+
+                        <strong>
+                            Admin User
+                        </strong>
+
+                        <span>
+                            Users who can manage the PolicyGPT platform
+                        </span>
+
+                    </div>
+
+                    <span class="material-icons user-type-card__check">
+
+                        {{
+                        selectedRole === "ADMINISTRATOR"
+                        ? "radio_button_checked"
+                        : "radio_button_unchecked"
+                        }}
+
+                    </span>
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             ACCOUNT DETAILS
+        ====================================================== -->
+
+        <div class="add-user-section">
+
+            <div class="add-user-section__title">
+
+                <span class="material-icons">
+                    person
+                </span>
+
+                <div>
+
+                    <h3>
+                        Account Details
+                    </h3>
+
+                    <p>
+                        Enter the user's basic account information.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="add-user-form-grid">
+
+                <!-- FULL NAME -->
+
+                <div class="add-user-field add-user-field--full">
+
+                    <label for="fullName">
+                        Full Name
+                        <span>*</span>
+                    </label>
+
+                    <input id="fullName" type="text" [(ngModel)]="fullName" placeholder="Enter full name"
+                        autocomplete="name" />
+
+                </div>
+
+
+                <!-- EMAIL -->
+
+                <div class="add-user-field">
+
+                    <label for="email">
+                        Email Address
+                        <span>*</span>
+                    </label>
+
+                    <input id="email" type="email" [(ngModel)]="email" placeholder="Enter email address"
+                        autocomplete="email" />
+
+                </div>
+
+
+                <!-- PHONE -->
+
+                <div class="add-user-field">
+
+                    <label for="phone">
+                        Phone Number
+                        <span>*</span>
+                    </label>
+
+                    <input id="phone" type="tel" [(ngModel)]="phone" placeholder="10 digit phone number" maxlength="10"
+                        inputmode="numeric" autocomplete="tel" />
+
+                </div>
+
+
+                <!-- PASSWORD -->
+
+                <div class="add-user-field">
+
+                    <label for="password">
+                        Password
+                        <span>*</span>
+                    </label>
+
+                    <div class="password-input">
+
+                        <input id="password" [type]="showPassword ? 'text' : 'password'" [(ngModel)]="password"
+                            placeholder="Enter password" autocomplete="new-password" />
+
+                        <button type="button" (click)="togglePassword()"
+                            [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
+
+                            <span class="material-icons">
+
+                                {{
+                                showPassword
+                                ? "visibility_off"
+                                : "visibility"
+                                }}
+
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CONFIRM PASSWORD -->
+
+                <div class="add-user-field">
+
+                    <label for="confirmPassword">
+                        Confirm Password
+                        <span>*</span>
+                    </label>
+
+                    <div class="password-input">
+
+                        <input id="confirmPassword" [type]="showConfirmPassword ? 'text' : 'password'"
+                            [(ngModel)]="confirmPassword" placeholder="Confirm password" autocomplete="new-password" />
+
+                        <button type="button" (click)="toggleConfirmPassword()"
+                            [attr.aria-label]="showConfirmPassword ? 'Hide password' : 'Show password'">
+
+                            <span class="material-icons">
+
+                                {{
+                                showConfirmPassword
+                                ? "visibility_off"
+                                : "visibility"
+                                }}
+
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             PERSONAL / LOCATION DETAILS
+        ====================================================== -->
+
+        <div class="add-user-section">
+
+            <div class="add-user-section__title">
+
+                <span class="material-icons">
+                    location_on
+                </span>
+
+                <div>
+
+                    <h3>
+                        Personal & Location Details
+                    </h3>
+
+                    <p>
+                        Enter the user's location and personal information.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="add-user-form-grid">
+
+                <!-- DATE OF BIRTH -->
+
+                <div class="add-user-field">
+
+                    <label for="dateOfBirth">
+                        Date of Birth
+                        <span>*</span>
+                    </label>
+
+                    <input id="dateOfBirth" type="date" [(ngModel)]="dateOfBirth" />
+
+                </div>
+
+
+                <!-- STATE -->
+
+                <div class="add-user-field">
+
+                    <label for="state">
+                        State
+                        <span>*</span>
+                    </label>
+
+                    <select id="state" [(ngModel)]="state" (ngModelChange)="onStateChange()">
+
+                        <option value="">
+                            Select State
+                        </option>
+
+                        @for (item of states; track item) {
+
+                        <option [value]="item">
+                            {{ item }}
+                        </option>
+
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <!-- DISTRICT -->
+
+                <div class="add-user-field">
+
+                    <label for="district">
+                        District
+                        <span>*</span>
+                    </label>
+
+                    <select id="district" [(ngModel)]="district" [disabled]="!state">
+
+                        <option value="">
+                            {{ state ? "Select District" : "Select State First" }}
+                        </option>
+
+                        @for (
+                        districtItem of districtOptions;
+                        track districtItem
+                        ) {
+
+                        <option [value]="districtItem">
+                            {{ districtItem }}
+                        </option>
+
+                        }
+
+                    </select>
+
+                </div>
+
+
+                <!-- OCCUPATION -->
+
+                <div class="add-user-field">
+
+                    <label for="occupation">
+
+                        Designation / Occupation
+
+                        @if (selectedRole === "GOVERNMENT_OFFICIAL") {
+                        <span>*</span>
+                        }
+
+                    </label>
+
+                    <input id="occupation" type="text" [(ngModel)]="occupation" placeholder="Enter designation" />
+
+                </div>
+
+
+                <!-- ORGANIZATION -->
+
+                <div class="add-user-field add-user-field--full">
+
+                    <label for="organization">
+
+                        @if (selectedRole === "ADMINISTRATOR") {
+                        Organization
+                        } @else {
+                        Government Department / Organization
+                        }
+
+                        @if (selectedRole === "GOVERNMENT_OFFICIAL") {
+                        <span>*</span>
+                        }
+
+                    </label>
+
+                    <input id="organization" type="text" [(ngModel)]="organization"
+                        placeholder="Enter department or organization" />
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             ACTIONS
+        ====================================================== -->
+
+        <div class="add-user-actions">
+
+            <button type="button" class="add-user-button add-user-button--secondary" (click)="goToUsers()">
+
+                <span class="material-icons">
+                    arrow_back
+                </span>
+
+                Cancel
+
+            </button>
+
+
+            <button type="button" class="add-user-button add-user-button--reset" (click)="resetForm()">
+
+                <span class="material-icons">
+                    refresh
+                </span>
+
+                Reset
+
+            </button>
+
+
+            <button type="button" class="add-user-button add-user-button--primary" [disabled]="isSubmitting"
+                (click)="addUser()">
+
+                @if (isSubmitting) {
+
+                <span class="material-icons add-user-spinner">
+                    sync
+                </span>
+
+                Creating...
+
+                } @else {
+
+                <span class="material-icons">
+                    person_add
+                </span>
+
+                Add User
+
+                }
+
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =======================================================
+         SUCCESS / FAILURE POPUP
+         This block is outside the main page/card content so it
+         can never appear as normal content at the bottom.
+    ======================================================== -->
+
+</div>
+
+@if (showSuccessPopup) {
+<div class="popup-overlay" role="presentation" aria-hidden="false" (click)="closeSuccessPopup()">
+    <div class="popup-card" [class.popup-card--error]="popupType === 'error'" role="dialog" aria-modal="true"
+        aria-labelledby="policygpt-popup-title" aria-describedby="policygpt-popup-message"
+        (click)="$event.stopPropagation()">
+        <div class="popup-card__icon" aria-hidden="true">
+            <span class="material-icons">{{ popupIcon }}</span>
+        </div>
+
+        <h2 id="policygpt-popup-title">{{ popupTitle }}</h2>
+
+        <p id="policygpt-popup-message">{{ popupMessage }}</p>
+
+        <button type="button" class="popup-card__button" [class.popup-card__button--error]="popupType === 'error'"
+            (click)="closeSuccessPopup()" autofocus>
+            OK
+        </button>
+    </div>
+</div>
+}

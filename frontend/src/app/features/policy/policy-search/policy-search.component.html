@@ -1,0 +1,120 @@
+<div class="page-container">
+  <!-- Top Right Navigation -->
+  <div class="top-nav">
+    <button type="button" class="btn-back" (click)="goBack()">
+      &larr; Back
+    </button>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Search Policies</h1>
+    <p>Find government policies that match your needs.</p>
+  </div>
+
+  <!-- Main Search Box -->
+  <div class="search-bar-container">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input 
+        type="text" 
+        [(ngModel)]="searchQuery" 
+        placeholder="Search by policy name, keyword, ministry, or benefit..." 
+        (keyup.enter)="applyFilters()"
+      />
+    </div>
+    <button type="button" class="btn-search" (click)="applyFilters()">Search</button>
+  </div>
+
+  <!-- Dropdown Filters Bar -->
+  <div class="filters-container">
+    <div class="filter-dropdown">
+      <label>Category</label>
+      <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+        <option value="All Categories">All Categories</option>
+        <option value="Education">Education</option>
+        <option value="Health">Health</option>
+        <option value="Skill Development">Skill Development</option>
+        <option value="Agriculture">Agriculture</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>Ministry</label>
+      <select [(ngModel)]="selectedMinistry" (change)="applyFilters()">
+        <option value="All Ministries">All Ministries</option>
+        <option value="Ministry of Education">Ministry of Education</option>
+        <option value="Ministry of Health & Family Welfare">Ministry of Health & Family Welfare</option>
+        <option value="Ministry of Skill Development & Entrepreneurship">Ministry of Skill Development</option>
+        <option value="Ministry of Agriculture & Farmers Welfare">Ministry of Agriculture</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>State</label>
+      <select [(ngModel)]="selectedState" (change)="applyFilters()">
+        <option value="All States">All States</option>
+        <option value="Central">Central</option>
+        <option value="Delhi">Delhi</option>
+        <option value="Maharashtra">Maharashtra</option>
+      </select>
+    </div>
+
+    <div class="filter-dropdown">
+      <label>Target Group</label>
+      <select [(ngModel)]="selectedTargetGroup" (change)="applyFilters()">
+        <option value="All">All</option>
+        <option value="Students">Students</option>
+        <option value="Citizens">Citizens</option>
+        <option value="Youth & Entrepreneurs">Youth & Entrepreneurs</option>
+        <option value="Farmers">Farmers</option>
+      </select>
+    </div>
+
+    <button type="button" class="btn-clear" (click)="clearFilters()">Clear Filters</button>
+  </div>
+
+  <!-- Results Count -->
+  <div class="results-count">
+    {{ filteredPolicies.length }} results found
+  </div>
+
+  <!-- Policy Cards List -->
+  <div class="policy-list">
+    <div class="policy-card" *ngFor="let policy of visiblePolicies">
+      <div class="card-left">
+        <!-- Shield Document Badge Icon -->
+        <div class="document-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e293b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="M9 12l2 2 4-4"></path>
+          </svg>
+        </div>
+        <div class="policy-info">
+          <h3>{{ policy.title }}</h3>
+          <p>{{ policy.ministry }}</p>
+        </div>
+      </div>
+
+      <div class="card-right">
+        <!-- UPDATED: Using RouterLink -->
+        <a [routerLink]="['/policies', policy.id]" class="btn-view-details">
+          View Details
+        </a>
+        <button type="button" class="btn-bookmark" (click)="toggleBookmark(policy)" [title]="policy.isBookmarked ? 'Remove Bookmark' : 'Bookmark'">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" [attr.fill]="policy.isBookmarked ? '#1e293b' : 'none'" [attr.stroke]="policy.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View More Action -->
+  <div class="view-more-container" *ngIf="itemsToShow < filteredPolicies.length">
+    <button type="button" class="btn-view-more" (click)="loadMore()">View More</button>
+  </div>
+</div>

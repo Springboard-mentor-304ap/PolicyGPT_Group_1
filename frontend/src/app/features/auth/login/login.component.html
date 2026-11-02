@@ -1,0 +1,577 @@
+<div class="login-page">
+
+  <!-- =====================================================
+       LEFT HERO PANEL
+  ====================================================== -->
+
+  <aside class="login-hero">
+
+    <div class="login-hero__bg"></div>
+
+    <div class="login-hero__content">
+
+      <!-- BRAND -->
+
+      <div class="login-hero__brand">
+
+        <img src="/images/logo.png" alt="PolicyGPT logo" class="login-hero__logo-img" />
+
+        <div class="login-hero__brand-text">
+
+          <h1 class="login-hero__title">
+            Policy<span>GPT</span>
+          </h1>
+
+          <p class="login-hero__tagline">
+            Government Information. Simplified.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- HERO INTRO -->
+
+      <div class="login-hero__intro">
+
+        <h2 class="login-hero__headline">
+          Access. Understand.<br />
+          <span>Empower.</span>
+        </h2>
+
+        <p class="login-hero__subtext">
+          PolicyGPT brings government policies and
+          public schemes closer to you.
+          <br />
+          Secure. Reliable. Intelligent.
+        </p>
+
+      </div>
+
+
+      <!-- FEATURES -->
+
+      <ul class="login-features">
+
+        <!-- SMART SEARCH -->
+
+        <li class="login-feature">
+
+          <div class="login-feature__icon login-feature__icon--blue">
+
+            <span class="material-icons">
+              search
+            </span>
+
+          </div>
+
+          <div class="login-feature__content">
+
+            <h3>
+              Smart Search
+            </h3>
+
+            <p>
+              Find policies and schemes quickly
+              with advanced filters.
+            </p>
+
+          </div>
+
+        </li>
+
+
+        <!-- CHECK ELIGIBILITY -->
+
+        <li class="login-feature">
+
+          <div class="login-feature__icon login-feature__icon--green">
+
+            <span class="material-icons">
+              verified_user
+            </span>
+
+          </div>
+
+          <div class="login-feature__content">
+
+            <h3>
+              Check Eligibility
+            </h3>
+
+            <p>
+              Discover schemes you are eligible
+              for in just a few steps.
+            </p>
+
+          </div>
+
+        </li>
+
+
+        <!-- SAVE & TRACK -->
+
+        <li class="login-feature">
+
+          <div class="login-feature__icon login-feature__icon--orange">
+
+            <span class="material-icons">
+              bookmark
+            </span>
+
+          </div>
+
+          <div class="login-feature__content">
+
+            <h3>
+              Save &amp; Track
+            </h3>
+
+            <p>
+              Save important policies and track
+              updates in real time.
+            </p>
+
+          </div>
+
+        </li>
+
+
+        <!-- STAY UPDATED -->
+
+        <li class="login-feature">
+
+          <div class="login-feature__icon login-feature__icon--purple">
+
+            <span class="material-icons">
+              notifications
+            </span>
+
+          </div>
+
+          <div class="login-feature__content">
+
+            <h3>
+              Stay Updated
+            </h3>
+
+            <p>
+              Get notified about new policies,
+              schemes and deadlines.
+            </p>
+
+          </div>
+
+        </li>
+
+      </ul>
+
+
+      <!-- QUOTE -->
+
+      <div class="login-hero__quote">
+
+        <div class="login-hero__quote-mark">
+          “
+        </div>
+
+        <p>
+          Information is power.
+        </p>
+
+        <p>
+          PolicyGPT is here to empower every citizen.
+        </p>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+
+  <!-- =====================================================
+       RIGHT LOGIN PANEL
+  ====================================================== -->
+
+  <main class="login-form-panel">
+
+    <!-- CREATE ACCOUNT -->
+
+    <div class="login-form-panel__top">
+
+      <span class="login-form-panel__new">
+        New here?
+      </span>
+
+      <a routerLink="/auth/register" class="login-form-panel__cta">
+        Create Account
+      </a>
+
+    </div>
+
+
+    <!-- ===================================================
+         LOGIN CARD
+    ==================================================== -->
+
+    <section class="login-card">
+
+      <!-- HEADER -->
+
+      <div class="login-card__header">
+
+        <h2 class="login-card__title">
+          Welcome Back!
+        </h2>
+
+        <p class="login-card__subtitle">
+          Login to your PolicyGPT account
+        </p>
+
+      </div>
+
+
+      <!-- =================================================
+           LOGIN FORM
+      ================================================== -->
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="login-form">
+
+        <!-- =================================================
+             EMAIL LOGIN
+        ================================================== -->
+
+        @if (loginMode === 'email') {
+
+        <div class="login-field">
+
+          <label class="login-field-label" for="email">
+            Email Address
+          </label>
+
+          <div class="login-input-wrap">
+
+            <span class="material-icons login-input-icon" aria-hidden="true">
+              mail_outline
+            </span>
+
+            <input id="email" type="email" class="login-input" formControlName="email"
+              placeholder="Enter your email address" autocomplete="email" />
+
+          </div>
+
+
+          <!-- EMAIL REQUIRED -->
+
+          @if (
+          form.get('email')?.hasError('required') &&
+          form.get('email')?.touched
+          ) {
+
+          <p class="login-error">
+            Email is required
+          </p>
+
+          }
+
+
+          <!-- INVALID EMAIL -->
+
+          @if (
+          form.get('email')?.hasError('email') &&
+          form.get('email')?.touched
+          ) {
+
+          <p class="login-error">
+            Enter a valid email address
+          </p>
+
+          }
+
+        </div>
+
+        }
+
+
+        <!-- =================================================
+             PHONE LOGIN
+        ================================================== -->
+
+        @else {
+
+        <div class="login-field">
+
+          <label class="login-field-label" for="phone">
+            Phone Number
+          </label>
+
+          <div class="login-input-wrap">
+
+            <span class="material-icons login-input-icon" aria-hidden="true">
+              phone
+            </span>
+
+            <input id="phone" type="tel" class="login-input" formControlName="phone"
+              placeholder="Enter your 10-digit phone number" autocomplete="tel" inputmode="numeric" maxlength="10" />
+
+          </div>
+
+
+          <!-- PHONE REQUIRED -->
+
+          @if (
+          form.get('phone')?.hasError('required') &&
+          form.get('phone')?.touched
+          ) {
+
+          <p class="login-error">
+            Phone number is required
+          </p>
+
+          }
+
+
+          <!-- INVALID PHONE -->
+
+          @if (
+          form.get('phone')?.hasError('pattern') &&
+          form.get('phone')?.touched
+          ) {
+
+          <p class="login-error">
+            Enter a valid 10-digit phone number
+          </p>
+
+          }
+
+        </div>
+
+        }
+
+
+        <!-- =================================================
+             PASSWORD
+        ================================================== -->
+
+        <div class="login-field">
+
+          <label class="login-field-label" for="password">
+            Password
+          </label>
+
+          <div class="login-input-wrap">
+
+            <span class="material-icons login-input-icon" aria-hidden="true">
+              lock_outline
+            </span>
+
+            <input id="password" [type]="hidePassword ? 'password' : 'text'" class="login-input"
+              formControlName="password" placeholder="Enter your password" autocomplete="current-password" />
+
+            <button type="button" class="login-input-suffix" (click)="hidePassword = !hidePassword" [attr.aria-label]="
+                hidePassword
+                  ? 'Show password'
+                  : 'Hide password'
+              ">
+
+              <span class="material-icons">
+
+                {{
+                hidePassword
+                ? 'visibility'
+                : 'visibility_off'
+                }}
+
+              </span>
+
+            </button>
+
+          </div>
+
+
+          <!-- PASSWORD REQUIRED -->
+
+          @if (
+          form.get('password')?.hasError('required') &&
+          form.get('password')?.touched
+          ) {
+
+          <p class="login-error">
+            Password is required
+          </p>
+
+          }
+
+        </div>
+
+
+        <!-- =================================================
+             REMEMBER ME / FORGOT PASSWORD
+        ================================================== -->
+
+        <div class="login-options">
+
+          <label class="login-remember">
+
+            <input type="checkbox" formControlName="rememberMe" />
+
+            <span>
+              Remember Me
+            </span>
+
+          </label>
+
+
+          <button type="button" class="login-forgot" (click)="goToPasswordReset()">
+            Forgot password?
+          </button>
+
+        </div>
+
+
+        <!-- =================================================
+             BACKEND LOGIN ERROR
+        ================================================== -->
+
+        @if (errorMessage) {
+
+        <div class="login-server-error" role="alert" aria-live="assertive">
+
+          <span class="material-icons" aria-hidden="true">
+            error_outline
+          </span>
+
+          <span>
+            {{ errorMessage }}
+          </span>
+
+        </div>
+
+        }
+
+
+        <!-- =================================================
+             LOGIN BUTTON
+        ================================================== -->
+
+        <button type="submit" class="login-submit" [disabled]="loading">
+
+          @if (loading) {
+
+          <span class="login-spinner" aria-hidden="true"></span>
+
+          <span>
+            Logging in...
+          </span>
+
+          }
+
+          @else {
+
+          <span class="material-icons login-submit-icon" aria-hidden="true">
+            login
+          </span>
+
+          <span>
+            Login
+          </span>
+
+          }
+
+        </button>
+
+      </form>
+
+
+      <!-- =================================================
+           DIVIDER
+      ================================================== -->
+
+      <div class="login-divider">
+
+        <span></span>
+
+        <p>
+          or continue with
+        </p>
+
+        <span></span>
+
+      </div>
+
+
+      <!-- =================================================
+           GUEST LOGIN
+      ================================================== -->
+
+      <div class="login-social">
+
+        <!-- GUEST USER -->
+
+        <button type="button" class="login-social__button" (click)="loginAsGuest()" [disabled]="loading">
+
+          <span class="material-icons guest-icon" aria-hidden="true">
+            person_outline
+          </span>
+
+          <span>
+            Guest User
+          </span>
+
+        </button>
+
+
+        <!-- PHONE / EMAIL -->
+
+        <button type="button" class="login-social__button" (click)="toggleLoginMode()" [disabled]="loading">
+
+          @if (loginMode === 'email') {
+
+          <span class="material-icons phone-icon" aria-hidden="true">
+            phone
+          </span>
+
+          <span>
+            Phone Number
+          </span>
+
+          }
+
+          @else {
+
+          <span class="material-icons mail-icon" aria-hidden="true">
+            mail_outline
+          </span>
+
+          <span>
+            Email ID
+          </span>
+
+          }
+
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- =================================================
+         SUPPORT
+    ================================================== -->
+
+    <p class="login-support">
+
+      Having trouble logging in?
+
+      <a routerLink="/feedback">
+        Contact Support
+      </a>
+
+    </p>
+
+  </main>
+
+</div>

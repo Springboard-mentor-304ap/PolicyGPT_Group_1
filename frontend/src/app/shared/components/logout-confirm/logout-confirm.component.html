@@ -1,0 +1,48 @@
+<div class="logout-overlay" role="presentation" (click)="onCancel()">
+    <div class="logout-modal" role="dialog" aria-modal="true" aria-labelledby="logout-title"
+        (click)="$event.stopPropagation()">
+
+        <!-- ICON -->
+
+        <div class="logout-modal__icon">
+            <span class="material-icons">
+                logout
+            </span>
+        </div>
+
+
+        <!-- TITLE -->
+
+        <h2 id="logout-title">
+            Logout
+        </h2>
+
+
+        <!-- MESSAGE -->
+
+        <p class="logout-modal__message">
+            Are you sure you want to logout?
+        </p>
+
+
+        <!-- ACTIONS -->
+
+        <div class="logout-modal__actions">
+
+            <!-- NO -->
+
+            <button type="button" class="logout-modal__button logout-modal__button--cancel" (click)="onCancel()">
+                No
+            </button>
+
+
+            <!-- YES -->
+
+            <button type="button" class="logout-modal__button logout-modal__button--confirm" (click)="onConfirm()">
+                Yes
+            </button>
+
+        </div>
+
+    </div>
+</div>

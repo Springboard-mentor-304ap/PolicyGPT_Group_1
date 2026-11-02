@@ -1,0 +1,283 @@
+<div class="profile-page">
+
+  <!-- =========================================================
+       PAGE HEADER
+       ========================================================= -->
+  <div class="profile-header">
+
+    <div class="title-group">
+      <h1>My Profile</h1>
+
+      <p class="subtitle">
+        Manage your personal details
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="btn-edit" (click)="onEditProfile()">
+        Edit Profile
+      </button>
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       PROFILE CARD
+       ========================================================= -->
+  <div class="profile-card">
+
+    <!-- =======================================================
+         LEFT SECTION
+         ======================================================= -->
+    <div class="left-section">
+
+      <div class="avatar-wrapper">
+
+        <svg viewBox="0 0 100 100" class="avatar-svg" role="img" aria-label="Profile avatar">
+
+          <!-- Background -->
+          <circle cx="50" cy="50" r="50" fill="#c0dbea" />
+
+          <!-- Head -->
+          <circle cx="50" cy="38" r="18" fill="#2d3748" />
+
+          <!-- Body -->
+          <path d="M22 88 C22 68, 35 60, 50 60 C65 60, 78 68, 78 88 Z" fill="#1e293b" />
+
+          <!-- Shirt collar -->
+          <path d="M42 60 L50 72 L58 60 Z" fill="#e2e8f0" />
+
+          <!-- Tie -->
+          <path d="M48 68 L50 82 L52 68 Z" fill="#dc2626" />
+
+        </svg>
+
+      </div>
+
+
+      <h3 class="user-name">
+        {{ userProfile.fullName }}
+      </h3>
+
+
+      <p class="user-email">
+        {{ userProfile.email }}
+      </p>
+
+
+      <span class="role-badge">
+        {{ userProfile.role }}
+      </span>
+
+    </div>
+
+
+    <!-- =======================================================
+         DIVIDER
+         ======================================================= -->
+    <div class="divider"></div>
+
+
+    <!-- =======================================================
+         RIGHT SECTION
+         ======================================================= -->
+    <div class="right-section">
+
+      <div class="info-grid">
+
+        <!-- FULL NAME -->
+        <div class="info-item">
+          <label>Full Name</label>
+          <p>
+            {{ userProfile.fullName }}
+          </p>
+        </div>
+
+
+        <!-- DATE OF BIRTH -->
+        <div class="info-item">
+          <label>Date Of Birth</label>
+          <p>
+            {{ userProfile.dob }}
+          </p>
+        </div>
+
+
+        <!-- GENDER -->
+        <div class="info-item">
+          <label>Gender</label>
+          <p>
+            {{ userProfile.gender }}
+          </p>
+        </div>
+
+
+        <!-- STATE -->
+        <div class="info-item">
+          <label>State</label>
+          <p>
+            {{ userProfile.state }}
+          </p>
+        </div>
+
+
+        <!-- DISTRICT -->
+        <div class="info-item">
+          <label>District</label>
+          <p>
+            {{ userProfile.district }}
+          </p>
+        </div>
+
+
+        <!-- OCCUPATION -->
+        <div class="info-item">
+          <label>Occupation</label>
+          <p>
+            {{ userProfile.occupation }}
+          </p>
+        </div>
+
+
+        <!-- PHONE -->
+        <div class="info-item">
+          <label>Phone</label>
+          <p>
+            {{ userProfile.phone }}
+          </p>
+        </div>
+
+
+        <!-- EMAIL -->
+        <div class="info-item">
+          <label>Email</label>
+          <p>
+            {{ userProfile.email }}
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =========================================================
+       ACTION BUTTONS
+       ========================================================= -->
+  <div class="action-buttons-row">
+
+    <button type="button" class="btn-change-password" (click)="onChangePassword()">
+      Change Password
+    </button>
+
+
+    <button type="button" class="btn-delete-account" (click)="onDeleteAccount()">
+      Delete Account
+    </button>
+
+  </div>
+
+
+  <!-- =========================================================
+       DELETE ACCOUNT CONFIRMATION MODAL
+       ========================================================= -->
+  @if (showDeleteModal) {
+
+  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
+
+    <div class="delete-modal-card" (click)="$event.stopPropagation()">
+
+      <h2 class="modal-title">
+        Want to delete your account?
+      </h2>
+
+
+      <div class="modal-actions">
+
+        <button type="button" class="btn-yes" (click)="confirmDeleteAccount()">
+          YES
+        </button>
+
+
+        <button type="button" class="btn-no" (click)="cancelDeleteAccount()">
+          NO
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  }
+
+
+  <!-- =========================================================
+       PASSWORD CONFIRMATION MODAL
+       ========================================================= -->
+  @if (showPasswordModal) {
+
+  <div class="modal-backdrop" (click)="cancelDeleteAccount()">
+
+    <div class="password-modal-card" (click)="$event.stopPropagation()">
+
+      <h2 class="modal-title">
+        To confirm Enter your password
+      </h2>
+
+
+      <!-- ===================================================
+             PASSWORD INPUT
+             =================================================== -->
+      <div class="password-input-wrapper">
+
+        <span class="material-symbols-outlined icon-left">
+          lock
+        </span>
+
+
+        <input [type]="showPasswordText ? 'text' : 'password'" placeholder="Enter your password"
+          [(ngModel)]="confirmPasswordValue" autocomplete="current-password" />
+
+
+        <button type="button" class="icon-eye" (click)="togglePasswordVisibility()"
+          aria-label="Toggle password visibility">
+
+          <span class="material-symbols-outlined">
+            {{
+            showPasswordText
+            ? "visibility_off"
+            : "visibility"
+            }}
+          </span>
+
+        </button>
+
+      </div>
+
+
+      <!-- ===================================================
+             CONFIRM BUTTON
+             =================================================== -->
+      <div class="modal-actions">
+
+        <button type="button" class="btn-confirm" (click)="submitPasswordConfirmation()" [disabled]="deletingAccount">
+          {{
+          deletingAccount
+          ? "Deleting..."
+          : "Confirm"
+          }}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  }
+
+</div>

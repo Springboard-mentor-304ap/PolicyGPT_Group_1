@@ -1,0 +1,249 @@
+<div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
+  [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
+  <!-- =========================================================
+       MOBILE OVERLAY
+       ========================================================= -->
+
+  @if (mobileMenuOpen) {
+  <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+  }
+
+
+  <!-- =========================================================
+       TOPBAR
+       ========================================================= -->
+
+  <header class="dash-topbar" role="banner">
+
+    <!-- BRAND -->
+    <div class="dash-topbar__brand">
+
+      <!-- MENU BUTTON -->
+      <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
+        [attr.aria-expanded]="!sidebarCollapsed">
+        <span class="material-icons">
+          menu
+        </span>
+      </button>
+
+
+      <!-- LOGO -->
+      <a routerLink="/dashboard/user-dashboard" class="dash-topbar__logo-link"
+        aria-label="PolicyGPT Organization Dashboard" (click)="closeMobileMenu()">
+        <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
+      </a>
+
+
+      <!-- BRAND TEXT -->
+      <div class="dash-topbar__brand-text">
+
+        <span class="dash-topbar__title">
+          Policy<span>GPT</span>
+        </span>
+
+        <span class="dash-topbar__tagline">
+          Government Information. Simplified.
+        </span>
+
+      </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         SEARCH
+         ===================================================== -->
+
+    <div class="dash-search">
+
+      <span class="material-icons dash-search__icon" aria-hidden="true">
+        search
+      </span>
+
+      <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
+        placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
+
+    </div>
+
+
+    <!-- =====================================================
+         ORGANIZATION USER AREA
+         ===================================================== -->
+
+    <div class="dash-user">
+
+      <!-- NOTIFICATIONS -->
+      <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
+        title="Notifications">
+        <span class="material-icons">
+          notifications_none
+        </span>
+      </button>
+
+
+      <!-- AVATAR -->
+      <div class="dash-user__avatar" aria-hidden="true">
+        <span class="material-icons">
+          account_circle
+        </span>
+      </div>
+
+
+      <!-- USER INFORMATION -->
+      <div class="dash-user__info">
+
+        <p class="dash-user__name">
+          {{ userName }}
+        </p>
+
+        <p class="dash-user__role">
+          {{ displayRole }}
+        </p>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <!-- =========================================================
+       SIDEBAR
+       ========================================================= -->
+
+  <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
+    [class.dash-sidebar--mobile-open]="mobileMenuOpen">
+
+    <!-- =======================================================
+         MAIN NAVIGATION
+         ======================================================= -->
+
+    <nav class="dash-nav" aria-label="Organization navigation">
+
+      <!-- DASHBOARD -->
+      <a routerLink="/dashboard/user-dashboard" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
+
+        <span class="material-icons dash-nav__icon">
+          dashboard
+        </span>
+
+        <span class="dash-nav__label">
+          Dashboard
+        </span>
+
+      </a>
+
+
+      <!-- ORGANIZATION NAVIGATION -->
+
+      @for (item of navItems; track item.label) {
+
+      <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? item.label : null">
+
+        <span class="material-icons dash-nav__icon">
+          {{ item.icon }}
+        </span>
+
+        <span class="dash-nav__label">
+          {{ item.label }}
+        </span>
+
+      </a>
+
+      }
+
+    </nav>
+
+
+    <!-- =======================================================
+         SIDEBAR FOOTER
+         ======================================================= -->
+
+    <div class="dash-sidebar__footer">
+
+      <!-- PROFILE -->
+      <a routerLink="/dashboard/user-dashboard/profile" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Profile' : null">
+
+        <span class="material-icons dash-nav__icon">
+          account_circle
+        </span>
+
+        <span class="dash-nav__label">
+          Profile
+        </span>
+
+      </a>
+
+
+      <!-- SETTINGS -->
+      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active"
+        [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
+        [attr.title]="sidebarCollapsed ? 'Settings' : null">
+
+        <span class="material-icons dash-nav__icon">
+          settings
+        </span>
+
+        <span class="dash-nav__label">
+          Settings
+        </span>
+
+      </a>
+
+
+      <!-- LOGOUT -->
+      <button type="button" class="dash-nav__item dash-nav__logout" (click)="logout()"
+        [attr.title]="sidebarCollapsed ? 'Logout' : null">
+
+        <span class="material-icons dash-nav__icon">
+          logout
+        </span>
+
+        <span class="dash-nav__label">
+          Logout
+        </span>
+
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <!-- =========================================================
+       MAIN CONTAINER
+       ========================================================= -->
+
+  <div class="dash-main-container">
+
+    <main class="dash-main">
+
+      <router-outlet></router-outlet>
+
+    </main>
+
+
+    <!-- FOOTER -->
+
+    <app-footer></app-footer>
+
+  </div>
+
+
+  <!-- =========================================================
+       LOGOUT MODAL
+       ========================================================= -->
+
+  @if (showLogoutModal) {
+
+  <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>
+
+  }
+
+</div>

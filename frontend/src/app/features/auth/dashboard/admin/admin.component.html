@@ -1,0 +1,269 @@
+<section class="admin-dashboard">
+
+  <!-- =====================================================
+       WELCOME SECTION
+  ====================================================== -->
+
+  <section class="dash-welcome">
+
+    <div class="dash-welcome__text">
+
+      <p class="dash-welcome__eyebrow">
+        ADMIN DASHBOARD
+      </p>
+
+      <h1 class="dash-welcome__title">
+        Welcome back, {{ userName }}!
+      </h1>
+
+      <p class="dash-welcome__sub">
+        Manage government policies, schemes, users and platform
+        activities from your admin dashboard.
+      </p>
+
+    </div>
+
+
+    <!-- GOVERNMENT BUILDING -->
+
+    <div class="dash-welcome__illustration" aria-hidden="true">
+
+      <div class="welcome-building welcome-building--large">
+
+        <div class="welcome-building__dome"></div>
+
+        <div class="welcome-building__roof"></div>
+
+        <div class="welcome-building__columns">
+
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+
+        </div>
+
+      </div>
+
+
+      <div class="welcome-building welcome-building--small">
+
+        <div class="welcome-building__tower"></div>
+
+        <div class="welcome-building__body"></div>
+
+      </div>
+
+
+      <span class="welcome-bird welcome-bird--one">
+        ︿
+      </span>
+
+      <span class="welcome-bird welcome-bird--two">
+        ︿
+      </span>
+
+    </div>
+
+  </section>
+
+
+  <!-- =====================================================
+       STATISTICS
+  ====================================================== -->
+
+  <section class="dash-stats" aria-label="Admin dashboard statistics">
+
+    @for (card of statCards; track card.label) {
+
+    <article class="dash-stat-card">
+
+      <div class="dash-stat-card__icon" [class.dash-stat-card__icon--blue]="card.color === 'blue'"
+        [class.dash-stat-card__icon--orange]="card.color === 'orange'"
+        [class.dash-stat-card__icon--green]="card.color === 'green'"
+        [class.dash-stat-card__icon--purple]="card.color === 'purple'">
+
+        <span class="material-icons" aria-hidden="true">
+          {{ card.icon }}
+        </span>
+
+      </div>
+
+
+      <div class="dash-stat-card__content">
+
+        <p class="dash-stat-card__value">
+          {{ card.value }}
+        </p>
+
+        <p class="dash-stat-card__label">
+          {{ card.label }}
+        </p>
+
+        <p class="dash-stat-card__sub">
+          {{ card.sublabel }}
+        </p>
+
+      </div>
+
+    </article>
+
+    }
+
+  </section>
+
+
+  <!-- =====================================================
+       ADMIN PANELS
+  ====================================================== -->
+
+  <section class="dash-panels">
+
+
+    <!-- ===================================================
+         SCHEMES
+    ==================================================== -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Schemes
+        </h2>
+
+        <a routerLink="/admin/schemes" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      <ul class="dash-list">
+
+        @for (scheme of schemes; track scheme.id) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__icon-wrap" [class.dash-list__icon-wrap--health]="
+                scheme.iconClass === 'health' ||
+                scheme.iconClass === 'sun' ||
+                scheme.iconClass === 'work' ||
+                scheme.iconClass === 'edu'
+              ">
+
+            <span class="material-icons">
+              {{ scheme.icon }}
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
+
+            <p class="dash-list__title">
+              {{ scheme.title }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ scheme.ministry }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/admin/schemes" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+
+      <a routerLink="/admin/schemes" class="dash-panel__footer-link">
+
+        See More Schemes
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+
+    <!-- ===================================================
+         POLICIES
+    ==================================================== -->
+
+    <article class="dash-panel">
+
+      <div class="dash-panel__header">
+
+        <h2>
+          Policies
+        </h2>
+
+        <a routerLink="/admin/policies" class="dash-panel__link">
+          View All
+        </a>
+
+      </div>
+
+
+      <ul class="dash-list">
+
+        @for (policy of policies; track policy.id) {
+
+        <li class="dash-list__item">
+
+          <div class="dash-list__details
+                     dash-list__details--no-icon">
+
+            <p class="dash-list__title">
+              {{ policy.title }}
+            </p>
+
+            <p class="dash-list__meta">
+              {{ policy.ministry }}
+            </p>
+
+          </div>
+
+
+          <a routerLink="/admin/policies" class="dash-list__action">
+            View Details
+          </a>
+
+        </li>
+
+        }
+
+      </ul>
+
+
+      <a routerLink="/admin/policies" class="dash-panel__footer-link">
+
+        See More Policies
+
+        <span class="material-icons">
+          arrow_forward
+        </span>
+
+      </a>
+
+    </article>
+
+  </section>
+
+</section>

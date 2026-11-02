@@ -1,0 +1,1030 @@
+// =========================================================
+// POLICYGPT - GOVERNMENT LAYOUT
+// =========================================================
+
+// =========================================================
+// VARIABLES
+// =========================================================
+
+$primary-navy: #073572;
+$primary-navy-dark: #062b5d;
+
+$background: #f4f7fc;
+$white: #ffffff;
+
+$text-dark: #17233b;
+
+$sidebar-width: 295px;
+$sidebar-collapsed-width: 76px;
+
+$topbar-height: 80px;
+
+// =========================================================
+// HOST
+// =========================================================
+
+:host {
+  display: block;
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+
+  color: $text-dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+// =========================================================
+// MAIN LAYOUT
+// =========================================================
+
+.dash-layout {
+  position: relative;
+
+  width: 100%;
+
+  min-height: 100vh;
+
+  display: flex;
+
+  background: $background;
+
+  overflow-x: hidden;
+}
+
+// =========================================================
+// MOBILE OVERLAY
+// =========================================================
+
+.dash-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  width: 100%;
+
+  height: 100%;
+
+  padding: 0;
+
+  border: 0;
+
+  background: rgba(2, 22, 51, 0.52);
+
+  backdrop-filter: blur(2px);
+
+  cursor: pointer;
+
+  z-index: 1150;
+}
+
+// =========================================================
+// TOPBAR
+// =========================================================
+
+.dash-topbar {
+  position: fixed;
+
+  top: 0;
+
+  left: 0;
+
+  right: 0;
+
+  width: 100%;
+
+  height: $topbar-height;
+
+  min-height: $topbar-height;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 24px;
+
+  padding: 10px 28px;
+
+  background: #062b63;
+
+  color: $white;
+
+  z-index: 2000;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// =========================================================
+// TOPBAR BRAND
+// =========================================================
+
+.dash-topbar__brand {
+  width: 295px;
+
+  min-width: 29g5px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+}
+
+.dash-topbar__toggle {
+  width: 38px;
+
+  height: 38px;
+
+  flex: 0 0 38px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: $white;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dash-topbar__toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-topbar__toggle:active {
+  transform: scale(0.94);
+}
+
+.dash-topbar__toggle .material-icons {
+  font-size: 27px;
+}
+
+// =========================================================
+// LOGO
+// =========================================================
+
+.dash-topbar__logo-link {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+
+.dash-topbar__logo {
+  display: block;
+
+  width: 48px;
+
+  height: 48px;
+
+  object-fit: contain;
+}
+
+// =========================================================
+// BRAND TEXT
+// =========================================================
+
+.dash-topbar__brand-text {
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: center;
+
+  gap: 2px;
+}
+
+.dash-topbar__title {
+  color: #ffffff;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dash-topbar__title span {
+  color: #ff821b;
+}
+
+.dash-topbar__tagline {
+  display: block;
+
+  margin-top: 5px;
+
+  color: rgba(255, 255, 255, 0.72);
+
+  font-size: 7.5px;
+
+  font-weight: 500;
+
+  line-height: 1;
+}
+
+// =========================================================
+// SEARCH
+// =========================================================
+
+.dash-search {
+  width: min(615px, 52vw);
+  height: 48px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 15px;
+  border: 3px solid #ffffff;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.03);
+  flex-shrink: 1;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-search:focus-within {
+  background: rgba(255, 255, 255, 0.05);
+
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+
+.dash-search__icon {
+  flex: 0 0 auto;
+
+  color: $white;
+
+  font-size: 25px;
+}
+
+.dash-search input {
+  width: 100%;
+
+  min-width: 0;
+
+  border: 0;
+
+  outline: 0;
+
+  padding: 0;
+
+  background: transparent;
+
+  color: $white;
+
+  font-size: 16px;
+
+  font-weight: 500;
+}
+
+.dash-search input::placeholder {
+  color: rgba(255, 255, 255, 0.72);
+
+  opacity: 1;
+}
+
+.dash-search__clear {
+  width: 28px;
+
+  height: 28px;
+
+  flex: 0 0 28px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: rgba(255, 255, 255, 0.8);
+
+  cursor: pointer;
+}
+
+.dash-search__clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-search__clear .material-icons {
+  font-size: 18px;
+}
+
+// =========================================================
+// USER
+// =========================================================
+
+.dash-user {
+  min-width: 210px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: flex-end;
+
+  gap: 10px;
+}
+
+.dash-user__icon-btn {
+  width: 40px;
+
+  height: 40px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 0;
+
+  border: 0;
+
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: $white;
+
+  cursor: pointer;
+}
+
+.dash-user__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-user__icon-btn .material-icons {
+  font-size: 25px;
+}
+
+// =========================================================
+// AVATAR
+// =========================================================
+
+.dash-user__avatar {
+  width: 50px;
+
+  height: 50px;
+
+  flex: 0 0 50px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border: 4px solid rgba(255, 255, 255, 0.85);
+
+  border-radius: 50%;
+
+  background: #dceafa;
+
+  color: #6683a8;
+}
+
+.dash-user__avatar .material-icons {
+  font-size: 40px;
+}
+
+// =========================================================
+// USER INFO
+// =========================================================
+
+.dash-user__info {
+  min-width: 0;
+
+  max-width: 155px;
+}
+
+.dash-user__name {
+  margin: 0;
+
+  overflow: hidden;
+
+  color: $white;
+
+  font-size: 14px;
+
+  font-weight: 800;
+
+  line-height: 1.2;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.dash-user__role {
+  margin: 5px 0 0;
+
+  overflow: hidden;
+
+  color: rgba(255, 255, 255, 0.76);
+
+  font-size: 11px;
+
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+// =========================================================
+// SIDEBAR
+// =========================================================
+
+.dash-sidebar {
+  position: fixed;
+  top: 80px;
+  left: 0;
+  bottom: 0;
+  width: 295px;
+  display: flex;
+  flex-direction: column;
+  color: #ffffff;
+  background-color: #082f68;
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(3, 31, 72, 0.94) 0%,
+      rgba(4, 43, 88, 0.89) 48%,
+      rgba(2, 22, 51, 0.84) 100%
+    ),
+    url(/images/flag.png);
+  background-position:
+    center,
+    center bottom;
+  background-size: cover, cover;
+  background-repeat: no-repeat, no-repeat;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
+  z-index: 1100;
+  overflow: hidden;
+  transition:
+    width 0.25s ease,
+    transform 0.25s ease;
+}
+
+// =========================================================
+// SIDEBAR SCROLLBAR
+// =========================================================
+
+.dash-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dash-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+
+  border-radius: 10px;
+}
+
+// =========================================================
+// COLLAPSED SIDEBAR
+// =========================================================
+
+.dash-layout--sidebar-collapsed .dash-sidebar {
+  width: $sidebar-collapsed-width;
+}
+
+.dash-layout--sidebar-collapsed .dash-sidebar .dash-nav__label {
+  display: none;
+}
+
+.dash-layout--sidebar-collapsed .dash-sidebar .dash-nav__chevron {
+  display: none;
+}
+
+// =========================================================
+// NAVIGATION
+// =========================================================
+
+.dash-nav {
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+
+  padding: 43px 16px 12px;
+}
+
+.dash-nav__item {
+  width: 100%;
+
+  min-height: 41px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  padding: 9px 14px;
+
+  border: 1px solid transparent;
+
+  border-radius: 9px;
+
+  color: rgba(255, 255, 255, 0.94);
+
+  background: transparent;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dash-nav__item:hover {
+  background: rgba(255, 255, 255, 0.09);
+
+  color: $white;
+}
+
+.dash-nav__item--active {
+  color: $white !important;
+
+  background: #19539a;
+
+  border-color: rgba(255, 255, 255, 0.08);
+
+  box-shadow: inset 3px 0 0 #4b91ff;
+}
+
+.dash-nav__icon {
+  width: 22px;
+
+  min-width: 22px;
+
+  flex-shrink: 0;
+
+  text-align: center;
+
+  font-size: 21px !important;
+}
+
+.dash-nav__label {
+  min-width: 0;
+
+  flex: 1;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+// =========================================================
+// SIDEBAR FOOTER
+// =========================================================
+
+.dash-sidebar__footer {
+  margin-top: auto;
+
+  padding: 12px 16px 18px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dash-nav__logout {
+  appearance: none;
+
+  font-family: inherit;
+
+  text-align: left;
+
+  background: transparent;
+}
+
+// =========================================================
+// MAIN CONTAINER
+// =========================================================
+
+.dash-main-container {
+  width: calc(100% - #{$sidebar-width});
+
+  min-width: 0;
+
+  min-height: 100vh;
+
+  margin-left: $sidebar-width;
+
+  display: flex;
+
+  flex-direction: column;
+
+  padding-top: $topbar-height;
+
+  transition:
+    margin-left 0.25s ease,
+    width 0.25s ease;
+}
+
+.dash-layout--sidebar-collapsed .dash-main-container {
+  width: calc(100% - #{$sidebar-collapsed-width});
+
+  margin-left: $sidebar-collapsed-width;
+}
+
+// =========================================================
+// MAIN
+// =========================================================
+
+.dash-main {
+  width: 100%;
+
+  min-width: 0;
+
+  flex: 1;
+}
+
+// =========================================================
+// TABLET
+// =========================================================
+
+@media (max-width: 1199px) {
+  .dash-topbar {
+    gap: 14px;
+
+    padding: 10px 18px;
+  }
+
+  .dash-topbar__brand {
+    width: 250px;
+
+    min-width: 250px;
+  }
+
+  .dash-search {
+    width: min(480px, 42vw);
+  }
+
+  .dash-user {
+    min-width: 185px;
+  }
+}
+
+// =========================================================
+// SMALL TABLET
+// =========================================================
+
+@media (max-width: 991px) {
+  .dash-topbar__brand {
+    width: 220px;
+
+    min-width: 220px;
+  }
+
+  .dash-topbar__tagline {
+    display: none;
+  }
+
+  .dash-search {
+    width: min(390px, 40vw);
+
+    height: 47px;
+  }
+
+  .dash-user {
+    min-width: 150px;
+  }
+
+  .dash-user__avatar {
+    width: 43px;
+
+    height: 43px;
+
+    flex-basis: 43px;
+  }
+
+  .dash-user__avatar .material-icons {
+    font-size: 33px;
+  }
+
+  .dash-user__info {
+    max-width: 105px;
+  }
+
+  .dash-user__name {
+    font-size: 12px;
+  }
+
+  .dash-user__role {
+    font-size: 9px;
+  }
+}
+
+// =========================================================
+// MOBILE
+// =========================================================
+
+@media (max-width: 767px) {
+  .dash-topbar {
+    height: 64px;
+
+    min-height: 64px;
+
+    gap: 8px;
+
+    padding: 8px 12px;
+  }
+
+  .dash-topbar__brand {
+    width: auto;
+
+    min-width: auto;
+
+    flex: 0 0 auto;
+
+    gap: 7px;
+  }
+
+  .dash-topbar__toggle {
+    width: 34px;
+
+    height: 34px;
+
+    flex-basis: 34px;
+  }
+
+  .dash-topbar__toggle .material-icons {
+    font-size: 24px;
+  }
+
+  .dash-topbar__logo-link {
+    width: 40px;
+
+    height: 40px;
+
+    flex-basis: 40px;
+  }
+
+  .dash-topbar__logo {
+    width: 40px;
+
+    height: 40px;
+  }
+
+  .dash-topbar__brand-text {
+    display: none;
+  }
+
+  .dash-search {
+    width: auto;
+
+    max-width: none;
+
+    flex: 1 1 auto;
+
+    margin: 0;
+
+    height: 39px;
+
+    padding: 0 10px;
+
+    border-width: 2px;
+
+    gap: 7px;
+  }
+
+  .dash-search__icon {
+    font-size: 20px;
+  }
+
+  .dash-search input {
+    font-size: 12px;
+  }
+
+  .dash-user {
+    min-width: auto;
+
+    flex: 0 0 auto;
+  }
+
+  .dash-user__icon-btn,
+  .dash-user__avatar {
+    display: none;
+  }
+
+  .dash-user__info {
+    display: block;
+
+    min-width: 0;
+
+    max-width: 78px;
+  }
+
+  .dash-user__name {
+    max-width: 78px;
+
+    font-size: 10px;
+  }
+
+  .dash-user__role {
+    font-size: 8.5px;
+  }
+
+  // -------------------------------------------------------
+  // SIDEBAR MOBILE
+  // -------------------------------------------------------
+
+  .dash-sidebar {
+    top: 64px;
+
+    width: 295px;
+
+    transform: translateX(-100%);
+
+    box-shadow: 5px 0 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .dash-layout--mobile-open .dash-sidebar {
+    transform: translateX(0);
+  }
+
+  .dash-layout--sidebar-collapsed .dash-sidebar {
+    width: 295px;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-sidebar .dash-nav__label {
+    display: block;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-sidebar .dash-nav__chevron {
+    display: block;
+  }
+
+  // -------------------------------------------------------
+  // MAIN
+  // -------------------------------------------------------
+
+  .dash-main-container {
+    width: 100%;
+
+    margin-left: 0;
+
+    padding-top: 64px;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-main-container {
+    width: 100%;
+
+    margin-left: 0;
+  }
+}
+
+// =========================================================
+// SMALL MOBILE
+// =========================================================
+
+@media (max-width: 480px) {
+  .dash-topbar {
+    height: 62px;
+
+    min-height: 62px;
+
+    padding: 8px 10px;
+  }
+
+  .dash-topbar__toggle {
+    width: 32px;
+
+    height: 32px;
+
+    flex-basis: 32px;
+  }
+
+  .dash-topbar__logo-link {
+    width: 38px;
+
+    height: 38px;
+
+    flex-basis: 38px;
+  }
+
+  .dash-topbar__logo {
+    width: 38px;
+
+    height: 38px;
+  }
+
+  .dash-search {
+    height: 37px;
+  }
+
+  .dash-search input {
+    font-size: 10.5px;
+  }
+
+  .dash-search__icon {
+    font-size: 19px;
+  }
+
+  .dash-user__info {
+    display: none;
+  }
+
+  .dash-sidebar {
+    top: 62px;
+  }
+
+  .dash-main-container {
+    padding-top: 62px;
+  }
+}
+
+// =========================================================
+// VERY SMALL
+// =========================================================
+
+@media (max-width: 320px) {
+  .dash-sidebar {
+    width: 250px;
+  }
+
+  .dash-search {
+    height: 35px;
+  }
+
+  .dash-search input {
+    font-size: 9.5px;
+  }
+
+  .dash-search__icon {
+    font-size: 17px;
+  }
+}
+
+// =========================================================
+// REDUCED MOTION
+// =========================================================
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.01ms !important;
+  }
+}

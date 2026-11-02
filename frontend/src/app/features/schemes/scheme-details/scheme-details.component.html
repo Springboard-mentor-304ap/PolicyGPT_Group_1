@@ -1,0 +1,155 @@
+<div class="page-container">
+  <!-- Top Right Navigation -->
+  <div class="top-nav">
+    <button type="button" class="btn-back" (click)="goBack()">
+      &larr; Back
+    </button>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Scheme Details</h1>
+    <p>Details of the selected scheme</p>
+  </div>
+
+  <!-- Main Scheme Hero Card -->
+  <div class="hero-card">
+    <div class="hero-left">
+      <div class="scheme-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M12 8v8M8 12h8"></path>
+        </svg>
+      </div>
+      <div class="hero-info">
+        <h2>{{ scheme.title }}</h2>
+        <p class="ministry">{{ scheme.ministry }}</p>
+        <span class="category-tag">{{ scheme.category }}</span>
+        <p class="description">{{ scheme.description }}</p>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <button type="button" class="btn-bookmark" (click)="toggleBookmark()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" [attr.fill]="scheme.isBookmarked ? '#1e293b' : 'none'" [attr.stroke]="scheme.isBookmarked ? '#1e293b' : '#64748b'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </button>
+      <button type="button" class="btn-apply" (click)="applyNow()">Apply Now</button>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-container">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">Overview</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'eligibility'" (click)="setActiveTab('eligibility')">Eligibility</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'benefits'" (click)="setActiveTab('benefits')">Benefits</button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'documents'" (click)="setActiveTab('documents')">Documents</button>
+  </div>
+
+  <!-- Tab Content Section -->
+  <div class="details-grid">
+    <!-- Left Details Card -->
+    <div class="details-card main-details">
+      <h3>About the Scheme</h3>
+      <p class="about-text">{{ scheme.aboutText }}</p>
+
+      <hr class="divider" />
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="icon">🎯</div>
+          <div>
+            <label>Objective</label>
+            <p>{{ scheme.objective }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="icon">📅</div>
+          <div>
+            <label>Launch Date</label>
+            <p>{{ scheme.launchDate }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="icon">🏛️</div>
+          <div>
+            <label>Nodal Ministry</label>
+            <p>{{ scheme.nodalMinistry }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="icon">👤</div>
+          <div>
+            <label>Target Group</label>
+            <p>{{ scheme.targetGroup }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="icon">📄</div>
+          <div>
+            <label>Scheme Type</label>
+            <p>{{ scheme.schemeType }}</p>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="icon">💳</div>
+          <div>
+            <label>Mode of Payment</label>
+            <p>{{ scheme.modeOfPayment }}</p>
+          </div>
+        </div>
+
+        <div class="info-item full-width">
+          <div class="icon">🌐</div>
+          <div>
+            <label>Official Website</label>
+            <p><a [href]="scheme.officialWebsite" target="_blank">{{ scheme.officialWebsite }}</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar Highlights Card -->
+    <div class="details-card highlights-card">
+      <h3>Scheme Highlights</h3>
+
+      <div class="highlight-item">
+        <div class="icon">👥</div>
+        <div>
+          <label>Beneficiaries</label>
+          <p>{{ scheme.beneficiaries }}</p>
+        </div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="icon">💰</div>
+        <div>
+          <label>Financial Assistance</label>
+          <p>{{ scheme.financialAssistance }}</p>
+        </div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="icon">🔄</div>
+        <div>
+          <label>Frequency</label>
+          <p>{{ scheme.frequency }}</p>
+        </div>
+      </div>
+
+      <div class="highlight-item">
+        <div class="icon">🗺️</div>
+        <div>
+          <label>Applicable Across</label>
+          <p>{{ scheme.applicableAcross }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

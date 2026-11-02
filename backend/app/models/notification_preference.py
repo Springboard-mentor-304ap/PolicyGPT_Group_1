@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -58,7 +58,44 @@ class NotificationPreference(Base):
         default=True
     )
 
+    application_updates: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True
+    )
+
+    government_announcements: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    regulatory_updates: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True
+    )
+
+    research_reports: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    system_alerts: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True
+    )
+
+    frequency: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="INSTANT"
+    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        nullable=False
+        nullable=False,
+        default=datetime.utcnow
     )

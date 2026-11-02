@@ -1,10 +1,15 @@
 
+import { CommonModule } from "@angular/common";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+
+
 import { CommonModule, Location } from "@angular/common";
+
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { RouterLink } from "@angular/router";
 import {
   Subject,
+  Subscription,
   debounceTime,
   distinctUntilChanged,
   finalize,
@@ -12,19 +17,44 @@ import {
 } from "rxjs";
 
 import { PolicyService } from "../../../core/services/policy.service";
+import { SavedItemsService } from "../../../core/services/saved-items.service";
+import { SearchHistoryService } from "../../../core/services/search-history.service";
+import { ToastService } from "../../../core/services/toast.service";
 import { Auth } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
+import { visiblePageWindow } from "../../../core/utils/pagination.util";
 
 import {
   PolicyFilters,
   PolicyListResponse,
   PolicyResponse,
 } from "../../../core/models/policy.model";
+import {
+  POLICY_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  POLICY_SECTORS,
+  STATES,
+} from "../../../core/constants/government-data.constants";
+
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 @Component({
   selector: "app-policy-search",
   standalone: true,
 
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, SearchableSelectComponent, BreadcrumbComponent, LoadingIndicatorComponent],
 
   templateUrl: "./policy-search.component.html",
 
@@ -36,8 +66,11 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   private readonly policyService = inject(PolicyService);
-
-  private readonly location = inject(Location);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly savedItemsService = inject(SavedItemsService);
+  private readonly searchHistoryService = inject(SearchHistoryService);
+  private readonly toastService = inject(ToastService);
 
   private readonly auth = inject(Auth);
 
@@ -48,6 +81,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   private readonly destroy$ = new Subject<void>();
+  private loadSub: Subscription | null = null;
 
   private readonly searchSubject = new Subject<string>();
 
@@ -58,7 +92,8 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   searchQuery = "";
 
   // ============================================================
-  // FILTERS
+  // ============================================================
+  // FILTERS (Policy Name, Department, State, Sector, Publication Date, Status)
   // ============================================================
 
   selectedCategory = "";
@@ -70,6 +105,10 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   selectedState = "";
 
   selectedSector = "";
+
+  selectedPublicationDate = "";
+
+  selectedStatus = "";
 
   // ============================================================
   // POLICY DATA
@@ -94,83 +133,99 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   errorMessage = "";
 
   // ============================================================
-  // BOOKMARKS
+  // BOOKMARKS (server is source of truth)
   // ============================================================
 
   private readonly bookmarkStorageKey = "policy_bookmarks";
+
+  private savedPolicyIds = new Set<number>();
+
+  private savedPoliciesLoaded = false;
+
+  private pendingBookmarkIds = new Set<number>();
 
   // ============================================================
   // FILTER OPTIONS
   // ============================================================
 
-  categories = [
-    "Education",
-    "Healthcare",
-    "Agriculture",
-    "Employment",
-    "Finance",
-    "Women & Child Welfare",
-    "Housing",
-    "Environment",
-    "Digital Governance",
-    "Infrastructure",
+  categories = POLICY_CATEGORIES;
+  ministries = MINISTRIES;
+  states = STATES;
+  sectors = POLICY_SECTORS;
+  departments = ALL_DEPARTMENTS;
+
+  statusOptions = [
+    { label: "All Statuses", value: "" },
+    { label: "Approved", value: "APPROVED" },
+    { label: "Pending Approval", value: "PENDING_APPROVAL" },
+    { label: "Draft", value: "DRAFT" },
+    { label: "Rejected", value: "REJECTED" },
+    { label: "Archived", value: "ARCHIVED" },
+    { label: "Archive Requested", value: "ARCHIVE_REQUESTED" },
+    { label: "Delete Requested", value: "DELETE_REQUESTED" },
   ];
 
-  ministries = [
-    "Ministry of Education",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Finance",
-    "Ministry of Housing and Urban Affairs",
+  readonly statusDisplayOptions: string[] = [
+    "Approved",
+    "Pending Approval",
+    "Draft",
+    "Rejected",
+    "Archived",
+    "Archive Requested",
+    "Delete Requested",
   ];
 
-  departments = [
-    "Department of School Education",
-    "Department of Higher Education",
-    "Department of Health",
-    "Department of Electronics & IT",
-    "Department of Agriculture",
-    "Department of Renewable Energy",
-    "Department of Urban Development",
-    "Department of Economic Affairs",
-  ];
+  selectedStatusDisplay = "";
 
-  states = [
-    "Central",
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Tamil Nadu",
-    "Telangana",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-  ];
+  onStatusDisplayChange(displayVal: string): void {
+    const map: Record<string, string> = {
+      Approved: "APPROVED",
+      "Pending Approval": "PENDING_APPROVAL",
+      Draft: "DRAFT",
+      Rejected: "REJECTED",
+      Archived: "ARCHIVED",
+      "Archive Requested": "ARCHIVE_REQUESTED",
+      "Delete Requested": "DELETE_REQUESTED",
+    };
+    this.selectedStatus = map[displayVal] || "";
+    this.applyFilters();
+  }
 
-  sectors = [
-    "Central Government",
-    "State Government",
-    "Public Sector",
-    "Private Sector",
-    "NGO",
-    "International",
-  ];
+  get activeFiltersCount(): number {
+    let count = 0;
+    if (this.selectedCategory) count++;
+    if (this.selectedMinistry) count++;
+    if (this.selectedDepartment) count++;
+    if (this.selectedState) count++;
+    if (this.selectedSector) count++;
+    if (this.selectedPublicationDate) count++;
+    if (this.isAdminOrGov && this.selectedStatus) count++;
+    return count;
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.activeFiltersCount > 0 || !!this.searchQuery.trim();
+  }
+
+  get hasActiveFilterChips(): boolean {
+    return this.activeFiltersCount > 0;
+  }
+
+  clearPublicationDate(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.selectedPublicationDate = "";
+    this.applyFilters();
+  }
+
+  onMinistryChange(): void {
+    if (this.selectedMinistry && this.selectedDepartment) {
+      const specific = MINISTRY_DEPARTMENTS_MAP[this.selectedMinistry];
+      if (specific && specific.length > 0 && !specific.includes(this.selectedDepartment)) {
+        this.selectedDepartment = "";
+      }
+    }
+    this.applyFilters();
+  }
 
   // ============================================================
   // ROLE
@@ -180,6 +235,16 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     return String(this.auth.getUserRole() || "")
       .trim()
       .toUpperCase();
+  }
+
+  get isAdminOrGov(): boolean {
+    const role = this.userRole;
+    return (
+      role === "ADMIN" ||
+      role === "ADMINISTRATOR" ||
+      role === "GOVERNMENT" ||
+      role === "GOVERNMENT_OFFICIAL"
+    );
   }
 
   get rolePrefix(): string {
@@ -212,6 +277,17 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // INIT
   // ============================================================
 
+  /** Breadcrumb trail: Home > Policies (hidden on public guest view). */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if (this.userRole === "GUEST") {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", this.rolePrefix] },
+      { label: "Policies" },
+    ];
+  }
+
   ngOnInit(): void {
     console.log("================================================");
 
@@ -226,6 +302,31 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.setupSearch();
 
     /*
+     * Restore a search from Search History ("Search Again") when the
+     * navigation carries query parameters.
+     */
+    this.restoreSearchFromQueryParams();
+
+    /*
+     * Track browser back/forward and external navigations that change
+     * ?q= while this component is alive (e.g. guest "View All" to the
+     * same listing with a new term). The equality guard keeps the
+     * initial emission (same as snapshot) from triggering a duplicate
+     * API request.
+     */
+    this.route.queryParams
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const q =
+          typeof params["q"] === "string" ? params["q"].trim() : "";
+        if (q !== (this.searchQuery || "").trim()) {
+          this.searchQuery = q;
+          this.currentPage = 1;
+          this.loadPolicies();
+        }
+      });
+
+    /*
      * CRITICAL:
      *
      * Load policies immediately.
@@ -233,6 +334,44 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
      * No search text is required.
      */
     this.loadPolicies();
+    this.loadSavedPolicyState();
+  }
+
+  /**
+   * Populate search fields from URL query parameters (Search Again).
+   * Only known filter keys are honored; unknown keys are ignored.
+   */
+  private restoreSearchFromQueryParams(): void {
+    const params = this.route.snapshot.queryParams;
+    if (!params || typeof params !== "object") {
+      return;
+    }
+    const text = (value: unknown): string =>
+      typeof value === "string" ? value : "";
+    if (text(params["q"])) {
+      this.searchQuery = text(params["q"]);
+    }
+    if (text(params["category"])) {
+      this.selectedCategory = text(params["category"]);
+    }
+    if (text(params["ministry"])) {
+      this.selectedMinistry = text(params["ministry"]);
+    }
+    if (text(params["department"])) {
+      this.selectedDepartment = text(params["department"]);
+    }
+    if (text(params["state"])) {
+      this.selectedState = text(params["state"]);
+    }
+    if (text(params["sector"])) {
+      this.selectedSector = text(params["sector"]);
+    }
+    if (text(params["publication_date"])) {
+      this.selectedPublicationDate = text(params["publication_date"]);
+    }
+    if (text(params["status"])) {
+      this.selectedStatus = text(params["status"]);
+    }
   }
 
   // ============================================================
@@ -243,6 +382,36 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.destroy$.next();
 
     this.destroy$.complete();
+  }
+
+  /**
+   * Keep ?q= synchronized with the search input (View All passes q in,
+   * refresh/back-forward restore from it). replaceUrl avoids history
+   * spam on debounced keystrokes; merge preserves facet params. Never
+   * blocks search on navigation errors.
+   */
+  private syncSearchToUrl(): void {
+    try {
+      const snapshotParams = this.route.snapshot.queryParams ?? {};
+      const currentQ =
+        typeof snapshotParams["q"] === "string"
+          ? snapshotParams["q"].trim()
+          : "";
+      const nextQ = (this.searchQuery || "").trim();
+      if (currentQ === nextQ) {
+        return;
+      }
+      this.router
+        .navigate([], {
+          relativeTo: this.route,
+          queryParams: { q: nextQ || null },
+          queryParamsHandling: "merge",
+          replaceUrl: true,
+        })
+        .catch(() => undefined);
+    } catch {
+      // URL sync is best-effort only.
+    }
   }
 
   // ============================================================
@@ -268,8 +437,12 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   // ============================================================
 
   loadPolicies(): void {
+    // Cancel any in-flight list request so a slow earlier response can
+    // never overwrite newer results (keystroke/filter races).
+    this.loadSub?.unsubscribe();
     this.loading = true;
     this.errorMessage = "";
+    this.syncSearchToUrl();
     this.cdr.detectChanges();
 
     const searchValue = this.searchQuery.trim();
@@ -297,7 +470,9 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
      * ORGANIZATION
      * GUEST
      */
-    const status = "APPROVED";
+    const status = this.isAdminOrGov
+      ? (this.selectedStatus && this.selectedStatus.toUpperCase() !== "ALL" ? this.selectedStatus : undefined)
+      : "APPROVED";
 
     const params: PolicyFilters = {
       search,
@@ -306,6 +481,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
       department: this.selectedDepartment || undefined,
       state: this.selectedState || undefined,
       sector: this.selectedSector || undefined,
+      publication_date: this.selectedPublicationDate || undefined,
       status,
       page: this.currentPage,
       limit: this.pageSize,
@@ -317,7 +493,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     console.log("[POLICY SEARCH] Status:", status);
     console.log("================================================");
 
-    this.policyService
+    this.loadSub = this.policyService
       .getPolicies(params)
       .pipe(
         takeUntil(this.destroy$),
@@ -338,18 +514,23 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
             ? response.policies
             : [];
 
-          /*
-           * Safety filter.
-           *
-           * Even if backend accidentally returns
-           * another status, don't display it here.
-           */
-          this.policies = responsePolicies.filter(
-            (policy) =>
-              String(policy?.status || "")
-                .trim()
-                .toUpperCase() === "APPROVED",
-          );
+          if (!this.isAdminOrGov) {
+            this.policies = responsePolicies.filter(
+              (policy) =>
+                String(policy?.status || "")
+                  .trim()
+                  .toUpperCase() === "APPROVED",
+            );
+          } else if (this.selectedStatus && this.selectedStatus.toUpperCase() !== "ALL") {
+            this.policies = responsePolicies.filter(
+              (policy) =>
+                String(policy?.status || "")
+                  .trim()
+                  .toUpperCase() === this.selectedStatus.toUpperCase(),
+            );
+          } else {
+            this.policies = responsePolicies;
+          }
 
           this.totalResults = Number(response?.total) || 0;
           this.currentPage = Math.max(
@@ -364,7 +545,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
             responsePolicies.length,
           );
           console.log(
-            "[POLICY SEARCH] Approved policies displayed:",
+            "[POLICY SEARCH] Filtered policies displayed:",
             this.policies.length,
           );
           console.log("[POLICY SEARCH] Total:", this.totalResults);
@@ -397,6 +578,49 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  /**
+   * Explicit user search (Search button / Enter key). Runs the search
+   * and records it to server-side search history exactly once per
+   * distinct query+filter combination.
+   */
+  submitSearch(): void {
+    this.applyFilters();
+    this.recordSearch();
+  }
+
+  private lastRecordedSearchKey: string | null = null;
+
+  private recordSearch(): void {
+    const filters: Record<string, string> = {};
+    if (this.selectedCategory) filters["category"] = this.selectedCategory;
+    if (this.selectedMinistry) filters["ministry"] = this.selectedMinistry;
+    if (this.selectedDepartment) filters["department"] = this.selectedDepartment;
+    if (this.selectedState) filters["state"] = this.selectedState;
+    if (this.selectedSector) filters["sector"] = this.selectedSector;
+    if (this.selectedPublicationDate)
+      filters["publication_date"] = this.selectedPublicationDate;
+    if (this.selectedStatus) filters["status"] = this.selectedStatus;
+
+    const key = JSON.stringify([
+      this.searchQuery.trim(),
+      filters,
+    ]);
+    if (key === this.lastRecordedSearchKey) {
+      return;
+    }
+    this.lastRecordedSearchKey = key;
+    this.searchHistoryService
+      .recordSearch({
+        search_query: this.searchQuery.trim() || "(all policies)",
+        search_type: "POLICY",
+        filters,
+      })
+      .subscribe({
+        next: () => undefined,
+        error: () => undefined,
+      });
+  }
+
   clearFilters(): void {
     this.searchQuery = "";
     this.selectedCategory = "";
@@ -404,6 +628,9 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     this.selectedDepartment = "";
     this.selectedState = "";
     this.selectedSector = "";
+    this.selectedPublicationDate = "";
+    this.selectedStatus = "";
+    this.selectedStatusDisplay = "";
     this.currentPage = 1;
 
     this.loadPolicies();
@@ -460,17 +687,7 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   }
 
   get pageNumbers(): number[] {
-    const pages: number[] = [];
-
-    const start = Math.max(1, this.currentPage - 2);
-
-    const end = Math.min(this.totalPages, this.currentPage + 2);
-
-    for (let page = start; page <= end; page++) {
-      pages.push(page);
-    }
-
-    return pages;
+    return visiblePageWindow(this.currentPage, this.totalPages);
   }
 
   // ============================================================
@@ -496,11 +713,41 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   }
 
   // ============================================================
+  // CATEGORY ICON (centralized mapping)
+  // ============================================================
+
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
+  }
+
+  // ============================================================
   // BOOKMARKS
   // ============================================================
 
   isBookmarked(policyId: number | string): boolean {
-    return this.getBookmarks().includes(Number(policyId));
+    const id = Number(policyId);
+
+    if (!Number.isFinite(id)) {
+      return false;
+    }
+
+    if (this.canUseSavedItems && this.savedPoliciesLoaded) {
+      return this.savedPolicyIds.has(id);
+    }
+
+    return this.getBookmarks().includes(id);
+  }
+
+  isBookmarkPending(policyId: number | string): boolean {
+    return this.pendingBookmarkIds.has(Number(policyId));
   }
 
   toggleBookmark(policy: PolicyResponse): void {
@@ -510,8 +757,82 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const bookmarks = this.getBookmarks();
+    if (!this.canUseSavedItems) {
+      this.toggleLocalBookmark(id);
+      return;
+    }
 
+    if (this.pendingBookmarkIds.has(id)) {
+      return;
+    }
+
+    this.pendingBookmarkIds.add(id);
+
+    if (this.savedPolicyIds.has(id)) {
+      this.savedItemsService.unsavePolicy(id).subscribe({
+        next: () => {
+          this.savedPolicyIds.delete(id);
+          this.syncLocalBookmarks();
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.info("Policy removed from saved items.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.error("Could not remove policy. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
+    } else {
+      this.savedItemsService.savePolicy(id).subscribe({
+        next: () => {
+          this.savedPolicyIds.add(id);
+          this.syncLocalBookmarks();
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.success("Policy saved successfully.");
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.pendingBookmarkIds.delete(id);
+          this.toastService.error("Could not save policy. Please retry.");
+          this.cdr.detectChanges();
+        },
+      });
+    }
+  }
+
+  private get canUseSavedItems(): boolean {
+    return (
+      this.userRole === "CITIZEN" ||
+      this.userRole === "RESEARCHER" ||
+      this.userRole === "ORGANIZATION" ||
+      this.userRole === "ORGANISATION"
+    );
+  }
+
+  private loadSavedPolicyState(): void {
+    if (!this.canUseSavedItems) {
+      return;
+    }
+
+    this.savedItemsService.getSavedPolicies().subscribe({
+      next: (items) => {
+        this.savedPolicyIds = new Set(
+          (items ?? []).map((item) => Number(item.policy_id)),
+        );
+        this.savedPoliciesLoaded = true;
+        this.syncLocalBookmarks();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.savedPoliciesLoaded = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private toggleLocalBookmark(id: number): void {
+    const bookmarks = this.getBookmarks();
     const index = bookmarks.indexOf(id);
 
     if (index === -1) {
@@ -521,6 +842,17 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
     }
 
     localStorage.setItem(this.bookmarkStorageKey, JSON.stringify(bookmarks));
+  }
+
+  private syncLocalBookmarks(): void {
+    try {
+      localStorage.setItem(
+        this.bookmarkStorageKey,
+        JSON.stringify(Array.from(this.savedPolicyIds)),
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
   }
 
   private getBookmarks(): number[] {
@@ -559,11 +891,25 @@ export class PolicySearchComponent implements OnInit, OnDestroy {
   }
 
   // ============================================================
+  // FILTER PANEL (collapsed behind a toggle on mobile/tablet)
+  // ============================================================
+
+  /** Mobile/tablet filter panel visibility. Desktop always shows filters. */
+  filtersExpanded = false;
+
+  toggleFilters(): void {
+    this.filtersExpanded = !this.filtersExpanded;
+  }
+
+  // ============================================================
   // BACK
   // ============================================================
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    this.location.back();
+    this.navContext.goBack();
   }
 
   // ============================================================

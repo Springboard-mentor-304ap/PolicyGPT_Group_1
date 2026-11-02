@@ -15,14 +15,22 @@ import { SchemeService } from "../../../core/services/scheme.service";
 import { PolicyResponse } from "../../../core/models/policy.model";
 import { SchemeResponse } from "../../../core/models/scheme.model";
 
-import { CompareItem } from "../compare-selection/compare-selection.component";
+import { CompareItem, MAX_COMPARE_ITEMS } from "../compare-selection/compare-selection.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 export type CompareEntity = PolicyResponse | SchemeResponse;
 
 @Component({
   selector: "app-compare-results",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./compare-results.component.html",
   styleUrls: ["./compare-results.component.scss"],
 })
@@ -37,6 +45,43 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
   private readonly schemeService = inject(SchemeService);
 
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * Role-aware breadcrumb trail derived from the current dashboard URL:
+   * Home > Compare > Compare Results. Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Compare", route: ["/dashboard", prefix, "compare"] },
+      { label: "Compare Results" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const match = /\/dashboard\/([^/]+)/.exec(this.router.url || "");
+    if (!match) {
+      return null;
+    }
+    const prefix = match[1].toLowerCase();
+    if (prefix === "guest") {
+      return null;
+    }
+    if (
+      prefix === "admin" ||
+      prefix === "government" ||
+      prefix === "citizen" ||
+      prefix === "researcher" ||
+      prefix === "organization"
+    ) {
+      return prefix;
+    }
+    return null;
+  }
 
   items: CompareItem[] = [];
 
@@ -70,11 +115,10 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     }
 
     /*
-     * Only two or three comparison items are supported.
+     * Only up to MAX_COMPARE_ITEMS records are supported.
      */
-    if (navigation.items.length > 3) {
-      this.errorMessage =
-        "You can compare a maximum of three schemes or policies.";
+    if (navigation.items.length > MAX_COMPARE_ITEMS) {
+      this.errorMessage = `You can compare a maximum of ${MAX_COMPARE_ITEMS} schemes or policies.`;
 
       this.loading = false;
 
@@ -238,54 +282,30 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     return data?.ministry || item?.ministry || "-";
   }
 
-  getIconType(
+  /**
+   * Category for icon resolution. Uses only the actual category field
+   * (never infers from titles/descriptions).
+   */
+  getItemCategory(
     item: CompareItem | null,
     data: CompareEntity | null,
-  ): "education" | "health" | "agriculture" | "scheme" | "policy" {
-    const textToMatch =
-      `${item?.title || ""} ` +
-      `${item?.category || ""} ` +
-      `${data?.category || ""}`.toLowerCase();
-
-    if (textToMatch.includes("education")) {
-      return "education";
-    }
-
-    if (textToMatch.includes("health")) {
-      return "health";
-    }
-
-    if (textToMatch.includes("agriculture")) {
-      return "agriculture";
-    }
-
-    if (item?.type === "Scheme" || this.isScheme(data)) {
-      return "scheme";
-    }
-
-    return "policy";
+  ): string {
+    return item?.category || (data as any)?.category || "";
   }
 
   getIconSymbol(item: CompareItem | null, data: CompareEntity | null): string {
-    const type = this.getIconType(item, data);
+    return getCategoryIconName(this.getItemCategory(item, data));
+  }
 
-    switch (type) {
-      case "education":
-        return "🎓";
-
-      case "health":
-        return "❤️";
-
-      case "agriculture":
-        return "🌱";
-
-      case "scheme":
-        return "📋";
-
-      case "policy":
-      default:
-        return "🏛️";
-    }
+  getItemIconStyle(
+    item: CompareItem | null,
+    data: CompareEntity | null,
+  ): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(this.getItemCategory(item, data));
   }
 
   getValue(data: CompareEntity | null, field: string): string {
@@ -527,6 +547,46 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
     return String(value);
   }
 
+  /**
+   * Whether a comparison cell holds displayable content. Empty means:
+   * null, undefined, empty/whitespace-only strings, and the "-" / "—"
+   * placeholders the getters emit for missing values. Numbers
+   * (including 0), booleans, non-empty strings, valid dates and
+   * non-empty arrays are meaningful.
+   */
+  hasMeaningfulValue(value: unknown): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+
+    if (typeof value === "number") {
+      return Number.isFinite(value);
+    }
+
+    if (typeof value === "boolean") {
+      return true;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed !== "" && trimmed !== "-" && trimmed !== "—";
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
+  }
+
+  /**
+   * Show a comparison row when at least one compared column carries a
+   * meaningful value; hide it only when every column is empty.
+   */
+  showRow(...values: unknown[]): boolean {
+    return values.some((value) => this.hasMeaningfulValue(value));
+  }
+
   getDocumentUrl(data: CompareEntity | null): string | null {
     if (this.isPolicy(data) && data.document_url && data.document_url.trim()) {
       return data.document_url.trim();
@@ -571,6 +631,26 @@ export class CompareResultsComponent implements OnInit, OnDestroy {
       month: "short",
       day: "numeric",
     });
+  }
+
+  /**
+   * Open the existing Policy/Scheme details page for a compared item.
+   * Reuses the role-based details routes (same as the Saved Items page):
+   * /dashboard/:role/policies/:id or /dashboard/:role/schemes/:id.
+   */
+  viewDetails(item: CompareItem | null): void {
+    if (
+      !item ||
+      !Number.isFinite(item.id) ||
+      (item.type !== "Policy" && item.type !== "Scheme")
+    ) {
+      return;
+    }
+
+    const prefix = this.dashboardPrefix() ?? "guest";
+    const section = item.type === "Policy" ? "policies" : "schemes";
+
+    void this.router.navigate(["/dashboard", prefix, section, item.id]);
   }
 
   goBack(): void {

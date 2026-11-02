@@ -1,9 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import (
+    get_current_user,
+    normalize_role,
+    require_roles,
+)
 from app.models.user import User
+from app.services.audit_log_service import log_request_action
 
 from app.schemas.feedback import (
     FeedbackCreate,
@@ -36,21 +41,24 @@ def create_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    if current_user.role != "ADMIN" and current_user.user_id != data.user_id:
+    if not data.user_id:
+        data.user_id = current_user.user_id
+    elif normalize_role(current_user.role) != "ADMIN" and current_user.user_id != data.user_id:
         raise HTTPException(
             status_code=403,
             detail="You can only submit feedback for your own account",
+        )
+
+    if (
+        normalize_role(current_user.role) == "ADMIN"
+        and data.user_id == current_user.user_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Administrators cannot submit feedback. "
+                "Use the Admin Support Center to respond to users."
+            ),
         )
 
     return create_feedback(db, data)
@@ -64,17 +72,6 @@ def get_all_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     return get_all_feedback(db, current_user.user_id, current_user.role)
 
 
@@ -87,21 +84,7 @@ def get_user_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    if (
-        current_user.user_id != user_id
-        and current_user.role != "ADMIN"
-    ):
+    if current_user.user_id != user_id and normalize_role(current_user.role) != "ADMIN":
         raise HTTPException(
             status_code=403,
             detail="You can only access your own feedback",
@@ -109,7 +92,7 @@ def get_user_feedback_route(
 
     return get_user_feedback(
         db,
-        current_user.user_id,
+        user_id,
         current_user.role,
     )
 
@@ -123,18 +106,8 @@ def get_feedback_route(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
-    feedback = get_feedback(db, feedback_id,current_user.user_id, current_user.role)
+    feedback = get_feedback(
+        db, feedback_id, current_user.user_id, current_user.role)
 
     if not feedback:
         raise HTTPException(
@@ -152,20 +125,10 @@ def get_feedback_route(
 def update_feedback_route(
     feedback_id: int,
     data: FeedbackUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     feedback = update_feedback(
         db,
         feedback_id,
@@ -180,26 +143,27 @@ def update_feedback_route(
             detail="Feedback not found or access denied",
         )
 
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "FEEDBACK_RESPONDED",
+        "FEEDBACK",
+        feedback_id,
+        f"Admin responded to feedback #{feedback_id} "
+        f"(status: {feedback.status}).",
+    )
+
     return feedback
 
 
 @router.delete("/{feedback_id}")
 def delete_feedback_route(
     feedback_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles("ADMIN")),
 ):
-    require_roles(
-        current_user,
-        [
-            "CITIZEN",
-            "RESEARCHER",
-            "ORGANIZATION",
-            "GOVERNMENT_OFFICIAL",
-            "ADMIN",
-        ],
-    )
-
     feedback = delete_feedback(
         db,
         feedback_id,
@@ -212,6 +176,16 @@ def delete_feedback_route(
             status_code=404,
             detail="Feedback not found or access denied",
         )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "FEEDBACK_DELETED",
+        "FEEDBACK",
+        feedback_id,
+        f"Feedback #{feedback_id} deleted by administrator.",
+    )
 
     return {
         "message": "Feedback deleted successfully",

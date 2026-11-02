@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.api.routes.auth import get_current_user, require_roles
+from app.api.routes.auth import normalize_role, require_roles
 from app.models.user import User
 
 from app.services.usage_service import (
@@ -25,21 +25,12 @@ router = APIRouter(
 )
 
 
-ALLOWED_ROLES = [
-    "CITIZEN",
-    "RESEARCHER",
-    "ORGANIZATION",
-    "GOVERNMENT_OFFICIAL",
-    "ADMIN",
-]
-
-
 def get_data_user_id(current_user: User):
     """
     ADMIN -> None (all data)
     Other users -> their own user_id
     """
-    if current_user.role == "ADMIN":
+    if normalize_role(current_user.role) == "ADMIN":
         return None
 
     return current_user.user_id
@@ -48,10 +39,16 @@ def get_data_user_id(current_user: User):
 @router.get("/statistics")
 def usage_statistics(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_usage_statistics(
@@ -63,10 +60,16 @@ def usage_statistics(
 @router.get("/daily")
 def daily_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_daily_usage(
@@ -78,10 +81,16 @@ def daily_usage(
 @router.get("/weekly")
 def weekly_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_weekly_usage(
@@ -93,10 +102,16 @@ def weekly_usage(
 @router.get("/monthly")
 def monthly_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_monthly_usage(
@@ -108,10 +123,16 @@ def monthly_usage(
 @router.get("/searches")
 def search_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_search_usage(
@@ -123,10 +144,16 @@ def search_usage(
 @router.get("/searches/policies")
 def policy_search_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_policy_search_usage(
@@ -138,10 +165,16 @@ def policy_search_usage(
 @router.get("/searches/schemes")
 def scheme_search_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_scheme_search_usage(
@@ -153,10 +186,16 @@ def scheme_search_usage(
 @router.get("/views/policies")
 def policy_view_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_policy_view_usage(
@@ -168,10 +207,16 @@ def policy_view_usage(
 @router.get("/views/schemes")
 def scheme_view_usage(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_roles(
+            "CITIZEN",
+            "RESEARCHER",
+            "ORGANIZATION",
+            "GOVERNMENT_OFFICIAL",
+            "ADMIN",
+        )
+    ),
 ):
-    require_roles(current_user, ALLOWED_ROLES)
-
     user_id = get_data_user_id(current_user)
 
     return get_scheme_view_usage(

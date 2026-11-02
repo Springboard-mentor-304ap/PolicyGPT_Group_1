@@ -1,27 +1,37 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
+import { Auth } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 /* =========================================================
    RESEARCHER NAVIGATION ITEM
    ========================================================= */
 
+export interface ResearcherNavChild {
+  label: string;
+  icon: string;
+  route: string;
+}
+
 export interface ResearcherNavItem {
   label: string;
   icon: string;
   route: string;
+  children?: ResearcherNavChild[];
 }
 
 /* =========================================================
@@ -35,12 +45,12 @@ export interface ResearcherNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./researcher-layout.component.html",
@@ -48,28 +58,15 @@ export interface ResearcherNavItem {
 })
 export class ResearcherLayoutComponent implements OnInit {
   // =========================================================
-  // USER
-  // =========================================================
-
-  user: AuthUser | null = null;
-
-  userName = "Researcher";
-  userRole = "Researcher";
-
-  loadingUser = true;
-
-  // =========================================================
   // SIDEBAR
   // =========================================================
 
   sidebarCollapsed = false;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
   mobileMenuOpen = false;
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  searchText = "";
+  analyticsMenuOpen = false;
 
   // =========================================================
   // LOGOUT
@@ -111,13 +108,25 @@ export class ResearcherLayoutComponent implements OnInit {
     },
 
     {
-      label: "Analytics",
+      label: "Research Analytics",
       icon: "analytics",
       route: "/dashboard/researcher/analytics",
+      children: [
+        {
+          label: "Research Overview",
+          icon: "insights",
+          route: "/dashboard/researcher/analytics",
+        },
+        {
+          label: "Policy & Scheme Trends",
+          icon: "trending_up",
+          route: "/dashboard/researcher/analytics/trends",
+        },
+      ],
     },
 
     {
-      label: "Saved Research",
+      label: "Saved Items",
       icon: "bookmark",
       route: "/dashboard/researcher/saved",
     },
@@ -133,6 +142,18 @@ export class ResearcherLayoutComponent implements OnInit {
       icon: "notifications_none",
       route: "/dashboard/researcher/notifications",
     },
+
+    {
+      label: "Help & Support",
+      icon: "support_agent",
+      route: "/dashboard/researcher/support",
+    },
+
+    {
+      label: "Feedback",
+      icon: "feedback",
+      route: "/dashboard/researcher/feedback",
+    },
   ];
 
   // =========================================================
@@ -144,112 +165,94 @@ export class ResearcherLayoutComponent implements OnInit {
     private readonly authService: Auth,
   ) {}
 
+  private readonly destroyRef = inject(DestroyRef);
+
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
-    this.loadCurrentUser();
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
+    this.syncAnalyticsMenuWithRoute();
+
+    // Keep expansion in sync with navigation (sidebar links, in-app
+    // navigation, back/forward, direct URL entry): entering the
+    // analytics section re-expands, leaving it always collapses, so the
+    // visible submenu reflects the current route instead of stale state.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        this.syncAnalyticsMenuWithRoute();
+      });
   }
 
-  // =========================================================
-  // LOAD CURRENT USER
-  // =========================================================
-
-  private loadCurrentUser(): void {
-    this.loadingUser = true;
-
-    // -------------------------------------------------------
-    // STORED USER
-    // -------------------------------------------------------
-
-    const cachedUser = this.authService.getStoredUser();
-
-    if (cachedUser) {
-      this.setUserDetails(cachedUser);
-      this.loadingUser = false;
-    }
-
-    // -------------------------------------------------------
-    // TOKEN
-    // -------------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    void event;
+    if (this.isResearchAnalyticsRoute()) {
+      // Already inside Research Analytics: plain expand/collapse toggle.
+      this.toggleAnalyticsMenu();
       return;
     }
-
-    // -------------------------------------------------------
-    // BACKEND USER
-    // -------------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          this.loadingUser = false;
-          return;
-        }
-
-        this.setUserDetails(user);
-
-        this.loadingUser = false;
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load current user:", error);
-
-        this.loadingUser = false;
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =========================================================
-  // SET USER
-  // =========================================================
-
-  private setUserDetails(user: AuthUser): void {
-    this.user = user;
-
-    this.userName = user.full_name?.trim() || "Researcher";
-
-    this.userRole = this.formatRole(user.role);
-  }
-
-  // =========================================================
-  // FORMAT ROLE
-  // =========================================================
-
-  private formatRole(role: string | null | undefined): string {
-    if (!role) {
-      return "Researcher";
+    // Outside Research Analytics: always land on Research Overview.
+    // Expansion + first-child active state follow from the route change.
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
     }
+    this.closeMobileMenu();
+    void this.router.navigate(["/dashboard/researcher/analytics"]);
+  }
 
-    return role
-      .trim()
-      .replace(/\_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (character: string) => character.toUpperCase());
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.isResearchAnalyticsRoute();
+  }
+
+  /**
+   * Route-aware check: true only inside the Research Analytics section
+   * (/dashboard/researcher/analytics and children such as
+   * /analytics/trends). Query params and fragments are ignored so the
+   * state also follows programmatic navigation.
+   */
+  isResearchAnalyticsRoute(): boolean {
+    const clean = (this.router.url || "").split("?")[0].split("#")[0];
+    return (
+      clean === "/dashboard/researcher/analytics" ||
+      clean.startsWith("/dashboard/researcher/analytics/")
+    );
+  }
+
+  /**
+   * Single source of truth for submenu visibility: expanded only while
+   * the current route is inside Research Analytics AND the section is
+   * not manually collapsed. Outside the section this is always false,
+   * so no stale expanded state can survive navigation (sidebar links,
+   * browser Back/Forward, refresh, direct URL, programmatic).
+   */
+  get isAnalyticsExpanded(): boolean {
+    return this.isResearchAnalyticsRoute() && this.analyticsMenuOpen;
+  }
+
+  private syncAnalyticsMenuWithRoute(): void {
+    this.analyticsMenuOpen = this.isResearchAnalyticsRoute();
   }
 
   // =========================================================
@@ -290,28 +293,6 @@ export class ResearcherLayoutComponent implements OnInit {
   }
 
   // =========================================================
-  // SEARCH
-  // =========================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    // Keep search inside Researcher Layout.
-
-    this.router.navigate(["/dashboard/researcher/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =========================================================
   // LOGOUT - OPEN MODAL
   // =========================================================
 
@@ -335,15 +316,6 @@ export class ResearcherLayoutComponent implements OnInit {
     // -------------------------------------------------------
 
     this.authService.logout();
-
-    // -------------------------------------------------------
-    // RESET USER
-    // -------------------------------------------------------
-
-    this.user = null;
-
-    this.userName = "Researcher";
-    this.userRole = "Researcher";
 
     // -------------------------------------------------------
     // RESET LAYOUT

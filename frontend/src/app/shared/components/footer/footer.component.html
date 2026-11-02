@@ -1,23 +1,217 @@
-<footer class="dash-footer">
-    <p class="dash-footer__copy">
-        © 2026 PolicyGPT. All rights reserved.
-    </p>
+<footer class="official-portal-footer" role="contentinfo" aria-label="Official PolicyGPT Portal Footer">
 
-    <div class="dash-footer__links">
-        <a routerLink="/privacy">
-            Privacy
+  <!-- =========================================================
+     TOP BRAND & INITIATIVE BANNER
+     ========================================================= -->
+  <div class="footer-top-banner">
+    <div class="footer-container">
+      @if (isGuestUser()) {
+      <div class="footer-brand">
+        <div class="footer-brand__row">
+          <img src="/images/logo.png" alt="PolicyGPT" class="footer-brand__logo" />
+          <div class="footer-brand__text">
+            <div class="footer-brand__name">Policy<span>GPT</span></div>
+            <p class="footer-brand__tagline">Government Information Simplified.</p>
+          </div>
+        </div>
+        <p class="footer-brand__desc">
+          Bridging public welfare policies and government schemes directly to citizens, researchers, and
+          administrators with transparent, AI-driven insights.
+        </p>
+      </div>
+
+      <div class="footer-cta-action">
+        <button type="button" class="btn-footer-feedback" (click)="promptLogin('Feedback')">
+          <span class="material-icons">rate_review</span>
+          <span>Submit Grievance / Feedback</span>
+        </button>
+      </div>
+      } @else {
+      <div class="footer-brand">
+        <div class="footer-brand__row">
+          <img src="/images/logo.png" alt="PolicyGPT" class="footer-brand__logo" />
+          <div class="footer-brand__text">
+            <div class="footer-brand__name">Policy<span>GPT</span></div>
+            <p class="footer-brand__tagline">Government Information Simplified.</p>
+          </div>
+        </div>
+        <p class="footer-brand__desc">
+          Bridging public welfare policies and government schemes directly to citizens, researchers, and
+          administrators with transparent, AI-driven insights.
+        </p>
+      </div>
+
+      <div class="footer-cta-action">
+        <a [routerLink]="getFeedbackRoute()" class="btn-footer-feedback">
+          <span class="material-icons">rate_review</span>
+          <span>Submit Grievance / Feedback</span>
         </a>
-
-        <span class="dash-footer__dot">•</span>
-
-        <a routerLink="/terms">
-            Terms
-        </a>
-
-        <span class="dash-footer__dot">•</span>
-
-        <a routerLink="/help">
-            Help
-        </a>
+      </div>
+      }
     </div>
+  </div>
+
+  <!-- =========================================================
+     MAIN 4-COLUMN PORTAL NAVIGATION
+     ========================================================= -->
+  <div class="footer-main-nav">
+    <div class="footer-container footer-grid">
+
+      <!-- COL 1: EXPLORATION & SERVICES -->
+      <div class="footer-col">
+        <h3 class="col-title">Portal Services</h3>
+        @if (isGuestUser()) {
+        <ul class="col-links">
+          <li>
+            <a routerLink="/dashboard/guest/policies/search"
+              [class.highlight-link]="isFooterSectionActive('policies')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Policies</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/dashboard/guest/schemes"
+              [class.highlight-link]="isFooterSectionActive('schemes')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Search Public Schemes</span>
+            </a>
+          </li>
+          <li>
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('eligibility')"
+              (click)="promptLogin('Eligibility Checker')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Eligibility Checker</span>
+            </button>
+          </li>
+          <li>
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('compare')"
+              (click)="promptLogin('Compare')">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>Compare Policies & Schemes</span>
+            </button>
+          </li>
+        </ul>
+        } @else {
+        <ul class="col-links">
+          @for (link of getServiceLinks(); track link.label) {
+          <li>
+            <a [routerLink]="link.route"
+              [class.highlight-link]="isFooterSectionActive(...link.sections)">
+              <span class="material-icons bullet-icon">chevron_right</span>
+              <span>{{ link.label }}</span>
+            </a>
+          </li>
+          }
+        </ul>
+        }
+      </div>
+
+      <!-- COL 2: CITIZEN GRIEVANCE & SUPPORT -->
+      <div class="footer-col">
+        <h3 class="col-title">Help & Grievances</h3>
+        @if (isGuestUser()) {
+        <ul class="col-links">
+          <li>
+            <button type="button" class="col-link-button"
+              [class.highlight-link]="isFooterSectionActive('feedback')"
+              (click)="promptLogin('Feedback')">
+              <span class="material-icons bullet-icon">rate_review</span>
+              <span>Submit Grievance / Feedback</span>
+            </button>
+          </li>
+          <li>
+            <a routerLink="/dashboard/guest/faqs"
+              [class.highlight-link]="isFooterSectionActive('faqs')">
+              <span class="material-icons bullet-icon">help_outline</span>
+              <span>Frequently Asked Questions</span>
+            </a>
+          </li>
+          <li>
+            <a routerLink="/dashboard/guest/support"
+              [class.highlight-link]="isFooterSectionActive('support')">
+              <span class="material-icons bullet-icon">support_agent</span>
+              <span>Public Help Information</span>
+            </a>
+          </li>
+          <li>
+            <a href="tel:1800117654">
+              <span class="material-icons bullet-icon">call</span>
+              <span>Contact & Support</span>
+            </a>
+          </li>
+        </ul>
+        } @else {
+        <ul class="col-links">
+          @for (link of getHelpLinks(); track link.label) {
+          <li>
+            <a [routerLink]="link.route"
+              [class.highlight-link]="isFooterSectionActive(...link.sections)">
+              <span class="material-icons bullet-icon">{{ link.icon }}</span>
+              <span>{{ link.label }}</span>
+            </a>
+          </li>
+          }
+        </ul>
+        }
+      </div>
+
+
+      <!-- COL 4: OFFICIAL CONTACT & HELPLINE -->
+      <div class="footer-col footer-col--contact">
+        <h3 class="col-title">Contact & Helpline</h3>
+        <div class="contact-block">
+          <div class="contact-item">
+            <span class="material-icons">headset_mic</span>
+            <div>
+              <span class="contact-label">Toll-Free National Helpline</span>
+              <a href="tel:1800117654" class="contact-value">1800-11-7654</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">email</span>
+            <div>
+              <span class="contact-label">Official Support Desk</span>
+              <a href="mailto:support@policygpt.gov.in" class="contact-value">support&#64;policygpt.gov.in</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <span class="material-icons">schedule</span>
+            <div>
+              <span class="contact-label">Service Hours</span>
+              <span class="contact-hours">Mon - Sat: 9:00 AM - 6:00 PM IST</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================
+     BOTTOM COPYRIGHT & LEGAL COMPLIANCE
+     ========================================================= -->
+  <div class="footer-bottom">
+    <div class="footer-container bottom-flex">
+      <div class="bottom-legal">
+        <p class="copyright-text">
+          &copy; {{ currentYear }} <strong>PolicyGPT</strong> &bull; Government Policy & Public Scheme Intelligence
+          Platform
+        </p>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Legal and Policy links">
+        <a routerLink="/privacy"
+          [class.bottom-nav--active]="isFooterSectionActive('privacy')">Privacy Policy</a>
+        <span class="divider">&bull;</span>
+        <a routerLink="/terms"
+          [class.bottom-nav--active]="isFooterSectionActive('terms')">Terms of Service</a>
+        <span class="divider">&bull;</span>
+        <a [routerLink]="getFaqRoute()"
+          [class.bottom-nav--active]="isFooterSectionActive('faqs', 'support')">Help & FAQs</a>
+      </nav>
+    </div>
+  </div>
+
 </footer>

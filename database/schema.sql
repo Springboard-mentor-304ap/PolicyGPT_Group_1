@@ -13,6 +13,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(30) NOT NULL,
     phone VARCHAR(20) UNIQUE,
+    gender VARCHAR(30),
     date_of_birth DATE,
     state VARCHAR(100),
     district VARCHAR(100),
@@ -45,6 +46,11 @@ CREATE TABLE policies (
     source_url TEXT,
     benefits TEXT[],
     eligibility_rules JSONB,
+    key_objectives TEXT[],
+    additional_info TEXT,
+    important_notes TEXT,
+    documents_required TEXT,
+    implementation_process TEXT,
     created_by BIGINT REFERENCES users(user_id),
     approved_by BIGINT REFERENCES users(user_id),
     rejection_reason TEXT,
@@ -55,6 +61,9 @@ CREATE TABLE policies (
     delete_requested_by BIGINT REFERENCES users(user_id),
     delete_requested_at TIMESTAMP,
     delete_requested_from_status VARCHAR(30),
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP,
+    deleted_by BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -72,11 +81,17 @@ CREATE TABLE schemes (
     ministry VARCHAR(200),
     department VARCHAR(200),
     state VARCHAR(100),
+    eligibility_state VARCHAR(100),
     benefits TEXT[],
+    key_highlights TEXT[],
+    additional_info TEXT,
+    important_notes TEXT,
     documents_required TEXT,
     application_process TEXT,
     application_url TEXT,
+    application_source_url TEXT,
     source_url TEXT,
+    launch_date DATE,
     status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
     eligibility_rules JSONB,
     created_by BIGINT REFERENCES users(user_id),
@@ -89,6 +104,10 @@ CREATE TABLE schemes (
     delete_requested_by BIGINT REFERENCES users(user_id),
     delete_requested_at TIMESTAMP,
     delete_requested_from_status VARCHAR(30),
+    related_policy_id BIGINT REFERENCES policies(policy_id) ON DELETE SET NULL,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMP,
+    deleted_by BIGINT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -290,6 +309,9 @@ CREATE TABLE policy_documents (
     document_type VARCHAR(50),
     document_url TEXT,
     uploaded_by BIGINT REFERENCES users(user_id),
+    file_data BYTEA,
+    file_size BIGINT,
+    mime_type VARCHAR(100),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

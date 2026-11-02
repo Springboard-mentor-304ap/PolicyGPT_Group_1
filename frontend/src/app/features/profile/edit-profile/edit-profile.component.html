@@ -1,38 +1,17 @@
 <div class="edit-profile-page">
 
+  <app-breadcrumb *ngIf="breadcrumbItems.length > 0" [items]="breadcrumbItems"></app-breadcrumb>
+
   <!-- =========================================================
        PROFILE HEADER
        ========================================================= -->
   <div class="profile-header">
-
     <div class="title-group">
-      <button type="button" class="back-button" (click)="goBack()">
-        <span class="material-icons">arrow_back</span>
-        <span>Back</span>
-      </button>
-
       <div>
         <h2>Edit Profile</h2>
         <p>Update your personal information</p>
       </div>
     </div>
-
-    <div class="header-actions">
-      <button type="button" class="cancel-button" (click)="goBack()" [disabled]="saving">
-        Cancel
-      </button>
-
-      <button type="button" class="save-button" (click)="onSave()" [disabled]="saving">
-        @if (saving) {
-        <span class="spinner"></span>
-        Saving...
-        } @else {
-        <span class="material-icons">save</span>
-        Save Changes
-        }
-      </button>
-    </div>
-
   </div>
 
 
@@ -64,19 +43,42 @@
          ======================================================= -->
     <div class="avatar-section">
 
+      <p class="avatar-label">Profile Photo</p>
+
       <div class="avatar-wrapper">
 
-        @if (profileImage) {
-        <img [src]="profileImage" alt="Profile photo" class="profile-avatar" />
-        } @else {
-        <div class="profile-avatar profile-avatar--default">
-          <span class="material-icons">
-            account_circle
-          </span>
-        </div>
-        }
+        <app-user-avatar [photoSrc]="profileImage" label="Profile photo" />
+
+        <button type="button" class="avatar-camera-button" (click)="photoInput.click()" [disabled]="saving"
+          aria-label="Change profile photo" title="Change photo">
+          <span class="material-icons">photo_camera</span>
+        </button>
 
       </div>
+
+      <input #photoInput type="file" accept="image/jpeg,image/png,image/webp" (change)="onPhotoSelected($event)"
+        hidden />
+
+      <div class="avatar-actions">
+        <button type="button" class="avatar-action-button" (click)="photoInput.click()" [disabled]="saving">
+          <span class="material-icons">photo_camera</span>
+          <span>Change Photo</span>
+        </button>
+
+        @if (profileImage) {
+        <button type="button" class="avatar-action-button avatar-action-button--danger" (click)="onRemovePhoto()"
+          [disabled]="saving">
+          <span class="material-icons">delete_outline</span>
+          <span>Remove</span>
+        </button>
+        }
+      </div>
+
+      <p class="avatar-hint">JPG, PNG or WEBP • Max 5 MB</p>
+
+      @if (photoError) {
+      <p class="avatar-error" role="alert">{{ photoError }}</p>
+      }
 
       <h3>{{ userName || 'User' }}</h3>
 
@@ -84,9 +86,6 @@
         {{ displayRole }}
       </p>
 
-      <p class="avatar-description">
-        Keep your profile information up to date.
-      </p>
 
     </div>
 
@@ -178,24 +177,14 @@
 
             <div class="select-wrapper">
 
-              <select id="gender" formControlName="gender">
-
-                <option value="" disabled>
-                  Select your gender
-                </option>
-
-                @for (
-                gender of genderOptions;
-                track gender
-                ) {
-                <option [value]="gender">
-                  {{ gender }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="gender"
+                formControlName="gender"
+                placeholder="Select your gender"
+                [searchable]="false"
+                [options]="genderOptions"
+                [isInvalid]="!!(profileForm.get('gender')?.touched && profileForm.get('gender')?.invalid)"
+              />
 
             </div>
 
@@ -220,24 +209,16 @@
 
             <div class="select-wrapper">
 
-              <select id="state" formControlName="state" (change)="onStateChange()">
-
-                <option value="" disabled>
-                  Select your state
-                </option>
-
-                @for (
-                state of states;
-                track state
-                ) {
-                <option [value]="state">
-                  {{ state }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="state"
+                formControlName="state"
+                placeholder="Select your state"
+                [searchable]="true"
+                searchPlaceholder="Search states..."
+                [options]="states"
+                [isInvalid]="!!(profileForm.get('state')?.touched && profileForm.get('state')?.invalid)"
+                (selectionChange)="onStateChange()"
+              />
 
             </div>
 
@@ -269,24 +250,15 @@
 
             <div class="select-wrapper">
 
-              <select id="district" formControlName="district">
-
-                <option value="" disabled>
-                  Select your district
-                </option>
-
-                @for (
-                district of districts;
-                track district
-                ) {
-                <option [value]="district">
-                  {{ district }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="district"
+                formControlName="district"
+                placeholder="Select your district"
+                [searchable]="true"
+                searchPlaceholder="Search districts..."
+                [options]="districts"
+                [isInvalid]="!!(profileForm.get('district')?.touched && profileForm.get('district')?.invalid)"
+              />
 
             </div>
 
@@ -313,25 +285,15 @@
 
             <div class="select-wrapper">
 
-              <select id="occupation" formControlName="occupation">
-
-                <!-- Placeholder -->
-                <option value="" disabled>
-                  Select your occupation
-                </option>
-
-                @for (
-                occupation of occupationOptions;
-                track occupation
-                ) {
-                <option [value]="occupation">
-                  {{ occupation }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="occupation"
+                formControlName="occupation"
+                placeholder="Select your occupation"
+                [searchable]="true"
+                searchPlaceholder="Search occupations..."
+                [options]="occupationOptions"
+                [isInvalid]="!!(profileForm.get('occupation')?.touched && profileForm.get('occupation')?.invalid)"
+              />
 
             </div>
 
@@ -365,25 +327,14 @@
 
             <div class="select-wrapper">
 
-              <select id="organization" formControlName="organization">
-
-                <!-- Placeholder -->
-                <option value="" disabled>
-                  Select your organization
-                </option>
-
-                @for (
-                organization of organizationOptions;
-                track organization
-                ) {
-                <option [value]="organization">
-                  {{ organization }}
-                </option>
-                }
-
-              </select>
-
-              <span class="select-arrow"></span>
+              <app-searchable-select
+                id="organization"
+                formControlName="organization"
+                placeholder="Select your organization"
+                [searchable]="true"
+                searchPlaceholder="Search organizations..."
+                [options]="organizationOptions"
+              />
 
             </div>
 

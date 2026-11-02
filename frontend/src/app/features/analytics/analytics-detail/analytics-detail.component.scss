@@ -1,0 +1,469 @@
+@use "../shared/analytics-tokens" as tokens;
+/* =========================================================
+   POLICYGPT ANALYTICS DETAIL
+   Shared screen for every Analytics child route.
+   Standardized to match PolicyGPT Admin Design System:
+   page padding 28x32x40, card radius 16px, stat radius 14px,
+   Admin typography, shadows, buttons & animations.
+   ========================================================= */
+
+$primary: #0879ed;
+$primary-dark: #005bb5;
+$primary-soft: #eaf3ff;
+
+$success: #078944;
+$success-soft: #e8f8ef;
+
+$text: #172033;
+$text-secondary: #64748b;
+$text-muted: #94a3b8;
+
+$border: #e4e9f1;
+$border-light: #f1f5f9;
+
+$background: #f4f7fb;
+$white: #ffffff;
+
+$danger: #dc2626;
+$danger-soft: #fee2e2;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.analytics-detail-page {
+  min-height: 100%;
+  background: $background;
+  color: $text;
+  padding: 28px 32px 40px;
+
+  @media (max-width: 1024px) {
+    padding: 20px 20px 32px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 20px 24px 32px;
+  }
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.analytics-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+
+  .header-left {
+    min-width: 0;
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: #111827;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: $text-secondary;
+      line-height: 1.45;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+
+  .material-icons {
+    font-size: 18px;
+  }
+}
+
+.btn-outline {
+  background: $white;
+  border-color: #e2e8f0;
+  color: #334155;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: $primary;
+  border-color: $primary;
+  color: $white;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(8, 121, 237, 0.2);
+
+  &:hover:not(:disabled) {
+    background: $primary-dark;
+    border-color: $primary-dark;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.stats-grid {
+  @include tokens.analytics-stat-grid;
+}
+
+.stat-card {
+  @include tokens.analytics-stat-card;
+}
+
+.stat-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: none;
+  background: $primary-soft;
+  color: $primary;
+
+  .material-icons {
+    font-size: 22px;
+  }
+}
+
+.stat-icon--green {
+  background: #e8f8ef;
+  color: #078944;
+}
+
+.stat-icon--orange {
+  background: #fff1e5;
+  color: #ff861c;
+}
+
+.stat-icon--purple {
+  background: #f3e8ff;
+  color: #8b00e8;
+}
+
+.stat-icon--blue {
+  background: #eaf3ff;
+  color: #0879ed;
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stat-value {
+  margin: 0;
+  color: #111827;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.stat-title {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-sub {
+  margin: 2px 0 0;
+  color: $text-muted;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+
+/* ============================================================
+   DATA CARDS + TABLES
+   ============================================================ */
+
+.data-card {
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(15, 40, 82, 0.065);
+  }
+
+  h2 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+  }
+}
+
+.data-table-container {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: $white;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.035);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th,
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid $border-light;
+    text-align: left;
+    white-space: nowrap;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 12px;
+    padding: 11px 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  tr:last-child th,
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #fafcff;
+    }
+  }
+}
+
+/* ============================================================
+   CTA ROW + NOTE PANEL
+   ============================================================ */
+
+.note-panel {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.note-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid #d0e4ff;
+  background: $primary-soft;
+  color: $primary;
+
+  .material-icons {
+    font-size: 22px;
+  }
+}
+
+.note-text {
+  h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: $text-secondary;
+    line-height: 1.55;
+  }
+}
+
+.cta-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 4px 0 24px;
+}
+
+/* ============================================================
+
+
+
+
+
+
+
+
+
+.state-card {
+  margin: 0 auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 42px;
+  background: $white;
+  border: 1px solid $border;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(15, 40, 82, 0.045);
+  text-align: center;
+}
+
+.state-icon {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: $primary-soft;
+  color: $primary;
+  border: 1px solid #d0e4ff;
+
+  .material-icons {
+    font-size: 27px;
+  }
+}
+
+.error-state .state-icon {
+  background: $danger-soft;
+  color: $danger;
+  border-color: #fecaca;
+}
+
+.state-card h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.state-card p {
+  max-width: 520px;
+  margin: 9px 0 21px;
+  color: $text-secondary;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.retry-button {
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid $primary;
+  border-radius: 8px;
+  background: $primary;
+  color: $white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(8, 121, 237, 0.2);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: $primary-dark;
+    border-color: $primary-dark;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .analytics-detail-page {
+    padding: 18px 16px 36px;
+  }
+
+  .analytics-detail-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    .header-right .btn {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .data-card {
+    padding: 16px 14px;
+  }
+}

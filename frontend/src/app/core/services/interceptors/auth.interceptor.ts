@@ -23,6 +23,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isResetPasswordRequest = req.url.includes("/auth/reset-password");
 
+  const isSendOtpRequest = req.url.includes("/auth/send-otp");
+
+  const isResetTokenStatusRequest = req.url.includes("/auth/reset-token-status");
+
   // =========================================================
   // DO NOT ADD TOKEN TO PUBLIC REQUESTS
   // =========================================================
@@ -34,7 +38,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     isRegisterRequest ||
     isForgotPasswordRequest ||
     isVerifyOtpRequest ||
-    isResetPasswordRequest
+    isResetPasswordRequest ||
+    isSendOtpRequest ||
+    isResetTokenStatusRequest
   ) {
     return next(req);
   }

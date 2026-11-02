@@ -13,7 +13,7 @@
       </p>
 
       <h1 class="dash-welcome__title">
-        Welcome back, {{ userName }}!
+        Welcome back, <span class="dash-welcome__title-user">{{ userName }}</span>!
       </h1>
 
       <p class="dash-welcome__sub">
@@ -24,56 +24,9 @@
     </div>
 
 
-    <!-- GOVERNMENT BUILDING -->
-
-    <div class="dash-welcome__illustration" aria-hidden="true">
-
-      <div class="welcome-building
-               welcome-building--large">
-
-        <div class="welcome-building__dome"></div>
-
-        <div class="welcome-building__roof"></div>
-
-        <div class="welcome-building__columns">
-
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-
-        </div>
-
-      </div>
-
-
-      <div class="welcome-building
-               welcome-building--small">
-
-        <div class="welcome-building__tower"></div>
-
-        <div class="welcome-building__body"></div>
-
-      </div>
-
-
-      <span class="welcome-bird
-               welcome-bird--one">
-        ︿
-      </span>
-
-
-      <span class="welcome-bird
-               welcome-bird--two">
-        ︿
-      </span>
-
-    </div>
+    <!-- Dashboard hero photo is applied via .dash-welcome background
+         (/images/image.png). The retired CSS building illustration
+         was removed so it never covers the photo. -->
 
   </section>
 
@@ -89,7 +42,7 @@
     track card.label
     ) {
 
-    <article class="dash-stat-card">
+    <article class="dash-stat-card" [routerLink]="card.route" [style.cursor]="card.route ? 'pointer' : 'default'">
 
       <div class="dash-stat-card__icon" [ngClass]="'dash-stat-card__icon--' + card.color">
 
@@ -104,13 +57,12 @@
 
         @if (loadingStats) {
 
-        <div class="skeleton
-                     skeleton--stat-num"></div>
+        <app-loading-indicator size="sm" message=""></app-loading-indicator>
 
         } @else {
 
-        <p class="dash-stat-card__value">
-          {{ card.value }}
+        <p class="dash-stat-card__value" [appCountUp]="card.value ?? 0">
+          {{ card.value ?? 0 }}
         </p>
 
         }
@@ -149,7 +101,7 @@
 
 
     <!-- =======================================================
-         UPCOMING SCHEMES
+         MY SCHEMES
          ======================================================= -->
 
     <article class="dash-panel">
@@ -157,10 +109,10 @@
       <div class="dash-panel__header">
 
         <h2>
-          Upcoming Schemes
+          <a routerLink="/dashboard/government/schemes" class="dash-panel__header-title-link">My Schemes</a>
         </h2>
 
-        <a routerLink="/government/schemes" class="dash-panel__link">
+        <a routerLink="/dashboard/government/schemes" class="dash-panel__link">
           View All
         </a>
 
@@ -190,7 +142,7 @@
         </span>
 
         <span>
-          No upcoming schemes
+          No schemes created yet
         </span>
 
       </div>
@@ -206,11 +158,10 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--health">
+          <div class="dash-list__icon-wrap" [ngStyle]="scheme.catStyle">
 
             <span class="material-icons">
-              account_balance
+              {{ scheme.catIcon }}
             </span>
 
           </div>
@@ -222,14 +173,21 @@
               {{ scheme.name }}
             </p>
 
+            @if (scheme.ministry?.trim() || scheme.status) {
             <p class="dash-list__meta">
+              @if (scheme.ministry?.trim()) {
               {{ scheme.ministry }}
+              }
+              @if (scheme.status) {
+              @if (scheme.ministry?.trim()) { • }<strong style="font-size: 0.8rem;">{{ scheme.status }}</strong>
+              }
             </p>
+            }
 
           </div>
 
 
-          <a routerLink="/government/schemes" class="dash-list__action">
+          <a [routerLink]="scheme.id ? ['/dashboard/government/schemes', scheme.id] : '/dashboard/government/schemes/manage'" class="dash-list__action">
             View Details
           </a>
 
@@ -242,7 +200,7 @@
       }
 
 
-      <a routerLink="/government/schemes" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/schemes" class="dash-panel__footer-link">
 
         View All Schemes
 
@@ -264,10 +222,10 @@
       <div class="dash-panel__header">
 
         <h2>
-          Uploaded Policies
+          <a routerLink="/dashboard/government/policies/search" class="dash-panel__header-title-link">Uploaded Policies</a>
         </h2>
 
-        <a routerLink="/government/policies" class="dash-panel__link">
+        <a routerLink="/dashboard/government/policies/search" class="dash-panel__link">
           View All
         </a>
 
@@ -313,11 +271,10 @@
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--neutral">
+          <div class="dash-list__icon-wrap" [ngStyle]="policy.catStyle">
 
             <span class="material-icons">
-              policy
+              {{ policy.catIcon }}
             </span>
 
           </div>
@@ -329,19 +286,25 @@
               {{ policy.name }}
             </p>
 
+            @if (policy.ministry?.trim() || policy.status) {
             <p class="dash-list__meta">
+              @if (policy.ministry?.trim()) {
               {{ policy.ministry }}
+              }
+              @if (policy.status) {
+              @if (policy.ministry?.trim()) { • }<strong style="font-size: 0.8rem;">{{ policy.status }}</strong>
+              }
             </p>
+            }
 
             <p class="dash-list__submeta">
-              Uploaded on
-              {{ policy.savedOn }}
+              Uploaded on {{ policy.savedOn }}
             </p>
 
           </div>
 
 
-          <a routerLink="/government/policies" class="dash-list__action">
+          <a [routerLink]="policy.id ? ['/dashboard/government/policies', policy.id] : '/dashboard/government/policies/manage'" class="dash-list__action">
             View Details
           </a>
 
@@ -354,9 +317,9 @@
       }
 
 
-      <a routerLink="/government/policies" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/policies/search" class="dash-panel__footer-link">
 
-        Manage Policies
+        View All Policies
 
         <span class="material-icons">
           arrow_forward
@@ -389,7 +352,7 @@
           Search History
         </h2>
 
-        <a routerLink="/history" class="dash-panel__link">
+        <a routerLink="/dashboard/government/schemes" class="dash-panel__link">
           View All
         </a>
 
@@ -452,17 +415,17 @@
             </p>
 
             <p class="dash-list__meta">
-              Filters:
+              Type:
               {{ history.filters }}
             </p>
 
           </div>
 
 
-          <a routerLink="/schemes" [queryParams]="{
-                  q: history.name
+          <a routerLink="/dashboard/government/schemes" [queryParams]="{
+                  keyword: history.name
                 }" class="dash-list__action">
-            View Details
+            Search Again
           </a>
 
         </li>
@@ -474,9 +437,9 @@
       }
 
 
-      <a routerLink="/history" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/schemes" class="dash-panel__footer-link">
 
-        View Search History
+        Explore Schemes
 
         <span class="material-icons">
           arrow_forward
@@ -488,7 +451,7 @@
 
 
     <!-- =======================================================
-         APPLICATION STATUS
+         NOTIFICATIONS
          ======================================================= -->
 
     <article class="dash-panel">
@@ -496,40 +459,44 @@
       <div class="dash-panel__header">
 
         <h2>
-          Application Status
+          Notifications
         </h2>
 
-        <a routerLink="/government/applications" class="dash-panel__link">
+        <a routerLink="/dashboard/government/notifications" class="dash-panel__link">
+          @if (unreadNotifications > 0) {
+          {{ unreadNotifications }} new
+          } @else {
           View All
+          }
         </a>
 
       </div>
 
 
-      @if (loadingApplications) {
+      @if (loadingNotifications) {
 
       <div class="dash-loader">
 
         <div class="dash-spinner"></div>
 
         <span>
-          Loading applications...
+          Loading notifications...
         </span>
 
       </div>
 
       } @else if (
-      applications.length === 0
+      notifications.length === 0
       ) {
 
       <div class="dash-loader">
 
         <span class="material-icons">
-          description
+          notifications_none
         </span>
 
         <span>
-          No applications yet
+          No notifications yet
         </span>
 
       </div>
@@ -539,17 +506,17 @@
       <ul class="dash-list">
 
         @for (
-        app of applications;
-        track app.appId
+        notification of notifications;
+        track notification.notification_id
         ) {
 
         <li class="dash-list__item">
 
-          <div class="dash-list__icon-wrap
-                       dash-list__icon-wrap--neutral">
+          <div class="dash-list__icon-wrap"
+            [ngClass]="notification.is_read ? 'dash-list__icon-wrap--neutral' : 'dash-list__icon-wrap--unread'">
 
             <span class="material-icons">
-              description
+              {{ notification.is_read ? 'notifications_none' : 'notifications' }}
             </span>
 
           </div>
@@ -558,19 +525,21 @@
           <div class="dash-list__details">
 
             <p class="dash-list__title">
-              {{ app.name }}
+              {{ notification.title }}
             </p>
 
             <p class="dash-list__meta">
-              Application ID:
-              {{ app.appId }}
+              {{ notification.category || notification.notification_type }}
+              @if (notification.created_at) {
+              · {{ notification.created_at | date: 'mediumDate' }}
+              }
             </p>
 
           </div>
 
 
-          <a routerLink="/government/applications" class="dash-list__action">
-            View Details
+          <a routerLink="/dashboard/government/notifications" class="dash-list__action">
+            View
           </a>
 
         </li>
@@ -582,9 +551,9 @@
       }
 
 
-      <a routerLink="/government/applications" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/government/notifications" class="dash-panel__footer-link">
 
-        View All Applications
+        View All Notifications
 
         <span class="material-icons">
           arrow_forward

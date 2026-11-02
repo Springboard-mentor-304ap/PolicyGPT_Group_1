@@ -1,19 +1,45 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
+import { Auth } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
+
+/* =========================================================
+   CITIZEN NAVIGATION ITEM (optional expandable children)
+   ========================================================= */
+
+export interface CitizenNavChild {
+  label: string;
+  icon: string;
+  route: string;
+}
+
+export interface CitizenNavItem {
+  label: string;
+  icon: string;
+  route: string;
+  children?: CitizenNavChild[];
+}
 
 @Component({
   selector: "app-citizen-layout",
@@ -22,12 +48,12 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./citizen-layout.component.html",
@@ -35,28 +61,15 @@ import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-c
 })
 export class CitizenLayoutComponent implements OnInit {
   // =========================================================
-  // USER
-  // =========================================================
-
-  user: AuthUser | null = null;
-
-  userName = "User Name";
-  userRole = "Citizen";
-
-  loadingUser = true;
-
-  // =========================================================
   // SIDEBAR
   // =========================================================
 
   sidebarCollapsed = false;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
   mobileMenuOpen = false;
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  searchText = "";
+  analyticsMenuOpen = false;
 
   // =========================================================
   // LOGOUT
@@ -72,7 +85,7 @@ export class CitizenLayoutComponent implements OnInit {
   // so that CitizenLayoutComponent stays active.
   // =========================================================
 
-  navItems = [
+  navItems: CitizenNavItem[] = [
     {
       label: "Dashboard",
       icon: "dashboard",
@@ -104,6 +117,12 @@ export class CitizenLayoutComponent implements OnInit {
     },
 
     {
+      label: "Analytics",
+      icon: "analytics",
+      route: "/dashboard/citizen/analytics",
+    },
+
+    {
       label: "Saved Items",
       icon: "bookmark",
       route: "/dashboard/citizen/saved",
@@ -122,14 +141,14 @@ export class CitizenLayoutComponent implements OnInit {
     },
 
     {
-      label: "Application Status",
-      icon: "assignment",
-      route: "/dashboard/citizen/status",
+      label: "Help & Support",
+      icon: "support_agent",
+      route: "/dashboard/citizen/support",
     },
 
     {
-      label: "Support",
-      icon: "support_agent",
+      label: "Feedback",
+      icon: "rate_review",
       route: "/dashboard/citizen/feedback",
     },
   ];
@@ -143,111 +162,65 @@ export class CitizenLayoutComponent implements OnInit {
     private readonly authService: Auth,
   ) {}
 
+  private readonly destroyRef = inject(DestroyRef);
+
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
-    this.loadCurrentUser();
-  }
-
-  // =========================================================
-  // LOAD CURRENT USER
-  // =========================================================
-
-  private loadCurrentUser(): void {
-    this.loadingUser = true;
-
-    // -------------------------------------------------------
-    // STORED USER
-    // -------------------------------------------------------
-
-    const cachedUser = this.authService.getStoredUser();
-
-    if (cachedUser) {
-      this.setUserDetails(cachedUser);
-      this.loadingUser = false;
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
+    if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
     }
 
-    // -------------------------------------------------------
-    // TOKEN
-    // -------------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): a matching route re-expands its group.
+    // Arrow clicks always work because submenu visibility depends only
+    // on the flag — a collapsed group stays collapsed until explicitly
+    // reopened or a relevant route change occurs.
+    this.router.events
+      .pipe(
+        filter(
+          (event): event is NavigationEnd => event instanceof NavigationEnd,
+        ),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        if (this.isAnalyticsRouteActive()) {
+          this.analyticsMenuOpen = true;
+        }
       });
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // BACKEND USER
-    // -------------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          this.loadingUser = false;
-          return;
-        }
-
-        this.setUserDetails(user);
-        this.loadingUser = false;
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load current user:", error);
-
-        this.loadingUser = false;
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
   }
 
-  // =========================================================
-  // SET USER
-  // =========================================================
-
-  private setUserDetails(user: AuthUser): void {
-    this.user = user;
-
-    this.userName = user.full_name?.trim() || "User Name";
-
-    this.userRole = this.formatRole(user.role);
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+    }
+    this.toggleAnalyticsMenu();
   }
 
-  // =========================================================
-  // FORMAT ROLE
-  // =========================================================
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
 
-  private formatRole(role: string | null | undefined): string {
-    if (!role) {
-      return "Citizen";
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
     }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
 
-    return role
-      .trim()
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (character: string) => character.toUpperCase());
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/citizen/analytics");
   }
 
   // =========================================================
@@ -284,26 +257,6 @@ export class CitizenLayoutComponent implements OnInit {
   }
 
   // =========================================================
-  // SEARCH
-  // =========================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    // IMPORTANT:
-    // Keep search inside the citizen layout.
-    this.router.navigate(["/dashboard/citizen/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-  }
-
-  // =========================================================
   // LOGOUT - OPEN MODAL
   // =========================================================
 
@@ -319,11 +272,6 @@ export class CitizenLayoutComponent implements OnInit {
     this.showLogoutModal = false;
 
     this.authService.logout();
-
-    this.user = null;
-
-    this.userName = "User Name";
-    this.userRole = "Citizen";
 
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;

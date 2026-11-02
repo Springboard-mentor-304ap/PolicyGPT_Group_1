@@ -30,6 +30,22 @@ import {
   SchemeResponse,
   SchemeListResponse,
 } from "../../../core/models/scheme.model";
+import {
+  POLICY_CATEGORIES,
+  SCHEME_CATEGORIES,
+  MINISTRIES,
+  STATES,
+} from "../../../core/constants/government-data.constants";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { LoadingIndicatorComponent } from "../../../shared/components/loading-indicator/loading-indicator.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 export interface CompareItem {
   id: number;
@@ -47,10 +63,18 @@ export interface FilterOptions {
   selectedState: string;
 }
 
+/**
+ * Maximum records selectable for side-by-side comparison.
+ * The selection UI offers 3 slots, which is within this limit; the
+ * results view also refuses oversized payloads (e.g. crafted router
+ * state) so the cap holds even outside the selection UI.
+ */
+export const MAX_COMPARE_ITEMS = 4;
+
 @Component({
   selector: "app-compare-selection",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, LoadingIndicatorComponent],
   templateUrl: "./compare-selection.component.html",
   styleUrls: ["./compare-selection.component.scss"],
 })
@@ -63,6 +87,43 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   private readonly policyService = inject(PolicyService);
   private readonly schemeService = inject(SchemeService);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /**
+   * Role-aware breadcrumb trail derived from the current dashboard URL,
+   * so Compare works under every authorized role without hardcoding one.
+   * Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Compare" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const match = /\/dashboard\/([^/]+)/.exec(this.router.url || "");
+    if (!match) {
+      return null;
+    }
+    const prefix = match[1].toLowerCase();
+    if (prefix === "guest") {
+      return null;
+    }
+    if (
+      prefix === "admin" ||
+      prefix === "government" ||
+      prefix === "citizen" ||
+      prefix === "researcher" ||
+      prefix === "organization"
+    ) {
+      return prefix;
+    }
+    return null;
+  }
 
   selectedItem1: CompareItem | null = null;
   selectedItem2: CompareItem | null = null;
@@ -97,75 +158,13 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   loading = false;
   errorMessage = "";
 
-  categories: string[] = [
-    "Agriculture",
-    "Education",
-    "Energy",
-    "Financial Services",
-    "Health",
-    "Healthcare",
-    "Housing",
-    "Infrastructure",
-    "Rural Development",
-    "Urban Development",
-    "Social Welfare",
-    "Women & Child Welfare",
-    "Employment",
-    "Skill Development",
-    "Environment",
-    "Digital Governance",
-  ];
+  categories: string[] = Array.from(
+    new Set([...POLICY_CATEGORIES, ...SCHEME_CATEGORIES]),
+  ).sort();
 
-  ministries: string[] = [
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Education",
-    "Ministry of Finance",
-    "Ministry of Housing and Urban Affairs",
-    "Ministry of New & Renewable Energy",
-    "Ministry of Micro, Small & Medium Enterprises",
-    "Ministry of Rural Development",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Women and Child Development",
-    "Ministry of Social Justice and Empowerment",
-    "Ministry of Labour and Employment",
-    "Ministry of Environment, Forest and Climate Change",
-    "Ministry of Electronics and Information Technology",
-  ];
+  ministries: string[] = MINISTRIES;
 
-  states: string[] = [
-    "All India",
-    "Central",
-    "Andhra Pradesh",
-    "Arunachal Pradesh",
-    "Assam",
-    "Bihar",
-    "Chhattisgarh",
-    "Delhi",
-    "Goa",
-    "Gujarat",
-    "Haryana",
-    "Himachal Pradesh",
-    "Jharkhand",
-    "Karnataka",
-    "Kerala",
-    "Madhya Pradesh",
-    "Maharashtra",
-    "Manipur",
-    "Meghalaya",
-    "Mizoram",
-    "Nagaland",
-    "Odisha",
-    "Punjab",
-    "Rajasthan",
-    "Sikkim",
-    "Tamil Nadu",
-    "Telangana",
-    "Tripura",
-    "Uttar Pradesh",
-    "Uttarakhand",
-    "West Bengal",
-  ];
+  states: string[] = STATES;
 
   private readonly searchSubject1 = new Subject<string>();
   private readonly searchSubject2 = new Subject<string>();
@@ -392,22 +391,90 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
   }
 
   get filteredItem1(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem1, this.filterItem1);
+    return this.getFilteredItems(
+      this.searchItem1,
+      this.filterItem1,
+      this.selectedItemKeys(),
+    );
   }
 
   get filteredItem2(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem2, this.filterItem2);
+    return this.getFilteredItems(
+      this.searchItem2,
+      this.filterItem2,
+      this.selectedItemKeys(),
+    );
   }
 
   get filteredItem3(): CompareItem[] {
-    return this.getFilteredItems(this.searchItem3, this.filterItem3);
+    return this.getFilteredItems(
+      this.searchItem3,
+      this.filterItem3,
+      this.selectedItemKeys(),
+    );
+  }
+
+  /**
+   * Unique identity of a comparison record: backend policy_ids and
+   * scheme_ids come from independent sequences, so the numeric id
+   * alone is NOT unique — the type is part of the key. Records
+   * sharing a title but carrying different keys stay distinct.
+   */
+  private itemKey(item: CompareItem): string {
+    return `${item.type}:${item.id}`;
+  }
+
+  /**
+   * Keys of all currently selected slots. Recomputed on every call
+   * from live state, so removing a selection immediately makes that
+   * record selectable again everywhere.
+   */
+  private selectedItemKeys(): Set<string> {
+    const keys = new Set<string>();
+
+    for (const selected of [
+      this.selectedItem1,
+      this.selectedItem2,
+      this.selectedItem3,
+    ]) {
+      if (selected) {
+        keys.add(this.itemKey(selected));
+      }
+    }
+
+    return keys;
+  }
+
+  /**
+   * Defensive guard: refuse a record already held by another slot,
+   * even if a stale autocomplete list offered it.
+   */
+  private isSelectedElsewhere(item: CompareItem, slot: 1 | 2 | 3): boolean {
+    const key = this.itemKey(item);
+
+    const others =
+      slot === 1
+        ? [this.selectedItem2, this.selectedItem3]
+        : slot === 2
+          ? [this.selectedItem1, this.selectedItem3]
+          : [this.selectedItem1, this.selectedItem2];
+
+    return others.some(
+      (selected) => !!selected && this.itemKey(selected) === key,
+    );
   }
 
   private getFilteredItems(
     search: string,
     filters: FilterOptions,
+    exclude: Set<string> | null = null,
   ): CompareItem[] {
     let items = [...this.allItems];
+
+    // Never offer a record already selected in another slot.
+    if (exclude && exclude.size > 0) {
+      items = items.filter((item) => !exclude.has(this.itemKey(item)));
+    }
 
     const query = search.toLowerCase().trim();
 
@@ -447,32 +514,28 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-  clearFilters(itemNum: number): void {
-    if (itemNum === 1) {
-      this.filterItem1 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    } else if (itemNum === 2) {
-      this.filterItem2 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    } else {
-      this.filterItem3 = {
-        selectedCategory: "",
-        selectedMinistry: "",
-        selectedState: "",
-      };
-    }
+  /**
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
 
-    this.cdr.detectChanges();
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 
   selectItem1(item: CompareItem): void {
     if (!this.isApprovedItem(item)) {
+      return;
+    }
+
+    if (this.isSelectedElsewhere(item, 1)) {
       return;
     }
 
@@ -488,6 +551,10 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.isSelectedElsewhere(item, 2)) {
+      return;
+    }
+
     this.selectedItem2 = item;
     this.searchItem2 = item.title;
     this.activeInput = null;
@@ -497,6 +564,10 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
   selectItem3(item: CompareItem): void {
     if (!this.isApprovedItem(item)) {
+      return;
+    }
+
+    if (this.isSelectedElsewhere(item, 3)) {
       return;
     }
 
@@ -567,6 +638,12 @@ export class CompareSelectionComponent implements OnInit, OnDestroy {
 
     if (this.selectedItem3) {
       items.push(this.selectedItem3);
+    }
+
+    // Enforce the comparison cap even though the UI offers at most
+    // 3 slots (within the MAX_COMPARE_ITEMS = 4 limit).
+    if (items.length > MAX_COMPARE_ITEMS) {
+      return;
     }
 
     this.router.navigate(["results"], {

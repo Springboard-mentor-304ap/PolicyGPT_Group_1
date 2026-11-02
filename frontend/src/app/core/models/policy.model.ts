@@ -21,6 +21,11 @@ export interface PolicyBase {
   source_url?: string | null;
   benefits?: string[] | null;
   eligibility_rules?: Record<string, any>[] | null;
+  key_objectives?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
+  documents_required?: string | null;
+  implementation_process?: string | null;
 }
 
 export interface PolicyCreate extends PolicyBase {}
@@ -39,6 +44,11 @@ export interface PolicyUpdate {
   source_url?: string | null;
   benefits?: string[] | null;
   eligibility_rules?: Record<string, any>[] | null;
+  key_objectives?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
+  documents_required?: string | null;
+  implementation_process?: string | null;
 }
 
 export interface PolicyResponse extends PolicyBase {
@@ -46,6 +56,7 @@ export interface PolicyResponse extends PolicyBase {
   status: PolicyStatus;
   created_by?: number | null;
   approved_by?: number | null;
+  updated_by?: number | null;
   rejection_reason?: string | null;
   archive_reason?: string | null;
   archive_requested_by?: number | null;
@@ -54,6 +65,15 @@ export interface PolicyResponse extends PolicyBase {
   delete_requested_by?: number | null;
   delete_requested_at?: string | null;
   delete_requested_from_status?: string | null;
+  is_deleted?: boolean | null;
+  deleted_at?: string | null;
+  deleted_by?: number | null;
+  created_by_name?: string | null;
+  created_by_role?: string | null;
+  approved_by_name?: string | null;
+  approved_by_role?: string | null;
+  deleted_by_name?: string | null;
+  requested_by_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +103,17 @@ export interface PolicyDeleteRequest {
   reason: string;
 }
 
+export interface PolicyDocumentResponse {
+  document_id: number;
+  policy_id: number;
+  document_name: string;
+  document_type?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  uploaded_by?: number | null;
+  created_at?: string | null;
+}
+
 export interface PolicyFilters {
   search?: string;
   keyword?: string;
@@ -91,6 +122,7 @@ export interface PolicyFilters {
   department?: string;
   state?: string;
   sector?: string;
+  publication_date?: string;
   status?: string;
   page?: number;
   limit?: number;

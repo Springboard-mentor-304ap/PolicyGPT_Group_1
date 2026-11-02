@@ -1,13 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import (
-    BigInteger,
-    Date,
-    DateTime,
-    ForeignKey,
-    String,
-    Text,
-)
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +10,7 @@ from app.db.database import Base
 class Policy(Base):
 
     __tablename__ = "policies"
+    __table_args__ = {"schema": "extensions"}
 
     # ========================================================
     # PRIMARY KEY
@@ -115,6 +109,39 @@ class Policy(Base):
     )
 
     # ========================================================
+    # SUPPLEMENTARY DETAILS (ADD POLICY FORM, STEPS 2 & 4)
+    # ========================================================
+    # Collected by the Add Policy form (key objectives, additional
+    # info/notes, compliance documents, implementation workflow) and
+    # shown on the Policy Details page. All optional; older rows read
+    # as None.
+
+    key_objectives: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+    )
+
+    additional_info: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    important_notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    documents_required: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    implementation_process: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    # ========================================================
     # ELIGIBILITY RULES
     # ========================================================
 
@@ -129,13 +156,23 @@ class Policy(Base):
 
     created_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
     approved_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
+        nullable=True,
+    )
+
+    # Latest editor (draft ownership). created_by never changes;
+    # updated_by tracks who last saved the record so draft lists can
+    # attribute ownership to the latest editor. FK-less
+    # (application-managed, like deleted_by) so user administration
+    # can never be blocked by these references.
+    updated_by: Mapped[int | None] = mapped_column(
+        BigInteger,
         nullable=True,
     )
 
@@ -159,7 +196,7 @@ class Policy(Base):
 
     archive_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -179,7 +216,7 @@ class Policy(Base):
 
     delete_requested_by: Mapped[int | None] = mapped_column(
         BigInteger,
-        ForeignKey("users.user_id"),
+        ForeignKey("extensions.users.user_id"),
         nullable=True,
     )
 
@@ -201,6 +238,31 @@ class Policy(Base):
 
     delete_requested_from_status: Mapped[str | None] = mapped_column(
         String(30),
+        nullable=True,
+    )
+
+    # ========================================================
+    # SOFT DELETE (TRASH)
+    # ========================================================
+    # Normal deletions only flag the row; the status and all other
+    # data are preserved. Physical removal happens exclusively via the
+    # Deleted modal permanent-delete action or the 30-day auto-cleanup.
+    # deleted_by is intentionally FK-less (application-managed) so user
+    # administration can never be blocked by trash references.
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    deleted_by: Mapped[int | None] = mapped_column(
+        BigInteger,
         nullable=True,
     )
 

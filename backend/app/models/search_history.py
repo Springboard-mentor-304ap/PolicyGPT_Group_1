@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,7 +9,12 @@ from app.db.database import Base
 
 class SearchHistory(Base):
     __tablename__ = "search_history"
-    __table_args__ = {"schema": "extensions"}
+    __table_args__ = (
+        # Drives role-analytics aggregations: per-user counts, trend
+        # buckets and top-keyword grouping on (user_id, searched_at).
+        Index("ix_search_history_user_searched", "user_id", "searched_at"),
+        {"schema": "extensions"},
+    )
 
     history_id: Mapped[int] = mapped_column(
         BigInteger,

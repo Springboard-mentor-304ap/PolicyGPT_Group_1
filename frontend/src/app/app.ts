@@ -1,12 +1,47 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
+import { ToastContainerComponent } from './shared/components/toast-container/toast-container.component';
+import { ChatbotComponent } from './features/chatbot/chatbot.component';
 
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastContainerComponent, ChatbotComponent],
   selector: 'app-root',
   styleUrl: './app.scss',
   templateUrl: './app.html',
 })
-export class App {
+export class App implements OnInit {
   protected readonly title = signal('policygpt-frontend');
+
+  private readonly router = inject(Router);
+
+  /** Chatbot is hidden on authentication-only pages (see isAuthRoute). */
+  showChatbot = true;
+
+  ngOnInit(): void {
+    this.showChatbot = !isAuthRoute(this.router.url);
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        this.showChatbot = !isAuthRoute((event as NavigationEnd).urlAfterRedirects);
+      });
+  }
+}
+
+/**
+ * Routes where the chatbot launcher must not render: /auth/login,
+ * /auth/register, /auth/signup and /auth/password-reset (forgot-password
+ * + OTP verification + password reset steps all live in that single
+ * component), plus any future /auth child route. Authenticated dashboard
+ * pages such as /dashboard/.../change-password are NOT matched and keep
+ * the chatbot. The public homepage (/) DOES render it: logged-out
+ * visitors get an auth gate inside the panel, signed-in users the
+ * full assistant.
+ */
+export function isAuthRoute(url: string): boolean {
+  const path = (url || '').split('?')[0].split('#')[0].trim().toLowerCase();
+  if (path === '' || path === '/') {
+    return false;
+  }
+  return path === '/auth' || path.startsWith('/auth/');
 }

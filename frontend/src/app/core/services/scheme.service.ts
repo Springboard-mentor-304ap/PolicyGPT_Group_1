@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable, inject } from "@angular/core";
+import { HttpClient, HttpParams } from "@angular/common/http";
+import { Observable, of, throwError, timeout } from "rxjs";
+import { catchError, finalize, shareReplay, tap } from "rxjs/operators";
+import { Auth } from "./auth";
 
 import {
   SchemeResponse,
@@ -9,7 +11,8 @@ import {
   SchemeCreate,
   SchemeUpdate,
   SchemeAnalyticsResponse,
-} from '../models/scheme.model';
+} from "../models/scheme.model";
+import { environment } from '../../../environments/environment';
 
 export type Scheme = SchemeResponse;
 export type {
@@ -22,29 +25,68 @@ export type {
 };
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class SchemeService {
-  private readonly apiUrl = 'http://localhost:8000/schemes';
-  private readonly eligibilityApiUrl = 'http://localhost:8000/eligibility';
-  private readonly analyticsUrl = 'http://localhost:8000/analytics/schemes';
+  private readonly apiUrl = `${environment.apiUrl}/schemes`;
+  private readonly eligibilityApiUrl = `${environment.apiUrl}/eligibility`;
+  private readonly analyticsUrl = `${environment.apiUrl}/analytics/schemes`;
 
   private cache = new Map<string, { data: any; timestamp: number }>();
+  private inflight = new Map<string, Observable<any>>();
   private readonly CACHE_TTL = 30000; // 30 seconds
+  private static readonly MAX_ENTRIES = 100;
 
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
+  private auth = inject(Auth);
 
-  private getCacheKey(method: string, params?: HttpParams): string {
-    return `${method}:${params?.toString() || ''}`;
+  constructor() {
+    // Never serve one user's list data to another user in the same tab.
+    // Optional-chained: specs may provide a partial Auth double.
+    this.auth?.onLoggedOut?.(() => this.clearCache());
   }
 
-  private getFromCache(key: string): any | null {
-    const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
-      return cached.data;
+  private getCacheKey(method: string, params?: HttpParams): string {
+    const uid = this.auth.getStoredUser()?.user_id ?? "anon";
+    return `${uid}|${method}:${params?.toString() || ""}`;
+  }
+
+  private getCached<T>(key: string, fetchFn: () => Observable<T>): Observable<T> {
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.timestamp < this.CACHE_TTL) {
+      return of(hit.data as T);
     }
-    this.cache.delete(key);
-    return null;
+    if (hit) {
+      this.cache.delete(key);
+    }
+    const ongoing = this.inflight.get(key);
+    if (ongoing) {
+      return ongoing as Observable<T>;
+    }
+    const req = fetchFn().pipe(
+      timeout(30_000),
+      tap((data) => {
+        if (this.cache.size >= SchemeService.MAX_ENTRIES) {
+          const oldest = this.cache.keys().next();
+          if (!oldest.done) {
+            this.cache.delete(oldest.value);
+          }
+        }
+        this.cache.set(key, { data, timestamp: Date.now() });
+      }),
+      catchError((err) => {
+        return throwError(() => err);
+      }),
+      // Release the in-flight slot on success, error, timeout, or
+      // unsubscribe so one hung request can never poison this key for
+      // every later caller (e.g. a permanently spinning dropdown).
+      finalize(() => {
+        this.inflight.delete(key);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.inflight.set(key, req);
+    return req;
   }
 
   private setCache(key: string, data: any): void {
@@ -53,6 +95,7 @@ export class SchemeService {
 
   clearCache(): void {
     this.cache.clear();
+    this.inflight.clear();
   }
 
   // ============================================================
@@ -64,36 +107,46 @@ export class SchemeService {
     let params = new HttpParams();
 
     if (filters?.keyword && filters.keyword.trim()) {
-      params = params.set('keyword', filters.keyword.trim());
+      params = params.set("keyword", filters.keyword.trim());
     }
     if (filters?.category && filters.category.trim()) {
-      params = params.set('category', filters.category.trim());
+      params = params.set("category", filters.category.trim());
     }
     if (filters?.ministry && filters.ministry.trim()) {
-      params = params.set('ministry', filters.ministry.trim());
+      params = params.set("ministry", filters.ministry.trim());
     }
     if (filters?.department && filters.department.trim()) {
-      params = params.set('department', filters.department.trim());
+      params = params.set("department", filters.department.trim());
     }
     if (filters?.state && filters.state.trim()) {
-      params = params.set('state', filters.state.trim());
+      params = params.set("state", filters.state.trim());
+    }
+    if (filters?.sector && filters.sector.trim()) {
+      params = params.set("sector", filters.sector.trim());
+    }
+    if (filters?.publication_date && filters.publication_date.trim()) {
+      params = params.set("publication_date", filters.publication_date.trim());
     }
     if (filters?.status && filters.status.trim()) {
-      params = params.set('status', filters.status.trim());
+      params = params.set("status", filters.status.trim());
     }
     if (filters?.manage !== undefined) {
-      params = params.set('manage', filters.manage.toString());
+      params = params.set("manage", filters.manage.toString());
     }
     if (filters?.created_by !== undefined) {
-      params = params.set('created_by', filters.created_by.toString());
+      params = params.set("created_by", filters.created_by.toString());
     }
 
     const page = filters?.page && filters.page > 0 ? filters.page : 1;
     const limit = filters?.limit && filters.limit > 0 ? filters.limit : 10;
-    params = params.set('page', page.toString());
-    params = params.set('limit', limit.toString());
+    params = params.set("page", page.toString());
+    params = params.set("limit", limit.toString());
 
-    return this.http.get<SchemeListResponse>(this.apiUrl, { params });
+    const key = this.getCacheKey("getSchemes", params);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeListResponse>(this.apiUrl, { params }),
+    );
   }
 
   // ============================================================
@@ -103,9 +156,13 @@ export class SchemeService {
 
   getScheme(id: number): Observable<SchemeResponse> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
-    return this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`);
+    const key = this.getCacheKey(`getScheme:${id}`);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse>(`${this.apiUrl}/${id}`),
+    );
   }
 
   // ============================================================
@@ -115,9 +172,13 @@ export class SchemeService {
 
   getEligibilityRules(schemeId: number): Observable<any[]> {
     if (!schemeId || schemeId <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
-    return this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`);
+    const key = this.getCacheKey(`getEligibilityRules:${schemeId}`);
+    return this.getCached(
+      key,
+      () => this.http.get<any[]>(`${this.eligibilityApiUrl}/scheme/${schemeId}`),
+    );
   }
 
   // ============================================================
@@ -145,9 +206,12 @@ export class SchemeService {
   // PUT /schemes/{id}
   // ============================================================
 
-  updateScheme(id: number, data: SchemeUpdate | any): Observable<SchemeResponse> {
+  updateScheme(
+    id: number,
+    data: SchemeUpdate | any,
+  ): Observable<SchemeResponse> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     this.clearCache();
     return this.http.put<SchemeResponse>(`${this.apiUrl}/${id}`, data);
@@ -160,10 +224,42 @@ export class SchemeService {
 
   deleteScheme(id: number): Observable<any> {
     if (!id || id <= 0) {
-      throw new Error('A valid scheme ID is required.');
+      throw new Error("A valid scheme ID is required.");
     }
     this.clearCache();
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  }
+
+  // ============================================================
+  // TRASH (TEMPORARILY DELETED SCHEMES)
+  // ============================================================
+
+  getDeletedSchemes(
+    page = 1,
+    limit = 100,
+    search?: string,
+  ): Observable<SchemeListResponse> {
+    let params = new HttpParams()
+      .set("page", Math.max(1, page).toString())
+      .set("limit", Math.max(1, Math.min(limit, 100)).toString());
+    if (search && search.trim()) {
+      params = params.set("search", search.trim());
+    }
+    const key = this.getCacheKey("getDeletedSchemes", params);
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeListResponse>(`${this.apiUrl}/deleted`, { params }),
+    );
+  }
+
+  permanentDeleteScheme(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error("A valid scheme ID is required.");
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/permanent`,
+    );
   }
 
   // ============================================================
@@ -182,7 +278,9 @@ export class SchemeService {
 
   rejectScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject`, { reason });
+    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject`, {
+      reason,
+    });
   }
 
   archiveScheme(id: number): Observable<SchemeResponse> {
@@ -192,17 +290,26 @@ export class SchemeService {
 
   requestArchiveScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-archive`, { reason });
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/request-archive`,
+      { reason },
+    );
   }
 
   approveArchiveScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/approve-archive`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/approve-archive`,
+      {},
+    );
   }
 
   rejectArchiveScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-archive`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/reject-archive`,
+      {},
+    );
   }
 
   restoreScheme(id: number): Observable<SchemeResponse> {
@@ -212,29 +319,50 @@ export class SchemeService {
 
   requestDeleteScheme(id: number, reason: string): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/request-delete`, { reason });
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/request-delete`,
+      { reason },
+    );
   }
 
   approveDeleteScheme(id: number): Observable<{ message: string }> {
     this.clearCache();
-    return this.http.post<{ message: string }>(`${this.apiUrl}/${id}/approve-delete`, {});
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/${id}/approve-delete`,
+      {},
+    );
   }
 
   rejectDeleteScheme(id: number): Observable<SchemeResponse> {
     this.clearCache();
-    return this.http.post<SchemeResponse>(`${this.apiUrl}/${id}/reject-delete`, {});
+    return this.http.post<SchemeResponse>(
+      `${this.apiUrl}/${id}/reject-delete`,
+      {},
+    );
   }
 
   getPendingSchemes(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/pending-approval`);
+    const key = this.getCacheKey("getPendingSchemes");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/pending-approval`)
+    );
   }
 
   getArchiveRequests(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/archive-requests`);
+    const key = this.getCacheKey("getArchiveRequests");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/archive-requests`)
+    );
   }
 
   getDeleteRequests(): Observable<SchemeResponse[]> {
-    return this.http.get<SchemeResponse[]>(`${this.apiUrl}/delete-requests`);
+    const key = this.getCacheKey("getDeleteRequests");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeResponse[]>(`${this.apiUrl}/delete-requests`)
+    );
   }
 
   // ============================================================
@@ -243,7 +371,11 @@ export class SchemeService {
   // ============================================================
 
   getSchemeStatistics(): Observable<SchemeAnalyticsResponse> {
-    return this.http.get<SchemeAnalyticsResponse>(this.analyticsUrl);
+    const key = this.getCacheKey("getSchemeStatistics");
+    return this.getCached(
+      key,
+      () => this.http.get<SchemeAnalyticsResponse>(this.analyticsUrl)
+    );
   }
 
   getSchemeAnalytics(): Observable<SchemeAnalyticsResponse> {

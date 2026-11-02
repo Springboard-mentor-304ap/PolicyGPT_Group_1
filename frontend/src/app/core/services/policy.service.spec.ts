@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
+  HttpClientTestingModule,
   provideHttpClientTesting,
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { PolicyService } from './policy.service';
+import { Auth } from './auth';
 import { PolicyResponse, PolicyListResponse } from '../models/policy.model';
 
 describe('PolicyService', () => {
@@ -338,5 +340,93 @@ describe('PolicyService', () => {
     const req = httpMock.expectOne('http://localhost:8000/eligibility/policy/101');
     expect(req.request.method).toBe('GET');
     req.flush(mockRules);
+  });
+});
+
+describe('PolicyService request caching', () => {
+  let service: PolicyService;
+  let httpMock: HttpTestingController;
+  const baseUrl = 'http://localhost:8000/policies';
+  const userKey = 'policygpt_user';
+
+  const asUser = (userId: number) => {
+    localStorage.setItem(
+      userKey,
+      JSON.stringify({ user_id: userId, email: `u${userId}@x.in` }),
+    );
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    asUser(1);
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [PolicyService, Auth],
+    });
+    service = TestBed.inject(PolicyService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+    localStorage.clear();
+  });
+
+  it('dedupes identical concurrent requests into one HTTP call', () => {
+    service.getPolicies({ status: 'APPROVED', limit: 10 }).subscribe();
+    service.getPolicies({ status: 'APPROVED', limit: 10 }).subscribe();
+    const reqs = httpMock.match(
+      (r) => r.url === baseUrl && r.params.get('status') === 'APPROVED',
+    );
+    expect(reqs.length).toBe(1);
+    reqs[0].flush({ policies: [], total: 0, page: 1, pages: 1, limit: 10 });
+  });
+
+  it('serves sequential identical requests from cache without HTTP', () => {
+    service.getPolicies({ status: 'APPROVED', limit: 10 }).subscribe();
+    const req = httpMock.expectOne(
+      (r) => r.url === baseUrl && r.params.get('status') === 'APPROVED',
+    );
+    req.flush({ policies: [], total: 0, page: 1, pages: 1, limit: 10 });
+
+    service.getPolicies({ status: 'APPROVED', limit: 10 }).subscribe();
+    httpMock.expectNone(
+      (r) => r.url === baseUrl && r.params.get('status') === 'APPROVED',
+    );
+  });
+
+  it('invalidates the cache after a mutation', () => {
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`).flush({ policy_id: 5 });
+
+    service
+      .createPolicy({ title: 't', description: 'd', category: 'c' } as never)
+      .subscribe();
+    const post = httpMock.expectOne(baseUrl);
+    expect(post.request.method).toBe('POST');
+    post.flush({ policy_id: 6 });
+
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`);
+  });
+
+  it('isolates cache entries per user', () => {
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`).flush({ policy_id: 5 });
+
+    asUser(2);
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`).flush({ policy_id: 5 });
+  });
+
+  it('refetches after logout clears user data', () => {
+    const auth = TestBed.inject(Auth);
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`).flush({ policy_id: 5 });
+
+    auth.logout();
+    asUser(1);
+    service.getPolicy(5).subscribe();
+    httpMock.expectOne(`${baseUrl}/5`);
   });
 });

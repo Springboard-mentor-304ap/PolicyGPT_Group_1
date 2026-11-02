@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnInit } from "@angular/core";
 import { AnalyticsService } from "../../../../../../core/services/analytics.service";
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../../../../shared/components/breadcrumb/breadcrumb.component";
 
 interface DashboardAnalytics {
   policies: {
@@ -59,7 +60,7 @@ interface UserAnalytics {
 @Component({
   selector: "app-admin-analytics",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BreadcrumbComponent],
   templateUrl: "./admin-analytics.component.html",
   styleUrls: ["./admin-analytics.component.scss"],
 })
@@ -82,6 +83,11 @@ export class AdminAnalyticsComponent implements OnInit {
   recentNotifications: any[] = [];
 
   activityAvailable = false;
+  recentUserActivity: any[] = [];
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    return [{ label: "Home", route: ["/dashboard/admin"] }, { label: "Analytics" }];
+  }
 
   constructor(private readonly analyticsService: AnalyticsService) {}
 
@@ -97,18 +103,13 @@ export class AdminAnalyticsComponent implements OnInit {
     this.loading = true;
     this.errorMessage = "";
 
-    console.log("🔥 ANALYTICS: Starting API calls");
-
     // -------------------------
     // Dashboard
     // -------------------------
     this.analyticsService.getDashboardAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 DASHBOARD:", data);
         this.dashboard = data;
         this.loading = false;
-        console.log("🔥 LOADING AFTER DASHBOARD:", this.loading);
-        console.log("🔥 ERROR MESSAGE:", this.errorMessage);
       },
       error: (error) => {
         console.error(
@@ -124,8 +125,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getPolicyAnalytics().subscribe({
       next: (data) => {
-          console.log("🔥 POLICIES:", data);
-
           this.policies = data;
           this.policyTrend =
             data?.monthly_trend ?? [];
@@ -143,8 +142,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getSchemeAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 SCHEMES:", data);
-
           this.schemes = data;
           this.schemeCategories =
             data?.by_category ?? [];
@@ -162,8 +159,6 @@ export class AdminAnalyticsComponent implements OnInit {
     // -------------------------
     this.analyticsService.getUserAnalytics().subscribe({
       next: (data) => {
-        console.log("🔥 USERS:", data);
-
           this.users = data;
           this.userRoles =
             data?.by_role ?? [];
@@ -176,25 +171,12 @@ export class AdminAnalyticsComponent implements OnInit {
         },
       });
 
-    // =====================================================
-    // TEMPORARY LOADING CONTROL
-    // =====================================================
-    // We deliberately stop the loading screen after the
-    // API calls have had time to return.
-    setTimeout(() => {
-      this.loading = false;
 
-      console.log(
-        "🔥 ANALYTICS: LOADING SET TO FALSE"
-      );
-    }, 1000);
     // -------------------------
     // Notifications
     // -------------------------
     this.analyticsService.getNotifications().subscribe({
   next: (data) => {
-    console.log("🔥 NOTIFICATIONS:", data);
-    
   this.totalNotifications = data.length ?? 0;
   this.recentNotifications = data;
   },
@@ -342,24 +324,86 @@ export class AdminAnalyticsComponent implements OnInit {
   }
 
   getApprovedTrendPoints(): string {
-    return this.createTrendPoints(
-      this.policyTrend,
-      "approved"
-    );
+    return this.createTrendPoints(this.policyTrend, "approved");
   }
 
   getPendingTrendPoints(): string {
-    return this.createTrendPoints(
-      this.policyTrend,
-      "pending"
-    );
+    return this.createTrendPoints(this.policyTrend, "pending");
   }
 
   getRejectedTrendPoints(): string {
-    return this.createTrendPoints(
-      this.policyTrend,
-      "rejected"
+    return this.createTrendPoints(this.policyTrend, "rejected");
+  }
+
+  getApprovedCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "approved");
+  }
+
+  getPendingCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "pending");
+  }
+
+  getRejectedCurvePath(): string {
+    return this.createTrendCurvePath(this.policyTrend, "rejected");
+  }
+
+  getTrendYForField(item: any, field: string): number {
+    if (!item) return 115;
+    const value = Number(item?.[field] ?? 0);
+    const values = this.policyTrend.map((trend: any) =>
+      Math.max(
+        Number(trend?.approved ?? 0),
+        Number(trend?.pending ?? 0),
+        Number(trend?.rejected ?? 0),
+        Number(trend?.count ?? 0)
+      )
     );
+    const max = Math.max(...values, 1);
+    const height = 120;
+    const padding = 5;
+    return height - padding - (value / max) * (height - padding * 2);
+  }
+
+  private createTrendCurvePath(data: any[], field: string): string {
+    if (!data || data.length === 0) return "";
+    const values = data.map((item: any) => Number(item?.[field] ?? 0));
+    const allValues = data.map((item: any) =>
+      Math.max(
+        Number(item?.approved ?? 0),
+        Number(item?.pending ?? 0),
+        Number(item?.rejected ?? 0),
+        Number(item?.count ?? 0)
+      )
+    );
+    const max = Math.max(...allValues, 1);
+    const width = 290;
+    const height = 120;
+    const paddingX = 5;
+    const paddingY = 5;
+
+    const pts = values.map((val, idx) => ({
+      x: values.length === 1 ? width / 2 : paddingX + (idx * (width - paddingX * 2)) / (values.length - 1),
+      y: height - paddingY - (val / max) * (height - paddingY * 2)
+    }));
+
+    if (pts.length === 1) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    if (pts.length === 2) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+
+    let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+    const tension = 0.18;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+      d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
   }
 
   private createTrendPoints(

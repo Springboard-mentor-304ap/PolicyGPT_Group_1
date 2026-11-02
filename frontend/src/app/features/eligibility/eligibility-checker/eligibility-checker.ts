@@ -1,36 +1,57 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
-import { forkJoin, timeout, finalize } from "rxjs";
+import { ActivatedRoute, Router } from "@angular/router";
+import { forkJoin, timeout, finalize, Subscription } from "rxjs";
 
 import {
   EligibilityMatchResponse,
   EligibilityProfile,
   EligibilityService,
+  EntityType,
   MatchedEntity,
+  SavedEligibilityResult,
 } from "../eligibility.service";
+import { ToastService } from "../../../core/services/toast.service";
+import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
 
 @Component({
   selector: "app-eligibility-checker",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmModalComponent, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: "./eligibility-checker.html",
   styleUrl: "./eligibility-checker.scss",
 })
-export class EligibilityChecker {
+export class EligibilityChecker implements OnInit {
   activeTab: "find" | "specific" | "saved" = "find";
 
-  profile: EligibilityProfile = {
-    age: 22,
-    gender: "Female",
-    annual_income: 250000,
-    occupation: "Student",
-    education: "Graduate",
-    state: "West Bengal",
-    social_category: "General",
-    disability_status: false,
-  };
+  /**
+   * Fresh blank profile factory. The checker must always open with an
+   * empty form — never restored from a previous submission, storage,
+   * cache, route state, or another user's values. The component holds
+   * no profile state outside this object, so a new instance (created
+   * on every navigation to this route) is inherently blank and
+   * user-isolated; ngOnInit re-applies it for reused instances.
+   */
+  private static blankProfile(): EligibilityProfile {
+    return {
+      age: null as unknown as number,
+      gender: "",
+      annual_income: null,
+      occupation: "",
+      education: "",
+      state: "",
+      social_category: "",
+      disability_status: null,
+    };
+  }
+
+  profile: EligibilityProfile = EligibilityChecker.blankProfile();
 
   occupations: string[] = [
     "Student",
@@ -105,6 +126,7 @@ export class EligibilityChecker {
 
   loading = false;
   errorMessage = "";
+  hasChecked = false;
 
   schemeResults: MatchedEntity[] = [];
   policyResults: MatchedEntity[] = [];
@@ -112,16 +134,67 @@ export class EligibilityChecker {
   schemeResponse: EligibilityMatchResponse | null = null;
   policyResponse: EligibilityMatchResponse | null = null;
 
-  constructor(
-    private eligibilityService: EligibilityService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  savedResults: SavedEligibilityResult[] = [];
+  loadingSaved = false;
+  savedError = "";
+  /** When the server list was last confirmed fresh (load or mutation). */
+  private savedLoadedAt: number | null = null;
+  /** Freshness window: tab switches inside it reuse the loaded list. */
+  private static readonly SAVED_FRESH_MS = 60_000;
+  /** Composite key (type_id) of the row currently being saved/removed. */
+  savingKey: string | null = null;
+  deleteModalOpen = false;
+  itemToDelete: SavedEligibilityResult | null = null;
+
+  private readonly route = inject(ActivatedRoute, { optional: true });
+  private readonly eligibilityService = inject(EligibilityService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly toastService = inject(ToastService);
+
+  /**
+   * Breadcrumb trail: Home > Eligibility Checker.
+   * Hidden on the public guest view (guest pages must not show
+   * authenticated-dashboard breadcrumbs).
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if ((this.router.url || "").includes("/dashboard/guest")) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard/citizen"] },
+      { label: "Eligibility Checker" },
+    ];
+  }
+
+  ngOnInit(): void {
+    // Always start from a blank form, even if Angular reuses this
+    // component instance when navigating (e.g. sidebar re-entry).
+    this.profile = EligibilityChecker.blankProfile();
+    this.hasChecked = false;
+    this.errorMessage = "";
+    this.loadSavedResults();
+
+    this.route?.queryParams.subscribe((params) => {
+      if (params && params["tab"] === "saved") {
+        this.activeTab = "saved";
+        this.loadSavedResults();
+        this.cdr.detectChanges();
+      } else if (params && params["tab"] === "find") {
+        this.activeTab = "find";
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   /**
    * Find schemes and policies matching the user's profile.
    */
   findEligible(): void {
+    // Prevent duplicate submissions: ignore while a check is in flight.
+    if (this.loading) {
+      return;
+    }
     console.log("=================================");
     console.log("Eligibility search started");
     console.log("Profile:", this.profile);
@@ -137,6 +210,7 @@ export class EligibilityChecker {
       return;
     }
 
+    this.hasChecked = true;
     this.loading = true;
 
     // Clear previous results
@@ -299,12 +373,277 @@ export class EligibilityChecker {
   ): void {
     this.activeTab = tab;
 
-    /*
-     * The Specific Checker is now a separate page,
-     * so navigate there when that tab is selected.
-     */
-    if (tab === "specific") {
+    if (tab === "saved") {
+      // Reuse the loaded list when fresh (ngOnInit already fetched it);
+      // refresh only when stale, never fired, or previously failed.
+      this.loadSavedResults();
+    } else if (tab === "specific") {
       this.openSpecificChecker();
+    }
+  }
+
+  /**
+   * Whether the checker is rendered inside the guest dashboard.
+   * Guests may check eligibility but cannot persist Saved Results
+   * (server rejects their role, mirroring Saved Items).
+   */
+  get isGuestView(): boolean {
+    return (this.router.url || "").includes("/dashboard/guest");
+  }
+
+  /**
+   * Load the current user's saved eligibility results from the server.
+   * The server list is the single source of truth — nothing is read
+   * from shared browser storage, so results can never leak across users.
+   * Skips when a load is already in flight or the list is still fresh,
+   * so tab switches don't fire duplicate GETs; mutations always apply
+   * their server response locally instead of refetching.
+   */
+  loadSavedResults(force = false): void {
+    if (this.isGuestView) {
+      this.savedResults = [];
+      this.loadingSaved = false;
+      this.savedError = "";
+      return;
+    }
+    if (this.loadingSaved) {
+      return;
+    }
+    if (
+      !force &&
+      !this.savedError &&
+      this.savedLoadedAt !== null &&
+      Date.now() - this.savedLoadedAt <
+        EligibilityChecker.SAVED_FRESH_MS
+    ) {
+      return;
+    }
+    this.loadingSaved = true;
+    this.savedError = "";
+
+    this.eligibilityService.getSavedResults().pipe(
+      timeout(15000),
+      finalize(() => {
+        this.loadingSaved = false;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
+      next: (results) => {
+        this.savedResults = Array.isArray(results) ? results : [];
+        this.savedLoadedAt = Date.now();
+      },
+      error: (error) => {
+        this.savedError =
+          error?.name === "TimeoutError"
+            ? "Saved Results took too long to load. Please try again."
+            : error?.error?.detail ||
+              "Unable to load Saved Results. Please try again.";
+      },
+    });
+  }
+
+  /**
+   * Check whether an entity is in the current user's server saved list.
+   */
+  isSaved(type: EntityType, id: number): boolean {
+    return this.savedResults.some(
+      (item) => item.entity_type === type && item.entity_id === id
+    );
+  }
+
+  /**
+   * Save or remove an eligibility result on the server, sending the
+   * current form profile so the backend stores the evaluated outcome
+   * with its input snapshot. The server response updates the list
+   * locally — no refetch chain — so badge and list stay consistent.
+   */
+  toggleSave(type: EntityType, entity: MatchedEntity): void {
+    if (this.isGuestView || this.savingKey) {
+      return;
+    }
+    const key = `${type}_${entity.entity_id}`;
+    const existing = this.savedResults.find(
+      (item) => item.entity_type === type && item.entity_id === entity.entity_id
+    );
+    this.savingKey = key;
+    this.cdr.detectChanges();
+
+    const done = () => {
+      this.savingKey = null;
+      this.cdr.detectChanges();
+    };
+
+    if (existing) {
+      this.eligibilityService.removeSavedResult(existing.saved_id).pipe(
+        finalize(done),
+      ).subscribe({
+        next: () => {
+          this.savedResults = this.savedResults.filter(
+            (item) => item.saved_id !== existing.saved_id
+          );
+          this.savedLoadedAt = Date.now();
+          this.showToast(`Removed '${entity.entity_name}' from Saved Results.`, "info");
+        },
+        error: (error) => {
+          this.showToast(
+            error?.error?.detail || "Unable to remove the saved result. Please try again.",
+            "error",
+          );
+        },
+      });
+    } else {
+      this.eligibilityService.saveResult(type, entity.entity_id, this.profile).pipe(
+        finalize(done),
+      ).subscribe({
+        next: (created) => {
+          this.upsertSavedRow(created);
+          this.savedLoadedAt = Date.now();
+          this.showToast(`Saved '${entity.entity_name}' to Saved Results.`, "success");
+        },
+        error: (error) => {
+          this.showToast(
+            error?.error?.detail || "Unable to save the result. Please try again.",
+            "error",
+          );
+        },
+      });
+    }
+  }
+
+  /** Insert or replace one server-confirmed row (newest first). */
+  private upsertSavedRow(row: SavedEligibilityResult): void {
+    const index = this.savedResults.findIndex(
+      (item) => item.saved_id === row.saved_id
+    );
+    if (index >= 0) {
+      this.savedResults = this.savedResults.map((item, i) =>
+        i === index ? row : item
+      );
+    } else {
+      this.savedResults = [row, ...this.savedResults];
+    }
+  }
+
+  /**
+   * Open the confirmation modal to delete a saved result.
+   */
+  openDeleteModal(item: SavedEligibilityResult): void {
+    this.itemToDelete = item;
+    this.deleteModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Confirm deletion of the saved result.
+   */
+  confirmDelete(): void {
+    if (!this.itemToDelete || this.savingKey) {
+      return;
+    }
+    const name = this.itemToDelete.entity_name;
+    const savedId = this.itemToDelete.saved_id;
+    this.savingKey = `saved_${savedId}`;
+    this.deleteModalOpen = false;
+    this.cdr.detectChanges();
+
+    this.eligibilityService.removeSavedResult(savedId).pipe(
+      finalize(() => {
+        this.savingKey = null;
+        this.itemToDelete = null;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
+      next: () => {
+        this.savedResults = this.savedResults.filter(
+          (item) => item.saved_id !== savedId
+        );
+        this.savedLoadedAt = Date.now();
+        this.showToast(`Removed '${name}' from Saved Results.`, "info");
+      },
+      error: (error) => {
+        this.showToast(
+          error?.error?.detail || "Unable to remove the saved result. Please try again.",
+          "error",
+        );
+      },
+    });
+  }
+
+  /**
+   * Cancel deletion modal.
+   */
+  cancelDelete(): void {
+    this.deleteModalOpen = false;
+    this.itemToDelete = null;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Navigate to the details page for a scheme or policy.
+   */
+  viewEntity(type: EntityType, id: number): void {
+    if (type === "scheme") {
+      this.router.navigate(["/dashboard/citizen/schemes", id]);
+    } else {
+      this.router.navigate(["/dashboard/citizen/policies", id]);
+    }
+  }
+
+  /**
+   * Format saved date for display.
+   */
+  formatSavedDate(isoDate: string): string {
+    if (!isoDate) return "";
+    const d = new Date(isoDate);
+    if (Number.isNaN(d.getTime())) return isoDate;
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  /**
+   * Compact summary of the stored input snapshot, e.g.
+   * "Age 30 · Female · West Bengal".
+   */
+  profileSummary(item: SavedEligibilityResult): string {
+    const profile = item.profile_data as Record<string, unknown> | null;
+    if (!profile) {
+      return "";
+    }
+    const parts: string[] = [];
+    if (profile["age"] !== null && profile["age"] !== undefined && profile["age"] !== "") {
+      parts.push(`Age ${profile["age"]}`);
+    }
+    for (const key of ["gender", "state", "occupation"]) {
+      const value = profile[key];
+      if (typeof value === "string" && value.trim()) {
+        parts.push(value.trim());
+      }
+    }
+    return parts.join(" · ");
+  }
+
+  /**
+   * Track by saved item id.
+   */
+  trackBySaved(index: number, item: SavedEligibilityResult): number {
+    return item.saved_id;
+  }
+
+  /**
+   * Display temporary toast alert.
+   */
+  showToast(message: string, type: "success" | "info" | "error" = "success"): void {
+    if (type === "error") {
+      this.toastService.error(message);
+    } else if (type === "info") {
+      this.toastService.info(message);
+    } else {
+      this.toastService.success(message);
     }
   }
 
@@ -347,8 +686,18 @@ export class EligibilityChecker {
 
   /**
    * Validate the profile before calling the backend.
+   * A blank (not-yet-entered) age is rejected with the same message;
+   * the field is marked required in the template.
    */
   private isProfileValid(): boolean {
+    if (
+      this.profile.age === null ||
+      this.profile.age === undefined ||
+      (typeof this.profile.age === "string" &&
+        (this.profile.age as unknown as string).trim() === "")
+    ) {
+      return false;
+    }
     const age = Number(this.profile.age);
 
     return (

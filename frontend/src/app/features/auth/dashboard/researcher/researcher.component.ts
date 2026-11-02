@@ -1,32 +1,67 @@
-import { ChangeDetectionStrategy, Component, inject } from "@angular/core";
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+} from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { Router } from "@angular/router";
+import { forkJoin, of } from "rxjs";
+import { catchError } from "rxjs/operators";
+
+import {
+  AnalyticsService,
+  PolicyAnalyticsResponse,
+  SchemeAnalyticsResponse,
+  PolicyTrendItem,
+} from "../../../../core/services/analytics.service";
+import { PolicyService } from "../../../../core/services/policy.service";
+import { SchemeService } from "../../../../core/services/scheme.service";
+import { SavedItemsService } from "../../../../core/services/saved-items.service";
+import { PolicyResponse } from "../../../../core/models/policy.model";
+import { SchemeResponse } from "../../../../core/models/scheme.model";
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+} from "../../../../core/utils/category-icon.util";
 
 /* =========================================================
    TYPES
    ========================================================= */
 
-interface ResearchStat {
+export interface ResearchStat {
   icon: string;
-  value: string;
+  value: string | number;
   label: string;
   description: string;
   type: "blue" | "orange" | "green" | "purple";
 }
 
-interface ResearchItem {
+export interface ResearchItem extends CategoryIconFields {
+  id?: number;
   icon: string;
   title: string;
   description: string;
   date: string;
   type: "policy" | "scheme" | "compare" | "analytics";
+  category?: string | null;
 }
 
-interface QuickAction {
+export interface QuickAction {
   icon: string;
   title: string;
   description: string;
   route: string;
+}
+
+export interface TrendBar {
+  monthName: string;
+  count: number;
+  heightPercent: number;
 }
 
 /* =========================================================
@@ -36,48 +71,54 @@ interface QuickAction {
 @Component({
   selector: "app-researcher",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CountUpDirective],
   templateUrl: "./researcher.component.html",
   styleUrls: ["./researcher.component.scss"],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ResearcherComponent {
-  /* =======================================================
-     SERVICES
-     ======================================================= */
-
+export class ResearcherComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly analyticsService = inject(AnalyticsService);
+  private readonly policyService = inject(PolicyService);
+  private readonly schemeService = inject(SchemeService);
+  private readonly savedItemsService = inject(SavedItemsService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+
+  loading = true;
+  error = "";
+  userName = "Researcher";
 
   /* =======================================================
      RESEARCH STATISTICS
      ======================================================= */
 
-  readonly researchStats: ResearchStat[] = [
+  researchStats: ResearchStat[] = [
     {
       icon: "policy",
-      value: "128",
-      label: "Policies Researched",
+      value: "—",
+      label: "Policies Available",
       description: "Across government departments",
       type: "blue",
     },
     {
       icon: "account_balance",
-      value: "64",
+      value: "—",
       label: "Schemes Explored",
-      description: "Central and state schemes",
+      description: "Central and state programmes",
       type: "orange",
     },
     {
-      icon: "compare_arrows",
-      value: "18",
-      label: "Comparisons",
-      description: "Policy comparisons completed",
+      icon: "category",
+      value: "—",
+      label: "Policy Sectors",
+      description: "Unique focus areas",
       type: "green",
     },
     {
       icon: "bookmark",
-      value: "32",
-      label: "Saved Research",
+      value: "—",
+      label: "Saved Items",
       description: "Saved for later reference",
       type: "purple",
     },
@@ -87,37 +128,14 @@ export class ResearcherComponent {
      RECENT RESEARCH
      ======================================================= */
 
-  readonly recentResearch: ResearchItem[] = [
-    {
-      icon: "policy",
-      title: "Digital India Policy Review",
-      description:
-        "Reviewed objectives, eligibility and implementation details.",
-      date: "Today",
-      type: "policy",
-    },
-    {
-      icon: "account_balance",
-      title: "PM-KISAN Scheme Analysis",
-      description: "Explored eligibility, benefits and application process.",
-      date: "Yesterday",
-      type: "scheme",
-    },
-    {
-      icon: "compare_arrows",
-      title: "Education Policy Comparison",
-      description: "Compared major provisions across selected policies.",
-      date: "2 days ago",
-      type: "compare",
-    },
-    {
-      icon: "analytics",
-      title: "Policy Trend Analysis",
-      description: "Analyzed recent policy activity and sector trends.",
-      date: "5 days ago",
-      type: "analytics",
-    },
-  ];
+  recentResearch: ResearchItem[] = [];
+
+  /* =======================================================
+     TREND BARS
+     ======================================================= */
+
+  trendBars: TrendBar[] = [];
+  monthlyPoliciesCount = 0;
 
   /* =======================================================
      QUICK ACTIONS
@@ -128,71 +146,282 @@ export class ResearcherComponent {
       icon: "search",
       title: "Search Policies",
       description: "Find government policies by keyword or category.",
-      route: "/policies",
+      route: "/dashboard/researcher/policies",
     },
     {
       icon: "account_balance",
       title: "Explore Schemes",
       description: "Discover government schemes and their benefits.",
-      route: "/schemes",
+      route: "/dashboard/researcher/schemes",
     },
     {
       icon: "compare_arrows",
-      title: "Compare Policies",
-      description: "Compare policies side by side.",
-      route: "/compare",
+      title: "Compare Policies & Schemes",
+      description: "Compare policies & schemes side by side.",
+      route: "/dashboard/researcher/compare",
     },
     {
       icon: "analytics",
-      title: "View Analytics",
-      description: "Explore policy trends and research insights.",
-      route: "/analytics",
+      title: "Research Analytics",
+      description: "Review research activity, trends and saved insights.",
+      route: "/dashboard/researcher/analytics",
     },
   ];
 
+  ngOnInit(): void {
+    try {
+      const stored = localStorage.getItem("auth_user");
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.full_name) {
+          this.userName = u.full_name;
+        }
+      }
+    } catch {}
+    this.loadDashboardData();
+  }
+
+  loadDashboardData(): void {
+    this.loading = true;
+    this.error = "";
+    this.cdr.markForCheck();
+
+    // Saved count from the authenticated user's backend records (same
+    // source as the Saved Items page), never global localStorage caches.
+    forkJoin({
+      policyAnalytics: this.analyticsService.getPolicyAnalytics().pipe(
+        catchError(() =>
+          of({
+            total: 0,
+            approved: 0,
+            pending: 0,
+            rejected: 0,
+            archived: 0,
+            by_category: [],
+            by_state: [],
+            by_ministry: [],
+            monthly_trend: [],
+          } as PolicyAnalyticsResponse),
+        ),
+      ),
+      schemeAnalytics: this.analyticsService.getSchemeAnalytics().pipe(
+        catchError(() =>
+          of({
+            total: 0,
+            active: 0,
+            pending: 0,
+            rejected: 0,
+            archived: 0,
+            by_category: [],
+            by_state: [],
+            by_ministry: [],
+            monthly_trend: [],
+          } as SchemeAnalyticsResponse),
+        ),
+      ),
+      trends: this.analyticsService
+        .getPolicyTrends()
+        .pipe(catchError(() => of([] as PolicyTrendItem[]))),
+      policies: this.policyService
+        .getPolicies({ status: "APPROVED", limit: 3 })
+        .pipe(
+          catchError(() =>
+            of({ policies: [], total: 0, page: 1, pages: 1, limit: 3 }),
+          ),
+        ),
+      schemes: this.schemeService
+        .getSchemes({ status: "APPROVED", limit: 3 })
+        .pipe(
+          catchError(() =>
+            of({ schemes: [], total: 0, page: 1, pages: 1, limit: 3 }),
+          ),
+        ),
+      savedPolicies: this.savedItemsService
+        .getSavedPolicies()
+        .pipe(catchError(() => of([]))),
+      savedSchemes: this.savedItemsService
+        .getSavedSchemes()
+        .pipe(catchError(() => of([]))),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({
+        policyAnalytics,
+        schemeAnalytics,
+        trends,
+        policies,
+        schemes,
+        savedPolicies,
+        savedSchemes,
+      }) => {
+        const approvedPolicies =
+          policyAnalytics.approved || policyAnalytics.total || 0;
+        const activeSchemes =
+          schemeAnalytics.active || schemeAnalytics.total || 0;
+        const totalCategories =
+          (policyAnalytics.by_category?.length || 0) +
+          (schemeAnalytics.by_category?.length || 0);
+        const savedCount =
+          (Array.isArray(savedPolicies) ? savedPolicies.length : 0) +
+          (Array.isArray(savedSchemes) ? savedSchemes.length : 0);
+
+        this.researchStats = [
+          {
+            icon: "policy",
+            value: approvedPolicies,
+            label: "Policies Available",
+            description: "Across government departments",
+            type: "blue",
+          },
+          {
+            icon: "account_balance",
+            value: activeSchemes,
+            label: "Schemes Explored",
+            description: "Central and state programmes",
+            type: "orange",
+          },
+          {
+            icon: "category",
+            value: totalCategories,
+            label: "Policy Sectors",
+            description: "Active development sectors",
+            type: "green",
+          },
+          {
+            icon: "bookmark",
+            value: savedCount,
+            label: "Saved Items",
+            description: "Saved for later reference",
+            type: "purple",
+          },
+        ];
+
+        // Combine recent policies and schemes into recent research
+        const items: ResearchItem[] = [];
+
+        const policyList: PolicyResponse[] = Array.isArray(policies?.policies)
+          ? policies.policies
+          : [];
+        policyList.forEach((p) => {
+          items.push({
+            id: p.policy_id,
+            icon: "policy",
+            title: p.title,
+            description: p.ministry || p.department || "Government Policy",
+            date: p.created_at
+              ? new Date(p.created_at).toLocaleDateString()
+              : "Recent",
+            type: "policy",
+            category: p.category ?? null,
+            ...categoryIconFields(p.category),
+          });
+        });
+
+        const schemeList: SchemeResponse[] = Array.isArray(schemes?.schemes)
+          ? schemes.schemes
+          : [];
+        schemeList.forEach((s) => {
+          items.push({
+            id: s.scheme_id,
+            icon: "account_balance",
+            title: s.name || (s as any).title || "Government Scheme",
+            description: s.ministry || s.department || "Public Scheme",
+            date: s.created_at
+              ? new Date(s.created_at).toLocaleDateString()
+              : "Recent",
+            type: "scheme",
+            category: s.category ?? null,
+            ...categoryIconFields(s.category),
+          });
+        });
+
+        this.recentResearch = items.slice(0, 4);
+
+        // Process Trends
+        this.processTrends(trends);
+
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error("[RESEARCHER DASHBOARD] Error loading data:", err);
+        this.error = "Unable to load researcher data.";
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private processTrends(trends: PolicyTrendItem[]): void {
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    if (Array.isArray(trends) && trends.length > 0) {
+      const recent = trends.slice(-6);
+      const maxCount = Math.max(...recent.map((t) => t.count), 1);
+      this.trendBars = recent.map((t) => ({
+        monthName: monthNames[(t.month - 1) % 12] || `${t.month}`,
+        count: t.count,
+        heightPercent: Math.max(15, Math.round((t.count / maxCount) * 100)),
+      }));
+      this.monthlyPoliciesCount = recent[recent.length - 1]?.count || 0;
+    } else {
+      // Fallback 6 default monthly bars if trend table is empty
+      const currentMonth = new Date().getMonth();
+      this.trendBars = Array.from({ length: 6 }).map((_, i) => {
+        const mIdx = (currentMonth - 5 + i + 12) % 12;
+        return {
+          monthName: monthNames[mIdx],
+          count: 0,
+          heightPercent: 20,
+        };
+      });
+      this.monthlyPoliciesCount = 0;
+    }
+  }
+
   /* =======================================================
-     SEARCH POLICIES
+     NAVIGATION ACTIONS
      ======================================================= */
 
   searchPolicies(): void {
-    this.navigateTo("/policies");
+    this.navigateTo("/dashboard/researcher/policies");
   }
-
-  /* =======================================================
-     SEARCH SCHEMES
-     ======================================================= */
 
   searchSchemes(): void {
-    this.navigateTo("/schemes");
+    this.navigateTo("/dashboard/researcher/schemes");
   }
-
-  /* =======================================================
-     VIEW ALL RESEARCH
-     ======================================================= */
 
   viewAllResearch(): void {
-    this.navigateTo("/research");
+    this.navigateTo("/dashboard/researcher/policies");
   }
-
-  /* =======================================================
-     VIEW ANALYTICS
-     ======================================================= */
 
   viewAnalytics(): void {
-    this.navigateTo("/analytics");
+    this.navigateTo("/dashboard/researcher/analytics");
   }
-
-  /* =======================================================
-     VIEW SAVED RESEARCH
-     ======================================================= */
 
   viewSavedResearch(): void {
-    this.navigateTo("/research/saved");
+    this.navigateTo("/dashboard/researcher/saved");
   }
 
-  /* =======================================================
-     GENERIC NAVIGATION
-     ======================================================= */
+  openResearchItem(item: ResearchItem): void {
+    if (item.type === "policy" && item.id) {
+      this.navigateTo(`/dashboard/researcher/policies/${item.id}`);
+    } else if (item.type === "scheme" && item.id) {
+      this.navigateTo(`/dashboard/researcher/schemes/${item.id}`);
+    } else {
+      this.navigateTo("/dashboard/researcher/policies");
+    }
+  }
 
   navigateTo(route: string): void {
     if (!route || route === "#") {

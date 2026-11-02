@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectorRef, Component, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
 
@@ -9,13 +9,19 @@ import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { Router } from "@angular/router";
 
 import { Auth } from "../../../core/services/auth";
+import { NavigationContextService } from "../../../core/services/navigation-context.service";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: "app-change-password",
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent],
 
   templateUrl: "./change-password.component.html",
 
@@ -26,7 +32,7 @@ export class ChangePasswordComponent {
   // API
   // =========================================================
 
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   // =========================================================
   // FORM VALUES
@@ -437,46 +443,39 @@ export class ChangePasswordComponent {
   }
 
   // =========================================================
+  // BREADCRUMB (Home > Profile > Change Password)
+  // =========================================================
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Profile", route: ["/dashboard", prefix, "profile"] },
+      { label: "Change Password" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const url = this.router.url || "";
+    if (url.startsWith("/dashboard/admin")) return "admin";
+    if (url.startsWith("/dashboard/citizen")) return "citizen";
+    if (url.startsWith("/dashboard/government")) return "government";
+    if (url.startsWith("/dashboard/researcher")) return "researcher";
+    if (url.startsWith("/dashboard/organization")) return "organization";
+    return null;
+  }
+
+  // =========================================================
   // BACK
   // =========================================================
 
+  /** Shared navigation context: Back shows only after in-page navigation. */
+  readonly navContext = inject(NavigationContextService);
+
   goBack(): void {
-    const currentUrl = this.router.url;
-
-    // -------------------------------------------------------
-    // ADMIN
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/admin")) {
-      this.router.navigate(["/dashboard/admin/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // CITIZEN
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/citizen")) {
-      this.router.navigate(["/dashboard/citizen/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // GOVERNMENT
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/government")) {
-      this.router.navigate(["/dashboard/government/profile"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
-    // -------------------------------------------------------
-
-    this.router.navigate(["/dashboard/user-dashboard/profile"]);
+    this.navContext.goBack();
   }
 }

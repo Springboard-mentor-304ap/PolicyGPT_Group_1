@@ -1,0 +1,209 @@
+<div class="policy-analytics-page" [attr.aria-busy]="isLoading()">
+  <!-- Breadcrumb -->
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Policy Analytics</h1>
+        @if (isSampleData) {
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
+        }
+      </div>
+      <p class="page-subtitle">Detailed insights into government policies, approvals and distribution</p>
+    </div>
+    <div class="header-right">
+      <app-date-range-picker [value]="currentRange()" (rangeChange)="onDateRangeChange($event)"
+        (rangeSelect)="onDateRangeSelect($event)" />
+      <button type="button" class="btn-download" (click)="exportReport()" [disabled]="isExporting()"
+        aria-label="Download Policy Analytics Report">
+        <span class="material-icons" aria-hidden="true">download</span>
+        <span>{{ isExporting() ? 'Downloading...' : 'Download Report' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5 Stat Cards Row -->
+  <div class="stats-row">
+    @for (stat of stats(); track stat.label; let i = $index) {
+    <div class="stat-card">
+      <div class="card-icon-circle" [ngClass]="getStatIconClass(i)" aria-hidden="true">
+        <span class="material-icons">{{ getStatIcon(i) }}</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">{{ stat.label }}</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="stat.value">{{ stat.value }}</span>
+        </div>
+        @if (stat.change) {
+        <span class="card-trend" [ngClass]="{ 'green': stat.isPositive, 'red': !stat.isPositive }">
+          {{ stat.change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- Filters Bar -->
+  <app-filters-bar (apply)="onApplyFilters($event)" (reset)="onResetFilters()" />
+
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadData()">Retry</button>
+  </p>
+  }
+
+  <!-- Full-width Policy Status Trend -->
+  <div class="charts-full-row">
+    <!-- Policy Status Trend -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Policy Status Trend</h3>
+        <div class="dropdown-wrapper">
+          <button type="button" class="badge-filter-btn" (click)="toggleTrendMenu($event)"
+            [attr.aria-expanded]="showTrendMenu()" aria-label="Select trend period">
+            <span>{{ trendPeriod() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showTrendMenu()) {
+          <div class="dropdown-menu" role="menu">
+            @for (opt of trendPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="opt === trendPeriod()"
+              (click)="selectTrendPeriod(opt)" role="menuitem">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-line-chart [labels]="visibleTrendLabels()" [datasets]="visibleTrendDatasets()" [yMin]="0"
+        [yMax]="trendYMax()" />
+    </div>
+  </div>
+
+  <!-- Two columns: Policies by Category + Policies by State -->
+  <div class="charts-duo-row">
+    <!-- Card 1: Policies by Category -->
+    <div class="chart-card">
+      <h3 class="card-title">Policies by Category</h3>
+      <app-doughnut-chart [labels]="categoryLabels()" [data]="categoryData()"
+        [colors]="['#2f6fed', '#3cb371', '#06b6d4', '#f5a524', '#8b5cf6', '#e5484d', '#14b8a6', '#94a3b8']"
+        [centerMainText]="categoryTotal()" centerSubText="Policies" />
+    </div>
+
+    <!-- Card 2: Policies by State -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Policies by State</h3>
+        <div class="dropdown-wrapper">
+          <button type="button" class="badge-filter-btn" (click)="toggleStateMenu($event)"
+            [attr.aria-expanded]="showStateMenu()" aria-label="Select state display count">
+            <span>{{ stateLimitLabel() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showStateMenu()) {
+          <div class="dropdown-menu" role="menu">
+            @for (opt of stateLimitOptions; track opt.label) {
+            <button type="button" class="dropdown-item" [class.active]="stateLimitLabel() === opt.label"
+              (click)="selectStateLimit(opt)" role="menuitem">
+              {{ opt.label }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-hbar-chart [labels]="visibleStateLabels()" [data]="visibleStateData()" selectedDepartment="All Departments"
+        primaryColor="#2f6fed" />
+    </div>
+  </div>
+
+  <!-- Row of 2 Cards: Ministry Chart + Latest Policies Table -->
+  <div class="charts-two-row">
+    <!-- Policies by Ministry -->
+    <div class="chart-card flex-1">
+      <div class="card-header-row">
+        <h3 class="card-title">Policies by Ministry</h3>
+        <div class="dropdown-wrapper">
+          <button type="button" class="badge-filter-btn" (click)="toggleMinistryMenu($event)"
+            [attr.aria-expanded]="showMinistryMenu()" aria-label="Select ministry display count">
+            <span>{{ ministryLimitLabel() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showMinistryMenu()) {
+          <div class="dropdown-menu" role="menu">
+            @for (opt of ministryLimitOptions; track opt.label) {
+            <button type="button" class="dropdown-item" [class.active]="ministryLimitLabel() === opt.label"
+              (click)="selectMinistryLimit(opt)" role="menuitem">
+              {{ opt.label }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-vbar-chart [labels]="visibleMinistryLabels()" [values]="visibleMinistryData()" color="#2f6fed"
+        [wrapXAxisLabels]="true" [xLabelMaxLines]="12" [fitLabelsToWidth]="true" [growWithLabels]="true" />
+    </div>
+
+    <!-- Latest Policies Table -->
+    <div class="table-card flex-1">
+      <div class="table-header-row">
+        <h3 class="card-title">Latest Policies</h3>
+        <button type="button" class="btn-view-all" (click)="viewAllPolicies()">
+          View All
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Title</th>
+              <th scope="col">Ministry</th>
+              <th scope="col">State</th>
+              <th scope="col">Category</th>
+              <th scope="col">Status</th>
+              <th scope="col">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (policy of latestPolicies(); track policy.title; let idx = $index) {
+            <tr>
+              <td class="text-muted">{{ idx + 1 }}</td>
+              <td class="font-semibold title-col" [title]="policy.title"><span class="category-mini"
+                  [ngStyle]="categoryIconStyle(policy.category)" aria-hidden="true"><span
+                    class="material-icons">{{ categoryIcon(policy.category) }}</span></span> {{ policy.title }}</td>
+              <td>{{ policy.ministry }}</td>
+              <td class="text-muted">{{ policy.state }}</td>
+              <td>{{ policy.category }}</td>
+              <td>
+                <span class="status-chip" [ngClass]="getStatusChipClass(policy.status)">
+                  {{ policy.status }}
+                </span>
+              </td>
+              <td class="text-muted">{{ policy.date }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="7" class="empty-state-cell">
+                <div class="empty-state-box">
+                  <span class="material-icons">search_off</span>
+                  <p>No policies found matching current filters.</p>
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

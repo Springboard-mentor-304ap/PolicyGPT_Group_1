@@ -255,4 +255,87 @@ describe('CompareSelectionComponent', () => {
     const filterLabels = Array.from(compiled.querySelectorAll('.filter-group label')).map((l) => l.textContent?.trim());
     expect(filterLabels).not.toContain('Status');
   });
+
+  it('11. should exclude the Item 1 selection from Item 2 and Item 3 autocomplete', () => {
+    fixture.detectChanges();
+
+    component.selectItem1(component.allItems[0]);
+    component.searchItem2 = component.allItems[0].title.split(' ')[0];
+    component.searchItem3 = component.allItems[0].title.split(' ')[0];
+
+    const key1 = `${component.allItems[0].type}:${component.allItems[0].id}`;
+    for (const item of [...component.filteredItem2, ...component.filteredItem3]) {
+      expect(`${item.type}:${item.id}`).not.toBe(key1);
+    }
+    expect(component.filteredItem2.length).toBeLessThan(component.allItems.length);
+  });
+
+  it('12. should refuse a duplicate selection passed directly to the handler', () => {
+    fixture.detectChanges();
+
+    component.selectItem1(component.allItems[0]);
+    component.selectItem2(component.allItems[0]);
+
+    expect(component.selectedItem1).toBeTruthy();
+    expect(component.selectedItem2).toBeNull();
+  });
+
+  it('13. should make a removed item selectable again', () => {
+    fixture.detectChanges();
+
+    const first = component.allItems[0];
+    component.selectItem1(first);
+    expect(
+      component.filteredItem2.some((i) => i.type === first.type && i.id === first.id),
+    ).toBe(false);
+
+    component.clearItem1();
+    expect(
+      component.filteredItem2.some((i) => i.type === first.type && i.id === first.id),
+    ).toBe(true);
+  });
+
+  it('14. should treat same numeric id across types and same title as distinct records', () => {
+    fixture.detectChanges();
+
+    // Numerically colliding ids across types must NOT block each other.
+    const collidingScheme: CompareItem = {
+      id: 10,
+      title: 'Colliding Scheme Title',
+      type: 'Scheme',
+      ministry: 'Ministry of Agriculture',
+      category: 'Agriculture',
+      state: 'Central',
+      targetGroup: '-',
+    };
+    const policy10 = component.allItems.find((i) => i.type === 'Policy' && i.id === 10);
+    expect(policy10).toBeTruthy();
+
+    component.selectItem1(policy10!);
+    // Same numeric id, other type → still selectable.
+    component.selectItem2(collidingScheme);
+    expect(component.selectedItem2).toEqual(collidingScheme);
+
+    // Same title, different record → still offered and selectable.
+    component.clearItem1();
+    component.clearItem2();
+    const twinA: CompareItem = {
+      id: 900,
+      title: 'Shared Title',
+      type: 'Policy',
+      ministry: 'M1',
+      category: 'C1',
+      state: 'Central',
+      targetGroup: '-',
+    };
+    const twinB: CompareItem = { ...twinA, id: 901 };
+    component.allItems = [...component.allItems, twinA, twinB];
+    component.selectItem1(twinA);
+    expect(
+      component.filteredItem2.some((i) => i.type === 'Policy' && i.id === 901),
+    ).toBe(true);
+    expect(
+      component.filteredItem2.some((i) => i.type === 'Policy' && i.id === 900),
+    ).toBe(false);
+  });
 });

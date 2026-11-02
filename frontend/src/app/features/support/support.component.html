@@ -1,0 +1,541 @@
+<div class="support-page" [class.support-page--guest]="isGuest">
+
+  <!-- BREADCRUMB (authenticated roles only; hidden for guests) -->
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
+
+  <!-- COMPACT HEADER -->
+  <header class="support-header">
+    <h1>Help &amp; Support</h1>
+    <p>Find answers, get assistance, and resolve issues with PolicyGPT.</p>
+  </header>
+
+  <!-- QUICK SUPPORT NAV -->
+  <nav class="quick-nav" [class.quick-nav--guest]="isGuest" aria-label="Quick support">
+    <button type="button" class="quick-card" (click)="focusFaqSearch()">
+      <span class="material-icons quick-icon" aria-hidden="true">help_outline</span>
+      <span class="quick-body">
+        <strong>FAQs</strong>
+        <small>Browse answers</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+    <button type="button" class="quick-card" (click)="openSubmitModal()">
+      <span class="material-icons quick-icon" aria-hidden="true">report_problem</span>
+      <span class="quick-body">
+        <strong>Report an Issue</strong>
+        <small>{{ isGuest ? 'Sign in to continue' : 'Get assistance' }}</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+    <button *ngIf="!isGuest" type="button" class="quick-card" (click)="setActiveTab('my-requests')">
+      <span class="material-icons quick-icon" aria-hidden="true">confirmation_number</span>
+      <span class="quick-body">
+        <strong>My Requests</strong>
+        <small>{{ myRequests.length > 0 ? myRequests.length + ' submitted — track tickets' : 'Track tickets' }}</small>
+      </span>
+      <span class="material-icons quick-arrow" aria-hidden="true">arrow_forward</span>
+    </button>
+  </nav>
+
+  <!-- FAQS VIEW -->
+  <section *ngIf="activeTab === 'faqs'" class="support-content" aria-label="Frequently asked questions">
+
+    <div class="faq-head">
+      <h2>Frequently Asked Questions</h2>
+      <p class="faq-subtitle">{{ faqSubtitle }}</p>
+      <p class="results-count" *ngIf="!loadingFaqs && !faqError">
+        <strong>{{ faqs.length }}</strong>
+        {{ faqs.length === 1 ? 'question' : 'questions' }}
+      </p>
+    </div>
+
+    <div class="faq-filters">
+      <div class="requests-search" role="search">
+        <span class="material-icons search-icon" aria-hidden="true">search</span>
+        <input id="faq-search" type="search" class="search-input" placeholder="Search within FAQs..."
+          [ngModel]="searchQuery" (ngModelChange)="onSearchChange($event)" aria-label="Search within FAQs" />
+      </div>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by category</span>
+        <app-searchable-select
+          id="faq-category-filter"
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="faqCategoryOptions"
+          [ngModel]="selectedCategory"
+          (selectionChange)="selectCategory($event)"
+        />
+      </label>
+    </div>
+
+    <div class="help-main">
+
+      <!-- Loader while real data loads -->
+      <app-loading-indicator *ngIf="loadingFaqs" message="Loading FAQs...">
+      </app-loading-indicator>
+
+      <!-- Error -->
+      <div *ngIf="faqError && !loadingFaqs" class="support-state-box error-state" role="alert">
+        <div class="state-icon-box state-icon-box--danger">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Unable to load FAQs</h3>
+        <p>{{ faqError }}</p>
+        <button type="button" class="btn-state-action" (click)="fetchFaqs(searchQuery, selectedCategory)">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+
+      <!-- Empty -->
+      <div *ngIf="!loadingFaqs && !faqError && faqs.length === 0" class="support-state-box empty-state">
+        <div class="state-icon-box state-icon-box--info">
+          <span class="material-icons">search_off</span>
+        </div>
+        <h3>No FAQs Found</h3>
+        <p>
+          We couldn&apos;t find any questions matching your search criteria.
+          <ng-container *ngIf="searchQuery || selectedCategory !== 'All'">
+            Try adjusting your keywords or clearing the category filter.
+          </ng-container>
+        </p>
+        <div class="empty-state-actions">
+          <button *ngIf="searchQuery || selectedCategory !== 'All'" type="button" class="btn-state-action"
+            (click)="clearFilters()">
+            <span class="material-icons">restart_alt</span>
+            <span>Clear Search</span>
+          </button>
+          <button type="button" class="btn-state-action btn-state-action--secondary" (click)="openSubmitModal()">
+            <span class="material-icons">help_outline</span>
+            <span>Ask Our Support Team</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Compact interactive FAQ rows -->
+      <ol *ngIf="!loadingFaqs && !faqError && faqs.length > 0" class="faq-rows" aria-label="FAQ list">
+        <li *ngFor="let faq of faqs; trackBy: trackByFaqId; let i = index" class="faq-row"
+          [class.faq-row--expanded]="isExpanded(faq.faq_id)" (mouseenter)="setHover(faq.faq_id)"
+          (mouseleave)="clearHover()" (focusin)="setHover(faq.faq_id)" (focusout)="clearHover()">
+          <button type="button" class="faq-row-btn" [attr.aria-expanded]="isExpanded(faq.faq_id)"
+            [attr.aria-controls]="'faq-content-' + faq.faq_id" (click)="toggleFaq(faq.faq_id)">
+            <span class="faq-num" aria-hidden="true">{{ (i + 1) | number: '2.0-0' }}</span>
+            <span class="faq-q">{{ faq.question }}</span>
+            <span class="material-icons faq-chevron" aria-hidden="true">
+              {{ isExpanded(faq.faq_id) ? 'expand_less' : 'chevron_right' }}
+            </span>
+          </button>
+          <!-- Hover preview: absolute overlay, never affects layout -->
+          <div class="faq-hover-preview" *ngIf="isHovered(faq.faq_id) && !isExpanded(faq.faq_id)" aria-hidden="true">
+            <p class="faq-preview-answer">{{ faq.answer }}</p>
+            <div class="faq-preview-meta">
+              <span *ngIf="faq.category" class="faq-hover-cat">{{ faq.category }}</span>
+              <span *ngIf="faq.updated_at || faq.created_at" class="faq-hover-date">
+                Updated {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+              </span>
+            </div>
+          </div>
+          <div [id]="'faq-content-' + faq.faq_id" class="faq-answer" *ngIf="isExpanded(faq.faq_id)">
+            <p class="faq-answer-text">{{ faq.answer }}</p>
+            <div class="faq-answer-meta">
+              <span *ngIf="faq.category" class="meta-cat">{{ faq.category }}</span>
+              <span *ngIf="faq.updated_at || faq.created_at" class="meta-date">
+                Updated {{ (faq.updated_at || faq.created_at) | date: 'mediumDate' }}
+              </span>
+              <a class="meta-link" [routerLink]="faqDetailsLink(faq.faq_id)"
+                [attr.aria-label]="'View details for: ' + faq.question">
+                <span>View Details</span>
+                <span class="material-icons" aria-hidden="true">arrow_forward</span>
+              </a>
+            </div>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Slim bottom CTA -->
+    <div class="slim-cta" aria-label="Need more help">
+      <div class="slim-cta-text">
+        <strong>Still need help?</strong>
+        <span>Our support team can help you with your issue.</span>
+      </div>
+      <button *ngIf="!isGuest" type="button" class="btn-primary-action" (click)="openSubmitModal()">
+        <span>Create Support Request</span>
+        <span class="material-icons" aria-hidden="true">arrow_forward</span>
+      </button>
+      <button *ngIf="isGuest" type="button" class="btn-primary-action" (click)="openSubmitModal()">
+        <span>Sign in to request support</span>
+        <span class="material-icons" aria-hidden="true">arrow_forward</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- MY SUPPORT REQUESTS VIEW -->
+  <section *ngIf="activeTab === 'my-requests' && !isGuest" class="support-content" aria-label="My support requests">
+    <div class="requests-head">
+      <div>
+        <h2>My Support Requests</h2>
+        <p *ngIf="!loadingRequests && !requestsError">
+          <strong>{{ myRequests.length }}</strong>
+          {{ myRequests.length === 1 ? 'ticket' : 'tickets' }}
+        </p>
+      </div>
+      <div class="requests-head-actions">
+        <button type="button" class="btn-primary-action" (click)="openSubmitModal()">
+          <span class="material-icons">add</span>
+          <span>New Request</span>
+        </button>
+      </div>
+    </div>
+
+    <app-loading-indicator *ngIf="loadingRequests" message="Loading requests...">
+    </app-loading-indicator>
+
+    <div *ngIf="requestsError && !loadingRequests" class="support-state-box error-state">
+      <div class="state-icon-box state-icon-box--danger">
+        <span class="material-icons">error_outline</span>
+      </div>
+      <h3>Unable to load your requests</h3>
+      <p>{{ requestsError }}</p>
+      <button type="button" class="btn-state-action" (click)="loadMyRequests()">
+        <span class="material-icons">refresh</span>
+        <span>Try Again</span>
+      </button>
+    </div>
+
+    <div *ngIf="!loadingRequests && !requestsError && myRequests.length === 0" class="support-state-box empty-state">
+      <div class="state-icon-box state-icon-box--info">
+        <span class="material-icons">drafts</span>
+      </div>
+      <h3>No Support Requests Yet</h3>
+      <p>You haven&apos;t submitted any support requests yet.</p>
+      <button type="button" class="btn-state-action" (click)="openSubmitModal()">
+        <span class="material-icons">add_task</span>
+        <span>Submit Your First Request</span>
+      </button>
+    </div>
+
+    <div class="requests-filters" *ngIf="!loadingRequests && !requestsError && myRequests.length > 0">
+      <div class="requests-search" role="search">
+        <span class="material-icons search-icon" aria-hidden="true">search</span>
+        <input type="search" class="search-input" placeholder="Search by ID, subject, or description..."
+          [(ngModel)]="requestSearch" aria-label="Search support requests" />
+      </div>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by status</span>
+        <app-searchable-select
+          id="support-request-status"
+          size="filter"
+          ariaLabel="Filter by status"
+          placeholder="All Statuses"
+          [searchable]="false"
+          [options]="requestStatusOptions"
+          [(ngModel)]="requestStatus"
+        />
+      </label>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by category</span>
+        <app-searchable-select
+          id="support-request-category"
+          size="filter"
+          ariaLabel="Filter by category"
+          placeholder="All Categories"
+          [searchable]="true"
+          searchPlaceholder="Search categories..."
+          [options]="requestCategoryFilterOptions"
+          [(ngModel)]="requestCategory"
+        />
+      </label>
+      <label class="status-select-wrap">
+        <span class="visually-hidden">Filter by priority</span>
+        <app-searchable-select
+          id="support-request-priority"
+          size="filter"
+          ariaLabel="Filter by priority"
+          placeholder="All Priorities"
+          [searchable]="false"
+          [options]="requestPriorityOptions"
+          [(ngModel)]="requestPriority"
+        />
+      </label>
+    </div>
+
+    <!-- Modern request list with hover actions -->
+    <ul *ngIf="!loadingRequests && !requestsError && filteredRequests.length > 0" class="req-list"
+      aria-label="Support requests">
+      <li *ngFor="let req of filteredRequests; trackBy: trackByRequestId" class="req-row"
+        [class.req-row--expanded]="isRequestExpanded(req.query_id)">
+        <div class="req-row-main">
+          <button type="button" class="req-toggle" (click)="toggleRequest(req.query_id)"
+            [attr.aria-expanded]="isRequestExpanded(req.query_id)"
+            [attr.aria-label]="(isRequestExpanded(req.query_id) ? 'Collapse' : 'Expand') + ' ticket ' + req.request_id">
+            <span class="req-main">
+              <span class="req-subject">{{ req.subject }}</span>
+              <span class="req-category">{{ req.category || 'General' }}</span>
+            </span>
+            <span class="badge-status" [attr.data-status]="req.status">{{ req.status }}</span>
+            <span class="req-updated">Updated {{ req.updated_at | date: 'mediumDate' }}</span>
+          </button>
+          <span class="req-hover-actions" aria-hidden="false">
+            <button type="button" class="req-view-btn" (click)="openTicket(req)"
+              [attr.aria-label]="'View ticket ' + req.request_id">
+              <span>View</span>
+              <span class="material-icons" aria-hidden="true">arrow_forward</span>
+            </button>
+          </span>
+          <span class="material-icons req-chevron" aria-hidden="true">
+            {{ isRequestExpanded(req.query_id) ? 'expand_less' : 'chevron_right' }}
+          </span>
+        </div>
+        <div *ngIf="isRequestExpanded(req.query_id)" class="req-detail">
+          <p class="req-desc">{{ req.description }}</p>
+          <div class="req-detail-meta">
+            <span class="badge-category">{{ req.category || 'General' }}</span>
+            <span class="badge-priority" [attr.data-priority]="req.priority">{{ req.priority || 'MEDIUM' }}</span>
+          </div>
+          <div *ngIf="req.response" class="request-response-box">
+            <div class="response-header">
+              <span class="material-icons">support_agent</span>
+              <strong>Official Support Response</strong>
+              <span *ngIf="req.responded_at" class="response-date">— {{ req.responded_at | date: 'medium' }}</span>
+            </div>
+            <p class="response-text">{{ req.response }}</p>
+          </div>
+          <button type="button" class="req-open-btn" (click)="openTicket(req)">
+            <span>Open ticket</span>
+            <span class="material-icons" aria-hidden="true">arrow_forward</span>
+          </button>
+        </div>
+      </li>
+    </ul>
+
+    <div *ngIf="!loadingRequests && !requestsError && myRequests.length > 0 && filteredRequests.length === 0"
+      class="support-state-box empty-state">
+      <div class="state-icon-box state-icon-box--info">
+        <span class="material-icons">search_off</span>
+      </div>
+      <h3>No matching tickets</h3>
+      <p>Try adjusting your search or filters.</p>
+      <button type="button" class="btn-state-action" (click)="clearRequestFilters()">
+        <span class="material-icons">restart_alt</span>
+        <span>Clear Filters</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- SUBMIT SUPPORT REQUEST MODAL -->
+  <div *ngIf="showSubmitModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span class="material-icons">support_agent</span>
+          <h2 id="modal-title">
+            {{ submittedSuccessRequest ? 'Request Submitted' : 'Submit a Support Request' }}
+          </h2>
+        </div>
+        <button type="button" class="modal-close-btn" aria-label="Close dialog" (click)="closeSubmitModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <form *ngIf="!submittedSuccessRequest" (ngSubmit)="submitRequest()" class="modal-form" novalidate>
+        <div class="modal-body">
+          <div *ngIf="submitError" class="form-alert form-alert--danger" role="alert">
+            <span class="material-icons">error</span>
+            <span>{{ submitError }}</span>
+          </div>
+          <div class="form-row form-row--two-col">
+            <div class="form-group">
+              <label for="reqCategory">Topic Category <span class="required">*</span></label>
+              <app-searchable-select
+                id="reqCategory"
+                placeholder="Select category"
+                [searchable]="true"
+                searchPlaceholder="Search categories..."
+                [options]="requestCategories"
+                [(ngModel)]="formCategory"
+                name="category"
+              />
+            </div>
+            <div class="form-group">
+              <label for="reqPriority">Priority Level</label>
+              <app-searchable-select
+                id="reqPriority"
+                placeholder="Select priority"
+                [searchable]="false"
+                [options]="formPriorityOptions"
+                [(ngModel)]="formPriority"
+                name="priority"
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reqSubject">Subject <span class="required">*</span></label>
+            <input type="text" id="reqSubject" name="subject" [(ngModel)]="formSubject" class="form-control"
+              placeholder="Brief summary of your question or issue..." maxlength="200" required />
+            <span class="form-hint">At least 3 characters. Be as specific as possible.</span>
+          </div>
+          <div class="form-group">
+            <label for="reqDescription">Detailed Description <span class="required">*</span></label>
+            <textarea id="reqDescription" name="description" [(ngModel)]="formDescription"
+              class="form-control form-textarea" rows="5"
+              placeholder="Provide all relevant details, including scheme name, policy number, error messages, or steps taken..."
+              required></textarea>
+            <span class="form-hint">Please do not include sensitive credentials or banking passwords.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-modal-cancel" (click)="closeSubmitModal()" [disabled]="submittingRequest">
+            Cancel
+          </button>
+          <button type="submit" class="btn-modal-submit"
+            [disabled]="submittingRequest || !formSubject.trim() || !formDescription.trim()">
+            <span *ngIf="submittingRequest" class="material-icons spin">refresh</span>
+            <span *ngIf="!submittingRequest" class="material-icons">send</span>
+            <span>{{ submittingRequest ? 'Submitting Request...' : 'Submit Request' }}</span>
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="submittedSuccessRequest" class="modal-success-view">
+        <div class="success-icon-box">
+          <span class="material-icons">check_circle</span>
+        </div>
+        <h3>Request Submitted Successfully</h3>
+        <p>Your support ticket has been received and registered with our service desk.</p>
+        <div class="ticket-id-display">
+          <span class="id-label">Support Ticket Reference Number:</span>
+          <span class="id-value">{{ submittedSuccessRequest.request_id }}</span>
+        </div>
+        <p class="success-note">
+          You can track updates and official responses anytime under the <strong>My Support Requests</strong> tab.
+        </p>
+        <div class="modal-footer modal-footer--centered">
+          <button type="button" class="btn-modal-cancel" (click)="closeSubmitModal()">Close</button>
+          <button type="button" class="btn-modal-submit" (click)="closeSubmitModal(); setActiveTab('my-requests')">
+            <span class="material-icons">visibility</span>
+            <span>View My Requests</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+      MODAL: TICKET DETAILS (View opens here, no navigation)
+      ========================================================= -->
+  <div *ngIf="showTicketModal" class="modal-backdrop" role="dialog" aria-modal="true"
+    aria-labelledby="ticket-modal-title" (click)="closeTicketModal()">
+    <div class="modal-dialog modal-dialog--lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <span class="material-icons">confirmation_number</span>
+          <div class="modal-title-text">
+            <h2 id="ticket-modal-title">View Details</h2>
+            <p class="modal-ticket-subject">{{ selectedTicket?.subject || 'Ticket Details' }}</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" aria-label="Close dialog" (click)="closeTicketModal()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      @if (ticketLoading) {
+      <div class="modal-body ticket-modal-state" aria-busy="true">
+        <span class="ticket-modal-spinner" aria-hidden="true"></span>
+        <span>Loading ticket...</span>
+      </div>
+      } @else if (ticketError) {
+      <div class="modal-body ticket-modal-state ticket-modal-state--error" role="alert">
+        <span class="material-icons" aria-hidden="true">error_outline</span>
+        <span>{{ ticketError }}</span>
+        <div class="ticket-modal-actions">
+          <button type="button" class="btn-modal-cancel" (click)="retryTicketModal()">Retry</button>
+          <button type="button" class="btn-modal-submit" (click)="closeTicketModal()">Close</button>
+        </div>
+      </div>
+      } @else if (selectedTicket) {
+      <div class="modal-body ticket-modal-body">
+        <div class="ticket-modal-section">
+          <h3>Ticket Information</h3>
+          <dl class="ticket-modal-grid">
+            <div>
+              <dt>Ticket ID</dt>
+              <dd>{{ selectedTicket.request_id }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span class="badge-status" [attr.data-status]="selectedTicket.status">
+                  {{ statusLabel(selectedTicket.status) }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Category</dt>
+              <dd>{{ selectedTicket.category || 'General' }}</dd>
+            </div>
+            <div>
+              <dt>Priority</dt>
+              <dd>
+                <span class="badge-priority" [attr.data-priority]="selectedTicket.priority">
+                  {{ selectedTicket.priority || 'MEDIUM' }}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Submitted</dt>
+              <dd>{{ selectedTicket.created_at | date: 'mediumDate' }}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ selectedTicket.updated_at | date: 'mediumDate' }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="ticket-modal-section">
+          <h3>Request Details</h3>
+          <p class="ticket-modal-field-label">Subject</p>
+          <p class="ticket-modal-field-value">{{ selectedTicket.subject }}</p>
+          <p class="ticket-modal-field-label">Description</p>
+          <p class="ticket-modal-desc">{{ selectedTicket.description }}</p>
+        </div>
+
+        @if (selectedTicket.response) {
+        <div class="ticket-modal-section">
+          <h3>Official Response</h3>
+          <div class="request-response-box">
+            <div class="response-header">
+              <span class="material-icons">support_agent</span>
+              <strong>Official Support Response</strong>
+            </div>
+            <p class="response-text">{{ selectedTicket.response }}</p>
+          </div>
+        </div>
+        }
+
+        <div class="ticket-modal-section">
+          <h3>Conversation</h3>
+          @if (selectedTicket.status === 'RESOLVED' || selectedTicket.status === 'CLOSED') {
+          <p class="ticket-reopen-hint">Replying below will reopen this ticket.</p>
+          }
+          <app-ticket-conversation [ticketId]="selectedTicket.query_id" mode="user"
+            [canReply]="selectedTicket.status !== 'CLOSED'" (replied)="onModalReplied()">
+          </app-ticket-conversation>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" (click)="closeTicketModal()">Close</button>
+      </div>
+      }
+    </div>
+  </div>
+
+</div>

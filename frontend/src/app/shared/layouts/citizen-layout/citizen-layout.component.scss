@@ -72,8 +72,16 @@ img {
    MAIN LAYOUT
    ========================================================= */
 
+:host {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 .dash-layout {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
 
   display: flex;
@@ -92,6 +100,7 @@ img {
     sans-serif;
 
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* =========================================================
@@ -109,7 +118,7 @@ img {
 
     display: block;
 
-    background: rgba(3, 17, 38, 0.48);
+    background: rgba(3, 14, 33, 0.45);
 
     opacity: 0;
     visibility: hidden;
@@ -119,7 +128,7 @@ img {
       opacity 0.25s ease,
       visibility 0.25s ease;
 
-    z-index: 1150;
+    z-index: 1100;
   }
 
   .dash-layout--mobile-menu-open .dash-overlay {
@@ -168,16 +177,20 @@ img {
 
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.18);
 
-  z-index: 1100;
+  z-index: 1200;
 
   overflow: hidden;
+
+  filter: none;
+  backdrop-filter: none;
 
   transition:
     width 0.25s ease,
     transform 0.25s ease;
 }
 
-/* Sidebar overlay layer */
+/* Sidebar overlay layer: dark navy veil above the flag artwork so
+   menu text and icons stay crisp and readable. Content sits above. */
 
 .dash-sidebar::before {
   content: "";
@@ -187,9 +200,9 @@ img {
 
   background: linear-gradient(
     180deg,
-    rgba(3, 30, 70, 0.18) 0%,
-    rgba(3, 30, 70, 0.08) 55%,
-    rgba(3, 25, 60, 0.12) 100%
+    rgba(3, 20, 45, 0.55) 0%,
+    rgba(3, 20, 45, 0.45) 55%,
+    rgba(3, 25, 60, 0.55) 100%
   );
 
   pointer-events: none;
@@ -211,12 +224,40 @@ img {
 .dash-nav {
   width: 100%;
 
+  flex: 1 1 auto;
+
+  min-height: 0;
+
   display: flex;
   flex-direction: column;
 
   gap: 4px;
 
   padding: 43px 16px 12px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.dash-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dash-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dash-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+
+  border-radius: 10px;
+}
+
+.dash-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .dash-nav__item {
@@ -238,7 +279,7 @@ img {
 
   text-decoration: none;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 
   white-space: nowrap;
@@ -265,11 +306,22 @@ img {
 .dash-nav__item--active {
   color: $citizen-white !important;
 
-  background: #19539a;
+  background: #20589a;
 
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
 
-  box-shadow: inset 3px 0 0 #4b91ff;
+  font-weight: 600;
+
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__item--active .dash-nav__icon,
+.dash-nav__item--active .material-icons {
+  color: $citizen-white;
 }
 
 /* Navigation icon */
@@ -376,7 +428,7 @@ img {
 
   text-decoration: none;
 
-  font-size: 14px;
+  font-size: 13px;
 
   font-weight: 600;
 
@@ -408,9 +460,21 @@ img {
 .dash-nav__submenu-item--active {
   color: $citizen-white !important;
 
-  background: rgba(75, 145, 255, 0.22);
+  background: #20589a;
 
-  border-color: rgba(75, 145, 255, 0.18);
+  border-color: transparent;
+  border-left: 4px solid #60a5fa;
+  border-radius: 8px;
+
+  font-weight: 600;
+
+  opacity: 1;
+  filter: none;
+  box-shadow: none;
+}
+
+.dash-nav__submenu-item--active .material-icons {
+  color: $citizen-white;
 }
 
 .dash-nav__submenu-item:focus-visible {
@@ -424,6 +488,8 @@ img {
    ========================================================= */
 
 .dash-sidebar__footer {
+  flex-shrink: 0;
+
   margin-top: auto;
 
   padding: 12px 16px 18px;
@@ -482,13 +548,71 @@ img {
 }
 
 /* =========================================================
+   COLLAPSED RAIL TOOLTIPS (icon-only state)
+   Reads each item's title label; positioned right of the rail,
+   above page content. Hover-capable pointers only so touch
+   navigation is unaffected; keyboard focus shows them too.
+   ========================================================= */
+
+@media (hover: hover) {
+  .dash-layout--sidebar-collapsed .dash-nav__item {
+    position: relative;
+  }
+
+  .dash-layout--sidebar-collapsed .dash-nav__item[title]:hover::after,
+  .dash-layout--sidebar-collapsed .dash-nav__item[title]:focus-visible::after {
+    content: attr(title);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1300;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: $citizen-navy;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    box-shadow: 0 6px 18px rgba(8, 32, 70, 0.35);
+    opacity: 0;
+    animation: dash-nav-tip-in 0.15s ease forwards;
+    pointer-events: none;
+  }
+}
+
+@keyframes dash-nav-tip-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Let rail tooltips escape instead of clipping (tablet/desktop
+   heights fit the icon column, so no scroll container is lost).
+   Mobile drawer keeps its scrolling behavior. */
+
+@media (min-width: 768px) {
+  .dash-layout--sidebar-collapsed .dash-sidebar,
+  .dash-layout--sidebar-collapsed .dash-nav {
+    overflow: visible;
+  }
+}
+
+/* =========================================================
    MAIN CONTAINER
    ========================================================= */
 
 .dash-main-container {
   width: calc(100% - #{$sidebar-width});
+  max-width: calc(100% - #{$sidebar-width});
 
   min-width: 0;
+  flex: 1 1 0%;
 
   min-height: 100vh;
 
@@ -499,353 +623,19 @@ img {
   flex-direction: column;
 
   padding-top: $topbar-height;
+  box-sizing: border-box;
 
   transition:
     margin-left 0.25s ease,
-    width 0.25s ease;
+    width 0.25s ease,
+    max-width 0.25s ease;
 }
 
 .dash-layout--sidebar-collapsed .dash-main-container {
   width: calc(100% - #{$sidebar-collapsed-width});
+  max-width: calc(100% - #{$sidebar-collapsed-width});
 
   margin-left: $sidebar-collapsed-width;
-}
-
-/* =========================================================
-   TOPBAR
-   ========================================================= */
-
-.dash-topbar {
-  position: fixed;
-
-  top: 0;
-  left: 0;
-  right: 0;
-
-  width: 100%;
-
-  height: $topbar-height;
-
-  min-height: $topbar-height;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 24px;
-
-  padding: 10px 28px;
-
-  background: $citizen-navy;
-
-  color: $citizen-white;
-
-  z-index: 2000;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* =========================================================
-   TOPBAR BRAND
-   ========================================================= */
-
-.dash-topbar__brand {
-  width: $sidebar-width;
-
-  min-width: $sidebar-width;
-
-  height: 100%;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 9px;
-}
-
-.dash-topbar__toggle {
-  width: 38px;
-
-  height: 38px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  flex: 0 0 38px;
-
-  padding: 0;
-
-  border: 0;
-
-  border-radius: 7px;
-
-  background: transparent;
-
-  color: $citizen-white;
-
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-
-.dash-topbar__toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-topbar__toggle:active {
-  transform: scale(0.96);
-}
-
-.dash-topbar__toggle .material-icons {
-  font-size: 27px;
-}
-
-/* =========================================================
-   LOGO
-   ========================================================= */
-
-.dash-topbar__logo-link {
-  display: flex;
-
-  align-items: center;
-
-  flex: 0 0 auto;
-
-  text-decoration: none;
-}
-
-.dash-topbar__logo {
-  width: 48px;
-
-  height: 48px;
-
-  object-fit: contain;
-
-  display: block;
-}
-
-/* =========================================================
-   BRAND TEXT
-   ========================================================= */
-
-.dash-topbar__brand-text {
-  min-width: 0;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 2px;
-}
-
-.dash-topbar__title {
-  color: $citizen-white;
-
-  font-size: 19px;
-
-  line-height: 1;
-
-  font-weight: 800;
-
-  white-space: nowrap;
-}
-
-.dash-topbar__title span {
-  color: #ff821b;
-}
-
-.dash-topbar__tagline {
-  display: block;
-  margin-top: 5px;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 7.5px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-/* =========================================================
-   SEARCH
-   ========================================================= */
-
-.dash-search {
-  width: min(615px, 52vw);
-
-  height: 48px;
-
-  margin: 0 auto;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-  padding: 0 15px;
-
-  border: 3px solid $citizen-white;
-
-  border-radius: 26px;
-
-  background: rgba(255, 255, 255, 0.03);
-
-  flex-shrink: 1;
-
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.dash-search:focus-within {
-  background: rgba(255, 255, 255, 0.08);
-
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-}
-
-.dash-search__icon {
-  flex-shrink: 0;
-
-  color: $citizen-white;
-
-  font-size: 25px;
-}
-
-.dash-search input {
-  width: 100%;
-
-  min-width: 0;
-
-  padding: 0;
-
-  border: 0;
-
-  outline: 0;
-
-  background: transparent;
-
-  color: $citizen-white;
-
-  font-size: 16px;
-
-  font-weight: 500;
-}
-
-.dash-search input::placeholder {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-/* =========================================================
-   USER AREA
-   ========================================================= */
-
-.dash-user {
-  min-width: 190px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: flex-end;
-
-  gap: 10px;
-
-  color: $citizen-white;
-}
-
-.dash-user__icon-btn {
-  width: 38px;
-
-  height: 38px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border: 0;
-
-  border-radius: 50%;
-
-  background: transparent;
-
-  color: $citizen-white;
-
-  text-decoration: none;
-}
-
-.dash-user__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.dash-user__icon-btn .material-icons {
-  font-size: 23px;
-}
-
-/* Avatar */
-
-.dash-user__avatar {
-  width: 42px;
-
-  height: 42px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: #dcecff;
-}
-
-.dash-user__avatar .material-icons {
-  color: #5d7795;
-
-  font-size: 38px;
-}
-
-/* User information */
-
-.dash-user__info {
-  min-width: 90px;
-
-  max-width: 135px;
-}
-
-.dash-user__name {
-  margin: 0;
-
-  color: $citizen-white;
-
-  font-size: 14px;
-
-  font-weight: 800;
-
-  line-height: 1.2;
-
-  white-space: nowrap;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-}
-
-.dash-user__role {
-  margin: 2px 0 0;
-
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 12px;
-
-  font-weight: 500;
 }
 
 /* =========================================================
@@ -937,46 +727,6 @@ img {
    768px - 1100px
    ========================================================= */
 
-@media (min-width: 768px) and (max-width: 1100px) {
-  .dash-topbar {
-    gap: 14px;
-
-    padding: 10px 18px;
-  }
-
-  .dash-topbar__brand {
-    width: 235px;
-
-    min-width: 235px;
-  }
-
-  .dash-search {
-    width: min(450px, 42vw);
-  }
-
-  .dash-user {
-    min-width: 160px;
-  }
-
-  .dash-user__info {
-    max-width: 105px;
-  }
-
-  .dash-topbar__tagline {
-    display: none;
-  }
-
-  .dash-sidebar {
-    width: 250px;
-  }
-
-  .dash-main-container {
-    width: calc(100% - 250px);
-
-    margin-left: 250px;
-  }
-}
-
 /* =========================================================
    MOBILE
    <= 767px
@@ -987,108 +737,6 @@ img {
     display: block;
 
     min-height: 100vh;
-  }
-
-  /* -----------------------------------------
-     TOPBAR
-     ----------------------------------------- */
-
-  .dash-topbar {
-    height: $mobile-topbar-height;
-
-    min-height: $mobile-topbar-height;
-
-    padding: 8px 14px;
-
-    gap: 10px;
-  }
-
-  .dash-topbar__brand {
-    width: auto;
-
-    min-width: 0;
-
-    flex: 1;
-  }
-
-  .dash-topbar__toggle {
-    width: 38px;
-
-    height: 38px;
-
-    flex: 0 0 38px;
-  }
-
-  .dash-topbar__logo {
-    width: 38px;
-
-    height: 38px;
-  }
-
-  .dash-topbar__brand-text {
-    display: none;
-  }
-
-  /* -----------------------------------------
-     SEARCH
-     ----------------------------------------- */
-
-  .dash-search {
-    width: auto;
-
-    max-width: 210px;
-
-    flex: 1;
-
-    height: 40px;
-
-    padding: 0 11px;
-
-    border-width: 2px;
-
-    gap: 7px;
-  }
-
-  .dash-search__icon {
-    font-size: 20px;
-  }
-
-  .dash-search input {
-    font-size: 13px;
-  }
-
-  .dash-search input::placeholder {
-    font-size: 12px;
-  }
-
-  /* -----------------------------------------
-     USER
-     ----------------------------------------- */
-
-  .dash-user {
-    min-width: auto;
-
-    gap: 5px;
-  }
-
-  .dash-user__icon-btn {
-    width: 34px;
-
-    height: 34px;
-  }
-
-  .dash-user__avatar {
-    width: 36px;
-
-    height: 36px;
-  }
-
-  .dash-user__avatar .material-icons {
-    font-size: 32px;
-  }
-
-  .dash-user__info {
-    display: none;
   }
 
   /* -----------------------------------------
@@ -1128,7 +776,7 @@ img {
 
     padding: 10px 13px;
 
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .dash-nav__icon {
@@ -1157,12 +805,14 @@ img {
 
   .dash-main-container {
     width: 100%;
+    max-width: 100%;
 
     margin-left: 0;
 
     padding-top: $mobile-topbar-height;
 
     min-height: 100vh;
+    box-sizing: border-box;
   }
 
   /* -----------------------------------------
@@ -1204,66 +854,7 @@ img {
    ========================================================= */
 
 @media (max-width: 480px) {
-  .dash-topbar {
-    padding: 8px 10px;
-
-    gap: 7px;
-  }
-
-  .dash-topbar__logo {
-    width: 35px;
-
-    height: 35px;
-  }
-
-  .dash-search {
-    max-width: none;
-
-    height: 38px;
-  }
-
-  .dash-search input {
-    font-size: 12px;
-  }
-
-  .dash-search__icon {
-    font-size: 19px;
-  }
-
-  .dash-user__icon-btn {
-    display: none;
-  }
-
-  .dash-user__avatar {
-    width: 34px;
-
-    height: 34px;
-  }
-
-  .dash-user__avatar .material-icons {
-    font-size: 30px;
-  }
-
   .dash-sidebar {
     width: 280px;
-  }
-}
-
-/* =========================================================
-   VERY SMALL MOBILE
-   <= 360px
-   ========================================================= */
-
-@media (max-width: 360px) {
-  .dash-search {
-    display: none;
-  }
-
-  .dash-topbar__brand {
-    flex: 1;
-  }
-
-  .dash-user {
-    margin-left: auto;
   }
 }

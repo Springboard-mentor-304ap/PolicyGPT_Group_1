@@ -81,45 +81,6 @@ $danger: #dc2626;
 }
 
 /* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.users-breadcrumb {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 16px;
-  color: $muted;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.users-breadcrumb button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: $blue;
-  font-size: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.users-breadcrumb button:hover {
-  text-decoration: underline;
-}
-
-.users-breadcrumb .material-icons {
-  color: #94a3b8;
-  font-size: 14px;
-}
-
-.users-breadcrumb strong {
-  color: $text;
-  font-weight: 700;
-}
-
-/* =========================================================
    PAGE HEADER
 ========================================================= */
 
@@ -134,25 +95,25 @@ $danger: #dc2626;
 .users-page-header__eyebrow {
   margin: 0 0 5px;
   color: #5073b7;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .users-page-header h1 {
   margin: 0;
   color: $heading;
-  font-size: clamp(25px, 2.5vw, 31px);
-  font-weight: 800;
-  line-height: 1.15;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .users-page-header p:not(.users-page-header__eyebrow) {
   margin: 6px 0 0;
   color: $muted;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
   line-height: 1.45;
 }
 
@@ -202,15 +163,15 @@ $danger: #dc2626;
 
 .users-page-header__count strong {
   color: $heading;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .users-page-header__count span {
   margin-top: 2px;
   color: $muted;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -219,10 +180,16 @@ $danger: #dc2626;
 ========================================================= */
 
 .users-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 100%;
+  min-width: 0;
+
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-auto-flow: row;
   gap: 12px;
-  margin-bottom: 17px;
+
+  margin: 0 0 17px;
+  padding: 0;
 }
 
 .users-summary__card {
@@ -251,21 +218,30 @@ $danger: #dc2626;
   box-shadow: 0 5px 15px rgba(15, 23, 42, 0.06);
 }
 
+/* =========================================================
+   ROLE SUMMARY - LARGE ICONS
+   ========================================================= */
+
 .users-summary__icon {
-  width: 36px;
-  height: 36px;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 
-  flex: 0 0 36px;
-
-  border-radius: 9px;
+  border-radius: 10px !important;
 }
 
 .users-summary__icon .material-icons {
-  font-size: 18px;
+  font-size: 20px !important;
+  width: auto !important;
+  height: auto !important;
+  line-height: 1 !important;
+
+  display: block !important;
 }
 
 .users-summary__icon--blue {
@@ -297,15 +273,15 @@ $danger: #dc2626;
 
 .users-summary__card strong {
   color: $heading;
-  font-size: 17px;
-  font-weight: 800;
+  font-size: 24px;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .users-summary__card span:last-child {
   margin-top: 2px;
   color: $muted;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -345,16 +321,16 @@ $danger: #dc2626;
 .users-panel__header h2 {
   margin: 0;
   color: $heading;
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.3;
 }
 
 .users-panel__header p {
   margin: 4px 0 0;
   color: $muted;
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
 }
 
 /* =========================================================
@@ -378,8 +354,8 @@ $danger: #dc2626;
   background: $white;
   color: $muted;
 
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -396,7 +372,7 @@ $danger: #dc2626;
 }
 
 .users-clear-button .material-icons {
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* =========================================================
@@ -431,8 +407,8 @@ $danger: #dc2626;
 
 .users-filter label {
   color: $muted;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .users-filter select {
@@ -449,8 +425,8 @@ $danger: #dc2626;
   background: $white;
   color: $text;
 
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
 
   cursor: pointer;
 
@@ -500,8 +476,8 @@ $danger: #dc2626;
   background: $white;
   color: $text;
 
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 400;
 
   transition:
     border-color 0.2s ease,
@@ -510,6 +486,7 @@ $danger: #dc2626;
 
 .users-filter--search input::placeholder {
   color: #94a3b8;
+  font-size: 13px;
 }
 
 .users-filter--search input:focus {
@@ -551,10 +528,10 @@ $danger: #dc2626;
 
   color: $muted;
 
-  font-size: 9px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 700;
 
-  letter-spacing: 0.3px;
+  letter-spacing: 0.04em;
 
   text-transform: uppercase;
 
@@ -567,6 +544,7 @@ $danger: #dc2626;
   border-bottom: 1px solid $border-light;
 
   vertical-align: middle;
+  font-size: 13px;
 }
 
 .users-table tbody tr {
@@ -624,8 +602,8 @@ $danger: #dc2626;
 .users-table__identity strong {
   color: $heading;
 
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 
   white-space: nowrap;
   overflow: hidden;
@@ -637,7 +615,7 @@ $danger: #dc2626;
 
   color: $muted;
 
-  font-size: 9px;
+  font-size: 12px;
 
   white-space: nowrap;
   overflow: hidden;
@@ -649,7 +627,7 @@ $danger: #dc2626;
 
   color: #94a3b8;
 
-  font-size: 8px;
+  font-size: 11px;
 }
 
 /* =========================================================
@@ -662,7 +640,7 @@ $danger: #dc2626;
 
   gap: 4px;
 
-  padding: 5px 7px;
+  padding: 5px 8px;
 
   border-radius: 6px;
 
@@ -670,8 +648,8 @@ $danger: #dc2626;
 
   color: $text;
 
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 
   white-space: nowrap;
 }
@@ -718,8 +696,8 @@ $danger: #dc2626;
 .users-location strong {
   color: $text;
 
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .users-location span {
@@ -727,7 +705,7 @@ $danger: #dc2626;
 
   color: $muted;
 
-  font-size: 9px;
+  font-size: 12px;
 }
 
 /* =========================================================
@@ -740,8 +718,8 @@ $danger: #dc2626;
 
   gap: 5px;
 
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 
   white-space: nowrap;
 }
@@ -778,8 +756,8 @@ $danger: #dc2626;
 .users-date {
   color: $muted;
 
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
 
   white-space: nowrap;
 }
@@ -806,8 +784,8 @@ $danger: #dc2626;
   background: $white;
   color: $blue;
 
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -870,8 +848,8 @@ $danger: #dc2626;
 
   color: $heading;
 
-  font-size: 15px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .users-empty p {
@@ -879,7 +857,7 @@ $danger: #dc2626;
 
   color: $muted;
 
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .users-empty button {
@@ -894,8 +872,8 @@ $danger: #dc2626;
   background: $blue;
   color: $white;
 
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -930,7 +908,7 @@ $danger: #dc2626;
 .users-pagination__info {
   color: $muted;
 
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 500;
 
   white-space: nowrap;
@@ -938,7 +916,7 @@ $danger: #dc2626;
 
 .users-pagination__info strong {
   color: $text;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .users-pagination__controls {
@@ -948,10 +926,21 @@ $danger: #dc2626;
   gap: 4px;
 }
 
+/* Fixed-width track for the page-number buttons: sized for three
+   buttons so the Previous/Next arrows never shift when the window
+   holds fewer numbers at the range boundaries. */
+.users-pagination__pages {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+  min-width: 104px;
+}
+
 .users-pagination__arrow,
 .users-pagination__page {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 
   display: flex;
   align-items: center;
@@ -966,8 +955,8 @@ $danger: #dc2626;
   background: $white;
   color: $muted;
 
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 
   cursor: pointer;
 
@@ -979,6 +968,12 @@ $danger: #dc2626;
 
 .users-pagination__arrow .material-icons {
   font-size: 16px;
+}
+
+/* Page-number buttons switch highlight instantly (no background fade)
+// so the active state never appears to slide between buttons. */
+.users-pagination__page {
+  transition: border-color 0.2s ease;
 }
 
 .users-pagination__arrow:hover:not(:disabled),
@@ -997,6 +992,7 @@ $danger: #dc2626;
   border-color: $blue;
   background: $blue;
   color: $white;
+  font-weight: 700;
 }
 
 .users-pagination__page--active:hover {
@@ -1075,7 +1071,7 @@ $danger: #dc2626;
   }
 
   .users-page-header p:not(.users-page-header__eyebrow) {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .users-summary__card {
@@ -1091,7 +1087,7 @@ $danger: #dc2626;
   }
 
   .users-panel__header h2 {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .users-pagination__info {
@@ -1125,7 +1121,7 @@ $danger: #dc2626;
 
 .users-loading p {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -1143,20 +1139,20 @@ $danger: #dc2626;
 }
 
 .users-load-error > .material-icons {
-  font-size: 32px;
+  font-size: 30px;
   color: $danger;
 }
 
 .users-load-error strong {
   display: block;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .users-load-error p {
   margin: 5px 0 10px;
   color: $muted;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .users-load-error button {
@@ -1166,8 +1162,8 @@ $danger: #dc2626;
   border-radius: 7px;
   background: $blue;
   color: $white;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1192,5 +1188,138 @@ $danger: #dc2626;
 
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   FINAL ROLE SUMMARY LAYOUT FIX
+   ---------------------------------------------------------
+   Exactly five role cards on desktop:
+   1. Administrator
+   2. Government Official
+   3. Citizen
+   4. Researcher
+   5. Organization
+
+   These rules intentionally use !important for the grid itself
+   so another/global stylesheet cannot force the cards into a
+   vertical list.
+========================================================= */
+
+.users-content,
+.users-summary {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.users-summary {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  grid-template-rows: auto;
+  grid-auto-flow: row;
+  align-items: stretch;
+  gap: 12px;
+  margin: 0 0 17px;
+  padding: 0;
+}
+
+.users-summary__card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 72px;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+
+  padding: 11px 13px;
+
+  overflow: hidden;
+}
+
+.users-summary__card > div:last-child {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.users-summary__card strong,
+.users-summary__card span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Five role colors */
+.users-summary__icon--administrator {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.users-summary__icon--administrator .material-icons {
+  font-size: 20px;
+}
+
+.users-summary__icon--government {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.users-summary__icon--citizen {
+  background: $blue-light;
+  color: $blue;
+}
+
+.users-summary__icon--researcher {
+  background: $purple-light;
+  color: $purple;
+}
+
+.users-summary__icon--organization {
+  background: $orange-light;
+  color: $orange;
+}
+
+/* ---------------------------------------------------------
+   Tablet: 3 + 2 cards
+--------------------------------------------------------- */
+
+@media (max-width: 1199px) {
+  .users-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* ---------------------------------------------------------
+   Mobile: one card per row
+--------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .users-summary {
+    grid-template-columns: 1fr !important;
+  }
+
+  .users-summary__card {
+    min-height: 68px;
+  }
+}
+
+/* ---------------------------------------------------------
+   Small mobile
+--------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .users-summary {
+    gap: 10px;
+  }
+
+  .users-summary__card {
+    padding: 10px 12px;
   }
 }

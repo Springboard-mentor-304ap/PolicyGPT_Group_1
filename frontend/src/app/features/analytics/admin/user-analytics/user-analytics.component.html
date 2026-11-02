@@ -1,0 +1,453 @@
+<div class="user-analytics-page" [attr.aria-busy]="isLoading()">
+  <!-- Breadcrumb -->
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">User Analytics</h1>
+        @if (isSampleData) {
+        <span class="sample-data-badge" title="Data presented from frontend sample dataset">
+          <span class="badge-dot"></span>
+          Sample Data
+        </span>
+        }
+      </div>
+      <p class="page-subtitle">Understand user engagement and platform usage across all user types</p>
+    </div>
+    <div class="header-right">
+      <app-date-range-picker [value]="currentRange()" (rangeChange)="onDateRangeChange($event)"
+        (rangeSelect)="onDateRangeSelect($event)" />
+      <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
+        aria-label="Download User Analytics Report">
+        <span class="material-icons" aria-hidden="true">download</span>
+        <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 6 KPI Cards Grid -->
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadAllData()">Retry</button>
+  </p>
+  }
+  <div class="kpi-grid">
+    @for (kpi of visibleKpis(); track kpi.label) {
+    <div class="kpi-card" [attr.title]="kpi.title ?? kpi.label">
+      <div class="kpi-icon-circle" [ngClass]="kpi.iconClass" aria-hidden="true">
+        <span class="material-icons">{{ kpi.icon }}</span>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">{{ kpi.label }}</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value" [appCountUp]="kpi.value">{{ kpi.value }}</span>
+        </div>
+        @if (kpi.change) {
+        <span class="kpi-trend" [ngClass]="{ 'green': kpi.isPositive, 'red': !kpi.isPositive }">
+          {{ kpi.change }} <span class="trend-sub">{{ kpi.subtext || 'from last period' }}</span>
+        </span>
+        }
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- Filter Panel (Policy Analytics styling) -->
+  <div class="filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-role">User Role</label>
+        <app-searchable-select
+          id="user-filter-role"
+          size="filter"
+          ariaLabel="User role filter"
+          placeholder="All Roles"
+          [searchable]="true"
+          searchPlaceholder="Search roles..."
+          [options]="roleOptions"
+          [ngModel]="fRole()"
+          (ngModelChange)="fRole.set($event)"
+        />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-status">Account Status</label>
+        <app-searchable-select
+          id="user-filter-status"
+          size="filter"
+          ariaLabel="Account status filter"
+          placeholder="All Statuses"
+          [searchable]="false"
+          [options]="statusOptions"
+          [ngModel]="fStatus()"
+          (ngModelChange)="fStatus.set($event)"
+        />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-date">Registration Date</label>
+        <app-searchable-select
+          id="user-filter-date"
+          size="filter"
+          ariaLabel="Registration date filter"
+          placeholder="Select date range"
+          [searchable]="false"
+          [options]="dateOptions"
+          [ngModel]="fDate()"
+          (ngModelChange)="fDate.set($event)"
+        />
+      </div>
+      <div class="filter-group filter-group--search">
+        <label class="filter-label" for="user-filter-search">Search</label>
+        <input id="user-filter-search" type="search" class="filter-search" placeholder="Name or email..."
+          [ngModel]="fSearch()" (ngModelChange)="fSearch.set($event)" />
+      </div>
+      <div class="filter-actions">
+        <button type="button" class="btn-apply" (click)="onApplyFilters()">Apply Filters</button>
+        <button type="button" class="btn-reset" (click)="onResetFilters()">Reset</button>
+      </div>
+    </div>
+    @if (fDate() === 'Custom') {
+    <div class="filters-row filters-row--custom">
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-from">Start date</label>
+        <input id="user-filter-from" type="date" class="filter-select" [ngModel]="fCustomFrom()"
+          (ngModelChange)="fCustomFrom.set($event)" [max]="fCustomTo() || undefined" />
+      </div>
+      <div class="filter-group">
+        <label class="filter-label" for="user-filter-to">End date</label>
+        <input id="user-filter-to" type="date" class="filter-select" [ngModel]="fCustomTo()"
+          (ngModelChange)="fCustomTo.set($event)" [min]="fCustomFrom() || undefined" />
+      </div>
+    </div>
+    }
+    @if (filterError()) {
+    <p class="filter-error" role="alert">{{ filterError() }}</p>
+    }
+  </div>
+
+  <!-- Row 1: Growth Trend -->
+  <div class="solo-grid">
+    <!-- User Growth Trend -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">User Growth Trend</h2>
+        <div class="dropdown-wrapper">
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleGrowthMenu($event)"
+            [attr.aria-expanded]="showGrowthMenu()" aria-label="Select growth trend period">
+            <span>{{ growthPeriod() }}</span>
+            <span class="material-icons">arrow_drop_down</span>
+          </button>
+          @if (showGrowthMenu()) {
+          <div class="dropdown-menu">
+            @for (opt of growthPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="growthPeriod() === opt"
+              (click)="setGrowthPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="chart-body">
+        <app-line-chart [labels]="growthLabels()" [datasets]="visibleGrowthDatasets()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Registration Trend + User Engagement Metrics -->
+  <div class="duo-grid">
+    <!-- B. User Distribution by Role -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">User Distribution by Role</h2>
+      </div>
+      <div class="chart-body doughnut-body">
+        <app-doughnut-chart [labels]="visibleRoleLabels()" [data]="visibleRoleData()" [colors]="visibleRoleColors()"
+          [centerMainText]="visibleRoleTotal()" centerSubText="Total Users" />
+      </div>
+    </div>
+
+    <!-- C. User Engagement Metrics (4 Mini-Cards) -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">User Engagement Metrics</h2>
+      </div>
+
+      <div class="engagement-grid">
+        @for (metric of engagementMetrics(); track metric.label) {
+        <div class="engagement-card">
+          <div class="engagement-icon-circle" [ngClass]="metric.iconClass" aria-hidden="true">
+            <span class="material-icons">{{ metric.icon }}</span>
+          </div>
+          <div class="engagement-content">
+            <span class="engagement-label">{{ metric.label }}</span>
+            <span class="engagement-value" [appCountUp]="metric.value">{{ metric.value }}</span>
+            @if (metric.change) {
+            <span class="engagement-trend" [ngClass]="{ 'green': metric.isPositive, 'red': !metric.isPositive }">
+              {{ metric.change }} <span class="trend-sub">from last period</span>
+            </span>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Users by State + User Engagement Metrics -->
+  <div class="duo-grid">
+    <!-- D. Users by State -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">Users by State</h2>
+        <div class="dropdown-wrapper">
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleStateMenu($event)"
+            [attr.aria-expanded]="showStateMenu()" aria-label="Select state display count">
+            <span>{{ selectedStateOption() }}</span>
+            <span class="material-icons">arrow_drop_down</span>
+          </button>
+          @if (showStateMenu()) {
+          <div class="dropdown-menu">
+            @for (opt of stateOptions; track opt.label) {
+            <button type="button" class="dropdown-item" [class.active]="selectedStateOption() === opt.label"
+              (click)="selectStateOption(opt)">
+              {{ opt.label }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="chart-body">
+        <app-hbar-chart [labels]="stateLabels()" [data]="stateValues()" primaryColor="#3b82f6" />
+      </div>
+    </div>
+
+    <!-- E. User Registration Trend -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h2 class="card-title">User Registration Trend</h2>
+        <div class="dropdown-wrapper">
+          <button type="button" class="dropdown-toggle-btn" (click)="toggleRegMenu($event)"
+            [attr.aria-expanded]="showRegMenu()" aria-label="Select registration trend period">
+            <span>{{ regPeriod() }}</span>
+            <span class="material-icons">arrow_drop_down</span>
+          </button>
+          @if (showRegMenu()) {
+          <div class="dropdown-menu">
+            @for (opt of regPeriodOptions; track opt) {
+            <button type="button" class="dropdown-item" [class.active]="regPeriod() === opt"
+              (click)="setRegPeriod(opt)">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="chart-body">
+        <app-vbar-chart [labels]="regLabels()" [values]="regValues()" color="#60a5fa" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: 2 Tables (Recent Registered Users, Top Active Users) -->
+  <div class="tables-grid">
+    <!-- G. Recent Registered Users -->
+    <div class="table-card">
+      <div class="card-header-row">
+        <h2 class="card-title">Recent Registered Users</h2>
+        <button type="button" class="btn-view-all" (click)="openModal('recent')">
+          View All
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Role</th>
+              <th scope="col">State</th>
+              <th scope="col">Join Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of visibleRecentUsers().slice(0, 5); track user.rank) {
+            <tr>
+              <td class="col-name font-semibold">{{ user.name }}</td>
+              <td class="col-email text-muted">{{ user.email }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="text-secondary">{{ user.state }}</td>
+              <td class="text-muted">{{ user.joinDate }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="5" class="text-center py-4 text-muted">No users found matching the active filters.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- H. Top Active Users -->
+    <div class="table-card">
+      <div class="card-header-row">
+        <h2 class="card-title">Top Active Users</h2>
+        <button type="button" class="btn-view-all" (click)="openModal('active')">
+          View All
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Role</th>
+              <th scope="col">Logins</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of visibleTopActiveUsers().slice(0, 5); track user.rank) {
+            <tr>
+              <td class="col-name font-semibold">{{ user.name }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td class="text-secondary">{{ user.logins | number }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="3" class="text-center py-4 text-muted">No active users found matching the active filters.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded "View All" Modal Dialog -->
+  @if (activeModal()) {
+  <div class="modal-backdrop" (click)="closeModal()" (keydown.escape)="closeModal()" tabindex="0" role="dialog"
+    aria-modal="true">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          {{ activeModal() === 'recent' ? 'All Registered Users' : 'All Active Users' }}
+        </h3>
+        <button type="button" class="modal-close-btn" (click)="closeModal()" aria-label="Close modal">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="modal-controls">
+        <div class="search-input-wrapper">
+          <span class="material-icons">search</span>
+          <input type="text" class="modal-search" placeholder="Search by name, email, or state..."
+            [ngModel]="modalSearchTerm()" (ngModelChange)="modalSearchTerm.set($event)" />
+        </div>
+
+        <div class="role-filter-wrapper">
+          <app-searchable-select
+            id="user-modal-role"
+            size="filter"
+            ariaLabel="Filter by role"
+            placeholder="All Roles"
+            [searchable]="false"
+            [options]="modalRoleOptions"
+            [ngModel]="modalRoleFilter()"
+            (ngModelChange)="modalRoleFilter.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="modal-body table-responsive">
+        @if (activeModal() === 'recent') {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Email</th>
+              <th scope="col">Role</th>
+              <th scope="col">State</th>
+              <th scope="col">Join Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of filteredRecentUsers(); track user.rank) {
+            <tr>
+              <td>{{ user.rank }}</td>
+              <td class="font-semibold">{{ user.name }}</td>
+              <td class="text-muted">{{ user.email }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>{{ user.state }}</td>
+              <td class="text-muted">{{ user.joinDate }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">No users found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Role</th>
+              <th scope="col">Logins</th>
+              <th scope="col">Searches</th>
+              <th scope="col">Last Active</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of filteredTopActiveUsers(); track user.rank) {
+            <tr>
+              <td>{{ user.rank }}</td>
+              <td class="font-semibold">{{ user.name }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ user.role }}
+                </span>
+              </td>
+              <td>{{ user.logins | number }}</td>
+              <td>{{ user.searches | number }}</td>
+              <td class="text-muted">{{ user.lastActive }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">No active users found matching your search.</td>
+            </tr>
+            }
+          </tbody>
+        </table>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-close-modal" (click)="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+  }
+</div>

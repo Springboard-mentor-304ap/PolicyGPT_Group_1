@@ -1,27 +1,43 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
+import { Auth } from "../../../core/services/auth";
 import { FooterComponent } from "../../components/footer/footer.component";
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 /* =========================================================
    ORGANIZATION NAVIGATION ITEM
    ========================================================= */
 
+export interface OrganizationNavChild {
+  icon: string;
+  label: string;
+  route: string;
+}
+
 export interface OrganizationNavItem {
   icon: string;
   label: string;
   route: string;
+  children?: OrganizationNavChild[];
 }
 
 /* =========================================================
@@ -35,12 +51,12 @@ export interface OrganizationNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./organization-layout.component.html",
@@ -48,26 +64,15 @@ export interface OrganizationNavItem {
 })
 export class OrganizationLayoutComponent implements OnInit {
   // =========================================================
-  // USER
-  // =========================================================
-
-  user: AuthUser | null = null;
-
-  userName = "Organization";
-  userRole = "ORGANIZATION";
-
-  // =========================================================
   // SIDEBAR
   // =========================================================
 
   sidebarCollapsed = false;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
   mobileMenuOpen = false;
-
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
-  searchText = "";
+  analyticsMenuOpen = false;
 
   // =========================================================
   // LOGOUT MODAL
@@ -85,50 +90,56 @@ export class OrganizationLayoutComponent implements OnInit {
 
   navItems: OrganizationNavItem[] = [
     {
-      icon: "manage_search",
-      label: "Policy Search",
+      label: "Search Policies",
+      icon: "policy",
       route: "/dashboard/organization/policies/search",
     },
 
     {
+      label: "Search Schemes",
       icon: "account_balance",
-      label: "Scheme Search",
       route: "/dashboard/organization/schemes",
     },
 
     {
+      label: "Compare",
       icon: "compare_arrows",
-      label: "Policy Comparison",
       route: "/dashboard/organization/compare",
     },
 
     {
+      label: "Analytics",
       icon: "analytics",
-      label: "Organization Insights",
       route: "/dashboard/organization/analytics",
     },
 
     {
-      icon: "bookmark_border",
-      label: "Saved Policies",
+      label: "Saved Items",
+      icon: "bookmark",
       route: "/dashboard/organization/saved",
     },
 
     {
+      label: "Search History",
       icon: "history",
-      label: "Research History",
       route: "/dashboard/organization/history",
     },
 
     {
-      icon: "notifications_none",
       label: "Notifications",
+      icon: "notifications_none",
       route: "/dashboard/organization/notifications",
     },
 
     {
+      label: "Help & Support",
       icon: "support_agent",
-      label: "Support",
+      route: "/dashboard/organization/support",
+    },
+
+    {
+      label: "Feedback",
+      icon: "rate_review",
       route: "/dashboard/organization/feedback",
     },
   ];
@@ -142,103 +153,63 @@ export class OrganizationLayoutComponent implements OnInit {
     private readonly router: Router,
   ) {}
 
+  private readonly destroyRef = inject(DestroyRef);
+
   // =========================================================
   // INIT
   // =========================================================
 
   ngOnInit(): void {
-    this.loadCurrentUser();
-  }
-
-  // =========================================================
-  // LOAD CURRENT USER
-  // =========================================================
-
-  private loadCurrentUser(): void {
-    // -------------------------------------------------------
-    // GET STORED USER
-    // -------------------------------------------------------
-
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
-
-    if (storedUser) {
-      this.setUserDetails(storedUser);
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
+    if (this.isAnalyticsRouteActive()) {
+      this.analyticsMenuOpen = true;
     }
 
-    // -------------------------------------------------------
-    // CHECK TOKEN
-    // -------------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.authService.logout();
-
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): a matching route re-expands its group.
+    // Arrow clicks always work because submenu visibility depends only
+    // on the flag — a collapsed group stays collapsed until explicitly
+    // reopened or a relevant route change occurs.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        if (this.isAnalyticsRouteActive()) {
+          this.analyticsMenuOpen = true;
+        }
       });
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // GET CURRENT USER FROM BACKEND
-    // -------------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load organization user:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
   }
 
-  // =========================================================
-  // SET USER DETAILS
-  // =========================================================
-
-  private setUserDetails(user: AuthUser): void {
-    this.user = user;
-
-    this.userName = user.full_name?.trim() || "Organization";
-
-    this.userRole = user.role?.trim().toUpperCase() || "ORGANIZATION";
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+    }
+    this.toggleAnalyticsMenu();
   }
 
-  // =========================================================
-  // DISPLAY ROLE
-  // =========================================================
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
 
-  get displayRole(): string {
-    switch ((this.userRole || "").toUpperCase().replace(/[\s-]+/g, "_")) {
-      case "ORGANIZATION":
-      case "ORGANISATION":
-        return "Organization";
-
-      default:
-        return "Organization";
+  toggleAnalyticsMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
     }
+    this.analyticsMenuOpen = !this.analyticsMenuOpen;
+  }
+
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/organization/analytics");
   }
 
   // =========================================================
@@ -283,36 +254,6 @@ export class OrganizationLayoutComponent implements OnInit {
   }
 
   // =========================================================
-  // SEARCH
-  // =========================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    // Keep search inside Organization Layout
-
-    this.router.navigate(["/dashboard/organization/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =========================================================
-  // CLEAR SEARCH
-  // =========================================================
-
-  clearSearch(): void {
-    this.searchText = "";
-  }
-
-  // =========================================================
   // LOGOUT
   // =========================================================
 
@@ -336,15 +277,6 @@ export class OrganizationLayoutComponent implements OnInit {
     // -------------------------------------------------------
 
     this.authService.logout();
-
-    // -------------------------------------------------------
-    // RESET USER
-    // -------------------------------------------------------
-
-    this.user = null;
-
-    this.userName = "Organization";
-    this.userRole = "ORGANIZATION";
 
     // -------------------------------------------------------
     // RESET LAYOUT

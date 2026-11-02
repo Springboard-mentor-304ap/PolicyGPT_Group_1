@@ -6,11 +6,7 @@
 
     <div class="title-section">
 
-      <div class="breadcrumb">
-        <span>Home</span>
-        <span class="separator"></span>
-        <span>Analytics</span>
-      </div>
+      <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
       <h1>Admin Analytics Dashboard</h1>
 
@@ -401,40 +397,62 @@
               preserveAspectRatio="none"
             >
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getApprovedTrendPoints()"
+                [attr.d]="getApprovedCurvePath()"
                 fill="none"
                 stroke="#55bd91"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-approved"
+              ></path>
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getPendingTrendPoints()"
+                [attr.d]="getPendingCurvePath()"
                 fill="none"
                 stroke="#e6b24d"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-pending"
+              ></path>
 
-              <polyline
+              <path
                 *ngIf="policyTrend.length > 0"
-                [attr.points]="getRejectedTrendPoints()"
+                [attr.d]="getRejectedCurvePath()"
                 fill="none"
                 stroke="#e95e67"
-                stroke-width="2"
-              ></polyline>
+                stroke-width="2.5"
+                class="chart-path-rejected"
+              ></path>
 
-              <circle
-                *ngFor="
-                  let item of policyTrend;
-                  let i = index
-                "
-                [attr.cx]="getTrendX(i)"
-                [attr.cy]="getTrendY(item)"
-                r="2.5"
-                fill="#55bd91"
-              ></circle>
+              <ng-container *ngFor="let item of policyTrend; let i = index">
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'approved')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#55bd91"
+                  stroke-width="2"
+                  class="chart-dot-approved"
+                ></circle>
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'pending')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#e6b24d"
+                  stroke-width="2"
+                  class="chart-dot-pending"
+                ></circle>
+                <circle
+                  [attr.cx]="getTrendX(i)"
+                  [attr.cy]="getTrendYForField(item, 'rejected')"
+                  r="3.5"
+                  fill="#ffffff"
+                  stroke="#e95e67"
+                  stroke-width="2"
+                  class="chart-dot-rejected"
+                ></circle>
+              </ng-container>
 
             </svg>
 
@@ -697,14 +715,22 @@
             <tbody>
 
               <tr
-                *ngIf="!activityAvailable"
+                *ngFor="let act of recentUserActivity"
+              >
+                <td>User #{{ act.user_id }}</td>
+                <td>{{ act.action }}</td>
+                <td>{{ formatDate(act.timestamp || act.created_at) }}</td>
+                <td><span class="status-badge">Completed</span></td>
+              </tr>
+
+              <tr
+                *ngIf="!activityAvailable || recentUserActivity.length === 0"
                 class="empty-row"
               >
 
                 <td colspan="4">
 
-                  Activity event details are not
-                  available from the current analytics API.
+                  No recent activity recorded.
 
                 </td>
 

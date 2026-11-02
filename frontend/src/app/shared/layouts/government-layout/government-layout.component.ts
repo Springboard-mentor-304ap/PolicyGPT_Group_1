@@ -1,20 +1,23 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import { Component, DestroyRef, HostListener, OnInit, inject } from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
+import { Auth } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 // =========================================================
 // NAVIGATION ITEM
@@ -36,12 +39,12 @@ export interface GovernmentNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./government-layout.component.html",
@@ -49,17 +52,13 @@ export interface GovernmentNavItem {
 })
 export class GovernmentLayoutComponent implements OnInit {
   // =======================================================
-  // USER
-  // =======================================================
-
-  userName = "Government Official";
-  userRole = "Government Official";
-
-  // =======================================================
   // SIDEBAR
   // =======================================================
 
   sidebarCollapsed = false;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
   mobileMenuOpen = false;
 
   // =======================================================
@@ -68,12 +67,16 @@ export class GovernmentLayoutComponent implements OnInit {
 
   policiesMenuOpen = false;
   schemesMenuOpen = false;
+  analyticsMenuOpen = false;
 
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
+  /**
+   * First child destination for the Analytics group, which navigates on
+   * parent-label click (mirrors the admin layout's GROUP_FIRST_CHILD
+   * convention: expand once + navigate once, collapse when expanded).
+   */
+  private static readonly GROUP_FIRST_CHILD: Record<'analytics', string> = {
+    analytics: '/dashboard/government/analytics',
+  };
 
   // =======================================================
   // LOGOUT MODAL
@@ -105,12 +108,6 @@ export class GovernmentLayoutComponent implements OnInit {
     },
 
     {
-      icon: "assignment",
-      label: "Applications",
-      route: "/government/applications",
-    },
-
-    {
       icon: "notifications_none",
       label: "Notifications",
       route: "/notifications",
@@ -119,13 +116,13 @@ export class GovernmentLayoutComponent implements OnInit {
     {
       icon: "insert_chart_outlined",
       label: "Reports",
-      route: "/government/reports",
+      route: "/dashboard/government/reports",
     },
 
     {
-      icon: "fact_check",
-      label: "Audit Logs",
-      route: "/government/audit-logs",
+      icon: "support_agent",
+      label: "Support",
+      route: "/dashboard/government/faqs",
     },
   ];
 
@@ -138,105 +135,50 @@ export class GovernmentLayoutComponent implements OnInit {
     private router: Router,
   ) {}
 
+  private readonly destroyRef = inject(DestroyRef);
+
   // =======================================================
   // INITIALIZATION
   // =======================================================
 
   ngOnInit(): void {
-    this.loadCurrentUser();
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
+    this.syncMenusWithRoute();
 
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): the group matching the new URL opens,
+    // others close. Arrow clicks always work because submenu visibility
+    // depends only on these flags.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.syncMenusWithRoute());
+  }
+
+  /**
+   * Expand the submenu group matching the current URL and close the
+   * rest (accordion). URLs matching no group leave all flags untouched.
+   */
+  private syncMenusWithRoute(): void {
     if (this.isPoliciesRouteActive()) {
       this.policiesMenuOpen = true;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
     } else if (this.isSchemesRouteActive()) {
+      this.policiesMenuOpen = false;
       this.schemesMenuOpen = true;
+      this.analyticsMenuOpen = false;
+    } else if (this.isAnalyticsRouteActive()) {
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = true;
     }
-  }
-
-  // =======================================================
-  // LOAD CURRENT USER
-  // =======================================================
-
-  private loadCurrentUser(): void {
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
-
-    // -----------------------------------------------------
-    // USE STORED USER FIRST
-    // -----------------------------------------------------
-
-    if (storedUser) {
-      this.setUserDetails(storedUser);
-    }
-
-    // -----------------------------------------------------
-    // CHECK TOKEN
-    // -----------------------------------------------------
-
-    const token = this.authService.getToken();
-
-    if (!token) {
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
-      return;
-    }
-
-    // -----------------------------------------------------
-    // GET CURRENT USER FROM BACKEND
-    // -----------------------------------------------------
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load current user:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =======================================================
-  // SET USER DETAILS
-  // =======================================================
-
-  private setUserDetails(user: AuthUser): void {
-    if (!user) {
-      return;
-    }
-
-    this.userName = user.full_name || "Government Official";
-
-    this.userRole = this.formatRole(user.role || "GOVERNMENT_OFFICIAL");
-  }
-
-  // =======================================================
-  // FORMAT ROLE
-  // =======================================================
-
-  private formatRole(role: string): string {
-    return role
-      .replace(/_/g, " ")
-      .toLowerCase()
-      .replace(/\b\w/g, (char: string) => char.toUpperCase());
   }
 
   // =======================================================
@@ -269,39 +211,156 @@ export class GovernmentLayoutComponent implements OnInit {
   // SUBMENU CONTROLS
   // =======================================================
 
+  onPoliciesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.togglePoliciesMenu();
+      return;
+    }
+
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.policiesMenuOpen = true;
+    this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/government/policies/search']);
+  }
+
+  togglePoliciesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.togglePoliciesMenu();
+  }
+
   togglePoliciesMenu(): void {
+    this.toggleGroup('policies');
+  }
+
+  /**
+   * Single accordion toggle for every expandable parent: flips the
+   * named group and closes the rest. Arrow clicks always take effect —
+   * collapsing works even while a child route is active, because
+   * submenu visibility depends only on these flags.
+   */
+  toggleGroup(group: 'policies' | 'schemes' | 'analytics'): void {
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
 
-    this.policiesMenuOpen = !this.policiesMenuOpen;
-    if (this.policiesMenuOpen) {
-      this.schemesMenuOpen = false;
-    }
+    const next =
+      group === 'policies'
+        ? !this.policiesMenuOpen
+        : group === 'schemes'
+          ? !this.schemesMenuOpen
+          : !this.analyticsMenuOpen;
+    this.policiesMenuOpen = group === 'policies' ? next : false;
+    this.schemesMenuOpen = group === 'schemes' ? next : false;
+    this.analyticsMenuOpen = group === 'analytics' ? next : false;
   }
 
   closePoliciesMenu(): void {
     this.policiesMenuOpen = false;
   }
 
-  toggleSchemesMenu(): void {
+  onSchemesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleSchemesMenu();
+      return;
+    }
+
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
+    this.schemesMenuOpen = true;
+    this.policiesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/government/schemes']);
+  }
 
-    this.schemesMenuOpen = !this.schemesMenuOpen;
-    if (this.schemesMenuOpen) {
-      this.policiesMenuOpen = false;
-    }
+  toggleSchemesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleSchemesMenu();
+  }
+
+  toggleSchemesMenu(): void {
+    this.toggleGroup('schemes');
   }
 
   closeSchemesMenu(): void {
     this.schemesMenuOpen = false;
   }
 
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleAnalyticsMenu();
+      return;
+    }
+
+    // Parent label follows the shared expandable-group convention:
+    // expand once + navigate once to the first child; collapse when
+    // already expanded.
+    this.openGroup('analytics');
+  }
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    this.toggleGroup('analytics');
+  }
+
+  closeAnalyticsMenu(): void {
+    this.analyticsMenuOpen = false;
+  }
+
+  /**
+   * Shared expandable-group behavior for Analytics (mirrors the admin
+   * layout convention).
+   *
+   * First click on a closed parent: expand it, close every other group,
+   * and navigate exactly once to the group's first child. Clicking an
+   * already-expanded parent collapses it without navigating (when a
+   * child route is active the route itself keeps the group expanded).
+   * Chevron clicks keep the existing toggle-only handlers, and child
+   * links navigate normally without touching these flags.
+   */
+  private openGroup(group: 'analytics'): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    const expanded =
+      this.analyticsMenuOpen || this.isAnalyticsRouteActive();
+    this.closeAllSubmenus();
+    if (expanded) {
+      this.closeMobileMenu();
+      return;
+    }
+
+    this.analyticsMenuOpen = true;
+    this.closeMobileMenu();
+    void this.router.navigate([GovernmentLayoutComponent.GROUP_FIRST_CHILD[group]]);
+  }
+
   closeAllSubmenus(): void {
     this.policiesMenuOpen = false;
     this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
   }
 
   // =======================================================
@@ -312,6 +371,7 @@ export class GovernmentLayoutComponent implements OnInit {
     return (
       !this.policiesMenuOpen &&
       !this.schemesMenuOpen &&
+      !this.analyticsMenuOpen &&
       this.router.url === "/dashboard/government"
     );
   }
@@ -327,6 +387,10 @@ export class GovernmentLayoutComponent implements OnInit {
     );
   }
 
+  isAnalyticsRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/government/analytics");
+  }
+
   // =======================================================
   // WINDOW RESIZE
   // =======================================================
@@ -336,36 +400,6 @@ export class GovernmentLayoutComponent implements OnInit {
     if (window.innerWidth > 767) {
       this.mobileMenuOpen = false;
     }
-  }
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    console.log("Government search:", query);
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
-  }
-
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
   }
 
   // =======================================================
@@ -387,9 +421,6 @@ export class GovernmentLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset layout
-    this.userName = "Government Official";
-    this.userRole = "Government Official";
-
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
 

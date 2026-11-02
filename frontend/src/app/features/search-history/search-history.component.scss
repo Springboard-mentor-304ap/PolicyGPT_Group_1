@@ -1,0 +1,1154 @@
+// ============================================================
+// COLORS (PolicyGPT Citizen palette)
+// ============================================================
+
+$primary: #1461a0;
+$primary-dark: #0c4678;
+$primary-soft: #edf5fc;
+
+$text: #172033;
+$text-secondary: #617087;
+
+$border: #dfe6ee;
+$border-light: #edf1f5;
+
+$background: #f5f7fb;
+$white: #ffffff;
+
+$danger: #c0392b;
+$danger-soft: #fdf0ee;
+
+$muted: #64748b;
+
+$policy-bg: #eef4fb;
+$policy-border: #cfdff0;
+$policy-text: #1461a0;
+
+$scheme-bg: #e9f7ef;
+$scheme-border: #c9e8d4;
+$scheme-text: #1c7a3d;
+
+// ============================================================
+// PAGE
+// ============================================================
+
+.history-page {
+  min-height: 100vh;
+
+  background: $background;
+
+  color: $text;
+
+  padding: 24px 28px 48px;
+}
+
+// ============================================================
+// PAGE HEADER
+// ============================================================
+
+.page-header h1 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 30px;
+
+  line-height: 1.2;
+
+  font-weight: 700;
+
+  letter-spacing: -0.02em;
+}
+
+.page-header p {
+  margin: 9px 0 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+
+  line-height: 1.5;
+}
+
+.header-content {
+  margin: 0 auto;
+
+  padding-bottom: 20px;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+.header-main {
+  min-width: 0;
+}
+
+// ============================================================
+// CLEAR HISTORY BUTTON
+// ============================================================
+
+.clear-history-button {
+  flex-shrink: 0;
+
+  margin-top: 4px;
+
+  min-width: 118px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 13px;
+
+  border: 1px solid #f0c9c4;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $danger;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+
+  .material-icons {
+    font-size: 17px;
+  }
+
+  &:hover:not(:disabled) {
+    background: $danger-soft;
+
+    border-color: #e7b5af;
+
+    color: $danger;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $danger;
+
+    outline-offset: 2px;
+  }
+}
+
+// ============================================================
+// SUMMARY CARD
+// ============================================================
+
+.summary-card {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 24px;
+
+  flex-wrap: wrap;
+
+  padding: 20px 22px;
+
+  margin-bottom: 18px;
+
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+}
+
+.summary-main {
+  display: flex;
+
+  align-items: center;
+
+  gap: 15px;
+
+  min-width: 0;
+}
+
+.summary-icon {
+  width: 48px;
+
+  height: 48px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: $primary-soft;
+
+  color: $primary;
+
+  .material-icons {
+    font-size: 24px;
+  }
+}
+
+.summary-text h2 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 18px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.01em;
+}
+
+.summary-text p {
+  margin: 4px 0 0;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+}
+
+.summary-title-row {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  flex-wrap: wrap;
+}
+
+.count-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  padding: 3px 10px;
+
+  border-radius: 999px;
+
+  background: $primary-soft;
+
+  border: 1px solid #d9e6f2;
+
+  color: $primary;
+
+  font-size: 11.5px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+}
+
+.summary-stats {
+  display: flex;
+
+  align-items: stretch;
+
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 10px 16px 10px 12px;
+
+  background: #fafbfd;
+
+  border: 1px solid $border-light;
+
+  border-radius: 10px;
+
+  min-width: 108px;
+}
+
+.stat-icon {
+  font-size: 21px;
+
+  color: $primary;
+}
+
+.stat-icon--policy {
+  color: $policy-text;
+}
+
+.stat-icon--scheme {
+  color: $scheme-text;
+}
+
+.stat-text {
+  display: flex;
+
+  flex-direction: column;
+
+  line-height: 1.3;
+
+  strong {
+    color: $text;
+
+    font-size: 16px;
+
+    font-weight: 800;
+  }
+
+  span {
+    color: $text-secondary;
+
+    font-size: 11.5px;
+
+    font-weight: 600;
+  }
+}
+
+// ============================================================
+// RESULTS CARD
+// ============================================================
+
+.results-card {
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+
+  padding: 20px 22px 12px;
+}
+
+.results-card-header {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 16px;
+
+  flex-wrap: wrap;
+
+  padding-bottom: 14px;
+
+  border-bottom: 1px solid $border-light;
+
+  h2 {
+    margin: 0;
+
+    color: $text;
+
+    font-size: 17px;
+
+    font-weight: 800;
+
+    letter-spacing: -0.01em;
+  }
+}
+
+// ============================================================
+// TYPE TABS
+// ============================================================
+
+.type-tabs {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 4px;
+
+  padding: 3px;
+
+  background: #f1f5f9;
+
+  border: 1px solid $border-light;
+
+  border-radius: 9px;
+}
+
+.type-tab {
+  border: 0;
+
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: $text-secondary;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  padding: 6px 14px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    color: $text;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+
+    outline-offset: 1px;
+  }
+}
+
+.type-tab--active {
+  background: $white;
+
+  color: $primary;
+
+  box-shadow: 0 1px 3px rgba(15, 35, 60, 0.12);
+}
+
+// ============================================================
+// HISTORY LIST
+// ============================================================
+
+.history-list {
+  list-style: none;
+
+  margin: 0;
+
+  padding: 0;
+}
+
+.history-item {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 16px;
+
+  padding: 16px 6px;
+
+  border-bottom: 1px solid $border-light;
+
+  border-radius: 8px;
+
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover {
+    background: #fafcff;
+
+    box-shadow: inset 0 0 0 1px #e3edf6;
+  }
+}
+
+// ============================================================
+// ITEM ICON
+// ============================================================
+
+.item-icon {
+  width: 44px;
+
+  height: 44px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: $policy-bg;
+
+  border: 1px solid $policy-border;
+
+  color: $policy-text;
+
+  .material-icons {
+    font-size: 22px;
+  }
+}
+
+.item-icon--scheme {
+  background: $scheme-bg;
+
+  border-color: $scheme-border;
+
+  color: $scheme-text;
+}
+
+// ============================================================
+// ITEM MAIN (query + badge + filters)
+// ============================================================
+
+.item-main {
+  flex: 1;
+
+  min-width: 0;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-start;
+
+  gap: 7px;
+}
+
+.item-query {
+  color: $text;
+
+  font-size: 15px;
+
+  font-weight: 750;
+
+  letter-spacing: -0.01em;
+
+  overflow-wrap: anywhere;
+}
+
+.type-badge {
+  display: inline-flex;
+
+  align-items: center;
+
+  min-height: 22px;
+
+  padding: 2px 8px;
+
+  border: 1px solid $policy-border;
+
+  border-radius: 6px;
+
+  background: $policy-bg;
+
+  color: $policy-text;
+
+  font-size: 10.5px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.05em;
+}
+
+.type-badge--scheme {
+  background: $scheme-bg;
+
+  border-color: $scheme-border;
+
+  color: $scheme-text;
+}
+
+.item-filters {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 6px;
+}
+
+.no-filters {
+  color: $muted;
+
+  font-size: 12px;
+
+  font-style: italic;
+}
+
+.filter-chip {
+  display: inline-flex;
+
+  align-items: center;
+
+  padding: 3px 9px;
+
+  border: 1px solid $border;
+
+  border-radius: 999px;
+
+  background: #f8fafc;
+
+  color: $text-secondary;
+
+  font-size: 11.5px;
+
+  font-weight: 600;
+
+  line-height: 1.4;
+}
+
+// ============================================================
+// ITEM DATE
+// ============================================================
+
+.item-date {
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 7px;
+
+  min-width: 128px;
+
+  padding-top: 2px;
+
+  color: $text-secondary;
+
+  .material-icons {
+    font-size: 16px;
+
+    margin-top: 1px;
+
+    color: $muted;
+  }
+}
+
+.item-date-text {
+  display: flex;
+
+  flex-direction: column;
+
+  line-height: 1.4;
+
+  strong {
+    color: $text;
+
+    font-size: 12.5px;
+
+    font-weight: 750;
+
+    white-space: nowrap;
+  }
+
+  span {
+    font-size: 12px;
+
+    color: $text-secondary;
+
+    white-space: nowrap;
+  }
+}
+
+// ============================================================
+// ITEM ACTIONS
+// ============================================================
+
+.item-actions {
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding-top: 4px;
+}
+
+// ============================================================
+// NO-MATCH NOTE
+// ============================================================
+
+.no-match-note {
+  margin: 0;
+
+  padding: 26px 10px;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+
+  text-align: center;
+}
+
+// ============================================================
+// PRIMARY BUTTON
+// ============================================================
+
+.btn-primary {
+  min-width: 118px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 0 13px;
+
+  border: 1px solid $primary;
+
+  border-radius: 8px;
+
+  background: $primary;
+
+  color: $white;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  .material-icons {
+    font-size: 17px;
+  }
+
+  &:hover {
+    background: $primary-dark;
+
+    border-color: $primary-dark;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-dark;
+
+    outline-offset: 2px;
+  }
+}
+
+// ============================================================
+// SECONDARY BUTTON
+// ============================================================
+
+.btn-secondary {
+  min-width: 100px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 0 13px;
+
+  border: 1px solid #c7d7e7;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $primary;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  .material-icons {
+    font-size: 16px;
+  }
+
+  &:hover {
+    background: $primary-soft;
+
+    border-color: #a8c3dc;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+
+    outline-offset: 2px;
+  }
+}
+
+// ============================================================
+// SMALL BUTTON
+// ============================================================
+
+.btn-small {
+  min-width: 0;
+
+  height: 34px;
+
+  padding: 0 12px;
+
+  font-size: 11px;
+}
+
+// ============================================================
+// DANGER BUTTON
+// ============================================================
+
+.btn-danger-ghost {
+  min-width: 100px;
+
+  height: 39px;
+
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 6px;
+
+  padding: 0 13px;
+
+  border: 1px solid #f0c9c4;
+
+  border-radius: 8px;
+
+  background: $white;
+
+  color: $danger;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  .material-icons {
+    font-size: 16px;
+  }
+
+  &:hover:not(:disabled) {
+    background: $danger-soft;
+
+    border-color: #e7b5af;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $danger;
+
+    outline-offset: 2px;
+  }
+}
+
+// ============================================================
+// ============================================================
+
+
+
+
+
+
+
+
+// ============================================================
+// STATE CARD
+// ============================================================
+
+.state-card,
+.empty-state {
+  min-height: 300px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 42px 24px;
+
+  background: $white;
+
+  border: 1px solid $border;
+
+  border-radius: 12px;
+
+  text-align: center;
+}
+
+// ============================================================
+// STATE ICON
+// ============================================================
+
+.state-icon,
+.empty-icon {
+  width: 62px;
+
+  height: 62px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  margin-bottom: 16px;
+
+  border-radius: 50%;
+
+  background: $primary-soft;
+
+  color: $primary;
+
+  .material-icons {
+    font-size: 27px;
+  }
+}
+
+.error-state .state-icon {
+  background: $danger-soft;
+
+  color: $danger;
+}
+
+// ============================================================
+// STATE TEXT
+// ============================================================
+
+.state-card h2,
+.empty-state h2 {
+  margin: 0;
+
+  color: $text;
+
+  font-size: 19px;
+
+  font-weight: 800;
+}
+
+.state-card p,
+.empty-state p {
+  max-width: 520px;
+
+  margin: 9px 0 21px;
+
+  color: $text-secondary;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+// ============================================================
+// EMPTY ACTIONS
+// ============================================================
+
+.empty-actions {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  justify-content: center;
+}
+
+// ============================================================
+// RETRY BUTTON
+// ============================================================
+
+.retry-button {
+  height: 41px;
+
+  padding: 0 18px;
+
+  border: 1px solid $primary;
+
+  border-radius: 8px;
+
+  background: $primary;
+
+  color: $white;
+
+  font-size: 12px;
+
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: $primary-dark;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-dark;
+
+    outline-offset: 2px;
+  }
+}
+
+// ============================================================
+// ============================================================
+
+
+// ============================================================
+// RESPONSIVE (tablet)
+// ============================================================
+
+@media (max-width: 1024px) {
+  .history-item {
+    flex-wrap: wrap;
+  }
+
+  .item-date {
+    min-width: 0;
+  }
+
+  .item-actions {
+    width: 100%;
+
+    padding-top: 0;
+  }
+}
+
+// ============================================================
+// RESPONSIVE (mobile)
+// ============================================================
+
+@media (max-width: 768px) {
+  .history-page {
+    padding: 18px 16px 36px;
+  }
+
+  .header-content {
+    gap: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 26px;
+  }
+
+  .summary-card {
+    align-items: stretch;
+
+    flex-direction: column;
+  }
+
+  .summary-stats {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    flex: 1;
+
+    min-width: 100px;
+  }
+
+  .results-card {
+    padding: 16px 14px 8px;
+  }
+
+  .history-item {
+    gap: 12px;
+  }
+}
+
+// ============================================================
+// SMALL MOBILE
+// ============================================================
+
+@media (max-width: 560px) {
+  .history-page {
+    padding: 16px 12px 30px;
+  }
+
+  .header-content {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .clear-history-button {
+    align-self: flex-start;
+  }
+
+  .history-item {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .item-actions {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    .btn-secondary,
+    .btn-danger-ghost {
+      width: 100%;
+    }
+  }
+
+  .type-tabs {
+    width: 100%;
+
+    .type-tab {
+      flex: 1;
+    }
+  }
+}

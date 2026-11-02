@@ -2,8 +2,9 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.api.routes.feedback import router as feedback_router
 from app.api.routes.reports import router as reports_router
@@ -11,19 +12,36 @@ from app.api.routes.notification_preferences import (
     router as notification_preferences_router
 )
 from app.api.routes.search_history import router as search_history_router
+from app.api.routes.saved_items import router as saved_items_router
 from app.api.routes.audit_logs import router as audit_logs_router
 from app.api.routes.faqs import router as faqs_router
 from app.api.routes.analytics import router as analytics_router
 from app.api.routes.usage import router as usage_router
-from app.api.routes.notifications import router as notifications_router
+from app.api.routes.notifications import (
+    router as notifications_router,
+    admin_router as notifications_admin_router,
+    webhook_router as notifications_webhook_router,
+    twilio_router as notifications_twilio_router,
+)
+from app.api.routes.notifications_ws import (
+    router as notifications_ws_router,
+)
+from app.api.routes.support import router as support_router
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.admin_users import router as admin_users_router
 from app.api.routes.policy import router as policy_router
 from app.api.routes.scheme import router as scheme_router
+from app.api.routes.search import router as search_router
 from app.api.routes.eligibility import router as eligibility_router
+from app.api.routes.role_based import router as role_based_router
+from app.api.routes.chatbot import router as chatbot_router
 
+from app.core.config import settings
 from app.db.database import Base, engine
+from app.services.notification_delivery_service import (
+    NotificationDeliveryService,
+)
 
 # =========================================================
 # CREATE DATABASE TABLES
@@ -46,8 +64,136 @@ def _warm_up_pool() -> None:
     not pay the cost of creating a cold connection.
     """
     try:
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             conn.execute(text("SELECT 1"))
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.notifications ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.support_queries ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.support_queries DROP CONSTRAINT IF EXISTS support_queries_user_id_fkey;
+                        ALTER TABLE extensions.support_queries ADD CONSTRAINT support_queries_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.support_ticket_messages ALTER COLUMN sender_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.support_ticket_messages DROP CONSTRAINT IF EXISTS support_ticket_messages_sender_id_fkey;
+                        ALTER TABLE extensions.support_ticket_messages ADD CONSTRAINT support_ticket_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.reports ALTER COLUMN generated_by DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.reports DROP CONSTRAINT IF EXISTS reports_generated_by_fkey;
+                        ALTER TABLE extensions.reports ADD CONSTRAINT reports_generated_by_fkey FOREIGN KEY (generated_by) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.feedback ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.feedback DROP CONSTRAINT IF EXISTS feedback_user_id_fkey;
+                        ALTER TABLE extensions.feedback ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        "ALTER TABLE extensions.scheme_applications ALTER COLUMN user_id DROP NOT NULL"
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.scheme_applications DROP CONSTRAINT IF EXISTS scheme_applications_user_id_fkey;
+                        ALTER TABLE extensions.scheme_applications ADD CONSTRAINT scheme_applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE SET NULL;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        ALTER TABLE extensions.search_history DROP CONSTRAINT IF EXISTS search_history_user_id_fkey;
+                        ALTER TABLE extensions.search_history ADD CONSTRAINT search_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES extensions.users(user_id) ON DELETE CASCADE;
+                        """
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                conn.execute(
+                    text(
+                        """
+                        UPDATE extensions.audit_logs
+                        SET entity_id = substring(description from 'user_id ([0-9]+)')::bigint
+                        WHERE action = 'AUTH_ADMIN_USER_DELETED'
+                          AND entity_id IS NULL
+                          AND description ~ 'user_id [0-9]+'
+                        """
+                    )
+                )
+            except Exception:
+                pass
     except Exception:
         logger.exception("Database warm-up connection failed")
 
@@ -67,13 +213,159 @@ async def _keep_pool_warm() -> None:
             logger.exception("Database keep-alive ping failed")
 
 
+# How often the scheme expiry / deadline reminder processors run. There is no
+# Celery or APScheduler in this project, so these run as a lifespan task in the
+# same style as the pool warmer. Both processors are idempotent, so a missed or
+# duplicated run is harmless - a real scheduler calling the admin endpoints
+# instead would work equally well.
+REMINDER_SWEEP_SECONDS = 3600
+
+
+async def _reminder_sweep_loop() -> None:
+    """Hourly pass over scheme deadlines. Never crashes the app."""
+    from contextlib import contextmanager
+
+    from app.db.database import SessionLocal
+    from app.services.deadline_service import DeadlineReminderService
+    from app.services.scheme_expiry_service import process_scheme_expiry
+
+    @contextmanager
+    def _sweep_session():
+        """One short-lived session per sweep step.
+
+        These run off the event loop in a worker thread, so the session has to
+        be closed by the same step that opened it. Leaking one per hour would
+        quietly exhaust the connection pool.
+        """
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    # let the app finish starting before touching the DB
+    await asyncio.sleep(30)
+    while True:
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(
+                    DeadlineReminderService
+                    .check_and_trigger_deadline_reminders,
+                    db,
+                )
+        except Exception:
+            logger.exception("Deadline reminder sweep failed")
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(process_scheme_expiry, db)
+        except Exception:
+            logger.exception("Scheme expiry sweep failed")
+        try:
+            with _sweep_session() as db:
+                await asyncio.to_thread(
+                    NotificationDeliveryService.retry_failed_deliveries, db, 50
+                )
+        except Exception:
+            logger.exception("Delivery retry sweep failed")
+        await asyncio.sleep(REMINDER_SWEEP_SECONDS)
+
+
+_reminder_task: asyncio.Task | None = None
+
+
+def _seed_reminder_schedule() -> None:
+    global _reminder_task
+    if _reminder_task is not None and not _reminder_task.done():
+        return
+    _reminder_task = asyncio.create_task(_reminder_sweep_loop())
+
+
+# How often the deleted-items (trash) auto-cleanup runs. Same lifespan
+# style as the reminder sweep above: no Celery/APScheduler in this
+# project. The processor is idempotent (30-day eligibility is
+# recomputed from live rows every pass), so a missed or duplicated run
+# is harmless.
+CLEANUP_SWEEP_SECONDS = 86400
+
+
+async def _cleanup_sweep_loop() -> None:
+    """Daily purge of 30-day-old trash. Never crashes the app."""
+    from contextlib import contextmanager
+
+    from app.db.database import SessionLocal
+    from app.services.deletion_cleanup_service import process_deleted_cleanup
+
+    @contextmanager
+    def _sweep_session():
+        """One short-lived session per sweep step (see _sweep_session above)."""
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    # let the app finish starting (and migrations settle) before touching the DB
+    await asyncio.sleep(120)
+    while True:
+        try:
+            with _sweep_session() as db:
+                summary = await asyncio.to_thread(
+                    process_deleted_cleanup, db
+                )
+                logger.info(
+                    "Deleted-items cleanup: %s policies, %s schemes purged",
+                    len(summary.get("policies_purged", [])),
+                    len(summary.get("schemes_purged", [])),
+                )
+        except Exception:
+            logger.exception("Deleted-items cleanup sweep failed")
+        await asyncio.sleep(CLEANUP_SWEEP_SECONDS)
+
+
+_cleanup_task: asyncio.Task | None = None
+
+
+def _seed_cleanup_schedule() -> None:
+    global _cleanup_task
+    if _cleanup_task is not None and not _cleanup_task.done():
+        return
+    _cleanup_task = asyncio.create_task(_cleanup_sweep_loop())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _warm_up_pool()
     keep_alive_task = asyncio.create_task(_keep_pool_warm())
+
+    # Notification creation runs in sync endpoint threads while the
+    # WebSocket connections live here on the event loop, so the realtime
+    # manager needs a handle on this loop to publish.
+    from app.services.notification_realtime import (
+    manager as _notification_manager,
+)
+
+    if settings.NOTIFICATIONS_REALTIME_ENABLED:
+        _notification_manager.bind_loop(asyncio.get_running_loop())
+
+    _seed_reminder_schedule()
+    _seed_cleanup_schedule()
+
     try:
         yield
     finally:
+        _notification_manager.unbind_loop()
+        if _reminder_task is not None:
+            _reminder_task.cancel()
+            try:
+                await _reminder_task
+            except asyncio.CancelledError:
+                pass
+        if _cleanup_task is not None:
+            _cleanup_task.cancel()
+            try:
+                await _cleanup_task
+            except asyncio.CancelledError:
+                pass
         keep_alive_task.cancel()
         try:
             await keep_alive_task
@@ -98,16 +390,39 @@ app = FastAPI(
 # CORS
 # =========================================================
 
+def _cors_origins() -> list[str]:
+    return settings.frontend_origins_list
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://127.0.0.1:4200",
-    ],
+    allow_origins=_cors_origins(),
+    allow_origin_regex=settings.FRONTEND_ORIGIN_REGEX or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "X-Report-Id"],
 )
+
+
+# =========================================================
+# GLOBAL ERROR HANDLING
+# =========================================================
+# Starlette's ServerErrorMiddleware sits outside CORSMiddleware, so an
+# unhandled exception would otherwise return a 500 WITHOUT CORS headers
+# (the browser then reports a CORS failure instead of the real error).
+# Handling Exception here keeps the response inside the CORS middleware,
+# logs the full traceback server-side, and returns a safe message.
+# HTTPException paths (400/401/403/404) are untouched.
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )
 
 
 # =========================================================
@@ -122,10 +437,16 @@ app.include_router(policy_router)
 
 app.include_router(scheme_router)
 
+app.include_router(search_router)
+
 app.include_router(eligibility_router)
 app.include_router(analytics_router)
 app.include_router(usage_router)
 app.include_router(notifications_router)
+app.include_router(notifications_admin_router)
+app.include_router(notifications_webhook_router)
+app.include_router(notifications_twilio_router)
+app.include_router(notifications_ws_router)
 app.include_router(notification_preferences_router)
 
 app.include_router(reports_router)
@@ -133,7 +454,11 @@ app.include_router(reports_router)
 app.include_router(feedback_router)
 app.include_router(faqs_router)
 app.include_router(audit_logs_router)
+app.include_router(support_router)
 app.include_router(search_history_router)
+app.include_router(saved_items_router)
+app.include_router(role_based_router)
+app.include_router(chatbot_router)
 # =========================================================
 # ROOT
 # =========================================================

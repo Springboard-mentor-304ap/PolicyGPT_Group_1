@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -536,6 +537,12 @@ class UserResponse(BaseModel):
     phone: str | None
 
     # =====================================================
+    # GENDER
+    # =====================================================
+
+    gender: str | None = None
+
+    # =====================================================
     # PERSONAL INFORMATION
     # =====================================================
 
@@ -562,6 +569,15 @@ class UserResponse(BaseModel):
     # =====================================================
 
     is_active: bool
+
+    # =====================================================
+    # PROFILE PHOTO
+    # =====================================================
+    # Version signal for avatar caching. None means the user has no
+    # photo (frontend shows the default avatar). The bytes themselves
+    # are served via GET /auth/profile/photo, never in JSON.
+
+    profile_photo_updated_at: datetime | None = None
 
     # =====================================================
     # TIMESTAMPS
@@ -609,6 +625,15 @@ class ProfileUpdateRequest(BaseModel):
         default=None,
         min_length=10,
         max_length=20
+    )
+
+    # =====================================================
+    # GENDER
+    # =====================================================
+
+    gender: str | None = Field(
+        default=None,
+        max_length=30
     )
 
     # =====================================================
@@ -704,6 +729,29 @@ class ProfileUpdateRequest(BaseModel):
 
         return value
 
+    # =====================================================
+    # GENDER VALIDATOR
+    # =====================================================
+
+    @field_validator("gender")
+    @classmethod
+    def validate_gender(
+        cls,
+        value: str | None
+    ) -> str | None:
+
+        if value is None:
+            return None
+
+        value = value.strip()
+
+        if not value:
+            raise ValueError(
+                "Gender cannot be empty"
+            )
+
+        return value
+
 
 # =========================================================
 # CHANGE PASSWORD REQUEST
@@ -789,7 +837,30 @@ class ChangePasswordRequest(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: Literal["email", "sms"] = Field(
+        default="email",
+    )
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self
 
 
 # =========================================================
@@ -888,7 +959,30 @@ class DeleteAccountRequest(BaseModel):
 
 class SendOTPRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: Literal["email", "sms"] = Field(
+        default="email",
+    )
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self
 
 
 # =========================================================
@@ -897,7 +991,18 @@ class SendOTPRequest(BaseModel):
 
 class VerifyOTPRequest(BaseModel):
 
-    email: EmailStr
+    email: EmailStr | None = None
+
+    phone: str | None = Field(
+        default=None,
+        min_length=10,
+        max_length=20,
+    )
+
+    channel: str = Field(
+        default="email",
+        pattern="^(email|sms)$",
+    )
 
     otp: str = Field(
         min_length=6,
@@ -921,3 +1026,16 @@ class VerifyOTPRequest(BaseModel):
             )
 
         return value
+
+    @model_validator(mode="after")
+    def validate_channel_requirements(self):
+        if self.channel == "email" and not self.email:
+            raise ValueError(
+                "Email address is required when channel is email"
+            )
+        if self.channel == "sms" and not self.phone and not self.email:
+            raise ValueError(
+                "Phone number is required when channel is sms"
+            )
+
+        return self

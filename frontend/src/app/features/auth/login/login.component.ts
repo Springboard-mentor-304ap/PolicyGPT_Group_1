@@ -10,6 +10,11 @@ import {
 } from "@angular/forms";
 
 import { Auth } from "../../../core/services/auth";
+import { AvatarService } from "../../../core/services/avatar.service";
+import { NotificationService } from "../../../core/services/notification.service";
+
+import { takeUntil } from "rxjs/operators";
+import { Subject } from "rxjs";
 
 @Component({
   selector: "app-login",
@@ -33,6 +38,8 @@ export class LoginComponent {
 
   loginMode: "email" | "phone" = "email";
 
+  private readonly destroyed$ = new Subject<void>();
+
   // =========================================================
   // CONSTRUCTOR
   // =========================================================
@@ -40,6 +47,8 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder,
     private authService: Auth,
+    private avatarService: AvatarService,
+    private notificationService: NotificationService,
     private router: Router,
     private cdr: ChangeDetectorRef,
   ) {
@@ -62,6 +71,15 @@ export class LoginComponent {
     // =======================================================
 
     this.setLoginValidators();
+  }
+
+  // =========================================================
+  // CLEANUP ON DESTROY
+  // =========================================================
+
+  ngOnDestroy(): void {
+    this.destroyed$.next();
+    this.destroyed$.complete();
   }
 
   // =========================================================
@@ -275,7 +293,9 @@ export class LoginComponent {
     // CALL BACKEND
     // =======================================================
 
-    this.authService.login(identifier, password).subscribe({
+    this.authService.login(identifier, password).pipe(
+      takeUntil(this.destroyed$),
+    ).subscribe({
       // =====================================================
       // SUCCESS
       // =====================================================
@@ -355,6 +375,37 @@ export class LoginComponent {
         console.log("USER:", user);
 
         console.log("RAW ROLE:", role);
+
+        // ---------------------------------------------------
+        // WARM AVATAR CACHE (photo available before dashboard)
+        // ---------------------------------------------------
+        // The login response already carries the persisted
+        // `profile_photo_updated_at` version signal. Prefetching the
+        // blob here (fire-and-forget, shared via AvatarService's
+        // per-version cache) means the topbar's first photoSrcFor —
+        // mounted a moment later — hits the in-flight request or the
+        // cached object URL instead of starting cold after render.
+        // No second /me call: we reuse response.user directly.
+
+        try {
+          this.avatarService.prefetchForUser(user);
+        } catch {
+          /* prefetch is best-effort only */
+        }
+
+        // ---------------------------------------------------
+        // PRIME NOTIFICATION BADGE (fire-and-forget, guarded)
+        // ---------------------------------------------------
+        // Token and user are stored by now, so the unread count can
+        // load in the background while the dashboard renders — the
+        // header badge appears on its own without ever opening the
+        // Notifications page. Repeat logins for the same user reuse
+        // the guarded single fetch, never a duplicate request.
+        try {
+          this.notificationService.ensureInitialized();
+        } catch {
+          /* badge priming is best-effort only */
+        }
 
         // ---------------------------------------------------
         // REDIRECT
@@ -735,6 +786,13 @@ export class LoginComponent {
       next: (response) => {
         this.loading = false;
         console.log("Guest login success:", response);
+        try {
+          if (response?.user) {
+            this.avatarService.prefetchForUser(response.user);
+          }
+        } catch {
+          /* prefetch is best-effort only */
+        }
         this.router.navigate(["/dashboard/guest"]);
       },
       error: (error) => {

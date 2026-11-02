@@ -17,7 +17,6 @@ EntityType = Literal["policy", "scheme"]
 
 
 class EligibilityProfile(BaseModel):
-
     age: int = Field(
         ...,
         ge=0,
@@ -64,7 +63,6 @@ class EligibilityProfile(BaseModel):
 
 
 class EligibilityRuleCreate(BaseModel):
-
     min_age: int | None = Field(
         default=None,
         ge=0,
@@ -116,7 +114,6 @@ class EligibilityRuleCreate(BaseModel):
 
 
 class EligibilityRuleUpdate(BaseModel):
-
     min_age: int | None = Field(
         default=None,
         ge=0,
@@ -170,7 +167,6 @@ class EligibilityRuleUpdate(BaseModel):
 
 
 class EligibilityRuleResponse(BaseModel):
-
     model_config = ConfigDict(
         from_attributes=True,
     )
@@ -212,7 +208,6 @@ class EligibilityRuleResponse(BaseModel):
 
 
 class EligibilityCheckRequest(EligibilityProfile):
-
     entity_type: EntityType
 
     entity_id: int = Field(
@@ -222,7 +217,6 @@ class EligibilityCheckRequest(EligibilityProfile):
 
 
 class EligibilityCheckResponse(BaseModel):
-
     entity_type: EntityType
 
     entity_id: int
@@ -244,12 +238,10 @@ class EligibilityCheckResponse(BaseModel):
 
 
 class EligibilityMatchRequest(EligibilityProfile):
-
     entity_type: EntityType
 
 
 class MatchedEntity(BaseModel):
-
     entity_id: int
 
     entity_name: str
@@ -260,7 +252,6 @@ class MatchedEntity(BaseModel):
 
 
 class EligibilityMatchResponse(BaseModel):
-
     entity_type: EntityType
 
     total_checked: int
@@ -268,3 +259,41 @@ class EligibilityMatchResponse(BaseModel):
     eligible_entities: list[MatchedEntity]
 
     ineligible_entities: list[MatchedEntity]
+
+
+# =========================================================
+# SAVED ELIGIBILITY RESULTS (per-user bookmarks)
+# =========================================================
+
+
+class SavedEligibilityCreate(BaseModel):
+    entity_type: EntityType
+
+    entity_id: int = Field(
+        ...,
+        gt=0,
+    )
+
+    profile: EligibilityProfile
+
+
+class SavedEligibilityResponse(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+    saved_id: int
+
+    entity_type: str
+
+    entity_id: int
+
+    entity_name: str
+
+    eligible: bool
+
+    message: str | None = None
+
+    profile_data: dict | None = None
+
+    saved_at: datetime

@@ -1,6 +1,16 @@
-import { Injectable } from "@angular/core";
+import { Injectable, inject } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Observable, tap } from "rxjs";
+import {
+  BehaviorSubject,
+  Observable,
+  Subject,
+  of,
+  shareReplay,
+  tap,
+  timeout,
+} from "rxjs";
+import { finalize } from "rxjs/operators";
+import { environment } from '../../../environments/environment';
 
 export interface AuthUser {
   user_id: number;
@@ -13,6 +23,8 @@ export interface AuthUser {
 
   phone: string | null;
 
+  gender?: string | null;
+
   date_of_birth: string | null;
 
   state: string | null;
@@ -24,6 +36,14 @@ export interface AuthUser {
   organization: string | null;
 
   is_active: boolean;
+
+  /**
+   * Avatar version signal from the backend (NULL = no photo).
+   * The bytes themselves are fetched separately via AvatarService;
+   * this field only tells avatar consumers when to (re)fetch.
+   * Optional: sessions cached before this field existed omit it.
+   */
+  profile_photo_updated_at?: string | null;
 
   created_at: string;
 
@@ -42,13 +62,71 @@ export interface AuthResponse {
   providedIn: "root",
 })
 export class Auth {
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   private readonly tokenKey = "policygpt_token";
 
   private readonly userKey = "policygpt_user";
 
-  constructor(private http: HttpClient) {}
+  /**
+   * Upper bound for auth HTTP calls. The forgot-password / OTP endpoints
+   * block on Brevo HTTP (10s) + SMTP fallback (10s) by design — the OTP
+   * row is committed before the send and the code must actually be
+   * delivered before the user can proceed — so they get a wider bound.
+   * Everything else (login, verify, reset) is DB-only and uses 30s.
+   * Without a bound a hung socket leaves the UI on "Sending..." forever:
+   * the pages' finalize() only runs when the request terminates.
+   */
+  private static readonly DELIVERY_TIMEOUT_MS = 45_000;
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
+
+  /** Emits on logout so live connections (notification WebSocket) can close. */
+  private readonly loggedOutSubject = new Subject<void>();
+
+  /**
+   * Single source of truth for the authenticated user. Emits the stored
+   * snapshot immediately, then every refreshed user (login, register,
+   * /auth/me refresh, profile/photo updates) and null on logout, so
+   * topbars and profile views update without refresh or re-login.
+   */
+  private readonly currentUserSubject =
+    new BehaviorSubject<AuthUser | null>(null);
+
+  /** Shared authenticated-user stream (topbar, profile, settings). */
+  public readonly currentUser$ = this.currentUserSubject.asObservable();
+
+  private http = inject(HttpClient);
+
+  constructor() {
+    this.currentUserSubject.next(this.getStoredUser());
+  }
+
+  /**
+   * Synchronous snapshot of the shared current user (stored user on
+   * bootstrap, login/register//me user afterwards, null on logout).
+   * Components use this for instant paint (name, role, photo version)
+   * and subscribe to `currentUser$` for reactive updates, so the topbar
+   * never waits for Profile to trigger the first /me fetch.
+   */
+  getCurrentUserSnapshot(): AuthUser | null {
+    return (
+      this.currentUserSubject.value ?? this.getStoredUser()
+    );
+  }
+
+  /**
+   * Publish a backend-confirmed user as the shared current user:
+   * persists it, refreshes the /auth/me cache, and notifies all
+   * subscribers (topbar, profile) immediately.
+   */
+  publishCurrentUser(user: AuthUser | null): void {
+    if (!user) {
+      return;
+    }
+    this.setUser(user);
+    this.cachedMe = user;
+    this.lastMeAt = Date.now();
+  }
 
   // =========================================================
   // LOGIN
@@ -62,6 +140,7 @@ export class Auth {
     };
 
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, loginData).pipe(
+      timeout(Auth.REQUEST_TIMEOUT_MS),
       tap((response: AuthResponse) => {
         if (response?.access_token) {
           this.setToken(response.access_token);
@@ -69,6 +148,8 @@ export class Auth {
 
         if (response?.user) {
           this.setUser(response.user);
+          this.cachedMe = response.user;
+          this.lastMeAt = Date.now();
         }
       }),
     );
@@ -80,6 +161,7 @@ export class Auth {
 
   loginAsGuest(): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/guest-login`, {}).pipe(
+      timeout(Auth.REQUEST_TIMEOUT_MS),
       tap((response: AuthResponse) => {
         if (response?.access_token) {
           this.setToken(response.access_token);
@@ -87,6 +169,8 @@ export class Auth {
 
         if (response?.user) {
           this.setUser(response.user);
+          this.cachedMe = response.user;
+          this.lastMeAt = Date.now();
         }
       }),
     );
@@ -139,6 +223,7 @@ export class Auth {
     return this.http
       .post<AuthResponse>(`${this.apiUrl}/register`, registerData)
       .pipe(
+        timeout(Auth.REQUEST_TIMEOUT_MS),
         tap((response: AuthResponse) => {
           // ------------------------------------------------
           // PUBLIC REGISTRATION
@@ -166,6 +251,8 @@ export class Auth {
 
           if (response?.user) {
             this.setUser(response.user);
+            this.cachedMe = response.user;
+            this.lastMeAt = Date.now();
           }
         }),
       );
@@ -175,14 +262,63 @@ export class Auth {
   // GET CURRENT LOGGED-IN USER
   // =========================================================
 
-  getCurrentUser(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.apiUrl}/me`).pipe(
-      tap((user: AuthUser) => {
-        if (user) {
-          this.setUser(user);
-        }
-      }),
-    );
+  /**
+   * In-flight deduplication + short TTL: concurrent callers (e.g. role layout
+   * plus page component on cold navigation) share a single GET /auth/me, and
+   * sequential mounts within 30s reuse it instead of re-requesting.
+   * Login/register/logout always invalidate.
+   */
+  private currentUserRequest$: Observable<AuthUser> | null = null;
+  private cachedMe: AuthUser | null = null;
+  private lastMeAt = 0;
+  private static readonly ME_TTL_MS = 30_000;
+
+  getCurrentUser(forceRefresh = false): Observable<AuthUser> {
+    const fresh =
+      this.cachedMe &&
+      Date.now() - this.lastMeAt < Auth.ME_TTL_MS;
+    if (!forceRefresh && fresh && this.cachedMe) {
+      // Keep the shared BehaviorSubject in sync even on the TTL fast
+      // path (login/register publish via setUser, but a stale subject
+      // — e.g. after storage was edited externally — must not leave
+      // the topbar showing the default avatar while this returns the
+      // fresh cached user that already carries profile_photo_updated_at).
+      const current = this.currentUserSubject.value;
+      if (
+        current?.user_id !== this.cachedMe.user_id ||
+        (current?.profile_photo_updated_at ?? null) !==
+          (this.cachedMe.profile_photo_updated_at ?? null)
+      ) {
+        this.currentUserSubject.next(this.cachedMe);
+      }
+      return of(this.cachedMe);
+    }
+    if (!this.currentUserRequest$) {
+      this.currentUserRequest$ = this.http
+        .get<AuthUser>(`${this.apiUrl}/me`)
+        .pipe(
+          timeout(Auth.REQUEST_TIMEOUT_MS),
+          tap((user: AuthUser) => {
+            if (user) {
+              this.setUser(user);
+              this.cachedMe = user;
+              this.lastMeAt = Date.now();
+            }
+          }),
+          finalize(() => {
+            this.currentUserRequest$ = null;
+          }),
+          shareReplay(1),
+        );
+    }
+    return this.currentUserRequest$;
+  }
+
+  /** Drop the cached /auth/me snapshot (login, register, logout). */
+  invalidateMe(): void {
+    this.cachedMe = null;
+    this.lastMeAt = 0;
+    this.currentUserRequest$ = null;
   }
 
   // =========================================================
@@ -235,18 +371,71 @@ export class Auth {
     }
 
     localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 
   // =========================================================
   // FORGOT PASSWORD
   // =========================================================
 
-  requestPasswordReset(email: string): Observable<{ message: string }> {
+  requestPasswordReset(
+    email: string,
+    phone: string | null = null,
+    channel: string = "email",
+  ): Observable<{ message: string }> {
+    // Send null (not "") for the unused channel field: the backend
+    // Pydantic schema rejects "" as an email and would 422 SMS requests.
+    const isEmail = channel === "email";
     return this.http.post<{
       message: string;
     }>(`${this.apiUrl}/forgot-password`, {
-      email: email.trim().toLowerCase(),
-    });
+      email: isEmail ? email.trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
+      channel,
+    }).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
+  }
+
+  // =========================================================
+  // SEND OTP (EMAIL + SMS)
+  // =========================================================
+
+  sendOtp(
+    email: string,
+    phone: string | null = null,
+    channel: string = "email",
+  ): Observable<{ message: string; channel: string }> {
+    const isEmail = channel === "email";
+    return this.http.post<{
+      message: string;
+      channel: string;
+    }>(`${this.apiUrl}/send-otp`, {
+      email: isEmail ? email.trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
+      channel,
+    }).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
+  }
+
+  // =========================================================
+  // FORGOT PASSWORD (RESET LINK)
+  // =========================================================
+
+  requestPasswordResetLink(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/forgot-password-link`,
+      { email: email.trim().toLowerCase() },
+    ).pipe(timeout(Auth.DELIVERY_TIMEOUT_MS));
+  }
+
+  // =========================================================
+  // VALIDATE RESET LINK (without consuming it)
+  // =========================================================
+
+  validateResetToken(token: string): Observable<{ valid: boolean; message: string }> {
+    const params = { token: token.trim() };
+    return this.http.get<{ valid: boolean; message: string }>(
+      `${this.apiUrl}/reset-token-status`,
+      { params },
+    ).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -254,21 +443,28 @@ export class Auth {
   // =========================================================
 
   verifyOtp(
-    email: string,
+    email: string | null,
     otp: string,
+    channel: string = "email",
+    phone: string | null = null,
   ): Observable<{
     message: string;
     verified: boolean;
     reset_token: string;
   }> {
+    // SMS must send the phone field (not a phone number stuffed into the
+    // email field, which the backend EmailStr schema rejects with 422).
+    const isEmail = channel === "email";
     return this.http.post<{
       message: string;
       verified: boolean;
       reset_token: string;
     }>(`${this.apiUrl}/verify-otp`, {
-      email: email.trim().toLowerCase(),
+      email: isEmail ? (email ?? "").trim().toLowerCase() : null,
+      phone: isEmail ? null : phone,
       otp: otp.trim(),
-    });
+      channel,
+    }).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -286,7 +482,7 @@ export class Auth {
       token,
       new_password: newPassword,
       confirm_password: confirmPassword,
-    });
+    }).pipe(timeout(Auth.REQUEST_TIMEOUT_MS));
   }
 
   // =========================================================
@@ -321,9 +517,29 @@ export class Auth {
   // LOGOUT
   // =========================================================
 
+  /**
+   * Clear the session. The notification socket is authenticated with the token
+   * we are about to delete, so subscribers (notably the notification realtime
+   * service) are told to close it - otherwise the live connection would keep
+   * pushing frames for a user who is no longer signed in.
+   */
   logout(): void {
     localStorage.removeItem(this.tokenKey);
-
     localStorage.removeItem(this.userKey);
+    // User-scoped bookmark mirrors written by the search pages. They are
+    // global keys, so a stale copy would leak the previous citizen's
+    // saved-item counts into the next session before the API resolves.
+    localStorage.removeItem("policy_bookmarks");
+    localStorage.removeItem("saved_policies");
+    localStorage.removeItem("scheme_bookmarks");
+    localStorage.removeItem("bookmarked_schemes");
+    this.invalidateMe();
+    this.currentUserSubject.next(null);
+    this.loggedOutSubject.next();
+  }
+
+  /** Fires on every logout so live connections can be torn down. */
+  onLoggedOut(callback: () => void): void {
+    this.loggedOutSubject.subscribe(callback);
   }
 }

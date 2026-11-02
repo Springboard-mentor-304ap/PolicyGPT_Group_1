@@ -1,0 +1,327 @@
+// =========================================================
+// POLICYGPT ANALYTICS — SHARED DESIGN TOKENS & LAYOUT MIXINS
+// Standardized compact horizontal stat-card to match
+// Notifications page stat cards:
+// - Card height: 82–90px (min-height: 84px)
+// - Icon container: 48px x 48px, radius 12px, icon 22px
+// - Main value: 24px, 700 weight, line-height 1.2
+// - Label: 13.5px, 500 weight, line-height 1.35
+// - Card padding: 14px 18px
+// - Gap between icon and text: 14px
+// - Border radius: 12px
+// - Background: #ffffff, border: #e3e8ef
+// - Shadow: 0 2px 8px rgba(15, 23, 42, 0.04)
+// - Responsive grid: 4 cols on large desktop, 3 cols on
+//   medium desktop, 2 cols on tablet, 1 col on mobile
+//
+// Scope: import ONLY from analytics component stylesheets via:
+//   @use '<relative-path>/shared/analytics-tokens' as tokens;
+// =========================================================
+
+$analytics-card-bg: #ffffff;
+$analytics-card-border: #e3e8ef;
+$analytics-stat-radius: 12px;
+$analytics-panel-radius: 16px;
+$analytics-card-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+$analytics-card-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.08);
+
+$analytics-stat-min-height: 84px;
+$analytics-stat-padding: 14px 18px;
+$analytics-stat-gap: 14px;
+$analytics-stat-grid-gap: 16px;
+$analytics-stat-grid-margin: 22px;
+
+$analytics-icon-size: 48px;
+$analytics-icon-radius: 12px;
+$analytics-icon-font-size: 22px;
+$analytics-value-font-size: 24px;
+$analytics-label-font-size: 13.5px;
+
+// Compact horizontal summary/KPI card shell: icon container on
+// the left, metric text on the right, vertically centered.
+@mixin analytics-stat-card {
+  min-width: 0;
+  min-height: $analytics-stat-min-height;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: $analytics-stat-gap;
+  padding: $analytics-stat-padding;
+  border-radius: $analytics-stat-radius;
+  border: 1px solid $analytics-card-border;
+  background: $analytics-card-bg;
+  box-shadow: $analytics-card-shadow;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: $analytics-card-shadow-hover;
+  }
+}
+
+// Icon container inside stat card
+@mixin analytics-icon-container {
+  width: $analytics-icon-size;
+  height: $analytics-icon-size;
+  min-width: $analytics-icon-size;
+  border-radius: $analytics-icon-radius;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .material-icons {
+    font-size: $analytics-icon-font-size;
+  }
+}
+
+// Text content wrapper
+@mixin analytics-stat-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+// Main stat value
+@mixin analytics-stat-value {
+  font-size: $analytics-value-font-size;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+// Stat label
+@mixin analytics-stat-label {
+  font-size: $analytics-label-font-size;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Summary-card grid shell: 4 cards per row on large desktop,
+// 2–3 on medium desktop and tablet, 1–2 on mobile.
+@mixin analytics-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: $analytics-stat-grid-gap;
+  margin-bottom: $analytics-stat-grid-margin;
+  align-content: start;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+
+  &.stats-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    @media (max-width: 860px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &.stats-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Responsive chart-card header row: title left, control right on wide
+// cards; the control drops to its own full-width line under the title
+// on narrow cards instead of colliding with or overflowing it.
+// Include inside every `.card-header-row` pairing a title with a
+// dropdown/tag. Desktop single-line rendering is unchanged (the added
+// gap only applies once items wrap).
+@mixin analytics-card-header-row {
+  gap: 8px 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+
+  .card-title {
+    min-width: 0;
+  }
+
+  .dropdown-wrapper,
+  .timeframe-wrapper,
+  .date-picker-wrapper {
+    min-width: 0;
+    max-width: 100%;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .badge-filter-btn,
+  .dropdown-toggle-btn,
+  .time-filter-btn,
+  .date-picker-btn,
+  .time-filter,
+  .table-tag,
+  .btn-view-all {
+    max-width: 100%;
+  }
+
+  .badge-filter-btn,
+  .dropdown-toggle-btn,
+  .time-filter-btn,
+  .date-picker-btn {
+    min-height: 32px;
+  }
+
+  .badge-filter-btn > span:first-child,
+  .dropdown-toggle-btn > span:first-child,
+  .time-filter-btn > span:first-child,
+  .date-picker-btn > .selected-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .dropdown-wrapper,
+    .timeframe-wrapper,
+    .date-picker-wrapper {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .badge-filter-btn,
+    .dropdown-toggle-btn,
+    .time-filter-btn,
+    .date-picker-btn {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+}
+
+// Mini / summary metric item mixin for secondary summary cards
+@mixin analytics-mini-stat-card {
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid $analytics-card-border;
+  background: $analytics-card-bg;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.03);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+  }
+}
+
+// =========================================================
+// SHARED LOADING / ERROR STATES (all analytics pages)
+// Compact section-level feedback for load errors.
+// =========================================================
+
+.analytics-status {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+
+  &.error {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: #b42318;
+  }
+
+  .analytics-retry-btn {
+    border: 1px solid #e3e8ef;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #2f6fed;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #2f6fed;
+    }
+  }
+}
+
+// Tablet page-header controls (768px-1024px, all roles): the title
+// stays left while the date-range dropdown and Download Report button
+// stay together on the right of the same row. When the pair cannot fit
+// beside the heading, flex wrapping moves them to their own row that
+// remains right-aligned (margin-left: auto) instead of starting at the
+// left edge, and max-width keeps everything inside the viewport.
+// Applies to both header variants (`.analytics-header` and
+// `.page-header`); desktop, laptop, and mobile rules are untouched.
+@media (min-width: 768px) and (max-width: 1024px) {
+  .analytics-header,
+  .page-header {
+    > .header-left {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    > .header-right {
+      margin-left: auto;
+      justify-content: flex-end;
+      align-items: center;
+      max-width: 100%;
+      min-width: 0;
+    }
+  }
+}
+
+// Mobile page-header controls (all roles): the date-range dropdown and
+// Download Report button stack vertically and hug the right edge with
+// consistent spacing instead of stretching full width. The doubled class
+// outranks the per-page mobile rules so one shared block covers every
+// role; tablet, laptop, and desktop rules are untouched. Control heights,
+// typography, icons, borders, colors, and click behavior are unchanged.
+@media (max-width: 768px) {
+  .analytics-header.analytics-header > .header-right,
+  .page-header.page-header > .header-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .analytics-header.analytics-header > .header-right > *,
+  .page-header.page-header > .header-right > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+}

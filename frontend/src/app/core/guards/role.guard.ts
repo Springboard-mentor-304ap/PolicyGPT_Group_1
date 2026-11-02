@@ -106,8 +106,6 @@ export const roleGuard: CanActivateFn = (route) => {
   // =======================================================
 
   if (normalizedUserRole === "ADMIN") {
-    console.log("ADMIN ACCESS GRANTED");
-
     return true;
   }
 
@@ -124,14 +122,6 @@ export const roleGuard: CanActivateFn = (route) => {
   //
   // USER MANUALLY CHANGED URL
   // =======================================================
-
-  console.warn(
-    `Unauthorized dashboard access.
-
-     User role: ${normalizedUserRole}
-
-     Allowed roles: ${normalizedRoles.join(", ")}`,
-  );
 
   // =======================================================
   // LOGOUT USER

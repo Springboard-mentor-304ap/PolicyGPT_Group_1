@@ -13,7 +13,7 @@
       </p>
 
       <h1 class="dash-welcome__title">
-        Welcome back, {{ userName }}!
+        Welcome back, <span class="dash-welcome__title-user">{{ userName }}</span>!
       </h1>
 
       <p class="dash-welcome__sub">
@@ -24,49 +24,9 @@
     </div>
 
 
-    <!-- GOVERNMENT BUILDING -->
-
-    <div class="dash-welcome__illustration" aria-hidden="true">
-
-      <div class="welcome-building welcome-building--large">
-
-        <div class="welcome-building__dome"></div>
-
-        <div class="welcome-building__roof"></div>
-
-        <div class="welcome-building__columns">
-
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-          <span></span>
-
-        </div>
-
-      </div>
-
-
-      <div class="welcome-building welcome-building--small">
-
-        <div class="welcome-building__tower"></div>
-
-        <div class="welcome-building__body"></div>
-
-      </div>
-
-
-      <span class="welcome-bird welcome-bird--one">
-        ︿
-      </span>
-
-      <span class="welcome-bird welcome-bird--two">
-        ︿
-      </span>
-
-    </div>
+    <!-- Dashboard hero photo is applied via .dash-welcome background
+         (/images/image.png). The retired CSS building illustration
+         was removed so it never covers the photo. -->
 
   </section>
 
@@ -99,12 +59,12 @@
 
         @if (loadingStats) {
 
-        <div class="skeleton skeleton--stat-num"></div>
+        <app-loading-indicator size="sm" message=""></app-loading-indicator>
 
         } @else {
 
-        <p class="dash-stat-card__value">
-          {{ card.value }}
+        <p class="dash-stat-card__value" [appCountUp]="card.value ?? 0">
+          {{ card.value ?? 0 }}
         </p>
 
         }
@@ -135,8 +95,10 @@
 
 
   <!-- =====================================================
-       FIRST ROW
+       FIRST ROW (panels render only with data or while loading)
        ===================================================== -->
+
+  @if (showSchemesPanel || showPoliciesPanel) {
 
   <section class="dash-panels">
 
@@ -145,15 +107,17 @@
          ELIGIBLE SCHEMES
          =================================================== -->
 
+    @if (showSchemesPanel) {
+
     <article class="dash-panel">
 
       <div class="dash-panel__header">
 
         <h2>
-          Eligible Schemes for You
+          Featured Schemes for You
         </h2>
 
-        <a routerLink="/schemes" class="dash-panel__link">
+        <a routerLink="/dashboard/citizen/schemes" class="dash-panel__link">
           View All
         </a>
 
@@ -185,11 +149,10 @@
 
           <div class="
                   dash-list__icon-wrap
-                  dash-list__icon-wrap--health
-                ">
+                " [ngStyle]="scheme.catStyle">
 
             <span class="material-icons" aria-hidden="true">
-              account_balance
+              {{ scheme.catIcon }}
             </span>
 
           </div>
@@ -201,14 +164,16 @@
               {{ scheme.name }}
             </p>
 
+            @if (scheme.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ scheme.ministry }}
             </p>
+            }
 
           </div>
 
 
-          <a routerLink="/schemes" class="dash-list__action">
+          <a [routerLink]="scheme.id ? ['/dashboard/citizen/schemes', scheme.id] : '/dashboard/citizen/schemes'" class="dash-list__action">
             View Details
           </a>
 
@@ -221,7 +186,7 @@
       }
 
 
-      <a routerLink="/eligibility" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/citizen/eligibility" class="dash-panel__footer-link">
 
         Check Eligibility for More Schemes
 
@@ -233,20 +198,24 @@
 
     </article>
 
+    }
+
 
     <!-- ===================================================
-         SAVED POLICIES
+         SAVED / RECOMMENDED POLICIES
          =================================================== -->
+
+    @if (showPoliciesPanel) {
 
     <article class="dash-panel">
 
       <div class="dash-panel__header">
 
         <h2>
-          Saved Policies
+          Available Policies
         </h2>
 
-        <a routerLink="/saved" class="dash-panel__link">
+        <a routerLink="/dashboard/citizen/policies" class="dash-panel__link">
           View All
         </a>
 
@@ -277,26 +246,36 @@
         <li class="dash-list__item">
 
           <div class="
-                  dash-list__details
-                  dash-list__details--no-icon
-                ">
+                  dash-list__icon-wrap
+                " [ngStyle]="policy.catStyle">
+
+            <span class="material-icons" aria-hidden="true">
+              {{ policy.catIcon }}
+            </span>
+
+          </div>
+
+
+          <div class="dash-list__details">
 
             <p class="dash-list__title">
               {{ policy.name }}
             </p>
 
+            @if (policy.ministry?.trim()) {
             <p class="dash-list__meta">
               {{ policy.ministry }}
             </p>
+            }
 
             <p class="dash-list__submeta">
-              Saved on {{ policy.savedOn }}
+              Published on {{ policy.savedOn }}
             </p>
 
           </div>
 
 
-          <a routerLink="/policies" class="dash-list__action">
+          <a [routerLink]="policy.id ? ['/dashboard/citizen/policies', policy.id] : '/dashboard/citizen/policies'" class="dash-list__action">
             View Details
           </a>
 
@@ -309,7 +288,7 @@
       }
 
 
-      <a routerLink="/policies" class="dash-panel__footer-link">
+      <a routerLink="/dashboard/citizen/policies" class="dash-panel__footer-link">
 
         See More Policies
 
@@ -321,12 +300,18 @@
 
     </article>
 
+    }
+
   </section>
+
+  }
 
 
   <!-- =====================================================
-       SECOND ROW
+       SECOND ROW (panels render only with data or while loading)
        ===================================================== -->
+
+  @if (showHistoryPanel || showSavedItemsPanel) {
 
   <section class="dash-panels dash-panels--bottom">
 
@@ -334,6 +319,8 @@
     <!-- ===================================================
          SEARCH HISTORY
          =================================================== -->
+
+    @if (showHistoryPanel) {
 
     <article class="dash-panel">
 
@@ -343,8 +330,8 @@
           Search History
         </h2>
 
-        <a routerLink="/history" class="dash-panel__link">
-          View All
+        <a routerLink="/dashboard/citizen/schemes" class="dash-panel__link">
+          Explore
         </a>
 
       </div>
@@ -375,7 +362,7 @@
 
           <div class="
                   dash-list__icon-wrap
-                  dash-list__icon-wrap--neutral
+                  dash-list__icon-wrap--policy
                 ">
 
             <span class="material-icons" aria-hidden="true">
@@ -392,16 +379,16 @@
             </p>
 
             <p class="dash-list__meta">
-              Filters: {{ history.filters }}
+              Type: {{ history.filters }}
             </p>
 
           </div>
 
 
-          <a routerLink="/schemes" [queryParams]="{
-                  q: history.name
+          <a routerLink="/dashboard/citizen/schemes" [queryParams]="{
+                  keyword: history.name
                 }" class="dash-list__action">
-            View Details
+            Search Again
           </a>
 
         </li>
@@ -414,34 +401,38 @@
 
     </article>
 
+    }
+
 
     <!-- ===================================================
-         APPLICATION STATUS
+         SAVED ITEMS (real user records from Saved Items API)
          =================================================== -->
+
+    @if (showSavedItemsPanel) {
 
     <article class="dash-panel">
 
       <div class="dash-panel__header">
 
         <h2>
-          Application Status
+          Saved Items
         </h2>
 
-        <a routerLink="/reports" class="dash-panel__link">
+        <a routerLink="/dashboard/citizen/saved" class="dash-panel__link">
           View All
         </a>
 
       </div>
 
 
-      @if (loadingApplications) {
+      @if (loadingSavedItems) {
 
       <div class="dash-loader">
 
         <div class="dash-spinner"></div>
 
         <span>
-          Loading applications...
+          Loading saved items...
         </span>
 
       </div>
@@ -451,19 +442,16 @@
       <ul class="dash-list">
 
         @for (
-        app of applications;
-        track app.appId
+        item of savedItemsPreview;
+        track (item.kind + ':' + item.id)
         ) {
 
         <li class="dash-list__item">
 
-          <div class="
-                  dash-list__icon-wrap
-                  dash-list__icon-wrap--neutral
-                ">
+          <div class="dash-list__icon-wrap" [ngStyle]="item.catStyle">
 
             <span class="material-icons" aria-hidden="true">
-              insert_chart_outlined
+              {{ item.catIcon }}
             </span>
 
           </div>
@@ -472,18 +460,19 @@
           <div class="dash-list__details">
 
             <p class="dash-list__title">
-              {{ app.name }}
+              {{ item.name }}
             </p>
 
             <p class="dash-list__meta">
-              Application ID:
-              {{ app.appId }}
+              {{ item.kind === 'policy' ? 'Policy' : 'Scheme' }}@if (item.ministry?.trim()) { · {{ item.ministry }} }
             </p>
 
           </div>
 
 
-          <a routerLink="/reports" class="dash-list__action">
+          <a [routerLink]="item.kind === 'policy'
+            ? (item.id ? ['/dashboard/citizen/policies', item.id] : '/dashboard/citizen/policies')
+            : (item.id ? ['/dashboard/citizen/schemes', item.id] : '/dashboard/citizen/schemes')" class="dash-list__action">
             View Details
           </a>
 
@@ -495,19 +484,12 @@
 
       }
 
-
-      <a routerLink="/reports" class="dash-panel__footer-link">
-
-        View All
-
-        <span class="material-icons" aria-hidden="true">
-          arrow_forward
-        </span>
-
-      </a>
-
     </article>
 
+    }
+
   </section>
+
+  }
 
 </div>

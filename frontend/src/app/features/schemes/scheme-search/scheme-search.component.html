@@ -1,4 +1,7 @@
 
+<div class="scheme-search-page">
+
+
 <div class="page-container">
   <!-- Top Right Navigation -->
   <div class="top-nav">
@@ -39,110 +42,525 @@
       </select>
     </div>
 
-    <div class="filter-dropdown">
-      <label>Ministry</label>
-      <select [(ngModel)]="selectedMinistry" (change)="applyFilters()">
-        <option value="">All Ministries</option>
-        <option *ngFor="let min of ministries" [value]="min">{{ min }}</option>
-      </select>
-    </div>
 
-    <div class="filter-dropdown">
-      <label>Department</label>
-      <select [(ngModel)]="selectedDepartment" (change)="applyFilters()">
-        <option value="">All Departments</option>
-        <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
-      </select>
-    </div>
+  <!-- ====================================================== -->
+  <!-- HEADER -->
+  <!-- ====================================================== -->
 
-    <div class="filter-dropdown">
-      <label>State</label>
-      <select [(ngModel)]="selectedState" (change)="applyFilters()">
-        <option value="">All States</option>
-        <option *ngFor="let st of states" [value]="st">{{ st }}</option>
-      </select>
-    </div>
+  @if (breadcrumbItems.length > 0) {
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
 
-    <button type="button" class="btn-clear" (click)="clearFilters()">Clear Filters</button>
-  </div>
+  <header class="page-header">
+    <div class="header-content">
 
-  <!-- Error Message -->
-  <div class="error-message" *ngIf="errorMessage()">
-    {{ errorMessage() }}
-  </div>
+      <div class="header-main">
+        <h1>Schemes</h1>
 
-  <!-- Loading Skeleton -->
-  <div class="skeleton-list" *ngIf="loading() && schemes().length === 0">
-    <div class="skeleton-card" *ngFor="let _ of [1,2,3,4,5]"></div>
-  </div>
-
-  <!-- Results Count -->
-  <div class="results-count" *ngIf="!loading()">
-    {{ totalResults() }} result{{ totalResults() !== 1 ? 's' : '' }} found
-  </div>
-
-  <!-- Scheme Cards List -->
-  <div class="scheme-list" *ngIf="!loading() && schemes().length > 0">
-    <div class="scheme-card" *ngFor="let scheme of schemes()">
-      <div class="card-left">
-        <!-- Emblem/Badge Icon Container -->
-        <div class="badge-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 8v8M8 12h8"></path>
-          </svg>
-        </div>
-        <div class="scheme-info">
-          <h3>{{ scheme.name }}</h3>
-          <p>{{ scheme.ministry || 'N/A' }}</p>
-          <div class="scheme-meta">
-            <span class="meta-tag" *ngIf="scheme.category">{{ scheme.category }}</span>
-            <span class="meta-tag" *ngIf="scheme.state">{{ scheme.state }}</span>
-            <span class="meta-tag status" [class]="getStatusBadgeClass(scheme.status)">{{ getStatusLabel(scheme.status) }}</span>
-          </div>
-        </div>
+        <p>
+          Find government schemes that match your needs.
+        </p>
       </div>
 
-      <div class="card-right">
-        <a [routerLink]="[scheme.scheme_id]" class="btn-view-details">View Details</a>
-        <button type="button" class="btn-bookmark" (click)="toggleBookmark(scheme)" [title]="isBookmarked(scheme.scheme_id) ? 'Remove Bookmark' : 'Bookmark'">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+      @if (navContext.shouldShowBack()) {
+      <button type="button" class="back-button" (click)="goBack()">
+        <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
+        <span>Back</span>
+      </button>
+      }
+
+    </div>
+  </header>
+
+
+  <!-- ====================================================== -->
+  <!-- SEARCH -->
+  <!-- ====================================================== -->
+
+  <section class="search-section">
+
+    <!-- RESET ROW (right-aligned, above the search row) -->
+    <div class="reset-filters-row" *ngIf="hasActiveFilters">
+      <button type="button" class="reset-filters-btn" (click)="clearFilters()">
+        <span class="material-icons">refresh</span>
+        <span>Reset Filters</span>
+      </button>
+    </div>
+
+    <!-- SEARCH ROW -->
+
+    <div class="search-row">
+
+      <div class="search-input-wrapper">
+
+        <!-- Professional Search Icon -->
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+
+            <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="submitSearch()"
+          placeholder="Search by scheme name..." autocomplete="off" aria-label="Search by scheme name" />
+
+        <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; applyFilters()"
+          aria-label="Clear search">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+            <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
+
       </div>
+
+
+      <!-- Search Button -->
+
+      <button type="button" class="search-button" (click)="submitSearch()">
+
+        <span>Search</span>
+
+      </button>
+
+
+      <!-- Filter Button (mobile/tablet only, hidden on desktop) -->
+
+      <button type="button" class="filter-toggle-btn" (click)="toggleFilters()"
+        [attr.aria-expanded]="filtersExpanded" aria-label="Toggle filters">
+        <span class="material-icons" aria-hidden="true">filter_list</span>
+        <span>Filter</span>
+        <span class="filter-count-badge" *ngIf="activeFiltersCount > 0">
+          {{ activeFiltersCount }} active
+        </span>
+        <span class="material-icons toggle-chevron" [class.open]="filtersExpanded"
+          aria-hidden="true">expand_more</span>
+      </button>
+
     </div>
-  </div>
 
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="!loading() && schemes().length === 0 && !errorMessage()">
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-    <h3>No schemes found</h3>
-    <p>Try adjusting your search or filters</p>
-  </div>
 
-  <!-- Pagination -->
-  <nav class="pagination" *ngIf="!loading() && totalPages() > 1" aria-label="Pagination">
-    <button type="button" class="page-btn" (click)="previousPage()" [disabled]="currentPage() === 1" aria-label="Previous page">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"></polyline>
+    <!-- FILTER PANEL (Zone 2) -->
+    <div class="filter-panel" [class.filter-panel--collapsed]="!filtersExpanded">
+
+      <!-- Filter Panel Header -->
+      <div class="filter-panel-header">
+        <div class="filter-title-group">
+          <span class="filter-count-badge" *ngIf="activeFiltersCount > 0">
+            {{ activeFiltersCount }} active
+          </span>
+        </div>
+      </div>
+
+      <!-- Filter Controls Grid -->
+      <div class="filters-grid" [class.has-status]="isAdminOrGov">
+
+        <!-- Department -->
+        <div class="filter-field">
+          <label for="department">
+            <span>Department</span>
+          </label>
+          <app-searchable-select id="department" [options]="departments" [(ngModel)]="selectedDepartment"
+            (ngModelChange)="applyFilters()" placeholder="All Departments" allOptionLabel="All Departments"
+            searchPlaceholder="Search departments..." icon="apartment">
+          </app-searchable-select>
+        </div>
+
+        <!-- State -->
+        <div class="filter-field">
+          <label for="state">
+            <span>State / UT</span>
+          </label>
+          <app-searchable-select id="state" [options]="states" [(ngModel)]="selectedState"
+            (ngModelChange)="applyFilters()" placeholder="All States" allOptionLabel="All States"
+            searchPlaceholder="Search states..." icon="location_on">
+          </app-searchable-select>
+        </div>
+
+        <!-- Sector -->
+        <div class="filter-field">
+          <label for="sector">
+            <span>Sector</span>
+          </label>
+          <app-searchable-select id="sector" [options]="sectors" [(ngModel)]="selectedSector"
+            (ngModelChange)="applyFilters()" placeholder="All Sectors" allOptionLabel="All Sectors"
+            searchPlaceholder="Search sectors..." icon="grid_view">
+          </app-searchable-select>
+        </div>
+
+        <!-- Status (staff roles only) -->
+        @if (isAdminOrGov) {
+        <div class="filter-field">
+          <label for="status">
+            <span>Status</span>
+          </label>
+          <app-searchable-select id="status" [options]="statusDisplayOptions" [(ngModel)]="selectedStatusDisplay"
+            (ngModelChange)="onStatusDisplayChange($event)" placeholder="All Statuses" allOptionLabel="All Statuses"
+            searchPlaceholder="Search statuses..." icon="flag">
+          </app-searchable-select>
+        </div>
+        }
+
+        <!-- Publication Date -->
+        <div class="filter-field">
+          <label for="publicationDate">
+            <span>Publication Date</span>
+          </label>
+          <div class="custom-date-box" [class.has-value]="!!selectedPublicationDate">
+            <span class="material-icons date-icon">calendar_today</span>
+            <input type="date" id="publicationDate" [(ngModel)]="selectedPublicationDate"
+              (ngModelChange)="applyFilters()" class="custom-date-input" aria-label="Filter by publication date" />
+            <button *ngIf="selectedPublicationDate" type="button" class="date-clear-btn"
+              (click)="clearPublicationDate($event)" title="Clear date" aria-label="Clear date">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Active Filter Badges / Chips Row -->
+      <div class="active-chips-row" *ngIf="hasActiveFilterChips">
+        <span class="active-chips-title">Active:</span>
+
+        <button *ngIf="selectedDepartment" type="button" class="filter-chip"
+          (click)="selectedDepartment = ''; applyFilters()">
+          <span class="chip-label">Dept:</span>
+          <span class="chip-value">{{ selectedDepartment }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
+
+        <button *ngIf="selectedState" type="button" class="filter-chip" (click)="selectedState = ''; applyFilters()">
+          <span class="chip-label">State:</span>
+          <span class="chip-value">{{ selectedState }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
+
+        <button *ngIf="selectedSector" type="button" class="filter-chip" (click)="selectedSector = ''; applyFilters()">
+          <span class="chip-label">Sector:</span>
+          <span class="chip-value">{{ selectedSector }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
+
+        <button *ngIf="selectedPublicationDate" type="button" class="filter-chip" (click)="clearPublicationDate()">
+          <span class="chip-label">Date:</span>
+          <span class="chip-value">{{ selectedPublicationDate }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
+
+        <button *ngIf="isAdminOrGov && selectedStatusDisplay" type="button" class="filter-chip"
+          (click)="selectedStatusDisplay = ''; selectedStatus = ''; applyFilters()">
+          <span class="chip-label">Status:</span>
+          <span class="chip-value">{{ selectedStatusDisplay }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
+
+        <button type="button" class="chip-clear-all" (click)="clearFilters()">
+          Clear all
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ====================================================== -->
+  <!-- INITIAL LOADING -->
+  <!-- ====================================================== -->
+
+  <app-loading-indicator *ngIf="loading() && schemes().length === 0" message="Loading schemes...">
+  </app-loading-indicator>
+
+
+  <!-- ====================================================== -->
+  <!-- ERROR -->
+  <!-- ====================================================== -->
+
+  <section class="state-card error-state" *ngIf="!loading() && errorMessage()">
+
+    <div class="state-icon">
+
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3L21 20H3L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+
+        <path d="M12 9V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+
+        <circle cx="12" cy="16.5" r="1" fill="currentColor" />
       </svg>
-      Previous
+
+    </div>
+
+    <h2>
+      Unable to Load Schemes
+    </h2>
+
+    <p>
+      {{ errorMessage() }}
+    </p>
+
+    <button type="button" class="retry-button" (click)="loadSchemes()">
+      Try Again
     </button>
 
-    <span class="page-numbers">
-      <button *ngFor="let page of pageNumbers" type="button" class="page-btn" [class.active]="page === currentPage()" (click)="goToPage(page)" aria-label="Page {{ page }}">{{ page }}</button>
-    </span>
 
-    <button type="button" class="page-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages()" aria-label="Next page">
-      Next
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="9 18 15 12 9 6"></polyline>
-      </svg>
-    </button>
+  </section>
+
+
+  <!-- ====================================================== -->
+  <!-- RESULTS -->
+  <!-- ====================================================== -->
+
+  <section class="results-section" *ngIf="!errorMessage() && !(loading() && schemes().length === 0)">
+
+    <!-- Results Header -->
+
+    <div class="results-header">
+
+      <div>
+
+        <h2>
+          {{ totalResults() }}
+          {{ totalResults() === 1 ? "Scheme" : "Schemes" }}
+          Found
+        </h2>
+
+        <p>
+          Browse government schemes.
+        </p>
+
+      </div>
+
+      <div class="updating" *ngIf="loading() && schemes().length > 0">
+
+        <span></span>
+
+        Updating...
+
+      </div>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- EMPTY -->
+    <!-- ================================================== -->
+
+    <div class="empty-state" *ngIf="!loading() && schemes().length === 0">
+
+      <div class="empty-icon">
+
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+
+          <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+
+      </div>
+
+      <h2>
+        No Schemes Found
+      </h2>
+
+      <p>
+        No schemes match your current search or filters.
+      </p>
+
+      <button type="button" class="clear-empty-button" (click)="clearFilters()">
+        Clear Search &amp; Filters
+      </button>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- SCHEME LIST -->
+    <!-- ================================================== -->
+
+    <div class="scheme-list" *ngIf="schemes().length > 0">
+
+      <article class="scheme-card" *ngFor="
+          let scheme of schemes();
+          trackBy: trackBySchemeId
+        ">
+
+        <!-- Scheme Icon -->
+
+        <div class="scheme-icon" [ngStyle]="categoryIconStyle(scheme.category)">
+
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(scheme.category) }}</span>
+
+        </div>
+
+
+        <!-- Content -->
+
+        <div class="scheme-content">
+
+          <div class="title-row">
+
+            <div class="title-group">
+              <h3>
+                {{ scheme.name }}
+              </h3>
+
+              @if (isAdminOrGov) {
+              <span class="metadata-item status-badge" [ngClass]="'status-' + (scheme.status || '').toLowerCase()">
+                {{ getStatusLabel(scheme.status) }}
+              </span>
+              }
+            </div>
+
+          </div>
+
+
+          <p class="ministry">
+
+            {{ scheme.ministry?.trim() ? scheme.ministry : "Ministry not specified" }}
+            <span *ngIf="scheme.department" class="department-sep"> &bull; {{ scheme.department }}</span>
+
+          </p>
+
+        </div>
+
+
+        <!-- Tags + description (bottom row on tablet/desktop) -->
+
+        <div class="scheme-card__bottom">
+
+          <div class="metadata">
+
+            <span *ngIf="scheme.category" class="metadata-item">
+              {{ scheme.category }}
+            </span>
+
+            <span *ngIf="scheme.department" class="metadata-item">
+              {{ scheme.department }}
+            </span>
+
+            <span *ngIf="scheme.state" class="metadata-item">
+              {{ scheme.state }}
+            </span>
+
+          </div>
+
+
+          <p class="description" *ngIf="scheme.description">
+            {{ scheme.description }}
+          </p>
+
+        </div>
+
+
+        <!-- Actions -->
+
+        <div class="scheme-actions">
+
+          <a class="view-button" [routerLink]="getSchemeDetailsRoute(scheme.scheme_id)">
+
+            <span>
+              View Scheme
+            </span>
+
+            <span class="material-icons view-arrow" aria-hidden="true">arrow_forward</span>
+
+          </a>
+
+
+          <button type="button" class="bookmark-button" [class.bookmarked]="
+              isBookmarked(
+                scheme.scheme_id
+              )
+            " (click)="toggleBookmark(scheme)" [disabled]="isBookmarkPending(scheme.scheme_id)" [attr.aria-label]="
+              isBookmarked(
+                scheme.scheme_id
+              )
+                ? 'Remove bookmark'
+                : 'Bookmark scheme'
+            ">
+
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+
+              <path
+                d="M6.5 4.5C6.5 3.94772 6.94772 3.5 7.5 3.5H16.5C17.0523 3.5 17.5 3.94772 17.5 4.5V20L12 16.5L6.5 20V4.5Z"
+                stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+
+            </svg>
+
+          </button>
+
+        </div>
+
+      </article>
+
+    </div>
+
+
+    <!-- ================================================== -->
+    <!-- PAGINATION -->
+    <!-- ================================================== -->
+
+    <nav class="pagination" *ngIf="
+        schemes().length > 0 &&
+        totalPages() > 1
+      " aria-label="Scheme pagination">
+
+      <button type="button" class="pagination-control" [disabled]="
+          loading() ||
+          currentPage() === 1
+        " (click)="previousPage()">
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_left</span>
+        <span>Previous</span>
+      </button>
+
+
+      <div class="page-numbers">
+
+        <button type="button" class="page-number" *ngFor="
+            let page of pageNumbers
+          " [class.active]="
+            page === currentPage()
+          " [disabled]="loading()" (click)="goToPage(page)">
+          {{ page }}
+        </button>
+
+      </div>
+
+
+      <button type="button" class="pagination-control" [disabled]="
+          loading() ||
+          currentPage() === totalPages()
+        " (click)="nextPage()">
+        <span>Next</span>
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_right</span>
+      </button>
+
+    </nav>
+
+
+    <div class="pagination-info" *ngIf="
+        schemes().length > 0 &&
+        totalPages() > 1
+      ">
+
+      Page
+
+      <strong>
+        {{ currentPage() }}
+      </strong>
+
+      of
+
+      <strong>
+        {{ totalPages() }}
+      </strong>
+
+    </div>
+
+  </section>
+
   </nav>
 
 <div class="page-container">
@@ -264,5 +682,6 @@
   <div class="view-more-container" *ngIf="itemsToShow < filteredSchemes.length">
     <button type="button" class="btn-view-more" (click)="loadMore()">View More</button>
   </div>
+
 
 </div>

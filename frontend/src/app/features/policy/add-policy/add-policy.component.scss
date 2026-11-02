@@ -14,11 +14,10 @@ $success-bg: #f0fdf4;
 $success-border: #bbf7d0;
 
 .policy-create {
-  max-width: 1360px;
-  margin: 0 auto;
-  padding: 8px 4px 48px;
-  color: $text-dark;
-  font-family: inherit;
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #172033;
+  padding: 24px 28px 48px;
 
   // Header
   &__header {
@@ -33,36 +32,6 @@ $success-border: #bbf7d0;
   &__header-left {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-  }
-
-  &__breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: $text-muted;
-
-    a {
-      color: $text-muted;
-      text-decoration: none;
-      transition: color 0.2s;
-
-      &:hover {
-        color: $primary-blue;
-      }
-    }
-
-    .separator {
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    .current {
-      color: $text-dark;
-      font-weight: 600;
-    }
   }
 
   &__title-row {
@@ -102,15 +71,15 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 22px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: $text-dark;
     margin: 0;
     line-height: 1.25;
   }
 
   &__subtitle {
-    font-size: 13.5px;
+    font-size: 13px;
     color: $text-muted;
     margin: 0;
   }
@@ -131,8 +100,11 @@ $success-border: #bbf7d0;
     border: 1.5px solid $primary-blue;
     background: #ffffff;
     color: $primary-blue;
-    font-size: 13.5px;
-    font-weight: 600;
+    height: 48px;
+    justify-content: center;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 800;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -163,27 +135,17 @@ $success-border: #bbf7d0;
       }
     }
   }
+  // Page-level toast styles removed: all notifications use the shared
+  // top-right ToastService + app-toast-container. See toast.component.ts.
+}
 
-  // Toast
-  &__toast {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 18px;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: #065f46;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 14px;
-    font-weight: 500;
-    animation: fadeIn 0.3s ease;
-
-    .material-icons {
-      color: $success-green;
-      font-size: 20px;
-    }
-  }
+.policy-create__title-box h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 // =========================================================
@@ -200,9 +162,40 @@ $success-border: #bbf7d0;
 
   &__track {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
+    position: relative;
+
+    /*
+     * Full-width light-gray base line running circle-center to
+     * circle-center. Five equal columns put the centers at
+     * 10/30/50/70/90% of the track at every viewport width.
+     */
+    &::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #e2e8f0;
+    }
+  }
+
+  /*
+   * Animated blue progress layer above the base line. Width is bound
+   * to the active step (0/20/40/60/80%) and eases between values, so
+   * the line grows and retracts progressively instead of jumping.
+   * Circles (z-index 1, opaque) paint above both layers.
+   */
+  &__progress {
+    position: absolute;
+    top: 15px;
+    left: 10%;
+    width: 0;
+    height: 2px;
+    background: $primary-blue;
+    transition: width 400ms ease-in-out;
   }
 
   &__step {
@@ -211,7 +204,11 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 8px;
     cursor: pointer;
-    min-width: 110px;
+    /* Equal columns keep the 10/30/50/70/90% track circle centers
+       (see __track::before / __progress below) aligned at any width. */
+    flex: 1 1 0;
+    min-width: 0;
+    position: relative;
     user-select: none;
     transition: transform 0.15s ease;
 
@@ -227,11 +224,13 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     background: #ffffff;
     border: 2px solid #cbd5e1;
     color: #64748b;
+    position: relative;
+    z-index: 1;
     transition: all 0.25s ease;
 
     .material-icons {
@@ -241,24 +240,12 @@ $success-border: #bbf7d0;
   }
 
   &__label {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 500;
     color: #64748b;
     text-align: center;
     white-space: nowrap;
     transition: color 0.25s ease;
-  }
-
-  &__line {
-    flex: 1;
-    height: 2px;
-    background: #e2e8f0;
-    margin: 0 12px 22px 12px;
-    transition: background 0.25s ease;
-
-    &--active {
-      background: $primary-blue;
-    }
   }
 
   &__step--active {
@@ -289,14 +276,69 @@ $success-border: #bbf7d0;
   }
 }
 
+/* =========================================================
+   STEP-TRANSITION ANIMATION (CSS-only, no animation library)
+   ========================================================= */
+
+/*
+ * Each step's content is created fresh on navigation (@if blocks), so
+ * attaching the entrance animation to the recreated .policy-layout
+ * replays it on every successful step change with no reflow hacks.
+ * Validation failures never reach a navigation, so no transition runs.
+ * The direction class lives on the form and only affects step content,
+ * never the stepper itself (which has its own 0.25s transitions).
+ */
+@keyframes policyStepInForward {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes policyStepInBack {
+  from {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.step-anim-forward .policy-layout {
+  animation: policyStepInForward 0.25s ease-out;
+}
+
+.step-anim-back .policy-layout {
+  animation: policyStepInBack 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-anim-forward .policy-layout,
+  .step-anim-back .policy-layout {
+    animation: none;
+  }
+
+  .policy-stepper__step,
+  .policy-stepper__circle,
+  .policy-stepper__label,
+  .policy-stepper__progress {
+    transition: none;
+  }
+}
+
 // =========================================================
 // LAYOUT & CARDS
 // =========================================================
 
 .policy-layout {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 24px;
   align-items: flex-start;
 
   &--single {
@@ -343,7 +385,7 @@ $success-border: #bbf7d0;
     border: 1px solid #e2e8f0;
     padding: 8px 14px;
     border-radius: 8px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #475569;
     max-width: 380px;
 
@@ -409,7 +451,7 @@ $success-border: #bbf7d0;
 }
 
 .form-label {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #1e293b;
   margin-bottom: 6px;
@@ -490,7 +532,7 @@ $success-border: #bbf7d0;
   border: 1.5px solid #cbd5e1;
   border-radius: 8px;
   padding: 0 14px;
-  font-size: 14px;
+  font-size: 13px;
   color: $text-dark;
   outline: none;
   transition: all 0.2s ease;
@@ -564,7 +606,7 @@ $success-border: #bbf7d0;
 }
 
 .char-counter {
-  font-size: 11.5px;
+  font-size: 12px;
   color: #94a3b8;
   white-space: nowrap;
 }
@@ -631,7 +673,7 @@ $success-border: #bbf7d0;
   border-radius: 8px;
   background: #f8fafc;
   color: $primary-blue;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -737,7 +779,7 @@ $success-border: #bbf7d0;
   }
 
   .quote-text {
-    font-size: 12.5px;
+    font-size: 13px;
     font-style: italic;
     color: #475569;
     margin: 0;
@@ -773,7 +815,7 @@ $success-border: #bbf7d0;
   }
 
   &__name {
-    font-size: 13.5px;
+    font-size: 13px;
     font-style: italic;
     font-weight: 600;
     color: #15803d;
@@ -787,7 +829,7 @@ $success-border: #bbf7d0;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #1e293b;
 
     strong {
@@ -818,7 +860,7 @@ $success-border: #bbf7d0;
     gap: 8px;
     color: #1e40af;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
 
     .material-icons {
       font-size: 20px;
@@ -836,7 +878,7 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12.5px;
+    font-size: 13px;
     color: #1e3a8a;
     font-weight: 500;
 
@@ -873,7 +915,7 @@ $success-border: #bbf7d0;
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #1e293b;
     padding-top: 8px;
@@ -917,7 +959,7 @@ $success-border: #bbf7d0;
 }
 
 .sub-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: #475569;
   margin-bottom: 5px;
@@ -933,7 +975,7 @@ $success-border: #bbf7d0;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: #334155;
     cursor: pointer;
@@ -971,7 +1013,7 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 2px 0;
@@ -984,7 +1026,7 @@ $success-border: #bbf7d0;
   }
 
   &__sub {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
   }
@@ -1022,6 +1064,84 @@ $success-border: #bbf7d0;
   padding-left: 20px;
 }
 
+// Additional Conditions Editor: keyword blocks with nested values,
+// reusing .dynamic-row value rows.
+.condition-block {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.condition-block__row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.condition-block__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-block__row .btn-icon-danger {
+  flex-shrink: 0;
+  margin-bottom: 1px;
+}
+
+.condition-block__values-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dynamic-row.kv-row {
+  align-items: center;
+
+  .kv-value {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-icon-danger {
+    flex-shrink: 0;
+  }
+}
+
+.btn-dashed-add--small {
+  width: auto;
+  flex-shrink: 0;
+  height: 44px;
+  margin-top: 0;
+  padding: 0 16px;
+  align-self: auto;
+
+  .material-icons {
+    font-size: 18px;
+  }
+}
+
+// Beneficiary rows reuse the Benefits .dynamic-list pattern above,
+// so no extra row styles are needed here.
+
+@media (max-width: 640px) {
+  .condition-block__row {
+    flex-wrap: wrap;
+  }
+
+  .condition-block__field {
+    flex: 1 1 100%;
+  }
+}
+
 // =========================================================
 // STEP 4: DOCUMENTS & LINKS
 // =========================================================
@@ -1038,7 +1158,7 @@ $success-border: #bbf7d0;
     align-items: center;
     gap: 6px;
     color: #1e40af;
-    font-size: 13.5px;
+    font-size: 13px;
     margin-bottom: 8px;
 
     .material-icons {
@@ -1086,14 +1206,14 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 2px 0;
   }
 
   &__desc {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
   }
@@ -1112,7 +1232,7 @@ $success-border: #bbf7d0;
   color: #1e40af;
   border-radius: 8px;
   padding: 10px 16px;
-  font-size: 12.5px;
+  font-size: 13px;
   max-width: 440px;
 
   .material-icons {
@@ -1212,7 +1332,7 @@ $success-border: #bbf7d0;
 .review-item {
   display: flex;
   align-items: flex-start;
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.45;
 
   &--full {
@@ -1315,14 +1435,14 @@ $success-border: #bbf7d0;
   }
 
   &__title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: #065f46;
     margin: 0 0 3px 0;
   }
 
   &__text {
-    font-size: 12.5px;
+    font-size: 13px;
     color: #047857;
     margin: 0;
     line-height: 1.4;
@@ -1392,7 +1512,7 @@ $success-border: #bbf7d0;
   height: 42px;
   padding: 0 22px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -1502,7 +1622,7 @@ $success-border: #bbf7d0;
 }
 
 .modal-message {
-  font-size: 14px;
+  font-size: 13px;
   color: #475569;
   line-height: 1.5;
   margin: 0 0 24px 0;
@@ -1518,7 +1638,7 @@ $success-border: #bbf7d0;
   .modal-btn-confirm {
     width: 100%;
     height: 44px;
-    font-size: 14.5px;
+    font-size: 13px;
   }
 }
 
@@ -1548,8 +1668,6 @@ $success-border: #bbf7d0;
 }
 
 .policy-create {
-  width: min(100%, 1440px);
-  max-width: 1440px;
   margin: 0 auto;
   padding: 24px 28px 40px;
   box-sizing: border-box;
@@ -1602,12 +1720,6 @@ $success-border: #bbf7d0;
 
 .policy-stepper__step {
   min-width: 100px;
-}
-
-.policy-stepper__line {
-  min-width: 20px;
-  margin-left: 10px;
-  margin-right: 10px;
 }
 
 /* Main layout */
@@ -1745,6 +1857,10 @@ $success-border: #bbf7d0;
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.review-kv-line {
+  display: block;
 }
 
 .link-external {
@@ -1886,15 +2002,18 @@ $success-border: #bbf7d0;
 
 @media (max-width: 768px) {
   .policy-create {
-    padding: 16px 14px 28px;
+    padding: 20px 24px 32px;
   }
 
   .policy-create__header-right {
     width: 100%;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .policy-create__btn-draft {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .policy-stepper {
@@ -1947,8 +2066,14 @@ $success-border: #bbf7d0;
     width: 100%;
   }
 
+  .policy-create__footer-left {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
   .policy-create__footer-right {
     justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
 
@@ -1967,7 +2092,7 @@ $success-border: #bbf7d0;
   }
 
   .policy-create__subtitle {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .policy-card {
@@ -1989,13 +2114,22 @@ $success-border: #bbf7d0;
     display: none;
   }
 
+  .policy-create__footer-left {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .policy-create__footer-right {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .policy-create__footer-right .btn,
   .policy-create__footer-left .btn {
-    width: 100%;
+    flex: 0 0 auto;
+    width: auto;
   }
 }
 /* =========================================================
@@ -2071,7 +2205,7 @@ $success-border: #bbf7d0;
   margin: 0 0 12px;
 
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
 
   color: #0f172a;
 }
@@ -2081,7 +2215,7 @@ $success-border: #bbf7d0;
 
   max-width: 390px;
 
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.65;
 
   color: #64748b;
@@ -2112,7 +2246,7 @@ $success-border: #bbf7d0;
 
   gap: 8px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -2239,7 +2373,7 @@ $success-border: #bbf7d0;
 
   gap: 8px;
 
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 
   transition:
@@ -2292,7 +2426,7 @@ $success-border: #bbf7d0;
   padding: 14px 18px;
   border-radius: 10px;
   margin-bottom: 20px;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
   animation: fadeIn 0.2s ease;
 
@@ -2318,7 +2452,7 @@ $success-border: #bbf7d0;
     .policy-alert__hint {
       display: block;
       margin-top: 4px;
-      font-size: 12.5px;
+      font-size: 13px;
       opacity: 0.9;
     }
   }
@@ -2359,5 +2493,263 @@ $success-border: #bbf7d0;
     background: #fefce8;
     border: 1px solid #fef08a;
     color: #854d0e;
+  }
+}
+
+/* =========================================================
+   POLICY DOCUMENT UPLOAD (STEP 4)
+   Matches the existing card/form language: dashed dropzone,
+   PDF file chip, progress bar, and review badges.
+   ========================================================= */
+
+.document-upload-dropzone {
+  border: 1.5px dashed #93c5fd;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  &:hover {
+    background: $primary-light;
+    border-color: $primary-blue;
+  }
+
+  &.drag-over {
+    background: $primary-light;
+    border-color: $primary-blue;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+  }
+
+  &.disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary-blue;
+    outline-offset: 2px;
+  }
+}
+
+.document-upload-input {
+  display: none;
+}
+
+.document-upload-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: $primary-light;
+  color: $primary-blue;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .material-icons {
+    font-size: 28px;
+  }
+}
+
+.document-upload-text {
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.document-file-chip {
+  margin-top: 12px;
+  border: 1px solid $border-color;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  &__icon {
+    color: #dc2626;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  &__meta {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 700;
+    color: $text-dark;
+    overflow-wrap: anywhere;
+  }
+
+  &__sub {
+    font-size: 12px;
+    color: $text-muted;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.document-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .material-icons {
+    font-size: 17px;
+  }
+
+  &--danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+
+    &:hover:not(:disabled) {
+      background: #fee2e2;
+    }
+  }
+}
+
+.document-upload-progress {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__track {
+    height: 8px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+  }
+
+  &__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: $primary-blue;
+    transition: width 0.2s ease;
+  }
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $primary-blue;
+  }
+}
+
+.review-doc-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: $primary-light;
+  color: $primary-blue;
+  border: 1px solid #bfdbfe;
+  vertical-align: middle;
+
+  &--link {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+}
+
+.review-doc-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.review-doc-icon {
+  font-size: 18px;
+  color: #dc2626;
+}
+
+.review-doc-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.review-doc-sep {
+  color: #94a3b8;
+}
+
+.review-doc-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: $text-muted;
+}
+
+.review-doc-error {
+  display: block;
+  margin-top: 6px;
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 640px) {
+  .document-file-chip {
+    align-items: flex-start;
+  }
+
+  .document-file-chip__actions {
+    width: 100%;
   }
 }

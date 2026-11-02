@@ -1,6 +1,24 @@
-import { Component } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { RouterLink } from "@angular/router";
+
+import { Auth } from "../../../../core/services/auth";
+import {
+  AnalyticsService,
+  DashboardAnalyticsResponse,
+} from "../../../../core/services/analytics.service";
+import { PolicyService } from "../../../../core/services/policy.service";
+import { SchemeService } from "../../../../core/services/scheme.service";
+import { PolicyResponse } from "../../../../core/models/policy.model";
+import { SchemeResponse } from "../../../../core/models/scheme.model";
+
+import { CountUpDirective } from "../../../../shared/directives/count-up.directive";
+import {
+  CategoryIconFields,
+  categoryIconFields,
+  getCategoryIconClass,
+  getCategoryIconName,
+} from "../../../../core/utils/category-icon.util";
 
 // =========================================================
 // STAT CARD
@@ -8,22 +26,24 @@ import { RouterLink } from "@angular/router";
 
 export interface StatCard {
   label: string;
-  value: number;
+  value: number | null;
   sublabel: string;
   icon: string;
   color: "blue" | "orange" | "green" | "purple";
+  route?: string;
 }
 
 // =========================================================
 // LIST ITEM
 // =========================================================
 
-export interface ListItem {
+export interface ListItem extends CategoryIconFields {
   id: number;
   title: string;
   ministry: string;
   icon?: string;
   iconClass?: string;
+  category?: string | null;
 }
 
 // =========================================================
@@ -32,21 +52,35 @@ export interface ListItem {
 
 @Component({
   selector: "app-admin-dashboard",
-
   standalone: true,
-
-  imports: [CommonModule, RouterLink],
-
+  imports: [CommonModule, RouterLink, CountUpDirective],
   templateUrl: "./admin.component.html",
-
   styleUrl: "./admin.component.scss",
 })
-export class AdminComponent {
+export class AdminComponent implements OnInit {
+  private readonly auth = inject(Auth);
+  private readonly analyticsService = inject(AnalyticsService);
+  private readonly policyService = inject(PolicyService);
+  private readonly schemeService = inject(SchemeService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   // =======================================================
   // LOGGED-IN USER
   // =======================================================
 
   userName = "Administrator";
+
+  // =======================================================
+  // LOADING & ERROR STATES
+  // =======================================================
+
+  loadingStats = true;
+  loadingSchemes = true;
+  loadingPolicies = true;
+
+  statsError = "";
+  schemesError = "";
+  policiesError = "";
 
   // =======================================================
   // STATISTICS
@@ -55,96 +89,196 @@ export class AdminComponent {
   statCards: StatCard[] = [
     {
       label: "Total Policies",
-      value: 1242,
-      sublabel: "+32 this week",
+      value: null,
+      sublabel: "Loading...",
       icon: "policy",
       color: "blue",
+      route: "/dashboard/admin/policies/search",
     },
-
     {
       label: "Total Schemes",
-      value: 897,
-      sublabel: "+18 this week",
+      value: null,
+      sublabel: "Loading...",
       icon: "article",
       color: "orange",
+      route: "/dashboard/admin/schemes",
     },
-
     {
       label: "Total Users",
-      value: 432,
-      sublabel: "+2,154 this week",
+      value: null,
+      sublabel: "Loading...",
       icon: "groups",
       color: "green",
+      route: "/dashboard/admin/users",
     },
-
     {
-      label: "Applications",
-      value: 321,
-      sublabel: "+61 this week",
-      icon: "assignment",
+      label: "Pending Approvals",
+      value: null,
+      sublabel: "Loading...",
+      icon: "pending_actions",
       color: "purple",
+      route: "/dashboard/admin/schemes/manage",
     },
   ];
 
   // =======================================================
-  // SCHEMES
+  // SCHEMES & POLICIES LISTS
   // =======================================================
 
-  schemes: ListItem[] = [
-    {
-      id: 1,
-      title: "PM Surya Ghar Muft Bijli Yojana",
-      ministry: "Ministry of New & Renewable Energy",
-      icon: "wb_sunny",
-      iconClass: "sun",
-    },
+  schemes: ListItem[] = [];
+  policies: ListItem[] = [];
 
-    {
-      id: 2,
-      title: "Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
-      ministry: "Ministry of Health & Family Welfare",
-      icon: "health_and_safety",
-      iconClass: "health",
-    },
+  ngOnInit(): void {
+    this.loadUserData();
+    this.loadDashboardStats();
+    this.loadRecentSchemes();
+    this.loadRecentPolicies();
+  }
 
-    {
-      id: 3,
-      title: "PM Vishwakarma Yojana",
-      ministry: "Ministry of Micro, Small & Medium Enterprises",
-      icon: "engineering",
-      iconClass: "work",
-    },
+  private loadUserData(): void {
+    const storedUser = this.auth.getStoredUser();
+    if (storedUser?.full_name) {
+      this.userName = storedUser.full_name;
+    }
 
-    {
-      id: 4,
-      title: "Post Matric Scholarship Scheme",
-      ministry: "Ministry of Health & Family Welfare",
-      icon: "school",
-      iconClass: "edu",
-    },
-  ];
+    this.auth.getCurrentUser().subscribe({
+      next: (user) => {
+        if (user?.full_name) {
+          this.userName = user.full_name;
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {},
+    });
+  }
 
-  // =======================================================
-  // POLICIES
-  // =======================================================
+  loadDashboardStats(): void {
+    this.loadingStats = true;
+    this.statsError = "";
+    this.cdr.detectChanges();
 
-  policies: ListItem[] = [
-    {
-      id: 1,
-      title: "National Education Policy 2020",
-      ministry: "Ministry of Education",
-    },
+    this.analyticsService.getDashboardAnalytics().subscribe({
+      next: (data: any) => {
+        const totalPolicies = data?.total_policies ?? data?.policies?.total ?? 0;
+        const approvedPolicies = data?.approved_policies ?? data?.policies?.approved ?? 0;
+        const pendingPolicies = data?.pending_policies ?? data?.policies?.pending ?? 0;
+        const totalSchemes = data?.total_schemes ?? data?.schemes?.total ?? 0;
+        const activeSchemes = data?.active_schemes ?? data?.approved_schemes ?? data?.schemes?.approved ?? 0;
+        const pendingSchemes = data?.pending_schemes ?? data?.schemes?.pending ?? 0;
+        const totalUsers = data?.total_users ?? data?.users?.total ?? 0;
+        const pendingAll = pendingPolicies + pendingSchemes;
 
-    {
-      id: 2,
-      title: "Ayushman Bharat Policy",
-      ministry: "Ministry of Health & Family Welfare",
-    },
+        this.statCards = [
+          {
+            label: "Total Policies",
+            value: totalPolicies,
+            sublabel: `${approvedPolicies} approved, ${pendingPolicies} pending`,
+            icon: "policy",
+            color: "blue",
+            route: "/dashboard/admin/policies/search",
+          },
+          {
+            label: "Total Schemes",
+            value: totalSchemes,
+            sublabel: `${activeSchemes} active approved schemes`,
+            icon: "article",
+            color: "orange",
+            route: "/dashboard/admin/schemes",
+          },
+          {
+            label: "Total Users",
+            value: totalUsers,
+            sublabel: "Registered platform users",
+            icon: "groups",
+            color: "green",
+            route: "/dashboard/admin/users",
+          },
+          {
+            label: "Pending Approvals",
+            value: pendingAll,
+            sublabel: `${pendingPolicies} policies, ${pendingSchemes} schemes awaiting review`,
+            icon: "pending_actions",
+            color: "purple",
+            route: "/dashboard/admin/schemes/manage",
+          },
+        ];
+        this.loadingStats = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("[ADMIN DASHBOARD] Error loading analytics:", err);
+        this.statsError = "Unable to load dashboard statistics";
+        this.loadingStats = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
-    {
-      id: 3,
-      title: "Electricity Act, 2003",
-      ministry: "Ministry of Power",
-    },
-  ];
+  loadRecentSchemes(): void {
+    this.loadingSchemes = true;
+    this.schemesError = "";
+    this.cdr.detectChanges();
+
+    this.schemeService.getSchemes({ limit: 4, manage: true }).subscribe({
+      next: (res) => {
+        const rawSchemes: SchemeResponse[] = Array.isArray(res?.schemes)
+          ? res.schemes
+          : [];
+        this.schemes = rawSchemes.map((s) => ({
+          id: s.scheme_id,
+          title: s.name || (s as any).title || "Untitled Scheme",
+          ministry: s.ministry || s.department || "",
+          icon: this.getSchemeIcon(s.category),
+          iconClass: this.getSchemeIconClass(s.category),
+          category: s.category ?? null,
+          ...categoryIconFields(s.category),
+        }));
+        this.loadingSchemes = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("[ADMIN DASHBOARD] Error loading schemes:", err);
+        this.schemesError = "Unable to load schemes";
+        this.loadingSchemes = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  loadRecentPolicies(): void {
+    this.loadingPolicies = true;
+    this.policiesError = "";
+    this.cdr.detectChanges();
+
+    this.policyService.getPolicies({ limit: 4, manage: true }).subscribe({
+      next: (res) => {
+        const rawPolicies: PolicyResponse[] = Array.isArray(res?.policies)
+          ? res.policies
+          : [];
+        this.policies = rawPolicies.map((p) => ({
+          id: p.policy_id,
+          title: p.title || "Untitled Policy",
+          ministry: p.ministry || p.department || "",
+          category: p.category ?? null,
+          ...categoryIconFields(p.category),
+        }));
+        this.loadingPolicies = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error("[ADMIN DASHBOARD] Error loading policies:", err);
+        this.policiesError = "Unable to load policies";
+        this.loadingPolicies = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  private getSchemeIcon(category?: string | null): string {
+    return getCategoryIconName(category);
+  }
+
+  private getSchemeIconClass(category?: string | null): string {
+    return getCategoryIconClass(category);
+  }
 }

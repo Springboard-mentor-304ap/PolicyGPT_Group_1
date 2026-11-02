@@ -1,15 +1,28 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component } from "@angular/core";
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { ToastService } from "../../../core/services/toast.service";
+import { Subject, Subscription, finalize, takeUntil, timeout } from "rxjs";
+import type { Observable } from "rxjs";
 import {
   EligibilityCheckResponse,
   EligibilityProfile,
   EligibilityService,
   EntityType,
+  SavedEligibilityResult,
 } from "../eligibility.service";
 import { PolicyService } from "../../../core/services/policy.services";
 import { SchemeService } from "../../../core/services/scheme.service";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../../shared/components/breadcrumb/breadcrumb.component";
+import {
+  CategoryInput,
+  getCategoryIconName,
+  getCategoryIconStyle,
+} from "../../../core/utils/category-icon.util";
 
 interface SelectableEntity {
   id: number;
@@ -21,14 +34,16 @@ interface SelectableEntity {
   status?: string | null;
 }
 
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+
 @Component({
   selector: "app-eligibility-specific",
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BreadcrumbComponent, SearchableSelectComponent],
   templateUrl: "./eligibility-specific.html",
   styleUrl: "./eligibility-specific.scss",
 })
-export class EligibilitySpecific {
+export class EligibilitySpecific implements OnInit, OnDestroy {
   entityType: EntityType = "scheme";
 
   selectedEntityId: number | null = null;
@@ -36,16 +51,38 @@ export class EligibilitySpecific {
 
   entities: SelectableEntity[] = [];
 
-  profile: EligibilityProfile = {
-    age: 35,
-    gender: "Male",
-    annual_income: 120000,
-    occupation: "Farmer",
-    education: "10th Pass",
-    state: "Uttar Pradesh",
-    social_category: "OBC",
-    disability_status: false,
-  };
+  /**
+   * Per-type dropdown cache (component instance only, never shared).
+   * Schemes and policies are fetched once each; switching back to an
+   * already-loaded type renders instantly with no second request.
+   * Public APPROVED listings plus instance lifetime make cross-user
+   * leakage impossible; cleared again on init for reused instances.
+   */
+  private readonly entityCache = new Map<EntityType, SelectableEntity[]>();
+  /** Cancels in-flight entity/check requests on switch or destroy. */
+  private readonly destroy$ = new Subject<void>();
+  private entitiesSub?: Subscription;
+
+  /**
+   * Fresh blank profile factory — same contract as the main checker:
+   * the form always opens empty, never restored from storage, cache,
+   * route state, or another user's values. The only preserved default
+   * is the entity-type selector ('scheme').
+   */
+  private static blankProfile(): EligibilityProfile {
+    return {
+      age: null as unknown as number,
+      gender: "",
+      annual_income: null,
+      occupation: null,
+      education: null,
+      state: null,
+      social_category: null,
+      disability_status: null,
+    };
+  }
+
+  profile: EligibilityProfile = EligibilitySpecific.blankProfile();
 
   occupations: string[] = [
     "Student",
@@ -120,117 +157,194 @@ export class EligibilitySpecific {
 
   loadingEntities = false;
   checking = false;
+  savingResult = false;
   errorMessage = "";
+
+  activeTab: "find" | "specific" | "saved" = "specific";
 
   result: EligibilityCheckResponse | null = null;
 
-  constructor(
-    private eligibilityService: EligibilityService,
-    private policyService: PolicyService,
-    private schemeService: SchemeService,
-    private router: Router,
-    private cdr: ChangeDetectorRef
-  ) {}
+  /** Current user's server saved list (source for the Save button state). */
+  savedResults: SavedEligibilityResult[] = [];
+
+  setTab(tab: "find" | "specific" | "saved"): void {
+    this.activeTab = tab;
+    if (tab === "find") {
+      this.router.navigate(["/dashboard/citizen/eligibility"]);
+    } else if (tab === "saved") {
+      this.router.navigate(["/dashboard/citizen/eligibility"], {
+        queryParams: { tab: "saved" },
+      });
+    }
+  }
+
+  private eligibilityService = inject(EligibilityService);
+  private policyService = inject(PolicyService);
+  private schemeService = inject(SchemeService);
+  private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+  private toastService = inject(ToastService);
+
+  /**
+   * Breadcrumb trail: Home > Eligibility Checker > Check Specific.
+   * Hidden on the public guest view.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    if ((this.router.url || "").includes("/dashboard/guest")) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard/citizen"] },
+      {
+        label: "Eligibility Checker",
+        route: ["/dashboard/citizen/eligibility"],
+      },
+      { label: "Check Specific" },
+    ];
+  }
 
   ngOnInit(): void {
+    // Always open with a blank form, even if Angular reuses this
+    // component instance when navigating between the checker tabs.
+    this.profile = EligibilitySpecific.blankProfile();
+    this.entityCache.clear();
+    this.selectedEntityId = null;
+    this.selectedEntity = null;
+    this.result = null;
+    this.errorMessage = "";
     this.loadEntities();
+    this.loadSavedResults();
+  }
+
+  ngOnDestroy(): void {
+    this.entitiesSub?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Whether the checker is rendered inside the guest dashboard.
+   * Guests may check eligibility but cannot persist Saved Results.
+   */
+  get isGuestView(): boolean {
+    return (this.router.url || "").includes("/dashboard/guest");
+  }
+
+  /**
+   * Load the current user's server saved list (drives the Save button
+   * state). Skipped for guests, who cannot persist results.
+   */
+  loadSavedResults(): void {
+    if (this.isGuestView) {
+      this.savedResults = [];
+      return;
+    }
+    this.eligibilityService.getSavedResults().pipe(
+      timeout(15000),
+      takeUntil(this.destroy$),
+    ).subscribe({
+      next: (results) => {
+        this.savedResults = Array.isArray(results) ? results : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.savedResults = [];
+      },
+    });
   }
 
   loadEntities(): void {
-    this.loadingEntities = true;
+    // Cancel any in-flight list request (e.g. rapid Schemes↔Policies
+    // switching) so a stale response can never overwrite the current
+    // type or leave its loading flag behind.
+    this.entitiesSub?.unsubscribe();
+    this.entitiesSub = undefined;
+
     this.errorMessage = "";
     this.selectedEntity = null;
     this.selectedEntityId = null;
     this.result = null;
+
+    // Already loaded during this visit: render immediately, no request.
+    const cached = this.entityCache.get(this.entityType);
+    if (cached) {
+      this.entities = [...cached];
+      this.loadingEntities = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.loadingEntities = true;
     this.entities = [];
 
     this.cdr.detectChanges();
 
-    if (this.entityType === "scheme") {
-      this.schemeService.getSchemes().subscribe({
-        next: (response: any) => {
-          console.log("Schemes response:", response);
+    // Bounded full-page fetch for the dropdown (backend max is 100).
+    const listParams = { limit: 100 };
+    const entities$: Observable<any> = this.entityType === "scheme"
+      ? this.schemeService.getSchemes(listParams)
+      : this.policyService.getPolicies(listParams);
 
-          const schemes = Array.isArray(response)
+    this.entitiesSub = entities$.pipe(
+      timeout(15000),
+      takeUntil(this.destroy$),
+      finalize(() => {
+        this.loadingEntities = false;
+        this.cdr.detectChanges();
+      }),
+    ).subscribe({
+        next: (response: any) => {
+          const isScheme = this.entityType === "scheme";
+          console.log(
+            isScheme ? "Schemes response:" : "Policies response:",
+            response
+          );
+
+          const items = Array.isArray(response)
             ? response
-            : response?.schemes || [];
+            : isScheme
+              ? response?.schemes || []
+              : response?.policies || [];
 
-          this.entities = schemes
-            .map((scheme: any) => ({
-              id: Number(scheme.scheme_id ?? scheme.id),
+          this.entities = items
+            .map((item: any) => ({
+              id: Number(item.scheme_id ?? item.policy_id ?? item.id),
               name:
-                scheme.name ??
-                scheme.title ??
-                "Unnamed Scheme",
-              type: "scheme" as EntityType,
-              description: scheme.description,
-              ministry: scheme.ministry,
-              category: scheme.category,
-              status: scheme.status,
+                item.name ??
+                item.title ??
+                (isScheme ? "Unnamed Scheme" : "Unnamed Policy"),
+              type: this.entityType,
+              description: item.description,
+              ministry: item.ministry,
+              category: item.category,
+              status: item.status,
             }))
             .filter((entity: SelectableEntity) =>
               Number.isFinite(entity.id) && entity.id > 0
             );
 
-          console.log("Available schemes:", this.entities);
+          // Remember this type for instant re-selection (Cases A/B/C).
+          this.entityCache.set(this.entityType, [...this.entities]);
 
-          this.loadingEntities = false;
+          console.log("Available entities:", this.entities);
+
           this.cdr.detectChanges();
         },
 
         error: (error) => {
-          console.error("Unable to load schemes:", error);
+          console.error("Unable to load entities:", error);
 
           this.errorMessage =
-            error?.error?.detail ||
-            "Unable to load schemes. Please try again.";
+            error?.name === "TimeoutError"
+              ? "Loading is taking too long. Please try again."
+              : error?.error?.detail ||
+                (this.entityType === "scheme"
+                  ? "Unable to load schemes. Please try again."
+                  : "Unable to load policies. Please try again.");
 
-          this.loadingEntities = false;
           this.cdr.detectChanges();
         },
       });
-    } else {
-      this.policyService.getPolicies().subscribe({
-        next: (response: any) => {
-          console.log("Policies response:", response);
-
-          const policies = response?.policies || [];
-
-          this.entities = policies
-            .map((policy: any) => ({
-              id: Number(policy.policy_id ?? policy.id),
-              name:
-                policy.title ??
-                policy.name ??
-                "Unnamed Policy",
-              type: "policy" as EntityType,
-              description: policy.description,
-              ministry: policy.ministry,
-              category: policy.category,
-              status: policy.status,
-            }))
-            .filter((entity: SelectableEntity) =>
-              Number.isFinite(entity.id) && entity.id > 0
-            );
-
-          console.log("Available policies:", this.entities);
-
-          this.loadingEntities = false;
-          this.cdr.detectChanges();
-        },
-
-        error: (error) => {
-          console.error("Unable to load policies:", error);
-
-          this.errorMessage =
-            error?.error?.detail ||
-            "Unable to load policies. Please try again.";
-
-          this.loadingEntities = false;
-          this.cdr.detectChanges();
-        },
-      });
-    }
   }
 
   onEntityTypeChange(): void {
@@ -303,6 +417,14 @@ export class EligibilitySpecific {
 
     this.eligibilityService
       .checkEligibility(request)
+      .pipe(
+        timeout(15000),
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.checking = false;
+          this.cdr.detectChanges();
+        }),
+      )
       .subscribe({
         next: (response) => {
           console.log(
@@ -311,7 +433,6 @@ export class EligibilitySpecific {
           );
 
           this.result = response;
-          this.checking = false;
 
           this.cdr.detectChanges();
         },
@@ -323,27 +444,23 @@ export class EligibilitySpecific {
           );
 
           this.errorMessage =
-            error?.error?.detail ||
-            "Unable to check eligibility. Please try again.";
-
-          this.checking = false;
+            error?.name === "TimeoutError"
+              ? "The eligibility service is taking too long to respond. Please try again."
+              : error?.error?.detail ||
+                "Unable to check eligibility. Please try again.";
 
           this.cdr.detectChanges();
         },
       });
   }
 
+  /**
+   * Reset the whole form to blank (never to stored/profile values).
+   * Clears the selected scheme/policy, the result and any error.
+   * The entity-type selector keeps its default ('scheme').
+   */
   reset(): void {
-    this.profile = {
-      age: 35,
-      gender: "Male",
-      annual_income: 120000,
-      occupation: "Farmer",
-      education: "10th Pass",
-      state: "Uttar Pradesh",
-      social_category: "OBC",
-      disability_status: false,
-    };
+    this.profile = EligibilitySpecific.blankProfile();
 
     this.selectedEntityId = null;
     this.selectedEntity = null;
@@ -368,6 +485,14 @@ export class EligibilitySpecific {
   }
 
   private isProfileValid(): boolean {
+    if (
+      this.profile.age === null ||
+      this.profile.age === undefined ||
+      (typeof this.profile.age === "string" &&
+        (this.profile.age as unknown as string).trim() === "")
+    ) {
+      return false;
+    }
     const age = Number(this.profile.age);
 
     return (
@@ -375,5 +500,104 @@ export class EligibilitySpecific {
       age >= 0 &&
       age <= 120
     );
+  }
+
+  isResultSaved(): boolean {
+    if (!this.result) return false;
+    return this.savedResults.some(
+      (item) =>
+        item.entity_type === this.result?.entity_type &&
+        item.entity_id === this.result?.entity_id
+    );
+  }
+
+  toggleSaveResult(): void {
+    if (!this.result || this.savingResult || this.isGuestView) return;
+    const result = this.result;
+    const existing = this.savedResults.find(
+      (item) =>
+        item.entity_type === result.entity_type &&
+        item.entity_id === result.entity_id
+    );
+    this.savingResult = true;
+    this.cdr.detectChanges();
+
+    const done = () => {
+      this.savingResult = false;
+      this.cdr.detectChanges();
+    };
+
+    if (existing) {
+      this.eligibilityService.removeSavedResult(existing.saved_id).pipe(
+        finalize(done),
+      ).subscribe({
+        next: () => {
+          this.savedResults = this.savedResults.filter(
+            (item) => item.saved_id !== existing.saved_id
+          );
+          this.showToast(`Removed '${result.entity_name}' from Saved Results.`, "info");
+        },
+        error: (error) => {
+          this.showToast(
+            error?.error?.detail || "Unable to remove the saved result. Please try again.",
+            "error",
+          );
+        },
+      });
+    } else {
+      this.eligibilityService.saveResult(
+        result.entity_type,
+        result.entity_id,
+        this.profile
+      ).pipe(
+        finalize(done),
+      ).subscribe({
+        next: (created) => {
+          const index = this.savedResults.findIndex(
+            (item) => item.saved_id === created.saved_id
+          );
+          if (index >= 0) {
+            this.savedResults = this.savedResults.map((item, i) =>
+              i === index ? created : item
+            );
+          } else {
+            this.savedResults = [created, ...this.savedResults];
+          }
+          this.showToast(`Saved '${result.entity_name}' to Saved Results.`, "success");
+        },
+        error: (error) => {
+          this.showToast(
+            error?.error?.detail || "Unable to save the result. Please try again.",
+            "error",
+          );
+        },
+      });
+    }
+  }
+
+  showToast(message: string, type: "success" | "info" | "error" = "success"): void {
+    if (type === "error") {
+      this.toastService.error(message);
+    } else if (type === "info") {
+      this.toastService.info(message);
+    } else {
+      this.toastService.success(message);
+    }
+  }
+
+  /**
+   * Category icon (centralized mapping — same icon/color for a
+   * category on every page).
+   */
+  categoryIcon(category: CategoryInput): string {
+    return getCategoryIconName(category);
+  }
+
+  categoryIconStyle(category: CategoryInput): {
+    "background-color": string;
+    color: string;
+    "border-color": string;
+  } {
+    return getCategoryIconStyle(category);
   }
 }

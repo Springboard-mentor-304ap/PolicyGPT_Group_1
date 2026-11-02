@@ -2,20 +2,12 @@
     <!-- =========================================================
        BREADCRUMB & HEADER
        ========================================================= -->
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
     <div class="policy-create__header">
         <div class="policy-create__header-left">
-            <nav class="policy-create__breadcrumb" aria-label="Breadcrumb">
-                <a
-                    [routerLink]="isAdmin ? ['/dashboard/admin/policies'] : ['/dashboard/government/policies/manage']">Policies</a>
-                <span class="separator">&gt;</span>
-                <span class="current">{{ isEditMode ? 'Edit Policy' : 'Add Policy' }}</span>
-            </nav>
 
             <div class="policy-create__title-row">
-                <button type="button" class="policy-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
-                    aria-label="Previous step">
-                    <span class="material-icons">arrow_back</span>
-                </button>
 
                 <div class="policy-create__title-box">
                     <h1 class="policy-create__title">{{ isEditMode ? 'Edit Policy' : 'Add New Policy' }}</h1>
@@ -40,29 +32,14 @@
         <div class="policy-create__header-right">
             <button type="button" class="policy-create__btn-draft"
                 [disabled]="isReadOnly || isSaving || isSubmitting || isApproving || modalType !== null"
-                (click)="saveDraft()">
+                (click)="openSaveDraftConfirm()">
                 <span class="material-icons">save</span>
                 <span>Save as Draft</span>
             </button>
-
-            @if (currentStep === 5) {
-            <div class="policy-create__emblem-tag">
-                <div class="policy-create__emblem-text">
-                    <span>Transparent Governance</span>
-                    <strong>Stronger Citizens</strong>
-                </div>
-            </div>
-            }
         </div>
     </div>
 
-    <!-- DRAFT SAVED TOAST -->
-    @if (savedDraftToast) {
-    <div class="policy-create__toast" role="alert">
-        <span class="material-icons">check_circle</span>
-        <span>Policy draft saved successfully! You can resume anytime.</span>
-    </div>
-    }
+
 
     <!-- ERROR ALERT BANNER -->
     @if (errorMessage) {
@@ -106,6 +83,8 @@
        ========================================================= -->
     <div class="policy-stepper" aria-label="Progress">
         <div class="policy-stepper__track">
+            <!-- Animated progress fill (width follows the active step) -->
+            <div class="policy-stepper__progress" [style.width.%]="stepperProgress" aria-hidden="true"></div>
             <!-- STEP 1 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 1"
                 [class.policy-stepper__step--completed]="completedSteps.has(1)" (click)="goToStep(1)">
@@ -118,9 +97,6 @@
                 </div>
                 <span class="policy-stepper__label">Basic Information</span>
             </div>
-
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 1 || completedSteps.has(1)"></div>
 
             <!-- STEP 2 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 2"
@@ -135,9 +111,6 @@
                 <span class="policy-stepper__label">Classification &amp; Timeline</span>
             </div>
 
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 2 || completedSteps.has(2)"></div>
-
             <!-- STEP 3 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 3"
                 [class.policy-stepper__step--completed]="completedSteps.has(3)" (click)="goToStep(3)">
@@ -151,9 +124,6 @@
                 <span class="policy-stepper__label">Eligibility &amp; Scope</span>
             </div>
 
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 3 || completedSteps.has(3)"></div>
-
             <!-- STEP 4 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 4"
                 [class.policy-stepper__step--completed]="completedSteps.has(4)" (click)="goToStep(4)">
@@ -166,9 +136,6 @@
                 </div>
                 <span class="policy-stepper__label">Documents &amp; Links</span>
             </div>
-
-            <div class="policy-stepper__line"
-                [class.policy-stepper__line--active]="currentStep > 4 || completedSteps.has(4)"></div>
 
             <!-- STEP 5 -->
             <div class="policy-stepper__step" [class.policy-stepper__step--active]="currentStep === 5"
@@ -186,7 +153,8 @@
     </div>
 
     <!-- FORM CONTAINER -->
-    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" novalidate>
+    <form [formGroup]="policyForm" (ngSubmit)="onSubmit()" novalidate
+        [class.step-anim-forward]="stepTransition === 'forward'" [class.step-anim-back]="stepTransition === 'back'">
         <!-- =========================================================
          STEP 1: BASIC INFORMATION
          ========================================================= -->
@@ -236,19 +204,11 @@
                         <label class="form-label" for="policy-category">
                             Category <span class="required">*</span>
                         </label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">grid_view</span>
-                            <select id="policy-category" class="form-control form-select" formControlName="category"
-                                [class.is-invalid]="
-                    stepSubmitted[1] && policyForm.get('category')?.invalid
-                  ">
-                                <option value="" disabled selected>Select category</option>
-                                @for (cat of categories; track cat) {
-                                <option [value]="cat">{{ cat }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <app-searchable-select id="policy-category" formControlName="category" [options]="categories"
+                            placeholder="Select category" searchPlaceholder="Search or select category..."
+                            icon="grid_view" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[1] && policyForm.get('category')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Choose the primary category that best fits this policy.</p>
                         @if (stepSubmitted[1] && policyForm.get('category')?.invalid) {
                         <span class="form-error">Category is required.</span>
@@ -285,7 +245,7 @@
                     <!-- BENEFITS -->
                     <div class="form-group form-group--full">
                         <label class="form-label">
-                            Policy Benefits
+                            Policy Benefits <span class="required">*</span>
                             <span class="material-icons info-icon-inline"
                                 title="Key benefits and societal outcomes">info_outline</span>
                         </label>
@@ -307,71 +267,10 @@
                                 <span>Add Benefit</span>
                             </button>
                         </div>
-                        <p class="form-helper">List the key tangible benefits provided under this policy.</p>
+                        @if (stepSubmitted[1] && !hasAtLeastOneBenefit()) {
+                        <span class="form-error">At least one policy benefit is required.</span>
+                        }
                     </div>
-                </div>
-            </div>
-
-            <!-- Sidebar Tips & Example -->
-            <div class="policy-layout__sidebar">
-                <!-- TIPS CARD -->
-                <div class="info-card">
-                    <div class="info-card__header">
-                        <div class="info-card__icon-badge info-card__icon-badge--blue">
-                            <span class="material-icons">lightbulb_outline</span>
-                        </div>
-                        <h3 class="info-card__title">Tips for a Good Policy Entry</h3>
-                    </div>
-
-                    <ul class="info-checklist">
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Use an official gazette-notified policy title</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Assign the primary category and relevant sector</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Provide clear and meaningful descriptions</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Clearly highlight key benefits for citizens</span>
-                        </li>
-                        <li>
-                            <span class="material-icons check-icon">check_circle</span>
-                            <span>Ensure data matches official ministry notifications</span>
-                        </li>
-                    </ul>
-
-                    <div class="quote-box">
-                        <span class="material-icons quote-mark">format_quote</span>
-                        <p class="quote-text">
-                            “A well-defined policy framework fosters administrative transparency and seamless nationwide
-                            adoption.”
-                        </p>
-                    </div>
-                </div>
-
-                <!-- EXAMPLE POLICY CARD -->
-                <div class="example-card">
-                    <div class="example-card__header">
-                        <span class="material-icons example-card__icon">verified</span>
-                        <div class="example-card__title-box">
-                            <h4 class="example-card__subtitle">Example Policy Entry</h4>
-                            <p class="example-card__name">“National Education Policy (NEP)”</p>
-                        </div>
-                    </div>
-
-                    <ul class="example-details">
-                        <li><strong>Category:</strong> Education</li>
-                        <li><strong>Ministry:</strong> Ministry of Education</li>
-                        <li><strong>Department:</strong> Department of Higher Education</li>
-                        <li><strong>Sector:</strong> Education</li>
-                        <li><strong>State:</strong> All India</li>
-                    </ul>
                 </div>
             </div>
         </div>
@@ -398,67 +297,62 @@
                 <div class="policy-form-grid">
                     <!-- MINISTRY -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-ministry">Ministry</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">account_balance</span>
-                            <select id="policy-ministry" class="form-control form-select" formControlName="ministry">
-                                <option value="" selected>Select ministry</option>
-                                @for (min of ministries; track min) {
-                                <option [value]="min">{{ min }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <label class="form-label" for="policy-ministry">Ministry <span class="required">*</span></label>
+                        <app-searchable-select id="policy-ministry" formControlName="ministry" [options]="ministries"
+                            placeholder="Select ministry" searchPlaceholder="Search or select ministry..."
+                            icon="account_balance" [allowCustom]="true" (selectionChange)="onMinistryChange($event)"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('ministry')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Select the concerned government ministry.</p>
+                        @if (stepSubmitted[2] && policyForm.get('ministry')?.invalid) {
+                        <span class="form-error">Ministry is required.</span>
+                        }
                     </div>
 
                     <!-- DEPARTMENT -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-department">Department</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">apartment</span>
-                            <select id="policy-department" class="form-control form-select"
-                                formControlName="department">
-                                <option value="" selected>Select department</option>
-                                @for (dept of departments; track dept) {
-                                <option [value]="dept">{{ dept }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <label class="form-label" for="policy-department">Department <span
+                                class="required">*</span></label>
+                        <app-searchable-select id="policy-department" formControlName="department"
+                            [options]="departmentOptions"
+                            [placeholder]="policyForm.get('ministry')?.value ? 'Select department' : 'Select ministry first'"
+                            searchPlaceholder="Search or select department..." icon="apartment" [allowCustom]="true"
+                            [disabled]="!policyForm.get('ministry')?.value"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('department')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Select the nodal department managing this policy.</p>
+                        @if (stepSubmitted[2] && policyForm.get('department')?.invalid) {
+                        <span class="form-error">Department is required.</span>
+                        }
                     </div>
 
                     <!-- STATE / REGION -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-state">State / Geographic Scope</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">location_on</span>
-                            <select id="policy-state" class="form-control form-select" formControlName="state">
-                                <option value="" disabled>Select state / region</option>
-                                @for (st of states; track st) {
-                                <option [value]="st">{{ st }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <label class="form-label" for="policy-state">State / Geographic Scope <span
+                                class="required">*</span></label>
+                        <app-searchable-select id="policy-state" formControlName="state" [options]="states"
+                            placeholder="Select state / region" searchPlaceholder="Search or select state..."
+                            icon="location_on" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('state')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Applicable state or region (or All India).</p>
+                        @if (stepSubmitted[2] && policyForm.get('state')?.invalid) {
+                        <span class="form-error">State / Geographic Scope is required.</span>
+                        }
                     </div>
 
                     <!-- SECTOR -->
                     <div class="form-group">
-                        <label class="form-label" for="policy-sector">Sector</label>
-                        <div class="input-with-icon select-wrapper">
-                            <span class="material-icons input-icon">business_center</span>
-                            <select id="policy-sector" class="form-control form-select" formControlName="sector">
-                                <option value="" selected>Select sector</option>
-                                @for (sec of sectors; track sec) {
-                                <option [value]="sec">{{ sec }}</option>
-                                }
-                            </select>
-                            <span class="material-icons select-arrow">expand_more</span>
-                        </div>
+                        <label class="form-label" for="policy-sector">Sector <span class="required">*</span></label>
+                        <app-searchable-select id="policy-sector" formControlName="sector" [options]="sectors"
+                            placeholder="Select sector" searchPlaceholder="Search or select sector..."
+                            icon="business_center" [allowCustom]="true"
+                            [isInvalid]="!!(stepSubmitted[2] && policyForm.get('sector')?.invalid)">
+                        </app-searchable-select>
                         <p class="form-helper">Economic or administrative sector category.</p>
+                        @if (stepSubmitted[2] && policyForm.get('sector')?.invalid) {
+                        <span class="form-error">Sector is required.</span>
+                        }
                     </div>
 
                     <!-- PUBLICATION DATE -->
@@ -550,32 +444,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Bottom Tips Strip -->
-                <div class="tips-strip">
-                    <div class="tips-strip__label">
-                        <span class="material-icons">lightbulb_outline</span>
-                        <span>Tips for Policy Details</span>
-                    </div>
-                    <div class="tips-strip__items">
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Verify gazette dates</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Assign appropriate sector</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Select nodal ministry</span>
-                        </div>
-                        <div class="tips-strip__item">
-                            <span class="material-icons">check_circle</span>
-                            <span>Link official guidelines</span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         }
@@ -599,12 +467,6 @@
                             </p>
                         </div>
                     </div>
-
-                    <div class="policy-card__header-tip">
-                        <span class="material-icons">lightbulb_outline</span>
-                        <span>Clear applicability criteria ensure targeted delivery and transparent institutional
-                            compliance.</span>
-                    </div>
                 </div>
 
                 <div class="criteria-list">
@@ -615,25 +477,31 @@
                             <span>Target Beneficiaries <span class="required">*</span></span>
                         </div>
                         <div class="criteria-row__inputs">
-                            <div class="input-with-icon">
-                                <span class="material-icons input-icon">groups</span>
-                                <input type="text" class="form-control" formControlName="targetBeneficiaries"
-                                    placeholder="e.g. Students, Higher Educational Institutions, Research Organizations, Faculty"
-                                    maxlength="500" [class.is-invalid]="
-                      stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid
-                    " />
+                            <div formArrayName="targetBeneficiaries" class="dynamic-list">
+                                @for (beneficiaryCtrl of beneficiaryControls.controls; track $index; let i = $index) {
+                                <div class="dynamic-row">
+                                    <input type="text" class="form-control" [formControlName]="i"
+                                        [placeholder]="i === 0 ? 'Enter a beneficiary' : 'Enter another beneficiary'"
+                                        maxlength="500" [attr.aria-label]="'Beneficiary ' + (i + 1)" />
+                                    <button type="button" class="btn-icon-danger" (click)="removeBeneficiary(i)"
+                                        [attr.aria-label]="'Remove beneficiary ' + (i + 1)">
+                                        <span class="material-icons">delete_outline</span>
+                                    </button>
+                                </div>
+                                }
+                                <button type="button" class="btn-dashed-add" (click)="addBeneficiaryRow()">
+                                    <span class="material-icons">add</span>
+                                    <span>Add Beneficiary</span>
+                                </button>
                             </div>
                             <div class="form-helper-row">
                                 <span class="form-helper">
                                     Mention the primary demographic, institutional, or societal groups impacted by this
                                     policy.
                                 </span>
-                                <span class="char-counter">
-                                    {{ policyForm.get('targetBeneficiaries')?.value?.length || 0 }}/500 characters
-                                </span>
                             </div>
                             @if (stepSubmitted[3] && policyForm.get('targetBeneficiaries')?.invalid) {
-                            <span class="form-error">Target beneficiaries is required.</span>
+                            <span class="form-error">At least one target beneficiary is required.</span>
                             }
                         </div>
                     </div>
@@ -665,6 +533,13 @@
                                 <span class="form-helper">Leave blank if no upper limit.</span>
                             </div>
                         </div>
+                        @if (stepSubmitted[3] && (policyForm.get('minAge')?.invalid ||
+                        policyForm.get('maxAge')?.invalid)) {
+                        <span class="form-error">Enter valid whole-number ages (0 or above).</span>
+                        }
+                        @if (stepSubmitted[3] && policyForm.hasError('ageRange')) {
+                        <span class="form-error">Minimum age must not exceed maximum age.</span>
+                        }
                     </div>
 
                     <!-- GENDER -->
@@ -709,6 +584,9 @@
                                     formControlName="annualIncome" placeholder="e.g. 800000" />
                             </div>
                             <span class="form-helper">Income ceiling for policy eligibility (if applicable).</span>
+                            @if (stepSubmitted[3] && policyForm.get('annualIncome')?.invalid) {
+                            <span class="form-error">Enter a valid non-negative income amount.</span>
+                            }
                         </div>
                     </div>
 
@@ -720,14 +598,9 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <span class="material-icons input-icon">school</span>
-                                <select class="form-control form-select" formControlName="education">
-                                    <option value="" selected>Select minimum qualification or institution level</option>
-                                    @for (edu of educationOptions; track edu) {
-                                    <option [value]="edu">{{ edu }}</option>
-                                    }
-                                </select>
-                                <span class="material-icons select-arrow">expand_more</span>
+                                <app-searchable-select formControlName="education" icon="school"
+                                    placeholder="Select minimum qualification or institution level" [searchable]="false"
+                                    [options]="educationOptions" />
                             </div>
                             <span class="form-helper">Applicable academic or institutional level.</span>
                         </div>
@@ -741,14 +614,9 @@
                         </div>
                         <div class="criteria-row__inputs">
                             <div class="input-with-icon select-wrapper">
-                                <span class="material-icons input-icon">location_on</span>
-                                <select class="form-control form-select" formControlName="eligibilityState">
-                                    <option value="" disabled>Select applicable state(s) or region(s)</option>
-                                    @for (st of states; track st) {
-                                    <option [value]="st">{{ st }}</option>
-                                    }
-                                </select>
-                                <span class="material-icons select-arrow">expand_more</span>
+                                <app-searchable-select formControlName="eligibilityState" icon="location_on"
+                                    placeholder="Select applicable state(s) or region(s)" [searchable]="true"
+                                    searchPlaceholder="Search states..." [options]="states" />
                             </div>
                             <span class="form-helper">Geographical applicability of policy benefits.</span>
                         </div>
@@ -761,11 +629,11 @@
                         <span class="material-icons additional-criteria-box__icon">rule</span>
                         <div>
                             <h4 class="additional-criteria-box__title">
-                                Additional Eligibility Rules (JSONB) <span class="optional">(Optional)</span>
+                                Additional Conditions <span class="optional">(Optional)</span>
                             </h4>
                             <p class="additional-criteria-box__sub">
-                                Add specific regulatory, operational or institutional conditions stored in the policy
-                                schema.
+                                Add specific regulatory, operational or institutional conditions as
+                                condition–value pairs.
                             </p>
                         </div>
                     </div>
@@ -775,23 +643,53 @@
                     </button>
                 </div>
 
-                <!-- Dynamic Conditions List -->
-                @if (additionalEligibilityConditions.length > 0) {
+                <!-- Conditions Editor -->
                 <div class="additional-criteria-list">
-                    @for (cond of additionalEligibilityConditions; track $index; let i = $index) {
-                    <div class="dynamic-row">
-                        <span class="material-icons row-icon">check_circle_outline</span>
-                        <input type="text" class="form-control" [(ngModel)]="additionalEligibilityConditions[i]"
-                            [ngModelOptions]="{ standalone: true }"
-                            placeholder="e.g. Must hold a recognized NAAC accreditation grade" />
-                        <button type="button" class="btn-icon-danger" (click)="removeEligibilityCondition(i)"
-                            aria-label="Remove condition">
-                            <span class="material-icons">delete_outline</span>
+                    @for (block of conditionBlocks; track $index; let bi = $index) {
+                    <div class="condition-block">
+                        <div class="condition-block__row">
+                            <div class="condition-block__field">
+                                <label class="sub-label" [for]="'policy-cond-key-' + bi">Keyword /
+                                    Condition</label>
+                                <input type="text" class="form-control" [id]="'policy-cond-key-' + bi"
+                                    [(ngModel)]="block.keyword" [ngModelOptions]="{ standalone: true }" maxlength="120"
+                                    placeholder="Enter a keyword" [attr.aria-label]="'Condition keyword ' + (bi + 1)" />
+                            </div>
+                            <button type="button" class="btn-icon-danger" (click)="removeEligibilityCondition(bi)"
+                                [attr.aria-label]="'Remove condition ' + (bi + 1)">
+                                <span class="material-icons">delete_outline</span>
+                            </button>
+                        </div>
+                        @if (block.keyword && isConditionKeyDuplicate(block)) {
+                        <span class="form-error">This keyword is already used. Keywords must be unique.</span>
+                        }
+                        <div class="condition-block__values-label">Values</div>
+                        @for (v of block.values; track $index; let vi = $index) {
+                        <div class="dynamic-row kv-row">
+                            <input type="text" class="form-control kv-value" [(ngModel)]="block.values[vi]"
+                                [ngModelOptions]="{ standalone: true }" maxlength="500" placeholder="Enter a value"
+                                [attr.aria-label]="'Value ' + (vi + 1) + ' for condition ' + (bi + 1)" />
+                            <button type="button" class="btn-icon-danger" (click)="removeConditionValue(bi, vi)"
+                                [attr.aria-label]="'Remove value ' + (vi + 1) + ' from condition ' + (bi + 1)">
+                                <span class="material-icons">delete_outline</span>
+                            </button>
+                        </div>
+                        }
+                        <button type="button" class="btn-dashed-add btn-dashed-add--small"
+                            (click)="addConditionValue(bi)">
+                            <span class="material-icons">add</span>
+                            <span>Add Value</span>
                         </button>
                     </div>
                     }
+                    @if (conditionBlocks.length === 0) {
+                    <p class="form-helper">No additional conditions added. Use Add Condition to add extra criteria.</p>
+                    }
+                    @if (stepSubmitted[3] && hasDuplicateConditionKeys()) {
+                    <span class="form-error">Each condition keyword must be unique. Remove or rename duplicates to
+                        continue.</span>
+                    }
                 </div>
-                }
             </div>
         </div>
         }
@@ -814,19 +712,6 @@
                             </p>
                         </div>
                     </div>
-
-                    <!-- Tips badge -->
-                    <div class="tips-box-compact">
-                        <div class="tips-box-compact__header">
-                            <span class="material-icons">lightbulb_outline</span>
-                            <strong>Tips</strong>
-                        </div>
-                        <ul class="tips-box-compact__list">
-                            <li>Attach official gazette notification links or PDF URL.</li>
-                            <li>Provide the nodal ministry or department reference portal.</li>
-                            <li>Outline the implementation workflow and institutional compliance.</li>
-                        </ul>
-                    </div>
                 </div>
 
                 <div class="policy-form-grid">
@@ -842,6 +727,111 @@
                                 placeholder="https://example.gov.in/policies/official_policy_gazette.pdf" />
                         </div>
                         <p class="form-helper">Direct link to the official gazette or policy document PDF.</p>
+                    </div>
+
+                    <!-- UPLOAD POLICY DOCUMENT -->
+                    <div class="form-group form-group--full">
+                        <div class="form-label-with-icon">
+                            <span class="material-icons field-icon">cloud_upload</span>
+                            <label class="form-label" for="policy-doc-file">Upload Policy Document</label>
+                        </div>
+                        <div class="document-upload-dropzone" [class.drag-over]="isDocumentDragging"
+                            [class.disabled]="isReadOnly || documentUploading"
+                            (dragover)="onDocumentDragOver($event)" (dragleave)="onDocumentDragLeave($event)"
+                            (drop)="onDocumentDrop($event)" (click)="docFileInput.click()"
+                            (keydown.enter)="docFileInput.click()" (keydown.space)="docFileInput.click()"
+                            tabindex="0" role="button" aria-label="Upload policy document">
+                            <input #docFileInput id="policy-doc-file" type="file" accept=".pdf,application/pdf"
+                                class="document-upload-input" (change)="onDocumentFileSelected($event)"
+                                [disabled]="isReadOnly || documentUploading" aria-hidden="true" tabindex="-1" />
+                            <div class="document-upload-icon">
+                                <span class="material-icons">cloud_upload</span>
+                            </div>
+                            <p class="document-upload-text">Drag and drop your policy document here, or browse files.
+                            </p>
+                            <p class="form-helper">PDF only &middot; Max {{ policyDocumentMaxSizeMB }} MB. Stored
+                                securely; the external URL above is kept separately.</p>
+                            <button type="button" class="btn-outline-criteria"
+                                [disabled]="isReadOnly || documentUploading"
+                                (click)="$event.stopPropagation(); docFileInput.click()">
+                                <span class="material-icons">folder_open</span>
+                                <span>Browse Files</span>
+                            </button>
+                        </div>
+
+                        @if (documentUploading) {
+                        <div class="document-upload-progress" role="progressbar" aria-label="Upload progress"
+                            [attr.aria-valuenow]="documentProgress" aria-valuemin="0" aria-valuemax="100">
+                            <div class="document-upload-progress__track">
+                                <div class="document-upload-progress__fill" [style.width.%]="documentProgress"></div>
+                            </div>
+                            <span class="document-upload-progress__label">Uploading&hellip; {{ documentProgress
+                                }}%</span>
+                        </div>
+                        }
+
+                        @if (existingDocumentLoading) {
+                        <p class="form-helper">Loading uploaded document&hellip;</p>
+                        }
+
+                        @if (!documentUploading && existingDocument) {
+                        <div class="document-file-chip">
+                            <span class="material-icons document-file-chip__icon">picture_as_pdf</span>
+                            <div class="document-file-chip__meta">
+                                <span class="document-file-chip__name">{{ existingDocument.document_name }}</span>
+                                <span class="document-file-chip__sub">Uploaded file &middot; {{
+                                    formatFileSize(existingDocument.file_size) }}</span>
+                            </div>
+                            <div class="document-file-chip__actions">
+                                <button type="button" class="document-chip-btn" (click)="previewExistingDocument()"
+                                    title="Preview uploaded document">
+                                    <span class="material-icons">visibility</span>
+                                    <span>Preview</span>
+                                </button>
+                                <button type="button" class="document-chip-btn" (click)="downloadExistingDocument()"
+                                    [disabled]="isDownloadingDocument" title="Download uploaded document">
+                                    <span class="material-icons">download</span>
+                                    <span>Download</span>
+                                </button>
+                                @if (!isReadOnly) {
+                                <button type="button" class="document-chip-btn document-chip-btn--danger"
+                                    (click)="removeExistingDocument()" [disabled]="isRemovingDocument"
+                                    title="Remove uploaded document">
+                                    <span class="material-icons">{{ isRemovingDocument ? 'hourglass_empty' : 'delete_outline'
+                                        }}</span>
+                                    <span>{{ isRemovingDocument ? 'Removing…' : 'Remove' }}</span>
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        <p class="form-helper">Select a new file above to replace the current upload. The existing file
+                            is kept until the replacement succeeds.</p>
+                        }
+
+                        @if (!documentUploading && !existingDocument && pendingDocumentFile) {
+                        <div class="document-file-chip">
+                            <span class="material-icons document-file-chip__icon">picture_as_pdf</span>
+                            <div class="document-file-chip__meta">
+                                <span class="document-file-chip__name">{{ pendingDocumentFile.name }}</span>
+                                <span class="document-file-chip__sub">Selected file &middot; {{
+                                    formatFileSize(pendingDocumentFile.size) }} &middot; uploads when the draft is
+                                    saved</span>
+                            </div>
+                            <div class="document-file-chip__actions">
+                                @if (!isReadOnly) {
+                                <button type="button" class="document-chip-btn document-chip-btn--danger"
+                                    (click)="clearPendingDocument()" title="Remove selected file">
+                                    <span class="material-icons">delete_outline</span>
+                                    <span>Remove</span>
+                                </button>
+                                }
+                            </div>
+                        </div>
+                        }
+
+                        @if (documentError) {
+                        <span class="form-error" role="alert">{{ documentError }}</span>
+                        }
                     </div>
 
                     <!-- SOURCE URL -->
@@ -938,19 +928,6 @@
                                 Please review all the information below. You can go back and edit any section if needed.
                             </p>
                         </div>
-                    </div>
-
-                    <!-- Role-Aware Review Notice -->
-                    <div class="review-notice">
-                        <span class="material-icons">info</span>
-                        <p>
-                            Make sure all information is correct and up-to-date before submitting.
-                            @if (isAdmin) {
-                            The policy will be published directly.
-                            } @else {
-                            The policy will be sent for review by the administrative team.
-                            }
-                        </p>
                     </div>
                 </div>
 
@@ -1102,8 +1079,15 @@
                             <div class="review-item review-item--full">
                                 <span class="review-item__label">Target Beneficiaries</span>
                                 <span class="review-item__colon">:</span>
-                                <span class="review-item__value">{{ policyForm.get('targetBeneficiaries')?.value || 'Not
-                                    provided' }}</span>
+                                <span class="review-item__value">
+                                    @if (filteredBeneficiaries.length > 0) {
+                                    @for (b of filteredBeneficiaries; track $index) {
+                                    <span class="review-kv-line">{{ b }}</span>
+                                    }
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                </span>
                             </div>
 
                             <div class="review-item">
@@ -1131,11 +1115,24 @@
                                     }}</span>
                             </div>
 
-                            @if (additionalEligibilityConditions.length > 0) {
+                            @if (conditionBlocks.length > 0) {
                             <div class="review-item review-item--full">
-                                <span class="review-item__label">Eligibility Rules (JSONB)</span>
+                                <span class="review-item__label">Additional Conditions</span>
                                 <span class="review-item__colon">:</span>
-                                <span class="review-item__value">{{ additionalEligibilityConditions.join(', ') }}</span>
+                                <span class="review-item__value">
+                                    @for (block of conditionBlocks; track $index) {
+                                    @if (blockHasContent(block)) {
+                                    <span class="review-kv-line">
+                                        @if (block.keyword.trim()) {
+                                        <strong>{{ block.keyword.trim() }}</strong>{{ conditionBlockValues(block).length
+                                        ? ': ' + conditionBlockValues(block).join(', ') : '' }}
+                                        } @else {
+                                        {{ conditionBlockValues(block).join(', ') }}
+                                        }
+                                    </span>
+                                    }
+                                    }
+                                </span>
                             </div>
                             }
                         </div>
@@ -1167,8 +1164,51 @@
                                         {{ policyForm.get('documentUrl')?.value }}
                                         <span class="material-icons">open_in_new</span>
                                     </a>
+                                    <span class="review-doc-badge review-doc-badge--link">External link</span>
                                     } @else {
                                     <span>Not provided</span>
+                                    }
+                                </span>
+                            </div>
+
+                            <div class="review-item review-item--full">
+                                <span class="review-item__label">Uploaded Document</span>
+                                <span class="review-item__colon">:</span>
+                                <span class="review-item__value">
+                                    @if (existingDocument) {
+                                    <span class="review-doc-name">
+                                        <span class="material-icons review-doc-icon">picture_as_pdf</span>
+                                        {{ existingDocument.document_name }} ({{ formatFileSize(existingDocument.file_size)
+                                        }})
+                                    </span>
+                                    <span class="review-doc-badge">Uploaded file</span>
+                                    <span class="review-doc-links">
+                                        <button type="button" class="link-external link-button"
+                                            (click)="previewExistingDocument()">
+                                            Preview
+                                            <span class="material-icons">visibility</span>
+                                        </button>
+                                        <span class="review-doc-sep">·</span>
+                                        <button type="button" class="link-external link-button"
+                                            (click)="downloadExistingDocument()" [disabled]="isDownloadingDocument">
+                                            Download
+                                            <span class="material-icons">download</span>
+                                        </button>
+                                    </span>
+                                    } @else if (pendingDocumentFile) {
+                                    <span class="review-doc-name">
+                                        <span class="material-icons review-doc-icon">picture_as_pdf</span>
+                                        {{ pendingDocumentFile.name }} ({{ formatFileSize(pendingDocumentFile.size) }})
+                                    </span>
+                                    <span class="review-doc-badge">Uploaded file</span>
+                                    <span class="review-doc-note">Selected — uploads when the draft is saved.</span>
+                                    } @else if (documentUploading) {
+                                    <span>Uploading… {{ documentProgress }}%</span>
+                                    } @else {
+                                    <span>Not provided</span>
+                                    }
+                                    @if (documentError) {
+                                    <span class="form-error review-doc-error">{{ documentError }}</span>
                                     }
                                 </span>
                             </div>
@@ -1239,7 +1279,8 @@
                         <div class="policy-alert__content">
                             <p>{{ errorMessage }}</p>
                         </div>
-                        <button type="button" class="policy-alert__close" (click)="errorMessage = null" aria-label="Dismiss error">
+                        <button type="button" class="policy-alert__close" (click)="errorMessage = null"
+                            aria-label="Dismiss error">
                             <span class="material-icons">close</span>
                         </button>
                     </div>
@@ -1253,7 +1294,9 @@
          STICKY FOOTER ACTIONS
          ========================================================= -->
         <div class="policy-create__footer">
-            <div class="policy-create__footer-left">
+            <div class="policy-create__footer-left"></div>
+
+            <div class="policy-create__footer-right">
                 @if (currentStep > 1) {
                 <button type="button" class="btn btn-outline" (click)="prevStep()">
                     <span class="material-icons">arrow_back</span>
@@ -1265,14 +1308,6 @@
                     <span>Cancel</span>
                 </button>
                 }
-            </div>
-
-            <div class="policy-create__footer-right">
-                @if (currentStep > 1) {
-                <button type="button" class="btn btn-outline btn-cancel" (click)="cancel()">
-                    Cancel
-                </button>
-                }
 
                 @if (currentStep < totalSteps) { <button type="button" class="btn btn-primary" (click)="nextStep()">
                     <span>Next</span>
@@ -1282,16 +1317,14 @@
                     <!-- STEP 5 FINAL ACTION -->
                     @if (isAdmin) {
                     <!-- ADMIN Submit -->
-                    <button type="submit" class="btn btn-primary btn-submit-action"
-                        (click)="onSubmit($event)"
+                    <button type="submit" class="btn btn-primary btn-submit-action" (click)="onSubmit($event)"
                         [disabled]="isReadOnly || isSubmitting || isApproving || isSaving || modalType !== null">
                         <span class="material-icons">check_circle</span>
                         <span>Submit</span>
                     </button>
                     } @else {
                     <!-- GOVERNMENT SUBMIT FOR APPROVAL -->
-                    <button type="submit" class="btn btn-primary btn-submit-action"
-                        (click)="onSubmit($event)"
+                    <button type="submit" class="btn btn-primary btn-submit-action" (click)="onSubmit($event)"
                         [disabled]="isReadOnly || isSubmitting || isApproving || isSaving || modalType !== null">
                         <span class="material-icons">send</span>
                         <span>Submit for Approval</span>
@@ -1368,5 +1401,13 @@
         </div>
     </div>
     }
+
+    <!-- Pre-action confirmation (Save as Draft / Submit) -->
+    <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading"
+        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="true"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+    </app-confirm-modal>
 
 </div>

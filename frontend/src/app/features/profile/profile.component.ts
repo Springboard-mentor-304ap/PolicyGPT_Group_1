@@ -2,16 +2,32 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
   OnInit,
   inject,
+  viewChild,
 } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
+import { timeout } from "rxjs";
 
 import { Auth, AuthUser } from "../../core/services/auth";
+import { AvatarService } from "../../core/services/avatar.service";
+import { ToastService } from "../../core/services/toast.service";
+import { UserAvatarComponent } from "../../shared/components/user-avatar/user-avatar.component";
+import { ConfirmModalComponent } from "../../shared/components/confirm-modal/confirm-modal.component";
+import { ChangePasswordModalComponent } from "../../shared/components/change-password-modal/change-password-modal.component";
+import {
+  BreadcrumbComponent,
+  BreadcrumbItem,
+} from "../../shared/components/breadcrumb/breadcrumb.component";
+import { environment } from '../../../environments/environment';
 
 // =========================================================
 // USER PROFILE INTERFACE
@@ -27,7 +43,6 @@ export interface UserProfile {
   district: string;
   occupation: string;
   phone: string;
-  avatarUrl: string;
 }
 
 // =========================================================
@@ -39,7 +54,14 @@ export interface UserProfile {
 
   standalone: true,
 
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    BreadcrumbComponent,
+    UserAvatarComponent,
+    ConfirmModalComponent,
+    ChangePasswordModalComponent,
+  ],
 
   templateUrl: "./profile.component.html",
 
@@ -56,15 +78,52 @@ export class ProfileComponent implements OnInit {
 
   private readonly authService = inject(Auth);
 
+  private readonly avatarService = inject(AvatarService);
+
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly http = inject(HttpClient);
+
+  private readonly toast = inject(ToastService);
+
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Trigger refs so focus returns to the invoking button on close. */
+  private readonly changePasswordBtn =
+    viewChild<ElementRef<HTMLButtonElement>>("changePasswordBtn");
+  private readonly deleteAccountBtn =
+    viewChild<ElementRef<HTMLButtonElement>>("deleteAccountBtn");
+
+  /**
+   * Role-aware breadcrumb trail (Home > Profile) derived from the current
+   * dashboard URL, mirroring the goBack() prefix mapping below.
+   */
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const prefix = this.dashboardPrefix();
+    if (!prefix) {
+      return [];
+    }
+    return [
+      { label: "Home", route: ["/dashboard", prefix] },
+      { label: "Profile" },
+    ];
+  }
+
+  private dashboardPrefix(): string | null {
+    const url = this.router.url || "";
+    if (url.startsWith("/dashboard/admin")) return "admin";
+    if (url.startsWith("/dashboard/citizen")) return "citizen";
+    if (url.startsWith("/dashboard/government")) return "government";
+    if (url.startsWith("/dashboard/researcher")) return "researcher";
+    if (url.startsWith("/dashboard/organization")) return "organization";
+    return null;
+  }
 
   // =========================================================
   // API
   // =========================================================
 
-  private readonly apiUrl = "http://localhost:8000/auth";
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
 
   // =========================================================
   // MODALS
@@ -73,6 +132,12 @@ export class ProfileComponent implements OnInit {
   showDeleteModal = false;
 
   showPasswordModal = false;
+
+  /** Change-password dialog (rendered over this page, no navigation). */
+  showChangePasswordModal = false;
+
+  /** Inline error for the delete-account modals (no alert dialogs). */
+  deleteError = "";
 
   // =========================================================
   // DELETE PASSWORD
@@ -106,9 +171,10 @@ export class ProfileComponent implements OnInit {
     occupation: "Not provided",
 
     phone: "Not provided",
-
-    avatarUrl: "",
   };
+
+  /** Object URL of the authenticated user's photo; null = default SVG. */
+  avatarSrc: string | null = null;
 
   // =========================================================
   // INIT
@@ -116,18 +182,38 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     // -------------------------------------------------------
-    // LOAD CACHED USER
+    // SHARED STATE FIRST (instant paint incl. photo version)
+    // -------------------------------------------------------
+    // Subscribing before the background refresh guarantees the
+    // saved photo version from login/app-init is used immediately,
+    // and any later shared updates (photo change in Edit) reflect
+    // here without reopening the page.
+
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user) => {
+        if (user) {
+          this.setProfile(user);
+        }
+      });
+
+    // -------------------------------------------------------
+    // LOAD CACHED USER (synchronous instant paint fallback)
     // -------------------------------------------------------
 
-    const cachedUser = this.authService.getStoredUser();
+    const cachedUser =
+      this.authService.getCurrentUserSnapshot?.() ??
+      this.authService.getStoredUser();
 
     if (cachedUser) {
       this.setProfile(cachedUser);
     }
 
     // -------------------------------------------------------
-    // LOAD CURRENT USER FROM BACKEND
+    // BACKGROUND REFRESH (deduplicated + TTL by AuthService)
     // -------------------------------------------------------
+    // Refreshes the SHARED state (setUser emission) rather than a
+    // local copy, so Topbar/Settings update together with ONE fetch.
 
     this.authService.getCurrentUser().subscribe({
       next: (user: AuthUser) => {
@@ -156,7 +242,7 @@ export class ProfileComponent implements OnInit {
 
       dob: user.date_of_birth ? String(user.date_of_birth) : "Not provided",
 
-      gender: "Not provided",
+      gender: user.gender?.trim() || "Not provided",
 
       state: user.state || "Not provided",
 
@@ -165,11 +251,28 @@ export class ProfileComponent implements OnInit {
       occupation: user.occupation || "Not provided",
 
       phone: user.phone || "Not provided",
-
-      avatarUrl: "",
     };
 
+    this.refreshAvatar(user);
+
     this.cdr.markForCheck();
+  }
+
+  /**
+   * Resolve the avatar through the same shared AvatarService the
+   * topbars use, so Profile and topbar can never disagree.
+   */
+  private refreshAvatar(user: AuthUser): void {
+    this.avatarService.photoSrcFor(user).subscribe({
+      next: (src) => {
+        this.avatarSrc = src;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.avatarSrc = null;
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   // =========================================================
@@ -225,7 +328,27 @@ export class ProfileComponent implements OnInit {
     }
 
     // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
+    // RESEARCHER
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/researcher")) {
+      this.router.navigate(["/dashboard/researcher"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // ORGANIZATION
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/organization")) {
+      this.router.navigate(["/dashboard/organization"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // FALLBACK
     // -------------------------------------------------------
 
     this.router.navigate(["/dashboard/user-dashboard"]);
@@ -269,54 +392,54 @@ export class ProfileComponent implements OnInit {
     }
 
     // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
+    // RESEARCHER
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/researcher")) {
+      this.router.navigate(["/dashboard/researcher/profile/edit"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // ORGANIZATION
+    // -------------------------------------------------------
+
+    if (currentUrl.startsWith("/dashboard/organization")) {
+      this.router.navigate(["/dashboard/organization/profile/edit"]);
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // FALLBACK
     // -------------------------------------------------------
 
     this.router.navigate(["/dashboard/user-dashboard/profile/edit"]);
   }
 
   // =========================================================
-  // CHANGE PASSWORD
+  // CHANGE PASSWORD (modal over this page — no navigation)
   // =========================================================
 
   onChangePassword(): void {
-    const currentUrl = this.router.url;
+    this.showChangePasswordModal = true;
 
-    // -------------------------------------------------------
-    // ADMIN
-    // -------------------------------------------------------
+    this.cdr.markForCheck();
+  }
 
-    if (currentUrl.startsWith("/dashboard/admin")) {
-      this.router.navigate(["/dashboard/admin/change-password"]);
+  closeChangePasswordModal(): void {
+    this.showChangePasswordModal = false;
 
-      return;
-    }
+    this.cdr.markForCheck();
 
-    // -------------------------------------------------------
-    // CITIZEN
-    // -------------------------------------------------------
+    this.changePasswordBtn()?.nativeElement.focus();
+  }
 
-    if (currentUrl.startsWith("/dashboard/citizen")) {
-      this.router.navigate(["/dashboard/citizen/change-password"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // GOVERNMENT
-    // -------------------------------------------------------
-
-    if (currentUrl.startsWith("/dashboard/government")) {
-      this.router.navigate(["/dashboard/government/change-password"]);
-
-      return;
-    }
-
-    // -------------------------------------------------------
-    // RESEARCHER / ORGANIZATION
-    // -------------------------------------------------------
-
-    this.router.navigate(["/dashboard/user-dashboard/change-password"]);
+  onPasswordChanged(): void {
+    // Success toast is shown by the modal itself; the shared user
+    // needs no update (password is not part of the profile state).
+    this.cdr.markForCheck();
   }
 
   // =========================================================
@@ -336,6 +459,8 @@ export class ProfileComponent implements OnInit {
 
     this.showPasswordText = false;
 
+    this.deleteError = "";
+
     this.cdr.markForCheck();
   }
 
@@ -351,6 +476,8 @@ export class ProfileComponent implements OnInit {
     this.confirmPasswordValue = "";
 
     this.showPasswordText = false;
+
+    this.deleteError = "";
 
     this.cdr.markForCheck();
   }
@@ -372,7 +499,19 @@ export class ProfileComponent implements OnInit {
 
     this.showPasswordText = false;
 
+    this.deleteError = "";
+
     this.cdr.markForCheck();
+
+    this.deleteAccountBtn()?.nativeElement.focus();
+  }
+
+  /** ESC closes the delete password step (ConfirmModal handles its own). */
+  @HostListener("document:keydown.escape")
+  onEscapeKey(): void {
+    if (this.showPasswordModal && !this.deletingAccount) {
+      this.cancelDeleteAccount();
+    }
   }
 
   // =========================================================
@@ -401,7 +540,9 @@ export class ProfileComponent implements OnInit {
     const password = this.confirmPasswordValue.trim();
 
     if (!password) {
-      alert("Please enter your password to confirm.");
+      this.deleteError = "Please enter your password to confirm.";
+
+      this.cdr.markForCheck();
 
       return;
     }
@@ -420,10 +561,12 @@ export class ProfileComponent implements OnInit {
 
     this.deletingAccount = true;
 
+    this.deleteError = "";
+
     this.cdr.markForCheck();
 
     // -------------------------------------------------------
-    // BACKEND REQUEST
+    // BACKEND REQUEST (existing delete-account endpoint)
     // -------------------------------------------------------
 
     this.http
@@ -434,6 +577,7 @@ export class ProfileComponent implements OnInit {
           password: password,
         },
       })
+      .pipe(timeout(30_000))
       .subscribe({
         // ===================================================
         // SUCCESS
@@ -460,13 +604,15 @@ export class ProfileComponent implements OnInit {
 
           this.showPasswordText = false;
 
+          this.deleteError = "";
+
           this.deletingAccount = false;
+
+          this.cdr.markForCheck();
 
           // -------------------------------------------------
           // GO TO LOGIN
           // -------------------------------------------------
-
-          alert("Your account has been deleted successfully.");
 
           this.router.navigate(["/auth/login"], {
             replaceUrl: true,
@@ -474,10 +620,10 @@ export class ProfileComponent implements OnInit {
         },
 
         // ===================================================
-        // ERROR
+        // ERROR (modal stays open, values preserved, retryable)
         // ===================================================
 
-        error: (error) => {
+        error: (error: { status?: number; name?: string }) => {
           console.error("Account deletion failed:", error);
 
           this.deletingAccount = false;
@@ -487,7 +633,7 @@ export class ProfileComponent implements OnInit {
           // -------------------------------------------------
 
           if (error?.status === 401) {
-            alert("Incorrect password. Please try again.");
+            this.deleteError = "Incorrect password. Please try again.";
 
             this.confirmPasswordValue = "";
 
@@ -503,7 +649,7 @@ export class ProfileComponent implements OnInit {
           // -------------------------------------------------
 
           if (error?.status === 422) {
-            alert("Please enter a valid password.");
+            this.deleteError = "Please enter a valid password.";
 
             this.cdr.markForCheck();
 
@@ -511,11 +657,12 @@ export class ProfileComponent implements OnInit {
           }
 
           // -------------------------------------------------
-          // SERVER ERROR
+          // TIMEOUT / UNREACHABLE
           // -------------------------------------------------
 
-          if (error?.status === 500) {
-            alert("Unable to delete your account right now. Please try again.");
+          if (error?.name === "TimeoutError" || error?.status === 0) {
+            this.deleteError =
+              "Cannot reach the server. Please check your connection and try again.";
 
             this.cdr.markForCheck();
 
@@ -523,10 +670,19 @@ export class ProfileComponent implements OnInit {
           }
 
           // -------------------------------------------------
-          // OTHER ERROR
+          // SERVER / OTHER ERROR
           // -------------------------------------------------
 
-          alert("Account deletion failed. Please try again.");
+          if (error?.status !== undefined && error.status >= 500) {
+            this.deleteError =
+              "Unable to delete your account right now. Please try again.";
+
+            this.cdr.markForCheck();
+
+            return;
+          }
+
+          this.deleteError = "Account deletion failed. Please try again.";
 
           this.cdr.markForCheck();
         },

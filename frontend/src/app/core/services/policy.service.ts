@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpEvent, HttpParams } from '@angular/common/http';
+import { Observable, of, throwError, timeout } from 'rxjs';
+import { catchError, finalize, shareReplay, tap } from 'rxjs/operators';
+import { Auth } from './auth';
 
 import {
   PolicyResponse,
@@ -10,46 +12,76 @@ import {
   PolicyUpdate,
   PolicyAnalyticsResponse,
   PolicyComparisonResponse,
+  PolicyDocumentResponse,
 } from '../models/policy.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PolicyService {
-  private readonly apiUrl = 'http://localhost:8000/policies';
-  private readonly analyticsUrl = 'http://localhost:8000/analytics/policies';
+  private readonly apiUrl = `${environment.apiUrl}/policies`;
+  private readonly analyticsUrl = `${environment.apiUrl}/analytics/policies`;
 
-  private cache = new Map<
-    string,
-    {
-      data: any;
-      timestamp: number;
-    }
-  >();
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private inflight = new Map<string, Observable<any>>();
 
   private readonly CACHE_TTL = 30_000;
+  private static readonly MAX_ENTRIES = 100;
 
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
+  private readonly auth = inject(Auth);
+
+  constructor() {
+    // Never serve one user's list data to another user in the same tab.
+    // Optional-chained: specs may provide a partial Auth double.
+    this.auth?.onLoggedOut?.(() => this.clearCache());
+  }
 
   // ============================================================
-  // CACHE HELPERS
+  // CACHE HELPERS (TTL + in-flight dedup, user-scoped keys)
   // ============================================================
 
   private getCacheKey(method: string, params?: HttpParams): string {
-    return `${method}:${params?.toString() || ''}`;
+    const uid = this.auth.getStoredUser()?.user_id ?? 'anon';
+    return `${uid}|${method}:${params?.toString() || ''}`;
   }
 
-  private getFromCache(key: string): any | null {
-    const cached = this.cache.get(key);
-    if (!cached) {
-      return null;
+  private getCached<T>(key: string, fetchFn: () => Observable<T>): Observable<T> {
+    const hit = this.cache.get(key);
+    if (hit && Date.now() - hit.timestamp < this.CACHE_TTL) {
+      return of(hit.data as T);
     }
-    const isValid = Date.now() - cached.timestamp < this.CACHE_TTL;
-    if (!isValid) {
+    if (hit) {
       this.cache.delete(key);
-      return null;
     }
-    return cached.data;
+    const ongoing = this.inflight.get(key);
+    if (ongoing) {
+      return ongoing as Observable<T>;
+    }
+    const req = fetchFn().pipe(
+      timeout(30_000),
+      tap((data) => {
+        if (this.cache.size >= PolicyService.MAX_ENTRIES) {
+          const oldest = this.cache.keys().next();
+          if (!oldest.done) {
+            this.cache.delete(oldest.value);
+          }
+        }
+        this.cache.set(key, { data, timestamp: Date.now() });
+      }),
+      catchError((err) => {
+        return throwError(() => err);
+      }),
+      // Release the in-flight slot on success, error, timeout, or
+      // unsubscribe so a hung request never blocks that key forever.
+      finalize(() => {
+        this.inflight.delete(key);
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+    this.inflight.set(key, req);
+    return req;
   }
 
   private setCache(key: string, data: any): void {
@@ -61,6 +93,7 @@ export class PolicyService {
 
   clearCache(): void {
     this.cache.clear();
+    this.inflight.clear();
   }
 
   // ============================================================
@@ -92,6 +125,9 @@ export class PolicyService {
     if (filters?.sector && filters.sector.trim()) {
       params = params.set('sector', filters.sector.trim());
     }
+    if (filters?.publication_date && filters.publication_date.trim()) {
+      params = params.set('publication_date', filters.publication_date.trim());
+    }
     if (filters?.status && filters.status.trim()) {
       params = params.set('status', filters.status.trim());
     }
@@ -107,7 +143,11 @@ export class PolicyService {
     params = params.set('page', page.toString());
     params = params.set('limit', limit.toString());
 
-    return this.http.get<PolicyListResponse>(this.apiUrl, { params });
+    const key = this.getCacheKey('getPolicies', params);
+    return this.getCached(
+      key,
+      () => this.http.get<PolicyListResponse>(this.apiUrl, { params }),
+    );
   }
 
   // ============================================================
@@ -120,7 +160,11 @@ export class PolicyService {
       throw new Error('A valid policy ID is required.');
     }
 
-    return this.http.get<PolicyResponse>(`${this.apiUrl}/${id}`);
+    const key = this.getCacheKey(`getPolicy:${id}`);
+    return this.getCached(
+      key,
+      () => this.http.get<PolicyResponse>(`${this.apiUrl}/${id}`),
+    );
   }
 
   // ============================================================
@@ -232,6 +276,20 @@ export class PolicyService {
     return this.approveArchive(id);
   }
 
+  // ============================================================
+  // DIRECT ARCHIVE (ADMIN)
+  // POST /policies/{id}/archive — APPROVED -> ARCHIVED
+  // Mirrors SchemeService.archiveScheme.
+  // ============================================================
+
+  archiveDirect(id: number): Observable<PolicyResponse> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.post<PolicyResponse>(`${this.apiUrl}/${id}/archive`, {});
+  }
+
   rejectArchive(id: number): Observable<PolicyResponse> {
     if (!id || id <= 0) {
       throw new Error('A valid policy ID is required.');
@@ -312,6 +370,99 @@ export class PolicyService {
   }
 
   // ============================================================
+  // TRASH (TEMPORARILY DELETED POLICIES)
+  // ============================================================
+
+  getDeletedPolicies(
+    page = 1,
+    limit = 100,
+    search?: string,
+  ): Observable<PolicyListResponse> {
+    let params = new HttpParams()
+      .set('page', Math.max(1, page).toString())
+      .set('limit', Math.max(1, Math.min(limit, 100)).toString());
+    if (search && search.trim()) {
+      params = params.set('search', search.trim());
+    }
+    const key = this.getCacheKey('getDeletedPolicies', params);
+    return this.getCached(
+      key,
+      () => this.http.get<PolicyListResponse>(`${this.apiUrl}/deleted`, { params }),
+    );
+  }
+
+  permanentDeletePolicy(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/permanent`,
+    );
+  }
+
+  // ============================================================
+  // POLICY DOCUMENT UPLOAD (PDF)
+  // ============================================================
+
+  /**
+   * Upload (or atomically replace) a policy's PDF document.
+   * Multipart FormData POST; emits HttpEvents so callers can render
+   * upload progress. The backend validates type/size/content and
+   * stores bytes server-side, returning metadata only.
+   */
+  uploadPolicyDocument(
+    id: number,
+    file: File,
+  ): Observable<HttpEvent<PolicyDocumentResponse>> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    if (!file) {
+      throw new Error('A file is required.');
+    }
+    this.clearCache();
+    const form = new FormData();
+    form.append('file', file, file.name);
+    return this.http.post<PolicyDocumentResponse>(
+      `${this.apiUrl}/${id}/document`,
+      form,
+      { reportProgress: true, observe: 'events' },
+    );
+  }
+
+  /** Uploaded-document metadata, or null when the policy has none. */
+  getPolicyDocument(id: number): Observable<PolicyDocumentResponse | null> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    return this.http
+      .get<PolicyDocumentResponse>(`${this.apiUrl}/${id}/document`)
+      .pipe(catchError((err) => (err?.status === 404 ? of(null) : throwError(() => err))));
+  }
+
+  /** Remove a policy's uploaded document. */
+  deletePolicyDocument(id: number): Observable<{ message: string }> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    this.clearCache();
+    return this.http.delete<{ message: string }>(
+      `${this.apiUrl}/${id}/document`,
+    );
+  }
+
+  /** Download the uploaded file bytes (authorized blob). */
+  downloadPolicyDocument(id: number): Observable<Blob> {
+    if (!id || id <= 0) {
+      throw new Error('A valid policy ID is required.');
+    }
+    return this.http.get(`${this.apiUrl}/${id}/document/download`, {
+      responseType: 'blob',
+    });
+  }
+
+  // ============================================================
   // FILTERED LIST QUERIES (ADMIN)
   // ============================================================
 
@@ -319,21 +470,42 @@ export class PolicyService {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
-    return this.http.get<PolicyListResponse>(`${this.apiUrl}/pending-approval`, { params });
+    const key = this.getCacheKey('getPendingPolicies', params);
+    return this.getCached(
+      key,
+      () =>
+        this.http.get<PolicyListResponse>(`${this.apiUrl}/pending-approval`, {
+          params,
+        }),
+    );
   }
 
   getArchiveRequests(page = 1, limit = 10): Observable<PolicyListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
-    return this.http.get<PolicyListResponse>(`${this.apiUrl}/archive-requests`, { params });
+    const key = this.getCacheKey('getArchiveRequests', params);
+    return this.getCached(
+      key,
+      () =>
+        this.http.get<PolicyListResponse>(`${this.apiUrl}/archive-requests`, {
+          params,
+        }),
+    );
   }
 
   getDeleteRequests(page = 1, limit = 10): Observable<PolicyListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString());
-    return this.http.get<PolicyListResponse>(`${this.apiUrl}/delete-requests`, { params });
+    const key = this.getCacheKey('getDeleteRequests', params);
+    return this.getCached(
+      key,
+      () =>
+        this.http.get<PolicyListResponse>(`${this.apiUrl}/delete-requests`, {
+          params,
+        }),
+    );
   }
 
   // ============================================================
@@ -342,7 +514,11 @@ export class PolicyService {
   // ============================================================
 
   getPolicyStatistics(): Observable<PolicyAnalyticsResponse> {
-    return this.http.get<PolicyAnalyticsResponse>(this.analyticsUrl);
+    const key = this.getCacheKey('getPolicyStatistics');
+    return this.getCached(
+      key,
+      () => this.http.get<PolicyAnalyticsResponse>(this.analyticsUrl),
+    );
   }
 
   // ============================================================
@@ -361,9 +537,14 @@ export class PolicyService {
       .set('policy_id_1', policyId1.toString())
       .set('policy_id_2', policyId2.toString());
 
-    return this.http.get<PolicyComparisonResponse>(`${this.apiUrl}/compare`, {
-      params,
-    });
+    const key = this.getCacheKey('comparePolicies', params);
+    return this.getCached(
+      key,
+      () =>
+        this.http.get<PolicyComparisonResponse>(`${this.apiUrl}/compare`, {
+          params,
+        }),
+    );
   }
 
   // ============================================================
@@ -372,7 +553,14 @@ export class PolicyService {
   // ============================================================
 
   getEligibilityRules(policyId: number): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:8000/eligibility/policy/${policyId}`);
+    const key = this.getCacheKey(`getEligibilityRules:${policyId}`);
+    return this.getCached(
+      key,
+      () =>
+        this.http.get<any[]>(
+          `${environment.apiUrl}/eligibility/policy/${policyId}`
+        ),
+    );
   }
 }
 

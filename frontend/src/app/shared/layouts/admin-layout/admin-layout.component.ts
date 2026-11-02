@@ -1,20 +1,29 @@
-import { Component, HostListener, OnInit } from "@angular/core";
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  inject,
+} from "@angular/core";
 
 import { CommonModule } from "@angular/common";
-import { FormsModule } from "@angular/forms";
 
 import {
+  NavigationEnd,
   Router,
   RouterLink,
   RouterLinkActive,
   RouterOutlet,
 } from "@angular/router";
+import { filter } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
-import { Auth, AuthUser } from "../../../core/services/auth";
+import { Auth } from "../../../core/services/auth";
 
 import { FooterComponent } from "../../components/footer/footer.component";
 
 import { LogoutConfirmComponent } from "../../components/logout-confirm/logout-confirm.component";
+import { TopbarComponent } from "../../components/topbar/topbar.component";
 
 // =========================================================
 // NAV ITEM
@@ -27,6 +36,14 @@ export interface AdminNavItem {
   hasSubmenu?: boolean;
 }
 
+/** Expandable sidebar groups sharing one accordion toggle. */
+export type AdminMenuGroup =
+  | 'users'
+  | 'policies'
+  | 'schemes'
+  | 'analytics'
+  | 'support';
+
 // =========================================================
 // COMPONENT
 // =========================================================
@@ -37,12 +54,12 @@ export interface AdminNavItem {
 
   imports: [
     CommonModule,
-    FormsModule,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
     FooterComponent,
     LogoutConfirmComponent,
+    TopbarComponent,
   ],
 
   templateUrl: "./admin-layout.component.html",
@@ -50,17 +67,13 @@ export interface AdminNavItem {
 })
 export class AdminLayoutComponent implements OnInit {
   // =======================================================
-  // USER
-  // =======================================================
-
-  userName = "Admin User";
-  userRole = "Administrator";
-
-  // =======================================================
   // SIDEBAR
   // =======================================================
 
   sidebarCollapsed = false;
+  // Closed by default on every screen size so no dimming overlay veil
+  // covers the page after a refresh; the mobile overlay drawer opens
+  // on demand via the hamburger (closed on navigation).
   mobileMenuOpen = false;
 
   // =======================================================
@@ -70,12 +83,8 @@ export class AdminLayoutComponent implements OnInit {
   usersMenuOpen = false;
   policiesMenuOpen = false;
   schemesMenuOpen = false;
-
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  searchText = "";
+  analyticsMenuOpen = false;
+  supportMenuOpen = false;
 
   // =======================================================
   // LOGOUT MODAL
@@ -121,11 +130,31 @@ export class AdminLayoutComponent implements OnInit {
     },
 
     {
+      label: "Reports",
+      route: "/dashboard/admin/reports",
+      icon: "query_stats",
+    },
+
+    {
       label: "Audit Logs",
-      route: "/admin/audit-logs",
+      route: "/dashboard/admin/audit-logs",
       icon: "history",
     },
   ];
+
+  // =======================================================
+  // EXPANDABLE GROUP FIRST-CHILD ROUTES
+  // =======================================================
+
+  /**
+   * Landing route opened when a closed expandable parent is clicked.
+   * Must match the first child link rendered for each group so the
+   * URL, the highlighted child, and the expanded parent always agree.
+   */
+  private static readonly GROUP_FIRST_CHILD: Record<'analytics' | 'support', string> = {
+    analytics: '/dashboard/admin/analytics',
+    support: '/dashboard/admin/feedback',
+  };
 
   // =======================================================
   // CONSTRUCTOR
@@ -136,123 +165,68 @@ export class AdminLayoutComponent implements OnInit {
     private router: Router,
   ) {}
 
+  private readonly destroyRef = inject(DestroyRef);
+
   // =======================================================
   // INIT
   // =======================================================
 
   ngOnInit(): void {
-    this.loadCurrentUser();
+    // Tablet default: icon-only rail (hamburger expands to the full
+    // sidebar). Desktop loads expanded; mobile uses the overlay drawer.
+    if (window.innerWidth >= 768 && window.innerWidth <= 1100) {
+      this.sidebarCollapsed = true;
+    }
+    this.syncMenusWithRoute();
 
+    // Keep expansion in sync with navigation (direct URL entry, in-app
+    // navigation, back/forward): the group matching the new URL opens,
+    // others close. Arrow clicks always work because visibility depends
+    // only on these flags — collapsing a group whose child is active
+    // persists until a relevant route change re-expands it.
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => this.syncMenusWithRoute());
+  }
+
+  /**
+   * Expand the submenu group matching the current URL and close the
+   * rest (accordion). URLs matching no group leave all flags untouched.
+   */
+  private syncMenusWithRoute(): void {
     if (this.isUsersRouteActive()) {
       this.usersMenuOpen = true;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     } else if (this.isPoliciesRouteActive()) {
+      this.usersMenuOpen = false;
       this.policiesMenuOpen = true;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
     } else if (this.isSchemesRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
       this.schemesMenuOpen = true;
-    }
-  }
-
-  // =======================================================
-  // LOAD CURRENT USER
-  // =======================================================
-
-  private loadCurrentUser(): void {
-    const storedUser: AuthUser | null = this.authService.getStoredUser();
-
-    if (storedUser) {
-      this.setUserDetails(storedUser);
-    }
-
-    if (!this.authService.isLoggedIn()) {
-      this.router.navigate(["/auth/login"], {
-        replaceUrl: true,
-      });
-
-      return;
-    }
-
-    this.authService.getCurrentUser().subscribe({
-      next: (user: AuthUser) => {
-        if (!user) {
-          return;
-        }
-
-        this.setUserDetails(user);
-      },
-
-      error: (error: unknown) => {
-        console.error("Unable to load logged-in admin:", error);
-
-        const status = (
-          error as {
-            status?: number;
-          }
-        )?.status;
-
-        if (status === 401 || status === 403) {
-          this.authService.logout();
-
-          this.router.navigate(["/auth/login"], {
-            replaceUrl: true,
-          });
-        }
-      },
-    });
-  }
-
-  // =======================================================
-  // SET USER DETAILS
-  // =======================================================
-
-  private setUserDetails(user: AuthUser): void {
-    if (!user) {
-      return;
-    }
-
-    if (typeof user.full_name === "string" && user.full_name.trim()) {
-      this.userName = user.full_name.trim();
-    }
-
-    this.userRole = this.formatRole(user.role);
-  }
-
-  // =======================================================
-  // FORMAT ROLE
-  // =======================================================
-
-  private formatRole(role: string | null | undefined): string {
-    if (!role) {
-      return "Administrator";
-    }
-
-    const normalizedRole = role.trim().toUpperCase();
-
-    switch (normalizedRole) {
-      case "ADMIN":
-        return "Admin";
-
-      case "ADMINISTRATOR":
-        return "Administrator";
-
-      case "GOVERNMENT_OFFICIAL":
-        return "Government Official";
-
-      case "CITIZEN":
-        return "Citizen";
-
-      case "RESEARCHER":
-        return "Researcher";
-
-      case "ORGANIZATION":
-      case "ORGANISATION":
-        return "Organization";
-
-      default:
-        return role
-          .trim()
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (char: string) => char.toUpperCase());
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = false;
+    } else if (this.isAnalyticsRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = true;
+      this.supportMenuOpen = false;
+    } else if (this.isSupportRouteActive()) {
+      this.usersMenuOpen = false;
+      this.policiesMenuOpen = false;
+      this.schemesMenuOpen = false;
+      this.analyticsMenuOpen = false;
+      this.supportMenuOpen = true;
     }
   }
 
@@ -297,58 +271,232 @@ export class AdminLayoutComponent implements OnInit {
   // SUBMENU CONTROLS
   // =======================================================
 
-  toggleUsersMenu(): void {
+  /**
+   * Single accordion toggle for every expandable parent: flips the
+   * named group and closes the rest. Arrow clicks always take effect —
+   * collapsing works even while a child route is active, because
+   * submenu visibility depends only on these flags.
+   */
+  toggleGroup(group: AdminMenuGroup): void {
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
 
-    this.usersMenuOpen = !this.usersMenuOpen;
-    if (this.usersMenuOpen) {
-      this.policiesMenuOpen = false;
-      this.schemesMenuOpen = false;
+    const next =
+      group === 'users'
+        ? !this.usersMenuOpen
+        : group === 'policies'
+          ? !this.policiesMenuOpen
+          : group === 'schemes'
+            ? !this.schemesMenuOpen
+            : group === 'analytics'
+              ? !this.analyticsMenuOpen
+              : !this.supportMenuOpen;
+    this.usersMenuOpen = group === 'users' ? next : false;
+    this.policiesMenuOpen = group === 'policies' ? next : false;
+    this.schemesMenuOpen = group === 'schemes' ? next : false;
+    this.analyticsMenuOpen = group === 'analytics' ? next : false;
+    this.supportMenuOpen = group === 'support' ? next : false;
+  }
+
+  onUsersNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleUsersMenu();
+      return;
     }
+
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+    this.usersMenuOpen = true;
+    this.policiesMenuOpen = false;
+    this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(["/dashboard/admin/users"]);
+  }
+
+  toggleUsersMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleUsersMenu();
+  }
+
+  toggleUsersMenu(): void {
+    this.toggleGroup('users');
   }
 
   closeUsersMenu(): void {
     this.closeAllSubmenus();
   }
 
-  togglePoliciesMenu(): void {
+  onPoliciesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.togglePoliciesMenu();
+      return;
+    }
+
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
+    this.policiesMenuOpen = true;
+    this.usersMenuOpen = false;
+    this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/admin/policies/search']);
+  }
 
-    this.policiesMenuOpen = !this.policiesMenuOpen;
-    if (this.policiesMenuOpen) {
-      this.usersMenuOpen = false;
-      this.schemesMenuOpen = false;
-    }
+  togglePoliciesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.togglePoliciesMenu();
+  }
+
+  togglePoliciesMenu(): void {
+    this.toggleGroup('policies');
   }
 
   closePoliciesMenu(): void {
     this.policiesMenuOpen = false;
   }
 
-  toggleSchemesMenu(): void {
+  onSchemesNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleSchemesMenu();
+      return;
+    }
+
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
     }
+    this.schemesMenuOpen = true;
+    this.usersMenuOpen = false;
+    this.policiesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
+    this.closeMobileMenu();
+    this.router.navigate(['/dashboard/admin/schemes']);
+  }
 
-    this.schemesMenuOpen = !this.schemesMenuOpen;
-    if (this.schemesMenuOpen) {
-      this.usersMenuOpen = false;
-      this.policiesMenuOpen = false;
-    }
+  toggleSchemesMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleSchemesMenu();
+  }
+
+  toggleSchemesMenu(): void {
+    this.toggleGroup('schemes');
   }
 
   closeSchemesMenu(): void {
     this.schemesMenuOpen = false;
   }
 
+  onAnalyticsNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest('.dash-nav__chevron')) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleAnalyticsMenu();
+      return;
+    }
+
+    this.openGroup('analytics');
+  };
+
+  toggleAnalyticsMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleAnalyticsMenu();
+  }
+
+  toggleAnalyticsMenu(): void {
+    this.toggleGroup('analytics');
+  }
+
+  closeAnalyticsMenu(): void {
+    this.analyticsMenuOpen = false;
+  }
+
+  onSupportNavClick(event?: MouseEvent): void {
+    const target = event?.target as HTMLElement | undefined;
+    if (target?.closest(".dash-nav__chevron")) {
+      event?.preventDefault();
+      event?.stopPropagation();
+      this.toggleSupportMenu();
+      return;
+    }
+
+    // Parent toggles/expands via openGroup — it never navigates elsewhere.
+    this.openGroup('support');
+  }
+
+  /**
+   * Shared expandable-group behavior for Analytics and Support & Feedback.
+   *
+   * First click on a closed parent: expand it, close every other group,
+   * and navigate exactly once to the group's first child. Clicking an
+   * already-expanded parent collapses it without navigating (when a
+   * child route is active the route itself keeps the group expanded).
+   * Chevron clicks keep the existing toggle-only handlers, and child
+   * links navigate normally without touching these flags.
+   */
+  private openGroup(group: 'analytics' | 'support'): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    const expanded =
+      group === 'analytics'
+        ? this.analyticsMenuOpen || this.isAnalyticsRouteActive()
+        : this.supportMenuOpen || this.isSupportRouteActive();
+    this.closeAllSubmenus();
+    if (expanded) {
+      this.closeMobileMenu();
+      return;
+    }
+
+    if (group === 'analytics') {
+      this.analyticsMenuOpen = true;
+    } else {
+      this.supportMenuOpen = true;
+    }
+    this.closeMobileMenu();
+    void this.router.navigate([AdminLayoutComponent.GROUP_FIRST_CHILD[group]]);
+  }
+
+  toggleSupportMenuOnly(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.toggleSupportMenu();
+  }
+
+  toggleSupportMenu(): void {
+    this.toggleGroup('support');
+  }
+
+  closeSupportMenu(): void {
+    this.supportMenuOpen = false;
+  }
+
   closeAllSubmenus(): void {
     this.usersMenuOpen = false;
     this.policiesMenuOpen = false;
     this.schemesMenuOpen = false;
+    this.analyticsMenuOpen = false;
+    this.supportMenuOpen = false;
   }
 
   // =======================================================
@@ -360,6 +508,8 @@ export class AdminLayoutComponent implements OnInit {
       !this.usersMenuOpen &&
       !this.policiesMenuOpen &&
       !this.schemesMenuOpen &&
+      !this.analyticsMenuOpen &&
+      !this.supportMenuOpen &&
       this.router.url === "/dashboard/admin"
     );
   }
@@ -379,32 +529,21 @@ export class AdminLayoutComponent implements OnInit {
     );
   }
 
-  // =======================================================
-  // SEARCH
-  // =======================================================
-
-  performSearch(): void {
-    const query = this.searchText.trim();
-
-    if (!query) {
-      return;
-    }
-
-    this.router.navigate(["/schemes"], {
-      queryParams: {
-        q: query,
-      },
-    });
-
-    this.closeMobileMenu();
+  isAnalyticsRouteActive(): boolean {
+    return (
+      this.router.url.startsWith("/dashboard/admin/analytics") ||
+      this.router.url.startsWith("/dashboard/admin/support-analytics")
+    );
   }
 
-  // =======================================================
-  // CLEAR SEARCH
-  // =======================================================
-
-  clearSearch(): void {
-    this.searchText = "";
+  isSupportRouteActive(): boolean {
+    const url = this.router.url;
+    return (
+      url.startsWith("/dashboard/admin/feedback") ||
+      url.startsWith("/dashboard/admin/support-requests") ||
+      url.startsWith("/dashboard/admin/faqs") ||
+      url.startsWith("/dashboard/admin/query-resolution")
+    );
   }
 
   // =======================================================
@@ -430,9 +569,6 @@ export class AdminLayoutComponent implements OnInit {
     this.authService.logout();
 
     // Reset UI
-    this.userName = "Admin User";
-    this.userRole = "Administrator";
-
     this.mobileMenuOpen = false;
     this.sidebarCollapsed = false;
     this.usersMenuOpen = false;

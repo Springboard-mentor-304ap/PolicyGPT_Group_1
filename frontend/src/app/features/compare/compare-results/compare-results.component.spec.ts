@@ -296,9 +296,10 @@ describe('CompareResultsComponent', () => {
     const itemCards = compiled.querySelectorAll('.selected-items .item-card');
     expect(itemCards.length).toBe(3);
 
-    // Verify 3 columns in thead
+    // Verify columns in thead: "Comparison" + 3 items (no View Details column).
     const thHeaders = compiled.querySelectorAll('thead th');
-    expect(thHeaders.length).toBe(4); // "Comparison" + 3 items
+    expect(thHeaders.length).toBe(4);
+    expect(compiled.querySelector('thead th.details-col')).toBeNull();
   });
 
   it('7. should format eligibility rules cleanly and never show [object Object]', () => {
@@ -374,5 +375,172 @@ describe('CompareResultsComponent', () => {
     const tableBodyText = compiled.querySelector('tbody')?.textContent || '';
     expect(tableBodyText).not.toContain('APPROVED');
     expect(tableBodyText).not.toContain('Approved');
+  });
+
+  it('12. should classify empty vs meaningful comparison values', () => {
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+
+    for (const empty of [null, undefined, '', '   ', '-', '—', ' - ', []]) {
+      expect(component.hasMeaningfulValue(empty)).toBe(false);
+    }
+    expect(component.hasMeaningfulValue(0)).toBe(true);
+    expect(component.hasMeaningfulValue(false)).toBe(true);
+    expect(component.hasMeaningfulValue('Ministry of Education')).toBe(true);
+    expect(component.hasMeaningfulValue('2025-01-15')).toBe(true);
+    expect(component.hasMeaningfulValue(['Cashless treatment'])).toBe(true);
+
+    expect(component.showRow(null, null)).toBe(false);
+    expect(component.showRow('-', '—')).toBe(false);
+    expect(component.showRow('Ministry of Education', null)).toBe(true);
+    expect(component.showRow(null, null, 'Education')).toBe(true);
+    expect(component.showRow(null, null, null)).toBe(false);
+  });
+
+  it('13. should hide rows where every column is empty but keep one-sided rows', () => {    const items: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 102, title: 'National Digital Health Policy', type: 'Policy', ministry: 'Health', category: 'Health', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const tableHeaders = Array.from(compiled.querySelectorAll('tbody th')).map((th) => th.textContent?.trim());
+
+    // Both policies: scheme-only rows empty on both sides → hidden.
+    expect(tableHeaders).not.toContain('Documents Required');
+    expect(tableHeaders).not.toContain('Application Process');
+    expect(tableHeaders).not.toContain('Application URL');
+
+    // One-sided or populated rows stay visible.
+    expect(tableHeaders).toContain('Ministry');
+    expect(tableHeaders).toContain('Sector');
+    expect(tableHeaders).toContain('Document');
+  });
+
+  it('14. should show one VS badge for 2 items and two for 3 items', () => {
+    const twoItems: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 201, title: 'PM-KISAN Scheme', type: 'Scheme', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items: twoItems }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    let compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelectorAll('.vs-badge').length).toBe(1);
+
+    const threeItems: CompareItem[] = [
+      ...twoItems,
+      { id: 102, title: 'National Digital Health Policy', type: 'Policy', ministry: 'Health', category: 'Health', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items: threeItems }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    // Between 1-2 and 2-3, none after the final item.
+    expect(compiled.querySelectorAll('.vs-badge').length).toBe(2);
+  });
+
+  it('15. should render policy/blue and scheme/green type treatments', () => {    const items: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 201, title: 'PM-KISAN Scheme', type: 'Scheme', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const policyPill = compiled.querySelector('.type-pill.policy-pill');
+    const schemePill = compiled.querySelector('.type-pill.scheme-pill');
+    expect(policyPill?.textContent).toContain('Policy');
+    expect(policyPill?.textContent).toContain('policy');
+    expect(schemePill?.textContent).toContain('Scheme');
+    expect(schemePill?.textContent).toContain('account_balance');
+  });
+
+  it('16. should navigate to the existing policy details page from View Details', () => {
+    mockRouter.url = '/dashboard/citizen/compare/results';
+    const items: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 201, title: 'PM-KISAN Scheme', type: 'Scheme', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const buttons = compiled.querySelectorAll('.details-btn');
+    expect(buttons.length).toBe(2);
+
+    // Buttons live in the final table row, one per item column.
+    const rows = compiled.querySelectorAll('tbody tr');
+    const lastRow = rows[rows.length - 1];
+    expect(lastRow.querySelector('th')?.textContent).toContain('View Details');
+    expect(lastRow.querySelectorAll('.details-btn').length).toBe(2);
+
+    (buttons[0] as HTMLButtonElement).click();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/dashboard',
+      'citizen',
+      'policies',
+      101,
+    ]);
+
+    (buttons[1] as HTMLButtonElement).click();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/dashboard',
+      'citizen',
+      'schemes',
+      201,
+    ]);
+  });
+
+  it('17. should render one View Details action per item for 3 items', () => {
+    mockRouter.url = '/dashboard/citizen/compare/results';
+    const items: CompareItem[] = [
+      { id: 101, title: 'National Agriculture Policy', type: 'Policy', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 201, title: 'PM-KISAN Scheme', type: 'Scheme', ministry: 'Agri', category: 'Agri', state: 'Central', targetGroup: '-' },
+      { id: 102, title: 'National Digital Health Policy', type: 'Policy', ministry: 'Health', category: 'Health', state: 'Central', targetGroup: '-' },
+    ];
+    window.history.replaceState({ items }, '');
+
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const buttons = compiled.querySelectorAll('.details-btn');
+    expect(buttons.length).toBe(3);
+
+    (buttons[2] as HTMLButtonElement).click();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([
+      '/dashboard',
+      'citizen',
+      'policies',
+      102,
+    ]);
+  });
+
+  it('18. should ignore View Details for invalid items', () => {
+    fixture = TestBed.createComponent(CompareResultsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    component.viewDetails(null);
+    component.viewDetails({ id: NaN, title: 'X', type: 'Policy', ministry: '', category: '', state: '', targetGroup: '' });
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 });

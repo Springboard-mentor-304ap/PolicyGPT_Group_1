@@ -1,9 +1,40 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.faq import FAQ
 from app.schemas.faq import FAQCreate, FAQUpdate
+
+
+# Canonical audience codes for FAQ visibility. "ALL" means visible to
+# every role, including unauthenticated guests. Kept in sync with
+# ALLOWED_AUDIENCES in app.schemas.faq.
+FAQ_AUDIENCES = (
+    "ALL",
+    "ADMIN",
+    "GOVERNMENT_OFFICIAL",
+    "CITIZEN",
+    "RESEARCHER",
+    "ORGANIZATION",
+    "GUEST",
+)
+
+
+def audience_filter(query, role: str):
+    """Restrict an FAQ query to rows visible to ``role`` (DB-level).
+
+    Visible = target_roles overlaps {role, ALL}. NULL or empty (legacy
+    rows predating the audience migration) is treated as ALL so
+    existing data keeps working even before the migration runs.
+    """
+    return query.filter(
+        or_(
+            FAQ.target_roles.is_(None),
+            FAQ.target_roles == [],
+            FAQ.target_roles.overlap([role, "ALL"]),
+        )
+    )
 
 
 def create_faq(
@@ -14,8 +45,11 @@ def create_faq(
         question=data.question,
         answer=data.answer,
         category=data.category,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        status=getattr(data, "status", "PUBLISHED") or "PUBLISHED",
+        display_order=getattr(data, "display_order", 0) or 0,
+        target_roles=data.target_roles or ["ALL"],
+        created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+        updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
     )
 
     db.add(faq)
@@ -30,7 +64,7 @@ def get_all_faqs(
 ):
     return (
         db.query(FAQ)
-        .order_by(FAQ.created_at.desc())
+        .order_by(FAQ.display_order.asc(), FAQ.created_at.desc())
         .all()
     )
 
@@ -61,7 +95,7 @@ def update_faq(
     for field, value in update_data.items():
         setattr(faq, field, value)
 
-    faq.updated_at = datetime.utcnow()
+    faq.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
     db.commit()
     db.refresh(faq)

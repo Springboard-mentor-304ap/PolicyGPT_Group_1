@@ -3,6 +3,8 @@ import { Routes } from "@angular/router";
 import { authGuard } from "../../../core/guards/auth.guard";
 import { roleGuard } from "../../../core/guards/role.guard";
 import { guestGuard } from "../../../core/guards/guest.guard";
+import { supportRoleGuard } from "../../../core/guards/support.guard";
+import { REPORTS_CHILD_ROUTES } from "../../reports/reports.routes";
 
 export const DASHBOARD_ROUTES: Routes = [
   // =========================================================
@@ -19,9 +21,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import(
-        "../../../shared/layouts/organization-layout/organization-layout.component"
-      ).then((m) => m.OrganizationLayoutComponent),
+      import("../../../shared/layouts/organization-layout/organization-layout.component").then(
+        (m) => m.OrganizationLayoutComponent,
+      ),
 
     children: [
       // HOME
@@ -96,9 +98,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
       },
 
       // COMPARE RESULTS
@@ -141,6 +143,210 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ChangePasswordComponent,
           ),
       },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // SAVED ITEMS
+      // /dashboard/organization/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/organization/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
+          ),
+      },
+
+      // ORGANIZATION ANALYTICS
+      {
+        path: "analytics",
+
+        data: {
+          analyticsRole: "organization",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policies",
+
+        data: {
+          variant: "policies",
+          pageTitle: "Policy Analytics",
+          pageDescription:
+            "Policy portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Policy Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        data: {
+          variant: "schemes",
+          pageTitle: "Scheme Analytics",
+          pageDescription:
+            "Scheme portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Scheme Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Eligibility / Usage Analytics",
+          pageDescription:
+            "Platform eligibility coverage and usage statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/organization"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/organization/analytics"],
+            },
+            { label: "Eligibility / Usage Analytics" },
+          ],
+          cta: [
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/organization/schemes"],
+            },
+            {
+              label: "View Search History",
+              icon: "history",
+              route: ["/dashboard/organization/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
     ],
   },
 
@@ -158,9 +364,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import(
-        "../../../shared/layouts/citizen-layout/citizen-layout.component"
-      ).then((m) => m.CitizenLayoutComponent),
+      import("../../../shared/layouts/citizen-layout/citizen-layout.component").then(
+        (m) => m.CitizenLayoutComponent,
+      ),
 
     children: [
       // HOME
@@ -169,9 +375,7 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./citizen/citizen.component").then(
-            (m) => m.CitizenComponent,
-          ),
+          import("./citizen/citizen.component").then((m) => m.CitizenComponent),
       },
 
       // POLICIES
@@ -238,9 +442,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "eligibility/check",
 
         loadComponent: () =>
-          import(
-            "../../eligibility/eligibility-specific/eligibility-specific"
-          ).then((m) => m.EligibilitySpecific),
+          import("../../eligibility/eligibility-specific/eligibility-specific").then(
+            (m) => m.EligibilitySpecific,
+          ),
       },
 
       // /dashboard/citizen/eligibility
@@ -248,9 +452,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "eligibility",
 
         loadComponent: () =>
-          import(
-            "../../eligibility/eligibility-checker/eligibility-checker"
-          ).then((m) => m.EligibilityChecker),
+          import("../../eligibility/eligibility-checker/eligibility-checker").then(
+            (m) => m.EligibilityChecker,
+          ),
       },
 
       // COMPARE SELECTION
@@ -259,9 +463,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
       },
 
       // COMPARE RESULTS
@@ -304,6 +508,300 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ChangePasswordComponent,
           ),
       },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // SAVED ITEMS
+      // /dashboard/citizen/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/citizen/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
+          ),
+      },
+
+      // CITIZEN ANALYTICS
+      {
+        path: "analytics",
+
+        data: {
+          analyticsRole: "citizen",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      // CITIZEN ANALYTICS ALIAS (sidebar: Saved & Search Activity)
+      {
+        path: "analytics/activity",
+
+        data: {
+          analyticsRole: "citizen",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/saved-policies",
+
+        data: {
+          variant: "saved-policies",
+          pageTitle: "Saved Policies",
+          pageDescription: "Policies you saved for later, with counts.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Saved Policies" },
+          ],
+          cta: [
+            {
+              label: "View All Saved Items",
+              icon: "bookmark",
+              route: ["/dashboard/citizen/saved"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/eligible-schemes",
+
+        data: {
+          variant: "eligible-schemes",
+          pageTitle: "Eligible Schemes",
+          pageDescription: "Open schemes you may be eligible for, by category.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Eligible Schemes" },
+          ],
+          cta: [
+            {
+              label: "Check My Eligibility",
+              icon: "fact_check",
+              route: ["/dashboard/citizen/eligibility"],
+            },
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/citizen/schemes"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/search-history",
+
+        data: {
+          variant: "search-history",
+          pageTitle: "Search History",
+          pageDescription: "Your policy and scheme search activity.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Search History" },
+          ],
+          cta: [
+            {
+              label: "View Full History",
+              icon: "history",
+              route: ["/dashboard/citizen/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/application-status",
+
+        data: {
+          variant: "application-status",
+          pageTitle: "Application Status",
+          pageDescription: "Track your scheme applications.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Application Status" },
+          ],
+          cta: [
+            {
+              label: "Browse Schemes",
+              icon: "account_balance",
+              route: ["/dashboard/citizen/schemes"],
+            },
+            {
+              label: "Check Eligibility",
+              icon: "fact_check",
+              route: ["/dashboard/citizen/eligibility"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/notifications",
+
+        data: {
+          variant: "notifications",
+          pageTitle: "Notification Activity",
+          pageDescription: "Your notification delivery and read activity.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/citizen"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/citizen/analytics"],
+            },
+            { label: "Notification Activity" },
+          ],
+          cta: [
+            {
+              label: "View All Notifications",
+              icon: "notifications",
+              route: ["/dashboard/citizen/notifications"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
     ],
   },
 
@@ -317,17 +815,13 @@ export const DASHBOARD_ROUTES: Routes = [
     canActivate: [authGuard, roleGuard],
 
     data: {
-      roles: [
-        "GOVERNMENT_OFFICIAL",
-        "GOVERNMENT_OFFICER",
-        "GOVERNMENT",
-      ],
+      roles: ["GOVERNMENT_OFFICIAL", "GOVERNMENT_OFFICER", "GOVERNMENT"],
     },
 
     loadComponent: () =>
-      import(
-        "../../../shared/layouts/government-layout/government-layout.component"
-      ).then((m) => m.GovernmentLayoutComponent),
+      import("../../../shared/layouts/government-layout/government-layout.component").then(
+        (m) => m.GovernmentLayoutComponent,
+      ),
 
     children: [
       // HOME
@@ -411,207 +905,9 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
-      // ADD SCHEME
+      // SCHEMES SEARCH (ALIAS)
       {
-        path: "schemes/add",
-
-        loadComponent: () =>
-          import("../../schemes/add-scheme/add-scheme.component").then(
-            (m) => m.AddSchemeComponent,
-          ),
-      },
-
-      // MANAGE SCHEMES
-      {
-        path: "schemes/manage",
-
-        loadComponent: () =>
-          import("../../schemes/manage-schemes/manage-schemes.component").then(
-            (m) => m.ManageSchemesComponent,
-          ),
-      },
-
-      // EDIT SCHEME
-      {
-        path: "schemes/edit/:id",
-
-        loadComponent: () =>
-          import("../../schemes/edit-scheme/edit-scheme.component").then(
-            (m) => m.EditSchemeComponent,
-          ),
-      },
-
-      // SCHEME DETAILS
-      {
-        path: "schemes/:id",
-
-        loadComponent: () =>
-          import("../../schemes/scheme-details/scheme-details.component").then(
-            (m) => m.SchemeDetailsComponent,
-          ),
-      },
-
-      // COMPARE
-      {
-        path: "compare",
-
-        loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
-      },
-
-      // COMPARE RESULTS
-      {
-        path: "compare/results",
-
-        loadComponent: () =>
-          import("../../compare/compare-results/compare-results.component").then(
-            (m) => m.CompareResultsComponent,
-          ),
-      },
-
-      // PROFILE
-      {
-        path: "profile",
-
-        loadComponent: () =>
-          import("../../profile/profile.component").then(
-            (m) => m.ProfileComponent,
-          ),
-      },
-
-      // EDIT PROFILE
-      {
-        path: "profile/edit",
-
-        loadComponent: () =>
-          import("../../profile/edit-profile/edit-profile.component").then(
-            (m) => m.EditProfileComponent,
-          ),
-      },
-
-      // CHANGE PASSWORD
-      {
-        path: "change-password",
-
-        loadComponent: () =>
-          import("../change-password/change-password.component").then(
-            (m) => m.ChangePasswordComponent,
-          ),
-      },
-    ],
-  },
-
-  // =========================================================
-  // ADMIN DASHBOARD
-  // =========================================================
-
-  {
-    path: "admin",
-
-    canActivate: [authGuard, roleGuard],
-
-    data: {
-      roles: ["ADMINISTRATOR"],
-    },
-
-    loadComponent: () =>
-      import(
-        "../../../shared/layouts/admin-layout/admin-layout.component"
-      ).then((m) => m.AdminLayoutComponent),
-
-    children: [
-      // HOME
-      {
-        path: "",
-        pathMatch: "full",
-
-        loadComponent: () =>
-          import("./admin/admin.component").then(
-            (m) => m.AdminComponent,
-          ),
-      },
-
-      // =====================================================
-      // ADMIN ANALYTICS
-      // /dashboard/admin/analytics
-      // =====================================================
-
-      {
-        path: "analytics",
-
-        loadComponent: () =>
-          import(
-            "./admin/analytics/admin-analytics/admin-analytics.component"
-          ).then((m) => m.AdminAnalyticsComponent),
-      },
-
-      // POLICIES (MANAGE)
-      // /dashboard/admin/policies
-      {
-        path: "policies",
-
-        loadComponent: () =>
-          import("../../policy/manage-policies/manage-policies.component").then(
-            (m) => m.ManagePoliciesComponent,
-          ),
-      },
-
-      // POLICIES (SEARCH/VIEW)
-      // /dashboard/admin/policies/search
-      {
-        path: "policies/search",
-
-        loadComponent: () =>
-          import("../../policy/policy-search/policy-search.component").then(
-            (m) => m.PolicySearchComponent,
-          ),
-      },
-
-      // ADD POLICY
-      {
-        path: "policies/add",
-
-        loadComponent: () =>
-          import("../../policy/add-policy/add-policy.component").then(
-            (m) => m.AddPolicyComponent,
-          ),
-      },
-
-      // MANAGE POLICIES (ALIAS)
-      {
-        path: "policies/manage",
-
-        loadComponent: () =>
-          import("../../policy/manage-policies/manage-policies.component").then(
-            (m) => m.ManagePoliciesComponent,
-          ),
-      },
-
-      // EDIT POLICY
-      {
-        path: "policies/edit/:id",
-
-        loadComponent: () =>
-          import("../../policy/add-policy/add-policy.component").then(
-            (m) => m.AddPolicyComponent,
-          ),
-      },
-
-      // POLICY DETAILS
-      {
-        path: "policies/:id",
-
-        loadComponent: () =>
-          import("../../policy/policy-details/policy-details.component").then(
-            (m) => m.PolicyDetailsComponent,
-          ),
-      },
-
-      // SCHEMES
-      {
-        path: "schemes",
+        path: "schemes/search",
 
         loadComponent: () =>
           import("../../schemes/scheme-search/scheme-search.component").then(
@@ -664,9 +960,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
       },
 
       // COMPARE RESULTS
@@ -709,6 +1005,467 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/delivery",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // GOVERNMENT ANALYTICS (dedicated pages, sidebar-linked)
+      // /dashboard/government/analytics
+      {
+        path: "analytics",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-analytics-overview.component").then(
+            (m) => m.GovtAnalyticsOverviewComponent,
+          ),
+      },
+
+      // GOVERNMENT POLICY ANALYTICS (sidebar-linked)
+      // /dashboard/government/analytics/policies
+      {
+        path: "analytics/policies",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-policy-analytics.component").then(
+            (m) => m.GovtPolicyAnalyticsComponent,
+          ),
+      },
+
+      // GOVERNMENT SCHEME ANALYTICS (sidebar-linked)
+      // /dashboard/government/analytics/schemes
+      {
+        path: "analytics/schemes",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-scheme-analytics.component").then(
+            (m) => m.GovtSchemeAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policy-scheme",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-policy-scheme.component").then(
+            (m) => m.GovtPolicySchemeComponent,
+          ),
+      },
+
+      {
+        path: "analytics/departments",
+
+        loadComponent: () =>
+          import("../../analytics/government/govt-departments.component").then(
+            (m) => m.GovtDepartmentsComponent,
+          ),
+      },
+
+      // REPORTS (role layout children)
+      // /dashboard/government/reports
+      ...REPORTS_CHILD_ROUTES,
+    ],
+  },
+
+  // =========================================================
+  // ADMIN DASHBOARD
+  // =========================================================
+
+  {
+    path: "admin",
+
+    canActivate: [authGuard, roleGuard],
+
+    data: {
+      roles: ["ADMINISTRATOR"],
+    },
+
+    loadComponent: () =>
+      import("../../../shared/layouts/admin-layout/admin-layout.component").then(
+        (m) => m.AdminLayoutComponent,
+      ),
+
+    children: [
+      // HOME
+      {
+        path: "",
+        pathMatch: "full",
+
+        loadComponent: () =>
+          import("./admin/admin.component").then((m) => m.AdminComponent),
+      },
+
+      // =====================================================
+      // ADMIN ANALYTICS
+      // /dashboard/admin/analytics
+      // =====================================================
+
+      {
+        path: "analytics",
+
+        loadComponent: () =>
+          import("../../analytics/admin/admin-dashboard/admin-dashboard.component").then(
+            (m) => m.AdminDashboardComponent,
+          ),
+      },
+
+      // ADMIN ANALYTICS CHILDREN
+      {
+        path: "analytics/policies",
+
+        loadComponent: () =>
+          import("../../analytics/admin/policy-analytics/policy-analytics.component").then(
+            (m) => m.PolicyAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        loadComponent: () =>
+          import("../../analytics/admin/scheme-analytics/scheme-analytics.component").then(
+            (m) => m.SchemeAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/users",
+
+        data: {
+          variant: "users",
+          pageTitle: "User Analytics",
+          pageDescription:
+            "Registered user base, activity and role distribution.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "User Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/admin/user-analytics/user-analytics.component").then(
+            (m) => m.UserAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/departments",
+
+        loadComponent: () =>
+          import("../../analytics/admin/department-analytics/department-analytics.component").then(
+            (m) => m.DepartmentAnalyticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Usage Statistics",
+          pageDescription: "Platform usage and adoption statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Usage Statistics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/admin/usage-statistics/usage-statistics.component").then(
+            (m) => m.UsageStatisticsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/notifications",
+
+        data: {
+          variant: "notifications",
+          pageTitle: "Notification Analytics",
+          pageDescription: "Notification delivery and read statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/admin"] },
+            { label: "Analytics", route: ["/dashboard/admin/analytics"] },
+            { label: "Notification Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      // POLICIES (SEARCH/VIEW)
+      // /dashboard/admin/policies
+      {
+        path: "policies",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // POLICIES (SEARCH/VIEW ALIAS)
+      // /dashboard/admin/policies/search
+      {
+        path: "policies/search",
+
+        loadComponent: () =>
+          import("../../policy/policy-search/policy-search.component").then(
+            (m) => m.PolicySearchComponent,
+          ),
+      },
+
+      // ADD POLICY
+      {
+        path: "policies/add",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
+          ),
+      },
+
+      // MANAGE POLICIES
+      {
+        path: "policies/manage",
+
+        loadComponent: () =>
+          import("../../policy/manage-policies/manage-policies.component").then(
+            (m) => m.ManagePoliciesComponent,
+          ),
+      },
+
+      // EDIT POLICY
+      {
+        path: "policies/edit/:id",
+
+        loadComponent: () =>
+          import("../../policy/add-policy/add-policy.component").then(
+            (m) => m.AddPolicyComponent,
+          ),
+      },
+
+      // POLICY DETAILS
+      {
+        path: "policies/:id",
+
+        loadComponent: () =>
+          import("../../policy/policy-details/policy-details.component").then(
+            (m) => m.PolicyDetailsComponent,
+          ),
+      },
+
+      // SCHEMES (SEARCH/VIEW)
+      {
+        path: "schemes",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // SCHEMES SEARCH (ALIAS)
+      {
+        path: "schemes/search",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
+      // ADD SCHEME
+      {
+        path: "schemes/add",
+
+        loadComponent: () =>
+          import("../../schemes/add-scheme/add-scheme.component").then(
+            (m) => m.AddSchemeComponent,
+          ),
+      },
+
+      // MANAGE SCHEMES
+      {
+        path: "schemes/manage",
+
+        loadComponent: () =>
+          import("../../schemes/manage-schemes/manage-schemes.component").then(
+            (m) => m.ManageSchemesComponent,
+          ),
+      },
+
+      // EDIT SCHEME
+      {
+        path: "schemes/edit/:id",
+
+        loadComponent: () =>
+          import("../../schemes/edit-scheme/edit-scheme.component").then(
+            (m) => m.EditSchemeComponent,
+          ),
+      },
+
+      // SCHEME DETAILS
+      {
+        path: "schemes/:id",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-details/scheme-details.component").then(
+            (m) => m.SchemeDetailsComponent,
+          ),
+      },
+
+      // COMPARE
+      {
+        path: "compare",
+
+        loadComponent: () =>
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
+      },
+
+      // COMPARE RESULTS
+      {
+        path: "compare/results",
+
+        loadComponent: () =>
+          import("../../compare/compare-results/compare-results.component").then(
+            (m) => m.CompareResultsComponent,
+          ),
+      },
+
+      // PROFILE
+      {
+        path: "profile",
+
+        loadComponent: () =>
+          import("../../profile/profile.component").then(
+            (m) => m.ProfileComponent,
+          ),
+      },
+
+      // EDIT PROFILE
+      {
+        path: "profile/edit",
+
+        loadComponent: () =>
+          import("../../profile/edit-profile/edit-profile.component").then(
+            (m) => m.EditProfileComponent,
+          ),
+      },
+
+      // CHANGE PASSWORD
+      {
+        path: "change-password",
+
+        loadComponent: () =>
+          import("../change-password/change-password.component").then(
+            (m) => m.ChangePasswordComponent,
+          ),
+      },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
       // USERS
       {
         path: "users",
@@ -728,6 +1485,151 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.AddUserComponent,
           ),
       },
+
+      // REMOVE USER
+      {
+        path: "users/remove",
+
+        loadComponent: () =>
+          import("./admin/users/remove-user.component").then(
+            (m) => m.RemoveUserComponent,
+          ),
+      },
+
+      // USER DETAILS
+      {
+        path: "users/:id",
+
+        loadComponent: () =>
+          import("./admin/users/user-details.component").then(
+            (m) => m.UserDetailsComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/delivery",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
+      // FAQS (ADMIN MANAGEMENT)
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../faq/faq-list/faq-list.component").then(
+            (m) => m.FaqListComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+
+      // ADMIN CANNOT ACCESS USER SUPPORT PAGE - REDIRECT TO ADMIN FAQS
+      {
+        path: "support",
+        canActivate: [supportRoleGuard],
+        loadComponent: () =>
+          import("../../faq/faq-list/faq-list.component").then(
+            (m) => m.FaqListComponent,
+          ),
+      },
+
+      // FEEDBACK (ADMIN MANAGEMENT)
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/admin-feedback/admin-feedback.component").then(
+            (m) => m.AdminFeedbackComponent,
+          ),
+      },
+
+      // SUPPORT REQUESTS (ADMIN MANAGEMENT)
+      // /dashboard/admin/support-requests
+      {
+        path: "support-requests",
+        loadComponent: () =>
+          import("../../support/admin-support/admin-support.component").then(
+            (m) => m.AdminSupportComponent,
+          ),
+      },
+
+      // SUPPORT REQUESTS (ADMIN MANAGEMENT)
+      // Alias view over the support ticket queue, where submitted
+      // queries are reviewed and resolved. Reuses AdminSupportComponent
+      // so there is exactly one implementation (and one sidebar entry
+      // target) for ticket resolution — no duplicate component.
+      // /dashboard/admin/query-resolution
+      {
+        path: "query-resolution",
+        loadComponent: () =>
+          import("../../support/admin-support/admin-support.component").then(
+            (m) => m.AdminSupportComponent,
+          ),
+      },
+
+      // SUPPORT ANALYTICS (ADMIN ONLY)
+      // /dashboard/admin/support-analytics
+      {
+        path: "support-analytics",
+        loadComponent: () =>
+          import("../../support/support-analytics/support-analytics.component").then(
+            (m) => m.SupportAnalyticsComponent,
+          ),
+      },
+
+      // AUDIT LOGS (ADMIN ONLY)
+      // /dashboard/admin/audit-logs
+      {
+        path: "audit-logs",
+        loadComponent: () =>
+          import("../../audit-log/audit-log.component").then(
+            (m) => m.AuditLogComponent,
+          ),
+      },
+
+      // REPORTS (role layout children)
+      // /dashboard/admin/reports
+      ...REPORTS_CHILD_ROUTES,
     ],
   },
 
@@ -745,9 +1647,9 @@ export const DASHBOARD_ROUTES: Routes = [
     },
 
     loadComponent: () =>
-      import(
-        "../../../shared/layouts/researcher-layout/researcher-layout.component"
-      ).then((m) => m.ResearcherLayoutComponent),
+      import("../../../shared/layouts/researcher-layout/researcher-layout.component").then(
+        (m) => m.ResearcherLayoutComponent,
+      ),
 
     children: [
       // HOME
@@ -801,6 +1703,16 @@ export const DASHBOARD_ROUTES: Routes = [
           ),
       },
 
+      // SCHEMES SEARCH (ALIAS, mirrors policies/search)
+      {
+        path: "schemes/search",
+
+        loadComponent: () =>
+          import("../../schemes/scheme-search/scheme-search.component").then(
+            (m) => m.SchemeSearchComponent,
+          ),
+      },
+
       // SCHEME DETAILS
       {
         path: "schemes/:id",
@@ -816,9 +1728,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
       },
 
       // COMPARE RESULTS
@@ -860,6 +1772,214 @@ export const DASHBOARD_ROUTES: Routes = [
             (m) => m.ChangePasswordComponent,
           ),
       },
+
+      // SETTINGS (shared role-based module)
+      {
+        path: "settings",
+
+        loadComponent: () =>
+          import("../../settings/settings.component").then(
+            (m) => m.SettingsComponent,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+      {
+        path: "notifications/:id",
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+
+      // COMBINED SEARCH (role layout)
+      // Shared combined policy + scheme results page: the Guest search
+      // experience rendered inside the authenticated role layout.
+      {
+        path: "search",
+
+        loadComponent: () =>
+          import("../../search/combined-search/combined-search.component").then(
+            (m) => m.CombinedSearchComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "support/tickets/:ticketId",
+        loadComponent: () =>
+          import("../../support/ticket-details/ticket-details.component").then(
+            (m) => m.TicketDetailsComponent,
+          ),
+      },
+
+      // FEEDBACK
+      {
+        path: "feedback",
+        loadComponent: () =>
+          import("../../feedback/feedback-form/feedback-form.component").then(
+            (m) => m.FeedbackFormComponent,
+          ),
+      },
+
+      // SAVED ITEMS
+      // /dashboard/researcher/saved
+      {
+        path: "saved",
+
+        loadComponent: () =>
+          import("../../saved-items/saved-items.component").then(
+            (m) => m.SavedItemsComponent,
+          ),
+      },
+
+      // SEARCH HISTORY
+      // /dashboard/researcher/history
+      {
+        path: "history",
+
+        loadComponent: () =>
+          import("../../search-history/search-history.component").then(
+            (m) => m.SearchHistoryComponent,
+          ),
+      },
+
+      // RESEARCHER ANALYTICS
+      {
+        path: "analytics",
+
+        data: {
+          analyticsRole: "researcher",
+        },
+
+        loadComponent: () =>
+          import("../../analytics/role-analytics/role-analytics.component").then(
+            (m) => m.RoleAnalyticsComponent,
+          ),
+      },
+
+      // RESEARCHER POLICY & SCHEME TRENDS (distinct from Research Overview)
+      {
+        path: "analytics/trends",
+
+        loadComponent: () =>
+          import("../../analytics/researcher-trends/researcher-trends.component").then(
+            (m) => m.ResearcherTrendsComponent,
+          ),
+      },
+
+      {
+        path: "analytics/policies",
+
+        data: {
+          variant: "policies",
+          pageTitle: "Policy Analytics",
+          pageDescription:
+            "Policy portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Policy Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/schemes",
+
+        data: {
+          variant: "schemes",
+          pageTitle: "Scheme Analytics",
+          pageDescription:
+            "Scheme portfolio status and distribution breakdowns.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Scheme Analytics" },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
+
+      {
+        path: "analytics/usage",
+
+        data: {
+          variant: "usage",
+          pageTitle: "Search / Usage Analytics",
+          pageDescription: "Platform search and usage statistics.",
+          crumbs: [
+            { label: "Home", route: ["/dashboard/researcher"] },
+            {
+              label: "Analytics",
+              route: ["/dashboard/researcher/analytics"],
+            },
+            { label: "Search / Usage Analytics" },
+          ],
+          cta: [
+            {
+              label: "View Search History",
+              icon: "history",
+              route: ["/dashboard/researcher/history"],
+            },
+          ],
+        },
+
+        loadComponent: () =>
+          import("../../analytics/analytics-detail/analytics-detail.component").then(
+            (m) => m.AnalyticsDetailComponent,
+          ),
+      },
     ],
   },
 
@@ -873,9 +1993,9 @@ export const DASHBOARD_ROUTES: Routes = [
     canActivate: [guestGuard],
 
     loadComponent: () =>
-      import(
-        "../../../shared/layouts/guest-user-layout/guest-user-layout.component"
-      ).then((m) => m.GuestUserLayoutComponent),
+      import("../../../shared/layouts/guest-user-layout/guest-user-layout.component").then(
+        (m) => m.GuestUserLayoutComponent,
+      ),
 
     children: [
       // HOME
@@ -884,9 +2004,7 @@ export const DASHBOARD_ROUTES: Routes = [
         pathMatch: "full",
 
         loadComponent: () =>
-          import("./guest/guest.component").then(
-            (m) => m.GuestComponent,
-          ),
+          import("./guest/guest.component").then((m) => m.GuestComponent),
       },
 
       // POLICIES
@@ -944,9 +2062,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "compare",
 
         loadComponent: () =>
-          import(
-            "../../compare/compare-selection/compare-selection.component"
-          ).then((m) => m.CompareSelectionComponent),
+          import("../../compare/compare-selection/compare-selection.component").then(
+            (m) => m.CompareSelectionComponent,
+          ),
       },
 
       // COMPARE RESULTS
@@ -964,9 +2082,9 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "eligibility",
 
         loadComponent: () =>
-          import(
-            "../../eligibility/eligibility-checker/eligibility-checker"
-          ).then((m) => m.EligibilityChecker),
+          import("../../eligibility/eligibility-checker/eligibility-checker").then(
+            (m) => m.EligibilityChecker,
+          ),
       },
 
       // ELIGIBILITY SPECIFIC
@@ -974,9 +2092,50 @@ export const DASHBOARD_ROUTES: Routes = [
         path: "eligibility/check",
 
         loadComponent: () =>
-          import(
-            "../../eligibility/eligibility-specific/eligibility-specific"
-          ).then((m) => m.EligibilitySpecific),
+          import("../../eligibility/eligibility-specific/eligibility-specific").then(
+            (m) => m.EligibilitySpecific,
+          ),
+      },
+
+      // NOTIFICATIONS
+      {
+        path: "notifications",
+
+        loadComponent: () =>
+          import("../../notifications/notification-list/notification-list.component").then(
+            (m) => m.NotificationListComponent,
+          ),
+      },
+      {
+        path: "notifications/preferences",
+
+        loadComponent: () =>
+          import("../../notifications/notification-preferences/notification-preferences.component").then(
+            (m) => m.NotificationPreferencesComponent,
+          ),
+      },
+
+      // FAQS & SUPPORT (GUEST VIEW)
+      {
+        path: "faqs",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
+      },
+      {
+        path: "faqs/:id",
+        loadComponent: () =>
+          import("../../faq/faq-details/faq-details.component").then(
+            (m) => m.FaqDetailsComponent,
+          ),
+      },
+      {
+        path: "support",
+        loadComponent: () =>
+          import("../../support/support.component").then(
+            (m) => m.SupportComponent,
+          ),
       },
     ],
   },

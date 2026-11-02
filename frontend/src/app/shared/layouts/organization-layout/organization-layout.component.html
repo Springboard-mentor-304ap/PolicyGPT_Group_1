@@ -1,127 +1,33 @@
 <div class="dash-layout" [class.dash-layout--sidebar-collapsed]="sidebarCollapsed"
   [class.dash-layout--mobile-menu-open]="mobileMenuOpen">
+
   <!-- =========================================================
        MOBILE OVERLAY
        ========================================================= -->
-
   @if (mobileMenuOpen) {
-  <div class="dash-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+  <button type="button" class="dash-overlay" aria-label="Close navigation menu" (click)="closeMobileMenu()"></button>
   }
 
 
   <!-- =========================================================
-       TOPBAR
+       TOPBAR (shared)
        ========================================================= -->
-
-  <header class="dash-topbar" role="banner">
-
-    <!-- BRAND -->
-    <div class="dash-topbar__brand">
-
-      <!-- MENU BUTTON -->
-      <button type="button" class="dash-topbar__toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar"
-        [attr.aria-expanded]="!sidebarCollapsed">
-        <span class="material-icons">
-          menu
-        </span>
-      </button>
-
-
-      <!-- LOGO -->
-      <a routerLink="/dashboard/user-dashboard" class="dash-topbar__logo-link"
-        aria-label="PolicyGPT Organization Dashboard" (click)="closeMobileMenu()">
-        <img src="/images/logo.png" alt="PolicyGPT" class="dash-topbar__logo" />
-      </a>
-
-
-      <!-- BRAND TEXT -->
-      <div class="dash-topbar__brand-text">
-
-        <span class="dash-topbar__title">
-          Policy<span>GPT</span>
-        </span>
-
-        <span class="dash-topbar__tagline">
-          Government Information. Simplified.
-        </span>
-
-      </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         SEARCH
-         ===================================================== -->
-
-    <div class="dash-search">
-
-      <span class="material-icons dash-search__icon" aria-hidden="true">
-        search
-      </span>
-
-      <input type="search" [(ngModel)]="searchText" (keyup.enter)="performSearch()"
-        placeholder="Search policies / schemes" aria-label="Search policies and schemes" autocomplete="off" />
-
-    </div>
-
-
-    <!-- =====================================================
-         ORGANIZATION USER AREA
-         ===================================================== -->
-
-    <div class="dash-user">
-
-      <!-- NOTIFICATIONS -->
-      <button type="button" class="dash-user__icon-btn" routerLink="/notifications" aria-label="Notifications"
-        title="Notifications">
-        <span class="material-icons">
-          notifications_none
-        </span>
-      </button>
-
-
-      <!-- AVATAR -->
-      <div class="dash-user__avatar" aria-hidden="true">
-        <span class="material-icons">
-          account_circle
-        </span>
-      </div>
-
-
-      <!-- USER INFORMATION -->
-      <div class="dash-user__info">
-
-        <p class="dash-user__name">
-          {{ userName }}
-        </p>
-
-        <p class="dash-user__role">
-          {{ displayRole }}
-        </p>
-
-      </div>
-
-    </div>
-
-  </header>
+  <app-topbar [showMenuToggle]="true" [sidebarCollapsed]="sidebarCollapsed" (menuToggle)="toggleSidebar()" (logoClick)="closeMobileMenu()"></app-topbar>
 
 
   <!-- =========================================================
        SIDEBAR
        ========================================================= -->
-
   <aside class="dash-sidebar" [class.dash-sidebar--collapsed]="sidebarCollapsed"
     [class.dash-sidebar--mobile-open]="mobileMenuOpen">
 
     <!-- =======================================================
          MAIN NAVIGATION
          ======================================================= -->
-
     <nav class="dash-nav" aria-label="Organization navigation">
 
       <!-- DASHBOARD -->
-      <a routerLink="/dashboard/user-dashboard" routerLinkActive="dash-nav__item--active"
+      <a routerLink="/dashboard/organization" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? 'Dashboard' : null">
 
@@ -137,14 +43,62 @@
 
 
       <!-- ORGANIZATION NAVIGATION -->
-
       @for (item of navItems; track item.label) {
 
+      @if (item.children && item.children.length > 0) {
+
+      <button type="button" class="dash-nav__item dash-nav__users-toggle" [class.dash-nav__item--active]="
+          analyticsMenuOpen || isAnalyticsRouteActive()
+        " (click)="onAnalyticsNavClick($event)" [attr.title]="sidebarCollapsed ? item.label : null"
+        [attr.aria-expanded]="analyticsMenuOpen">
+
+        <span class="material-icons dash-nav__icon" aria-hidden="true">
+          {{ item.icon }}
+        </span>
+
+        <span class="dash-nav__label">
+          {{ item.label }}
+        </span>
+
+        <span class="material-icons dash-nav__chevron" [class.dash-nav__chevron--open]="analyticsMenuOpen"
+          (click)="toggleAnalyticsMenuOnly($event)" [attr.title]="'Toggle ' + item.label + ' submenu'">
+          chevron_right
+        </span>
+
+      </button>
+
+      @if (analyticsMenuOpen && !sidebarCollapsed) {
+
+      <div class="dash-nav__submenu" [attr.aria-label]="item.label">
+
+        @for (child of item.children; track child.label) {
+
+        <a class="dash-nav__submenu-item" [routerLink]="child.route" routerLinkActive="dash-nav__submenu-item--active"
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">
+
+          <span class="material-icons" aria-hidden="true">
+            {{ child.icon }}
+          </span>
+
+          <span>
+            {{ child.label }}
+          </span>
+
+        </a>
+
+        }
+
+      </div>
+
+      }
+
+      } @else {
+
       <a class="dash-nav__item" [routerLink]="item.route" routerLinkActive="dash-nav__item--active"
-        [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()"
+        [routerLinkActiveOptions]="{ exact: item.route === '/dashboard/organization' }" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? item.label : null">
 
-        <span class="material-icons dash-nav__icon">
+        <span class="material-icons dash-nav__icon" aria-hidden="true">
           {{ item.icon }}
         </span>
 
@@ -156,17 +110,18 @@
 
       }
 
+      }
+
     </nav>
 
 
     <!-- =======================================================
          SIDEBAR FOOTER
          ======================================================= -->
-
     <div class="dash-sidebar__footer">
 
       <!-- PROFILE -->
-      <a routerLink="/dashboard/user-dashboard/profile" routerLinkActive="dash-nav__item--active"
+      <a routerLink="/dashboard/organization/profile" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? 'Profile' : null">
 
@@ -182,7 +137,7 @@
 
 
       <!-- SETTINGS -->
-      <a routerLink="/user/settings" routerLinkActive="dash-nav__item--active"
+      <a routerLink="/dashboard/organization/settings" routerLinkActive="dash-nav__item--active"
         [routerLinkActiveOptions]="{ exact: true }" class="dash-nav__item" (click)="closeMobileMenu()"
         [attr.title]="sidebarCollapsed ? 'Settings' : null">
 
@@ -219,18 +174,21 @@
   <!-- =========================================================
        MAIN CONTAINER
        ========================================================= -->
-
   <div class="dash-main-container">
 
     <main class="dash-main">
 
-      <router-outlet></router-outlet>
+      <!-- Keep content behavior unchanged -->
+      <div class="dash-content">
+
+        <router-outlet></router-outlet>
+
+      </div>
 
     </main>
 
 
     <!-- FOOTER -->
-
     <app-footer></app-footer>
 
   </div>
@@ -239,7 +197,6 @@
   <!-- =========================================================
        LOGOUT MODAL
        ========================================================= -->
-
   @if (showLogoutModal) {
 
   <app-logout-confirm (confirm)="confirmLogout()" (cancel)="cancelLogout()"></app-logout-confirm>

@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
 )
@@ -14,14 +15,19 @@ from sqlalchemy.orm import (
 
 from app.db.database import Base
 
-
 # =========================================================
 # OTP VERIFICATION MODEL
 # =========================================================
 
-class OTPVerification(Base):
 
+class OTPVerification(Base):
     __tablename__ = "otp_verifications"
+    __table_args__ = (
+        # Hot paths: latest-unused OTP per (user, channel) and the hourly
+        # rate-limit count per user.
+        Index("ix_otp_user_channel_used", "user_id", "channel", "used"),
+        {"schema": "extensions"},
+    )
 
     # =====================================================
     # ID
@@ -39,7 +45,7 @@ class OTPVerification(Base):
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey(
-            "users.user_id",
+            "extensions.users.user_id",
             ondelete="CASCADE",
         ),
         nullable=False,
@@ -53,6 +59,16 @@ class OTPVerification(Base):
     otp_hash: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+    )
+
+    # =====================================================
+    # CHANNEL (email or sms)
+    # =====================================================
+
+    channel: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="email",
     )
 
     # =====================================================

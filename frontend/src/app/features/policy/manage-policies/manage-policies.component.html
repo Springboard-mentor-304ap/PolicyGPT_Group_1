@@ -1,1011 +1,662 @@
-<div class="page-wrapper" (click)="closeMenu()">
-
-    <!-- =========================================================
-       BREADCRUMB
-  ========================================================== -->
-
-    <div class="breadcrumb">
-
-        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix]" style="cursor: pointer;">
-            {{ isAdmin ? 'Admin' : 'Government' }} Dashboard
-        </span>
-
-        <span class="breadcrumb-arrow">
-            ›
-        </span>
-
-        <span class="breadcrumb-link" [routerLink]="['/dashboard', rolePrefix, 'policies']" style="cursor: pointer;">
-            Policies
-        </span>
-
-        <span class="breadcrumb-arrow">
-            ›
-        </span>
-
-        <span class="breadcrumb-current">
-            Manage Policies
-        </span>
-
-    </div>
-
-    <!-- =========================================================
-       SUCCESS / ERROR TOASTS
-  ========================================================== -->
-
-    @if (successToastMessage) {
-    <div class="toast-alert toast-alert--success" role="alert">
-        <span class="material-icons">check_circle</span>
-        <span>{{ successToastMessage }}</span>
-    </div>
-    }
-
-    @if (errorMessage) {
-    <div class="toast-alert toast-alert--error" role="alert">
-        <span class="material-icons">error_outline</span>
-        <span style="flex: 1;">{{ errorMessage }}</span>
-        <button type="button" class="toast-close" (click)="errorMessage = ''" aria-label="Dismiss error">✕</button>
-    </div>
-    }
+<div class="manage-page" (click)="closeMenu()">
 
     <!-- =========================================================
        PAGE HEADER
-  ========================================================== -->
+       ========================================================= -->
 
-    <div class="page-header">
+    <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
 
-        <div>
+    <header class="page-header">
+        <div class="page-title-area">
 
-            <div class="eyebrow">
-                POLICY MANAGEMENT
-            </div>
-
-            <h1>
-                Manage Policies
-            </h1>
+            <h1>Manage Policies</h1>
 
             <p>
-                View, filter and manage all policies in the system.
+                Review, monitor and manage government policies through the official
+                policy administration workflow.
             </p>
-
         </div>
-
-
-        <button type="button" class="add-policy-button" (click)="$event.stopPropagation(); addNewPolicy()">
-
-            <span class="plus-icon">
-                +
-            </span>
-
-            Add New Policy
-
-        </button>
-
-    </div>
+    </header>
 
 
     <!-- =========================================================
-       STATISTICS CARDS (REAL BACKEND ANALYTICS)
-  ========================================================== -->
+       OVERVIEW
+       ========================================================= -->
 
-    <div class="stats-grid">
+    <section class="overview-section">
 
+        <div class="stats-grid">
 
-        <!-- TOTAL -->
+            <article class="stat-item">
+                <div class="stat-icon blue">
+                    <span class="material-icons">description</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">TOTAL POLICIES</span>
+                    <strong>{{ filteredPolicies.length }}</strong>
+                </div>
+            </article>
 
-        <div class="stat-card">
+            <article class="stat-item">
+                <div class="stat-icon green">
+                    <span class="material-icons">task_alt</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">APPROVED</span>
+                    <strong>{{ stats.approved }}</strong>
+                </div>
+            </article>
 
-            <div class="stat-icon blue">
-                <span>▣</span>
-            </div>
+            <article class="stat-item">
+                <div class="stat-icon amber">
+                    <span class="material-icons">schedule</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">PENDING REVIEW</span>
+                    <strong>{{ stats.pending }}</strong>
+                </div>
+            </article>
 
-            <div class="stat-content">
+            <article class="stat-item">
+                <div class="stat-icon red">
+                    <span class="material-icons">cancel</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">REJECTED</span>
+                    <strong>{{ stats.rejected }}</strong>
+                </div>
+            </article>
 
-                <strong>
-                    {{ stats.total }}
-                </strong>
-
-                <span>
-                    Total Policies
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- APPROVED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon green">
-                <span>●</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ stats.approved }}
-                </strong>
-
-                <span>
-                    Approved
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- PENDING -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon orange">
-                <span>◷</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ stats.pending }}
-                </strong>
-
-                <span>
-                    Pending Approval
-                </span>
-
-            </div>
+            <article class="stat-item">
+                <div class="stat-icon grey">
+                    <span class="material-icons">inventory_2</span>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-label">ARCHIVED</span>
+                    <strong>{{ stats.archived }}</strong>
+                </div>
+            </article>
 
         </div>
-
-
-        <!-- REJECTED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon red">
-                <span>⊗</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ stats.rejected }}
-                </strong>
-
-                <span>
-                    Rejected
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- ARCHIVED -->
-
-        <div class="stat-card">
-
-            <div class="stat-icon archive">
-                <span>▣</span>
-            </div>
-
-            <div class="stat-content">
-
-                <strong>
-                    {{ stats.archived }}
-                </strong>
-
-                <span>
-                    Archived
-                </span>
-
-            </div>
-
-        </div>
-
-    </div>
-
+    </section>
 
     <!-- =========================================================
-       FILTER CARD
-  ========================================================== -->
+       SEARCH / FILTER
+       ========================================================= -->
 
     <section class="filter-card">
 
-        <div class="filter-header">
+        <div class="filter-grid">
 
-            <div class="filter-title">
+            <div class="form-field search-control">
+                <label for="policy-search">Search policies</label>
 
-                <div class="filter-icon">
-                    <span>≡</span>
+                <div class="input-box">
+                    <span class="material-icons input-icon">search</span>
+
+                    <input id="policy-search" type="search" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                        placeholder="Search by policy title, ministry, department or sector" autocomplete="off" />
+
+                    @if (searchText) {
+                    <button type="button" class="input-clear" aria-label="Clear search"
+                        (click)="searchText=''; applyFilters(); $event.stopPropagation()">
+                        <span class="material-icons">close</span>
+                    </button>
+                    }
                 </div>
-
-                <div>
-
-                    <h2>
-                        Filter Policies
-                    </h2>
-
-                    <p>
-                        Search and filter policies by various criteria.
-                    </p>
-
-                </div>
-
             </div>
 
+            <div class="form-field">
+                <label for="policy-status">Status</label>
 
-            <button type="button" class="reset-button" (click)="resetFilters()">
+                <app-searchable-select id="policy-status" icon="flag" placeholder="All statuses" [searchable]="false"
+                    [options]="statusFilterOptions" [(ngModel)]="selectedStatus" (selectionChange)="applyFilters()" />
+            </div>
 
-                <span>
-                    ↻
-                </span>
+            <div class="form-field">
+                <label for="policy-sort">Sort by</label>
 
-                Reset Filters
+                <app-searchable-select id="policy-sort" icon="sort" placeholder="Latest" [searchable]="false"
+                    [options]="sortOptions" [(ngModel)]="selectedSort" (selectionChange)="applyFilters()" />
+            </div>
 
+            <div class="export-wrap">
+                <button type="button" class="export-button" (click)="toggleExportMenu($event)" [disabled]="exporting"
+                    aria-haspopup="menu" [attr.aria-expanded]="exportMenuOpen" title="Export policies">
+                    @if (exporting) {
+                    <span class="export-spinner" aria-hidden="true"></span>
+                    <span>Exporting...</span>
+                    } @else {
+                    <span class="material-icons" aria-hidden="true">download</span>
+                    <span>Export</span>
+                    <span class="material-icons dropdown-icon" aria-hidden="true">expand_more</span>
+                    }
+                </button>
+                @if (exportMenuOpen && !exporting) {
+                <div class="export-menu" role="menu" aria-label="Export policies" (click)="$event.stopPropagation()">
+                    <p class="export-menu-title">Export Policies</p>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportPdf()">
+                        <span class="material-icons" aria-hidden="true">picture_as_pdf</span>
+                        <span>Export as PDF</span>
+                    </button>
+                    <button type="button" role="menuitem" class="export-item" (click)="exportExcel()">
+                        <span class="material-icons" aria-hidden="true">table_view</span>
+                        <span>Export as Excel</span>
+                    </button>
+                </div>
+                }
+            </div>
+
+            @if (searchText || selectedStatus || selectedSort !== 'latest') {
+            <button type="button" class="clear-filter" (click)="resetFilters(); $event.stopPropagation()">
+                <span class="material-icons">restart_alt</span>
+                Clear filters
             </button>
-
-        </div>
-
-
-        <!-- FIRST FILTER ROW -->
-
-        <div class="filters-grid first-row">
-
-
-            <!-- SEARCH -->
-
-            <div class="filter-group search-group">
-
-                <label>
-                    &nbsp;
-                </label>
-
-                <div class="search-wrapper">
-
-                    <span class="search-icon">
-                        ⌕
-                    </span>
-
-                    <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
-                        placeholder="Search by title, description or keywords..." />
-
-                </div>
-
-            </div>
-
-
-            <!-- CATEGORY -->
-
-            <div class="filter-group">
-
-                <label>
-                    Category
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Categories
-                        </option>
-
-                        <option *ngFor="let category of categories" [value]="category">
-
-                            {{ category }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- MINISTRY -->
-
-            <div class="filter-group">
-
-                <label>
-                    Ministry
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Ministries
-                        </option>
-
-                        <option *ngFor="let ministry of ministries" [value]="ministry">
-
-                            {{ ministry }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- DEPARTMENT -->
-
-            <div class="filter-group">
-
-                <label>
-                    Department
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedDepartment" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Departments
-                        </option>
-
-                        <option *ngFor="let department of departments" [value]="department">
-
-                            {{ department }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- SECOND FILTER ROW -->
-
-        <div class="filters-grid second-row">
-
-
-            <!-- STATE -->
-
-            <div class="filter-group">
-
-                <label>
-                    State
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All States
-                        </option>
-
-                        <option *ngFor="let state of states" [value]="state">
-
-                            {{ state }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- SECTOR -->
-
-            <div class="filter-group">
-
-                <label>
-                    Sector
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedSector" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Sectors
-                        </option>
-
-                        <option *ngFor="let sector of sectors" [value]="sector">
-
-                            {{ sector }}
-
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- STATUS -->
-
-            <div class="filter-group">
-
-                <label>
-                    Status
-                </label>
-
-                <div class="select-wrapper">
-
-                    <select [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
-
-                        <option value="">
-                            All Statuses
-                        </option>
-
-                        <option *ngFor="let status of statuses" [value]="status">
-                            {{ getStatusLabel(status) }}
-                        </option>
-
-                    </select>
-
-                </div>
-
-            </div>
-
-
-            <!-- DATE -->
-
-            <div class="filter-group date-filter">
-
-                <label>
-                    Publication Date
-                </label>
-
-                <div class="date-range">
-
-                    <div class="date-input">
-
-                        <input type="date" [(ngModel)]="fromDate" (ngModelChange)="applyFilters()"
-                            aria-label="From date" />
-
-                        <span class="date-placeholder">
-                            From date
-                        </span>
-
-                    </div>
-
-
-                    <div class="date-input">
-
-                        <input type="date" [(ngModel)]="toDate" (ngModelChange)="applyFilters()" aria-label="To date" />
-
-                        <span class="date-placeholder">
-                            To date
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
+            }
 
         </div>
 
     </section>
 
-
     <!-- =========================================================
-       POLICY TABLE CARD
-  ========================================================== -->
+       POLICY REGISTER
+       ========================================================= -->
 
-    <section class="table-card">
+    <section class="register-card">
 
-
-        <!-- TABLE HEADER -->
-
-        <div class="table-header">
-
-            <div class="table-title">
-
-                <div class="table-icon">
-                    <span>▣</span>
+        <div class="register-header">
+            <div class="register-title">
+                <div class="register-icon">
+                    <span class="material-icons">account_balance</span>
                 </div>
 
                 <div>
-
-                    <h2>
-                        Policies ({{ filteredPolicies.length }})
-                    </h2>
-
-                    <p>
-                        All policies in the system
-                    </p>
-
+                    <h2>Government Policy Register</h2>
+                    <p>Official policy records available to your current permissions.</p>
                 </div>
-
             </div>
 
+            <div class="register-count">
+                <strong>{{ filteredPolicies.length }}</strong>
+                <span>records</span>
+            </div>
+        </div>
 
-            <button type="button" class="export-button" (click)="exportPolicies()">
+        <div class="register-body">
+
+            @if (loading) {
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <strong>Loading policy register</strong>
+                <span>Retrieving the latest policy records.</span>
+            </div>
+            }
+
+            @if (!loading && paginatedPolicies.length === 0) {
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <span class="material-icons">find_in_page</span>
+                </div>
+
+                <strong>No matching policies</strong>
 
                 <span>
-                    ⇩
+                    Try another keyword or clear the workflow status filter.
                 </span>
 
-                Export
-
-            </button>
-
-        </div>
-
-
-        <!-- =======================================================
-         TABLE
-    ======================================================== -->
-
-        <div class="table-scroll">
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th class="number-column">
-                            #
-                        </th>
-
-                        <th class="title-column">
-                            Title
-                        </th>
-
-                        <th class="category-column">
-                            Category
-                        </th>
-
-                        <th class="ministry-column">
-                            Ministry
-                        </th>
-
-                        <th class="state-column">
-                            State
-                        </th>
-
-                        <th class="status-column">
-                            Status
-                        </th>
-
-                        <th class="publication-column">
-                            Publication Date
-                        </th>
-
-                        <th class="actions-column">
-                            Actions
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    <tr *ngFor="
-              let policy of paginatedPolicies;
-              trackBy: trackByPolicy
-            ">
-
-                        <!-- NUMBER -->
-
-                        <td class="number-column">
-
-                            {{
-                            ((currentPage - 1) * pageSize)
-                            + paginatedPolicies.indexOf(policy)
-                            + 1
-                            }}
-
-                        </td>
-
-
-                        <!-- TITLE -->
-
-                        <td class="title-cell">
-
-                            <div class="policy-title">
-                                {{ policy.title }}
-                            </div>
-
-                            <div class="policy-description">
-                                {{ policy.description }}
-                            </div>
-
-                        </td>
-
-
-                        <!-- CATEGORY -->
-
-                        <td>
-
-                            <span class="category-badge" [ngClass]="getCategoryClass(policy.category)">
-
-                                {{ policy.category }}
-
-                            </span>
-
-                        </td>
-
-
-                        <!-- MINISTRY -->
-
-                        <td class="ministry-cell">
-
-                            {{ policy.ministry }}
-
-                        </td>
-
-
-                        <!-- STATE -->
-
-                        <td>
-
-                            {{ policy.state }}
-
-                        </td>
-
-
-                        <!-- STATUS -->
-
-                        <td>
-
-                            <span class="status-badge" [ngClass]="policy.status.toLowerCase()">
-
-                                <span class="status-dot"></span>
-
-                                {{ getStatusLabel(policy.status) }}
-
-                            </span>
-
-                        </td>
-
-
-                        <!-- DATE -->
-
-                        <td>
-
-                            {{ policy.publicationDate }}
-
-                        </td>
-
-
-                        <!-- ACTIONS -->
-
-                        <td class="actions-cell">
-
-                            <div class="actions-wrapper" (click)="$event.stopPropagation()">
-
-
-                                <button type="button" class="view-button" (click)="viewPolicy(policy)">
-
-                                    <span>
-                                        ●
+                @if (searchText || selectedStatus || selectedSort !== 'latest') {
+                <button type="button" class="secondary-action" (click)="resetFilters(); $event.stopPropagation()">
+                    Clear filters
+                </button>
+                }
+            </div>
+            }
+
+            @if (!loading && paginatedPolicies.length > 0) {
+            <div class="table-wrapper">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-number">NO.</th>
+                            <th class="col-policy">POLICY</th>
+                            <th class="col-status">STATUS</th>
+                            <th class="col-datetime">DATE &amp; TIME</th>
+                            <th class="col-actions">ACTIONS</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr *ngFor="let policy of paginatedPolicies; let i = index; trackBy: trackByPolicy"
+                            class="policy-row">
+
+                            <td class="col-number">
+                                <span class="row-number">
+                                    {{ ((currentPage - 1) * pageSize) + i + 1 }}
+                                </span>
+                            </td>
+
+                            <td class="policy-cell">
+                                <div class="policy-cell__row" [class.policy-cell__row--no-icon]="isAdmin">
+                                    <div class="policy-cell__text">
+                                        <button type="button" class="policy-name"
+                                            (click)="viewPolicy(policy); $event.stopPropagation()">
+                                            {{ policy.title }}
+                                        </button>
+
+                                        @if (policy.description) {
+                                        <p>{{ policy.description }}</p>
+                                        }
+                                        @if (policy.ministry || policy.department) {
+                                        <p class="policy-meta">
+                                            @if (policy.ministry) {
+                                            <span>{{ policy.ministry }}</span>
+                                            }
+                                            @if (policy.ministry && policy.department) {
+                                            <span class="policy-meta-sep">•</span>
+                                            }
+                                            @if (policy.department) {
+                                            <span>{{ policy.department }}</span>
+                                            }
+                                        </p>
+                                        }
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="status-pill" [ngClass]="policy.status.toLowerCase()">
+
+                                    <span class="status-dot"></span>
+                                    {{ getStatusLabel(policy.status) }}
+                                </span>
+                            </td>
+
+                            <td class="col-datetime">
+                                <div class="datetime-cell">
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Created:</span>
+                                        {{ formatDateTime(policy.createdAt) }}
                                     </span>
-
-                                    View
-
-                                </button>
-
-
-                                <button type="button" class="more-button" (click)="toggleMenu(policy.id)">
-
-                                    ⋮
-
-                                </button>
-
-
-                                <!-- DROPDOWN MENU -->
-                                <div class="action-menu" *ngIf="menuOpenId === policy.id">
-
-                                    <!-- DRAFT / REJECTED: Edit & Submit -->
-                                    @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        <button type="button" (click)="openSubmitModal(policy)">
-                                            <span>➔</span>
-                                            {{ policy.status === 'REJECTED' ? 'Re-submit' : 'Submit' }}
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
+                                    @if (hasDistinctUpdate(policy)) {
+                                    <span class="datetime-line">
+                                        <span class="datetime-label">Updated:</span>
+                                        {{ formatDateTime(policy.updatedAt) }}
+                                    </span>
                                     }
+                                </div>
+                            </td>
 
-                                    <!-- PENDING_APPROVAL: Edit (Both), Admin Approve / Reject / Delete -->
-                                    @if (policy.status === 'PENDING_APPROVAL') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openApproveModal(policy)">
-                                                <span>✓</span>
-                                                Approve
+                            <td class="actions-cell">
+
+                                <div class="actions" (click)="$event.stopPropagation()">
+
+                                    <button type="button" class="view-action" (click)="viewPolicy(policy)">
+                                        <span class="material-icons">visibility</span>
+                                        View
+                                    </button>
+
+                                    <button type="button" class="more-action" cdkOverlayOrigin
+                                        #trigger="cdkOverlayOrigin" [class.open]="menuOpenId === policy.id"
+                                        [attr.aria-expanded]="menuOpenId === policy.id" aria-haspopup="menu"
+                                        aria-label="More policy actions" (click)="toggleMenu(policy.id)">
+                                        <span class="material-icons">more_horiz</span>
+                                    </button>
+
+                                    <ng-template cdkConnectedOverlay [cdkConnectedOverlayOrigin]="trigger"
+                                        [cdkConnectedOverlayOpen]="menuOpenId === policy.id"
+                                        [cdkConnectedOverlayHasBackdrop]="true"
+                                        [cdkConnectedOverlayBackdropClass]="'cdk-overlay-transparent-backdrop'"
+                                        [cdkConnectedOverlayPositions]="actionMenuPositions"
+                                        [cdkConnectedOverlayPanelClass]="'policy-action-overlay-pane'"
+                                        [cdkConnectedOverlayPush]="true" [cdkConnectedOverlayViewportMargin]="8"
+                                        [cdkConnectedOverlayFlexibleDimensions]="true"
+                                        [cdkConnectedOverlayGrowAfterOpen]="true" (backdropClick)="closeMenu()"
+                                        (overlayKeydown)="onOverlayKeydown($event)">
+                                        <div class="action-menu" role="menu">
+
+                                            <!-- DRAFT / REJECTED -->
+                                            @if (policy.status === 'DRAFT' || policy.status === 'REJECTED') {
+
+                                            <button type="button" (click)="openEditFlow(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
                                             </button>
+
+                                            @if (canSubmitPolicy(policy)) {
+                                            <button type="button" (click)="openSubmitModal(policy)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(policy) }}
+                                            </button>
+                                            }
+
+                                            @if (isAdmin) {
+                                            <div class="menu-separator"></div>
+
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            }
+                                            }
+
+
+                                            <!-- PENDING -->
+                                            @if (policy.status === 'PENDING_APPROVAL') {
+
+                                            @if (isAdmin) {
+                                            <button type="button" class="success" (click)="openApproveModal(policy)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve request
+                                            </button>
+
                                             <button type="button" class="danger" (click)="openRejectModal(policy)">
-                                                <span>✕</span>
-                                                Reject
+                                                <span class="material-icons">cancel</span>
+                                                Reject request
                                             </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                                <span>×</span>
-                                                Delete
+                                            } @else {
+                                            <button type="button" (click)="openEditFlow(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
                                             </button>
-                                        }
-                                    }
+                                            }
+                                            }
 
-                                    <!-- APPROVED: Edit (Both), Request Archive/Delete (Gov), Delete (Admin) -->
-                                    @if (policy.status === 'APPROVED') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (!isAdmin) {
+                                            <!-- APPROVED -->
+                                            @if (policy.status === 'APPROVED') {
+
+                                            <button type="button" (click)="openEditFlow(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
+
+                                            @if (!isAdmin) {
                                             <button type="button" (click)="openRequestArchiveModal(policy)">
-                                                <span>▣</span>
-                                                Request Archive
+                                                <span class="material-icons">archive</span>
+                                                Request archive
                                             </button>
-                                            <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
-                                                <span>×</span>
-                                                Request Delete
-                                            </button>
-                                        } @else {
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
 
-                                    <!-- ARCHIVED: Edit (Both), Restore (Admin), Request Delete (Gov), Delete (Admin) -->
-                                    @if (policy.status === 'ARCHIVED') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openRestoreModal(policy)">
-                                                <span>↻</span>
-                                                Restore
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(policy)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
                                             </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                                <span>×</span>
-                                                Delete
+                                            } @else {
+                                            <button type="button" (click)="openArchiveModal(policy)">
+                                                <span class="material-icons">archive</span>
+                                                Archive policy
                                             </button>
-                                        } @else {
-                                            <button type="button" class="danger" (click)="openRequestDeleteModal(policy)">
-                                                <span>×</span>
-                                                Request Delete
-                                            </button>
-                                        }
-                                    }
 
-                                    <!-- ARCHIVE_REQUESTED: Edit (Both), Admin Approve/Reject Archive, Delete -->
-                                    @if (policy.status === 'ARCHIVE_REQUESTED') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" (click)="openApproveArchiveModal(policy)">
-                                                <span>✓</span>
-                                                Approve Archive
-                                            </button>
-                                            <button type="button" class="danger" (click)="openRejectArchiveModal(policy)">
-                                                <span>✕</span>
-                                                Reject Archive
-                                            </button>
-                                            <button type="button" class="danger" (click)="openDirectDeleteModal(policy)">
-                                                <span>×</span>
-                                                Delete
-                                            </button>
-                                        }
-                                    }
+                                            <div class="menu-separator"></div>
 
-                                    <!-- DELETE_REQUESTED: Edit (Both), Admin Approve/Reject Delete -->
-                                    @if (policy.status === 'DELETE_REQUESTED') {
-                                        <button type="button" (click)="editPolicy(policy)">
-                                            <span>✎</span>
-                                            Edit
-                                        </button>
-                                        @if (isAdmin) {
-                                            <button type="button" class="danger" (click)="openApproveDeleteModal(policy)">
-                                                <span>✓</span>
-                                                Approve Delete
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
                                             </button>
+                                            }
+                                            }
+
+                                            <!-- ARCHIVED -->
+                                            @if (policy.status === 'ARCHIVED') {
+
+                                            <button type="button" (click)="openEditFlow(policy)">
+                                                <span class="material-icons">edit</span>
+                                                Edit policy
+                                            </button>
+
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewArchiveReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
+                                            </button>
+
+                                            <button type="button" class="success" (click)="openRestoreModal(policy)">
+                                                <span class="material-icons">restore</span>
+                                                Restore policy
+                                            </button>
+
+                                            <div class="menu-separator"></div>
+
+                                            <button type="button" class="danger"
+                                                (click)="openDirectDeleteModal(policy)">
+                                                <span class="material-icons">delete_outline</span>
+                                                Delete policy
+                                            </button>
+                                            } @else {
+                                            <button type="button" (click)="openSubmitModal(policy)">
+                                                <span class="material-icons">send</span>
+                                                {{ getSubmitActionLabel(policy) }}
+                                            </button>
+
+                                            <button type="button" class="danger"
+                                                (click)="openRequestDeleteModal(policy)">
+                                                <span class="material-icons">delete_sweep</span>
+                                                Request deletion
+                                            </button>
+                                            }
+                                            }
+
+                                            <!-- ARCHIVE REQUESTED -->
+                                            @if (policy.status === 'ARCHIVE_REQUESTED') {
+
+                                            <button type="button" (click)="openViewArchiveReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View archive reason
+                                            </button>
+
+                                            @if (isAdmin) {
+                                            <button type="button" class="success"
+                                                (click)="openApproveArchiveModal(policy)">
+                                                <span class="material-icons">check_circle_outline</span>
+                                                Approve archive
+                                            </button>
+
+                                            <button type="button" class="danger"
+                                                (click)="openRejectArchiveModal(policy)">
+                                                <span class="material-icons">cancel</span>
+                                                Reject archive
+                                            </button>
+                                            }
+                                            }
+
+                                            <!-- DELETE REQUESTED -->
+                                            @if (policy.status === 'DELETE_REQUESTED') {
+
+                                            @if (isAdmin) {
+                                            <button type="button" (click)="openViewDeleteReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View deletion reason
+                                            </button>
+
+                                            <button type="button" class="danger"
+                                                (click)="openApproveDeleteModal(policy)">
+                                                <span class="material-icons">delete_forever</span>
+                                                Approve deletion
+                                            </button>
+
                                             <button type="button" (click)="openRejectDeleteModal(policy)">
-                                                <span>✕</span>
-                                                Reject Delete
+                                                <span class="material-icons">undo</span>
+                                                Reject deletion
                                             </button>
-                                        }
-                                    }
+                                            } @else {
+                                            <button type="button" (click)="viewPolicy(policy)">
+                                                <span class="material-icons">visibility</span>
+                                                View Details
+                                            </button>
 
+                                            <button type="button" (click)="openViewDeleteReason(policy)">
+                                                <span class="material-icons">info</span>
+                                                View Deletion Reason
+                                            </button>
+                                            }
+                                            }
+
+                                        </div>
+                                    </ng-template>
                                 </div>
 
-                            </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                        </td>
-
-                    </tr>
-
-
-                    <!-- LOADING STATE -->
-
-                    <tr *ngIf="loading">
-
-                        <td colspan="8" class="empty-state">
-
-                            <div class="empty-icon">
-                                ◷
-                            </div>
-
-                            <strong>
-                                Loading policies...
-                            </strong>
-
-                            <span>
-                                Please wait while policies are being fetched.
-                            </span>
-
-                        </td>
-
-                    </tr>
-
-
-                    <!-- EMPTY STATE -->
-
-                    <tr *ngIf="!loading && paginatedPolicies.length === 0">
-
-                        <td colspan="8" class="empty-state">
-
-                            <div class="empty-icon">
-                                ⌕
-                            </div>
-
-                            <strong>
-                                No policies found
-                            </strong>
-
-                            <span>
-                                Try changing your search or filter criteria.
-                            </span>
-
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
+            </div>
+            }
 
         </div>
-
 
         <!-- =======================================================
          PAGINATION
-    ======================================================== -->
+         ======================================================= -->
 
-        <div class="pagination-bar">
+        <footer class="pagination">
 
-
-            <!-- RESULT COUNT -->
-
-            <div class="result-count">
-
+            <div class="pagination-info">
                 Showing
-                <strong>
-                    {{ startItem }}
-                </strong>
-
-                to
-
-                <strong>
-                    {{ endItem }}
-                </strong>
-
+                <strong>{{ startItem }}</strong>
+                –
+                <strong>{{ endItem }}</strong>
                 of
-
-                <strong>
-                    {{ filteredPolicies.length }}
-                </strong>
-
+                <strong>{{ filteredPolicies.length }}</strong>
                 policies
-
             </div>
 
+            <div class="pagination-right">
 
-            <!-- PAGINATION CONTROLS -->
+                <div class="page-size">
+                    <label for="page-size">Rows</label>
 
-            <div class="pagination-controls">
+                    <app-searchable-select id="page-size" class="page-size-select" placeholder="Rows"
+                        [searchable]="false" [clearable]="false" [options]="pageSizeOptions"
+                        [(ngModel)]="pageSizeOption" (selectionChange)="changePageSize()" />
 
-
-                <button type="button" class="page-arrow" [disabled]="currentPage === 1" (click)="previousPage()">
-
-                    ‹
-
-                </button>
-
-
-                <button type="button" *ngFor="let page of [].constructor(totalPages); let i = index" class="page-number"
-                    [class.active]="currentPage === i + 1" (click)="goToPage(i + 1)">
-
-                    {{ i + 1 }}
-
-                </button>
-
-
-                <button type="button" class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()">
-
-                    ›
-
-                </button>
-
-
-                <!-- PAGE SIZE -->
-
-                <div class="page-size-wrapper">
-
-                    <select [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">
-
-                        <option [ngValue]="6">
-                            6 per page
-                        </option>
-
-                        <option [ngValue]="10">
-                            10 per page
-                        </option>
-
-                        <option [ngValue]="20">
-                            20 per page
-                        </option>
-
-                        <option [ngValue]="50">
-                            50 per page
-                        </option>
-
-                    </select>
-
+                    <span>per page</span>
                 </div>
 
+                <div class="page-controls">
+
+                    <button type="button" class="page-button" [disabled]="currentPage === 1" (click)="previousPage()"
+                        aria-label="Previous page">
+                        <span class="material-icons">chevron_left</span>
+                    </button>
+
+                    <div class="page-numbers">
+                        <button type="button" *ngFor="let page of visiblePages" class="page-button page-number"
+                            [class.current]="currentPage === page" (click)="goToPage(page)">
+                            {{ page }}
+                        </button>
+                    </div>
+
+                    <button type="button" class="page-button" [disabled]="currentPage === totalPages"
+                        (click)="nextPage()" aria-label="Next page">
+                        <span class="material-icons">chevron_right</span>
+                    </button>
+
+                </div>
             </div>
 
-        </div>
+        </footer>
 
     </section>
 
-    <!-- CONFIRM MODAL -->
-    <app-confirm-modal
-        [isOpen]="confirmModalOpen"
-        [title]="confirmTitle"
-        [message]="confirmMessage"
-        [variant]="confirmVariant"
-        (confirmed)="onConfirmModalConfirmed()"
-        (cancelled)="onConfirmModalCancelled()"
-    ></app-confirm-modal>
+    <!-- =========================================================
+       PAGE ACTIONS (above footer)
+       ========================================================= -->
 
-    <!-- REASON MODAL -->
-    <app-reason-modal
-        [isOpen]="reasonModalOpen"
-        [title]="reasonTitle"
-        [message]="reasonMessage"
-        [reasonLabel]="reasonLabel"
-        [variant]="reasonVariant"
-        (confirmed)="onReasonModalConfirmed($event)"
-        (cancelled)="onReasonModalCancelled()"
-    ></app-reason-modal>
+    <section class="bottom-actions" aria-label="Policy actions">
+        @if (isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Policies
+        </button>
+        }
+        @if (!isAdmin) {
+        <button type="button" class="secondary-header-action deleted-action"
+            (click)="$event.stopPropagation(); openGovtDeletedModal()">
+            <span class="material-icons">delete_sweep</span>
+            View Deleted Policies
+        </button>
+        }
+
+        <button type="button" class="secondary-header-action draft-action"
+            (click)="$event.stopPropagation(); openDraftsModal()">
+            <span class="material-icons">edit_note</span>
+            View Draft Policies
+        </button>
+
+        <button type="button" class="primary-action" (click)="$event.stopPropagation(); addNewPolicy()">
+            <span class="material-icons">add</span>
+            Add New Policy
+        </button>
+    </section>
+
+    <!-- Existing workflow modals -->
+    <app-confirm-modal [isOpen]="confirmModalOpen" [title]="confirmTitle" [message]="confirmMessage"
+        [messageBefore]="confirmMessageBefore" [highlightText]="confirmHighlight" [messageAfter]="confirmMessageAfter"
+        [parseQuotes]="confirmParseQuotes" [variant]="confirmVariant" [isLoading]="confirmLoading"
+        [errorMessage]="confirmErrorMessage" [confirmText]="confirmText" [showCancel]="showCancelConfirm"
+        [dialogClass]="confirmTitle === 'Delete Policy' ? 'confirm-modal--delete-policy' : ''"
+        (confirmed)="onConfirmModalConfirmed()" (cancelled)="onConfirmModalCancelled()">
+    </app-confirm-modal>
+
+    <app-reason-modal [isOpen]="reasonModalOpen" [title]="reasonTitle" [message]="reasonMessage"
+        [reasonLabel]="reasonLabel" [variant]="reasonVariant" [isLoading]="reasonLoading"
+        [errorMessage]="reasonErrorMessage" (confirmed)="onReasonModalConfirmed($event)"
+        (cancelled)="onReasonModalCancelled()">
+    </app-reason-modal>
+
+    <!-- Deleted / Draft policy modals (centered over this page) -->
+    <app-deleted-policies-modal [open]="deletedModalOpen" (closed)="onDeletedModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-deleted-policies-modal>
+
+    <!-- Read-only Deleted Policies view for Government Officials -->
+    <app-govt-deleted-policies-modal [open]="govtDeletedModalOpen" (closed)="onGovtDeletedModalClosed()">
+    </app-govt-deleted-policies-modal>
+
+    <app-draft-policies-modal [open]="draftsModalOpen" (closed)="onDraftsModalClosed()"
+        (dataChanged)="onChildDataChanged()">
+    </app-draft-policies-modal>
+
+    <!-- Edit-status popup: choose which permitted status to edit under -->
+    @if (editStatusModalOpen && editStatusPolicy) {
+    <div class="edit-status-overlay" (click)="onEditStatusBackdrop($event)">
+        <div class="edit-status-card" role="dialog" aria-modal="true" aria-label="Choose edit status"
+            (click)="$event.stopPropagation()">
+            <div class="edit-status-header">
+                <h2>Edit / Archive Policy</h2>
+                <p class="edit-status-name">{{ editStatusPolicy.title }}</p>
+                <p class="edit-status-desc">Choose whether to edit this policy or archive it.</p>
+            </div>
+
+            <div class="edit-status-options" role="radiogroup" aria-label="Permitted edit statuses">
+                @for (status of editStatusOptions; track status) {
+                <label class="edit-status-option" [class.selected]="editStatusChoice === status">
+                    <input type="radio" name="edit-status" [value]="status" [(ngModel)]="editStatusChoice" />
+                    <span class="edit-status-option-text">
+                        <strong>{{ status === 'DRAFT' ? 'Draft' : 'Archived' }}</strong>
+                        <small>{{ status === 'DRAFT' ? 'Edit as a draft policy.' : 'Archive this policy.'
+                            }}</small>
+                    </span>
+                </label>
+                }
+            </div>
+
+            <p class="edit-status-note">The editing form enforces role permissions and backend workflow rules.</p>
+
+            <div class="edit-status-actions">
+                <button type="button" class="edit-status-btn edit-status-btn--cancel" (click)="cancelEditStatus()">
+                    Cancel
+                </button>
+                <button type="button" class="edit-status-btn edit-status-btn--continue" (click)="confirmEditStatus()">
+                    Continue
+                </button>
+            </div>
+        </div>
+    </div>
+    }
 
 </div>

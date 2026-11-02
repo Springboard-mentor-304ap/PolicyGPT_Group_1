@@ -1,24 +1,43 @@
 import { CommonModule } from "@angular/common";
-import { ChangeDetectorRef, Component, OnInit } from "@angular/core";
+import { ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 
 import {
   FormArray,
   FormBuilder,
   FormGroup,
   FormsModule,
+  AbstractControl,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators,
 } from "@angular/forms";
 
-import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
+import { HttpEventType } from "@angular/common/http";
+
+import { BreadcrumbComponent, BreadcrumbItem } from "../../../shared/components/breadcrumb/breadcrumb.component";
 
 import { Auth, AuthUser } from "../../../core/services/auth";
 import { PolicyService } from "../../../core/services/policy.services";
+import { ToastService } from "../../../core/services/toast.service";
+import { environment } from "../../../../environments/environment";
 
 import {
   PolicyCreate,
+  PolicyDocumentResponse,
   PolicyResponse,
 } from "../../../core/models/policy.model";
+import { SearchableSelectComponent } from "../../../shared/components/searchable-select/searchable-select.component";
+import { ConfirmModalComponent } from "../../../shared/components/confirm-modal/confirm-modal.component";
+import { splitListText } from "../policy-details/policy-eligibility.util";
+import {
+  POLICY_CATEGORIES,
+  MINISTRIES,
+  MINISTRY_DEPARTMENTS_MAP,
+  ALL_DEPARTMENTS,
+  POLICY_SECTORS,
+} from "../../../core/constants/government-data.constants";
 
 /* ============================================================
    TYPES
@@ -26,7 +45,7 @@ import {
 
 interface EligibilityRule {
   rule_type?: string;
-  value?: string | number;
+  value?: string | number | string[];
   min_age?: number;
   max_age?: number;
   description?: string;
@@ -42,6 +61,79 @@ type PolicyWorkflowStatus =
   | "ARCHIVED"
   | "DELETE_REQUESTED";
 
+/**
+ * One Additional Conditions block: a keyword with one or more values.
+ * Serializes to a single `{ rule_type: "CUSTOM_CONDITION", key,
+ * values, description }` JSONB entry (see buildPolicyPayload).
+ */
+export interface EligibilityConditionBlock {
+  keyword: string;
+  values: string[];
+}
+
+/**
+ * Rejects whitespace-only strings (Angular's `required` accepts them).
+ * Keeps the `required` error key so existing error markup keeps working.
+ */
+export function nonBlankValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const value = control.value;
+  if (value === null || value === undefined) return { required: true };
+  return String(value).trim().length > 0 ? null : { required: true };
+}
+
+/** Optional non-negative integer (age bounds); blank stays valid. */
+export function optionalIntValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const value = control.value;
+  if (value === "" || value === null || value === undefined) return null;
+  const num = Number(value);
+  return Number.isInteger(num) && num >= 0 ? null : { pattern: true };
+}
+
+/** Optional non-negative number (income ceiling); blank stays valid. */
+export function optionalNumberValidator(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const value = control.value;
+  if (value === "" || value === null || value === undefined) return null;
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? null : { pattern: true };
+}
+
+/**
+ * FormArray-level check: at least one entry must contain non-blank
+ * text. Keeps the `required` error key so existing error markup and
+ * step gating keep working.
+ */
+export function atLeastOneNonBlankEntry(
+  control: AbstractControl,
+): ValidationErrors | null {
+  const controls =
+    (control as unknown as { controls?: AbstractControl[] })?.controls ?? [];
+  const ok = controls.some(
+    (c) => String(c?.value ?? "").trim().length > 0,
+  );
+  return ok ? null : { required: true };
+}
+
+/** Minimum age must not exceed maximum age (when both are provided). */
+export const ageRangeValidator: ValidatorFn = (
+  group: AbstractControl,
+): ValidationErrors | null => {
+  const minRaw = group.get("minAge")?.value;
+  const maxRaw = group.get("maxAge")?.value;
+  const hasMin = minRaw !== "" && minRaw !== null && minRaw !== undefined;
+  const hasMax = maxRaw !== "" && maxRaw !== null && maxRaw !== undefined;
+  if (!hasMin || !hasMax) return null;
+  const min = Number(minRaw);
+  const max = Number(maxRaw);
+  if (!Number.isInteger(min) || !Number.isInteger(max)) return null;
+  return min <= max ? null : { ageRange: true };
+};
+
 /* ============================================================
    COMPONENT
    ============================================================ */
@@ -49,7 +141,14 @@ type PolicyWorkflowStatus =
 @Component({
   selector: "app-add-policy",
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    FormsModule,
+    BreadcrumbComponent,
+    SearchableSelectComponent,
+    ConfirmModalComponent,
+  ],
   templateUrl: "./add-policy.component.html",
   styleUrls: ["./add-policy.component.scss"],
 })
@@ -62,6 +161,25 @@ export class AddPolicyComponent implements OnInit {
   readonly totalSteps = 5;
 
   completedSteps = new Set<number>();
+
+  /**
+   * Blue progress-fill width (%) across the four step connections,
+   * derived from the active step index: 0/20/40/60/80. Bound to the
+   * progress layer, whose 400ms width transition animates growth and
+   * retraction. Navigation (and its validation) is untouched.
+   */
+  get stepperProgress(): number {
+    return (this.currentStep - 1) * 20;
+  }
+
+  /**
+   * Slide direction of the last successful step change. Drives the
+   * CSS step-transition (step-anim-forward/back on the form); stays
+   * null until the first navigation so initial/edit loads never
+   * animate. Set only on validated navigation — failed validation
+   * returns early and leaves it untouched.
+   */
+  stepTransition: "forward" | "back" | null = null;
 
   /* ============================================================
      EDIT MODE
@@ -76,6 +194,18 @@ export class AddPolicyComponent implements OnInit {
 
   isAdmin = false;
   rolePrefix: "admin" | "government" = "government";
+
+  get breadcrumbItems(): BreadcrumbItem[] {
+    const home: BreadcrumbItem = { label: "Home", route: ["/dashboard", this.rolePrefix] };
+    const policiesRoute = this.isAdmin
+      ? ["/dashboard/admin/policies"]
+      : ["/dashboard/government/policies/manage"];
+    return [
+      home,
+      { label: "Policies", route: policiesRoute },
+      { label: this.isEditMode ? "Edit Policy" : "Add Policy" },
+    ];
+  }
 
   /* ============================================================
      FORM
@@ -98,6 +228,38 @@ export class AddPolicyComponent implements OnInit {
   rejectionReason: string | null = null;
 
   errorMessage: string | null = null;
+
+  /* ============================================================
+     POLICY DOCUMENT UPLOAD (STEP 4)
+     Separate from the external document_url: an uploaded PDF is
+     stored server-side (metadata only in JSON, bytes stream via
+     the authorized download endpoint). In Add mode the file is
+     held as pending until the draft exists (avoids orphans); in
+     Edit mode the policy already exists so uploads apply
+     immediately and atomically replace the current file.
+     ============================================================ */
+
+  readonly policyDocumentMaxSizeMB =
+    (environment as { policyDocumentMaxSizeMB?: number })
+      ?.policyDocumentMaxSizeMB ?? 10;
+
+  get policyDocumentMaxBytes(): number {
+    return this.policyDocumentMaxSizeMB * 1024 * 1024;
+  }
+
+  /** File chosen in Add mode, not yet uploaded (no policy ID yet). */
+  pendingDocumentFile: File | null = null;
+
+  /** Server-side uploaded document for the policy being edited. */
+  existingDocument: PolicyDocumentResponse | null = null;
+  existingDocumentLoading = false;
+
+  documentError: string | null = null;
+  documentUploading = false;
+  documentProgress = 0;
+  isDocumentDragging = false;
+  isRemovingDocument = false;
+  isDownloadingDocument = false;
 
   /* ============================================================
      WORKFLOW STATE
@@ -130,6 +292,23 @@ export class AddPolicyComponent implements OnInit {
   modalMessage = "";
 
   /* ============================================================
+     PRE-ACTION CONFIRM MODAL (shared ConfirmModalComponent)
+     ============================================================ */
+
+  confirmModalOpen = false;
+  confirmTitle = "";
+  confirmMessage = "";
+  confirmMessageBefore = "";
+  confirmHighlight = "";
+  confirmMessageAfter = "";
+  confirmParseQuotes = true;
+  confirmVariant: "primary" | "danger" | "warning" | "success" = "primary";
+  confirmAction: (() => void) | null = null;
+  confirmLoading = false;
+  confirmErrorMessage: string | null = null;
+  confirmText = "Confirm";
+
+  /* ============================================================
      REQUEST STATE
      ============================================================ */
 
@@ -141,46 +320,10 @@ export class AddPolicyComponent implements OnInit {
      DROPDOWN OPTIONS
      ============================================================ */
 
-  categories: string[] = [
-    "Education",
-    "Health",
-    "Agriculture",
-    "Employment",
-    "Housing",
-    "Finance",
-    "Social Welfare",
-    "Environment",
-    "Technology",
-    "Infrastructure",
-    "Rural Development",
-    "Urban Development",
-  ];
-
-  ministries: string[] = [
-    "Ministry of Education",
-    "Ministry of Health & Family Welfare",
-    "Ministry of Agriculture & Farmers Welfare",
-    "Ministry of Rural Development",
-    "Ministry of Housing & Urban Affairs",
-    "Ministry of Finance",
-    "Ministry of Labour & Employment",
-    "Ministry of Environment, Forest & Climate Change",
-    "Ministry of Electronics & Information Technology",
-    "Ministry of Skill Development & Entrepreneurship",
-    "Ministry of Social Justice & Empowerment",
-  ];
-
-  departments: string[] = [
-    "Department of School Education",
-    "Department of Higher Education",
-    "Department of Health & Family Welfare",
-    "Department of Agriculture & Cooperation",
-    "Department of Rural Development",
-    "Department of Social Welfare",
-    "Department of Economic Affairs",
-    "Department of Information Technology",
-    "Department of Financial Services",
-  ];
+  categories: string[] = POLICY_CATEGORIES;
+  ministries: string[] = MINISTRIES;
+  departmentOptions: string[] = [];
+  sectors: string[] = POLICY_SECTORS;
 
   states: string[] = [
     "All India",
@@ -204,19 +347,6 @@ export class AddPolicyComponent implements OnInit {
     "West Bengal",
   ];
 
-  sectors: string[] = [
-    "Education",
-    "Healthcare",
-    "Agriculture",
-    "Information Technology",
-    "Infrastructure",
-    "Finance & Banking",
-    "Employment & Labour",
-    "Social Welfare",
-    "Environment & Climate",
-    "Energy & Power",
-  ];
-
   educationOptions: string[] = [
     "No Minimum Qualification",
     "Primary Education (Class 5th)",
@@ -231,20 +361,61 @@ export class AddPolicyComponent implements OnInit {
      ELIGIBILITY
      ============================================================ */
 
-  additionalEligibilityConditions: string[] = [];
+  /**
+   * Key-Value Conditions Editor blocks (Step 3). Replaces the former
+   * free-text condition list: each block serializes to one
+   * `{ rule_type: "CUSTOM_CONDITION", key/keyword, values,
+   * description }` entry in the backend JSONB `eligibility_rules`
+   * array (see buildPolicyPayload for the exact contract).
+   */
+  conditionBlocks: EligibilityConditionBlock[] = [];
+
+  /**
+   * Saved rules the form cannot represent (unedited rule types such as
+   * OCCUPATION / SOCIAL_CATEGORY / DISABILITY_STATUS, plus unknown
+   * legacy shapes). Carried verbatim into the submission payload so
+   * editing never silently discards stored data.
+   */
+  private passthroughEligibilityRules: Record<string, unknown>[] = [];
+
+  /** Lower-cased keywords occurring more than once (whitespace ignored). */
+  get duplicateConditionKeys(): string[] {
+    const seen = new Map<string, number>();
+    for (const block of this.conditionBlocks) {
+      const keyword = block.keyword.trim().toLowerCase();
+      if (!keyword) continue;
+      seen.set(keyword, (seen.get(keyword) ?? 0) + 1);
+    }
+    return [...seen.entries()]
+      .filter(([, count]) => count > 1)
+      .map(([keyword]) => keyword);
+  }
+
+  hasDuplicateConditionKeys(): boolean {
+    return this.duplicateConditionKeys.length > 0;
+  }
+
+  isConditionKeyDuplicate(block: EligibilityConditionBlock): boolean {
+    const keyword = block.keyword.trim().toLowerCase();
+    if (!keyword) return false;
+    return (
+      this.conditionBlocks.filter(
+        (b) => b.keyword.trim().toLowerCase() === keyword,
+      ).length > 1
+    );
+  }
 
   /* ============================================================
-     CONSTRUCTOR
+     DEPENDENCIES
      ============================================================ */
 
-  constructor(
-    private readonly fb: FormBuilder,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly authService: Auth,
-    private readonly policyService: PolicyService,
-    private readonly cdr: ChangeDetectorRef,
-  ) {}
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly authService = inject(Auth);
+  private readonly policyService = inject(PolicyService);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly toastService = inject(ToastService);
 
   /* ============================================================
      INIT
@@ -317,25 +488,25 @@ export class AddPolicyComponent implements OnInit {
          STEP 1
          -------------------------------------------------------- */
 
-      title: ["", [Validators.required, Validators.maxLength(300)]],
+      title: ["", [nonBlankValidator, Validators.maxLength(300)]],
 
-      category: ["", Validators.required],
+      category: ["", nonBlankValidator],
 
-      description: ["", [Validators.required, Validators.maxLength(1000)]],
+      description: ["", [nonBlankValidator, Validators.maxLength(1000)]],
 
-      benefits: this.fb.array([this.fb.control(""), this.fb.control("")]),
+      benefits: this.fb.array([this.fb.control("")]),
 
       /* --------------------------------------------------------
          STEP 2
          -------------------------------------------------------- */
 
-      ministry: [""],
+      ministry: ["", nonBlankValidator],
 
-      department: [""],
+      department: ["", nonBlankValidator],
 
-      state: ["All India"],
+      state: ["All India", nonBlankValidator],
 
-      sector: [""],
+      sector: ["", nonBlankValidator],
 
       publicationDate: [""],
 
@@ -361,7 +532,7 @@ export class AddPolicyComponent implements OnInit {
        * benefits
        * eligibility_rules
        */
-      keyHighlights: this.fb.array([this.fb.control(""), this.fb.control("")]),
+      keyHighlights: this.fb.array([this.fb.control("")]),
 
       additionalInfo: ["", Validators.maxLength(1000)],
 
@@ -371,18 +542,17 @@ export class AddPolicyComponent implements OnInit {
          STEP 3
          -------------------------------------------------------- */
 
-      targetBeneficiaries: [
-        "",
-        [Validators.required, Validators.maxLength(500)],
-      ],
+      targetBeneficiaries: this.fb.array([this.fb.control("")], {
+        validators: atLeastOneNonBlankEntry,
+      }),
 
-      minAge: [""],
+      minAge: ["", optionalIntValidator],
 
-      maxAge: [""],
+      maxAge: ["", optionalIntValidator],
 
       gender: ["All"],
 
-      annualIncome: [""],
+      annualIncome: ["", optionalNumberValidator],
 
       education: [""],
 
@@ -392,9 +562,9 @@ export class AddPolicyComponent implements OnInit {
          STEP 4
          -------------------------------------------------------- */
 
-      documentUrl: ["", Validators.maxLength(500)],
+      documentUrl: ["", [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]] ,
 
-      sourceUrl: ["", Validators.maxLength(500)],
+      sourceUrl: ["", [Validators.maxLength(500), Validators.pattern(/^https?:\/\/.+/)]] ,
 
       documentsRequired: ["", Validators.maxLength(2000)],
 
@@ -405,7 +575,57 @@ export class AddPolicyComponent implements OnInit {
          -------------------------------------------------------- */
 
       declarationAgreed: [false, Validators.requiredTrue],
-    });
+    }, { validators: ageRangeValidator });
+  }
+
+  updateDepartmentOptions(
+    selectedMinistry: string,
+    clearIfInvalid: boolean = true,
+  ): void {
+    if (!selectedMinistry) {
+      this.departmentOptions = [];
+      if (clearIfInvalid) {
+        this.policyForm.get("department")?.setValue("");
+      }
+      return;
+    }
+
+    const specificDepts = MINISTRY_DEPARTMENTS_MAP[selectedMinistry];
+    if (specificDepts && specificDepts.length > 0) {
+      this.departmentOptions = [...specificDepts];
+      const currentDept = this.policyForm.get("department")?.value;
+      if (
+        clearIfInvalid &&
+        currentDept &&
+        !specificDepts.includes(currentDept) &&
+        this.isKnownDepartment(currentDept)
+      ) {
+        this.policyForm.get("department")?.setValue("");
+      }
+    } else {
+      this.departmentOptions = [...ALL_DEPARTMENTS];
+      const currentDept = this.policyForm.get("department")?.value;
+      if (currentDept && !this.departmentOptions.includes(currentDept)) {
+        this.departmentOptions = [currentDept, ...this.departmentOptions];
+      }
+    }
+  }
+
+  /*
+   * Ministry changes reset a stale *predefined* department, but a
+   * custom-typed department (not present in any known list) is kept:
+   * clearing it would silently destroy user input.
+   */
+  private isKnownDepartment(value: unknown): boolean {
+    if (typeof value !== "string" || !value) return false;
+    if (ALL_DEPARTMENTS.includes(value)) return true;
+    return Object.values(MINISTRY_DEPARTMENTS_MAP).some((list) =>
+      list.includes(value),
+    );
+  }
+
+  onMinistryChange(selectedMinistry: string): void {
+    this.updateDepartmentOptions(selectedMinistry, true);
   }
 
   /* ============================================================
@@ -453,17 +673,376 @@ export class AddPolicyComponent implements OnInit {
   }
 
   /* ============================================================
-     CUSTOM ELIGIBILITY
+     POLICY DOCUMENT UPLOAD
+     Frontend validation mirrors the backend (extension, size,
+     MIME, then actual PDF magic bytes) so renamed executables
+     are rejected before any upload. Uploads use multipart
+     FormData with progress events.
      ============================================================ */
 
+  formatFileSize(bytes: number | null | undefined): string {
+    if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) {
+      return "—";
+    }
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  onDocumentDragOver(event: DragEvent): void {
+    event.preventDefault();
+    if (this.isReadOnly || this.documentUploading) return;
+    this.isDocumentDragging = true;
+  }
+
+  onDocumentDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    this.isDocumentDragging = false;
+  }
+
+  onDocumentDrop(event: DragEvent): void {
+    event.preventDefault();
+    this.isDocumentDragging = false;
+    if (this.isReadOnly || this.documentUploading) return;
+    const file = event.dataTransfer?.files?.[0] ?? null;
+    if (file) void this.handleDocumentFile(file);
+  }
+
+  onDocumentFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0] ?? null;
+    if (input) input.value = "";
+    if (!file) return;
+    if (this.isReadOnly || this.documentUploading) return;
+    void this.handleDocumentFile(file);
+  }
+
+  private readPdfMagic(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      try {
+        const slice = file.slice(0, 5);
+        const reader = new FileReader();
+        reader.onload = () => {
+          const buf = reader.result as ArrayBuffer | null;
+          if (!buf) {
+            resolve("");
+            return;
+          }
+          try {
+            resolve(new TextDecoder().decode(new Uint8Array(buf)));
+          } catch {
+            resolve("");
+          }
+        };
+        reader.onerror = () => resolve("");
+        reader.readAsArrayBuffer(slice);
+      } catch {
+        resolve("");
+      }
+    });
+  }
+
+  private async validateDocumentFile(file: File): Promise<string | null> {
+    const name = (file.name || "").trim();
+    const lowerExt = name.includes(".")
+      ? String(name.split(".").pop() ?? "").trim().toLowerCase()
+      : "";
+    if (lowerExt !== "pdf") {
+      return "Only PDF documents (.pdf) are accepted.";
+    }
+    if (file.size > this.policyDocumentMaxBytes) {
+      return `Policy document must be ${this.policyDocumentMaxSizeMB} MB or smaller.`;
+    }
+    if (file.size === 0) {
+      return "Uploaded file is empty.";
+    }
+    const mime = String(file.type || "").split(";")[0].trim().toLowerCase();
+    if (
+      mime &&
+      mime !== "application/pdf" &&
+      mime !== "application/x-pdf"
+    ) {
+      return "Uploaded file must be a PDF document.";
+    }
+    const magic = (await this.readPdfMagic(file)).replace(/^\s+/, "");
+    if (!magic.startsWith("%PDF-")) {
+      return "File content is not a valid PDF document.";
+    }
+    return null;
+  }
+
+  async handleDocumentFile(file: File): Promise<void> {
+    this.documentError = null;
+    const error = await this.validateDocumentFile(file);
+    if (error) {
+      this.documentError = error;
+      this.cdr.detectChanges();
+      return;
+    }
+    // Edit mode: the policy row already exists, so upload immediately
+    // (the backend replaces atomically — the current file survives a
+    // failed replacement). Add mode: hold as pending until the draft
+    // exists so a failed policy creation can never orphan an upload.
+    if (this.isEditMode && this.editingPolicyId !== null) {
+      await this.uploadDocumentToPolicy(this.editingPolicyId, file);
+      return;
+    }
+    this.pendingDocumentFile = file;
+    this.cdr.detectChanges();
+  }
+
+  clearPendingDocument(): void {
+    this.pendingDocumentFile = null;
+    this.documentError = null;
+    this.documentProgress = 0;
+    this.cdr.detectChanges();
+  }
+
+  private uploadDocumentToPolicy(
+    policyId: number,
+    file: File,
+  ): Promise<PolicyDocumentResponse> {
+    this.documentUploading = true;
+    this.documentProgress = 0;
+    this.documentError = null;
+    this.cdr.detectChanges();
+    return new Promise((resolve, reject) => {
+      this.policyService.uploadPolicyDocument(policyId, file).subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            const total = event.total ?? file.size ?? 0;
+            this.documentProgress =
+              total > 0
+                ? Math.round((100 * event.loaded) / total)
+                : 0;
+            this.cdr.detectChanges();
+          } else if (event.type === HttpEventType.Response) {
+            this.documentUploading = false;
+            this.documentProgress = 100;
+            const body =
+              event.body as PolicyDocumentResponse | null;
+            if (body) {
+              this.existingDocument = body;
+              this.pendingDocumentFile = null;
+            }
+            this.cdr.detectChanges();
+            resolve(body as PolicyDocumentResponse);
+          }
+        },
+        error: (err) => {
+          this.documentUploading = false;
+          this.documentProgress = 0;
+          const message = this.getErrorMessage(
+            err,
+            "Failed to upload the policy document.",
+          );
+          this.documentError = message;
+          this.toastService.error(message);
+          this.cdr.detectChanges();
+          reject(new Error(message));
+        },
+      });
+    });
+  }
+
+  /** Upload the Add-mode pending file once the draft exists. */
+  private uploadPendingDocument(
+    policyId: number,
+  ): Promise<PolicyDocumentResponse | null> {
+    if (!this.pendingDocumentFile) return Promise.resolve(null);
+    const file = this.pendingDocumentFile;
+    return this.uploadDocumentToPolicy(policyId, file).then(
+      (doc) => {
+        this.toastService.success(
+          `Document "${doc?.document_name ?? file.name}" uploaded successfully.`,
+        );
+        return doc;
+      },
+      (err) => {
+        // Policy already exists as a draft; keep the user on the form
+        // state (caller decides navigation) with an accurate message.
+        throw err;
+      },
+    );
+  }
+
+  loadExistingDocument(policyId: number): void {
+    this.existingDocumentLoading = true;
+    this.cdr.detectChanges();
+    this.policyService.getPolicyDocument(policyId).subscribe({
+      next: (doc) => {
+        this.existingDocument = doc;
+        this.existingDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.existingDocument = null;
+        this.existingDocumentLoading = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  removeExistingDocument(): void {
+    if (
+      this.isReadOnly ||
+      this.isRemovingDocument ||
+      this.documentUploading ||
+      this.editingPolicyId === null
+    ) {
+      return;
+    }
+    this.isRemovingDocument = true;
+    this.documentError = null;
+    this.cdr.detectChanges();
+    this.policyService.deletePolicyDocument(this.editingPolicyId).subscribe({
+      next: () => {
+        this.isRemovingDocument = false;
+        this.existingDocument = null;
+        this.toastService.success("Uploaded document removed.");
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isRemovingDocument = false;
+        const message = this.getErrorMessage(
+          err,
+          "Failed to remove the uploaded document.",
+        );
+        this.documentError = message;
+        this.toastService.error(message);
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  downloadExistingDocument(): void {
+    if (
+      this.editingPolicyId === null ||
+      this.isDownloadingDocument ||
+      !this.existingDocument
+    ) {
+      return;
+    }
+    this.isDownloadingDocument = true;
+    this.cdr.detectChanges();
+    this.policyService.downloadPolicyDocument(this.editingPolicyId).subscribe({
+      next: (blob) => {
+        this.isDownloadingDocument = false;
+        this.cdr.detectChanges();
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download =
+            this.existingDocument?.document_name ?? "policy-document.pdf";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch {
+          this.toastService.error("Could not download the document.");
+        }
+      },
+      error: (err) => {
+        this.isDownloadingDocument = false;
+        this.toastService.error(
+          this.getErrorMessage(err, "Could not download the document."),
+        );
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /**
+   * Open the uploaded policy PDF directly in a new browser tab using
+   * Chrome's built-in PDF viewer. Fetches the PDF blob via the authorized
+   * backend endpoint and opens a Blob URL. Download remains a separate
+   * same-tab action via downloadExistingDocument().
+   */
+  previewExistingDocument(): void {
+    if (this.editingPolicyId === null || !this.existingDocument) {
+      return;
+    }
+
+    this.isDownloadingDocument = true;
+    this.cdr.detectChanges();
+
+    this.policyService.downloadPolicyDocument(this.editingPolicyId).subscribe({
+      next: (blob) => {
+        this.isDownloadingDocument = false;
+        this.cdr.detectChanges();
+
+        try {
+          const blobUrl = URL.createObjectURL(blob);
+          const newTab = window.open(blobUrl, "_blank", "noopener,noreferrer");
+
+          if (!newTab || newTab.closed || typeof newTab.closed === "undefined") {
+            // Popup blocked or failed to open
+            URL.revokeObjectURL(blobUrl);
+            this.toastService.error("Popup blocked. Please allow popups for this site to view the PDF.");
+            return;
+          }
+
+          // Revoke the Blob URL after a delay to allow the PDF to load
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch {
+          this.toastService.error("Could not open the document.");
+        }
+      },
+      error: (err) => {
+        this.isDownloadingDocument = false;
+        this.toastService.error(
+          this.getErrorMessage(err, "Could not open the document."),
+        );
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  /* ============================================================
+     CUSTOM ELIGIBILITY (KEY-VALUE BLOCKS)
+     ============================================================ */
+
+  /** Append exactly one blank condition block (keyword + one value). */
   addEligibilityCondition(): void {
-    this.additionalEligibilityConditions.push("");
+    this.conditionBlocks.push({ keyword: "", values: [""] });
   }
 
   removeEligibilityCondition(index: number): void {
-    if (index >= 0 && index < this.additionalEligibilityConditions.length) {
-      this.additionalEligibilityConditions.splice(index, 1);
+    if (index >= 0 && index < this.conditionBlocks.length) {
+      this.conditionBlocks.splice(index, 1);
     }
+  }
+
+  /** Append exactly one blank value input to the given block. */
+  addConditionValue(blockIndex: number): void {
+    const block = this.conditionBlocks[blockIndex];
+    if (block) block.values.push("");
+  }
+
+  removeConditionValue(blockIndex: number, valueIndex: number): void {
+    const block = this.conditionBlocks[blockIndex];
+    if (block && valueIndex >= 0 && valueIndex < block.values.length) {
+      block.values.splice(valueIndex, 1);
+    }
+  }
+
+  trackConditionRow(index: number): number {
+    return index;
+  }
+
+  /** Trimmed, non-empty values of a condition block. */
+  conditionBlockValues(block: EligibilityConditionBlock): string[] {
+    return (block?.values ?? [])
+      .map((v) => String(v ?? "").trim())
+      .filter((v) => v.length > 0);
+  }
+
+  /** A block counts as filled when its keyword or any value is set. */
+  blockHasContent(block: EligibilityConditionBlock): boolean {
+    return (
+      !!block?.keyword?.trim() || this.conditionBlockValues(block).length > 0
+    );
   }
 
   /* ============================================================
@@ -480,6 +1059,7 @@ export class AddPolicyComponent implements OnInit {
      */
     if (step < this.currentStep) {
       this.currentStep = step;
+      this.stepTransition = "back";
       return;
     }
 
@@ -497,6 +1077,7 @@ export class AddPolicyComponent implements OnInit {
     this.completedSteps.add(this.currentStep);
 
     this.currentStep = step;
+    this.stepTransition = "forward";
   }
 
   nextStep(): void {
@@ -512,6 +1093,7 @@ export class AddPolicyComponent implements OnInit {
 
     if (this.currentStep < this.totalSteps) {
       this.currentStep++;
+      this.stepTransition = "forward";
 
       window.scrollTo({
         top: 0,
@@ -523,6 +1105,7 @@ export class AddPolicyComponent implements OnInit {
   prevStep(): void {
     if (this.currentStep > 1) {
       this.currentStep--;
+      this.stepTransition = "back";
 
       window.scrollTo({
         top: 0,
@@ -541,17 +1124,29 @@ export class AddPolicyComponent implements OnInit {
         return (
           !!this.policyForm.get("title")?.valid &&
           !!this.policyForm.get("category")?.valid &&
-          !!this.policyForm.get("description")?.valid
+          !!this.policyForm.get("description")?.valid &&
+          this.hasAtLeastOneBenefit()
         );
 
       case 2:
         return (
           (!this.policyForm.get("additionalInfo") || this.policyForm.get("additionalInfo")!.valid) &&
-          (!this.policyForm.get("importantNotes") || this.policyForm.get("importantNotes")!.valid)
+          (!this.policyForm.get("importantNotes") || this.policyForm.get("importantNotes")!.valid) &&
+          !!this.policyForm.get("ministry")?.valid &&
+          !!this.policyForm.get("department")?.valid &&
+          !!this.policyForm.get("state")?.valid &&
+          !!this.policyForm.get("sector")?.valid
         );
 
       case 3:
-        return !!this.policyForm.get("targetBeneficiaries")?.valid;
+        return (
+          !!this.policyForm.get("targetBeneficiaries")?.valid &&
+          !!this.policyForm.get("minAge")?.valid &&
+          !!this.policyForm.get("maxAge")?.valid &&
+          !!this.policyForm.get("annualIncome")?.valid &&
+          !this.policyForm.hasError("ageRange") &&
+          !this.hasDuplicateConditionKeys()
+        );
 
       case 4:
         return (
@@ -575,15 +1170,23 @@ export class AddPolicyComponent implements OnInit {
         this.policyForm.get("title")?.markAsTouched();
         this.policyForm.get("category")?.markAsTouched();
         this.policyForm.get("description")?.markAsTouched();
+        this.benefits.controls.forEach((control) => control.markAsTouched());
         break;
 
       case 2:
         this.policyForm.get("additionalInfo")?.markAsTouched();
         this.policyForm.get("importantNotes")?.markAsTouched();
+        this.policyForm.get("ministry")?.markAsTouched();
+        this.policyForm.get("department")?.markAsTouched();
+        this.policyForm.get("state")?.markAsTouched();
+        this.policyForm.get("sector")?.markAsTouched();
         break;
 
       case 3:
         this.policyForm.get("targetBeneficiaries")?.markAsTouched();
+        this.policyForm.get("minAge")?.markAsTouched();
+        this.policyForm.get("maxAge")?.markAsTouched();
+        this.policyForm.get("annualIncome")?.markAsTouched();
         break;
 
       case 4:
@@ -607,6 +1210,59 @@ export class AddPolicyComponent implements OnInit {
     return this.benefits.controls
       .map((control) => String(control.value ?? "").trim())
       .filter((value) => value.length > 0);
+  }
+
+  /** Target-beneficiary rows (FormArray mirrors the Benefits pattern). */
+  get beneficiaryControls(): FormArray {
+    return this.policyForm.get("targetBeneficiaries") as FormArray;
+  }
+
+  /** Trimmed, non-empty beneficiaries in row order. */
+  get filteredBeneficiaries(): string[] {
+    if (!this.policyForm) return [];
+    return this.beneficiaryControls.controls
+      .map((control) => String(control.value ?? "").trim())
+      .filter((value) => value.length > 0);
+  }
+
+  /** Rebuild rows from saved data (arrays and legacy strings). */
+  setBeneficiaries(values: string[]): void {
+    const clean = (values ?? [])
+      .map((v) => String(v ?? "").trim())
+      .filter((v) => v.length > 0);
+    const seen = new Set<string>();
+    const unique = clean.filter((v) => {
+      const key = v.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    const arr = this.beneficiaryControls;
+    arr.clear();
+    if (unique.length === 0) {
+      arr.push(this.fb.control(""));
+    } else {
+      unique.forEach((v) => arr.push(this.fb.control(v)));
+    }
+  }
+
+  /** Append exactly one blank beneficiary row. */
+  addBeneficiaryRow(): void {
+    this.beneficiaryControls.push(this.fb.control(""));
+  }
+
+  removeBeneficiary(index: number): void {
+    if (index < 0 || index >= this.beneficiaryControls.length) return;
+    if (this.beneficiaryControls.length > 1) {
+      this.beneficiaryControls.removeAt(index);
+    } else {
+      this.beneficiaryControls.at(0).setValue("");
+    }
+  }
+
+  /** Step 1 requires at least one non-blank benefit. */
+  hasAtLeastOneBenefit(): boolean {
+    return this.filteredBenefits.length > 0;
   }
 
   get filteredHighlights(): string[] {
@@ -706,6 +1362,17 @@ export class AddPolicyComponent implements OnInit {
              BASIC / CLASSIFICATION
              ------------------------------------------------------ */
 
+        this.updateDepartmentOptions(policy.ministry ?? "", false);
+        if (
+          policy.department &&
+          !this.departmentOptions.includes(policy.department)
+        ) {
+          this.departmentOptions = [
+            policy.department,
+            ...this.departmentOptions,
+          ];
+        }
+
         this.policyForm.patchValue({
           title: policy.title ?? "",
 
@@ -728,21 +1395,55 @@ export class AddPolicyComponent implements OnInit {
           documentUrl: policy.document_url ?? "",
 
           sourceUrl: policy.source_url ?? "",
+
+          additionalInfo: policy.additional_info ?? "",
+
+          importantNotes: policy.important_notes ?? "",
+
+          documentsRequired: policy.documents_required ?? "",
+
+          implementationProcess: policy.implementation_process ?? "",
         });
+
+        /*
+         * The dropdown options below are static references. Reassigning
+         * fresh array instances after patching marks every
+         * app-searchable-select dirty: in this zoneless setup a patched
+         * FormControl alone does not re-render an already-displayed
+         * select, so without this the trigger keeps showing its
+         * placeholder even though the control holds the saved value.
+         * departmentOptions is already rebuilt by
+         * updateDepartmentOptions above.
+         */
+        this.categories = [...POLICY_CATEGORIES];
+        this.ministries = [...MINISTRIES];
+        this.sectors = [...POLICY_SECTORS];
+        this.states = [...this.states];
+        this.educationOptions = [...this.educationOptions];
+        this.cdr.detectChanges();
 
         /* ------------------------------------------------------
              BENEFITS
-             ------------------------------------------------------ */
+             ------------------------------------------------------
+             Rebuilt atomically via setControl: replacing the FormArray
+             instance guarantees the rows match the saved record exactly
+             (no leftover default control, no duplicates on reopen),
+             even if a previous load left the array in any state. */
 
-        this.benefits.clear();
+        const savedBenefits = Array.isArray(policy.benefits)
+          ? policy.benefits
+          : [];
 
-        if (Array.isArray(policy.benefits) && policy.benefits.length > 0) {
-          policy.benefits.forEach((benefit: string) => {
-            this.benefits.push(this.fb.control(benefit ?? ""));
-          });
-        } else {
-          this.benefits.push(this.fb.control(""));
-        }
+        this.policyForm.setControl(
+          "benefits",
+          this.fb.array(
+            savedBenefits.length > 0
+              ? savedBenefits.map((benefit) =>
+                  this.fb.control(String(benefit ?? "")),
+                )
+              : [this.fb.control("")],
+          ),
+        );
 
         /* ------------------------------------------------------
              KEY HIGHLIGHTS
@@ -750,7 +1451,19 @@ export class AddPolicyComponent implements OnInit {
 
         this.keyHighlights.clear();
 
-        this.keyHighlights.push(this.fb.control(""));
+        const savedHighlights = Array.isArray(policy.key_objectives)
+          ? policy.key_objectives
+              .map((h: unknown) => String(h ?? "").trim())
+              .filter((h: string) => h.length > 0)
+          : [];
+
+        if (savedHighlights.length > 0) {
+          savedHighlights.forEach((h: string) => {
+            this.keyHighlights.push(this.fb.control(h));
+          });
+        } else {
+          this.keyHighlights.push(this.fb.control(""));
+        }
 
         /* ------------------------------------------------------
              ELIGIBILITY RULES
@@ -760,16 +1473,21 @@ export class AddPolicyComponent implements OnInit {
           ? (policy.eligibility_rules as EligibilityRule[])
           : [];
 
-        this.additionalEligibilityConditions = [];
+        this.conditionBlocks = [];
+
+        this.passthroughEligibilityRules = [];
 
         for (const rule of rules) {
+          if (!rule || typeof rule !== "object") continue;
+
           switch (rule.rule_type) {
-            case "TARGET_BENEFICIARIES":
-              this.policyForm.patchValue({
-                targetBeneficiaries: rule.value ?? "",
-              });
+            case "TARGET_BENEFICIARIES": {
+              // Saved as an array by the chip editor; legacy records
+              // hold a comma-separated string — both load as chips.
+              this.setBeneficiaries(splitListText(rule.value));
 
               break;
+            }
 
             case "AGE_CRITERIA":
               this.policyForm.patchValue({
@@ -801,15 +1519,63 @@ export class AddPolicyComponent implements OnInit {
 
               break;
 
-            case "CUSTOM_CONDITION":
-              if (
-                typeof rule.description === "string" &&
-                rule.description.trim()
+            case "CUSTOM_CONDITION": {
+              // New blocks carry keyword + values[]; interim rows carry
+              // scalar key/value; legacy rows carry a bare description
+              // ("key: value" or plain text). All convert to blocks.
+              const rawKey: unknown = rule["key"];
+              const rawValues: unknown = rule["values"];
+              const rawValue: unknown = rule["value"];
+              const keyword =
+                typeof rawKey === "string" ? rawKey.trim() : "";
+              const collected: string[] = [];
+              if (Array.isArray(rawValues)) {
+                for (const v of rawValues) {
+                  const text = String(v ?? "").trim();
+                  if (text) collected.push(text);
+                }
+              } else if (
+                typeof rawValue === "string" ||
+                typeof rawValue === "number"
               ) {
-                this.additionalEligibilityConditions.push(
-                  rule.description.trim(),
-                );
+                const text = String(rawValue).trim();
+                if (text) collected.push(text);
               }
+              if (keyword || collected.length > 0) {
+                this.conditionBlocks.push({
+                  keyword,
+                  values: collected.length > 0 ? collected : [""],
+                });
+                break;
+              }
+              const description =
+                typeof rule.description === "string"
+                  ? rule.description.trim()
+                  : "";
+              if (!description) break;
+              const separator = description.indexOf(":");
+              if (separator > 0) {
+                const key = description.slice(0, separator).trim();
+                const value = description.slice(separator + 1).trim();
+                this.conditionBlocks.push({
+                  keyword: key,
+                  values: value ? [value] : [""],
+                });
+              } else {
+                this.conditionBlocks.push({
+                  keyword: "",
+                  values: [description],
+                });
+              }
+
+              break;
+            }
+
+            default:
+              // Rule types the form cannot represent (OCCUPATION,
+              // SOCIAL_CATEGORY, DISABILITY_STATUS, legacy shapes):
+              // carried verbatim so editing never discards them.
+              this.passthroughEligibilityRules.push({ ...(rule as object) });
 
               break;
           }
@@ -817,6 +1583,15 @@ export class AddPolicyComponent implements OnInit {
 
         this.currentStep = 1;
         this.completedSteps = new Set<number>();
+
+        // Uploaded-document state follows the policy being edited:
+        // preserved untouched unless the user replaces/removes it.
+        this.pendingDocumentFile = null;
+        this.documentError = null;
+        this.documentProgress = 0;
+        this.documentUploading = false;
+        this.existingDocument = null;
+        this.loadExistingDocument(id);
       },
 
       error: (error) => {
@@ -847,17 +1622,15 @@ export class AddPolicyComponent implements OnInit {
 
     const eligibilityRules: Array<Record<string, unknown>> = [];
 
-    /* TARGET BENEFICIARIES */
+    /* TARGET BENEFICIARIES (chip array; backend stores the list verbatim) */
 
-    const targetBeneficiaries = String(
-      formValue.targetBeneficiaries ?? "",
-    ).trim();
+    const beneficiaries = this.filteredBeneficiaries;
 
-    if (targetBeneficiaries) {
+    if (beneficiaries.length > 0) {
       eligibilityRules.push({
         rule_type: "TARGET_BENEFICIARIES",
 
-        value: targetBeneficiaries,
+        value: beneficiaries,
       });
     }
 
@@ -946,18 +1719,48 @@ export class AddPolicyComponent implements OnInit {
       });
     }
 
-    /* CUSTOM CONDITIONS */
+    /* ----------------------------------------------------------
+       CUSTOM CONDITIONS (KEY-VALUE BLOCKS)
+       ----------------------------------------------------------
+       Backend contract (`eligibility_rules` JSONB, validated by
+       `_clean_eligibility_rules`): each block serializes to ONE entry
+         { rule_type: "CUSTOM_CONDITION",
+           key: "<trimmed keyword>",
+           values: ["<trimmed value>", ...],
+           description: "<key>: <v1>, <v2>" }
+       `rule_type` must be a known type (CUSTOM_CONDITION is); extra
+       keys are stored verbatim. Keyword-less blocks with values fall
+       back to the legacy shape ({ rule_type, description }) so plain
+       conditions keep working. Fully empty blocks are excluded.
+       Mandatory fields above are never touched here; passthrough
+       rules (unedited types / legacy shapes) are appended unchanged.
+       ---------------------------------------------------------- */
 
-    this.additionalEligibilityConditions
-      .map((condition) => String(condition ?? "").trim())
-      .filter((condition) => condition.length > 0)
-      .forEach((condition) => {
+    for (const block of this.conditionBlocks) {
+      const keyword = String(block.keyword ?? "").trim();
+      const values = this.conditionBlockValues(block);
+
+      if (!keyword && values.length === 0) continue;
+
+      if (keyword) {
         eligibilityRules.push({
           rule_type: "CUSTOM_CONDITION",
-
-          description: condition,
+          key: keyword,
+          values,
+          description:
+            values.length > 0 ? `${keyword}: ${values.join(", ")}` : keyword,
         });
-      });
+      } else {
+        eligibilityRules.push({
+          rule_type: "CUSTOM_CONDITION",
+          description: values.join(", "),
+        });
+      }
+    }
+
+    for (const passthrough of this.passthroughEligibilityRules) {
+      eligibilityRules.push({ ...passthrough });
+    }
 
     /* ----------------------------------------------------------
        FINAL POLICY CREATE PAYLOAD
@@ -989,6 +1792,20 @@ export class AddPolicyComponent implements OnInit {
       benefits: this.filteredBenefits,
 
       eligibility_rules: eligibilityRules,
+
+      key_objectives: this.filteredHighlights,
+
+      additional_info:
+        String(formValue.additionalInfo ?? "").trim() || null,
+
+      important_notes:
+        String(formValue.importantNotes ?? "").trim() || null,
+
+      documents_required:
+        String(formValue.documentsRequired ?? "").trim() || null,
+
+      implementation_process:
+        String(formValue.implementationProcess ?? "").trim() || null,
     };
 
     return payload;
@@ -998,6 +1815,51 @@ export class AddPolicyComponent implements OnInit {
      SAVE AS DRAFT
      ============================================================ */
 
+  /**
+   * Open the Save-as-Draft confirmation immediately (no API call yet).
+   * The request fires only after the user confirms in the modal.
+   */
+  openSaveDraftConfirm(): void {
+    if (
+      this.isReadOnly ||
+      this.isSaving ||
+      this.isSubmitting ||
+      this.isApproving ||
+      this.modalType !== null ||
+      this.confirmModalOpen
+    ) {
+      return;
+    }
+
+    if (
+      this.isEditMode &&
+      this.editingPolicyId !== null &&
+      !this.isCurrentPolicyEditable()
+    ) {
+      this.errorMessage =
+        `This policy is currently ${this.currentPolicyStatus}. ` +
+        `It cannot be edited in its current workflow state.`;
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    const title = this.getPolicyTitleForModal();
+    this.confirmTitle = "Save Policy as Draft";
+    this.confirmMessage = `You are about to save ${title} as a draft. You can continue editing it later.`;
+    this.confirmMessageBefore = "You are about to save ";
+    this.confirmHighlight = title;
+    this.confirmMessageAfter = " as a draft. You can continue editing it later.";
+    this.confirmParseQuotes = true;
+    this.confirmVariant = "primary";
+    this.confirmText = "Save as Draft";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => this.saveDraft();
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
   saveDraft(): void {
     if (
       this.isReadOnly ||
@@ -1006,6 +1868,14 @@ export class AddPolicyComponent implements OnInit {
       this.isApproving ||
       this.modalType !== null
     ) {
+      return;
+    }
+
+    if (this.documentUploading) {
+      this.errorMessage =
+        "Please wait for the document upload to finish before saving.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
       return;
     }
 
@@ -1025,6 +1895,8 @@ export class AddPolicyComponent implements OnInit {
     }
 
     this.isSaving = true;
+    this.confirmLoading = true;
+    this.confirmErrorMessage = null;
     this.errorMessage = null;
 
     const payload = this.buildPolicyPayload();
@@ -1034,27 +1906,64 @@ export class AddPolicyComponent implements OnInit {
        ---------------------------------------------------------- */
 
     if (this.isEditMode && this.editingPolicyId !== null) {
-      this.policyService.updatePolicy(this.editingPolicyId, payload).subscribe({
+      const policyId = this.editingPolicyId;
+      this.policyService.updatePolicy(policyId, payload).subscribe({
         next: (response) => {
-          this.setPolicyStatus(
-            response?.status,
-            this.currentPolicyStatus ?? "DRAFT",
-          );
-
-          this.isSaving = false;
-
-          this.showDraftToast();
+          // A pending file can only exist if the user picked it just
+          // before confirming; upload it now so the draft keeps its
+          // document association.
+          const afterUpdate = () => {
+            try {
+              this.setPolicyStatus(
+                response?.status,
+                this.currentPolicyStatus ?? "DRAFT",
+              );
+              this.closeConfirmModal();
+              this.showDraftToast();
+              this.router.navigate([
+                "/dashboard",
+                this.rolePrefix,
+                "policies",
+                "manage",
+              ]);
+            } finally {
+              this.isSaving = false;
+              this.closeConfirmModal();
+              this.cdr.detectChanges();
+            }
+          };
+          if (this.pendingDocumentFile) {
+            void this.uploadPendingDocument(policyId).then(
+              () => afterUpdate(),
+              () => {
+                this.isSaving = false;
+                this.confirmLoading = false;
+                this.errorMessage =
+                  this.documentError ?? "Failed to upload the policy document.";
+                this.confirmErrorMessage = this.errorMessage;
+                this.currentStep = 4;
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                this.cdr.detectChanges();
+              },
+            );
+            return;
+          }
+          afterUpdate();
         },
 
         error: (error) => {
           console.error("Failed to update policy draft:", error);
 
           this.isSaving = false;
+          this.confirmLoading = false;
 
-          this.errorMessage = this.getErrorMessage(
+          const message = this.getErrorMessage(
             error,
             "Failed to save policy draft.",
           );
+          this.errorMessage = message;
+          this.confirmErrorMessage = message;
+          this.cdr.detectChanges();
         },
       });
 
@@ -1075,40 +1984,116 @@ export class AddPolicyComponent implements OnInit {
 
         if (!Number.isInteger(policyId) || policyId <= 0) {
           this.isSaving = false;
+          this.confirmLoading = false;
 
           this.errorMessage =
             "Draft was created, but the server did not return a valid policy ID.";
+          this.confirmErrorMessage = this.errorMessage;
           window.scrollTo({ top: 0, behavior: "smooth" });
           this.cdr.detectChanges();
 
           return;
         }
 
-        this.editingPolicyId = policyId;
+        // The draft now exists: upload any pending file against this
+        // policy ID before leaving, so drafts retain their document
+        // association and no orphaned upload is possible (uploads only
+        // ever run after a successful policy creation).
+        if (this.pendingDocumentFile) {
+          this.editingPolicyId = policyId;
+          this.isEditMode = true;
+          this.setPolicyStatus(response?.status, "DRAFT");
+          void this.uploadPendingDocument(policyId).then(
+            () => {
+              try {
+                this.closeConfirmModal();
+                this.showDraftToast();
+                this.router.navigate([
+                  "/dashboard",
+                  this.rolePrefix,
+                  "policies",
+                  "manage",
+                ]);
+              } finally {
+                this.isSaving = false;
+                this.closeConfirmModal();
+                this.cdr.detectChanges();
+              }
+            },
+            () => {
+              this.isSaving = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
+          return;
+        }
 
-        this.isEditMode = true;
+        try {
+          this.editingPolicyId = policyId;
 
-        this.setPolicyStatus(response?.status, "DRAFT");
+          this.isEditMode = true;
 
-        this.isSaving = false;
+          this.setPolicyStatus(response?.status, "DRAFT");
 
-        this.showDraftToast();
-        this.cdr.detectChanges();
+          this.closeConfirmModal();
+          this.showDraftToast();
+          this.router.navigate([
+            "/dashboard",
+            this.rolePrefix,
+            "policies",
+            "manage",
+          ]);
+        } finally {
+          this.isSaving = false;
+          this.closeConfirmModal();
+          this.cdr.detectChanges();
+        }
       },
 
       error: (error) => {
         console.error("Failed to create draft:", error);
 
         this.isSaving = false;
+        this.confirmLoading = false;
 
-        this.errorMessage = this.getErrorMessage(
+        const message = this.getErrorMessage(
           error,
           "Failed to save policy draft.",
         );
+        this.errorMessage = message;
+        this.confirmErrorMessage = message;
         window.scrollTo({ top: 0, behavior: "smooth" });
         this.cdr.detectChanges();
       },
     });
+  }
+
+  /** Dismiss the pre-action confirmation and reset its state. */
+  private closeConfirmModal(): void {
+    this.confirmModalOpen = false;
+    this.confirmAction = null;
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmText = "Confirm";
+  }
+
+  onConfirmModalConfirmed(): void {
+    if (this.confirmLoading) return;
+    if (this.confirmAction) {
+      this.confirmAction();
+    }
+  }
+
+  onConfirmModalCancelled(): void {
+    if (this.confirmLoading) return;
+    this.closeConfirmModal();
+    this.cdr.detectChanges();
   }
 
   /* ============================================================
@@ -1178,6 +2163,57 @@ export class AddPolicyComponent implements OnInit {
       return;
     }
 
+    /*
+     * Key-value conditions live outside the FormGroup: reject duplicate
+     * keywords explicitly before any submission payload is built.
+     */
+    if (this.hasDuplicateConditionKeys()) {
+      this.stepSubmitted[3] = true;
+      this.currentStep = 3;
+      this.errorMessage =
+        "Each condition keyword must be unique. Remove or rename the duplicate keywords before submitting.";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+
+      return;
+    }
+
+    /* ----------------------------------------------------------
+       OPEN SUBMIT CONFIRMATION (no API call yet)
+       ---------------------------------------------------------- */
+
+    this.openSubmitConfirm();
+  }
+
+  /**
+   * Open the Submit confirmation immediately after validation passes.
+   * The draft-then-submit requests fire only after the user confirms.
+   */
+  private openSubmitConfirm(): void {
+    if (this.confirmModalOpen) return;
+
+    const title = this.getPolicyTitleForModal();
+    this.confirmTitle = "Submit Policy";
+    this.confirmMessage = this.isAdmin
+      ? `You are about to submit ${title}. It will be published on the PolicyGPT platform.`
+      : `You are about to submit ${title}. It will be submitted to the Admin for review and approval, and published only after approval.`;
+    this.confirmMessageBefore = "You are about to submit ";
+    this.confirmHighlight = title;
+    this.confirmMessageAfter = this.isAdmin
+      ? ". It will be published on the PolicyGPT platform."
+      : ". It will be submitted to the Admin for review and approval, and published only after approval.";
+    this.confirmParseQuotes = true;
+    this.confirmVariant = "primary";
+    this.confirmText = this.isAdmin ? "Submit" : "Submit for Approval";
+    this.confirmLoading = false;
+    this.confirmErrorMessage = null;
+    this.confirmAction = () => this.executeSubmit();
+    this.confirmModalOpen = true;
+    this.cdr.detectChanges();
+  }
+
+  /** Run the validated draft-then-submit sequence after confirmation. */
+  private executeSubmit(): void {
     /* ----------------------------------------------------------
        PREVENT DUPLICATE REQUESTS
        ---------------------------------------------------------- */
@@ -1196,6 +2232,18 @@ export class AddPolicyComponent implements OnInit {
       });
       return;
     }
+
+    if (this.documentUploading) {
+      this.errorMessage =
+        "Please wait for the document upload to finish before submitting.";
+      this.confirmErrorMessage = this.errorMessage;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.confirmLoading = true;
+    this.confirmErrorMessage = null;
+    this.cdr.detectChanges();
 
     /* ----------------------------------------------------------
        EXISTING POLICY
@@ -1248,9 +2296,11 @@ export class AddPolicyComponent implements OnInit {
 
         if (!Number.isInteger(policyId) || policyId <= 0) {
           this.isSubmitting = false;
+          this.confirmLoading = false;
 
           this.errorMessage =
             "Policy draft was created, but the server did not return a valid policy ID.";
+          this.confirmErrorMessage = this.errorMessage;
           window.scrollTo({ top: 0, behavior: "smooth" });
           this.cdr.detectChanges();
 
@@ -1262,6 +2312,29 @@ export class AddPolicyComponent implements OnInit {
         this.isEditMode = true;
 
         this.setPolicyStatus(response?.status, "DRAFT");
+
+        // Upload any pending file before submitting so the submitted
+        // policy carries its document. An upload failure aborts the
+        // submit (the draft already exists) with an accurate message.
+        if (this.pendingDocumentFile) {
+          void this.uploadPendingDocument(policyId).then(
+            () => {
+              console.log("[ADD POLICY] calling submit API:", policyId);
+              this.callSubmitApi(policyId);
+            },
+            () => {
+              this.isSubmitting = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
+          return;
+        }
 
         /*
          * STEP 2:
@@ -1276,11 +2349,14 @@ export class AddPolicyComponent implements OnInit {
         console.error("[ADD POLICY] saveDraft ERROR:", error);
 
         this.isSubmitting = false;
+        this.confirmLoading = false;
 
-        this.errorMessage = this.getErrorMessage(
+        const message = this.getErrorMessage(
           error,
           "Failed to create policy draft.",
         );
+        this.errorMessage = message;
+        this.confirmErrorMessage = message;
         window.scrollTo({ top: 0, behavior: "smooth" });
         this.cdr.detectChanges();
       },
@@ -1302,6 +2378,16 @@ export class AddPolicyComponent implements OnInit {
       return;
     }
 
+    if (this.documentUploading) {
+      this.isSubmitting = false;
+      this.errorMessage =
+        "Please wait for the document upload to finish before submitting.";
+      this.confirmErrorMessage = this.errorMessage;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.isSubmitting = true;
 
     /*
@@ -1316,6 +2402,25 @@ export class AddPolicyComponent implements OnInit {
           this.currentPolicyStatus ?? "DRAFT",
         );
 
+        // Upload a just-picked replacement before submitting so the
+        // submitted revision carries it. Failures abort the submit.
+        if (this.pendingDocumentFile) {
+          void this.uploadPendingDocument(policyId).then(
+            () => this.callSubmitApi(policyId),
+            () => {
+              this.isSubmitting = false;
+              this.confirmLoading = false;
+              this.errorMessage =
+                this.documentError ?? "Failed to upload the policy document.";
+              this.confirmErrorMessage = this.errorMessage;
+              this.currentStep = 4;
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              this.cdr.detectChanges();
+            },
+          );
+          return;
+        }
+
         /*
          * Then:
          *
@@ -1328,11 +2433,14 @@ export class AddPolicyComponent implements OnInit {
         console.error("[ADD POLICY] Failed to update policy before submission:", error);
 
         this.isSubmitting = false;
+        this.confirmLoading = false;
 
-        this.errorMessage = this.getErrorMessage(
+        const message = this.getErrorMessage(
           error,
           "Failed to update policy before submission.",
         );
+        this.errorMessage = message;
+        this.confirmErrorMessage = message;
         window.scrollTo({ top: 0, behavior: "smooth" });
         this.cdr.detectChanges();
       },
@@ -1348,45 +2456,57 @@ export class AddPolicyComponent implements OnInit {
     this.policyService.submitPolicy(policyId).subscribe({
       next: (response) => {
         console.log("[ADD POLICY] submit API SUCCESS:", response);
-        this.setPolicyStatus(response?.status, "PENDING_APPROVAL");
-        this.isSubmitting = false;
+        try {
+          this.setPolicyStatus(response?.status, "PENDING_APPROVAL");
+          this.closeConfirmModal();
 
-        /*
-         * ADMIN FLOW
-         *
-         * The submit request is completed first. We then show the
-         * frontend success popup. The actual /approve request is NOT
-         * made until the Admin clicks OK on this popup.
-         *
-         * GOVERNMENT OFFICIAL FLOW
-         *
-         * The policy remains PENDING_APPROVAL and the OK button only
-         * advances the frontend flow to the Add Another Policy popup.
-         */
-        if (this.isAdmin) {
-          console.log("[ADD POLICY] setting Admin modal");
-          this.modalType = "submitted";
-          this.modalTitle = "Policy Added Successfully";
-          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been added successfully.`;
-        } else {
-          console.log("[ADD POLICY] setting Government modal");
-          this.modalType = "pending";
-          this.modalTitle = "Policy Submitted for Approval";
-          this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted to the admin for approval.`;
+          /*
+           * ADMIN FLOW
+           *
+           * The submit request is completed first. Self-approval is
+           * forbidden, so the policy stays PENDING_APPROVAL for a
+           * different administrator to review. The popup confirms
+           * submission (not publication).
+           *
+           * GOVERNMENT OFFICIAL FLOW
+           *
+           * The policy remains PENDING_APPROVAL and the OK button only
+           * advances the frontend flow to the Add Another Policy popup.
+           */
+          if (this.isAdmin) {
+            console.log("[ADD POLICY] setting Admin modal");
+            this.modalType = "submitted";
+            this.modalTitle = "Policy Submitted for Review";
+            this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted. A different administrator must approve it before publication.`;
+            this.toastService.success(`Policy "${this.getPolicyTitleForModal()}" submitted for review.`);
+          } else {
+            console.log("[ADD POLICY] setting Government modal");
+            this.modalType = "pending";
+            this.modalTitle = "Policy Submitted for Approval";
+            this.modalMessage = `Policy '${this.getPolicyTitleForModal()}' has been submitted to the admin for approval.`;
+            this.toastService.success(`Policy "${this.getPolicyTitleForModal()}" submitted for approval.`);
+          }
+          console.log("[ADD POLICY] modalType is now:", this.modalType);
+        } finally {
+          this.isSubmitting = false;
+          this.closeConfirmModal();
+          this.cdr.detectChanges();
         }
-        console.log("[ADD POLICY] modalType is now:", this.modalType);
-        this.cdr.detectChanges();
       },
 
       error: (error) => {
         console.error("[ADD POLICY] submit API ERROR:", error);
 
         this.isSubmitting = false;
+        this.confirmLoading = false;
 
-        this.errorMessage = this.getErrorMessage(
+        const message = this.getErrorMessage(
           error,
           "Failed to submit policy for approval.",
         );
+        this.errorMessage = message;
+        this.confirmErrorMessage = message;
+        this.toastService.error(message);
         window.scrollTo({ top: 0, behavior: "smooth" });
         this.cdr.detectChanges();
       },
@@ -1410,52 +2530,17 @@ export class AddPolicyComponent implements OnInit {
     /*
      * ADMIN:
      *
-     * First popup:
-     * "Policy ... has been added successfully."
-     *
-     * Only after clicking OK do we call the existing backend
-     * approve endpoint. This is the frontend equivalent of the
-     * requested "work as /approve" behaviour.
+     * Self-approval is forbidden by the backend (403 when creator ==
+     * approver), so the create form no longer auto-approves. The policy
+     * stays PENDING_APPROVAL and a different administrator must review
+     * it. OK only advances to the frontend-only "add another" popup.
      */
     if (this.modalType === "submitted" && this.isAdmin) {
-      if (this.editingPolicyId === null) {
-        this.errorMessage =
-          "The policy was submitted, but its policy ID is unavailable for approval.";
-        this.modalType = null;
-        this.cdr.detectChanges();
-        return;
-      }
-
-      this.isApproving = true;
-      this.errorMessage = null;
-
-      this.policyService.approvePolicy(this.editingPolicyId).subscribe({
-        next: (response) => {
-          this.isApproving = false;
-          this.setPolicyStatus(response?.status, "APPROVED");
-
-          /*
-           * The approve API is now finished. The next popup is
-           * frontend-only and asks whether another policy should be added.
-           */
-          this.modalType = "add-more";
-          this.modalTitle = "Policy Approved Successfully";
-          this.modalMessage = "Do you want to add another policy?";
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          console.error("Failed to approve policy:", error);
-
-          this.isApproving = false;
-          this.errorMessage = this.getErrorMessage(
-            error,
-            "Policy was submitted, but approval failed. Please try again.",
-          );
-          this.modalType = null;
-          this.cdr.detectChanges();
-        },
-      });
-
+      this.modalType = "add-more";
+      this.modalTitle = "Policy Submitted for Review";
+      this.modalMessage =
+        "Your policy has been submitted. A different administrator must approve it before publication.";
+      this.cdr.detectChanges();
       return;
     }
 
@@ -1513,11 +2598,25 @@ export class AddPolicyComponent implements OnInit {
 
     this.currentStep = 1;
 
+    this.stepTransition = null;
+
     this.completedSteps = new Set<number>();
 
     this.stepSubmitted = {};
 
-    this.additionalEligibilityConditions = [];
+    this.conditionBlocks = [];
+
+    this.passthroughEligibilityRules = [];
+
+    this.pendingDocumentFile = null;
+    this.existingDocument = null;
+    this.existingDocumentLoading = false;
+    this.documentError = null;
+    this.documentUploading = false;
+    this.documentProgress = 0;
+    this.isDocumentDragging = false;
+    this.isRemovingDocument = false;
+    this.isDownloadingDocument = false;
 
     this.initForm();
 
@@ -1588,11 +2687,7 @@ export class AddPolicyComponent implements OnInit {
      ============================================================ */
 
   private showDraftToast(): void {
-    this.savedDraftToast = true;
-
-    window.setTimeout(() => {
-      this.savedDraftToast = false;
-    }, 3000);
+    this.toastService.success("Policy saved as draft successfully.");
   }
 
   /* ============================================================

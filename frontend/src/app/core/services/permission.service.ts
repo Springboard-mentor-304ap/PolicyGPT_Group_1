@@ -26,7 +26,8 @@ export type ActionType =
   | 'REJECT_DELETE'
   | 'DELETE'
   | 'MANAGE_USERS'
-  | 'VIEW_ANALYTICS';
+  | 'VIEW_ANALYTICS'
+  | 'VIEW_REPORTS';
 
 export interface Action {
   type: ActionType;
@@ -62,11 +63,12 @@ export class PermissionService {
     REJECT_ARCHIVE: { label: 'Reject Archive', icon: '❌', requiresReason: false, confirmationMessage: 'Reject archive request?' },
     RESTORE: { label: 'Restore', icon: '🔄', requiresReason: false, confirmationMessage: 'Restore this archived item?' },
     REQUEST_DELETE: { label: 'Request Delete', icon: '🗑️', requiresReason: true, reasonPlaceholder: 'Enter reason for delete request...', confirmationMessage: 'Submit delete request?' },
-    APPROVE_DELETE: { label: 'Approve Delete', icon: '✅', requiresReason: false, confirmationMessage: 'Permanently delete this item? This cannot be undone.' },
+    APPROVE_DELETE: { label: 'Approve Delete', icon: '✅', requiresReason: false, confirmationMessage: 'Approve deletion? The item will move to Deleted Policies and can be restored within 30 days.' },
     REJECT_DELETE: { label: 'Reject Delete', icon: '❌', requiresReason: false, confirmationMessage: 'Reject delete request?' },
-    DELETE: { label: 'Delete', icon: '🗑️', requiresReason: false, confirmationMessage: 'Permanently delete this item? This cannot be undone.' },
+    DELETE: { label: 'Delete', icon: '🗑️', requiresReason: false, confirmationMessage: 'Delete this item? It will move to Deleted Policies and can be restored within 30 days.' },
     MANAGE_USERS: { label: 'Manage Users', icon: '👥', requiresReason: false },
-    VIEW_ANALYTICS: { label: 'View Analytics', icon: '📊', requiresReason: false }
+    VIEW_ANALYTICS: { label: 'View Analytics', icon: '📊', requiresReason: false },
+    VIEW_REPORTS: { label: 'View Reports', icon: '📈', requiresReason: false }
   };
 
   getAvailableActions(role: string, status: string, entityType: EntityType, isOwner = false): Action[] {
@@ -86,11 +88,11 @@ export class PermissionService {
       actions.push(this.createAction('SUBMIT'));
     }
 
-    if (this.canApprove(normalizedRole, normalizedStatus)) {
+    if (this.canApprove(normalizedRole, normalizedStatus, isOwner)) {
       actions.push(this.createAction('APPROVE'));
     }
 
-    if (this.canReject(normalizedRole, normalizedStatus)) {
+    if (this.canReject(normalizedRole, normalizedStatus, isOwner)) {
       actions.push(this.createAction('REJECT'));
     }
 
@@ -142,7 +144,7 @@ export class PermissionService {
     const upper = role.toUpperCase().trim();
     
     if (upper === 'ADMINISTRATOR' || upper === 'ADMIN') return 'ADMIN';
-    if (upper === 'GOVERNMENT_OFFICIAL' || upper === 'GOVERNMENT_OFFICER' || upper === 'GOVERNMENT' || upper === 'GOVT') return 'GOVERNMENT_OFFICIAL';
+    if (upper === 'GOVERNMENT_OFFICIAL' || upper === 'GOVERNMENT OFFICIAL' || upper === 'GOVERNMENT_OFFICER' || upper === 'GOVERNMENT' || upper === 'GOVT') return 'GOVERNMENT_OFFICIAL';
     if (upper === 'ORGANISATION') return 'ORGANIZATION';
     if (upper === 'CITIZEN') return 'CITIZEN';
     if (upper === 'RESEARCHER') return 'RESEARCHER';
@@ -179,11 +181,18 @@ export class PermissionService {
     return false;
   }
 
-  private canApprove(role: UserRole, status: string): boolean {
+  private canApprove(role: UserRole, status: string, isOwner = false): boolean {
+    // Self-approval is forbidden: even an Admin cannot approve their own
+    // record. The backend enforces this; the UI hides the action as well.
+    if (isOwner) return false;
     return role === 'ADMIN' && status === 'PENDING_APPROVAL';
   }
 
-  private canReject(role: UserRole, status: string): boolean {
+  private canReject(role: UserRole, status: string, isOwner = false): boolean {
+    // Same-owner rejection is hidden for consistency with approval.
+    // Backend still permits rejection decisions by policy; the UI routes
+    // own-record corrections through edit/resubmit instead.
+    if (isOwner) return false;
     return role === 'ADMIN' && status === 'PENDING_APPROVAL';
   }
 
@@ -246,6 +255,11 @@ export class PermissionService {
   }
 
   canViewAnalytics(role: string): boolean {
+    const normalizedRole = this.normalizeRole(role);
+    return ['ADMIN', 'GOVERNMENT_OFFICIAL'].includes(normalizedRole);
+  }
+
+  canViewReports(role: string): boolean {
     const normalizedRole = this.normalizeRole(role);
     return ['ADMIN', 'GOVERNMENT_OFFICIAL'].includes(normalizedRole);
   }

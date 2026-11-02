@@ -26,11 +26,13 @@ def upgrade() -> None:
     op.drop_table('eligibility_rules')
     op.drop_table('scheme_documents')
     op.drop_table('saved_policies')
-    op.drop_index(op.f('ix_password_reset_tokens_user_id'), table_name='password_reset_tokens')
+    op.drop_index(op.f('ix_password_reset_tokens_user_id'),
+                  table_name='password_reset_tokens')
     op.drop_table('password_reset_tokens')
     op.drop_table('policy_documents')
     op.drop_table('notification_preferences')
-    op.drop_index(op.f('ix_otp_verifications_user_id'), table_name='otp_verifications')
+    op.drop_index(op.f('ix_otp_verifications_user_id'),
+                  table_name='otp_verifications')
     op.drop_table('otp_verifications')
     op.drop_table('support_queries')
     op.drop_table('scheme_categories')
@@ -57,266 +59,410 @@ def downgrade() -> None:
     sa.Column('saved_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('saved_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f('saved_schemes_scheme_id_fkey'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('saved_schemes_user_id_fkey'), ondelete='CASCADE'),
+    sa.Column('saved_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f(
+        'saved_schemes_scheme_id_fkey'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'saved_schemes_user_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('saved_id', name=op.f('saved_schemes_pkey')),
-    sa.UniqueConstraint('user_id', 'scheme_id', name=op.f('saved_schemes_user_id_scheme_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.UniqueConstraint('user_id', 'scheme_id', name=op.f(
+        'saved_schemes_user_id_scheme_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('roles',
     sa.Column('role_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('role_name', sa.VARCHAR(length=50), autoincrement=False, nullable=False),
+    sa.Column('role_name', sa.VARCHAR(length=50),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
     sa.PrimaryKeyConstraint('role_id', name=op.f('roles_pkey')),
-    sa.UniqueConstraint('role_name', name=op.f('roles_role_name_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.UniqueConstraint('role_name', name=op.f('roles_role_name_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('schemes',
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.VARCHAR(length=300), autoincrement=False, nullable=False),
+    sa.Column('name', sa.VARCHAR(length=300),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('category', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
-    sa.Column('ministry', sa.VARCHAR(length=200), autoincrement=False, nullable=True),
-    sa.Column('department', sa.VARCHAR(length=200), autoincrement=False, nullable=True),
-    sa.Column('state', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('benefits', postgresql.ARRAY(sa.TEXT()), autoincrement=False, nullable=True),
-    sa.Column('documents_required', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('application_process', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('application_url', sa.TEXT(), autoincrement=False, nullable=True),
+    sa.Column('category', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
+    sa.Column('ministry', sa.VARCHAR(length=200),
+              autoincrement=False, nullable=True),
+    sa.Column('department', sa.VARCHAR(length=200),
+              autoincrement=False, nullable=True),
+    sa.Column('state', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('benefits', postgresql.ARRAY(sa.TEXT()),
+              autoincrement=False, nullable=True),
+    sa.Column('documents_required', sa.TEXT(),
+              autoincrement=False, nullable=True),
+    sa.Column('application_process', sa.TEXT(),
+              autoincrement=False, nullable=True),
+    sa.Column('application_url', sa.TEXT(),
+              autoincrement=False, nullable=True),
     sa.Column('source_url', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text("'DRAFT'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text(
+        "'DRAFT'::character varying"), autoincrement=False, nullable=False),
     sa.Column('created_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('eligibility_rules', postgresql.JSONB(astext_type=sa.Text()), autoincrement=False, nullable=True),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('eligibility_rules', postgresql.JSONB(
+        astext_type=sa.Text()), autoincrement=False, nullable=True),
     sa.Column('approved_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('rejection_reason', sa.TEXT(), autoincrement=False, nullable=True),
+    sa.Column('rejection_reason', sa.TEXT(),
+              autoincrement=False, nullable=True),
     sa.Column('archive_reason', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('archive_requested_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('archive_requested_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
+    sa.Column('archive_requested_by', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('archive_requested_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=True),
     sa.Column('delete_reason', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_from_status', sa.VARCHAR(length=30), autoincrement=False, nullable=True),
-    sa.ForeignKeyConstraint(['approved_by'], ['users.user_id'], name=op.f('schemes_approved_by_fkey')),
-    sa.ForeignKeyConstraint(['archive_requested_by'], ['users.user_id'], name=op.f('schemes_archive_requested_by_fkey')),
-    sa.ForeignKeyConstraint(['created_by'], ['users.user_id'], name=op.f('schemes_created_by_fkey')),
-    sa.ForeignKeyConstraint(['delete_requested_by'], ['users.user_id'], name=op.f('schemes_delete_requested_by_fkey')),
+    sa.Column('delete_requested_by', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('delete_requested_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=True),
+    sa.Column('delete_requested_from_status', sa.VARCHAR(
+        length=30), autoincrement=False, nullable=True),
+    sa.ForeignKeyConstraint(
+        ['approved_by'], ['users.user_id'], name=op.f('schemes_approved_by_fkey')),
+    sa.ForeignKeyConstraint(['archive_requested_by'], ['users.user_id'], name=op.f(
+        'schemes_archive_requested_by_fkey')),
+    sa.ForeignKeyConstraint(
+        ['created_by'], ['users.user_id'], name=op.f('schemes_created_by_fkey')),
+    sa.ForeignKeyConstraint(['delete_requested_by'], ['users.user_id'], name=op.f(
+        'schemes_delete_requested_by_fkey')),
     sa.PrimaryKeyConstraint('scheme_id', name=op.f('schemes_pkey'))
     )
     op.create_table('scheme_applications',
-    sa.Column('application_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('application_id', sa.BIGINT(),
+              autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('application_status', sa.VARCHAR(length=50), server_default=sa.text("'PENDING'::character varying"), autoincrement=False, nullable=False),
-    sa.Column('application_date', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('reference_number', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
+    sa.Column('application_status', sa.VARCHAR(length=50), server_default=sa.text(
+        "'PENDING'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('application_date', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('reference_number', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
     sa.Column('remarks', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f('scheme_applications_scheme_id_fkey')),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('scheme_applications_user_id_fkey')),
-    sa.PrimaryKeyConstraint('application_id', name=op.f('scheme_applications_pkey')),
-    sa.UniqueConstraint('reference_number', name=op.f('scheme_applications_reference_number_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f(
+        'scheme_applications_scheme_id_fkey')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'scheme_applications_user_id_fkey')),
+    sa.PrimaryKeyConstraint(
+        'application_id', name=op.f('scheme_applications_pkey')),
+    sa.UniqueConstraint('reference_number', name=op.f(
+        'scheme_applications_reference_number_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('audit_logs',
     sa.Column('audit_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('action', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
-    sa.Column('entity_type', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
+    sa.Column('action', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
+    sa.Column('entity_type', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
     sa.Column('entity_id', sa.BIGINT(), autoincrement=False, nullable=True),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('ip_address', postgresql.INET(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('audit_logs_user_id_fkey')),
+    sa.Column('ip_address', postgresql.INET(),
+              autoincrement=False, nullable=True),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'],
+                            name=op.f('audit_logs_user_id_fkey')),
     sa.PrimaryKeyConstraint('audit_id', name=op.f('audit_logs_pkey'))
     )
     op.create_table('faqs',
     sa.Column('faq_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('question', sa.VARCHAR(length=500), autoincrement=False, nullable=False),
+    sa.Column('question', sa.VARCHAR(length=500),
+              autoincrement=False, nullable=False),
     sa.Column('answer', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('category', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('category', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
     sa.PrimaryKeyConstraint('faq_id', name=op.f('faqs_pkey'))
     )
     op.create_table('policy_categories',
     sa.Column('category_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('category_name', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
+    sa.Column('category_name', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.PrimaryKeyConstraint('category_id', name=op.f('policy_categories_pkey')),
-    sa.UniqueConstraint('category_name', name=op.f('policy_categories_category_name_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.PrimaryKeyConstraint(
+        'category_id', name=op.f('policy_categories_pkey')),
+    sa.UniqueConstraint('category_name', name=op.f('policy_categories_category_name_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('feedback',
     sa.Column('feedback_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('policy_id', sa.BIGINT(), autoincrement=False, nullable=True),
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('feedback_type', sa.VARCHAR(length=50), autoincrement=False, nullable=False),
-    sa.Column('subject', sa.VARCHAR(length=255), autoincrement=False, nullable=True),
+    sa.Column('feedback_type', sa.VARCHAR(length=50),
+              autoincrement=False, nullable=False),
+    sa.Column('subject', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=True),
     sa.Column('message', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text("'OPEN'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text(
+        "'OPEN'::character varying"), autoincrement=False, nullable=False),
     sa.Column('admin_response', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f('feedback_policy_id_fkey')),
-    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f('feedback_scheme_id_fkey')),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('feedback_user_id_fkey')),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(
+        ['policy_id'], ['policies.policy_id'], name=op.f('feedback_policy_id_fkey')),
+    sa.ForeignKeyConstraint(
+        ['scheme_id'], ['schemes.scheme_id'], name=op.f('feedback_scheme_id_fkey')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'],
+                            name=op.f('feedback_user_id_fkey')),
     sa.PrimaryKeyConstraint('feedback_id', name=op.f('feedback_pkey'))
     )
     op.create_table('users',
     sa.Column('user_id', sa.INTEGER(), autoincrement=True, nullable=False),
-    sa.Column('full_name', sa.VARCHAR(length=150), autoincrement=False, nullable=False),
-    sa.Column('email', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('password_hash', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('role', sa.VARCHAR(length=30), autoincrement=False, nullable=False),
-    sa.Column('phone', sa.VARCHAR(length=20), autoincrement=False, nullable=True),
+    sa.Column('full_name', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=False),
+    sa.Column('email', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('password_hash', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('role', sa.VARCHAR(length=30),
+              autoincrement=False, nullable=False),
+    sa.Column('phone', sa.VARCHAR(length=20),
+              autoincrement=False, nullable=True),
     sa.Column('date_of_birth', sa.DATE(), autoincrement=False, nullable=True),
-    sa.Column('state', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('district', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('occupation', sa.VARCHAR(length=150), autoincrement=False, nullable=True),
-    sa.Column('organization', sa.VARCHAR(length=200), autoincrement=False, nullable=True),
+    sa.Column('state', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('district', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('occupation', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=True),
+    sa.Column('organization', sa.VARCHAR(length=200),
+              autoincrement=False, nullable=True),
     sa.Column('is_active', sa.BOOLEAN(), autoincrement=False, nullable=False),
-    sa.Column('token_version', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
+    sa.Column('token_version', sa.INTEGER(),
+              autoincrement=False, nullable=False),
+    sa.Column('created_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
     sa.PrimaryKeyConstraint('user_id', name=op.f('users_pkey')),
-    sa.UniqueConstraint('phone', name=op.f('users_phone_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.UniqueConstraint('phone', name=op.f('users_phone_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_table('notifications',
-    sa.Column('notification_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('notification_id', sa.BIGINT(),
+              autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('title', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
+    sa.Column('title', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
     sa.Column('message', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('notification_type', sa.VARCHAR(length=50), autoincrement=False, nullable=False),
-    sa.Column('related_policy_id', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('related_scheme_id', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('is_read', sa.BOOLEAN(), server_default=sa.text('false'), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['related_policy_id'], ['policies.policy_id'], name=op.f('notifications_related_policy_id_fkey')),
-    sa.ForeignKeyConstraint(['related_scheme_id'], ['schemes.scheme_id'], name=op.f('notifications_related_scheme_id_fkey')),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('notifications_user_id_fkey')),
+    sa.Column('notification_type', sa.VARCHAR(length=50),
+              autoincrement=False, nullable=False),
+    sa.Column('related_policy_id', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('related_scheme_id', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('is_read', sa.BOOLEAN(), server_default=sa.text(
+        'false'), autoincrement=False, nullable=False),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['related_policy_id'], ['policies.policy_id'], name=op.f(
+        'notifications_related_policy_id_fkey')),
+    sa.ForeignKeyConstraint(['related_scheme_id'], ['schemes.scheme_id'], name=op.f(
+        'notifications_related_scheme_id_fkey')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'],
+                            name=op.f('notifications_user_id_fkey')),
     sa.PrimaryKeyConstraint('notification_id', name=op.f('notifications_pkey'))
     )
     op.create_table('search_history',
     sa.Column('history_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('search_query', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('search_type', sa.VARCHAR(length=30), autoincrement=False, nullable=False),
-    sa.Column('filters', postgresql.JSONB(astext_type=sa.Text()), autoincrement=False, nullable=True),
-    sa.Column('searched_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('search_history_user_id_fkey')),
+    sa.Column('search_type', sa.VARCHAR(length=30),
+              autoincrement=False, nullable=False),
+    sa.Column('filters', postgresql.JSONB(astext_type=sa.Text()),
+              autoincrement=False, nullable=True),
+    sa.Column('searched_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'search_history_user_id_fkey')),
     sa.PrimaryKeyConstraint('history_id', name=op.f('search_history_pkey'))
     )
     op.create_table('user_profiles',
     sa.Column('profile_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('age', sa.INTEGER(), autoincrement=False, nullable=True),
-    sa.Column('gender', sa.VARCHAR(length=30), autoincrement=False, nullable=True),
-    sa.Column('income', sa.NUMERIC(precision=12, scale=2), autoincrement=False, nullable=True),
-    sa.Column('occupation', sa.VARCHAR(length=150), autoincrement=False, nullable=True),
-    sa.Column('education', sa.VARCHAR(length=150), autoincrement=False, nullable=True),
-    sa.Column('state', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('district', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('social_category', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('disability_status', sa.BOOLEAN(), server_default=sa.text('false'), autoincrement=False, nullable=True),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('user_profiles_user_id_fkey'), ondelete='CASCADE'),
+    sa.Column('gender', sa.VARCHAR(length=30),
+              autoincrement=False, nullable=True),
+    sa.Column('income', sa.NUMERIC(precision=12, scale=2),
+              autoincrement=False, nullable=True),
+    sa.Column('occupation', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=True),
+    sa.Column('education', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=True),
+    sa.Column('state', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('district', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('social_category', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('disability_status', sa.BOOLEAN(), server_default=sa.text(
+        'false'), autoincrement=False, nullable=True),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'user_profiles_user_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('profile_id', name=op.f('user_profiles_pkey')),
-    sa.UniqueConstraint('user_id', name=op.f('user_profiles_user_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.UniqueConstraint('user_id', name=op.f('user_profiles_user_id_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('scheme_categories',
     sa.Column('category_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('category_name', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
+    sa.Column('category_name', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.PrimaryKeyConstraint('category_id', name=op.f('scheme_categories_pkey')),
-    sa.UniqueConstraint('category_name', name=op.f('scheme_categories_category_name_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.PrimaryKeyConstraint(
+        'category_id', name=op.f('scheme_categories_pkey')),
+    sa.UniqueConstraint('category_name', name=op.f('scheme_categories_category_name_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('support_queries',
     sa.Column('query_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('subject', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
+    sa.Column('subject', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('priority', sa.VARCHAR(length=30), server_default=sa.text("'MEDIUM'::character varying"), autoincrement=False, nullable=False),
-    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text("'OPEN'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('priority', sa.VARCHAR(length=30), server_default=sa.text(
+        "'MEDIUM'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text(
+        "'OPEN'::character varying"), autoincrement=False, nullable=False),
     sa.Column('assigned_to', sa.BIGINT(), autoincrement=False, nullable=True),
     sa.Column('response', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('resolved_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
-    sa.ForeignKeyConstraint(['assigned_to'], ['users.user_id'], name=op.f('support_queries_assigned_to_fkey')),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('support_queries_user_id_fkey')),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('resolved_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=True),
+    sa.ForeignKeyConstraint(['assigned_to'], ['users.user_id'], name=op.f(
+        'support_queries_assigned_to_fkey')),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'support_queries_user_id_fkey')),
     sa.PrimaryKeyConstraint('query_id', name=op.f('support_queries_pkey'))
     )
     op.create_table('otp_verifications',
     sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('otp_hash', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('expires_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
+    sa.Column('otp_hash', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('expires_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
     sa.Column('used', sa.BOOLEAN(), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('otp_verifications_user_id_fkey'), ondelete='CASCADE'),
+    sa.Column('created_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'otp_verifications_user_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('otp_verifications_pkey'))
     )
-    op.create_index(op.f('ix_otp_verifications_user_id'), 'otp_verifications', ['user_id'], unique=False)
+    op.create_index(op.f('ix_otp_verifications_user_id'),
+                    'otp_verifications', ['user_id'], unique=False)
     op.create_table('notification_preferences',
-    sa.Column('preference_id', sa.BIGINT(), autoincrement=True, nullable=False),
+    sa.Column('preference_id', sa.BIGINT(),
+              autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('email_enabled', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.Column('sms_enabled', sa.BOOLEAN(), server_default=sa.text('false'), autoincrement=False, nullable=False),
-    sa.Column('in_app_enabled', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.Column('policy_alerts', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.Column('scheme_updates', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.Column('deadline_reminders', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('notification_preferences_user_id_fkey'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('preference_id', name=op.f('notification_preferences_pkey')),
-    sa.UniqueConstraint('user_id', name=op.f('notification_preferences_user_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.Column('email_enabled', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.Column('sms_enabled', sa.BOOLEAN(), server_default=sa.text(
+        'false'), autoincrement=False, nullable=False),
+    sa.Column('in_app_enabled', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.Column('policy_alerts', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.Column('scheme_updates', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.Column('deadline_reminders', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'notification_preferences_user_id_fkey'), ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('preference_id', name=op.f(
+        'notification_preferences_pkey')),
+    sa.UniqueConstraint('user_id', name=op.f('notification_preferences_user_id_key'),
+                        postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('policy_documents',
     sa.Column('document_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('policy_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('document_name', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('document_type', sa.VARCHAR(length=50), autoincrement=False, nullable=True),
+    sa.Column('document_name', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('document_type', sa.VARCHAR(length=50),
+              autoincrement=False, nullable=True),
     sa.Column('document_url', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('uploaded_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f('policy_documents_policy_id_fkey'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['uploaded_by'], ['users.user_id'], name=op.f('policy_documents_uploaded_by_fkey')),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f(
+        'policy_documents_policy_id_fkey'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['uploaded_by'], ['users.user_id'], name=op.f(
+        'policy_documents_uploaded_by_fkey')),
     sa.PrimaryKeyConstraint('document_id', name=op.f('policy_documents_pkey'))
     )
     op.create_table('password_reset_tokens',
     sa.Column('id', sa.INTEGER(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.INTEGER(), autoincrement=False, nullable=False),
-    sa.Column('token_hash', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('expires_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
+    sa.Column('token_hash', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('expires_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
     sa.Column('used', sa.BOOLEAN(), autoincrement=False, nullable=False),
-    sa.Column('created_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('password_reset_tokens_user_id_fkey'), ondelete='CASCADE'),
+    sa.Column('created_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'password_reset_tokens_user_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id', name=op.f('password_reset_tokens_pkey'))
     )
-    op.create_index(op.f('ix_password_reset_tokens_user_id'), 'password_reset_tokens', ['user_id'], unique=False)
+    op.create_index(op.f('ix_password_reset_tokens_user_id'),
+                    'password_reset_tokens', ['user_id'], unique=False)
     op.create_table('saved_policies',
     sa.Column('saved_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('user_id', sa.BIGINT(), autoincrement=False, nullable=False),
     sa.Column('policy_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('saved_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f('saved_policies_policy_id_fkey'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f('saved_policies_user_id_fkey'), ondelete='CASCADE'),
+    sa.Column('saved_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f(
+        'saved_policies_policy_id_fkey'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], name=op.f(
+        'saved_policies_user_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('saved_id', name=op.f('saved_policies_pkey')),
-    sa.UniqueConstraint('user_id', 'policy_id', name=op.f('saved_policies_user_id_policy_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
+    sa.UniqueConstraint('user_id', 'policy_id', name=op.f(
+        'saved_policies_user_id_policy_id_key'), postgresql_include=[], postgresql_nulls_not_distinct=False)
     )
     op.create_table('scheme_documents',
     sa.Column('document_id', sa.BIGINT(), autoincrement=True, nullable=False),
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('document_name', sa.VARCHAR(length=255), autoincrement=False, nullable=False),
-    sa.Column('document_type', sa.VARCHAR(length=50), autoincrement=False, nullable=True),
+    sa.Column('document_name', sa.VARCHAR(length=255),
+              autoincrement=False, nullable=False),
+    sa.Column('document_type', sa.VARCHAR(length=50),
+              autoincrement=False, nullable=True),
     sa.Column('document_url', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('uploaded_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f('scheme_documents_scheme_id_fkey'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['uploaded_by'], ['users.user_id'], name=op.f('scheme_documents_uploaded_by_fkey')),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f(
+        'scheme_documents_scheme_id_fkey'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['uploaded_by'], ['users.user_id'], name=op.f(
+        'scheme_documents_uploaded_by_fkey')),
     sa.PrimaryKeyConstraint('document_id', name=op.f('scheme_documents_pkey'))
     )
     op.create_table('eligibility_rules',
@@ -325,68 +471,113 @@ def downgrade() -> None:
     sa.Column('scheme_id', sa.BIGINT(), autoincrement=False, nullable=True),
     sa.Column('min_age', sa.INTEGER(), autoincrement=False, nullable=True),
     sa.Column('max_age', sa.INTEGER(), autoincrement=False, nullable=True),
-    sa.Column('gender', sa.VARCHAR(length=30), autoincrement=False, nullable=True),
-    sa.Column('max_income', sa.NUMERIC(precision=12, scale=2), autoincrement=False, nullable=True),
-    sa.Column('occupation', sa.VARCHAR(length=150), autoincrement=False, nullable=True),
-    sa.Column('education', sa.VARCHAR(length=150), autoincrement=False, nullable=True),
-    sa.Column('state', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('social_category', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('disability_status', sa.BOOLEAN(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('is_active', sa.BOOLEAN(), server_default=sa.text('true'), autoincrement=False, nullable=False),
-    sa.CheckConstraint('max_age IS NULL OR max_age >= 0', name=op.f('chk_max_age')),
-    sa.CheckConstraint('max_income IS NULL OR max_income >= 0::numeric', name=op.f('chk_max_income')),
-    sa.CheckConstraint('min_age IS NULL OR max_age IS NULL OR min_age <= max_age', name=op.f('chk_age_range')),
-    sa.CheckConstraint('min_age IS NULL OR min_age >= 0', name=op.f('chk_min_age')),
-    sa.CheckConstraint('policy_id IS NOT NULL AND scheme_id IS NULL OR policy_id IS NULL AND scheme_id IS NOT NULL', name=op.f('chk_policy_or_scheme')),
-    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f('eligibility_rules_policy_id_fkey'), ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f('eligibility_rules_scheme_id_fkey'), ondelete='CASCADE'),
+    sa.Column('gender', sa.VARCHAR(length=30),
+              autoincrement=False, nullable=True),
+    sa.Column('max_income', sa.NUMERIC(precision=12, scale=2),
+              autoincrement=False, nullable=True),
+    sa.Column('occupation', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=True),
+    sa.Column('education', sa.VARCHAR(length=150),
+              autoincrement=False, nullable=True),
+    sa.Column('state', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('social_category', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('disability_status', sa.BOOLEAN(),
+              autoincrement=False, nullable=True),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('is_active', sa.BOOLEAN(), server_default=sa.text(
+        'true'), autoincrement=False, nullable=False),
+    sa.CheckConstraint('max_age IS NULL OR max_age >= 0',
+                       name=op.f('chk_max_age')),
+    sa.CheckConstraint(
+        'max_income IS NULL OR max_income >= 0::numeric', name=op.f('chk_max_income')),
+    sa.CheckConstraint(
+        'min_age IS NULL OR max_age IS NULL OR min_age <= max_age', name=op.f('chk_age_range')),
+    sa.CheckConstraint('min_age IS NULL OR min_age >= 0',
+                       name=op.f('chk_min_age')),
+    sa.CheckConstraint('policy_id IS NOT NULL AND scheme_id IS NULL OR policy_id IS NULL AND scheme_id IS NOT NULL', name=op.f(
+        'chk_policy_or_scheme')),
+    sa.ForeignKeyConstraint(['policy_id'], ['policies.policy_id'], name=op.f(
+        'eligibility_rules_policy_id_fkey'), ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['scheme_id'], ['schemes.scheme_id'], name=op.f(
+        'eligibility_rules_scheme_id_fkey'), ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('rule_id', name=op.f('eligibility_rules_pkey'))
     )
     op.create_table('policies',
     sa.Column('policy_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('title', sa.VARCHAR(length=300), autoincrement=False, nullable=False),
+    sa.Column('title', sa.VARCHAR(length=300),
+              autoincrement=False, nullable=False),
     sa.Column('description', sa.TEXT(), autoincrement=False, nullable=False),
-    sa.Column('category', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
-    sa.Column('ministry', sa.VARCHAR(length=200), autoincrement=False, nullable=True),
-    sa.Column('department', sa.VARCHAR(length=200), autoincrement=False, nullable=True),
-    sa.Column('state', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('sector', sa.VARCHAR(length=100), autoincrement=False, nullable=True),
-    sa.Column('publication_date', sa.DATE(), autoincrement=False, nullable=True),
+    sa.Column('category', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
+    sa.Column('ministry', sa.VARCHAR(length=200),
+              autoincrement=False, nullable=True),
+    sa.Column('department', sa.VARCHAR(length=200),
+              autoincrement=False, nullable=True),
+    sa.Column('state', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('sector', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=True),
+    sa.Column('publication_date', sa.DATE(),
+              autoincrement=False, nullable=True),
     sa.Column('effective_date', sa.DATE(), autoincrement=False, nullable=True),
-    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text("'DRAFT'::character varying"), autoincrement=False, nullable=False),
+    sa.Column('status', sa.VARCHAR(length=30), server_default=sa.text(
+        "'DRAFT'::character varying"), autoincrement=False, nullable=False),
     sa.Column('document_url', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('source_url', sa.TEXT(), autoincrement=False, nullable=True),
     sa.Column('created_by', sa.BIGINT(), autoincrement=False, nullable=True),
     sa.Column('approved_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.Column('eligibility_rules', postgresql.JSONB(astext_type=sa.Text()), autoincrement=False, nullable=True),
-    sa.Column('benefits', postgresql.ARRAY(sa.TEXT()), autoincrement=False, nullable=True),
+    sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.Column('eligibility_rules', postgresql.JSONB(
+        astext_type=sa.Text()), autoincrement=False, nullable=True),
+    sa.Column('benefits', postgresql.ARRAY(sa.TEXT()),
+              autoincrement=False, nullable=True),
     sa.Column('archive_reason', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('archive_requested_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('archive_requested_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
+    sa.Column('archive_requested_by', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('archive_requested_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=True),
     sa.Column('delete_reason', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_by', sa.BIGINT(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_at', postgresql.TIMESTAMP(), autoincrement=False, nullable=True),
-    sa.Column('rejection_reason', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('delete_requested_from_status', sa.VARCHAR(length=30), autoincrement=False, nullable=True),
-    sa.ForeignKeyConstraint(['approved_by'], ['users.user_id'], name=op.f('policies_approved_by_fkey')),
-    sa.ForeignKeyConstraint(['archive_requested_by'], ['users.user_id'], name=op.f('policies_archive_requested_by_fkey')),
-    sa.ForeignKeyConstraint(['created_by'], ['users.user_id'], name=op.f('policies_created_by_fkey')),
-    sa.ForeignKeyConstraint(['delete_requested_by'], ['users.user_id'], name=op.f('policies_delete_requested_by_fkey')),
+    sa.Column('delete_requested_by', sa.BIGINT(),
+              autoincrement=False, nullable=True),
+    sa.Column('delete_requested_at', postgresql.TIMESTAMP(),
+              autoincrement=False, nullable=True),
+    sa.Column('rejection_reason', sa.TEXT(),
+              autoincrement=False, nullable=True),
+    sa.Column('delete_requested_from_status', sa.VARCHAR(
+        length=30), autoincrement=False, nullable=True),
+    sa.ForeignKeyConstraint(
+        ['approved_by'], ['users.user_id'], name=op.f('policies_approved_by_fkey')),
+    sa.ForeignKeyConstraint(['archive_requested_by'], ['users.user_id'], name=op.f(
+        'policies_archive_requested_by_fkey')),
+    sa.ForeignKeyConstraint(
+        ['created_by'], ['users.user_id'], name=op.f('policies_created_by_fkey')),
+    sa.ForeignKeyConstraint(['delete_requested_by'], ['users.user_id'], name=op.f(
+        'policies_delete_requested_by_fkey')),
     sa.PrimaryKeyConstraint('policy_id', name=op.f('policies_pkey'))
     )
     op.create_table('reports',
     sa.Column('report_id', sa.BIGINT(), autoincrement=True, nullable=False),
-    sa.Column('generated_by', sa.BIGINT(), autoincrement=False, nullable=False),
-    sa.Column('report_type', sa.VARCHAR(length=100), autoincrement=False, nullable=False),
-    sa.Column('report_format', sa.VARCHAR(length=20), autoincrement=False, nullable=False),
-    sa.Column('parameters', postgresql.JSONB(astext_type=sa.Text()), autoincrement=False, nullable=True),
+    sa.Column('generated_by', sa.BIGINT(),
+              autoincrement=False, nullable=False),
+    sa.Column('report_type', sa.VARCHAR(length=100),
+              autoincrement=False, nullable=False),
+    sa.Column('report_format', sa.VARCHAR(length=20),
+              autoincrement=False, nullable=False),
+    sa.Column('parameters', postgresql.JSONB(astext_type=sa.Text()),
+              autoincrement=False, nullable=True),
     sa.Column('file_path', sa.TEXT(), autoincrement=False, nullable=True),
-    sa.Column('generated_at', postgresql.TIMESTAMP(), server_default=sa.text('CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
-    sa.ForeignKeyConstraint(['generated_by'], ['users.user_id'], name=op.f('reports_generated_by_fkey')),
+    sa.Column('generated_at', postgresql.TIMESTAMP(), server_default=sa.text(
+        'CURRENT_TIMESTAMP'), autoincrement=False, nullable=False),
+    sa.ForeignKeyConstraint(
+        ['generated_by'], ['users.user_id'], name=op.f('reports_generated_by_fkey')),
     sa.PrimaryKeyConstraint('report_id', name=op.f('reports_pkey'))
     )
     # ### end Alembic commands ###

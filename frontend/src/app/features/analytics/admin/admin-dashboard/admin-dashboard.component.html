@@ -1,0 +1,311 @@
+<div class="admin-analytics-page" [attr.aria-busy]="isLoading()">
+  <!-- Breadcrumb -->
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="title-row">
+        <h1 class="page-title">Admin Analytics Dashboard</h1>
+      </div>
+      <p class="page-subtitle">Overview of platform statistics and key insights</p>
+    </div>
+    <div class="header-right">
+      <app-date-range-picker [value]="currentRange()" (rangeChange)="onDateRangeChange($event)"
+        (rangeSelect)="onDateRangeSelect($event)" />
+      <button type="button" class="btn-download" (click)="downloadReport()" [disabled]="isDownloading()"
+        aria-label="Download Admin Analytics Report">
+        <span class="material-icons" aria-hidden="true">download</span>
+        <span>{{ isDownloading() ? 'Downloading...' : 'Download Report' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Top 8 Metric Cards Grid (2 rows x 4 columns) -->
+  @if (loadError()) {
+  <p class="analytics-status error" role="alert">{{ loadError() }}
+    <button type="button" class="analytics-retry-btn" (click)="loadOverviewData(trendTimeframe())">Retry</button>
+  </p>
+  }
+  <div class="top-cards-grid">
+    <!-- 1. Total Users -->
+    <div class="metric-card">
+      <div class="card-icon-circle blue" aria-hidden="true">
+        <span class="material-icons">people</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Users</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="getMetric('Total Users').value">{{ getMetric('Total Users').value
+            }}</span>
+        </div>
+        @if (getMetric('Total Users').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Users').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Users').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
+
+    <!-- 2. Total Policies -->
+    <div class="metric-card">
+      <div class="card-icon-circle purple" aria-hidden="true">
+        <span class="material-icons">description</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Policies</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="getMetric('Total Policies').value">{{ getMetric('Total Policies').value
+            }}</span>
+        </div>
+        @if (getMetric('Total Policies').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Policies').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Policies').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
+
+    <!-- 3. Total Schemes -->
+    <div class="metric-card">
+      <div class="card-icon-circle green" aria-hidden="true">
+        <span class="material-icons">folder</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Schemes</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="getMetric('Total Schemes').value">{{ getMetric('Total Schemes').value
+            }}</span>
+        </div>
+        @if (getMetric('Total Schemes').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Schemes').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Schemes').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
+
+    <!-- 4. Total Notifications -->
+    <div class="metric-card">
+      <div class="card-icon-circle red-bell" aria-hidden="true">
+        <span class="material-icons">notifications</span>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Notifications</span>
+        <div class="card-value-row">
+          <span class="card-value" [appCountUp]="getMetric('Total Notifications').value">{{ getMetric('Total
+            Notifications').value }}</span>
+        </div>
+        @if (getMetric('Total Notifications').change) {
+        <span class="card-trend" [ngClass]="getMetric('Total Notifications').isPositive ? 'green' : 'red'">
+          {{ getMetric('Total Notifications').change }} <span class="trend-sub">from last month</span>
+        </span>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1: Policies by Category + Schemes by Category + User Distribution -->
+  <div class="trio-row">
+    <!-- User Distribution Doughnut Chart -->
+    <div class="chart-card">
+      <h3 class="card-title">User Distribution</h3>
+      <app-doughnut-chart [labels]="userDistLabels" [data]="userDistData"
+        [colors]="['#2f6fed', '#3cb371', '#8b5cf6', '#f5a524', '#e5484d']" [centerMainText]="userDistTotal()"
+        centerSubText="Users" />
+    </div>
+
+    <!-- Policies by Category Doughnut Chart -->
+    <div class="chart-card">
+      <h3 class="card-title">Policies by Category</h3>
+      <app-doughnut-chart [labels]="policyCategoryLabels" [data]="policyCategoryData"
+        [colors]="['#2f6fed', '#3cb371', '#06b6d4', '#f5a524', '#8b5cf6', '#e5484d', '#14b8a6', '#94a3b8']"
+        [centerMainText]="policyCategoryTotal()" centerSubText="Policies" />
+    </div>
+
+    <!-- Schemes by Category Doughnut Chart -->
+    <div class="chart-card">
+      <h3 class="card-title">Schemes by Category</h3>
+      <app-doughnut-chart [labels]="schemesCategoryLabels" [data]="schemesCategoryData"
+        [colors]="['#3cb371', '#2f6fed', '#06b6d4', '#f5a524', '#e5484d', '#94a3b8']" [centerMainText]="schemesTotal()"
+        centerSubText="Schemes" />
+    </div>
+  </div>
+
+  <!-- Row 2: Policies Trend + Scheme Trend -->
+  <div class="duo-row">
+    <!-- Policies Trend Line Chart -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Policies Trend</h3>
+        <div class="timeframe-wrapper">
+          <button type="button" class="time-filter-btn" (click)="toggleTimeframeMenu($event)"
+            [attr.aria-expanded]="showTimeframeMenu()">
+            <span>{{ trendTimeframe() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showTimeframeMenu()) {
+          <div class="timeframe-dropdown" role="menu">
+            @for (opt of timeframeOptions; track opt) {
+            <button type="button" class="timeframe-item" [class.active]="opt === trendTimeframe()"
+              (click)="selectTimeframe(opt)" role="menuitem">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-line-chart [labels]="trendLabels" [datasets]="policiesTrendDatasets" [yMin]="0" [yMax]="chartYMax()" />
+    </div>
+
+    <!-- Scheme Trend Line Chart -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Scheme Trend</h3>
+        <div class="timeframe-wrapper">
+          <button type="button" class="time-filter-btn" (click)="toggleSchemeMenu($event)"
+            [attr.aria-expanded]="showSchemeMenu()">
+            <span>{{ schemeTrendPeriod() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showSchemeMenu()) {
+          <div class="timeframe-dropdown" role="menu">
+            @for (opt of schemeTrendOptions; track opt) {
+            <button type="button" class="timeframe-item" [class.active]="opt === schemeTrendPeriod()"
+              (click)="selectSchemePeriod(opt)" role="menuitem">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-line-chart [labels]="visibleSchemeTrendLabels()" [datasets]="visibleSchemeTrendDatasets()" [yMin]="0"
+        [yMax]="schemeChartYMax()" />
+    </div>
+  </div>
+
+  <!-- Row 3: Department Distribution -->
+  <div class="solo-row">
+    <!-- Department Distribution Vertical Grouped Bar Chart -->
+    <div class="chart-card">
+      <div class="card-header-row">
+        <h3 class="card-title">Department Distribution</h3>
+        <div class="timeframe-wrapper">
+          <button type="button" class="time-filter-btn" (click)="toggleDeptMenu($event)"
+            [attr.aria-expanded]="showDeptMenu()" aria-label="Select department distribution view">
+            <span>{{ deptFilter() }}</span>
+            <span class="material-icons" aria-hidden="true">expand_more</span>
+          </button>
+          @if (showDeptMenu()) {
+          <div class="timeframe-dropdown" role="menu">
+            @for (opt of deptFilterOptions; track opt) {
+            <button type="button" class="timeframe-item" [class.active]="opt === deptFilter()"
+              (click)="selectDeptFilter(opt)" role="menuitem">
+              {{ opt }}
+            </button>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <app-vbar-chart [labels]="visibleDeptLabels()" [values]="visibleDeptPrimaryValues()"
+        [color]="visibleDeptPrimaryColor()" [firstLabel]="visibleDeptPrimaryLabel()"
+        [secondValues]="visibleDeptSecondValues()" secondLabel="Schemes" secondaryColor="#3cb371" [showLegend]="true"
+        [wrapXAxisLabels]="true" [xLabelMaxLines]="12" [fitLabelsToWidth]="true" [growWithLabels]="true"
+        emptyMessage="No department data available." />
+    </div>
+  </div>
+
+  <!-- Tables Row (2 cards) -->
+  <div class="tables-row">
+    <!-- Recent User Activity Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <h3 class="card-title">Recent User Activity</h3>
+        <button type="button" class="btn-view-all" (click)="openAuditLogs()">
+          View All
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Action</th>
+              <th scope="col">Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of recentActivities; track item.user) {
+            <tr>
+              <td class="text-user">{{ item.user }}</td>
+              <td class="text-action">{{ item.action }}</td>
+              <td class="text-muted">{{ item.time }}</td>
+            </tr>
+            } @empty {
+            <tr>
+              <td colspan="3" class="empty-state-cell">
+                <div class="empty-state-box">
+                  <span class="material-icons">search_off</span>
+                  <p>No recent activity found.</p>
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Latest Notifications Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <h3 class="card-title">Latest Notifications</h3>
+        <button type="button" class="btn-view-all" (click)="openNotifications()">
+          View All
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Title</th>
+              <th scope="col">Type</th>
+              <th scope="col">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of notifications; track item.title) {
+            <tr>
+              <td class="text-user">{{ item.title }}</td>
+              <td>
+                <span class="badge-type" [ngClass]="item.typeClass">{{ item.type }}</span>
+              </td>
+              <td class="text-muted">{{ item.date }}</td>
+            </tr>
+            } @empty {
+            @if (notificationsLoading()) {
+            <tr>
+              <td colspan="3" class="text-muted">Loading notifications…</td>
+            </tr>
+            } @else {
+            <tr>
+              <td colspan="3" class="empty-state-cell">
+                <div class="empty-state-box">
+                  <span class="material-icons">search_off</span>
+                  <p>No notifications received yet.</p>
+                </div>
+              </td>
+            </tr>
+            }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

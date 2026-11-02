@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.database import Base
 
@@ -16,10 +16,10 @@ class Feedback(Base):
         autoincrement=True
     )
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BigInteger,
         ForeignKey("extensions.users.user_id"),
-        nullable=False
+        nullable=True
     )
 
     policy_id: Mapped[int | None] = mapped_column(
@@ -66,3 +66,19 @@ class Feedback(Base):
         DateTime,
         nullable=False
     )
+
+    user = relationship("User", foreign_keys=[user_id], lazy="joined")
+
+    @property
+    def user_name(self) -> str | None:
+        if self.user:
+            return self.user.full_name
+        return "Deactivated User" if self.user_id is None else None
+
+    @property
+    def user_email(self) -> str | None:
+        return self.user.email if self.user else None
+
+    @property
+    def user_role(self) -> str | None:
+        return self.user.role if self.user else "CITIZEN"

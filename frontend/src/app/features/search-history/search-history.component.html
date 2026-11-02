@@ -1,0 +1,448 @@
+<div class="history-page">
+
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+  <!-- ============================================================
+       PAGE HEADER
+       ============================================================ -->
+
+  <header class="page-header">
+
+    <div class="header-content">
+
+      <div class="header-main">
+
+        <h1>
+          Search History
+        </h1>
+
+        <p>
+          Your recent searches and previously explored policies and schemes.
+        </p>
+
+      </div>
+
+      @if (!loading && !error && rows.length > 0) {
+
+      <button type="button" class="btn-danger-ghost clear-history-button" (click)="askClear()" [disabled]="clearing">
+
+        <span class="material-icons" aria-hidden="true">
+          delete_sweep
+        </span>
+
+        <span>
+          {{
+          clearing
+          ? 'Clearing…'
+          : 'Clear History'
+          }}
+        </span>
+
+      </button>
+
+      }
+
+    </div>
+
+  </header>
+
+
+  <!-- ============================================================
+       LOADING STATE
+       ============================================================ -->
+
+  @if (loading) {
+
+  <app-loading-indicator message="Loading search history...">
+  </app-loading-indicator>
+
+  }
+
+
+  <!-- ============================================================
+       ERROR STATE
+       ============================================================ -->
+
+  @else if (error) {
+
+  <section class="state-card error-state">
+
+    <div class="state-icon">
+
+      <span class="material-icons" aria-hidden="true">
+        error_outline
+      </span>
+
+    </div>
+
+    <h2>
+      Unable to Load Search History
+    </h2>
+
+    <p>
+      {{ error }}
+    </p>
+
+    <button type="button" class="retry-button" (click)="reload()">
+      Try Again
+    </button>
+
+  </section>
+
+  }
+
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+
+  @else {
+
+  <!-- ==========================================================
+         EMPTY STATE
+         ========================================================== -->
+
+  @if (rows.length === 0) {
+
+  <section class="empty-state">
+
+    <div class="empty-icon">
+
+      <span class="material-icons" aria-hidden="true">
+        history
+      </span>
+
+    </div>
+
+    <h2>
+      No Search History
+    </h2>
+
+    <p>
+      Your recent policy and scheme searches
+      will appear here.
+    </p>
+
+    <div class="empty-actions">
+
+      <a class="btn-primary" [routerLink]="[
+              '..',
+              'policies',
+              'search'
+            ]">
+
+        <span class="material-icons" aria-hidden="true">
+          search
+        </span>
+
+        <span>
+          Search Policies
+        </span>
+
+      </a>
+
+    </div>
+
+  </section>
+
+  }
+
+
+  <!-- ==========================================================
+         RESULTS
+         ========================================================== -->
+
+  @else {
+
+  <!-- ======================================================
+           SUMMARY CARD
+           ====================================================== -->
+
+  <section class="summary-card" aria-label="Search history summary">
+
+    <div class="summary-main">
+
+      <div class="summary-icon" aria-hidden="true">
+
+        <span class="material-icons">
+          history
+        </span>
+
+      </div>
+
+      <div class="summary-text">
+
+        <div class="summary-title-row">
+
+          <h2>
+            Search History
+          </h2>
+
+          <span class="count-badge">
+            {{ totalCount }} {{ totalCount === 1 ? 'Search' : 'Searches' }}
+          </span>
+
+        </div>
+
+        <p>
+          Your recent policy and scheme searches.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="summary-stats">
+
+      <div class="stat-item">
+
+        <span class="material-icons stat-icon" aria-hidden="true">
+          search
+        </span>
+
+        <div class="stat-text">
+
+          <strong>
+            {{ totalCount }}
+          </strong>
+
+          <span>
+            Total
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="stat-item">
+
+        <span class="material-icons stat-icon stat-icon--policy" aria-hidden="true">
+          description
+        </span>
+
+        <div class="stat-text">
+
+          <strong>
+            {{ policyCount }}
+          </strong>
+
+          <span>
+            Policy
+          </span>
+
+        </div>
+
+      </div>
+
+      <div class="stat-item">
+
+        <span class="material-icons stat-icon stat-icon--scheme" aria-hidden="true">
+          account_balance
+        </span>
+
+        <div class="stat-text">
+
+          <strong>
+            {{ schemeCount }}
+          </strong>
+
+          <span>
+            Scheme
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ======================================================
+           RECENT SEARCHES LIST
+           ====================================================== -->
+
+  <section class="results-card" aria-label="Recent searches">
+
+    <div class="results-card-header">
+
+      <h2>
+        Recent Searches
+      </h2>
+
+      <div class="type-tabs" role="group" aria-label="Filter by search type">
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'ALL'"
+          (click)="setFilter('ALL')" [attr.aria-pressed]="activeFilter === 'ALL'">
+          All
+        </button>
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'POLICY'"
+          (click)="setFilter('POLICY')" [attr.aria-pressed]="activeFilter === 'POLICY'">
+          Policy
+        </button>
+
+        <button type="button" class="type-tab" [class.type-tab--active]="activeFilter === 'SCHEME'"
+          (click)="setFilter('SCHEME')" [attr.aria-pressed]="activeFilter === 'SCHEME'">
+          Scheme
+        </button>
+
+      </div>
+
+    </div>
+
+    @if (filteredRows.length === 0) {
+
+    <p class="no-match-note">
+      No searches match this filter. Try a different type.
+    </p>
+
+    }
+
+    @else {
+
+    <ul class="history-list">
+
+      @for (
+      row of filteredRows;
+      track row.history_id
+      ) {
+
+      <li class="history-item">
+
+        <!-- ICON -->
+        <div class="item-icon" [class.item-icon--scheme]="isScheme(row)" aria-hidden="true">
+
+          <span class="material-icons">
+            {{ isScheme(row) ? 'account_balance' : 'description' }}
+          </span>
+
+        </div>
+
+        <!-- QUERY + TYPE + FILTERS -->
+        <div class="item-main">
+
+          <div class="item-query">
+            {{ row.search_query }}
+          </div>
+
+          <span class="type-badge" [class.type-badge--scheme]="isScheme(row)">
+            {{ isScheme(row) ? 'SCHEME' : 'POLICY' }}
+          </span>
+
+          <div class="item-filters">
+
+            @if (filterChips(row).length === 0) {
+
+            <span class="no-filters">
+              No filters
+            </span>
+
+            }
+
+            @else {
+
+            @for (
+            chip of filterChips(row);
+            track chip.key
+            ) {
+
+            <span class="filter-chip">
+              {{ chip.label }}
+            </span>
+
+            }
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- DATE -->
+        <div class="item-date">
+
+          <span class="material-icons" aria-hidden="true">
+            schedule
+          </span>
+
+          <div class="item-date-text">
+
+            <strong>
+              {{ formatDateParts(row.searched_at).date }}
+            </strong>
+
+            @if (formatDateParts(row.searched_at).time) {
+
+            <span>
+              {{ formatDateParts(row.searched_at).time }}
+            </span>
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="item-actions">
+
+          <button type="button" class="btn-secondary btn-small" (click)="searchAgain(row)"
+            [attr.aria-label]="'Search again for ' + row.search_query">
+
+            <span class="material-icons" aria-hidden="true">
+              refresh
+            </span>
+
+            <span>
+              Search Again
+            </span>
+
+          </button>
+
+          <button type="button" class="btn-danger-ghost btn-small" (click)="askDelete(row)" [disabled]="
+                      deletingId === row.history_id
+                    " [attr.aria-label]="'Delete search record ' + row.search_query">
+
+            <span class="material-icons" aria-hidden="true">
+              delete_outline
+            </span>
+
+            <span>
+              {{
+              deletingId === row.history_id
+              ? 'Deleting…'
+              : 'Delete'
+              }}
+            </span>
+
+          </button>
+
+        </div>
+
+      </li>
+
+      }
+
+    </ul>
+
+    }
+
+  </section>
+
+  }
+
+  }
+
+
+  <!-- ============================================================
+       CLEAR HISTORY CONFIRMATION MODAL
+       ============================================================ -->
+
+  <app-confirm-modal [isOpen]="clearConfirmOpen" [title]="'Clear search history?'"
+    [message]="'This action cannot be undone.'" [confirmText]="'Clear History'" [variant]="'danger'"
+    (confirmed)="confirmClear()" (cancelled)="cancelClear()">
+  </app-confirm-modal>
+
+</div>

@@ -1,0 +1,306 @@
+<div class="feedback-page">
+
+  <!-- =========================================================
+     PAGE HEADER (PolicyGPT Standard)
+     ========================================================= -->
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+
+  <header class="page-header">
+    <div class="header-content">
+      <div class="header-main">
+        <h1>Feedback</h1>
+        <p>
+          Share your experience and help us improve PolicyGPT.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <!-- BACK BUTTON (in-page navigation only) -->
+        @if (navContext.shouldShowBack()) {
+        <button type="button" class="back-button" (click)="goBack()">
+          <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
+          <span>Back</span>
+        </button>
+        }
+      </div>
+    </div>
+
+    <!-- TABS BAR -->
+    <div class="feedback-tabs-nav" role="tablist">
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'submit'" (click)="setTab('submit')"
+        role="tab" [attr.aria-selected]="activeTab() === 'submit'">
+        <span class="material-icons">edit_note</span>
+        <span>Submit Feedback</span>
+      </button>
+
+      <button type="button" class="nav-tab-btn" [class.active]="activeTab() === 'history'" (click)="setTab('history')"
+        role="tab" [attr.aria-selected]="activeTab() === 'history'">
+        <span class="material-icons">history</span>
+        <span>My Submissions</span>
+        <span class="tab-count-badge" *ngIf="userFeedbacks().length > 0">
+          {{ userFeedbacks().length }}
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+     TAB 1: SUBMIT FEEDBACK
+     ========================================================= -->
+  <main *ngIf="activeTab() === 'submit'" class="tab-content">
+    <div class="form-container">
+
+      <!-- STEP 1: CATEGORY SELECTION -->
+      <section class="form-section-card">
+        <div class="section-title-wrap">
+          <div class="step-badge">1</div>
+          <div>
+            <h2>Select Feedback Category</h2>
+            <p>Choose the category that best represents your submission</p>
+          </div>
+        </div>
+
+        <div class="type-grid">
+          <div *ngFor="let t of feedbackTypes" class="type-card" [class.selected]="feedbackType === t.value"
+            (click)="selectFeedbackType(t.value)" tabindex="0" role="radio"
+            [attr.aria-checked]="feedbackType === t.value">
+            <div class="type-icon-box">
+              <span class="material-icons">{{ t.icon }}</span>
+            </div>
+            <div class="type-info">
+              <h3>{{ t.label }}</h3>
+              <p>{{ t.description }}</p>
+            </div>
+            <div class="type-radio-indicator">
+              <span class="material-icons" *ngIf="feedbackType === t.value">check_circle</span>
+              <span class="radio-circle" *ngIf="feedbackType !== t.value"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: DETAILS -->
+      <section class="form-section-card">
+        <div class="section-title-wrap">
+          <div class="step-badge">2</div>
+          <div>
+            <h2>Submission Details</h2>
+            <p>Please provide specific information so our administrative team can review and respond accurately</p>
+          </div>
+        </div>
+
+        <div class="form-body">
+          <!-- SUBJECT -->
+          <div class="form-group">
+            <label for="feedbackSubject">Subject / Topic Summary</label>
+            <input id="feedbackSubject" type="text"
+              placeholder="e.g. Inconsistency in PM Kisan document eligibility checklist" [(ngModel)]="subject"
+              maxlength="200" />
+          </div>
+
+          <!-- OPTIONAL REFERENCES (POLICY & SCHEME) -->
+          <div class="form-row">
+            <div class="form-group col-half">
+              <label for="policyId">Related Policy <span class="optional-tag">(Optional)</span></label>
+              <app-searchable-select id="policyId" placeholder="Select a policy"
+                searchPlaceholder="Search policies..." [options]="policyOptions" [ngModel]="policyIdValue"
+                (selectionChange)="onPolicySelect($event)" [searchable]="true" [clearable]="true"
+                [loading]="policiesLoading" loadingText="Loading policies..."
+                [errorText]="policiesError || ''" emptyText="No policies available"
+                ariaLabel="Related policy" />
+            </div>
+            <div class="form-group col-half">
+              <label for="schemeId">Related Scheme <span class="optional-tag">(Optional)</span></label>
+              <app-searchable-select id="schemeId" placeholder="Select a scheme"
+                searchPlaceholder="Search schemes..." [options]="schemeOptions" [ngModel]="schemeIdValue"
+                (selectionChange)="onSchemeSelect($event)" [searchable]="true" [clearable]="true"
+                [loading]="schemesLoading" loadingText="Loading schemes..."
+                [errorText]="schemesError || ''" emptyText="No schemes available"
+                ariaLabel="Related scheme" />
+            </div>
+          </div>
+
+          <!-- MESSAGE -->
+          <div class="form-group">
+            <div class="label-row">
+              <label for="feedbackMessage">Message / Description <span class="required">*</span></label>
+              <span class="char-counter">{{ message.length }} characters</span>
+            </div>
+            <textarea id="feedbackMessage" rows="6"
+              placeholder="Describe your question, observation, or grievance in clear detail..."
+              [(ngModel)]="message"></textarea>
+          </div>
+
+          <!-- ACTIONS -->
+          <div class="form-actions">
+            <button type="button" class="btn-primary-action submit-action-btn" (click)="submitFeedback()"
+              [disabled]="submitting() || !message.trim()">
+              <span class="material-icons" *ngIf="!submitting()">send</span>
+              <span class="spinner" *ngIf="submitting()"></span>
+              <span>{{ submitting() ? 'Submitting...' : 'Submit Feedback' }}</span>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- =========================================================
+     TAB 2: SUBMISSIONS HISTORY
+     ========================================================= -->
+  <main *ngIf="activeTab() === 'history'" class="tab-content">
+    <div class="history-container">
+
+      <!-- SUMMARY CARDS (real backend-driven counts) -->
+      <section class="history-summary" aria-label="Feedback summary"
+        *ngIf="!loadingHistory() && !historyError() && userFeedbacks().length > 0">
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().total }}</span>
+          <span class="summary-label">Total Feedback</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().reviewed }}</span>
+          <span class="summary-label">Reviewed</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-value">{{ historySummary().pending }}</span>
+          <span class="summary-label">Pending</span>
+        </div>
+      </section>
+
+      <!-- FILTER CONTROLS BAR -->
+      <section class="history-filter-card">
+        <!-- SEARCH -->
+        <div class="history-search-wrapper">
+          <span class="search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
+              <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search within your submissions..." [ngModel]="historySearch()"
+            (ngModelChange)="historySearch.set($event)" autocomplete="off" aria-label="Search submissions" />
+          <button *ngIf="historySearch()" type="button" class="clear-search" (click)="historySearch.set('')"
+            aria-label="Clear search">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 7L17 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              <path d="M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- STATUS + CATEGORY FILTERS -->
+        <div class="history-selects">
+          <label class="history-select-wrap">
+            <span class="visually-hidden">Filter by status</span>
+            <app-searchable-select
+              size="filter"
+              ariaLabel="Filter by status"
+              placeholder="All Statuses"
+              [searchable]="false"
+              [options]="historyStatusOptions"
+              [ngModel]="historyStatusFilter()"
+              (ngModelChange)="historyStatusFilter.set($event)"
+            />
+          </label>
+          <label class="history-select-wrap">
+            <span class="visually-hidden">Filter by category</span>
+            <app-searchable-select
+              size="filter"
+              ariaLabel="Filter by category"
+              placeholder="All Categories"
+              [searchable]="true"
+              searchPlaceholder="Search categories..."
+              [options]="historyCategoryOptions()"
+              [ngModel]="historyCategoryFilter()"
+              (ngModelChange)="historyCategoryFilter.set($event)"
+            />
+          </label>
+        </div>
+      </section>
+
+      <!-- LOADING INDICATOR -->
+      <app-loading-indicator *ngIf="loadingHistory()" message="Loading submissions...">
+      </app-loading-indicator>
+
+      <!-- ERROR STATE -->
+      <div *ngIf="!loadingHistory() && historyError()" class="error-card">
+        <div class="error-icon-wrap">
+          <span class="material-icons">error_outline</span>
+        </div>
+        <h3>Failed to load submissions</h3>
+        <p>{{ historyError() }}</p>
+        <button type="button" class="btn-primary-action" (click)="loadHistory()">
+          <span class="material-icons">refresh</span>
+          <span>Try Again</span>
+        </button>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div *ngIf="!loadingHistory() && !historyError() && filteredHistory().length === 0" class="empty-card">
+        <div class="empty-icon-wrap">
+          <span class="material-icons">inbox</span>
+        </div>
+        <h3>No submissions found</h3>
+        <p *ngIf="userFeedbacks().length === 0">
+          You haven't submitted any feedback or grievances yet. Let us know how we can assist you!
+        </p>
+        <p *ngIf="userFeedbacks().length > 0">
+          No submissions matched your search or status filter.
+        </p>
+        <div class="empty-actions">
+          <button type="button" class="btn-primary-action" (click)="setTab('submit')"
+            *ngIf="userFeedbacks().length === 0">
+            <span class="material-icons">rate_review</span>
+            <span>Submit Your First Feedback</span>
+          </button>
+          <button type="button" class="back-button"
+            (click)="historySearch.set(''); historyStatusFilter.set('ALL'); historyCategoryFilter.set('ALL')"
+            *ngIf="userFeedbacks().length > 0">
+            <span class="material-icons back-icon">clear_all</span>
+            <span>Clear Filters</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS LIST (compact rows, real backend data) -->
+      <ul *ngIf="!loadingHistory() && !historyError() && filteredHistory().length > 0" class="history-list"
+        aria-label="Feedback submissions">
+        <li *ngFor="let item of filteredHistory()" class="history-row"
+          [attr.id]="'feedback-' + item.feedback_id"
+          [class.highlighted]="highlightedFeedbackId() === item.feedback_id">
+          <div class="history-row-main">
+            <span class="history-text">
+              <span class="history-subject">{{ item.subject || 'General Submission' }}</span>
+              <span class="history-message">{{ item.message }}</span>
+            </span>
+            <span class="history-cat">{{ formatFeedbackType(item.feedback_type) }}</span>
+            <span class="status-badge" [ngClass]="getStatusClass(item.status)">
+              {{ getStatusLabel(item.status) }}
+            </span>
+            <span class="history-date">{{ item.created_at | date: 'mediumDate' }}</span>
+          </div>
+
+          <!-- ADMIN OFFICIAL RESPONSE -->
+          <div class="history-response" *ngIf="item.admin_response">
+            <span class="material-icons" aria-hidden="true">verified</span>
+            <span class="history-response-body">
+              <strong>Official Administrative Response</strong>
+              <span class="history-response-text">{{ item.admin_response }}</span>
+            </span>
+          </div>
+
+          <!-- PENDING RESPONSE NOTE -->
+          <div class="history-pending" *ngIf="!item.admin_response">
+            <span class="material-icons" aria-hidden="true">hourglass_empty</span>
+            <span>Awaiting administrative review.</span>
+          </div>
+        </li>
+      </ul>
+
+    </div>
+  </main>
+
+</div>

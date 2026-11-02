@@ -1,3 +1,1647 @@
+
+@use "../../../shared/styles/status-badges" as status;
+
+:host {
+  display: block;
+  width: 100%;
+  background-color: #f4f7fb;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.page-container {
+  width: 100%;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 24px 28px 48px;
+  box-sizing: border-box;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  color: #0f172a;
+}
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+
+  .header-content {
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.5;
+    }
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e293b;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    .material-icons {
+      font-size: 18px;
+      color: #475569;
+      transition: transform 0.15s ease;
+    }
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+
+      .material-icons {
+        transform: translateX(-2px);
+        color: #0f172a;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   WORKFLOW STATUS ALERTS
+   ========================================================= */
+.workflow-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  border: 1px solid transparent;
+
+  .alert-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+
+    .material-icons {
+      font-size: 22px;
+    }
+  }
+
+  .alert-content {
+    flex: 1;
+
+    .alert-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+
+      strong {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      span {
+        font-size: 13px;
+        color: #64748b;
+      }
+    }
+
+    .alert-reason {
+      font-size: 13px;
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+
+    .alert-subtext {
+      font-size: 13px;
+      color: #64748b;
+      margin: 6px 0 0;
+    }
+  }
+
+  .alert-actions {
+    flex-shrink: 0;
+
+    .btn-alert-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+      transition: all 0.2s;
+
+      .material-icons {
+        font-size: 16px;
+      }
+
+      &:hover {
+        background: #f1f5f9;
+      }
+    }
+  }
+
+  &.alert-rejected {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+
+    .alert-icon .material-icons {
+      color: #dc2626;
+    }
+
+    .alert-content .alert-reason {
+      color: #7f1d1d;
+    }
+  }
+
+  &.alert-archive-requested {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+
+    .alert-icon .material-icons {
+      color: #d97706;
+    }
+
+    .alert-content .alert-reason {
+      color: #78350f;
+    }
+  }
+
+  &.alert-delete-requested {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+
+    .alert-icon .material-icons {
+      color: #dc2626;
+    }
+
+    .alert-content .alert-reason {
+      color: #7f1d1d;
+    }
+  }
+
+  &.alert-pending {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+
+    .alert-icon .material-icons {
+      color: #2563eb;
+    }
+  }
+}
+
+/* =========================================================
+   HERO / MAIN INFORMATION CARD
+   ========================================================= */
+.hero-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+}
+
+.hero-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.hero-avatar {
+  width: 58px;
+  height: 58px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  .material-icons {
+    font-size: 30px;
+    color: inherit;
+  }
+}
+
+.hero-center {
+  flex: 1;
+  min-width: 0;
+
+  .hero-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6px;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-ministry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    color: #475569;
+    margin-bottom: 12px;
+    font-weight: 500;
+
+    .material-icons {
+      font-size: 17px;
+      color: #64748b;
+    }
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .hero-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+    margin: 0;
+    /* Header stays a brief 2-3 line overview; the full text lives
+       in the Overview tab's About section. */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* BADGES */
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+
+  .material-icons {
+    font-size: 15px;
+    color: #64748b;
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+
+  // Canonical per-status colors (single definition in shared styles).
+  @include status.status-badge-colors;
+}
+
+/* Preserve user line breaks for multi-line saved text blocks. */
+.pre-wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* HERO ACTIONS (TOP RIGHT) */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  .btn-action-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    .material-icons {
+      font-size: 20px;
+    }
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    &.active {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* =========================================================
+   WORKFLOW ACTION DROPDOWN
+   ========================================================= */
+.workflow-menu-wrapper {
+  position: relative;
+
+  .workflow-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 240px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+    z-index: 50;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    animation: fadeInDown 0.15s ease-out;
+
+    .workflow-dropdown-header {
+      padding: 8px 12px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .workflow-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 12px;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1e293b;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+
+      .material-icons {
+        font-size: 18px;
+        color: #64748b;
+      }
+
+      &:hover {
+        background: #f8fafc;
+        color: #0f172a;
+
+        .material-icons {
+          color: #0f172a;
+        }
+      }
+
+      &.workflow-option--success {
+        color: #15803d;
+
+        .material-icons {
+          color: #16a34a;
+        }
+
+        &:hover {
+          background: #f0fdf4;
+          color: #166534;
+        }
+      }
+
+      &.workflow-option--warning {
+        color: #b45309;
+
+        .material-icons {
+          color: #d97706;
+        }
+
+        &:hover {
+          background: #fffbeb;
+          color: #92400e;
+        }
+      }
+
+      &.workflow-option--danger {
+        color: #b91c1c;
+
+        .material-icons {
+          color: #dc2626;
+        }
+
+        &:hover {
+          background: #fef2f2;
+          color: #991b1b;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+.tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 28px;
+  padding: 0 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+
+  .tab-btn {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 12px 4px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: #1e293b;
+    }
+
+    &.active {
+      color: #1d4ed8;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 2.5px;
+        background-color: #1d4ed8;
+        border-radius: 2px 2px 0 0;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   DETAIL CARDS & TWO-COLUMN OVERVIEW
+   ========================================================= */
+.detail-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+.left-panel {
+  .section-block {
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 10px;
+    }
+
+    .section-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #334155;
+      margin: 0;
+
+      &.pre-wrap {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* Bulleted detail lists (key objectives). */
+    .detail-bullets {
+      margin: 0;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+    }
+
+    .pre-wrap {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  /* Bulleted detail lists, usable outside .left-panel (eligibility tab). */
+  .detail-bullets {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  .divider {
+    border: none;
+    height: 1px;
+    background: #f1f5f9;
+    margin: 24px 0;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 24px;
+
+    .meta-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+
+      &.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .meta-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        .material-icons {
+          font-size: 18px;
+          color: #475569;
+        }
+      }
+
+      .meta-content {
+        min-width: 0;
+        flex: 1;
+
+        label {
+          display: block;
+          font-size: 13px;
+          font-weight: 600;
+          color: #64748b;
+          margin-bottom: 3px;
+        }
+
+        p {
+          font-size: 14px;
+          font-weight: 500;
+          color: #0f172a;
+          margin: 0;
+          line-height: 1.4;
+          word-break: break-word;
+        }
+      }
+    }
+  }
+}
+
+.right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .highlights-card {
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      .highlight-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        .material-icons {
+          font-size: 18px;
+          color: #1d4ed8;
+        }
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      p {
+        font-size: 13px;
+        font-weight: 500;
+        color: #0f172a;
+        margin: 0;
+        line-height: 1.4;
+      }
+    }
+  }
+}
+
+.link-external {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  .link-icon {
+    font-size: 15px;
+  }
+
+  &:hover {
+    text-decoration: underline;
+    color: #1e40af;
+  }
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.document-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+
+  .doc-sep {
+    color: #94a3b8;
+  }
+}
+
+/* Long filenames wrap cleanly without overflowing the card. */
+.doc-file-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.doc-action-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b91c1c;
+  margin: 8px 0 0;
+
+  .material-icons {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+}
+
+/* =========================================================
+   TAB CONTENT CARDS (Eligibility, Benefits, Documents)
+   ========================================================= */
+.tab-content-card {
+  .tab-heading {
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f1f5f9;
+
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px;
+    }
+
+    .tab-subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin: 0;
+    }
+  }
+}
+
+/* ELIGIBILITY RULES */
+.eligibility-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .eligibility-rule-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+
+    .rule-content {
+      h4 {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 14px;
+      }
+
+      .rule-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .rule-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 14px;
+          color: #334155;
+
+          .check-icon {
+            font-size: 18px;
+            color: #16a34a;
+            flex-shrink: 0;
+          }
+        }
+      }
+
+      /* Structured (parsed-JSON) condition details. */
+      .rule-details {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .rule-detail {
+          font-size: 14px;
+          line-height: 1.6;
+          color: #334155;
+        }
+
+        .rule-detail-label {
+          font-weight: 700;
+          color: #0f172a;
+          margin-right: 4px;
+        }
+
+        .rule-detail-value {
+          overflow-wrap: anywhere;
+        }
+
+        .rule-detail-children {
+          margin: 6px 0 2px 14px;
+          padding-left: 12px;
+          border-left: 2px solid #e2e8f0;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .detail-bullets {
+          margin: 6px 0 2px;
+        }
+      }
+
+      .rule-empty {
+        font-size: 13px;
+        color: #94a3b8;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+.no-rules,
+.no-content {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+
+  .no-rules-icon,
+  .no-content-icon {
+    margin-bottom: 12px;
+
+    .material-icons {
+      font-size: 40px;
+      color: #94a3b8;
+    }
+  }
+
+  h4 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 6px;
+  }
+
+  p {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+  }
+}
+
+/* BENEFITS LIST */
+.benefits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    color: #1e293b;
+    line-height: 1.5;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 8px;
+
+    .check-icon {
+      font-size: 19px;
+      color: #16a34a;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+}
+
+/* DOCUMENTS GRID */
+.documents-grid {
+  display: grid;
+  gap: 20px;
+
+  .document-resource-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+
+    .document-resource-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .document-resource-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #eff6ff;
+      border: 1px solid #dbeafe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+
+      .material-icons {
+        font-size: 22px;
+        color: #1d4ed8;
+      }
+    }
+
+    .document-resource-content {
+      flex: 1;
+      min-width: 0;
+
+      h4 {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 6px;
+      }
+
+      p {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      p + p {
+        margin-top: 6px;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   WORKFLOW & AUDIT INFORMATION (BOTTOM PANEL)
+   ========================================================= */
+.audit-card {
+  margin-top: 36px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  .audit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 24px;
+
+    .audit-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+
+      .audit-header-icon {
+        font-size: 28px;
+        color: #1d4ed8;
+      }
+
+      h3 {
+        font-size: 19px;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 0 0 3px;
+      }
+
+      p {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+      }
+    }
+
+    .audit-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+    }
+  }
+
+  .audit-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+
+    .audit-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+
+      .audit-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+      }
+
+      .audit-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #0f172a;
+        line-height: 1.4;
+      }
+
+      .audit-role {
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        line-height: 1.3;
+      }
+    }
+  }
+
+  .timeline-card {
+    margin-top: 20px;
+  }
+
+  .audit-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-top: 16px;
+
+    .callout-icon .material-icons {
+      font-size: 20px;
+    }
+
+    .callout-body {
+      strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      p {
+        font-size: 13px;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .callout-subtext {
+        font-size: 12px;
+        margin-top: 6px;
+        opacity: 0.85;
+      }
+    }
+
+    &.audit-callout--danger {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+
+      .callout-icon .material-icons {
+        color: #dc2626;
+      }
+    }
+
+    &.audit-callout--warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+
+      .callout-icon .material-icons {
+        color: #d97706;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   STATE CARDS (Loading / Error)
+   ========================================================= */
+.state-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 60px 24px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #1d4ed8;
+    border-radius: 50%;
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+
+  p {
+    font-size: 15px;
+    color: #64748b;
+    margin: 0;
+  }
+
+  &.error-state {
+    .state-icon {
+      margin-bottom: 12px;
+
+      .material-icons {
+        font-size: 48px;
+        color: #dc2626;
+      }
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 8px;
+    }
+
+    p {
+      color: #64748b;
+      margin: 0 0 20px;
+    }
+
+    .retry-btn {
+      padding: 8px 20px;
+      border-radius: 8px;
+      background: #1d4ed8;
+      border: none;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+
+      &:hover {
+        background: #1e40af;
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tab-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  color: #64748b;
+  font-size: 13px;
+
+  .small-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e2e8f0;
+    border-top-color: #1d4ed8;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  &.error-tab {
+    color: #dc2626;
+
+    button {
+      margin-left: 12px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 13px;
+      cursor: pointer;
+
+      &:hover {
+        background: #fee2e2;
+      }
+    }
+  }
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+@media (max-width: 1024px) {
+  .page-container {
+    padding: 24px 20px 40px;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-card .audit-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+
+    .btn-back {
+      align-self: flex-end;
+    }
+  }
+
+  .hero-header-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .hero-actions {
+    align-self: flex-end;
+  }
+
+  .left-panel .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-card .audit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .documents-grid .document-resource-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .documents-grid .document-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .hero-card {
+    padding: 20px;
+  }
+
+  .hero-center .hero-title {
+    font-size: 20px;
+  }
+
+  .audit-card {
+    padding: 20px;
+
+    .audit-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .audit-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* =========================================================
+   MOBILE DETAILS LAYOUT (≤767px)
+   Back right; avatar hidden; Save/Share flow onto the
+   ministry row via content/action flattening (desktop and
+   tablet rules above are untouched).
+   ========================================================= */
+
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-header .header-content {
+    display: contents;
+  }
+
+  .page-header .header-content h1 {
+    order: 0;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 24px;
+  }
+
+  .page-header .header-content .subtitle {
+    order: 2;
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 14px;
+  }
+
+  .page-header .btn-back {
+    order: 1;
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: auto;
+    font-size: 13px;
+  }
+
+  .hero-card {
+    padding: 20px 16px;
+  }
+
+  .detail-card,
+  .audit-card {
+    padding: 16px;
+  }
+
+  .hero-header-row {
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+  }
+
+  .hero-avatar {
+    display: none;
+  }
+
+  .hero-center {
+    display: contents;
+  }
+
+  .hero-center .hero-title {
+    order: 0;
+    flex: 1 1 100%;
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 700;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .hero-center .hero-ministry {
+    order: 1;
+    flex: 1 1 100%;
+    min-width: 0;
+    justify-content: flex-start;
+    text-align: left;
+    margin-left: 0;
+    padding-left: 0;
+    font-size: 14px;
+    margin-bottom: 0;
+  }
+
+  .hero-center .hero-ministry > .material-icons {
+    display: none;
+  }
+
+  .hero-actions {
+    order: 4;
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .hero-center .hero-meta {
+    order: 2;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    text-align: left;
+    margin-bottom: 0;
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .hero-center .category-badge {
+    font-size: 12px;
+  }
+
+  .hero-center .hero-description {
+    order: 3;
+    flex: 1 1 100%;
+    font-size: 14px;
+    line-height: 1.5;
+    display: block;
+    overflow: visible;
+    text-align: left;
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .left-panel .section-block h3,
+  .tab-content-card .tab-heading h3 {
+    font-size: 18px;
+  }
+
+  .workflow-alert .alert-actions .btn-alert-action {
+    font-size: 13px;
+  }
+
+  .state-card.error-state .retry-btn {
+    font-size: 13px;
+  }
+
+  .tabs-container .tab-btn {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   TABLET DETAILS HERO (768px–1023px)
+   Top: icon left with title/ministry right; tags and
+   description flow below inside the content column; Save/Share
+   sit bottom-right below the description. Placed after the
+   max-width:768px rules so it wins at exactly 768px.
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .page-header .header-content {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .page-header .btn-back {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .hero-header-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar center"
+      ". actions";
+    column-gap: 16px;
+    row-gap: 12px;
+    align-items: start;
+  }
+
+  .hero-avatar {
+    grid-area: avatar;
+  }
+
+  .hero-center {
+    grid-area: center;
+    min-width: 0;
+  }
+
+  .hero-center .hero-title,
+  .hero-center .hero-ministry {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .hero-center .hero-title {
+    font-size: 22px;
+  }
+
+  .hero-center .hero-ministry {
+    font-size: 15px;
+  }
+
+  .hero-center .category-badge {
+    font-size: 12px;
+  }
+
+  .page-header .header-content h1 {
+    font-size: 28px;
+  }
+
+  .left-panel .section-block h3,
+  .tab-content-card .tab-heading h3 {
+    font-size: 18px;
+  }
+
+  .hero-actions {
+    grid-area: actions;
+    justify-self: end;
+    align-self: start;
+    flex-shrink: 0;
+    margin-left: 0;
+  }
+
+  /* Official Source Portal card: single horizontal row at tablet —
+     icon + title/description left, Visit Portal button far right.
+     Overrides the max-width:768px stacking so it holds at 768px. */
+  .documents-grid .document-resource-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .documents-grid .document-resource-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .documents-grid .document-resource-content {
+    min-width: 0;
+  }
+
+  .documents-grid .document-resource-content p {
+    overflow-wrap: break-word;
+  }
+
+  .documents-grid .document-actions {
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
+}
+=======
 :host {
   display: block;
   width: 100%;
@@ -1595,4 +3239,5 @@
     }
   }
 }
+
 

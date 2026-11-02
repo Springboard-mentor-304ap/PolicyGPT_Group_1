@@ -5,6 +5,10 @@
   <!-- HEADER -->
   <!-- ====================================================== -->
 
+  @if (breadcrumbItems.length > 0) {
+  <app-breadcrumb [items]="breadcrumbItems"></app-breadcrumb>
+  }
+
   <header class="page-header">
     <div class="header-content">
 
@@ -16,10 +20,12 @@
         </p>
       </div>
 
+      @if (navContext.shouldShowBack()) {
       <button type="button" class="back-button" (click)="goBack()">
-        <span class="back-icon" aria-hidden="true">←</span>
+        <span class="material-icons back-icon" aria-hidden="true">arrow_back</span>
         <span>Back</span>
       </button>
+      }
 
     </div>
   </header>
@@ -30,6 +36,14 @@
   <!-- ====================================================== -->
 
   <section class="search-section">
+
+    <!-- RESET ROW (right-aligned, above the search row) -->
+    <div class="reset-filters-row" *ngIf="hasActiveFilters">
+      <button type="button" class="reset-filters-btn" (click)="clearFilters()">
+        <span class="material-icons">refresh</span>
+        <span>Reset Filters</span>
+      </button>
+    </div>
 
     <!-- SEARCH ROW -->
 
@@ -46,9 +60,8 @@
           </svg>
         </span>
 
-        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="applyFilters()"
-          placeholder="Search by policy name, keyword, ministry, or benefit..." autocomplete="off"
-          aria-label="Search policies" />
+        <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()" (keyup.enter)="submitSearch()"
+          placeholder="Search by policy name..." autocomplete="off" aria-label="Search by policy name" />
 
         <button *ngIf="searchQuery" type="button" class="clear-search" (click)="searchQuery = ''; applyFilters()"
           aria-label="Clear search">
@@ -64,126 +77,139 @@
 
       <!-- Search Button -->
 
-      <button type="button" class="search-button" (click)="applyFilters()">
-
-        <svg class="search-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true">
-          <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="2" />
-
-          <path d="M16 16L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-        </svg>
+      <button type="button" class="search-button" (click)="submitSearch()">
 
         <span>Search</span>
 
       </button>
 
+
+      <!-- Filter Button (mobile/tablet only, hidden on desktop) -->
+
+      <button type="button" class="filter-toggle-btn" (click)="toggleFilters()" [attr.aria-expanded]="filtersExpanded"
+        aria-label="Toggle filters">
+        <span class="material-icons" aria-hidden="true">filter_list</span>
+        <span>Filter</span>
+        <span class="filter-count-badge" *ngIf="activeFiltersCount > 0">
+          {{ activeFiltersCount }} active
+        </span>
+        <span class="material-icons toggle-chevron" [class.open]="filtersExpanded"
+          aria-hidden="true">expand_more</span>
+      </button>
+
     </div>
 
 
-    <!-- ==================================================== -->
-    <!-- FILTER ROW -->
-    <!-- ==================================================== -->
+    <!-- FILTER PANEL (Zone 2) -->
+    <div class="filter-panel" [class.filter-panel--collapsed]="!filtersExpanded">
 
-    <div class="filters-row">
+      <!-- Filter Controls Grid -->
+      <div class="filters-grid" [class.has-status]="isAdminOrGov">
 
-      <!-- Category -->
+        <!-- Department -->
+        <div class="filter-field">
+          <label for="department">
+            <span>Department</span>
+          </label>
+          <app-searchable-select id="department" [options]="departments" [(ngModel)]="selectedDepartment"
+            (ngModelChange)="applyFilters()" placeholder="All Departments" allOptionLabel="All Departments"
+            searchPlaceholder="Search departments..." icon="apartment">
+          </app-searchable-select>
+        </div>
 
-      <div class="filter-group">
+        <!-- State -->
+        <div class="filter-field">
+          <label for="state">
+            <span>State / UT</span>
+          </label>
+          <app-searchable-select id="state" [options]="states" [(ngModel)]="selectedState"
+            (ngModelChange)="applyFilters()" placeholder="All States" allOptionLabel="All States"
+            searchPlaceholder="Search states..." icon="location_on">
+          </app-searchable-select>
+        </div>
 
-        <label for="category">
-          Category
-        </label>
+        <!-- Sector -->
+        <div class="filter-field">
+          <label for="sector">
+            <span>Sector</span>
+          </label>
+          <app-searchable-select id="sector" [options]="sectors" [(ngModel)]="selectedSector"
+            (ngModelChange)="applyFilters()" placeholder="All Sectors" allOptionLabel="All Sectors"
+            searchPlaceholder="Search sectors..." icon="grid_view">
+          </app-searchable-select>
+        </div>
 
-        <div class="select-wrapper">
+        <!-- Status (staff roles only) -->
+        @if (isAdminOrGov) {
+        <div class="filter-field">
+          <label for="status">
+            <span>Status</span>
+          </label>
+          <app-searchable-select id="status" [options]="statusDisplayOptions" [(ngModel)]="selectedStatusDisplay"
+            (ngModelChange)="onStatusDisplayChange($event)" placeholder="All Statuses" allOptionLabel="All Statuses"
+            searchPlaceholder="Search statuses..." icon="flag">
+          </app-searchable-select>
+        </div>
+        }
 
-          <select id="category" [(ngModel)]="selectedCategory" (ngModelChange)="applyFilters()">
-
-            <option value="">
-              All Categories
-            </option>
-
-            <option *ngFor="let category of categories" [value]="category">
-              {{ category }}
-            </option>
-
-          </select>
-
+        <!-- Publication Date -->
+        <div class="filter-field">
+          <label for="publicationDate">
+            <span>Publication Date</span>
+          </label>
+          <div class="custom-date-box" [class.has-value]="!!selectedPublicationDate">
+            <span class="material-icons date-icon">calendar_today</span>
+            <input type="date" id="publicationDate" [(ngModel)]="selectedPublicationDate"
+              (ngModelChange)="applyFilters()" class="custom-date-input" aria-label="Filter by publication date" />
+            <button *ngIf="selectedPublicationDate" type="button" class="date-clear-btn"
+              (click)="clearPublicationDate($event)" title="Clear date" aria-label="Clear date">
+              <span class="material-icons">close</span>
+            </button>
+          </div>
         </div>
 
       </div>
 
+      <!-- Active Filter Badges / Chips Row -->
+      <div class="active-chips-row" *ngIf="hasActiveFilterChips">
+        <span class="active-chips-title">Active:</span>
 
-      <!-- Ministry -->
+        <button *ngIf="selectedDepartment" type="button" class="filter-chip"
+          (click)="selectedDepartment = ''; applyFilters()">
+          <span class="chip-label">Dept:</span>
+          <span class="chip-value">{{ selectedDepartment }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-      <div class="filter-group">
+        <button *ngIf="selectedState" type="button" class="filter-chip" (click)="selectedState = ''; applyFilters()">
+          <span class="chip-label">State:</span>
+          <span class="chip-value">{{ selectedState }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-        <label for="ministry">
-          Ministry
-        </label>
+        <button *ngIf="selectedSector" type="button" class="filter-chip" (click)="selectedSector = ''; applyFilters()">
+          <span class="chip-label">Sector:</span>
+          <span class="chip-value">{{ selectedSector }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-        <div class="select-wrapper">
+        <button *ngIf="selectedPublicationDate" type="button" class="filter-chip" (click)="clearPublicationDate()">
+          <span class="chip-label">Date:</span>
+          <span class="chip-value">{{ selectedPublicationDate }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-          <select id="ministry" [(ngModel)]="selectedMinistry" (ngModelChange)="applyFilters()">
+        <button *ngIf="isAdminOrGov && selectedStatusDisplay" type="button" class="filter-chip"
+          (click)="selectedStatusDisplay = ''; selectedStatus = ''; applyFilters()">
+          <span class="chip-label">Status:</span>
+          <span class="chip-value">{{ selectedStatusDisplay }}</span>
+          <span class="material-icons chip-close">close</span>
+        </button>
 
-            <option value="">
-              All Ministries
-            </option>
-
-            <option *ngFor="let ministry of ministries" [value]="ministry">
-              {{ ministry }}
-            </option>
-
-          </select>
-
-        </div>
-
+        <button type="button" class="chip-clear-all" (click)="clearFilters()">
+          Clear all
+        </button>
       </div>
-
-
-      <!-- State -->
-
-      <div class="filter-group">
-
-        <label for="state">
-          State
-        </label>
-
-        <div class="select-wrapper">
-
-          <select id="state" [(ngModel)]="selectedState" (ngModelChange)="applyFilters()">
-
-            <option value="">
-              All States
-            </option>
-
-            <option *ngFor="let state of states" [value]="state">
-              {{ state }}
-            </option>
-
-          </select>
-
-        </div>
-
-      </div>
-
-
-      <!-- Clear -->
-
-      <button type="button" class="clear-filters-button" (click)="clearFilters()">
-
-        <svg class="clear-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M4 12A8 8 0 0 1 18.5 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-
-          <path d="M18 4V8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-
-          <path d="M20 12A8 8 0 0 1 5.5 17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-
-          <path d="M6 20V16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-
-        <span>Clear Filters</span>
-
-      </button>
 
     </div>
 
@@ -194,27 +220,11 @@
   <!-- INITIAL LOADING -->
   <!-- ====================================================== -->
 
-  <section class="skeleton-list" *ngIf="loading && policies.length === 0">
+  <!-- INITIAL LOADING -->
+  <!-- ====================================================== -->
 
-    <div class="skeleton-card" *ngFor="let item of [1,2,3,4,5]">
-
-      <div class="skeleton skeleton-icon"></div>
-
-      <div class="skeleton-body">
-
-        <div class="skeleton skeleton-title"></div>
-
-        <div class="skeleton skeleton-line"></div>
-
-        <div class="skeleton skeleton-small"></div>
-
-      </div>
-
-      <div class="skeleton skeleton-button"></div>
-
-    </div>
-
-  </section>
+  <app-loading-indicator *ngIf="loading && policies.length === 0" message="Loading policies...">
+  </app-loading-indicator>
 
 
   <!-- ====================================================== -->
@@ -254,7 +264,7 @@
   <!-- RESULTS -->
   <!-- ====================================================== -->
 
-  <section class="results-section" *ngIf="!errorMessage">
+  <section class="results-section" *ngIf="!errorMessage && !(loading && policies.length === 0)">
 
     <!-- Results Header -->
 
@@ -330,28 +340,9 @@
 
         <!-- Policy Icon -->
 
-        <div class="policy-icon">
+        <div class="policy-icon" [ngStyle]="categoryIconStyle(policy.category)">
 
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-
-            <!-- Document -->
-
-            <path d="M7 3.5H14L19 8.5V20.5H7C5.89543 20.5 5 19.6046 5 18.5V5.5C5 4.39543 5.89543 3.5 7 3.5Z"
-              stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-
-            <!-- Folded Corner -->
-
-            <path d="M14 3.5V8.5H19" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-
-            <!-- Document Lines -->
-
-            <path d="M8.5 12H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-            <path d="M8.5 15.5H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-            <path d="M8.5 8.5H11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
-
-          </svg>
+          <span class="material-icons" aria-hidden="true">{{ categoryIcon(policy.category) }}</span>
 
         </div>
 
@@ -362,27 +353,42 @@
 
           <div class="title-row">
 
-            <h3>
-              {{ policy.title }}
-            </h3>
+            <div class="title-group">
+              <h3>
+                {{ policy.title }}
+              </h3>
+
+              @if (isAdminOrGov) {
+              <span class="metadata-item status-badge" [ngClass]="'status-' + (policy.status || '').toLowerCase()">
+                {{ getStatusLabel(policy.status) }}
+              </span>
+              }
+            </div>
 
           </div>
 
 
           <p class="ministry">
 
-            {{
-            policy.ministry ||
-            "Ministry not specified"
-            }}
+            {{ policy.ministry?.trim() ? policy.ministry : "Ministry not specified" }}
 
           </p>
 
+        </div>
+
+
+        <!-- Tags + description (bottom row on tablet/desktop) -->
+
+        <div class="policy-card__bottom">
 
           <div class="metadata">
 
             <span *ngIf="policy.category" class="metadata-item">
               {{ policy.category }}
+            </span>
+
+            <span *ngIf="policy.department" class="metadata-item">
+              {{ policy.department }}
             </span>
 
             <span *ngIf="policy.state" class="metadata-item">
@@ -417,9 +423,7 @@
               View Policy
             </span>
 
-            <span class="view-arrow">
-              →
-            </span>
+            <span class="material-icons view-arrow" aria-hidden="true">arrow_forward</span>
 
           </a>
 
@@ -428,7 +432,7 @@
               isBookmarked(
                 policy.policy_id
               )
-            " (click)="toggleBookmark(policy)" [attr.aria-label]="
+            " (click)="toggleBookmark(policy)" [disabled]="isBookmarkPending(policy.policy_id)" [attr.aria-label]="
               isBookmarked(
                 policy.policy_id
               )
@@ -466,7 +470,8 @@
           loading ||
           currentPage === 1
         " (click)="previousPage()">
-        ← Previous
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_left</span>
+        <span>Previous</span>
       </button>
 
 
@@ -487,7 +492,8 @@
           loading ||
           currentPage === totalPages
         " (click)="nextPage()">
-        Next →
+        <span>Next</span>
+        <span class="material-icons pagination-arrow" aria-hidden="true">chevron_right</span>
       </button>
 
     </nav>

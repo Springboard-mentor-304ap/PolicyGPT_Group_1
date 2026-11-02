@@ -1,20 +1,34 @@
-import { Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  HostListener,
+  effect,
+  input,
+  OnDestroy,
+  output,
+} from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { QuotedNamesComponent } from "../quoted-names/quoted-names.component";
 
 @Component({
-  selector: 'app-confirm-modal',
+  selector: "app-confirm-modal",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, QuotedNamesComponent],
   template: `
     @if (isOpen()) {
       <div class="modal-overlay" (click)="onBackdropClick($event)">
-        <div class="modal-card" role="dialog" aria-modal="true">
+        <div
+          class="modal-card"
+          [ngClass]="dialogClass()"
+          role="dialog"
+          aria-modal="true"
+          (click)="$event.stopPropagation()"
+        >
           <div class="modal-icon" [ngClass]="'modal-icon--' + variant()">
-            @if (variant() === 'danger') {
+            @if (variant() === "danger") {
               <span class="material-icons">warning</span>
-            } @else if (variant() === 'warning') {
+            } @else if (variant() === "warning") {
               <span class="material-icons">help_outline</span>
-            } @else if (variant() === 'success') {
+            } @else if (variant() === "success") {
               <span class="material-icons">check_circle</span>
             } @else {
               <span class="material-icons">info</span>
@@ -22,13 +36,40 @@ import { CommonModule } from '@angular/common';
           </div>
 
           <h3 class="modal-title">{{ title() }}</h3>
-          <p class="modal-message">{{ message() }}</p>
+          @if (details().length) {
+            <dl class="modal-details">
+              @for (row of details(); track row.label) {
+                <div class="modal-detail">
+                  <dt class="modal-detail-label">{{ row.label }}:</dt>
+                  <dd class="modal-detail-value">{{ row.value }}</dd>
+                </div>
+              }
+            </dl>
+          } @else if (highlightText()) {
+            <p class="modal-message">
+              {{ messageBefore()
+              }}<strong class="modal-highlight">{{ highlightText() }}</strong
+              >{{ messageAfter() }}
+            </p>
+          } @else if (parseQuotes()) {
+            <p class="modal-message"><app-quoted-names [text]="message()"></app-quoted-names></p>
+          } @else {
+            <p class="modal-message">{{ message() }}</p>
+          }
+
+          @if (errorMessage()) {
+            <div class="modal-error">
+              <span class="material-icons">error_outline</span>
+              <span>{{ errorMessage() }}</span>
+            </div>
+          }
 
           <div class="modal-actions">
             @if (showCancel()) {
               <button
                 type="button"
                 class="modal-btn modal-btn--cancel"
+                [disabled]="isLoading()"
                 (click)="onCancel()"
               >
                 {{ cancelText() }}
@@ -38,232 +79,425 @@ import { CommonModule } from '@angular/common';
               type="button"
               class="modal-btn"
               [ngClass]="'modal-btn--' + variant()"
+              [disabled]="isLoading()"
               (click)="onConfirm()"
             >
-              {{ confirmText() }}
+              @if (isLoading()) {
+                <span class="modal-spinner"></span>
+              }
+              <span>{{ confirmText() }}</span>
             </button>
           </div>
         </div>
       </div>
     }
   `,
-  styles: [`
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(15, 23, 42, 0.55);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-      padding: 16px;
-      box-sizing: border-box;
-    }
-
-    .modal-card {
-      position: relative;
-      width: min(440px, 100%);
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
-      padding: 28px 24px 24px;
-      text-align: center;
-      animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      box-sizing: border-box;
-    }
-
-    .modal-icon {
-      width: 52px;
-      height: 52px;
-      margin: 0 auto 16px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-icon .material-icons {
-      font-size: 28px;
-    }
-
-    .modal-icon--danger {
-      background: #fef2f2;
-      border: 1px solid #fee2e2;
-      color: #dc2626;
-    }
-
-    .modal-icon--warning {
-      background: #fffbeb;
-      border: 1px solid #fef3c7;
-      color: #d97706;
-    }
-
-    .modal-icon--success {
-      background: #ecfdf5;
-      border: 1px solid #d1fae5;
-      color: #059669;
-    }
-
-    .modal-icon--primary {
-      background: #eff6ff;
-      border: 1px solid #dbeafe;
-      color: #2563eb;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 19px;
-      font-weight: 700;
-      color: #0f172a;
-      letter-spacing: -0.01em;
-    }
-
-    .modal-message {
-      margin: 10px 0 24px;
-      font-size: 14px;
-      line-height: 1.55;
-      color: #475569;
-      white-space: pre-line;
-    }
-
-    .modal-actions {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .modal-btn {
-      flex: 1;
-      min-width: 100px;
-      height: 42px;
-      padding: 0 18px;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-      box-sizing: border-box;
-    }
-
-    .modal-btn--cancel {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      color: #475569;
-    }
-
-    .modal-btn--cancel:hover {
-      background: #f8fafc;
-      border-color: #94a3b8;
-      color: #1e293b;
-    }
-
-    .modal-btn--danger {
-      background: #dc2626;
-      border: 1px solid #dc2626;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-    }
-
-    .modal-btn--danger:hover {
-      background: #b91c1c;
-      border-color: #b91c1c;
-    }
-
-    .modal-btn--warning {
-      background: #d97706;
-      border: 1px solid #d97706;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
-    }
-
-    .modal-btn--warning:hover {
-      background: #b45309;
-      border-color: #b45309;
-    }
-
-    .modal-btn--success {
-      background: #059669;
-      border: 1px solid #059669;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
-    }
-
-    .modal-btn--success:hover {
-      background: #047857;
-      border-color: #047857;
-    }
-
-    .modal-btn--primary {
-      background: #2563eb;
-      border: 1px solid #2563eb;
-      color: #ffffff;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
-    }
-
-    .modal-btn--primary:hover {
-      background: #1d4ed8;
-      border-color: #1d4ed8;
-    }
-
-    .modal-btn:active {
-      transform: scale(0.98);
-    }
-
-    @keyframes modalScaleIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95);
+  styles: [
+    `
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(5, 15, 35, 0.65);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        padding: 16px;
+        box-sizing: border-box;
       }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
 
-    @media (max-width: 480px) {
       .modal-card {
-        padding: 22px 18px 20px;
+        position: relative;
+        width: min(440px, 100%);
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow:
+          0 20px 40px -15px rgba(0, 0, 0, 0.25),
+          0 0 0 1px rgba(0, 0, 0, 0.05);
+        padding: 28px 24px 24px;
+        text-align: center;
+        animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        box-sizing: border-box;
       }
+
+      .modal-icon {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-icon .material-icons {
+        font-size: 28px;
+      }
+
+      .modal-icon--danger {
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        color: #dc2626;
+      }
+
+      .modal-icon--warning {
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        color: #d97706;
+      }
+
+      .modal-icon--success {
+        background: #ecfdf5;
+        border: 1px solid #d1fae5;
+        color: #059669;
+      }
+
+      .modal-icon--primary {
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        color: #2563eb;
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+      }
+
+      .modal-message {
+        margin: 10px 0 20px;
+        font-size: 13px;
+        line-height: 1.55;
+        color: #475569;
+        white-space: pre-line;
+      }
+
+      .modal-message .modal-highlight {
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .modal-details {
+        margin: 14px 0 20px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        text-align: left;
+      }
+      .modal-detail {
+        display: block;
+        margin: 0;
+      }
+      .modal-detail-label,
+      .modal-detail-value {
+        display: inline;
+        margin: 0;
+        padding: 0;
+        font-size: 13px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+      .modal-detail-label {
+        font-weight: 700;
+        color: #0f172a;
+        margin-right: 4px;
+      }
+      .modal-detail-value {
+        font-weight: 400;
+        color: #475569;
+      }
+
+      .modal-error {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        color: #b91c1c;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.4;
+        text-align: left;
+        margin: 0 0 18px;
+        word-break: break-word;
+      }
+
+      .modal-error .material-icons {
+        font-size: 18px;
+        color: #dc2626;
+        flex-shrink: 0;
+      }
+
       .modal-actions {
-        flex-direction: column-reverse;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
       }
+
       .modal-btn {
-        width: 100%;
+        flex: 1;
+        min-width: 100px;
+        height: 42px;
+        padding: 0 18px;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
       }
-    }
-  `]
+
+      .modal-btn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .modal-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: modalSpin 0.7s linear infinite;
+        margin-right: 8px;
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+      .modal-btn--cancel {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+      }
+
+      .modal-btn--cancel:hover:not(:disabled) {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #1e293b;
+      }
+
+      .modal-btn--danger {
+        background: #dc2626;
+        border: 1px solid #dc2626;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+      }
+
+      .modal-btn--danger:hover:not(:disabled) {
+        background: #b91c1c;
+        border-color: #b91c1c;
+      }
+
+      .modal-btn--warning {
+        background: #d97706;
+        border: 1px solid #d97706;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+      }
+
+      .modal-btn--warning:hover:not(:disabled) {
+        background: #b45309;
+        border-color: #b45309;
+      }
+
+      .modal-btn--success {
+        background: #059669;
+        border: 1px solid #059669;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+      }
+
+      .modal-btn--success:hover:not(:disabled) {
+        background: #047857;
+        border-color: #047857;
+      }
+
+      .modal-btn--primary {
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      }
+
+      .modal-btn--primary:hover:not(:disabled) {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+      }
+
+      .modal-btn:active:not(:disabled) {
+        transform: scale(0.98);
+      }
+
+      @keyframes modalScaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes modalSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .modal-card {
+          padding: 22px 18px 20px;
+        }
+        .modal-actions {
+          flex-direction: column-reverse;
+        }
+        .modal-btn {
+          width: 100%;
+        }
+      }
+
+      /* Delete Policy dialog only (other confirm dialogs keep the
+         base sizing): roomier mobile/tablet card that fits the
+         viewport height and scrolls internally when needed. */
+      @media (max-width: 1024px) {
+        .modal-card.confirm-modal--delete-policy {
+          width: min(440px, 100%);
+          max-height: calc(100vh - 32px);
+          max-height: calc(100dvh - 32px);
+          overflow-y: auto;
+          padding: 32px 26px 28px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-icon {
+          margin-bottom: 18px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-message,
+        .modal-card.confirm-modal--delete-policy .modal-details {
+          margin-top: 12px;
+          margin-bottom: 22px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-actions {
+          flex-direction: column-reverse;
+          gap: 10px;
+        }
+        .modal-card.confirm-modal--delete-policy .modal-btn {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .modal-card.confirm-modal--delete-policy {
+          padding: 28px 20px 24px;
+        }
+      }
+    `,
+  ],
 })
-export class ConfirmModalComponent {
-  isOpen = input.required<boolean>();
-  title = input.required<string>();
-  message = input.required<string>();
-  confirmText = input<string>('Confirm');
-  cancelText = input<string>('Cancel');
-  variant = input<'primary' | 'danger' | 'warning' | 'success'>('danger');
+export class ConfirmModalComponent implements OnDestroy {
+  isOpen = input<boolean>(false);
+  title = input<string>("");
+  message = input<string>("");
+  /**
+   * Optional structured message: renders messageBefore + bold
+   * highlightText + messageAfter as separate elements instead of one
+   * plain-text string. Ignored when highlightText is empty, so every
+   * existing caller behaves exactly as before.
+   */
+  messageBefore = input<string>("");
+  highlightText = input<string>("");
+  messageAfter = input<string>("");
+  /**
+   * Optional structured detail rows (label/value pairs) rendered as a
+   * left-aligned vertical list with bold labels and normal-weight
+   * values. Takes precedence over message/highlight/quote rendering
+   * when non-empty; existing callers are unaffected.
+   */
+  details = input<Array<{ label: string; value: string }>>([]);
+
+  /**
+   * Render `"Record Name"` segments in `message()` bold without quotes.
+   * Enabled by default for operational confirmations; set false when
+   * the message carries free-form user text that must stay verbatim.
+   * Ignored when `highlightText` is provided (structured path wins).
+   */
+  parseQuotes = input<boolean>(true);
+  confirmText = input<string>("Confirm");
+  cancelText = input<string>("Cancel");
+  /**
+   * Optional extra class applied to the dialog card (e.g.
+   * "confirm-modal--delete-policy" for dialog-specific responsive
+   * sizing). Empty by default, so existing callers are unaffected.
+   */
+  dialogClass = input<string>("");
+  variant = input<"primary" | "danger" | "warning" | "success">("danger");
   showCancel = input<boolean>(true);
+  isLoading = input<boolean>(false);
+  errorMessage = input<string | null>(null);
 
   confirmed = output<void>();
   cancelled = output<void>();
 
+  constructor() {
+    effect(() => {
+      const open = this.isOpen();
+      if (typeof document !== "undefined") {
+        if (open) {
+          document.body.style.overflow = "hidden";
+        } else {
+          document.body.style.overflow = "";
+        }
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+    }
+  }
+
   onBackdropClick(event: MouseEvent): void {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+    if (this.isLoading()) {
+      return;
+    }
+    if ((event.target as HTMLElement).classList.contains("modal-overlay")) {
+      this.onCancel();
+    }
+  }
+
+  @HostListener("document:keydown.escape")
+  onEscape(): void {
+    if (this.isOpen() && !this.isLoading()) {
       this.onCancel();
     }
   }
 
   onConfirm(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.confirmed.emit();
   }
 
   onCancel(): void {
+    if (this.isLoading()) {
+      return;
+    }
     this.cancelled.emit();
   }
 }

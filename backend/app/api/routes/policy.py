@@ -1,11 +1,20 @@
+from email import policy
+
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
+    File,
     HTTPException,
     Query,
+    Request,
+    UploadFile,
     status,
 )
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+
+from datetime import datetime, timedelta, timezone
 
 from app.api.routes.auth import (
     get_current_user,
@@ -14,6 +23,12 @@ from app.api.routes.auth import (
 )
 from app.db.database import get_db
 from app.models.user import User
+from app.models.audit_log import AuditLog
+from app.services.audit_log_service import (
+    attach_actor_display_names,
+    log_request_action,
+    resolve_user_display_name,
+)
 
 from app.schemas.policy import (
     PolicyArchiveRequest,
@@ -30,6 +45,7 @@ from app.services.policy_service import (
     approve_archive_policy,
     approve_delete_policy,
     approve_policy,
+    archive_policy,
     create_policy,
     delete_policy,
     get_archive_requests,
@@ -67,6 +83,7 @@ router = APIRouter(
 )
 def create_policy_route(
     data: PolicyCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -76,11 +93,23 @@ def create_policy_route(
     ),
 ):
 
-    return create_policy(
+    result = create_policy(
         db=db,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_CREATED",
+        "POLICY",
+        result.policy_id,
+        f"Policy '{result.title}' created.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -121,10 +150,9 @@ def compare_policies_route(
         "GUEST",
     }
 
-    role = str(current_user.role).strip().upper()
+    role = normalize_role(current_user.role)
 
     if role in public_roles:
-
         if policy_1.status != "APPROVED":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -164,6 +192,7 @@ def search_policy_route(
     department: str | None = Query(default=None),
     state: str | None = Query(default=None),
     sector: str | None = Query(default=None),
+    publication_date: str | None = Query(default=None),
     policy_status: str | None = Query(
         default=None,
         alias="status",
@@ -217,7 +246,10 @@ def search_policy_route(
     # --------------------------------------------------------
     else:
         if role in public_roles:
-            if policy_status is not None and policy_status.upper() != "APPROVED":
+            if (
+                policy_status is not None
+                and policy_status.upper() != "APPROVED"
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="You can only view approved policies.",
@@ -227,8 +259,11 @@ def search_policy_route(
             created_by = None
         else:
             # Staff roles (ADMIN, GOVERNMENT_OFFICIAL)
-            if policy_status == "APPROVED":
-                # Search Policies browsing approved policies shows all approved
+            if (
+                policy_status == "APPROVED"
+                or policy_status == "ALL"
+                or not policy_status
+            ):
                 created_by = None
             elif role == "GOVERNMENT_OFFICIAL":
                 created_by = current_user.user_id
@@ -243,10 +278,12 @@ def search_policy_route(
         department=department,
         state=state,
         sector=sector,
+        publication_date=publication_date,
         policy_status=policy_status,
         page=page,
         limit=limit,
         created_by=created_by,
+        current_user=current_user,
     )
 
 
@@ -376,6 +413,7 @@ def delete_requests_route(
 )
 def save_policy_draft_route(
     data: PolicyCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -384,11 +422,311 @@ def save_policy_draft_route(
         )
     ),
 ):
-    return create_policy(
+    result = create_policy(
         db=db,
         data=data,
         current_user=current_user,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DRAFT_SAVED",
+        "POLICY",
+        result.policy_id,
+        f"Policy draft '{result.title}' saved.",
+    )
+
+    return result
+
+
+# ============================================================
+# TRASH LISTING (TEMPORARILY DELETED POLICIES)
+#
+# ADMIN + GOVERNMENT OFFICIAL (government sees own rows only)
+#
+# IMPORTANT:
+# This static route must appear before /{policy_id}.
+# ============================================================
+
+
+@router.get(
+    "/deleted",
+    response_model=PolicyListResponse,
+)
+def get_deleted_policies_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+    page: int = 1,
+    limit: int = 100,
+    search: str | None = None,
+):
+    from app.services.policy_service import get_deleted_policies
+
+    result = get_deleted_policies(
+        db=db,
+        page=page,
+        limit=limit,
+        search=search,
+        current_user=current_user,
+    )
+
+    return result
+
+
+# ============================================================
+# PURGE ELIGIBLE TRASH (30-DAY AUTO-CLEANUP, MANUAL TRIGGER)
+#
+# ADMIN ONLY
+# ============================================================
+
+
+@router.post(
+    "/maintenance/purge-deleted",
+)
+def purge_deleted_policies_route(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+    retention_days: int = 30,
+):
+    from app.services.deletion_cleanup_service import (
+        process_deleted_cleanup,
+    )
+
+    summary = process_deleted_cleanup(
+        db=db,
+        retention_days=retention_days,
+        triggered_by=current_user.user_id,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_PURGE_RUN",
+        "POLICY",
+        None,
+        f"Deleted-policies purge run: {summary['policies_purged']} purged, "
+        f"{summary['policies_skipped_errors']} errors.",
+    )
+
+    return summary
+
+
+# ============================================================
+# POLICY DOCUMENT UPLOAD (PDF)
+#
+# ADMIN + GOVERNMENT OFFICIAL (officials only for their own policies,
+# enforced in the service). One current file per policy, replaced
+# atomically; bytes stream only through the authorized download
+# endpoint below, never inside JSON.
+# ============================================================
+
+
+def _readable_policy_or_404(
+    db: Session,
+    policy_id: int,
+    current_user: User,
+):
+    """Policy row the caller is allowed to read (mirrors GET /{id})."""
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    role = normalize_role(current_user.role)
+
+    public_roles = {
+        "CITIZEN",
+        "RESEARCHER",
+        "ORGANIZATION",
+        "GUEST",
+    }
+
+    if role in public_roles:
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role == "GOVERNMENT_OFFICIAL":
+        if policy.status != "APPROVED" and (
+            policy.created_by != current_user.user_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role != "ADMIN":
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+
+    return policy
+
+
+@router.post(
+    "/{policy_id}/document",
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_policy_document_route(
+    policy_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    from app.services.policy_document_service import (
+        to_metadata,
+        upload_policy_document,
+    )
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    try:
+        content = await file.read()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not read the uploaded file.",
+        ) from exc
+
+    doc = upload_policy_document(
+        db=db,
+        policy=policy,
+        current_user=current_user,
+        content=content,
+        filename=file.filename,
+        content_type=file.content_type,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DOCUMENT_UPLOADED",
+        "POLICY",
+        policy_id,
+        f"Document '{doc.document_name}' uploaded for policy '{policy.title}'.",
+    )
+
+    return to_metadata(doc)
+
+
+@router.get("/{policy_id}/document")
+def get_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.policy_document_service import (
+        get_policy_document,
+        to_metadata,
+    )
+
+    _readable_policy_or_404(db, policy_id, current_user)
+
+    doc = get_policy_document(db, policy_id)
+
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    return to_metadata(doc)
+
+
+@router.get("/{policy_id}/document/download")
+def download_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    import io
+
+    from app.services.policy_document_service import get_policy_document
+
+    _readable_policy_or_404(db, policy_id, current_user)
+
+    doc = get_policy_document(db, policy_id)
+
+    if doc is None or not doc.file_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    data = bytes(doc.file_data)
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=doc.mime_type or "application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{doc.document_name}"'
+            ),
+            "Content-Length": str(len(data)),
+        },
+    )
+
+
+@router.delete("/{policy_id}/document")
+def delete_policy_document_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            "ADMIN",
+            "GOVERNMENT_OFFICIAL",
+        )
+    ),
+):
+    from app.services.policy_document_service import (
+        assert_can_manage_documents,
+        delete_policy_document,
+    )
+    from app.services.policy_service import _policy_or_404
+
+    policy = _policy_or_404(db=db, policy_id=policy_id)
+
+    assert_can_manage_documents(policy, current_user)
+
+    if not delete_policy_document(db, policy):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded document for this policy.",
+        )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DOCUMENT_DELETED",
+        "POLICY",
+        policy_id,
+        f"Uploaded document removed for policy '{policy.title}'.",
+    )
+
+    return {"message": "Uploaded document removed."}
 
 
 # ============================================================
@@ -407,11 +745,12 @@ def save_policy_draft_route(
 )
 def get_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
 
-    role = str(current_user.role).strip().upper()
+    role = normalize_role(current_user.role)
 
     public_roles = {
         "CITIZEN",
@@ -426,13 +765,59 @@ def get_policy_route(
     )
 
     if role in public_roles:
-
         if policy.status != "APPROVED":
-
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Policy not found.",
             )
+    elif role == "GOVERNMENT_OFFICIAL":
+        # Officials may read APPROVED records plus their own unpublished
+        # workflow records. Other officials' DRAFT/PENDING_APPROVAL rows
+        # are 404-masked (no existence leak), mirroring schemes.
+        if policy.status != "APPROVED" and (
+            policy.created_by != current_user.user_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+    elif role != "ADMIN":
+        # Fail closed: unknown roles get the public-safe view only.
+        if policy.status != "APPROVED":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Policy not found.",
+            )
+
+    # View tracking (observability only): one POLICY_VIEW per user/policy
+    # per 30 minutes, so workflow refetches and double renders never
+    # inflate Usage Statistics counts. Never affects the response.
+    window_start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+        minutes=30
+    )
+    recent_view = (
+        db.query(AuditLog.audit_id)
+        .filter(
+            AuditLog.action == "POLICY_VIEW",
+            AuditLog.entity_type == "POLICY",
+            AuditLog.entity_id == policy_id,
+            AuditLog.user_id == current_user.user_id,
+            AuditLog.created_at >= window_start,
+        )
+        .first()
+    )
+    if recent_view is None:
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "POLICY_VIEW",
+            "POLICY",
+            policy_id,
+            f"Policy '{policy.title}' viewed.",
+        )
+
+    attach_actor_display_names(db, policy)
 
     return policy
 
@@ -457,6 +842,8 @@ def get_policy_route(
 def update_policy_route(
     policy_id: int,
     data: PolicyUpdate,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -466,21 +853,43 @@ def update_policy_route(
     ),
 ):
 
-    return update_policy(
+    result = update_policy(
         db=db,
         policy_id=policy_id,
         data=data,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    # Concise change summary (field names only, never values) so the
+    # timeline shows what was edited without duplicating data.
+    changed_fields = sorted(data.model_dump(exclude_unset=True).keys())
+    change_suffix = (
+        f" Changed fields: {', '.join(changed_fields)}." if changed_fields else ""
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_UPDATED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' updated.{change_suffix}",
+    )
+
+    return result
 
 
 # ============================================================
-# DIRECT PERMANENT DELETE
+# DIRECT DELETE (TEMPORARY)
 #
 # ADMIN ONLY
 #
-# This bypasses request workflow.
-# Use only for direct administrative deletion.
+# This bypasses the request workflow and moves the row to Deleted
+# Policies (soft delete). Use only for direct administrative deletion.
+# Physical removal happens exclusively via permanent-delete or the
+# 30-day auto-cleanup.
 # ============================================================
 
 
@@ -489,9 +898,24 @@ def update_policy_route(
 )
 def delete_policy_route(
     policy_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
+
+    # Capture title + creator BEFORE the permanent delete: the row (and
+    # its created_by link) is gone afterwards. The creator snapshot is
+    # appended to the audit description ("Created by <name>."), which the
+    # Deleted Policies UI parses to show Created By for future records.
+    # (Also fixes a latent NameError: `policy` was previously undefined.)
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    creator_name = resolve_user_display_name(
+        db, getattr(existing, "created_by", None)
+    )
+    creator_suffix = f" Created by {creator_name}." if creator_name else ""
 
     delete_policy(
         db=db,
@@ -499,7 +923,57 @@ def delete_policy_route(
         current_user=current_user,
     )
 
-    return {"message": "Policy deleted successfully."}
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETED",
+        "POLICY",
+        policy_id,
+        f"Policy '{existing.title}' moved to Deleted Policies.{creator_suffix}",
+    )
+
+    return {"message": "Policy moved to Deleted Policies."}
+
+
+# ============================================================
+# PERMANENT DELETE (TRASH ONLY)
+#
+# ADMIN ONLY
+#
+# Physically removes a temporarily deleted row. Live rows are
+# rejected: delete them first to move them to Deleted Policies.
+# ============================================================
+
+
+@router.delete(
+    "/{policy_id}/permanent",
+)
+def permanent_delete_policy_route(
+    policy_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+    from app.services.policy_service import permanent_delete_policy
+
+    permanent_delete_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_PERMANENTLY_DELETED",
+        "POLICY",
+        policy_id,
+        f"Policy #{policy_id} permanently deleted from trash.",
+    )
+
+    return {"message": "Policy permanently deleted."}
 
 
 # ============================================================
@@ -517,6 +991,8 @@ def delete_policy_route(
 )
 def submit_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(
         require_roles(
@@ -526,11 +1002,47 @@ def submit_policy_route(
     ),
 ):
 
-    return submit_policy(
+    # Resubmissions (REJECTED -> PENDING_APPROVAL) are worded distinctly
+    # so the timeline distinguishes them from first-time submissions.
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    was_rejected = existing.status == "REJECTED"
+
+    result = submit_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    submit_verb = "resubmitted for approval" if was_rejected else "submitted for approval"
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_SUBMITTED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' {submit_verb}.",
+    )
+
+    # Admin direct approval (DRAFT -> APPROVED) is also recorded as an
+    # approval, mirroring POST /policies/{id}/approve.
+    if result.status == "APPROVED":
+        log_request_action(
+            request,
+            db,
+            current_user,
+            "POLICY_APPROVED",
+            "POLICY",
+            policy_id,
+            f"Policy '{result.title}' approved by admin {current_user.user_id}.",
+        )
+
+    return result
 
 
 # ============================================================
@@ -548,15 +1060,30 @@ def submit_policy_route(
 )
 def approve_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return approve_policy(
+    result = approve_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' approved by admin {current_user.user_id}.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -575,16 +1102,75 @@ def approve_policy_route(
 def reject_policy_route(
     policy_id: int,
     data: PolicyRejectRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_policy(
+    result = reject_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' rejected by admin {current_user.user_id}.",
+    )
+
+    return result
+
+
+# ============================================================
+# DIRECT ARCHIVE
+#
+# ADMIN ONLY
+#
+# APPROVED -> ARCHIVED (no request needed)
+#
+# Mirrors POST /schemes/{id}/archive so both modules share the same
+# direct-archive workflow.
+# ============================================================
+
+
+@router.post(
+    "/{policy_id}/archive",
+    response_model=PolicyResponse,
+)
+def archive_policy_route(
+    policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("ADMIN")),
+):
+
+    result = archive_policy(
+        db=db,
+        policy_id=policy_id,
+        current_user=current_user,
+        background_tasks=background_tasks,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' archived by administrator.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -603,16 +1189,31 @@ def reject_policy_route(
 def request_archive_policy_route(
     policy_id: int,
     data: PolicyArchiveRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
 
-    return request_archive_policy(
+    result = request_archive_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_REQUESTED",
+        "POLICY",
+        policy_id,
+        f"Archive requested for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -630,15 +1231,30 @@ def request_archive_policy_route(
 )
 def approve_archive_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return approve_archive_policy(
+    result = approve_archive_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Archive approved for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -656,15 +1272,30 @@ def approve_archive_policy_route(
 )
 def reject_archive_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_archive_policy(
+    result = reject_archive_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_ARCHIVE_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Archive rejected for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -682,15 +1313,30 @@ def reject_archive_policy_route(
 )
 def restore_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return restore_policy(
+    result = restore_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_RESTORED",
+        "POLICY",
+        policy_id,
+        f"Policy '{result.title}' restored successfully.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -709,16 +1355,31 @@ def restore_policy_route(
 def request_delete_policy_route(
     policy_id: int,
     data: PolicyDeleteRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("GOVERNMENT_OFFICIAL")),
 ):
 
-    return request_delete_policy(
+    result = request_delete_policy(
         db=db,
         policy_id=policy_id,
         reason=data.reason,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_REQUESTED",
+        "POLICY",
+        policy_id,
+        f"Delete requested for policy '{result.title}'.",
+    )
+
+    return result
 
 
 # ============================================================
@@ -735,20 +1396,43 @@ def request_delete_policy_route(
 )
 def approve_delete_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
+
+    # Snapshot the creator BEFORE the permanent delete (read-only; the
+    # service re-validates status and raises on failure, so a failed
+    # delete never produces an audit record).
+    existing = get_policy(
+        db=db,
+        policy_id=policy_id,
+    )
+    creator_name = resolve_user_display_name(
+        db, getattr(existing, "created_by", None)
+    )
+    creator_suffix = f" Created by {creator_name}." if creator_name else ""
 
     approve_delete_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
+    )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_APPROVED",
+        "POLICY",
+        policy_id,
+        f"Delete approved for policy '{existing.title}' (#{policy_id}); moved to Deleted Policies.{creator_suffix}",
     )
 
     return {
-        "message": (
-            "Policy deletion approved and " "policy permanently deleted."
-        )
+        "message": ("Policy deletion approved and policy moved to Deleted Policies.")
     }
 
 
@@ -767,12 +1451,27 @@ def approve_delete_policy_route(
 )
 def reject_delete_policy_route(
     policy_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles("ADMIN")),
 ):
 
-    return reject_delete_policy(
+    result = reject_delete_policy(
         db=db,
         policy_id=policy_id,
         current_user=current_user,
+        background_tasks=background_tasks,
     )
+
+    log_request_action(
+        request,
+        db,
+        current_user,
+        "POLICY_DELETE_REJECTED",
+        "POLICY",
+        policy_id,
+        f"Delete rejected for policy '{result.title}'.",
+    )
+
+    return result

@@ -15,12 +15,19 @@ export interface SchemeBase {
   ministry?: string | null;
   department?: string | null;
   state?: string | null;
+  eligibility_state?: string | null;
   benefits?: string[] | null;
+  key_highlights?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
   documents_required?: string | null;
   application_process?: string | null;
   application_url?: string | null;
+  application_source_url?: string | null;
   source_url?: string | null;
   eligibility_rules?: Record<string, any>[] | null;
+  related_policy_id?: number | null;
+  launch_date?: string | null;
 }
 
 export interface SchemeCreate extends SchemeBase {}
@@ -32,12 +39,19 @@ export interface SchemeUpdate {
   ministry?: string | null;
   department?: string | null;
   state?: string | null;
+  eligibility_state?: string | null;
   benefits?: string[] | null;
+  key_highlights?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
   documents_required?: string | null;
   application_process?: string | null;
   application_url?: string | null;
+  application_source_url?: string | null;
   source_url?: string | null;
   eligibility_rules?: Record<string, any>[] | null;
+  related_policy_id?: number | null;
+  launch_date?: string | null;
 }
 
 export interface SchemeResponse extends SchemeBase {
@@ -45,6 +59,7 @@ export interface SchemeResponse extends SchemeBase {
   status: SchemeStatus;
   created_by?: number | null;
   approved_by?: number | null;
+  updated_by?: number | null;
   rejection_reason?: string | null;
   archive_reason?: string | null;
   archive_requested_by?: number | null;
@@ -53,6 +68,21 @@ export interface SchemeResponse extends SchemeBase {
   delete_requested_by?: number | null;
   delete_requested_at?: string | null;
   delete_requested_from_status?: string | null;
+  key_highlights?: string[] | null;
+  additional_info?: string | null;
+  important_notes?: string | null;
+  related_policy_id?: number | null;
+  related_policy_title?: string | null;
+  launch_date?: string | null;
+  is_deleted?: boolean | null;
+  deleted_at?: string | null;
+  deleted_by?: number | null;
+  created_by_name?: string | null;
+  created_by_role?: string | null;
+  approved_by_name?: string | null;
+  approved_by_role?: string | null;
+  deleted_by_name?: string | null;
+  requested_by_name?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -83,6 +113,8 @@ export interface SchemeFilters {
   ministry?: string;
   department?: string;
   state?: string;
+  sector?: string;
+  publication_date?: string;
   status?: string;
   page?: number;
   limit?: number;

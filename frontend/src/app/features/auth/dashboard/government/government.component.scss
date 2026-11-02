@@ -51,12 +51,12 @@ $purple: #8b00e8;
 
 .government-dashboard {
   width: 100%;
-
+  max-width: 100%;
   min-width: 0;
 
-  margin: 0 auto;
+  margin: 0;
 
-  padding: 28px 32px 42px;
+  padding: 28px 32px 40px;
 
   background: $background;
 

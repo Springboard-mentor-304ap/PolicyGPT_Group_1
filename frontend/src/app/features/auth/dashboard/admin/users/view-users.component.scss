@@ -71,11 +71,12 @@ $danger: #dc2626;
 
 .users-content {
   width: 100%;
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 32px 42px 50px;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 28px 32px 40px;
   box-sizing: border-box;
-  background: #f5f7fb;
+  background: #f4f7fb;
   color: #172033;
 }
 
@@ -1010,7 +1011,7 @@ $danger: #dc2626;
 
 @media (max-width: 1199px) {
   .users-content {
-    padding: 20px 24px 30px;
+    padding: 22px;
   }
 
   .users-summary {
@@ -1020,7 +1021,7 @@ $danger: #dc2626;
 
 @media (max-width: 767px) {
   .users-content {
-    padding: 18px 15px 28px;
+    padding: 18px;
   }
 
   .users-page-header {
@@ -1066,7 +1067,7 @@ $danger: #dc2626;
 
 @media (max-width: 480px) {
   .users-content {
-    padding: 15px 11px 24px;
+    padding: 14px;
   }
 
   .users-page-header h1 {

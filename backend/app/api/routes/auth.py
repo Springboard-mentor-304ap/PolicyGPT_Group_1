@@ -171,6 +171,7 @@ CANONICAL_ROLES = {
     "RESEARCHER",
     "ORGANIZATION",
     "CITIZEN",
+    "GUEST",
 }
 
 # Backward-compatible aliases. This means ADMIN, administrator,
@@ -191,6 +192,10 @@ ROLE_ALIASES = {
 
     "ORGANIZATION": "ORGANIZATION",
     "ORG": "ORGANIZATION",
+
+    "GUEST": "GUEST",
+    "GUEST_USER": "GUEST",
+    "GUEST USER": "GUEST",
 }
 
 
@@ -523,6 +528,62 @@ def login(
         access_token=token,
         token_type="bearer",
         user=user
+    )
+
+
+# =========================================================
+# GUEST LOGIN
+# =========================================================
+
+@router.post(
+    "/guest-login",
+    response_model=AuthResponse,
+    summary="Guest User Login",
+    description="Authenticates as a guest user, returning a guest session token and user profile."
+)
+@router.post(
+    "/guest",
+    response_model=AuthResponse,
+    include_in_schema=False
+)
+def guest_login(
+    db: Session = Depends(get_db)
+):
+    guest_email = "guest@policygpt.com"
+    guest_user = db.query(User).filter(User.email == guest_email).first()
+
+    if not guest_user:
+        now = datetime.now(timezone.utc)
+        guest_user = User(
+            full_name="Guest User",
+            email=guest_email,
+            password_hash=hash_password(secrets.token_urlsafe(16)),
+            role="GUEST",
+            phone=None,
+            date_of_birth=None,
+            state=None,
+            district=None,
+            occupation="Guest",
+            organization=None,
+            is_active=True,
+            token_version=0,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(guest_user)
+        try:
+            db.commit()
+            db.refresh(guest_user)
+        except IntegrityError:
+            db.rollback()
+            guest_user = db.query(User).filter(User.email == guest_email).first()
+
+    token = create_user_token(guest_user)
+
+    return AuthResponse(
+        access_token=token,
+        token_type="bearer",
+        user=guest_user
     )
 
 

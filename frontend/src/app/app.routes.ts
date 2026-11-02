@@ -89,6 +89,94 @@ export const routes: Routes = [
         (m) => m.ViewUsersComponent,
       ),
   },
+  
+  // POLICY ROUTES
+  // =========================================================
+  {
+    path: "policies/search",
+    loadComponent: () =>
+      import("./features/policy/policy-search/policy-search.component").then(
+        (m) => m.PolicySearchComponent,
+      ),
+  },
+  {
+    path: "policies",
+    loadComponent: () =>
+      import("./features/policy/policy-search/policy-search.component").then(
+        (m) => m.PolicySearchComponent,
+      ),
+  },
+  {
+    path: "policies/:id",
+    loadComponent: () =>
+      import("./features/policy/policy-details/policy-details.component").then(
+        (m) => m.PolicyDetailsComponent,
+      ),
+  },
+
+  // =========================================================
+  // SCHEMES ROUTES
+  // =========================================================
+  {
+    path: "schemes/search",
+    loadComponent: () =>
+      import("./features/schemes/scheme-search/scheme-search.component").then(
+        (m) => m.SchemeSearchComponent,
+      ),
+  },
+  {
+    path: "schemes",
+    loadComponent: () =>
+      import("./features/schemes/scheme-search/scheme-search.component").then(
+        (m) => m.SchemeSearchComponent,
+      ),
+  },
+  {
+    path: "schemes/:id",
+    loadComponent: () =>
+      import("./features/schemes/scheme-details/scheme-details.component").then(
+        (m) => m.SchemeDetailsComponent,
+      ),
+  },
+
+  // 
+  
+  
+       // =========================================================
+  // COMPARE ROUTES
+  // =========================================================
+  //
+  // /compare
+  // /compare/results
+  //
+  // =========================================================
+
+  {
+    path: "compare",
+    loadComponent: () =>
+      import("./features/compare/compare-selection/compare-selection.component").then(
+        (m) => m.CompareSelectionComponent,
+      ),
+  },
+
+  {
+    path: "compare/results",
+    loadComponent: () =>
+      import("./features/compare/compare-results/compare-results.component").then(
+        (m) => m.CompareResultsComponent,
+      ),
+  },
+
+  // =========================================================
+  // ELIGIBILITY ROUTE
+  // =========================================================
+  {
+    path: "eligibility",
+    loadComponent: () =>
+      import("./features/eligibility/eligibility-checker/eligibility-checker").then(
+        (m) => m.EligibilityChecker,
+      ),
+  },
 
   // =========================================================
   // FALLBACK

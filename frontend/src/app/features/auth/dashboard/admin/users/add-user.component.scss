@@ -1,15 +1,16 @@
 .add-user-page {
   width: 100%;
 
-  max-width: 1600px;
+  max-width: 100%;
+  min-width: 0;
 
-  margin: 0 auto;
+  margin: 0;
 
-  padding: 32px 42px 50px;
+  padding: 28px 32px 40px;
 
   box-sizing: border-box;
 
-  background: #f5f7fb;
+  background: #f4f7fb;
 
   color: #172033;
 }
@@ -621,9 +622,15 @@
   }
 }
 
+@media (max-width: 1050px) {
+  .add-user-page {
+    padding: 22px;
+  }
+}
+
 @media (max-width: 767px) {
   .add-user-page {
-    padding: 16px 14px 24px;
+    padding: 18px;
   }
 
   .add-user-header h1 {
@@ -647,6 +654,10 @@
 }
 
 @media (max-width: 520px) {
+  .add-user-page {
+    padding: 14px;
+  }
+
   .add-user-breadcrumb {
     font-size: 11px;
   }

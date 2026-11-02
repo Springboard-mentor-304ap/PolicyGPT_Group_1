@@ -13,6 +13,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const isLoginRequest = req.url.includes("/auth/login");
 
+  const isGuestLoginRequest = req.url.includes("/auth/guest");
+
   const isRegisterRequest = req.url.includes("/auth/register");
 
   const isForgotPasswordRequest = req.url.includes("/auth/forgot-password");
@@ -28,6 +30,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (
     !token ||
     isLoginRequest ||
+    isGuestLoginRequest ||
     isRegisterRequest ||
     isForgotPasswordRequest ||
     isVerifyOtpRequest ||

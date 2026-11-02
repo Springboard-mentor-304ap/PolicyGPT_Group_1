@@ -40,11 +40,21 @@ CREATE TABLE policies (
     sector VARCHAR(100),
     publication_date DATE,
     effective_date DATE,
-    status VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
     document_url TEXT,
     source_url TEXT,
+    benefits TEXT[],
+    eligibility_rules JSONB,
     created_by BIGINT REFERENCES users(user_id),
     approved_by BIGINT REFERENCES users(user_id),
+    rejection_reason TEXT,
+    archive_reason TEXT,
+    archive_requested_by BIGINT REFERENCES users(user_id),
+    archive_requested_at TIMESTAMP,
+    delete_reason TEXT,
+    delete_requested_by BIGINT REFERENCES users(user_id),
+    delete_requested_at TIMESTAMP,
+    delete_requested_from_status VARCHAR(30),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -62,13 +72,23 @@ CREATE TABLE schemes (
     ministry VARCHAR(200),
     department VARCHAR(200),
     state VARCHAR(100),
-    benefits TEXT,
+    benefits TEXT[],
     documents_required TEXT,
     application_process TEXT,
     application_url TEXT,
     source_url TEXT,
-    status VARCHAR(30) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
+    eligibility_rules JSONB,
     created_by BIGINT REFERENCES users(user_id),
+    approved_by BIGINT REFERENCES users(user_id),
+    rejection_reason TEXT,
+    archive_reason TEXT,
+    archive_requested_by BIGINT REFERENCES users(user_id),
+    archive_requested_at TIMESTAMP,
+    delete_reason TEXT,
+    delete_requested_by BIGINT REFERENCES users(user_id),
+    delete_requested_at TIMESTAMP,
+    delete_requested_from_status VARCHAR(30),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -80,7 +100,12 @@ CREATE TABLE schemes (
 
 CREATE TABLE eligibility_rules (
     rule_id BIGSERIAL PRIMARY KEY,
-    scheme_id BIGINT NOT NULL REFERENCES schemes(scheme_id),
+    policy_id BIGINT
+        REFERENCES policies(policy_id)
+        ON DELETE CASCADE,
+    scheme_id BIGINT
+        REFERENCES schemes(scheme_id)
+        ON DELETE CASCADE,
     min_age INTEGER,
     max_age INTEGER,
     gender VARCHAR(30),
@@ -91,7 +116,32 @@ CREATE TABLE eligibility_rules (
     social_category VARCHAR(100),
     disability_status BOOLEAN,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    CONSTRAINT chk_policy_or_scheme
+        CHECK (
+            (policy_id IS NOT NULL AND scheme_id IS NULL)
+            OR
+            (policy_id IS NULL AND scheme_id IS NOT NULL)
+        ),
+    CONSTRAINT chk_age_range
+        CHECK (
+            min_age IS NULL
+            OR max_age IS NULL
+            OR min_age <= max_age
+        ),
+    CONSTRAINT chk_min_age
+        CHECK (
+            min_age IS NULL OR min_age >= 0
+        ),
+    CONSTRAINT chk_max_age
+        CHECK (
+            max_age IS NULL OR max_age >= 0
+        ),
+    CONSTRAINT chk_max_income
+        CHECK (
+            max_income IS NULL OR max_income >= 0
+        )
 );
 
 

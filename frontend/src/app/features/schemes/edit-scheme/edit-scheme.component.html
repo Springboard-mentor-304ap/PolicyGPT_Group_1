@@ -1,0 +1,1118 @@
+<div class="scheme-create">
+  <!-- =========================================================
+       BREADCRUMB & HEADER
+       ========================================================= -->
+  <div class="scheme-create__header">
+    <div class="scheme-create__header-left">
+      <nav class="scheme-create__breadcrumb" aria-label="Breadcrumb">
+        <a [routerLink]="['/dashboard', rolePrefix, 'schemes']">Schemes</a>
+        <span class="separator">&gt;</span>
+        <a [routerLink]="['/dashboard', rolePrefix, 'schemes', 'manage']">Manage Schemes</a>
+        <span class="separator">&gt;</span>
+        <span class="current">Edit Scheme</span>
+      </nav>
+
+      <div class="scheme-create__title-row">
+        <button type="button" class="scheme-create__back-btn" (click)="prevStep()" *ngIf="currentStep > 1"
+          aria-label="Previous step">
+          <span class="material-icons">arrow_back</span>
+        </button>
+
+        <button type="button" class="scheme-create__back-btn" (click)="cancel()" *ngIf="currentStep === 1"
+          aria-label="Back to manage schemes">
+          <span class="material-icons">arrow_back</span>
+        </button>
+
+        <div class="scheme-create__title-box">
+          <h1 class="scheme-create__title">
+            Edit Scheme: {{ schemeForm.get('name')?.value || 'Scheme #' + schemeId }}
+          </h1>
+          <p class="scheme-create__subtitle">
+            Update and review the scheme details before {{ isAdmin ? 'saving changes.' : 'submitting for approval.' }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="scheme-create__header-right">
+      <button type="button" class="scheme-create__btn-draft" (click)="saveDraft()">
+        <span class="material-icons">save</span>
+        <span>Save as Draft</span>
+      </button>
+
+      @if (currentStep === 5) {
+      <div class="scheme-create__emblem-tag">
+        <div class="scheme-create__emblem-text">
+          <span>Transparent Governance</span>
+          <strong>Stronger Citizens</strong>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- DRAFT SAVED TOAST -->
+  @if (savedDraftToast) {
+  <div class="scheme-create__toast" role="alert">
+    <span class="material-icons">check_circle</span>
+    <span>Scheme draft saved successfully! You can resume editing anytime.</span>
+  </div>
+  }
+
+  <!-- =========================================================
+       5-STEP STEPPER
+       ========================================================= -->
+  <div class="scheme-stepper" aria-label="Progress">
+    <div class="scheme-stepper__track">
+      <!-- STEP 1 -->
+      <div class="scheme-stepper__step" [class.scheme-stepper__step--active]="currentStep === 1"
+        [class.scheme-stepper__step--completed]="completedSteps.has(1)" (click)="goToStep(1)">
+        <div class="scheme-stepper__circle">
+          @if (completedSteps.has(1) && currentStep !== 1) {
+          <span class="material-icons">check</span>
+          } @else {
+          <span>1</span>
+          }
+        </div>
+        <span class="scheme-stepper__label">Basic Information</span>
+      </div>
+
+      <div class="scheme-stepper__line" [class.scheme-stepper__line--active]="currentStep > 1 || completedSteps.has(1)">
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="scheme-stepper__step" [class.scheme-stepper__step--active]="currentStep === 2"
+        [class.scheme-stepper__step--completed]="completedSteps.has(2)" (click)="goToStep(2)">
+        <div class="scheme-stepper__circle">
+          @if (completedSteps.has(2) && currentStep !== 2) {
+          <span class="material-icons">check</span>
+          } @else {
+          <span>2</span>
+          }
+        </div>
+        <span class="scheme-stepper__label">Scheme Details</span>
+      </div>
+
+      <div class="scheme-stepper__line" [class.scheme-stepper__line--active]="currentStep > 2 || completedSteps.has(2)">
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="scheme-stepper__step" [class.scheme-stepper__step--active]="currentStep === 3"
+        [class.scheme-stepper__step--completed]="completedSteps.has(3)" (click)="goToStep(3)">
+        <div class="scheme-stepper__circle">
+          @if (completedSteps.has(3) && currentStep !== 3) {
+          <span class="material-icons">check</span>
+          } @else {
+          <span>3</span>
+          }
+        </div>
+        <span class="scheme-stepper__label">Eligibility Criteria</span>
+      </div>
+
+      <div class="scheme-stepper__line" [class.scheme-stepper__line--active]="currentStep > 3 || completedSteps.has(3)">
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="scheme-stepper__step" [class.scheme-stepper__step--active]="currentStep === 4"
+        [class.scheme-stepper__step--completed]="completedSteps.has(4)" (click)="goToStep(4)">
+        <div class="scheme-stepper__circle">
+          @if (completedSteps.has(4) && currentStep !== 4) {
+          <span class="material-icons">check</span>
+          } @else {
+          <span>4</span>
+          }
+        </div>
+        <span class="scheme-stepper__label">Documents &amp; Application</span>
+      </div>
+
+      <div class="scheme-stepper__line" [class.scheme-stepper__line--active]="currentStep > 4 || completedSteps.has(4)">
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="scheme-stepper__step" [class.scheme-stepper__step--active]="currentStep === 5"
+        [class.scheme-stepper__step--completed]="completedSteps.has(5)" (click)="goToStep(5)">
+        <div class="scheme-stepper__circle">
+          @if (completedSteps.has(5) && currentStep !== 5) {
+          <span class="material-icons">check</span>
+          } @else {
+          <span>5</span>
+          }
+        </div>
+        <span class="scheme-stepper__label">Review &amp; Submit</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM CONTAINER -->
+  <form [formGroup]="schemeForm" (ngSubmit)="onSubmit()" novalidate>
+    <!-- =========================================================
+         STEP 1: BASIC INFORMATION
+         ========================================================= -->
+    @if (currentStep === 1) {
+    <div class="scheme-layout">
+      <!-- Main Form Card -->
+      <div class="scheme-card policy-layout__main">
+        <div class="scheme-card__header">
+          <div class="scheme-card__icon-badge">
+            <span class="material-icons">edit_note</span>
+          </div>
+          <div>
+            <h2 class="scheme-card__title">Basic Information</h2>
+            <p class="scheme-card__subtitle">
+              Update the official name, category, and core description.
+            </p>
+          </div>
+        </div>
+
+        <div class="scheme-form-grid">
+          <!-- SCHEME NAME -->
+          <div class="form-group">
+            <label class="form-label" for="edit-scheme-name">
+              Scheme Name <span class="required">*</span>
+            </label>
+            <div class="input-with-icon">
+              <span class="material-icons input-icon">assignment</span>
+              <input id="edit-scheme-name" type="text" class="form-control" formControlName="name"
+                placeholder="Enter scheme name" [class.is-invalid]="
+                    stepSubmitted[1] && schemeForm.get('name')?.invalid
+                  " />
+            </div>
+            <p class="form-helper">Official scheme title.</p>
+            @if (stepSubmitted[1] && schemeForm.get('name')?.invalid) {
+            <span class="form-error">Scheme name is required.</span>
+            }
+          </div>
+
+          <!-- CATEGORY -->
+          <div class="form-group">
+            <label class="form-label" for="edit-scheme-category">
+              Category <span class="required">*</span>
+            </label>
+            <div class="input-with-icon select-wrapper">
+              <span class="material-icons input-icon">grid_view</span>
+              <select id="edit-scheme-category" class="form-control form-select" formControlName="category"
+                [class.is-invalid]="
+                    stepSubmitted[1] && schemeForm.get('category')?.invalid
+                  ">
+                <option value="" disabled selected>Select category</option>
+                @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+                }
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
+            <p class="form-helper">Category classification.</p>
+          </div>
+
+          <!-- MINISTRY -->
+          <div class="form-group">
+            <label class="form-label" for="edit-scheme-ministry">Ministry</label>
+            <div class="input-with-icon select-wrapper">
+              <span class="material-icons input-icon">account_balance</span>
+              <select id="edit-scheme-ministry" class="form-control form-select" formControlName="ministry">
+                <option value="" selected>Select ministry</option>
+                @for (min of ministries; track min) {
+                <option [value]="min">{{ min }}</option>
+                }
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
+            <p class="form-helper">Nodal ministry responsible.</p>
+          </div>
+
+          <!-- DEPARTMENT -->
+          <div class="form-group">
+            <label class="form-label" for="edit-scheme-dept">Department</label>
+            <div class="input-with-icon select-wrapper">
+              <span class="material-icons input-icon">apartment</span>
+              <select id="edit-scheme-dept" class="form-control form-select" formControlName="department">
+                <option value="" selected>Select department</option>
+                @for (dept of departments; track dept) {
+                <option [value]="dept">{{ dept }}</option>
+                }
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
+            <p class="form-helper">Nodal department.</p>
+          </div>
+
+          <!-- STATE / REGION -->
+          <div class="form-group form-group--half">
+            <label class="form-label" for="edit-scheme-state">State / Region</label>
+            <div class="input-with-icon select-wrapper">
+              <span class="material-icons input-icon">location_on</span>
+              <select id="edit-scheme-state" class="form-control form-select" formControlName="state">
+                <option value="" disabled>Select state / region</option>
+                @for (st of states; track st) {
+                <option [value]="st">{{ st }}</option>
+                }
+              </select>
+              <span class="material-icons select-arrow">expand_more</span>
+            </div>
+            <p class="form-helper">Applicable region.</p>
+          </div>
+
+          <!-- DESCRIPTION -->
+          <div class="form-group form-group--full">
+            <label class="form-label" for="edit-scheme-desc">
+              Description <span class="required">*</span>
+            </label>
+            <div class="textarea-container">
+              <span class="material-icons textarea-icon">description</span>
+              <textarea id="edit-scheme-desc" class="form-control form-textarea" rows="4" formControlName="description"
+                placeholder="Enter a detailed description of the scheme..." maxlength="1000" [class.is-invalid]="
+                    stepSubmitted[1] && schemeForm.get('description')?.invalid
+                  "></textarea>
+            </div>
+            <div class="form-helper-row">
+              <span class="form-helper">
+                Comprehensive description of objectives and key highlights.
+              </span>
+              <span class="char-counter">
+                {{ schemeForm.get('description')?.value?.length || 0 }}/1000 characters
+              </span>
+            </div>
+          </div>
+
+          <!-- BENEFITS -->
+          <div class="form-group form-group--full">
+            <label class="form-label">
+              Benefits
+              <span class="material-icons info-icon-inline" title="Key benefits of this scheme">info_outline</span>
+            </label>
+
+            <div formArrayName="benefits" class="dynamic-list">
+              @for (benefitCtrl of benefits.controls; track $index; let i = $index) {
+              <div class="dynamic-row">
+                <input type="text" class="form-control" [formControlName]="i"
+                  [placeholder]="i === 0 ? 'Enter a benefit of the scheme' : 'Enter another benefit'" />
+                <button type="button" class="btn-icon-danger" (click)="removeBenefit(i)" aria-label="Remove benefit">
+                  <span class="material-icons">delete_outline</span>
+                </button>
+              </div>
+              }
+
+              <button type="button" class="btn-dashed-add" (click)="addBenefit()">
+                <span class="material-icons">add</span>
+                <span>Add Benefit</span>
+              </button>
+            </div>
+            <p class="form-helper">List key benefits provided under this scheme.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Tips & Notes -->
+      <div class="scheme-layout__sidebar">
+        <div class="info-card">
+          <div class="info-card__header">
+            <div class="info-card__icon-badge info-card__icon-badge--blue">
+              <span class="material-icons">history_edu</span>
+            </div>
+            <h3 class="info-card__title">Editing Scheme #{{ schemeId }}</h3>
+          </div>
+
+          <ul class="info-checklist">
+            <li>
+              <span class="material-icons check-icon">check_circle</span>
+              <span>You can edit any section and review all changes before saving</span>
+            </li>
+            <li>
+              <span class="material-icons check-icon">check_circle</span>
+              <span>Modified data will update public scheme search records</span>
+            </li>
+            <li>
+              <span class="material-icons check-icon">check_circle</span>
+              <span>Ensure eligibility rules match official gazette revisions</span>
+            </li>
+          </ul>
+
+          <div class="quote-box">
+            <span class="material-icons quote-mark">format_quote</span>
+            <p class="quote-text">
+              “Keeping government scheme parameters current and accurate empowers citizens with reliable public
+              assistance.”
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- =========================================================
+         STEP 2: SCHEME DETAILS
+         ========================================================= -->
+    @if (currentStep === 2) {
+    <div class="scheme-layout scheme-layout--single">
+      <div class="scheme-card">
+        <div class="scheme-card__header">
+          <div class="scheme-card__icon-badge">
+            <span class="material-icons">description</span>
+          </div>
+          <div>
+            <h2 class="scheme-card__title">Scheme Details</h2>
+            <p class="scheme-card__subtitle">
+              Update target beneficiaries, official portals, and key highlights.
+            </p>
+          </div>
+        </div>
+
+        <div class="scheme-form-grid">
+          <!-- TARGET BENEFICIARIES -->
+          <div class="form-group form-group--full">
+            <label class="form-label" for="edit-target-beneficiaries">
+              Target Beneficiaries <span class="required">*</span>
+            </label>
+            <div class="input-with-icon">
+              <span class="material-icons input-icon">groups</span>
+              <input id="edit-target-beneficiaries" type="text" class="form-control"
+                formControlName="targetBeneficiaries" placeholder="e.g. Farmers, Students, Women, Senior Citizens"
+                maxlength="500" [class.is-invalid]="
+                    stepSubmitted[2] && schemeForm.get('targetBeneficiaries')?.invalid
+                  " />
+            </div>
+            <div class="form-helper-row">
+              <span class="form-helper">Primary beneficiary target group.</span>
+              <span class="char-counter">
+                {{ schemeForm.get('targetBeneficiaries')?.value?.length || 0 }}/500 characters
+              </span>
+            </div>
+          </div>
+
+          <!-- SOURCE URL -->
+          <div class="form-group form-group--full">
+            <label class="form-label" for="edit-source-url">Source URL</label>
+            <div class="input-with-icon">
+              <span class="material-icons input-icon">link</span>
+              <input id="edit-source-url" type="url" class="form-control" formControlName="sourceUrl"
+                placeholder="https://www.example.gov.in" />
+            </div>
+            <p class="form-helper">Official government source URL.</p>
+          </div>
+
+          <!-- KEY HIGHLIGHTS -->
+          <div class="form-group form-group--full">
+            <label class="form-label">Key Highlights</label>
+            <div formArrayName="keyHighlights" class="dynamic-list">
+              @for (highlightCtrl of keyHighlights.controls; track $index; let i = $index) {
+              <div class="dynamic-row">
+                <input type="text" class="form-control" [formControlName]="i"
+                  placeholder="Enter a key highlight of the scheme" />
+                <button type="button" class="btn-icon-danger" (click)="removeHighlight(i)"
+                  aria-label="Remove highlight">
+                  <span class="material-icons">delete_outline</span>
+                </button>
+              </div>
+              }
+
+              <button type="button" class="btn-dashed-add" (click)="addHighlight()">
+                <span class="material-icons">add</span>
+                <span>Add Highlight</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ADDITIONAL INFORMATION -->
+          <div class="form-group form-group--full">
+            <label class="form-label" for="edit-add-info">
+              Additional Information <span class="optional">(Optional)</span>
+            </label>
+            <div class="textarea-container">
+              <span class="material-icons textarea-icon">description</span>
+              <textarea id="edit-add-info" class="form-control form-textarea" rows="3" formControlName="additionalInfo"
+                placeholder="Any other relevant information..." maxlength="1000"></textarea>
+            </div>
+          </div>
+
+          <!-- IMPORTANT NOTES -->
+          <div class="form-group form-group--full">
+            <label class="form-label" for="edit-imp-notes">
+              Important Notes / Disclaimers <span class="optional">(Optional)</span>
+            </label>
+            <div class="textarea-container">
+              <span class="material-icons textarea-icon">info_outline</span>
+              <textarea id="edit-imp-notes" class="form-control form-textarea" rows="3" formControlName="importantNotes"
+                placeholder="Enter important notes or disclaimers..." maxlength="1000"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- =========================================================
+         STEP 3: ELIGIBILITY CRITERIA
+         ========================================================= -->
+    @if (currentStep === 3) {
+    <div class="scheme-layout scheme-layout--single">
+      <div class="scheme-card">
+        <div class="scheme-card__header scheme-card__header--split">
+          <div class="scheme-card__header-main">
+            <div class="scheme-card__icon-badge">
+              <span class="material-icons">diversity_3</span>
+            </div>
+            <div>
+              <h2 class="scheme-card__title">Eligibility Criteria</h2>
+              <p class="scheme-card__subtitle">
+                Specify criteria applicants must meet to qualify for this scheme.
+              </p>
+            </div>
+          </div>
+
+          <div class="scheme-card__header-tip">
+            <span class="material-icons">lightbulb_outline</span>
+            <span>Objective eligibility criteria ensure transparent citizen access.</span>
+          </div>
+        </div>
+
+        <div class="criteria-list">
+          <!-- AGE CRITERIA -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">calendar_today</span>
+              <span>Age Criteria <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs criteria-row__inputs--dual">
+              <div class="sub-input-group">
+                <label class="sub-label" for="edit-min-age">Minimum Age (years)</label>
+                <div class="input-with-icon">
+                  <span class="material-icons input-icon">calendar_today</span>
+                  <input id="edit-min-age" type="number" class="form-control" formControlName="minAge"
+                    placeholder="e.g. 18" />
+                </div>
+              </div>
+
+              <div class="sub-input-group">
+                <label class="sub-label" for="edit-max-age">Maximum Age (years)</label>
+                <div class="input-with-icon">
+                  <span class="material-icons input-icon">calendar_today</span>
+                  <input id="edit-max-age" type="number" class="form-control" formControlName="maxAge"
+                    placeholder="e.g. 35" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GENDER -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">wc</span>
+              <span>Gender <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" formControlName="gender" value="All" />
+                  <span>All</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="gender" value="Male Only" />
+                  <span>Male Only</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="gender" value="Female Only" />
+                  <span>Female Only</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="gender" value="Other" />
+                  <span>Other</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- ANNUAL INCOME -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">currency_rupee</span>
+              <span>Annual Income <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <label class="sub-label" for="edit-annual-income">Maximum Annual Income (₹)</label>
+              <div class="input-with-icon">
+                <span class="material-icons input-icon">currency_rupee</span>
+                <input id="edit-annual-income" type="number" class="form-control" formControlName="annualIncome"
+                  placeholder="e.g. 500000" />
+              </div>
+            </div>
+          </div>
+
+          <!-- EDUCATION -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">school</span>
+              <span>Education <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="input-with-icon select-wrapper">
+                <span class="material-icons input-icon">school</span>
+                <select class="form-control form-select" formControlName="education">
+                  <option value="" selected>Select minimum educational qualification</option>
+                  @for (edu of educationOptions; track edu) {
+                  <option [value]="edu">{{ edu }}</option>
+                  }
+                </select>
+                <span class="material-icons select-arrow">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- OCCUPATION -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">work_outline</span>
+              <span>Occupation <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="input-with-icon select-wrapper">
+                <span class="material-icons input-icon">work_outline</span>
+                <select class="form-control form-select" formControlName="occupation">
+                  <option value="" selected>Select eligible occupation(s)</option>
+                  @for (occ of occupationOptions; track occ) {
+                  <option [value]="occ">{{ occ }}</option>
+                  }
+                </select>
+                <span class="material-icons select-arrow">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SOCIAL CATEGORY -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">group</span>
+              <span>Social Category <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="input-with-icon select-wrapper">
+                <span class="material-icons input-icon">group</span>
+                <select class="form-control form-select" formControlName="socialCategory">
+                  <option value="" selected>Select applicable category(ies)</option>
+                  @for (cat of socialCategoryOptions; track cat) {
+                  <option [value]="cat">{{ cat }}</option>
+                  }
+                </select>
+                <span class="material-icons select-arrow">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- STATE / REGION -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">location_on</span>
+              <span>State / Region <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="input-with-icon select-wrapper">
+                <span class="material-icons input-icon">location_on</span>
+                <select class="form-control form-select" formControlName="eligibilityState">
+                  <option value="" disabled>Select applicable state(s) or region(s)</option>
+                  @for (st of states; track st) {
+                  <option [value]="st">{{ st }}</option>
+                  }
+                </select>
+                <span class="material-icons select-arrow">expand_more</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- DISABILITY STATUS -->
+          <div class="criteria-row">
+            <div class="criteria-row__label">
+              <span class="material-icons criteria-row__icon">accessible</span>
+              <span>Disability Status <span class="optional">(Optional)</span></span>
+            </div>
+            <div class="criteria-row__inputs">
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input type="radio" formControlName="disabilityStatus" value="Applicable" />
+                  <span>Applicable</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="disabilityStatus" value="Not Applicable" />
+                  <span>Not Applicable</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" formControlName="disabilityStatus" value="Both" />
+                  <span>Both</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Criteria Box -->
+        <div class="additional-criteria-box">
+          <div class="additional-criteria-box__info">
+            <span class="material-icons additional-criteria-box__icon">description</span>
+            <div>
+              <h4 class="additional-criteria-box__title">
+                Additional Eligibility Criteria <span class="optional">(Optional)</span>
+              </h4>
+              <p class="additional-criteria-box__sub">
+                Add or modify specific eligibility conditions.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="btn-outline-criteria" (click)="addAdditionalCriteria()">
+            <span class="material-icons">add</span>
+            <span>Add Criteria</span>
+          </button>
+        </div>
+
+        <!-- Dynamic Additional Criteria list -->
+        @if (additionalCriteriaList.length > 0) {
+        <div class="additional-criteria-list">
+          @for (crit of additionalCriteriaList; track $index; let i = $index) {
+          <div class="dynamic-row">
+            <span class="material-icons row-icon">check_circle_outline</span>
+            <input type="text" class="form-control" [(ngModel)]="additionalCriteriaList[i]"
+              [ngModelOptions]="{ standalone: true }" />
+            <button type="button" class="btn-icon-danger" (click)="removeAdditionalCriteria(i)"
+              aria-label="Remove criteria">
+              <span class="material-icons">delete_outline</span>
+            </button>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- =========================================================
+         STEP 4: DOCUMENTS & APPLICATION
+         ========================================================= -->
+    @if (currentStep === 4) {
+    <div class="scheme-layout scheme-layout--single">
+      <div class="scheme-card">
+        <div class="scheme-card__header scheme-card__header--split">
+          <div class="scheme-card__header-main">
+            <div class="scheme-card__icon-badge">
+              <span class="material-icons">description</span>
+            </div>
+            <div>
+              <h2 class="scheme-card__title">Documents &amp; Application</h2>
+              <p class="scheme-card__subtitle">
+                Update required documents and application details for this scheme.
+              </p>
+            </div>
+          </div>
+
+          <div class="tips-box-compact">
+            <div class="tips-box-compact__header">
+              <span class="material-icons">lightbulb_outline</span>
+              <strong>Tips</strong>
+            </div>
+            <ul class="tips-box-compact__list">
+              <li>List all documents required from applicants.</li>
+              <li>Describe the step-by-step application process.</li>
+              <li>Provide official application and reference URLs.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="scheme-form-grid">
+          <!-- DOCUMENTS REQUIRED -->
+          <div class="form-group form-group--full">
+            <div class="form-label-with-icon">
+              <span class="material-icons field-icon">assignment</span>
+              <label class="form-label" for="edit-docs-required">
+                Documents Required <span class="required">*</span>
+              </label>
+            </div>
+            <textarea id="edit-docs-required" class="form-control form-textarea" rows="4"
+              formControlName="documentsRequired"
+              placeholder="e.g. Aadhaar Card, Income Certificate, Caste Certificate..." maxlength="2000"
+              [class.is-invalid]="
+                  stepSubmitted[4] && schemeForm.get('documentsRequired')?.invalid
+                "></textarea>
+            <div class="form-helper-row form-helper-row--end">
+              <span class="char-counter">
+                {{ schemeForm.get('documentsRequired')?.value?.length || 0 }}/2000 characters
+              </span>
+            </div>
+          </div>
+
+          <!-- APPLICATION PROCESS -->
+          <div class="form-group form-group--full">
+            <div class="form-label-with-icon">
+              <span class="material-icons field-icon">format_list_numbered</span>
+              <label class="form-label" for="edit-app-process">
+                Application Process <span class="required">*</span>
+              </label>
+            </div>
+            <textarea id="edit-app-process" class="form-control form-textarea" rows="6"
+              formControlName="applicationProcess" placeholder="Describe the step-by-step application steps..."
+              maxlength="2000" [class.is-invalid]="
+                  stepSubmitted[4] && schemeForm.get('applicationProcess')?.invalid
+                "></textarea>
+            <div class="form-helper-row form-helper-row--end">
+              <span class="char-counter">
+                {{ schemeForm.get('applicationProcess')?.value?.length || 0 }}/2000 characters
+              </span>
+            </div>
+          </div>
+
+          <!-- APPLICATION URL -->
+          <div class="form-group form-group--full">
+            <div class="form-label-with-icon">
+              <span class="material-icons field-icon">link</span>
+              <label class="form-label" for="edit-app-url">Application URL</label>
+            </div>
+            <div class="input-with-icon">
+              <span class="material-icons input-icon">link</span>
+              <input id="edit-app-url" type="url" class="form-control" formControlName="applicationUrl"
+                placeholder="https://www.example.gov.in/apply" />
+            </div>
+          </div>
+
+          <!-- SOURCE URL -->
+          <div class="form-group form-group--full">
+            <div class="form-label-with-icon">
+              <span class="material-icons field-icon">link</span>
+              <label class="form-label" for="edit-source-url-2">Source URL</label>
+            </div>
+            <div class="input-with-icon">
+              <span class="material-icons input-icon">link</span>
+              <input id="edit-source-url-2" type="url" class="form-control" formControlName="applicationSourceUrl"
+                placeholder="https://www.example.gov.in" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- =========================================================
+         STEP 5: REVIEW & SUBMIT
+         ========================================================= -->
+    @if (currentStep === 5) {
+    <div class="scheme-layout scheme-layout--single">
+      <div class="scheme-card">
+        <div class="scheme-card__header scheme-card__header--split">
+          <div class="scheme-card__header-main">
+            <div class="scheme-card__icon-badge">
+              <span class="material-icons">find_in_page</span>
+            </div>
+            <div>
+              <h2 class="scheme-card__title">Review Updated Scheme Details</h2>
+              <p class="scheme-card__subtitle">
+                Verify your changes before submitting. You can click Edit on any section to revise.
+              </p>
+            </div>
+          </div>
+
+          <!-- Role-Aware Review Notice -->
+          <div class="review-notice">
+            <span class="material-icons">info</span>
+            <p>
+              Make sure all updated information is correct before submitting.
+              @if (isAdmin) {
+              The scheme will be updated directly.
+              } @else {
+              The changes will be submitted for administrative review and approval.
+              }
+            </p>
+          </div>
+        </div>
+
+        <!-- REVIEW SECTIONS -->
+        <div class="review-sections">
+          <!-- 1. BASIC INFORMATION -->
+          <div class="review-block">
+            <div class="review-block__header">
+              <div class="review-block__title-group">
+                <div class="review-block__icon-box">
+                  <span class="material-icons">description</span>
+                </div>
+                <h3 class="review-block__title">Basic Information</h3>
+              </div>
+              <button type="button" class="review-block__btn-edit" (click)="goToStep(1)">
+                <span class="material-icons">edit</span>
+                <span>Edit</span>
+              </button>
+            </div>
+
+            <div class="review-grid">
+              <div class="review-item">
+                <span class="review-item__label">Scheme Name</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value font-bold">{{ schemeForm.get('name')?.value }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Department</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('department')?.value || 'Not provided' }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Category</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('category')?.value }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">State / Region</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('state')?.value || 'All India' }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Ministry</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('ministry')?.value || 'Not provided' }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Benefits</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">
+                  @if (filteredBenefits.length > 0) {
+                  {{ filteredBenefits.join(', ') }}
+                  } @else {
+                  None provided
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. SCHEME DETAILS -->
+          <div class="review-block">
+            <div class="review-block__header">
+              <div class="review-block__title-group">
+                <div class="review-block__icon-box">
+                  <span class="material-icons">article</span>
+                </div>
+                <h3 class="review-block__title">Scheme Details</h3>
+              </div>
+              <button type="button" class="review-block__btn-edit" (click)="goToStep(2)">
+                <span class="material-icons">edit</span>
+                <span>Edit</span>
+              </button>
+            </div>
+
+            <div class="review-grid">
+              <div class="review-item review-item--full">
+                <span class="review-item__label">Description</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('description')?.value }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Target Beneficiaries</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('targetBeneficiaries')?.value }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Source URL</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">
+                  <a [href]="schemeForm.get('sourceUrl')?.value" target="_blank" class="link-external">
+                    {{ schemeForm.get('sourceUrl')?.value }}
+                    <span class="material-icons">open_in_new</span>
+                  </a>
+                </span>
+              </div>
+
+              <div class="review-item review-item--full">
+                <span class="review-item__label">Key Highlights</span>
+                <span class="review-item__colon">:</span>
+                <div class="review-item__value">
+                  @if (filteredHighlights.length > 0) {
+                  <ul class="bullet-list">
+                    @for (hl of filteredHighlights; track hl) {
+                    <li>{{ hl }}</li>
+                    }
+                  </ul>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. ELIGIBILITY CRITERIA -->
+          <div class="review-block">
+            <div class="review-block__header">
+              <div class="review-block__title-group">
+                <div class="review-block__icon-box">
+                  <span class="material-icons">groups</span>
+                </div>
+                <h3 class="review-block__title">Eligibility Criteria</h3>
+              </div>
+              <button type="button" class="review-block__btn-edit" (click)="goToStep(3)">
+                <span class="material-icons">edit</span>
+                <span>Edit</span>
+              </button>
+            </div>
+
+            <div class="review-grid">
+              <div class="review-item">
+                <span class="review-item__label">Age Criteria</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ formattedAge }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Gender</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('gender')?.value || 'All' }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Annual Income</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ formattedIncome }}</span>
+              </div>
+
+              <div class="review-item">
+                <span class="review-item__label">Education</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('education')?.value || 'Not Specified' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. DOCUMENTS & APPLICATION -->
+          <div class="review-block">
+            <div class="review-block__header">
+              <div class="review-block__title-group">
+                <div class="review-block__icon-box">
+                  <span class="material-icons">link</span>
+                </div>
+                <h3 class="review-block__title">Documents &amp; Application</h3>
+              </div>
+              <button type="button" class="review-block__btn-edit" (click)="goToStep(4)">
+                <span class="material-icons">edit</span>
+                <span>Edit</span>
+              </button>
+            </div>
+
+            <div class="review-grid">
+              <div class="review-item review-item--full">
+                <span class="review-item__label">Documents Required</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value">{{ schemeForm.get('documentsRequired')?.value }}</span>
+              </div>
+
+              <div class="review-item review-item--full">
+                <span class="review-item__label">Application Process</span>
+                <span class="review-item__colon">:</span>
+                <span class="review-item__value pre-wrap">{{ schemeForm.get('applicationProcess')?.value }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. DECLARATION -->
+          <div class="declaration-card"
+            [class.is-invalid]="stepSubmitted[5] && schemeForm.get('declarationAgreed')?.invalid">
+            <div class="declaration-card__header">
+              <div class="declaration-card__icon-box">
+                <span class="material-icons">verified_user</span>
+              </div>
+              <div class="declaration-card__body">
+                <h4 class="declaration-card__title">Declaration</h4>
+                <p class="declaration-card__text">
+                  I hereby declare that all updated information provided is true and verified against official
+                  government guidelines.
+                </p>
+              </div>
+              <label class="declaration-checkbox">
+                <input type="checkbox" formControlName="declarationAgreed" />
+                <span>I agree to the above declaration</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- =========================================================
+         STICKY FOOTER ACTIONS
+         ========================================================= -->
+    <div class="scheme-create__footer">
+      <div class="scheme-create__footer-left">
+        @if (currentStep > 1) {
+        <button type="button" class="btn btn-outline" (click)="prevStep()">
+          <span class="material-icons">arrow_back</span>
+          <span>Previous</span>
+        </button>
+        } @else {
+        <button type="button" class="btn btn-outline" (click)="cancel()">
+          <span class="material-icons">arrow_back</span>
+          <span>Cancel</span>
+        </button>
+        }
+      </div>
+
+      <div class="scheme-create__footer-right">
+        @if (currentStep > 1) {
+        <button type="button" class="btn btn-outline btn-cancel" (click)="cancel()">
+          Cancel
+        </button>
+        }
+
+        @if (currentStep < totalSteps) { <button type="button" class="btn btn-primary" (click)="nextStep()">
+          <span>Next</span>
+          <span class="material-icons">arrow_forward</span>
+          </button>
+          } @else {
+          <!-- STEP 5 FINAL ACTION -->
+          @if (isAdmin) {
+          <!-- ADMIN DIRECT UPDATE -->
+          <button type="submit" class="btn btn-primary btn-submit-action">
+            <span class="material-icons">check_circle</span>
+            <span>Update Scheme</span>
+          </button>
+          } @else {
+          <!-- GOVERNMENT SUBMIT FOR APPROVAL -->
+          <button type="submit" class="btn btn-primary btn-submit-action">
+            <span class="material-icons">send</span>
+            <span>Submit Updates for Approval</span>
+          </button>
+          }
+          }
+      </div>
+    </div>
+  </form>
+
+  <!-- SUCCESS MODAL -->
+  @if (showSuccessModal) {
+  <div class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-icon-success">
+          <span class="material-icons">
+            {{ isAdmin ? 'check_circle' : 'mark_email_read' }}
+          </span>
+        </div>
+
+        <h3 class="modal-title">
+          {{ isAdmin ? 'Scheme Updated Successfully!' : 'Updates Submitted for Approval!' }}
+        </h3>
+
+        <p class="modal-message">
+          @if (isAdmin) {
+          The scheme <strong>“{{ schemeForm.get('name')?.value }}”</strong> has been updated and changes are immediately
+          live.
+          } @else {
+          The revisions for <strong>“{{ schemeForm.get('name')?.value }}”</strong> have been submitted for
+          administrative review.
+          }
+        </p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary modal-btn-confirm" (click)="closeSuccessModal()">
+            Back to Manage Schemes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+</div>

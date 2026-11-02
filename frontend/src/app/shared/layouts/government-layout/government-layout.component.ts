@@ -63,6 +63,13 @@ export class GovernmentLayoutComponent implements OnInit {
   mobileMenuOpen = false;
 
   // =======================================================
+  // SUBMENUS
+  // =======================================================
+
+  policiesMenuOpen = false;
+  schemesMenuOpen = false;
+
+  // =======================================================
   // SEARCH
   // =======================================================
 
@@ -137,6 +144,12 @@ export class GovernmentLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentUser();
+
+    if (this.isPoliciesRouteActive()) {
+      this.policiesMenuOpen = true;
+    } else if (this.isSchemesRouteActive()) {
+      this.schemesMenuOpen = true;
+    }
   }
 
   // =======================================================
@@ -250,6 +263,68 @@ export class GovernmentLayoutComponent implements OnInit {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
+  }
+
+  // =======================================================
+  // SUBMENU CONTROLS
+  // =======================================================
+
+  togglePoliciesMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.policiesMenuOpen = !this.policiesMenuOpen;
+    if (this.policiesMenuOpen) {
+      this.schemesMenuOpen = false;
+    }
+  }
+
+  closePoliciesMenu(): void {
+    this.policiesMenuOpen = false;
+  }
+
+  toggleSchemesMenu(): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+    }
+
+    this.schemesMenuOpen = !this.schemesMenuOpen;
+    if (this.schemesMenuOpen) {
+      this.policiesMenuOpen = false;
+    }
+  }
+
+  closeSchemesMenu(): void {
+    this.schemesMenuOpen = false;
+  }
+
+  closeAllSubmenus(): void {
+    this.policiesMenuOpen = false;
+    this.schemesMenuOpen = false;
+  }
+
+  // =======================================================
+  // ROUTE ACTIVE CHECKS
+  // =======================================================
+
+  isDashboardRouteActive(): boolean {
+    return (
+      !this.policiesMenuOpen &&
+      !this.schemesMenuOpen &&
+      this.router.url === "/dashboard/government"
+    );
+  }
+
+  isPoliciesRouteActive(): boolean {
+    return this.router.url.startsWith("/dashboard/government/policies");
+  }
+
+  isSchemesRouteActive(): boolean {
+    return (
+      this.router.url.startsWith("/dashboard/government/schemes") ||
+      this.router.url.startsWith("/dashboard/government/compare")
+    );
   }
 
   // =======================================================

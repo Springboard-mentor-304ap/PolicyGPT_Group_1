@@ -1,0 +1,671 @@
+<div class="eligibility-page">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span>Citizen Dashboard</span>
+    <span class="separator">›</span>
+    <span>Eligibility Checker</span>
+    <span class="separator">›</span>
+    <span class="current">Check Specific Scheme / Policy</span>
+  </div>
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Check a Specific Scheme or Policy</h1>
+      <p>
+        Check whether you are eligible for a particular
+        government scheme or policy.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="back-button"
+      (click)="goBackToChecker()"
+    >
+      ← Back to Eligibility Checker
+    </button>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+
+    <!-- LEFT CONTENT -->
+    <main class="main-content">
+
+      <!-- Step 1 -->
+      <section class="card">
+
+        <div class="section-heading">
+          <div class="step-number">1</div>
+
+          <div>
+            <h2>Select Scheme or Policy</h2>
+            <p>
+              Choose the type and specific program you want
+              to check.
+            </p>
+          </div>
+        </div>
+
+        <!-- Entity Type -->
+        <div class="type-selector">
+
+          <button
+            type="button"
+            class="type-option"
+            [class.active]="entityType === 'scheme'"
+            (click)="entityType = 'scheme'; onEntityTypeChange()"
+          >
+            <span class="type-icon">▣</span>
+
+            <span>
+              <strong>Schemes</strong>
+              <small>Government welfare schemes</small>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="type-option"
+            [class.active]="entityType === 'policy'"
+            (click)="entityType = 'policy'; onEntityTypeChange()"
+          >
+            <span class="type-icon">▤</span>
+
+            <span>
+              <strong>Policies</strong>
+              <small>Government policies</small>
+            </span>
+          </button>
+
+        </div>
+
+        <!-- Entity Dropdown -->
+        <div class="form-group">
+
+          <label for="entity">
+            Select {{ entityType === 'scheme' ? 'Scheme' : 'Policy' }}
+            <span class="required">*</span>
+          </label>
+
+          <div
+            *ngIf="loadingEntities"
+            class="loading-box"
+          >
+            <div class="spinner"></div>
+            <span>
+              Loading
+              {{ entityType === 'scheme' ? 'schemes' : 'policies' }}...
+            </span>
+          </div>
+
+          <select
+            *ngIf="!loadingEntities"
+            id="entity"
+            [(ngModel)]="selectedEntityId"
+            (ngModelChange)="onEntitySelected()"
+            class="form-control"
+          >
+            <option [ngValue]="null">
+              Select a
+              {{ entityType === 'scheme' ? 'scheme' : 'policy' }}
+            </option>
+
+            <option
+              *ngFor="let entity of entities"
+              [ngValue]="entity.id"
+            >
+              {{ entity.name }}
+            </option>
+          </select>
+
+          <p
+            *ngIf="!loadingEntities && entities.length === 0"
+            class="empty-text"
+          >
+            No
+            {{ entityType === 'scheme' ? 'schemes' : 'policies' }}
+            are currently available.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- Selected Entity Details -->
+      <section
+        class="card selected-card"
+        *ngIf="selectedEntity"
+      >
+
+        <div class="section-heading compact">
+          <div class="entity-icon">
+            {{ entityType === 'scheme' ? '▣' : '▤' }}
+          </div>
+
+          <div>
+            <span class="eyebrow">
+              Selected {{ entityType === 'scheme' ? 'Scheme' : 'Policy' }}
+            </span>
+
+            <h2>{{ selectedEntity.name }}</h2>
+          </div>
+        </div>
+
+        <div
+          class="entity-details"
+          *ngIf="selectedEntity.description"
+        >
+          <h3>Description</h3>
+
+          <p>
+            {{ selectedEntity.description }}
+          </p>
+        </div>
+
+        <div class="metadata-grid">
+
+          <div
+            class="metadata-item"
+            *ngIf="selectedEntity.ministry"
+          >
+            <span class="metadata-label">Ministry</span>
+            <strong>{{ selectedEntity.ministry }}</strong>
+          </div>
+
+          <div
+            class="metadata-item"
+            *ngIf="selectedEntity.category"
+          >
+            <span class="metadata-label">Category</span>
+            <strong>{{ selectedEntity.category }}</strong>
+          </div>
+
+          <div
+            class="metadata-item"
+            *ngIf="selectedEntity.status"
+          >
+            <span class="metadata-label">Status</span>
+            <strong>{{ selectedEntity.status }}</strong>
+          </div>
+
+        </div>
+
+      </section>
+
+
+      <!-- Step 2 -->
+      <section class="card">
+
+        <div class="section-heading">
+          <div class="step-number">2</div>
+
+          <div>
+            <h2>Your Details</h2>
+            <p>
+              Enter your information to check your eligibility.
+            </p>
+          </div>
+        </div>
+
+        <div class="form-grid">
+
+          <!-- Age -->
+          <div class="form-group">
+            <label for="age">
+              Age <span class="required">*</span>
+            </label>
+
+            <input
+              id="age"
+              type="number"
+              min="0"
+              max="120"
+              [(ngModel)]="profile.age"
+              class="form-control"
+              placeholder="Enter your age"
+            />
+          </div>
+
+
+          <!-- Gender -->
+          <div class="form-group">
+            <label for="gender">
+              Gender <span class="required">*</span>
+            </label>
+
+            <select
+              id="gender"
+              [(ngModel)]="profile.gender"
+              class="form-control"
+            >
+              <option
+                *ngFor="let gender of genders"
+                [value]="gender"
+              >
+                {{ gender }}
+              </option>
+            </select>
+          </div>
+
+
+          <!-- Income -->
+          <div class="form-group">
+            <label for="income">
+              Annual Income
+            </label>
+
+            <div class="input-prefix">
+              <span>₹</span>
+
+              <input
+                id="income"
+                type="number"
+                min="0"
+                [(ngModel)]="profile.annual_income"
+                class="form-control"
+                placeholder="Annual income"
+              />
+            </div>
+          </div>
+
+
+          <!-- Occupation -->
+          <div class="form-group">
+            <label for="occupation">
+              Occupation
+            </label>
+
+            <select
+              id="occupation"
+              [(ngModel)]="profile.occupation"
+              class="form-control"
+            >
+              <option [ngValue]="null">
+                Select occupation
+              </option>
+
+              <option
+                *ngFor="let occupation of occupations"
+                [value]="occupation"
+              >
+                {{ occupation }}
+              </option>
+            </select>
+          </div>
+
+
+          <!-- Education -->
+          <div class="form-group">
+            <label for="education">
+              Education
+            </label>
+
+            <select
+              id="education"
+              [(ngModel)]="profile.education"
+              class="form-control"
+            >
+              <option [ngValue]="null">
+                Select education
+              </option>
+
+              <option
+                *ngFor="let education of educationLevels"
+                [value]="education"
+              >
+                {{ education }}
+              </option>
+            </select>
+          </div>
+
+
+          <!-- State -->
+          <div class="form-group">
+            <label for="state">
+              State
+            </label>
+
+            <select
+              id="state"
+              [(ngModel)]="profile.state"
+              class="form-control"
+            >
+              <option [ngValue]="null">
+                Select state
+              </option>
+
+              <option
+                *ngFor="let state of states"
+                [value]="state"
+              >
+                {{ state }}
+              </option>
+            </select>
+          </div>
+
+
+          <!-- Social Category -->
+          <div class="form-group">
+            <label for="category">
+              Social Category
+            </label>
+
+            <select
+              id="category"
+              [(ngModel)]="profile.social_category"
+              class="form-control"
+            >
+              <option [ngValue]="null">
+                Select category
+              </option>
+
+              <option
+                *ngFor="let category of socialCategories"
+                [value]="category"
+              >
+                {{ category }}
+              </option>
+            </select>
+          </div>
+
+
+          <!-- Disability -->
+          <div class="form-group">
+            <label for="disability">
+              Disability Status
+            </label>
+
+            <select
+              id="disability"
+              [(ngModel)]="profile.disability_status"
+              class="form-control"
+            >
+              <option [ngValue]="false">
+                No
+              </option>
+
+              <option [ngValue]="true">
+                Yes
+              </option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Buttons -->
+        <div class="action-row">
+
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="reset()"
+          >
+            Reset
+          </button>
+
+          <button
+            type="button"
+            class="primary-button"
+            [disabled]="checking || !selectedEntityId"
+            (click)="checkEligibility()"
+          >
+
+            <span
+              class="button-spinner"
+              *ngIf="checking"
+            ></span>
+
+            <span *ngIf="!checking">
+              Check Eligibility
+            </span>
+
+            <span *ngIf="checking">
+              Checking Eligibility...
+            </span>
+
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- Error -->
+      <div
+        class="error-box"
+        *ngIf="errorMessage"
+      >
+        <div class="error-icon">!</div>
+
+        <div>
+          <strong>Unable to complete the check</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+      </div>
+
+
+      <!-- Result -->
+      <section
+        class="result-card"
+        *ngIf="result"
+        [class.eligible]="result.eligible"
+        [class.not-eligible]="!result.eligible"
+      >
+
+        <!-- Result Header -->
+        <div class="result-header">
+
+          <div
+            class="result-icon"
+            [class.success]="result.eligible"
+            [class.failure]="!result.eligible"
+          >
+            <span *ngIf="result.eligible">✓</span>
+            <span *ngIf="!result.eligible">×</span>
+          </div>
+
+          <div class="result-title">
+
+            <span class="result-label">
+              Eligibility Result
+            </span>
+
+            <h2>
+              {{ result.eligible ? 'You are Eligible' : 'You are Not Eligible' }}
+            </h2>
+
+            <p>
+              {{ result.entity_name }}
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <!-- Message -->
+        <div class="result-message">
+          {{ result.message }}
+        </div>
+
+
+        <!-- Criteria -->
+        <div class="criteria-section">
+
+          <div
+            class="criteria-column matched"
+            *ngIf="result.matched_rules?.length"
+          >
+
+            <h3>
+              <span>✓</span>
+              Matched Criteria
+            </h3>
+
+            <ul>
+              <li
+                *ngFor="let rule of result.matched_rules"
+              >
+                {{ rule }}
+              </li>
+            </ul>
+
+          </div>
+
+
+          <div
+            class="criteria-column failed"
+            *ngIf="result.failed_rules?.length"
+          >
+
+            <h3>
+              <span>×</span>
+              Criteria Not Met
+            </h3>
+
+            <ul>
+              <li
+                *ngFor="let rule of result.failed_rules"
+              >
+                {{ rule }}
+              </li>
+            </ul>
+
+          </div>
+
+        </div>
+
+
+        <!-- Next Steps -->
+        <div class="next-steps">
+
+          <h3>Next Steps</h3>
+
+          <p *ngIf="result.eligible">
+            You meet the eligibility criteria for this
+            {{ entityType }}. You can now review the
+            application requirements and proceed with the
+            application process.
+          </p>
+
+          <p *ngIf="!result.eligible">
+            Review the criteria that were not met above.
+            You may also check other schemes and policies
+            that may be available for your profile.
+          </p>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="side-content">
+
+      <!-- Information Card -->
+      <div class="info-card">
+
+        <div class="info-icon">i</div>
+
+        <h3>How Eligibility Checking Works</h3>
+
+        <p>
+          We compare the information you provide with the
+          eligibility criteria configured for the selected
+          government program.
+        </p>
+
+        <div class="info-step">
+          <span>1</span>
+          <p>Select a scheme or policy.</p>
+        </div>
+
+        <div class="info-step">
+          <span>2</span>
+          <p>Enter your personal details.</p>
+        </div>
+
+        <div class="info-step">
+          <span>3</span>
+          <p>Click Check Eligibility.</p>
+        </div>
+
+        <div class="info-step">
+          <span>4</span>
+          <p>Review your eligibility result.</p>
+        </div>
+
+      </div>
+
+
+      <!-- Selected Program Card -->
+      <div
+        class="summary-card"
+        *ngIf="selectedEntity"
+      >
+
+        <div class="summary-top">
+          <span class="summary-type">
+            {{ entityType === 'scheme' ? 'SCHEME' : 'POLICY' }}
+          </span>
+
+          <span
+            class="status-dot"
+            [class.active]="!!selectedEntity"
+          ></span>
+        </div>
+
+        <h3>
+          {{ selectedEntity.name }}
+        </h3>
+
+        <div
+          class="summary-row"
+          *ngIf="selectedEntity.category"
+        >
+          <span>Category</span>
+          <strong>
+            {{ selectedEntity.category }}
+          </strong>
+        </div>
+
+        <div
+          class="summary-row"
+          *ngIf="selectedEntity.ministry"
+        >
+          <span>Ministry</span>
+          <strong>
+            {{ selectedEntity.ministry }}
+          </strong>
+        </div>
+
+      </div>
+
+
+      <!-- Privacy Card -->
+      <div class="privacy-card">
+
+        <div class="privacy-icon">🔒</div>
+
+        <div>
+          <h3>Your Information</h3>
+
+          <p>
+            Your information is used only to perform the
+            eligibility check.
+          </p>
+        </div>
+
+      </div>
+
+    </aside>
+
+  </div>
+
+</div>

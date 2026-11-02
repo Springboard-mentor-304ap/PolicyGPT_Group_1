@@ -1,8 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-
+# from app.models.notification import Notification
 from app.core.config import settings
-
 
 # =========================================================
 # DATABASE ENGINE
@@ -11,6 +10,10 @@ from app.core.config import settings
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
+    pool_size=5,
+    max_overflow=10,
+    pool_recycle=1800,
+    pool_timeout=30,
 )
 
 
@@ -35,6 +38,7 @@ Base = declarative_base()
 # =========================================================
 # DATABASE DEPENDENCY
 # =========================================================
+
 
 def get_db():
     db = SessionLocal()

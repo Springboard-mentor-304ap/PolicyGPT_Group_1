@@ -14,13 +14,11 @@
 // =========================================================
 
 .profile-page {
-  width: 90%;
-  max-width: 1200px;
-
-  margin: 0 auto;
-  padding: 0;
-  margin-top: 50px;
-  margin-bottom: 50px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 28px 32px 40px;
   box-sizing: border-box;
 }
 
@@ -1070,9 +1068,15 @@
 // TABLET / MOBILE - 768px
 // =========================================================
 
+@media (max-width: 1050px) {
+  .profile-page {
+    padding: 22px;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-page {
-    padding: 0;
+    padding: 18px;
   }
 
   .profile-header {
@@ -1190,6 +1194,10 @@
 // =========================================================
 
 @media (max-width: 480px) {
+  .profile-page {
+    padding: 14px;
+  }
+
   .title-group {
     h1 {
       font-size: 25px;

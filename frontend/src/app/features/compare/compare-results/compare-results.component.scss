@@ -1,0 +1,539 @@
+.compare-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 28px 32px 40px;
+  background: #f4f7fb;
+  box-sizing: border-box;
+}
+
+/* =========================
+   PAGE HEADER
+   ========================= */
+
+.page-header {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 28px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  h1 {
+    margin: 0;
+    color: #172033;
+    font-size: 32px;
+    font-weight: 750;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    margin: 8px 0 0;
+    color: #475569;
+    font-size: 15px;
+    font-weight: 500;
+  }
+}
+
+/* =========================
+   BACK BUTTON
+   ========================= */
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 17px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #273248;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+  }
+
+  span {
+    font-size: 18px;
+    line-height: 1;
+  }
+}
+
+/* =========================
+   LOADING & ERROR STATES
+   ========================= */
+
+.loading-state,
+.error-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.loading-card,
+.error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 32px;
+  background: #ffffff;
+  border: 1px solid #dbe2eb;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(20, 35, 60, 0.05);
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-sizing: border-box;
+
+  h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.retry-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #1d4ed8;
+  }
+}
+
+/* =========================
+   SELECTED ITEMS
+   ========================= */
+
+.selected-items {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 18px;
+
+  &.three-items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* =========================
+   ITEM CARD
+   ========================= */
+
+.item-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #dbe2eb;
+  border-radius: 13px;
+  box-shadow: 0 4px 14px rgba(20, 35, 60, 0.05);
+  box-sizing: border-box;
+}
+
+.item-icon {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+}
+
+.icon-symbol {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.education-icon {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.health-icon {
+  background: #eef8f3;
+  color: #16845b;
+}
+
+.agriculture-icon {
+  background: #f1f8ed;
+  color: #4d8b32;
+}
+
+.policy-icon {
+  background: #eef2f7;
+  color: #1e293b;
+}
+
+.scheme-icon {
+  background: #eef4ff;
+  color: #2563eb;
+}
+
+.item-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  .type-label {
+    color: #315fc9;
+    font-size: 11px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  strong {
+    color: #172033;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* =========================
+   VS BADGE
+   ========================= */
+
+.vs-badge {
+  align-self: center;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(20, 35, 60, 0.06);
+}
+
+/* =========================
+   COMPARISON CARD
+   ========================= */
+
+.comparison-card {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #dbe2eb;
+  border-radius: 14px;
+  box-shadow: 0 5px 18px rgba(20, 35, 60, 0.05);
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* =========================
+   TABLE
+   ========================= */
+
+table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+thead {
+  background: #f1f5f9;
+}
+
+th,
+td {
+  padding: 17px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  color: #172033;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+thead th:first-child {
+  width: 17%;
+}
+
+tbody th {
+  width: 17%;
+  background: #f8fafc;
+  color: #263248;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+tbody td {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: #fbfdff;
+}
+
+/* Column Header in thead */
+.column-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.header-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.policy-badge {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.scheme-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.header-title {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+/* Type Pills */
+.type-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.policy-pill {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.scheme-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* Text Cell */
+.text-cell {
+  max-height: 180px;
+  overflow-y: auto;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+/* Bullet List */
+.bullet-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    line-height: 1.45;
+  }
+}
+
+/* Links */
+td a {
+  color: #2458c6;
+  font-weight: 650;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+
+  &:hover {
+    color: #173f99;
+    text-decoration: underline;
+  }
+}
+
+/* =========================
+   ACTIONS
+   ========================= */
+
+.comparison-actions {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* =========================
+   THREE ITEM TABLE
+   ========================= */
+
+.three-items + .comparison-card {
+  table {
+    min-width: 950px;
+  }
+
+  thead th:first-child,
+  tbody th {
+    width: 16%;
+  }
+
+  thead th:not(:first-child) {
+    width: 28%;
+  }
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 1050px) {
+  .compare-page {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 900px) {
+  .compare-page {
+    padding: 18px;
+  }
+
+  .selected-items {
+    grid-template-columns: 1fr 1fr;
+
+    &.three-items {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .vs-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+  .compare-page {
+    padding: 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+
+    h1 {
+      font-size: 27px;
+    }
+
+    .back-btn {
+      align-self: flex-start;
+    }
+  }
+
+  .selected-items {
+    grid-template-columns: 1fr;
+  }
+
+  .item-card {
+    padding: 16px;
+  }
+
+  .comparison-card {
+    border-radius: 11px;
+  }
+
+  th,
+  td {
+    padding: 14px;
+  }
+}
+
+

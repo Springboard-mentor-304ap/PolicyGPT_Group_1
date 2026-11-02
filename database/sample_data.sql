@@ -43,6 +43,18 @@ VALUES
     '1998-11-10',
     'Guntur',
     'Software Engineer'
+),
+(
+    'Guest User',
+    'guest@policygpt.com',
+    '$2b$12$exampleguesthash',
+    'GUEST',
+    '9000000004',
+    'Andhra Pradesh',
+    NULL,
+    '2000-01-01',
+    'Visakhapatnam',
+    'Guest'
 );
 
 -- ============================================

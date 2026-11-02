@@ -1,66 +1,293 @@
-from datetime import datetime
-
 from sqlalchemy.orm import Session
 
-from app.models.report import Report
-from app.schemas.report import ReportCreate
+from app.models.user import User
+
+from app.services.analytics_service import (
+    get_dashboard_analytics,
+    get_policy_analytics,
+    get_scheme_analytics,
+    get_user_analytics,
+    get_department_analytics,
+    get_usage_statistics,
+    get_role_analytics,
+    get_policy_trends,
+    get_scheme_trends,
+)
 
 
-def create_report(
+# ============================================================
+# GENERATE REPORT
+# ============================================================
+
+def generate_report(
     db: Session,
-    data: ReportCreate,
+    report_type: str,
+    user: User,
 ):
-    report = Report(
-        generated_by=data.generated_by,
-        report_type=data.report_type,
-        report_format=data.report_format,
-        parameters=data.parameters,
-        file_path=data.file_path,
-        generated_at=datetime.utcnow(),
+    report_type = report_type.upper()
+
+    user_id = user.user_id
+    user_role = user.role
+
+    # ========================================================
+    # DASHBOARD REPORT
+    # ========================================================
+
+    if report_type == "DASHBOARD":
+        return get_dashboard_analytics(
+            db=db,
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+    # ========================================================
+    # POLICY REPORT
+    # ========================================================
+
+    if report_type == "POLICY":
+        return get_policy_analytics(db)
+
+    # ========================================================
+    # SCHEME REPORT
+    # ========================================================
+
+    if report_type == "SCHEME":
+        return get_scheme_analytics(db)
+
+    # ========================================================
+    # USER REPORT
+    # ========================================================
+
+    if report_type == "USER":
+        return get_user_analytics(
+            db=db,
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+    # ========================================================
+    # DEPARTMENT REPORT
+    # ========================================================
+
+    if report_type == "DEPARTMENT":
+        return get_department_analytics(db)
+
+    # ========================================================
+    # USAGE REPORT
+    # ========================================================
+
+    if report_type == "USAGE":
+        return get_usage_statistics(
+            db=db,
+            user_id=user_id,
+            user_role=user_role,
+        )
+
+    # ========================================================
+    # ROLE REPORT
+    # ========================================================
+
+    if report_type == "ROLE":
+        return get_role_analytics(
+            db,
+            user,
+        )
+
+    # ========================================================
+    # INVALID REPORT TYPE
+    # ========================================================
+
+    raise ValueError(
+        f"Unsupported report type: {report_type}"
     )
 
-    db.add(report)
-    db.commit()
-    db.refresh(report)
 
-    return report
+# ============================================================
+# ROLE-BASED REPORTS
+# ============================================================
 
-
-def get_reports(
+def get_role_reports(
     db: Session,
-    user_id: int | None = None,
+    user: User,
 ):
-    query = db.query(Report)
 
-    if user_id is not None:
-        query = query.filter(Report.generated_by == user_id)
+    role = str(user.role)
 
-    return query.order_by(
-        Report.generated_at.desc()
-    ).all()
+    user_id = user.user_id
+    user_role = user.role
 
+    # ========================================================
+    # ADMIN
+    # ========================================================
 
-def get_report(
-    db: Session,
-    report_id: int,
-):
-    return (
-        db.query(Report)
-        .filter(Report.report_id == report_id)
-        .first()
-    )
+    if role == "ADMIN":
 
+        return {
+            "role": "ADMIN",
 
-def delete_report(
-    db: Session,
-    report_id: int,
-):
-    report = get_report(db, report_id)
+            "reports": {
+                "dashboard": get_dashboard_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
 
-    if not report:
-        return None
+                "policies": get_policy_analytics(db),
 
-    db.delete(report)
-    db.commit()
+                "schemes": get_scheme_analytics(db),
 
-    return report
+                "users": get_user_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+
+                "departments": get_department_analytics(db),
+
+                "usage": get_usage_statistics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+            }
+        }
+
+    # ========================================================
+    # GOVERNMENT OFFICIAL
+    # ========================================================
+
+    elif role == "GOVERNMENT_OFFICIAL":
+
+        return {
+            "role": "GOVERNMENT_OFFICIAL",
+
+            "reports": {
+                "policies": get_policy_analytics(db),
+
+                "schemes": get_scheme_analytics(db),
+
+                "departments": get_department_analytics(db),
+
+                "policy_trends": get_policy_trends(db),
+
+                "scheme_trends": get_scheme_trends(db),
+
+                "user": get_user_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+
+                "usage": get_usage_statistics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+            }
+        }
+
+    # ========================================================
+    # ORGANIZATION
+    # ========================================================
+
+    elif role == "ORGANIZATION":
+
+        return {
+            "role": "ORGANIZATION",
+
+            "reports": {
+                "policies": get_policy_analytics(db),
+
+                "schemes": get_scheme_analytics(db),
+
+                "policy_trends": get_policy_trends(db),
+
+                "scheme_trends": get_scheme_trends(db),
+
+                "user": get_user_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+
+                "usage": get_usage_statistics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+            }
+        }
+
+    # ========================================================
+    # RESEARCHER
+    # ========================================================
+
+    elif role == "RESEARCHER":
+
+        return {
+            "role": "RESEARCHER",
+
+            "reports": {
+                "policies": get_policy_analytics(db),
+
+                "schemes": get_scheme_analytics(db),
+
+                "policy_trends": get_policy_trends(db),
+
+                "scheme_trends": get_scheme_trends(db),
+
+                "departments": get_department_analytics(db),
+
+                "user": get_user_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+
+                "usage": get_usage_statistics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+            }
+        }
+
+    # ========================================================
+    # CITIZEN
+    # ========================================================
+
+    elif role == "CITIZEN":
+
+        return {
+            "role": "CITIZEN",
+
+            "reports": {
+                "policies": get_policy_analytics(db),
+
+                "schemes": get_scheme_analytics(db),
+
+                "user": get_user_analytics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+
+                "usage": get_usage_statistics(
+                    db=db,
+                    user_id=user_id,
+                    user_role=user_role,
+                ),
+            }
+        }
+
+    # ========================================================
+    # UNKNOWN ROLE
+    # ========================================================
+
+    else:
+
+        return {
+            "role": role,
+            "reports": {},
+            "message": "No reports available for this role",
+        }

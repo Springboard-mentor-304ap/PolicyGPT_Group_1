@@ -115,9 +115,9 @@ export class AdminLayoutComponent implements OnInit {
     },
 
     {
-      label: "Reports",
-      route: "/admin/reports",
-      icon: "assessment",
+  label: "Analytics",
+  route: "/dashboard/admin/analytics",
+  icon: "analytics",
     },
 
     {

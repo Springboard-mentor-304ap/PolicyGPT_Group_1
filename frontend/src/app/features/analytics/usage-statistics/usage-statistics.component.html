@@ -1,0 +1,223 @@
+<div class="stats-container">
+  <!-- Header -->
+  <div class="header-section">
+    <div>
+      <div class="breadcrumb">Home > Analytics > <span>Usage Statistics</span></div>
+      <h1 class="page-title">Usage Statistics</h1>
+      <p class="subtitle">Track platform usage and engagement across all users</p>
+    </div>
+    <div class="header-actions">
+      <div class="date-picker-select">
+        <i class="bi bi-calendar3"></i>
+        <span>Jan 1, 2024 - Sep 30, 2024</span>
+        <i class="bi bi-chevron-down"></i>
+      </div>
+      <button class="btn-download">
+        <i class="bi bi-download"></i> Download Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Metrics Row -->
+  <div class="top-metrics-grid">
+    <div class="metric-card" *ngFor="let metric of topMetrics">
+      <div class="card-icon" [style.background-color]="metric.iconBg" [style.color]="metric.iconColor">
+        <i class="bi" [class]="metric.icon"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-title">{{ metric.title }}</span>
+        <span class="card-value">{{ metric.value }}</span>
+        <span class="card-change">{{ metric.change }} <small>from last period</small></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-row three-col">
+    <!-- User Activity Trend -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Activity Trend</h3>
+        <select class="dropdown-select">
+          <option>Last 12 Months</option>
+        </select>
+      </div>
+      <div class="chart-body line-chart-mock">
+        <svg class="svg-chart" viewBox="0 0 300 120" preserveAspectRatio="none">
+          <path d="M0 60 Q 50 30, 100 40 T 200 20 T 300 15" fill="none" stroke="#2563EB" stroke-width="2"/>
+          <path d="M0 80 Q 50 60, 100 65 T 200 45 T 300 40" fill="none" stroke="#10B981" stroke-width="2"/>
+          <path d="M0 100 Q 50 90, 100 85 T 200 75 T 300 70" fill="none" stroke="#F59E0B" stroke-width="2"/>
+          <path d="M0 110 Q 50 105, 100 100 T 200 90 T 300 85" fill="none" stroke="#8B5CF6" stroke-width="2"/>
+        </svg>
+        <div class="chart-months">
+          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+        </div>
+        <div class="chart-legend">
+          <span><span class="dot" style="background:#2563EB"></span>Visits</span>
+          <span><span class="dot" style="background:#10B981"></span>Searches</span>
+          <span><span class="dot" style="background:#F59E0B"></span>Policy Views</span>
+          <span><span class="dot" style="background:#8B5CF6"></span>Scheme Views</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Usage Bar Chart -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>Daily Usage</h3>
+        <select class="dropdown-select">
+          <option>Last 30 Days</option>
+        </select>
+      </div>
+      <div class="bar-chart-container">
+        <div class="bar-group">
+          <div class="bar-item" style="height: 50%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 35%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 60%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 80%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 45%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 55%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 65%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 70%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 50%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 75%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 85%"><div class="bar"></div></div>
+          <div class="bar-item" style="height: 60%"><div class="bar"></div></div>
+        </div>
+        <div class="bar-dates">
+          <span>Aug 21</span><span>Aug 26</span><span>Aug 31</span><span>Sep 5</span><span>Sep 10</span><span>Sep 15</span><span>Sep 20</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Distribution by Role Donut -->
+    <div class="chart-card">
+      <div class="card-header">
+        <h3>User Distribution by Role</h3>
+      </div>
+      <div class="donut-container">
+        <div class="donut-chart">
+          <div class="donut-center">
+            <strong>5,820</strong>
+            <small>Total Users</small>
+          </div>
+        </div>
+        <ul class="donut-legend">
+          <li *ngFor="let item of distribution">
+            <span class="legend-role"><span class="dot" [style.background-color]="item.color"></span> {{ item.role }}</span>
+            <span class="legend-percent">{{ item.percent }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tables Grid Row -->
+  <div class="tables-row three-col">
+    <!-- Top 10 Searched Policies -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Top 10 Searched Policies</h3>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Policy Title</th>
+            <th>Searches</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of topPolicies">
+            <td>{{ p.id }}</td>
+            <td class="font-medium">{{ p.title }}</td>
+            <td>{{ p.searches }}</td>
+            <td class="text-green">{{ p.trend }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer"><a href="#" class="link-view-all">View All</a></div>
+    </div>
+
+    <!-- Top 10 Searched Schemes -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Top 10 Searched Schemes</h3>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Scheme Title</th>
+            <th>Searches</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of topSchemes">
+            <td>{{ s.id }}</td>
+            <td class="font-medium">{{ s.title }}</td>
+            <td>{{ s.searches }}</td>
+            <td class="text-green">{{ s.trend }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer"><a href="#" class="link-view-all">View All</a></div>
+    </div>
+
+    <!-- Most Active Users -->
+    <div class="table-card">
+      <div class="card-header">
+        <h3>Most Active Users</h3>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>User</th>
+            <th>Role</th>
+            <th>Activities</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of mostActiveUsers">
+            <td>{{ u.id }}</td>
+            <td class="text-muted">{{ u.user }}</td>
+            <td>{{ u.role }}</td>
+            <td class="font-semibold">{{ u.activities }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer"><a href="#" class="link-view-all">View All</a></div>
+    </div>
+  </div>
+
+  <!-- Recent Search Activity Row -->
+  <div class="full-width-card">
+    <div class="card-header">
+      <h3>Recent Search Activity</h3>
+      <a href="#" class="link-view-all">View All</a>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>User</th>
+          <th>Search Query</th>
+          <th>Type</th>
+          <th>Date & Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of recentActivity">
+          <td>{{ item.id }}</td>
+          <td class="text-muted">{{ item.user }}</td>
+          <td class="font-medium">{{ item.query }}</td>
+          <td><span class="badge" [ngClass]="item.badgeClass">{{ item.type }}</span></td>
+          <td class="text-muted">{{ item.dateTime }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

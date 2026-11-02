@@ -10,7 +10,6 @@ from app.api.routes.reports import router as reports_router
 from app.api.routes.notification_preferences import (
     router as notification_preferences_router
 )
-from app.api.routes.department_analytics import router as department_analytics_router
 from app.api.routes.search_history import router as search_history_router
 from app.api.routes.audit_logs import router as audit_logs_router
 from app.api.routes.faqs import router as faqs_router
@@ -135,7 +134,6 @@ app.include_router(feedback_router)
 app.include_router(faqs_router)
 app.include_router(audit_logs_router)
 app.include_router(search_history_router)
-app.include_router(department_analytics_router)
 # =========================================================
 # ROOT
 # =========================================================
